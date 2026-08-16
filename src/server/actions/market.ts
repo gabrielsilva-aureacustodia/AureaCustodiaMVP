@@ -165,27 +165,52 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
-    const total = price * qty
-    if (buyer.balance < total) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
+    if (buyer.balance < price * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
 
+    /*
+     * A TRANSFERÊNCIA VEM ANTES DO DINHEIRO.
+     *
+     * Divergência deliberada do MVP (linha 1426), autorizada pelos sócios — a
+     * mesma correção que o motor de casamento já recebeu em domain/market.ts.
+     * Lá o original debitava, creditava, gravava a negociação e SÓ ENTÃO chamava
+     * transferCoin, ignorando o retorno: uma oferta apontando para moeda que já
+     * não estava com o vendedor movia dinheiro sem mover moeda, e o histórico
+     * registrava uma negociação que não aconteceu.
+     *
+     * Aqui a compra é de LOTE, então o resultado é por unidade: cada oferta
+     * órfã é descartada individualmente, sem contaminar as boas do mesmo lote.
+     * Órfã ou não, toda oferta tocada sai do livro — é o que impede a moeda
+     * fantasma de continuar anunciada para o próximo comprador.
+     */
     const toBuy = offers.slice(0, qty)
-    toBuy.forEach((o) => {
+    const idsConsumidos = new Set<string>()
+    let compradas = 0
+
+    for (const o of toBuy) {
+      idsConsumidos.add(o.id)
       // A comissão é por MOEDA, não por negociação — por isso é recalculada a
       // cada unidade, dentro do laço, exatamente como na linha 1423.
       const fee = tradeFee(price)
+      if (!transferCoin(seller, buyer, o.coinId)) continue
       buyer.balance -= price // o comprador paga o preço cheio
       seller.balance += price - fee // a comissão sai do lado do vendedor
-      transferCoin(seller, buyer, o.coinId)
-    })
+      compradas += 1
+    }
 
-    const idsComprados = new Set(toBuy.map((o) => o.id))
-    state.sellOffers = state.sellOffers.filter((o) => !idsComprados.has(o.id))
+    state.sellOffers = state.sellOffers.filter((o) => !idsConsumidos.has(o.id))
+
+    // Lote inteiro órfão: nenhum saldo mexido, nenhuma linha no histórico. O
+    // livro já ficou limpo das ofertas mortas, então a próxima tentativa nem
+    // chega aqui — encontra o anúncio inexistente e para antes.
+    if (compradas === 0) return { ok: false, error: ANUNCIO_INDISPONIVEL }
+
+    const total = price * compradas
 
     // Uma linha no histórico para a compra inteira, com qty = N — e não N linhas
     // de uma moeda. É o que a tela de gráficos e a média de 7 dias esperam.
-    state.trades.push({ price, qty, date: Date.now(), buyer: session, seller: sellerId })
+    state.trades.push({ price, qty: compradas, date: Date.now(), buyer: session, seller: sellerId })
 
-    return { ok: true, message: `Compra concluída: ${qty} moeda(s) por ${brl(total)}.` }
+    return { ok: true, message: `Compra concluída: ${compradas} moeda(s) por ${brl(total)}.` }
   })
 }
 
