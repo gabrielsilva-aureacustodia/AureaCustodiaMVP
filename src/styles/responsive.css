@@ -80,5 +80,11 @@
   .acct-row .a-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .acct-row .a-val{margin-right:0;flex-shrink:0}
   .acct-row .a-actions{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px}
-  .acct-row .a-actions .btn{min-height:38px;flex-shrink:0}
+  /* Sem min-height próprio: o monolito cravava 38px aqui e, por ser mais
+     específico (0,3,0 contra 0,1,0), derrubava o mínimo de 44px da regra acima
+     justamente no botão mais clicado da tela no celular. Deixando a propriedade
+     de fora, o alvo passa a herdar os 44px e não existem dois números para
+     divergir depois. O flex-shrink continua porque é ele que impede o botão de
+     ser espremido pela pill ao lado. */
+  .acct-row .a-actions .btn{flex-shrink:0}
 }

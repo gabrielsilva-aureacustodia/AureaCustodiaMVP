@@ -71,7 +71,7 @@ Isto é um **port fiel**. Mesmas regras, mesmos números, mesmas mensagens:
 
 ### As duas divergências autorizadas
 
-O port é fiel inclusive nos defeitos, com exatamente duas exceções, revisadas e aprovadas
+O port é fiel inclusive nos defeitos, com exatamente três exceções, revisadas e aprovadas
 pelos sócios. Quem comparar o comportamento com `aurea-mvp-teste.html` vai achar só estas:
 
 **`parsePrice` deixou de errar 100x.** O original apagava todos os pontos antes de tratar a
@@ -85,6 +85,14 @@ chamava `transferCoin`, ignorando o retorno: se a oferta apontasse para uma moed
 inventário do vendedor, o saldo trocava de mãos e a moeda não, com o histórico registrando
 uma negociação que não aconteceu. A transferência passou a vir antes; falhando, a oferta
 órfã sai do livro sem mover saldo nem gravar negociação.
+
+**O botão de vender em "Minhas moedas" voltou aos 44px no celular.** A correção nº 6 do
+diagnóstico mobile estabeleceu 44px como alvo mínimo de toque, mas
+`.acct-row .a-actions .btn{min-height:38px}` derrubava isso por ser mais específico
+(0,3,0 contra 0,1,0) — justamente no botão mais clicado da tela de conta no celular. O
+override saiu de `responsive.css` em vez de ganhar o valor duplicado, então o alvo herda a
+regra geral e não sobram dois números para divergir. O único efeito visual é a terceira
+linha do cartão ficar 6px mais alta.
 
 ---
 
@@ -188,15 +196,11 @@ Estas vieram do MVP e continuam abertas — nenhuma é regressão da refatoraç�
 
 - **Senhas em texto puro.** É a Etapa 2 da migração (bcrypt + sessões). O cookie de sessão
   já é assinado, o que é metade do caminho. O repositório é privado justamente por isso.
-- **Alvo de toque abaixo do mínimo em "Minhas moedas".** No breakpoint de 560px,
-  `.acct-row .a-actions .btn{min-height:38px}` sobrescreve por especificidade o
-  `min-height:44px` da correção nº 6 do diagnóstico mobile. O botão de vender de cada linha
-  — provavelmente o mais clicado da tela de conta no celular — fica com 38px. O defeito já
-  existe no `aurea-mvp-teste.html`; foi mantido para não divergir do original sem decisão.
-  Correção é de uma linha em `src/styles/responsive.css`.
-- **`pw-toggle` (olho de revelar senha) tem 40×40**, também abaixo de 44px. A área efetiva
-  é maior porque o botão fica dentro de um input com `padding-right:48px`, mas o alvo em si
-  não atinge o mínimo. Herdado do original.
+- **`pw-toggle` (olho de revelar senha) tem 40×40**, abaixo do mínimo de 44px. A área
+  efetiva é maior porque o botão fica dentro de um input com `padding-right:48px`, mas o
+  alvo em si não atinge o mínimo. Herdado do original. A correção sem efeito visual é o
+  mesmo truque que `responsive.css` já usa no `.switch`: um `::before` com `inset:-2px`
+  amplia o toque para 44×44 sem mexer no desenho, e cabe dentro do padding do input.
 - **Hash do NFT é simulado.** Não há blockchain, por decisão estratégica registrada: o
   recibo é comprovante de custódia, deliberadamente fora do enquadramento VASP
   (Res. BCB 519–521). O rótulo "código simulado" no QR existe por isso e não deve sair.
