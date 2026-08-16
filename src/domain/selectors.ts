@@ -51,6 +51,11 @@ export function findCoinAnywhere(
  * Situação negocial da moeda, derivada em tempo de leitura — não é campo
  * persistido. 'Negociando' tem precedência sobre 'Alienado': o que importa
  * na auditoria é que o ativo está com oferta aberta agora.
+ *
+ * DIVERGÊNCIA DELIBERADA DO CONTRATO DE MÓDULOS, que previa `(c: Coin)`: a
+ * primeira condição consulta `state.sellOffers`, então sem o estado o
+ * 'Negociando' simplesmente não existiria e a pill da auditoria mentiria.
+ * Chame com `coinStatusDigital(state, coin)`.
  */
 export function coinStatusDigital(state: AppState, c: Coin): string {
   if (state.sellOffers.some((o) => o.coinId === c.id)) return 'Negociando'
@@ -116,6 +121,11 @@ export function roDailySeries(
  *
  * Série vazia ou base zero devolvem [] — sem base não há normalização
  * possível, e dividir por zero contaminaria o gráfico inteiro.
+ *
+ * Recebe e devolve só os VALORES, na ordem: no original a função carregava os
+ * pares {t,v} inteiros. Quem monta o gráfico reata o `t` da série de origem —
+ * `pontos.map((p, i) => ({ t: p.t, v: idx[i] }))` — porque o índice de saída
+ * tem exatamente o mesmo comprimento e a mesma ordem da entrada.
  */
 export function toIndex(points: number[]): number[] {
   if (!points.length) return []

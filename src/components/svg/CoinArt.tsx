@@ -11,19 +11,20 @@ import { coinTypeInfo } from '@/domain/constants'
  * 'use client'.
  *
  * SOBRE AS CORES: aqui elas descrevem METAL, não tema. Uma moeda é dourada no
- * claro e no escuro, então os valores do MVP viraram tokens próprios com o
- * literal original como fallback — o tema pode assumir a paleta depois sem que
- * a arte quebre hoje. O corpo da moeda usa `--gold` direto porque o token do
- * projeto já é exatamente o `#c9a24b` do original.
+ * claro e no escuro, então os valores do MVP viraram tokens `--coin-*` no
+ * :root de styles/tokens.css, fora dos blocos de tema. Nada de literal nem de
+ * fallback dentro do var(): a regra do port é que a cor só existe num arquivo.
+ * O corpo da moeda usa `--gold` direto porque o token do projeto já é
+ * exatamente o `#c9a24b` do original.
  */
 
 const OURO = 'var(--gold)'
-const SERRILHA = 'var(--coin-rim, #8a6c2a)'
-const NUCLEO = 'var(--coin-core, #cfd4dc)'
-const CLARO = 'var(--coin-light, #eef1f5)'
-const SOMBRA = 'var(--coin-shade, #7d8694)'
-const GRAVACAO = 'var(--coin-engrave, #3a3f47)'
-const LEGENDA = 'var(--coin-legend, #5d4718)'
+const SERRILHA = 'var(--coin-rim)'
+const NUCLEO = 'var(--coin-core)'
+const CLARO = 'var(--coin-light)'
+const SOMBRA = 'var(--coin-shade)'
+const GRAVACAO = 'var(--coin-engrave)'
+const LEGENDA = 'var(--coin-legend)'
 
 /** Motivo usado quando o tipo não está no catálogo — o mesmo do original. */
 const MOTIVO_PADRAO = 'Bandeira Olímpica'

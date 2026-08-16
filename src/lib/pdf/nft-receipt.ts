@@ -13,9 +13,8 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import type { Cents, Coin } from '@/domain/types'
+import type { Coin } from '@/domain/types'
 import { COIN } from '@/domain/constants'
-import { brl } from '@/domain/money'
 import { qrMatrix } from '@/lib/qr-seed'
 
 /**
@@ -60,13 +59,18 @@ function drawPdfQR(doc: jsPDF, seedStr: string, x: number, y: number, size: numb
  * A única exceção que pode escapar daqui é a falha de carregamento do jsPDF, e
  * ela sai com o texto exato que o MVP mostrava, para o chamador só repassar ao
  * toast.
+ *
+ * FIDELIDADE: o recibo imprime CINCO campos e não inclui o valor estimado. Uma
+ * versão anterior deste port aceitava `valorEstimado` e o ignorava — parâmetro
+ * que não faz nada é convite a erro de quem chama, então ele saiu do contrato.
+ * Imprimir valor no recibo é mudança de escopo, e vem junto com o
+ * reposicionamento da página.
  */
 export async function downloadNftReceipt(params: {
   coin: Coin
   ownerName: string
-  valorEstimado: Cents
 }): Promise<void> {
-  const { coin, ownerName, valorEstimado } = params
+  const { coin, ownerName } = params
 
   const mod = await import('jspdf').catch((): never => {
     throw new Error('Não foi possível carregar o gerador de PDF — verifique sua conexão e tente novamente.')
@@ -104,21 +108,18 @@ export async function downloadNftReceipt(params: {
   doc.setTextColor(138, 108, 42)
   doc.text(coin.nft.codigo, 240, 168, { align: 'center' })
 
-  // Os cinco primeiros campos, na ordem e nas posições exatas do MVP. O ano só
-  // aparece junto do tipo quando NÃO é a moeda negociável — para ela o ano é
-  // sempre 2012 e repetir seria ruído.
-  // Os quatro últimos vêm depois porque o recibo precisa carregar também o
-  // código do ativo, a situação física/digital e o valor estimado (ver "issues").
+  // Os CINCO campos do original, nesta ordem. Não acrescente linha aqui: o `y`
+  // é acumulador (30pt por campo) e tudo que vem depois — selo, QR e rodapé —
+  // é posicionado a partir dele. Um campo a mais empurra o recibo inteiro
+  // 30pt para baixo e desmonta a página de 660pt.
+  // O ano só aparece junto do tipo quando NÃO é a moeda negociável — para ela
+  // o ano é sempre 2012 e repetir seria ruído.
   const fields: Array<[string, string]> = [
     ['Ativo', coin.tipoMoeda + (coin.tipoMoeda !== COIN.name ? ' ' + coin.ano : '')],
     ['Status', coin.nft.status === 'Extinto' ? 'Retirado da custódia' : 'Moeda física recebida e custodiada'],
     ['Data de emissão', coin.nft.dataEmissao],
     ['Proprietário atual', ownerName],
     ['Hash (curto)', coin.nft.hash],
-    ['Código do ativo', coin.id],
-    ['Status físico', coin.statusFisico],
-    ['Status digital', coin.statusDigital],
-    ['Valor estimado', brl(valorEstimado)],
   ]
   let y = 198
   for (const [k, v] of fields) {

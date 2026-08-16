@@ -4,8 +4,9 @@
  * O MVP tinha DUAS cópias do mesmo gerador — `qrSVG` (linha 1819, 14 células) e
  * `drawPdfQR` (linha 1951, 12 células) — e as duas precisavam desenhar o MESMO
  * padrão para o mesmo recibo, senão o QR da tela e o do PDF divergiriam e o
- * usuário perceberia. Aqui o gerador vive num lugar só: o componente
- * `components/svg/QrCode.tsx` e o gerador de PDF importam esta função.
+ * usuário perceberia. Aqui o gerador vive num lugar só: o `buildQr` de
+ * `lib/charts.ts` (que o componente `components/svg/QrCode.tsx` desenha) e o
+ * gerador de PDF em `lib/pdf/nft-receipt.ts` importam esta função.
  *
  * ATENÇÃO — não "conserte" a aritmética abaixo. `seed * 1103515245` estoura os
  * 53 bits de precisão do double e perde bits baixos antes do `>>> 0`. Isso é um

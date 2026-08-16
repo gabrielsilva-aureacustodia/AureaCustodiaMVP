@@ -12,6 +12,7 @@
  */
 
 import type { Timestamp } from '@/domain/types'
+import { qrMatrix } from '@/lib/qr-seed'
 
 // ---------------------------------------------------------------------------
 // Tipos de entrada
@@ -281,14 +282,11 @@ const QR_CELLS = 14
 /**
  * Padrão pseudo-QR do recibo — visual, NÃO escaneável.
  *
- * PORT FIEL DO PRNG (linhas 1821-1822). A semente sai da própria string e o
- * gerador é um LCG clássico. Duas coisas que parecem descuido e NÃO são:
- *
- *  1. `seed * 1103515245` estoura 2^53 e perde precisão antes do `>>> 0`.
- *     É determinístico mesmo assim — IEEE 754 arredonda igual em todo motor
- *     JS — e trocar por `Math.imul` mudaria TODOS os desenhos já emitidos.
- *  2. `rnd()` é chamado uma vez por célula, inclusive quando o quadrado não
- *     é pintado. A ordem das chamadas É o desenho; qualquer atalho o altera.
+ * O PRNG NÃO mora aqui: é o `qrMatrix` de lib/qr-seed.ts, o mesmo que o
+ * gerador de PDF usa. O monolito tinha duas cópias do gerador (`qrSVG` com 14
+ * células, `drawPdfQR` com 12) e elas precisavam desenhar o mesmo padrão para o
+ * mesmo recibo — duas cópias que precisam concordar é exatamente o arranjo que
+ * um dia deixa de concordar. Aqui existe uma só.
  *
  * Nada de `Math.random()`: o certificado tem que sair idêntico no servidor e
  * no cliente, senão a hidratação quebra e o recibo "muda" a cada render.
@@ -296,18 +294,12 @@ const QR_CELLS = 14
 export function buildQr(seedStr: string, size: number): QrPattern {
   const cells = QR_CELLS
   const cell = size / cells
-
-  let seed = 0
-  for (let i = 0; i < seedStr.length; i++) seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0
-  const rnd = (): number => {
-    seed = (seed * 1103515245 + 12345) >>> 0
-    return (seed >>> 8) / 0xffffff
-  }
+  const matrix = qrMatrix(seedStr, cells)
 
   const rects: QrRect[] = []
   for (let r = 0; r < cells; r++) {
     for (let c = 0; c < cells; c++) {
-      if (rnd() < 0.46) {
+      if (matrix[r][c]) {
         rects.push({
           x: round1(c * cell),
           y: round1(r * cell),

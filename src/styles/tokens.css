@@ -96,6 +96,22 @@
   --cert-ink-label:#6b6248;
   --cert-ink-foot:#8a7550;
   --cert-ink-qr:#a08e5e;
+  /* Tinta do padrão pseudo-QR. Mesmo marrom quase preto do --on-gold, mas com
+     nome próprio: ali ele é texto sobre dourado, aqui é trama sobre o creme do
+     certificado. Separados para que um possa mudar sem arrastar o outro. */
+  --qr-ink:#1a1608;
+
+  /* ---- Metal da moeda -----------------------------------------------------
+     A arte do Real Olímpico (components/svg/CoinArt.tsx) descreve METAL, não
+     tema: a moeda é dourada no claro e no escuro. Por isso estes valores —
+     todos copiados do coinSVG do monolito — ficam fora dos blocos de tema.
+     O corpo do disco usa --gold direto: o token já é o #c9a24b do original. */
+  --coin-rim:#8a6c2a;      /* serrilha da borda */
+  --coin-core:#cfd4dc;     /* núcleo prateado da bimetálica */
+  --coin-light:#eef1f5;    /* preenchimento claro do motivo */
+  --coin-shade:#7d8694;    /* contorno do motivo claro */
+  --coin-engrave:#3a3f47;  /* gravação dos motivos esportivos */
+  --coin-legend:#5d4718;   /* "BRASIL" e o ano cunhado */
 
   /* ---- Seta do <select> ---------------------------------------------------
      var() não interpola dentro de url(), então o token guarda a imagem inteira

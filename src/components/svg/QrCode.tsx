@@ -15,7 +15,7 @@ import { buildQr } from '@/lib/charts'
  */
 
 /** Tinta do padrão. Fica escura nos dois temas: o certificado é papel creme. */
-const TINTA = 'var(--qr-ink, #1a1608)'
+const TINTA = 'var(--qr-ink)'
 /** Papel do certificado — token do projeto, mesmo valor do MVP (#f5f0e4). */
 const PAPEL = 'var(--cream)'
 
