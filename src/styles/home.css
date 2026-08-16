@@ -14,6 +14,12 @@
   display:flex;align-items:center;gap:20px;
   background:var(--card);border:1px solid var(--line);border-radius:13px;
   padding:26px 26px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);
+  /* text-decoration/color são o único acréscimo deste port à regra original,
+     pelo mesmo motivo de .nav-item em shell.css: no monolito o bloco era um
+     <div onclick="go('buy')"> e aqui é um <a> de verdade, para que as quatro
+     entradas principais do produto sejam navegáveis por teclado e abram em
+     nova aba. Sem estas duas linhas o <a> chegaria sublinhado e azul. */
+  text-decoration:none;color:inherit;
 }
 .block:hover{background:var(--card-hover);transform:translateY(-2px)}
 .block.disabled{cursor:default;opacity:.55}

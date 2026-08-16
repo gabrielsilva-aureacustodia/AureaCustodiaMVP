@@ -1,0 +1,36 @@
+/* ============================================================================
+   FOLHA DE ENTRADA — o único CSS importado pelo layout raiz.
+
+   O monolito tinha um <style> gigante com tudo dentro, na ordem em que foi
+   escrito. Este arquivo reproduz essa MESMA ordem, agora explícita: cada
+   @import corresponde a um trecho do bloco original.
+
+   A ORDEM NÃO É DECORATIVA. Quase toda regra de responsive.css tem a mesma
+   especificidade da regra de desktop que sobrescreve (.main, .panel, .sidebar,
+   .stats...), e media query não soma especificidade — quem decide o vencedor é
+   quem vem depois. Trocar duas linhas daqui derruba o layout mobile em silêncio,
+   sem erro de build e sem aviso no console.
+
+   Sequência obrigatória (a mesma anotada no cabeçalho de responsive.css):
+     tokens -> base -> login -> shell -> home -> market -> wizard -> nft
+            -> reports -> account -> responsive
+   ========================================================================= */
+
+/* Cores e tipografia. Precisa vir primeiro: todo o resto lê var(--...). */
+@import '../styles/tokens.css';
+
+/* Reset + componentes compartilhados (.btn, .field, .panel, .toast, .modal). */
+@import '../styles/base.css';
+
+/* Telas, na ordem em que apareciam no <style> do monolito. */
+@import '../styles/login.css';
+@import '../styles/shell.css';
+@import '../styles/home.css';
+@import '../styles/market.css';
+@import '../styles/wizard.css';
+@import '../styles/nft.css';
+@import '../styles/reports.css';
+@import '../styles/account.css';
+
+/* SEMPRE POR ÚLTIMO — ver a explicação no topo deste arquivo. */
+@import '../styles/responsive.css';
