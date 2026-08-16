@@ -18,6 +18,17 @@ import type { CoinType, Cents } from '@/domain/types'
  */
 export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v5'
 
+/**
+ * Chave do banco de cotações BTC/ETH/USDT que alimenta a tela de comparações.
+ *
+ * É uma SEGUNDA chave, separada do estado de negócio, exatamente como no MVP
+ * (CRYPTO_KEY, linha 2233). A separação importa: a série de cotações é
+ * reconstruída de fonte externa e pode ser descartada a qualquer momento sem
+ * risco, enquanto o estado é o registro de custódia e negociação. Misturar os
+ * dois faria uma falha da CoinGecko tocar o documento que guarda os saldos.
+ */
+export const CRYPTO_KEY: string = 'aurea-crypto-v1'
+
 /** Comissão percentual da corretagem: 0,5% sobre o preço unitário. */
 export const FEE_PCT: number = 0.005
 

@@ -19,15 +19,61 @@ export function brl(c: Cents): string {
 }
 
 /**
- * Lê um preço digitado por brasileiro e devolve centavos.
+ * Lê um preço digitado e devolve centavos.
  *
- * O usuário escreve '1.234,56': o ponto é separador de milhar (some) e a
- * vírgula é decimal (vira ponto). Entrada vazia, não numérica ou não positiva
- * devolve 0, que a camada de cima trata como "preço inválido" — por isso um
- * preço zerado nunca chega ao motor de ordens.
+ * DIVERGÊNCIA DELIBERADA DO ORIGINAL (linhas 947-951), autorizada pelos sócios.
+ * O MVP apagava TODOS os pontos antes de trocar a vírgula por ponto. Isso está
+ * certo para o padrão brasileiro — '1.234,56' vira 123456 centavos — mas quem
+ * digitasse '250.00' no padrão americano recebia R$ 25.000,00: erro de 100x,
+ * silencioso, num campo de texto livre onde o valor vira ordem de venda real.
+ *
+ * A regra de desambiguação passa a ser:
+ *
+ *  - Tem vírgula? Ela é o decimal e todo ponto é separador de milhar.
+ *    '1.234,56' -> 1234,56    (padrão brasileiro, comportamento original)
+ *
+ *  - Não tem vírgula? Decide pelo tamanho do último grupo depois do ponto:
+ *      3 dígitos -> milhar     '1.500'    -> 1500,00
+ *      1-2 dígitos -> decimal  '250.00'   -> 250,00   (era 25.000,00)
+ *                              '10.5'     -> 10,50
+ *      múltiplos pontos com o último grupo de 1-2 dígitos: os anteriores são
+ *      milhar e o último é decimal — '1.234.56' -> 1234,56
+ *
+ * O caso que muda de resultado é exatamente o que ninguém escreve de propósito:
+ * '1.50' agora é R$ 1,50 e não R$ 150,00. Quem quer cento e cinquenta escreve
+ * '150' ou '150,00'.
+ *
+ * Entrada vazia, não numérica ou não positiva continua devolvendo 0, que a
+ * camada de cima trata como "preço inválido" — por isso preço zerado nunca
+ * chega ao motor de ordens.
  */
 export function parsePrice(v: string): Cents {
   if (!v) return 0
-  const n = parseFloat(v.replace(/\./g, '').replace(',', '.'))
+
+  const texto = String(v).trim()
+  if (!texto) return 0
+
+  let normalizado: string
+
+  if (texto.includes(',')) {
+    // Padrão brasileiro explícito: ponto é milhar, vírgula é decimal.
+    normalizado = texto.replace(/\./g, '').replace(',', '.')
+  } else {
+    const partes = texto.split('.')
+    if (partes.length === 1) {
+      normalizado = texto
+    } else {
+      const ultimo = partes[partes.length - 1]
+      // Grupo final de 3 dígitos é milhar ('1.500'); de 1 ou 2 dígitos é
+      // decimal ('250.00'). Qualquer outro tamanho não é separador nenhum —
+      // trata tudo como milhar e deixa o parseFloat reprovar se for lixo.
+      normalizado =
+        ultimo.length >= 1 && ultimo.length <= 2
+          ? partes.slice(0, -1).join('') + '.' + ultimo
+          : partes.join('')
+    }
+  }
+
+  const n = parseFloat(normalizado)
   return isNaN(n) || n <= 0 ? 0 : Math.round(n * 100)
 }

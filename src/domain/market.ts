@@ -157,9 +157,28 @@ export function matchOrders(state: AppState): MatchResult {
         const seller = state.users[so.seller]
         const price = so.price
         const fee = tradeFee(price)
+
+        // A TRANSFERÊNCIA VEM ANTES DO DINHEIRO — divergência deliberada do
+        // original (linha 993), autorizada pelos sócios.
+        //
+        // O MVP debitava, creditava, registrava a negociação e SÓ ENTÃO chamava
+        // transferCoin, ignorando o retorno. Se a oferta apontasse para uma
+        // moeda que já não estava no inventário do vendedor, o dinheiro trocava
+        // de mãos e nenhuma moeda trocava: compra fantasma, com o histórico
+        // registrando uma negociação que não existiu.
+        //
+        // Agora a oferta órfã é removida do livro e a rodada recomeça, sem
+        // mover saldo e sem gravar negociação. Remover é o que também impede o
+        // laço de reencontrar a mesma oferta para sempre.
+        const coin = transferCoin(seller, buyer, so.coinId)
+        if (!coin) {
+          state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
+          progress = true
+          break
+        }
+
         buyer.balance -= price // o comprador paga o preço cheio
         seller.balance += price - fee // a comissão sai do lado do vendedor
-        transferCoin(seller, buyer, so.coinId)
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         bo.qty -= 1
         const k = bo.buyer + '|' + so.seller + '|' + price
