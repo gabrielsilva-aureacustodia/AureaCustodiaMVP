@@ -117,14 +117,44 @@ Copie `.env.example` para `.env.local` e preencha o que for usar.
 
 ## Publicar na Vercel
 
-1. Suba a pasta `APP/` como repositório (ou aponte o *Root Directory* do projeto para ela).
-2. Importe na Vercel — o framework é detectado sozinho, sem configuração.
-3. Em *Storage*, crie um **KV** (ou conecte um Postgres). As variáveis entram automaticamente.
-4. Em *Settings → Environment Variables*, defina `SESSION_SECRET`:
+**A raiz deste repositório já é a raiz do projeto Next.** O `package.json` está no topo, ao
+lado de `src/` e `public/`. Portanto:
+
+| Configuração na Vercel | Valor correto |
+|---|---|
+| **Root Directory** | `./` — deixe **vazio**, não aponte para `APP` |
+| **Framework Preset** | **Next.js** |
+| **Build Command** | padrão (`next build`) |
+| **Output Directory** | padrão — **não** defina `public` |
+
+O `vercel.json` na raiz já fixa `"framework": "nextjs"`, então o preset correto vale mesmo
+que o painel tenha ficado em "Other".
+
+> **Como reconhecer que o preset está errado:** os arquivos de `public/` respondem 200
+> (`/brand/logo-aurea.webp` abre), mas **toda rota dá 404 com `X-Vercel-Error: NOT_FOUND`**,
+> inclusive `/`. Isso quer dizer que a Vercel publicou `public/` como site estático e não
+> chegou a rodar o build do Next — nenhuma função serverless foi criada.
+
+### Configuração obrigatória antes de usar
+
+**1. Persistência — sem isso a plataforma não funciona na Vercel.**
+
+Em *Storage*, crie um **KV** (ou conecte um Postgres) e ligue ao projeto; as variáveis
+entram sozinhas. Não é otimização: em serverless cada requisição pode cair numa instância
+diferente, e o store em memória vive dentro de UMA instância. Sem banco externo, um login
+grava numa máquina e a leitura seguinte acontece em outra, que semeia dados novos — o
+mercado muda sozinho entre um clique e outro.
+
+**2. `SESSION_SECRET`** em *Settings → Environment Variables*:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
+
+Sem ele o app usa um segredo de desenvolvimento que está neste repositório — qualquer
+pessoa com acesso ao código forja um cookie e entra como qualquer usuário.
+
+Os dois casos são denunciados no log da função (*Runtime Logs*) na primeira requisição.
 
 O domínio `aureacustodia.com.br` já é da empresa — aponte em *Settings → Domains*.
 
