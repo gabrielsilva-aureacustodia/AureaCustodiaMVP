@@ -69,6 +69,23 @@ Isto é um **port fiel**. Mesmas regras, mesmos números, mesmas mensagens:
 - dinheiro sempre em **centavos inteiros**
 - senhas em **texto puro** — continua sendo ambiente de teste (ver *Pendências*)
 
+### As duas divergências autorizadas
+
+O port é fiel inclusive nos defeitos, com exatamente duas exceções, revisadas e aprovadas
+pelos sócios. Quem comparar o comportamento com `aurea-mvp-teste.html` vai achar só estas:
+
+**`parsePrice` deixou de errar 100x.** O original apagava todos os pontos antes de tratar a
+vírgula, então `250.00` digitado no padrão americano virava R$ 25.000,00 em silêncio, num
+campo de texto livre cujo valor vira ordem de venda real. A regra agora olha o último grupo
+depois do ponto: 3 dígitos é milhar (`1.500` → R$ 1.500,00), 1 ou 2 é decimal (`250.00` →
+R$ 250,00). Havendo vírgula, ela manda — todo formato brasileiro dá o mesmo resultado de antes.
+
+**`matchOrders` não permite mais compra fantasma.** O motor movia o dinheiro e só então
+chamava `transferCoin`, ignorando o retorno: se a oferta apontasse para uma moeda fora do
+inventário do vendedor, o saldo trocava de mãos e a moeda não, com o histórico registrando
+uma negociação que não aconteceu. A transferência passou a vir antes; falhando, a oferta
+órfã sai do livro sem mover saldo nem gravar negociação.
+
 ---
 
 ## Persistência
@@ -170,7 +187,16 @@ breakpoints (1080px e 560px) depende disso.
 Estas vieram do MVP e continuam abertas — nenhuma é regressão da refatoração:
 
 - **Senhas em texto puro.** É a Etapa 2 da migração (bcrypt + sessões). O cookie de sessão
-  já é assinado, o que é metade do caminho.
+  já é assinado, o que é metade do caminho. O repositório é privado justamente por isso.
+- **Alvo de toque abaixo do mínimo em "Minhas moedas".** No breakpoint de 560px,
+  `.acct-row .a-actions .btn{min-height:38px}` sobrescreve por especificidade o
+  `min-height:44px` da correção nº 6 do diagnóstico mobile. O botão de vender de cada linha
+  — provavelmente o mais clicado da tela de conta no celular — fica com 38px. O defeito já
+  existe no `aurea-mvp-teste.html`; foi mantido para não divergir do original sem decisão.
+  Correção é de uma linha em `src/styles/responsive.css`.
+- **`pw-toggle` (olho de revelar senha) tem 40×40**, também abaixo de 44px. A área efetiva
+  é maior porque o botão fica dentro de um input com `padding-right:48px`, mas o alvo em si
+  não atinge o mínimo. Herdado do original.
 - **Hash do NFT é simulado.** Não há blockchain, por decisão estratégica registrada: o
   recibo é comprovante de custódia, deliberadamente fora do enquadramento VASP
   (Res. BCB 519–521). O rótulo "código simulado" no QR existe por isso e não deve sair.
