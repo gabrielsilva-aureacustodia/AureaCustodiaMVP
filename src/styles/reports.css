@@ -1,0 +1,38 @@
+/* ============================================================================
+   MERCADO E AUDITORIA (2.0 / 2.2 / 2.3) — abas de gráfico, série de linhas,
+   comparativo de criptos, tabela de auditoria e legendas.
+
+   As regras body[data-theme="light"] logo abaixo de cada chip/pill não são
+   redundância: o texto pastel (#dff5e8, #ffe3e3, #f7e7bd) foi desenhado para
+   fundo escuro e some no claro, então o tema claro troca só a tinta.
+   ========================================================================= */
+
+.chart-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chart-tab{padding:6px 14px;border:1px solid var(--line-soft);border-radius:8px;font-size:12.5px;font-weight:700;color:var(--text-muted);cursor:pointer;user-select:none}
+.chart-tab.on{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--on-gold);border-color:var(--gold)}
+.line-chart{width:100%;height:auto;display:block}
+.comp-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line-soft)}
+.comp-row:last-child{border-bottom:none}
+.comp-row .cname{font-weight:700;color:var(--text-strong);width:48px;font-size:13.5px}
+.comp-row .spark{flex:1;min-width:0}
+.comp-chip{font-size:12px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap}
+.comp-chip.up{color:var(--chip-up-ink);background:var(--green-wash-25);border:1px solid var(--green-line)}
+.comp-chip.down{color:var(--chip-down-ink);background:var(--red-wash-22);border:1px solid var(--red-line)}
+.comp-chip.flat{color:var(--text-muted);background:transparent;border:1px solid var(--line-soft)}
+body[data-theme="light"] .comp-chip.up{color:var(--chip-up-ink-light)}
+body[data-theme="light"] .comp-chip.down{color:var(--chip-down-ink-light)}
+.audit-table{width:100%;border-collapse:collapse;font-size:13px}
+.audit-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-soft)}
+.audit-table td{padding:9px 10px;border-bottom:1px solid var(--line-soft);color:var(--text)}
+/* dentro do .table-scroll (base.css) a tabela mantém largura mínima e rola
+   sozinha no celular, em vez de espremer as colunas ou empurrar a página */
+.table-scroll .audit-table{min-width:520px}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap}
+.pill.g{color:var(--chip-up-ink);background:var(--green-wash-22);border:1px solid var(--green-line)}
+.pill.y{color:var(--pill-y-ink);background:var(--gold-tint-18);border:1px solid var(--line-soft)}
+.pill.n{color:var(--text-muted);background:transparent;border:1px solid var(--line-soft)}
+body[data-theme="light"] .pill.g{color:var(--chip-up-ink-light)}
+body[data-theme="light"] .pill.y{color:var(--pill-y-ink-light)}
+.legend-row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;font-size:12.5px;font-weight:600;color:var(--text-muted)}
+.legend-row .li{display:flex;align-items:center;gap:7px}
+.legend-row .sw{width:20px;height:3px;border-radius:2px;display:inline-block}

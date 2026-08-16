@@ -1,0 +1,42 @@
+/* ============================================================================
+   HOME — indicadores do topo, blocos de ação e cartões de estatística.
+
+   A variante .stats.four (4 colunas) é de "minha conta" e vive em account.css:
+   vence .stats por especificidade, então a ordem de import não importa.
+   ========================================================================= */
+
+.stats-top{margin-bottom:24px}   /* indicadores no topo, antes do ★ e dos blocos */
+.title-rule{display:flex;align-items:center;gap:12px;justify-content:center;margin:4px 0 26px}
+.title-rule::before,.title-rule::after{content:'';height:1px;flex:0 0 130px;background:var(--line-soft)}
+.title-rule span{color:var(--gold);font-size:13px}
+.blocks{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.block{
+  display:flex;align-items:center;gap:20px;
+  background:var(--card);border:1px solid var(--line);border-radius:13px;
+  padding:26px 26px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);
+}
+.block:hover{background:var(--card-hover);transform:translateY(-2px)}
+.block.disabled{cursor:default;opacity:.55}
+.block.disabled:hover{transform:none;background:var(--card)}
+.block-ico{
+  width:74px;height:74px;flex-shrink:0;border:1.5px solid var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.block-ico svg{width:34px;height:34px;stroke:var(--gold);fill:none;stroke-width:1.4}
+.block-tx h3{font-size:21px;color:var(--text-strong);font-weight:600;margin-bottom:5px}
+.block-tx p{font-size:13.5px;color:var(--text-muted);line-height:1.4}
+.block-arrow{margin-left:auto;color:var(--gold);font-size:22px}
+.block .tag-soon{font-size:9.5px;letter-spacing:.08em;border:1px solid var(--line-soft);border-radius:20px;padding:3px 9px;color:var(--text-muted);margin-left:auto}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.stat{
+  display:flex;align-items:center;gap:16px;
+  background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:20px 22px;
+}
+.stat > div{min-width:0}   /* deixa o texto encolher: sem isso o card nunca cede e estoura a grade */
+.stat-ico{width:52px;height:52px;flex-shrink:0;border:1.3px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.stat-ico svg{width:24px;height:24px;stroke:var(--gold);fill:none;stroke-width:1.5}
+.stat .lbl{font-size:13px;color:var(--text-muted);font-weight:600}
+.stat .val{font-size:21px;color:var(--gold);font-weight:700;font-family:var(--ff-display)}
+.stat .val.small{font-size:17px}
+.pulse{animation:pulse .5s ease}
+@keyframes pulse{0%{opacity:.3}100%{opacity:1}}

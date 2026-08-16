@@ -1,0 +1,132 @@
+/* ============================================================================
+   TOKENS — a única fonte de cor do projeto.
+
+   Regra do port: NENHUMA cor literal existe fora deste arquivo. O monolito
+   espalhava rgba() e hex soltos no meio dos componentes (véus de dourado,
+   tintas do certificado, fundos de sobreposição); tudo isso virou token aqui,
+   com o MESMO valor numérico de antes.
+
+   A divisão é a do original:
+     :root                      -> paleta bruta + valores que NÃO mudam com o tema
+     body[data-theme="dark"]    -> papéis semânticos no escuro
+     body[data-theme="light"]   -> papéis semânticos no claro
+
+   O tema continua sendo trocado pelo atributo data-theme no <body>, como no MVP.
+   ========================================================================= */
+
+:root{
+  --navy-deep:#081226;
+  --navy:#0d1b35;
+  --navy-card:#10203f;
+  --navy-card2:#132546;
+  --gold:#c9a24b;
+  --gold-bright:#e3b95c;
+  --gold-soft:#d4af6a;
+  --cream:#f5f0e4;
+  --white:#ffffff;
+  --green:#3fae6a;
+  --red:#d05555;
+  --muted:#8fa0bd;
+
+  /* ---- Tipografia --------------------------------------------------------
+     O @import de Google Fonts do monolito morreu: quem carrega Playfair Display
+     e Source Sans 3 agora é next/font/google, que publica --font-display e
+     --font-sans. Essas duas variáveis precisam ser aplicadas no <html> (mesmo
+     elemento que :root) — se caírem no <body>, a substituição já terá
+     acontecido aqui em cima e não haverá o que resolver.
+     O fallback dentro do var() é a rede de segurança para esse caso: em vez de
+     invalidar a família inteira, cai na fonte local de mesmo nome. */
+  --ff-sans:var(--font-sans,'Source Sans 3'),sans-serif;
+  --ff-display:var(--font-display,'Playfair Display'),serif;
+
+  /* ---- Tinta sobre superfície dourada ------------------------------------
+     Marrom quase preto usado no texto do .btn-gold, no check das seleções,
+     no número da etapa concluída e na aba de gráfico ativa. Só faz sentido
+     por cima do dourado, por isso não pertence a nenhum tema. */
+  --on-gold:#1a1608;
+
+  /* ---- Véus de dourado ---------------------------------------------------
+     Translúcidos: funcionam igual nos dois temas porque deixam o fundo passar.
+     Os sufixos são a opacidade original, para dar rastreabilidade ao port. */
+  --gold-wash:rgba(201,162,75,.12);   /* hover do botão contornado */
+  --gold-tint-10:rgba(201,162,75,.10);/* caixa de média, cartão da caixa postal */
+  --gold-tint-14:rgba(201,162,75,.14);/* item de menu ativo */
+  --gold-tint-18:rgba(201,162,75,.18);/* pill amarela */
+
+  /* ---- Verde e vermelho translúcidos -------------------------------------
+     As opacidades divergem entre .comp-chip (.25/.22) e .pill (.22/—) no
+     original. Divergência preservada: são tokens diferentes de propósito. */
+  --green-line:rgba(63,174,106,.5);
+  --green-wash:rgba(63,174,106,.1);
+  --green-wash-22:rgba(63,174,106,.22);
+  --green-wash-25:rgba(63,174,106,.25);
+  --red-line:rgba(208,85,85,.5);
+  --red-line-soft:rgba(208,85,85,.4);
+  --red-wash:rgba(208,85,85,.08);
+  --red-wash-22:rgba(208,85,85,.22);
+
+  /* ---- Tintas de chip e pill ---------------------------------------------
+     No claro o texto pastel some no fundo branco, então o monolito trocava a
+     cor via body[data-theme="light"]. As regras continuam existindo nos
+     arquivos de componente; aqui ficam só os valores. */
+  --chip-up-ink:#dff5e8;
+  --chip-up-ink-light:#1f7a45;
+  --chip-down-ink:#ffe3e3;
+  --chip-down-ink-light:#a33232;
+  --pill-y-ink:#f7e7bd;
+  --pill-y-ink-light:#7a5d1c;
+
+  /* ---- Sobreposições ------------------------------------------------------ */
+  --backdrop:rgba(5,10,22,.6);        /* fundo da gaveta lateral no mobile */
+  --modal-backdrop:rgba(5,10,22,.7);
+  --photo-rm-bg:rgba(8,18,38,.75);    /* botãozinho de remover foto do wizard */
+
+  /* ---- Sombras fixas ------------------------------------------------------
+     Diferente de --shadow, estas NÃO trocam com o tema no original. */
+  --shadow-gold-hover:0 4px 16px rgba(201,162,75,.4);
+  --shadow-toast:0 10px 30px rgba(0,0,0,.4);
+  --shadow-modal:0 20px 60px rgba(0,0,0,.5);
+
+  /* ---- Papel do certificado ----------------------------------------------
+     O certificado é impresso em creme nos DOIS temas — é um documento, não uma
+     tela. Por isso as tintas dele são fixas e vivem fora dos blocos de tema. */
+  --cert-border:#d9cfae;
+  --cert-divider:#e3dbc0;
+  --cert-ink-gold:#8a6c2a;
+  --cert-ink-label:#6b6248;
+  --cert-ink-foot:#8a7550;
+  --cert-ink-qr:#a08e5e;
+
+  /* ---- Seta do <select> ---------------------------------------------------
+     var() não interpola dentro de url(), então o token guarda a imagem inteira
+     em vez de só a cor: é o único jeito de manter o dourado (%23c9a24b) dentro
+     deste arquivo. */
+  --select-caret:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23c9a24b" d="M7 10l5 5 5-5z"/></svg>');
+}
+
+body[data-theme="dark"]{
+  --bg:var(--navy-deep);
+  --bg-panel:var(--navy);
+  --card:linear-gradient(160deg,#10203f 0%,#0d1b35 100%);
+  --card-hover:#152a52;
+  --text:#f2ede0;
+  --text-strong:#fdfaf2;
+  --text-muted:#8fa0bd;
+  --line:rgba(201,162,75,.55);
+  --line-soft:rgba(201,162,75,.28);
+  --input-bg:#0b1830;
+  --shadow:0 8px 28px rgba(0,0,0,.45);
+}
+body[data-theme="light"]{
+  --bg:#f7f5f0;
+  --bg-panel:#ffffff;
+  --card:linear-gradient(160deg,#ffffff 0%,#f4f1e9 100%);
+  --card-hover:#fdf9ef;
+  --text:#0d1b35;
+  --text-strong:#081226;
+  --text-muted:#5a6b8c;
+  --line:rgba(160,124,44,.65);
+  --line-soft:rgba(160,124,44,.32);
+  --input-bg:#ffffff;
+  --shadow:0 8px 24px rgba(13,27,53,.10);
+}

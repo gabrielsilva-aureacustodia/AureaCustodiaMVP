@@ -1,0 +1,62 @@
+/* ============================================================================
+   WIZARD (1.3 Enviar moeda) — trilha de etapas, upload de fotos, resumo e
+   a linha do tempo de acompanhamento do protocolo.
+
+   select.tinput refina o .tinput de base.css: (0,1,1) contra (0,1,0), então
+   vence por especificidade — a ordem dos imports não é o que segura isso.
+   ========================================================================= */
+
+.wizard-steps{display:flex;align-items:center;margin-bottom:26px;flex-wrap:wrap;gap:6px}
+.wz-step{display:flex;align-items:center;gap:10px}
+.wz-num{
+  width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;border:1.5px solid var(--line-soft);color:var(--text-muted);flex-shrink:0;
+}
+.wz-num.done{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+.wz-num.active{border-color:var(--gold);color:var(--gold)}
+.wz-label{font-size:12.5px;font-weight:600;color:var(--text-muted)}
+.wz-label.on{color:var(--text-strong)}
+.wz-line{width:36px;height:1px;background:var(--line-soft);margin:0 4px}
+select.tinput{appearance:none;-webkit-appearance:none;background-image:var(--select-caret);background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:34px}
+.photo-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 4px}
+.photo-slot{
+  border:1.5px dashed var(--line-soft);border-radius:10px;aspect-ratio:4/3;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  cursor:pointer;position:relative;overflow:hidden;text-align:center;padding:8px;
+}
+.photo-slot:hover{border-color:var(--gold)}
+.photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-slot span{font-size:11.5px;color:var(--text-muted);font-weight:600}
+.photo-slot svg{width:26px;height:26px;stroke:var(--gold);fill:none;stroke-width:1.5}
+.photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.photo-slot .rm{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--photo-rm-bg);color:var(--white);display:flex;align-items:center;justify-content:center;font-size:13px;z-index:2}
+.warn-box{
+  display:flex;gap:10px;border:1px solid var(--red-line-soft);background:var(--red-wash);
+  border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--text);line-height:1.5;margin:14px 0;
+}
+.warn-box svg{width:18px;height:18px;stroke:var(--red);fill:none;stroke-width:1.7;flex-shrink:0;margin-top:1px}
+.summary-box{border:1px solid var(--line-soft);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.summary-box .sr{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+.summary-box .sr:last-child{border-bottom:none}
+.summary-box .sr .k{color:var(--text-muted)}
+.summary-box .sr .v{font-weight:700;color:var(--text-strong)}
+.confirm-box{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text-muted);margin:16px 0;cursor:pointer;user-select:none;line-height:1.5}
+.confirm-box .cb{width:18px;height:18px;border:1.5px solid var(--line);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--on-gold);margin-top:1px}
+.confirm-box.on .cb{background:var(--gold);border-color:var(--gold)}
+.mailbox-card{border:1px solid var(--line);border-radius:11px;padding:18px 20px;background:linear-gradient(90deg,var(--gold-tint-10),transparent);margin-bottom:16px}
+.mailbox-card .mb-row{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0}
+.mailbox-card .mb-row .k{color:var(--text-muted)}
+.mailbox-card .mb-row .v{font-weight:700;color:var(--text-strong);text-align:right}
+.timeline{position:relative;padding-left:6px}
+.tl-item{display:flex;gap:16px;position:relative;padding-bottom:26px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:1px;background:var(--line-soft)}
+.tl-item:last-child::before{display:none}
+.tl-dot{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--line-soft);color:var(--text-muted);font-size:14px;font-weight:700;background:var(--bg-panel);z-index:1;
+}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:var(--white)}
+.tl-dot.active{border-color:var(--gold);color:var(--gold)}
+.tl-body h4{font-size:14.5px;color:var(--text-strong);font-weight:700}
+.tl-body p{font-size:12.5px;color:var(--text-muted);margin-top:2px}

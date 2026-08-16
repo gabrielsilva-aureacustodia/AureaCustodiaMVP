@@ -1,0 +1,84 @@
+/* ============================================================================
+   RESPONSIVO — os DOIS breakpoints do MVP, na ordem original.
+
+   ESTE ARQUIVO PRECISA SER O ÚLTIMO IMPORT DA CADEIA DE ESTILOS.
+   Ordem correta:
+     tokens -> base -> login -> shell -> home -> market -> wizard -> nft
+            -> reports -> account -> responsive
+
+   Motivo: quase toda regra daqui tem a MESMA especificidade da regra de
+   desktop que ela sobrescreve (.main, .panel, .stat, .sidebar, .acct-row
+   .pill...). Media query não adiciona especificidade — quem decide é a ordem.
+   Importar responsive.css antes de qualquer arquivo de área faz o layout
+   mobile ser silenciosamente ignorado.
+
+   As duas faixas estão juntas aqui, e não espalhadas por área, porque cada
+   uma toca várias telas de uma vez: <=1080px é o momento em que a sidebar
+   vira gaveta e TODAS as grades colapsam; <=560px é o ajuste fino de celular.
+   Separá-las por tela obrigaria a repetir o breakpoint em nove arquivos e
+   perderia a leitura de conjunto.
+   ========================================================================= */
+
+/* ============ TABLET E ABAIXO (<=1080px) ============ */
+/* minmax(0,1fr) e não 1fr: "1fr" = minmax(auto,1fr), e esse "auto" impede
+   a coluna de encolher abaixo do min-content — é o que estourava a grade. */
+@media(max-width:1080px){
+  .cfg-grid{grid-template-columns:minmax(0,1fr)}
+  .stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cert-wrap{grid-template-columns:minmax(0,1fr)}
+  .photo-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cols-rev{grid-template-columns:minmax(0,1fr)}
+  .cols.sell{grid-template-columns:minmax(0,1fr)}
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .blocks{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:minmax(0,1fr)}
+  .main{padding:20px;max-width:100%;min-width:0}
+  .app.active{display:block}          /* sidebar sai do fluxo: main ocupa tudo */
+
+  /* a sidebar vira gaveta — deixa de ser escondida sem substituto */
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;z-index:70;
+    width:270px;max-width:82vw;border-radius:0;overflow-y:auto;
+    transform:translateX(-100%);transition:transform .25s ease;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .menu-btn{display:inline-flex}
+}
+
+/* ============ CELULAR (<=560px) ============ */
+@media(max-width:560px){
+  .stats.four,.stats,.photo-row{grid-template-columns:minmax(0,1fr)}
+  .main{padding:14px}
+  .page-title h1{font-size:23px}
+  .page-title p{font-size:13px}
+  .panel{padding:16px}
+  .stat{padding:16px}
+  /* 16px evita o zoom automático do Safari iOS ao focar um campo */
+  .field input,.tinput,textarea.obs,.price-input input{font-size:16px}
+  .top-right{gap:12px}
+  .user-chip .uname{max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* alvos de toque: mínimo de 44px em tudo que se clica */
+  .btn,.chart-tab,.terms,.qk-row{min-height:44px}
+  .chart-tab{display:inline-flex;align-items:center}
+  .logout{padding:0 12px}
+  /* amplia a área de toque do interruptor sem mudar o desenho (::after já é o botão) */
+  .switch::before{content:'';position:absolute;inset:-10px;border-radius:24px}
+
+  /* tema e sair migram da topbar para o menu; sair fica colado no rodapé */
+  .nav-item.sb-only{display:flex}
+  .sb-bottom.sb-only{display:block;margin-top:auto;padding-top:12px}
+  .top-right .theme-box,.top-right .logout{display:none}
+
+  /* MINHAS MOEDAS — pilha 1 (arte) + pilha 2 (3 linhas) */
+  .acct-row{align-items:center;gap:12px;padding:12px}
+  .acct-row .pill{margin-left:0}   /* no mobile quem alinha é o space-between da linha 3 */
+  .acct-row .coin-svg{width:89px;height:89px;flex-shrink:0;align-self:center}
+  .acct-row .a-info{flex:1;min-width:0;flex-direction:column;align-items:stretch;gap:6px}
+  .acct-row .a-name{width:100%;white-space:normal;line-height:1.25}
+  .acct-row .a-line2{display:flex;width:100%;align-items:baseline;justify-content:space-between;gap:8px}
+  .acct-row .a-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct-row .a-val{margin-right:0;flex-shrink:0}
+  .acct-row .a-actions{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px}
+  .acct-row .a-actions .btn{min-height:38px;flex-shrink:0}
+}

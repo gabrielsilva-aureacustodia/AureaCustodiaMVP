@@ -1,0 +1,76 @@
+/* ============================================================================
+   APP SHELL — sidebar, topbar, itens de navegação, gaveta mobile e backdrop.
+
+   Aqui só ficam as regras do estado DESKTOP. A transformação da sidebar em
+   gaveta deslizante mora em responsive.css (<=1080px), porque é lá que ela
+   passa a ser position:fixed e ganha o transform.
+
+   As regras removidas neste port: .sb-ro, .sb-ro-name e .sb-ro-sub. Eram um
+   selo circular "Real Olímpico" que nenhum trecho do HTML renderiza — código
+   morto documentado, não uma classe aplicada dinamicamente.
+   ========================================================================= */
+
+.app{display:none;min-height:100vh}
+.app.active{display:flex}
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--bg-panel);
+  border-right:1px solid var(--line-soft);
+  padding:26px 18px;display:flex;flex-direction:column;
+  border-radius:0 14px 14px 0;
+}
+.sb-brand{text-align:center;margin-bottom:30px}
+/* tema/sair no menu: só no mobile. Precisa de .nav-item.sb-only para vencer
+   o .nav-item{display:flex}, que vem depois e tem a mesma especificidade. */
+.sb-only,.nav-item.sb-only{display:none}
+.nav-item .switch{margin-left:auto;flex-shrink:0}
+.sb-brand .brand-mark{width:56px;height:56px;font-size:26px;margin-bottom:8px}
+.sb-brand .brand-name{font-size:20px}
+.sb-brand .brand-sub{font-size:8.5px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:9px;margin-bottom:4px;
+  font-size:14.5px;font-weight:600;color:var(--text-muted);
+  cursor:pointer;border:1px solid transparent;transition:all .18s;
+  user-select:none;
+}
+.nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
+.nav-item:hover{color:var(--text)}
+.nav-item.active{
+  color:var(--gold);border-color:var(--line-soft);
+  background:linear-gradient(90deg,var(--gold-tint-14),transparent);
+}
+.nav-item.soon{opacity:.45;cursor:default}
+.nav-item.soon:hover{color:var(--text-muted)}
+.nav-item .tag-soon{margin-left:auto;font-size:9px;letter-spacing:.08em;border:1px solid var(--line-soft);border-radius:20px;padding:2px 7px;color:var(--text-muted)}
+
+.main{flex:1;padding:28px 36px;max-width:1280px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;gap:16px;flex-wrap:wrap}
+.page-title h1{font-size:30px;color:var(--text-strong);font-weight:600}
+.page-title p{font-size:14px;color:var(--text-muted);margin-top:3px}
+.top-right{display:flex;align-items:center;gap:18px}
+.user-chip{display:flex;align-items:center;gap:12px}
+.avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--cream);color:var(--navy);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;
+  border:1px solid var(--line-soft);
+}
+.user-chip .uname{font-weight:700;color:var(--text-strong);font-size:15px;line-height:1.2}
+.user-chip .ubal{color:var(--gold);font-weight:700;font-size:14px}
+.theme-box{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-muted);font-weight:600}
+.logout{font-size:12.5px;color:var(--text-muted);cursor:pointer;text-decoration:underline;
+  display:inline-flex;align-items:center;min-height:44px;padding:0 6px}
+.logout:hover{color:var(--gold)}
+
+/* botão do menu mobile + fundo da gaveta (só aparecem <=1080px) */
+.menu-btn{
+  display:none;align-items:center;justify-content:center;
+  width:44px;height:44px;flex-shrink:0;
+  border:1px solid var(--line-soft);border-radius:10px;background:transparent;cursor:pointer;
+}
+.menu-btn svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:1.8}
+.menu-btn:hover{border-color:var(--gold)}
+.tb-left{display:flex;align-items:center;gap:12px;min-width:0}
+.sb-backdrop{display:none;position:fixed;inset:0;background:var(--backdrop);z-index:69}
+.sb-backdrop.show{display:block}

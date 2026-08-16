@@ -1,2 +1,184 @@
 # AureaCustodiaMVP
-Plataforma de Trading da Aurea Custodia, em formato MVP simplificado para publicação imediata nos próximos 5 dias
+
+Plataforma de trading da Áurea Custódia, em formato MVP simplificado para publicação imediata.
+
+Refatoração do MVP monolítico (`aurea-mvp-teste.html`, 2.816 linhas num arquivo só) para
+**Next.js 15 (App Router) + TypeScript**, pronta para publicar na **Vercel**.
+
+| | |
+|---|---|
+| **Empresa** | AUREA CUSTODIA LTDA — CNPJ 68.071.452/0001-06 |
+| **Origem** | `../aurea-mvp-teste.html` (v4) |
+| **Documentação de referência** | `../Aurea_Custodia_Documento_Tecnico_MVP.md` · `../Aurea_Custodia_Mapa_de_Telas_e_Rotas.md` · `../Aurea_Custodia_Diagnostico_Mobile.md` |
+
+---
+
+## Subir o projeto
+
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Abre em `http://localhost:3000`. Sem nenhuma variável de ambiente o app **funciona**: usa o
+store em memória e semeia as 7 contas de teste (senha `12345678`). O estado se perde quando o
+processo reinicia — para persistir, veja *Persistência* abaixo.
+
+---
+
+## O que mudou em relação ao MVP
+
+### 1. O `window.storage` morreu, e era ele que segurava tudo
+
+O MVP dependia de uma API de armazenamento compartilhado que **só existe no ambiente de
+artefatos** — nenhum navegador oferece, nenhuma hospedagem fornece. Era o item registrado na
+Seção 4.2 do documento técnico como "o parágrafo mais importante".
+
+No lugar entrou uma **interface de persistência plugável** (`src/server/store/`), com três
+implementações e seleção automática por variável de ambiente. O ponto único de troca que o
+MVP preparou de propósito (`loadState`/`saveState`) virou `src/server/state.ts`.
+
+### 2. A regra de negócio saiu do navegador
+
+No MVP a lógica rodava no cliente, onde qualquer pessoa com o console aberto podia alterá-la.
+Agora toda mutação é uma **Server Action** (`src/server/actions/`) que revalida no servidor:
+posse da moeda, saldo, existência da oferta. O cliente pede; quem decide é o servidor.
+
+### 3. Uma tela = uma URL
+
+O MVP era página única, com `display:none` alternando containers e nenhuma URL por tela.
+Agora cada tela tem rota real — o que a Seção 8 do mapa de rotas já propunha para produção.
+
+### 4. As logos saíram do JavaScript
+
+Eram dois data-URIs base64 de 41 mil caracteres dentro do bundle. Viraram arquivos em
+`public/brand/` (11 KB + 19 KB), servidos com cache.
+
+### O que **não** mudou (de propósito)
+
+Isto é um **port fiel**. Mesmas regras, mesmos números, mesmas mensagens:
+
+- comissão de 0,5% + R$ 1,00 **por moeda** negociada
+- faixas de custódia anual R$ 5 / 15 / 25 / 30 / 60
+- casamento de ordens por prioridade preço-tempo, uma unidade por volta
+- mediana de 24h como valor estimado do recibo
+- só "Entrega da Bandeira Olímpica" é negociável
+- dinheiro sempre em **centavos inteiros**
+- senhas em **texto puro** — continua sendo ambiente de teste (ver *Pendências*)
+
+---
+
+## Persistência
+
+A camada é escolhida sozinha, nesta ordem (`src/server/store/index.ts`):
+
+| Prioridade | Variáveis | Store | Concorrência |
+|---|---|---|---|
+| 1 | `POSTGRES_URL` ou `DATABASE_URL` | Postgres | `SELECT … FOR UPDATE` — resolve de verdade |
+| 2 | `KV_REST_API_URL` + `KV_REST_API_TOKEN` | Redis (Vercel KV) | última gravação vence |
+| 3 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Redis (Upstash) | última gravação vence |
+| 4 | *(nenhuma)* | Memória | some no cold start |
+
+Copie `.env.example` para `.env.local` e preencha o que for usar.
+
+> **Sobre "última gravação vence":** é a mesma semântica do MVP, registrada como limite
+> conhecido na Seção 4.6 do documento técnico. Com 7 sócios testando é irrelevante. Com
+> clientes reais, use Postgres.
+
+---
+
+## Publicar na Vercel
+
+1. Suba a pasta `APP/` como repositório (ou aponte o *Root Directory* do projeto para ela).
+2. Importe na Vercel — o framework é detectado sozinho, sem configuração.
+3. Em *Storage*, crie um **KV** (ou conecte um Postgres). As variáveis entram automaticamente.
+4. Em *Settings → Environment Variables*, defina `SESSION_SECRET`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+O domínio `aureacustodia.com.br` já é da empresa — aponte em *Settings → Domains*.
+
+---
+
+## Estrutura
+
+```
+src/
+├── domain/          Regra de negócio pura. Sem React, sem Next, sem I/O.
+│   ├── types.ts       O modelo de dados inteiro — a fonte da verdade
+│   ├── constants.ts   Parâmetros de negócio (comissão, catálogo, contas)
+│   ├── money.ts       Centavos <-> exibição em BRL
+│   ├── dates.ts       Timestamp <-> dd/mm/aaaa
+│   ├── codes.ts       RO-000001 / NFT-000001 / RO-ENV-0001
+│   ├── fees.ts        Comissão de negociação e faixas de custódia
+│   ├── market.ts      Casamento de ordens, lotes, indicadores
+│   ├── selectors.ts   Leituras derivadas do estado
+│   └── seed.ts        Dados fictícios das 7 contas
+│
+├── server/          Só roda no servidor.
+│   ├── store/         Persistência plugável (memory | redis | postgres)
+│   ├── state.ts       getState / mutateState — o ponto único de troca
+│   ├── session.ts     Cookie httpOnly assinado com HMAC
+│   └── actions/       Server Actions: toda mutação de negócio
+│
+├── app/             Rotas do App Router.
+│   ├── page.tsx       Login
+│   ├── (app)/         Casco autenticado (sidebar + topbar)
+│   └── api/           state (polling de 10s) e crypto (cotações)
+│
+├── components/      UI. Providers, casco, gráficos, e uma pasta por área.
+├── lib/             Integrações externas: CoinGecko, jsPDF, SheetJS.
+└── styles/          CSS global por área. Ver nota abaixo.
+```
+
+### Rotas
+
+| URL | Tela |
+|---|---|
+| `/` | Login |
+| `/inicio` | 1.0 Painel Real Olímpico |
+| `/mercado` | 1.1 Comprar moeda |
+| `/vender` | 1.2 Vender ativo |
+| `/envios` | 1.3 Enviar para custódia |
+| `/recibos` | 1.4 Meus recibos NFT |
+| `/recibos/[coinId]` | 3.1 Certificado do recibo |
+| `/graficos` | 2.0 Mercado e auditoria |
+| `/graficos/auditoria` | 2.2 Auditoria de estoque |
+| `/graficos/comparacoes` | 2.3 Comparações com BTC/ETH/USDT |
+| `/conta` | 3.0 Minha conta |
+| `/conta/configuracoes` | 3.2 Configurações e segurança |
+
+### Nota sobre o CSS
+
+Os estilos são **globais, divididos por área**, e preservam os nomes de classe do MVP
+(`.btn`, `.panel`, `.nav-item`…). Não são CSS Modules — foi decisão deliberada: renomear
+todas as classes durante um port multiplicaria o risco de divergência sem ganho de
+comportamento. A modularidade aqui é por arquivo.
+
+`responsive.css` precisa ser o **último** import de `globals.css` — a cascata dos dois
+breakpoints (1080px e 560px) depende disso.
+
+---
+
+## Pendências herdadas
+
+Estas vieram do MVP e continuam abertas — nenhuma é regressão da refatoração:
+
+- **Senhas em texto puro.** É a Etapa 2 da migração (bcrypt + sessões). O cookie de sessão
+  já é assinado, o que é metade do caminho.
+- **Hash do NFT é simulado.** Não há blockchain, por decisão estratégica registrada: o
+  recibo é comprovante de custódia, deliberadamente fora do enquadramento VASP
+  (Res. BCB 519–521). O rótulo "código simulado" no QR existe por isso e não deve sair.
+- **Hash determinístico + proveniência preservada** no recibo — item 1 da sequência do
+  documento de requisitos NFT, ainda não implementado.
+- **Sem termos de uso com aceite versionado nem política de privacidade/LGPD.** Entram
+  antes de qualquer cliente real.
+- **Integrações ausentes:** Pix/cartão (PSP nacional), Correios/Melhor Envio, login Google,
+  e-mail transacional. O MVP já modela os objetos que essas APIs devolvem.
+- **Contradição tributária em aberto:** planilha usa Lucro Presumido 16,33%; documento
+  explicativo fala Simples Nacional com Fator R. Definir com o contador.
