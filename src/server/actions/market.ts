@@ -28,6 +28,7 @@
  * isolado e sem nenhuma amarra com as ações de compra.
  */
 
+import { isNegociavel } from '@/domain/constants'
 import { tradeFee } from '@/domain/fees'
 import { matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -64,6 +65,14 @@ const BID_INVALIDO_EDITAR = 'Informe quantidade e preço válidos.'
 
 /** Linha 1718. */
 const SALDO_INSUFICIENTE_OFERTAR = 'Saldo insuficiente para ofertar esse preço.'
+
+/**
+ * ACRÉSCIMO DO MERCADO MULTI-ATIVO. O seletor da tela só lista tipos
+ * negociáveis, mas a server action é um endpoint HTTP: sem esta recusa, um bid
+ * de "Mascote Vinicius" entraria no livro e ficaria preso lá para sempre, sem
+ * nunca encontrar oferta de venda.
+ */
+const TIPO_NAO_NEGOCIAVEL = 'Este tipo de moeda ainda não está disponível para negociação.'
 
 /** Linha 1473. */
 const SALDO_INSUFICIENTE_PRECO = 'Saldo insuficiente para esse preço.'
@@ -154,6 +163,9 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     const price = offers[0].price
     const sellerId = offers[0].seller
+    // Todas as ofertas de um lote compartilham tipo, preço e vendedor — o tipo
+    // é gravado na publicação e nunca é reescrito.
+    const tipoMoeda = offers[0].tipoMoeda
 
     if (sellerId === session) return { ok: false, error: COMPRA_DO_PROPRIO_ANUNCIO }
 
@@ -208,9 +220,19 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     // Uma linha no histórico para a compra inteira, com qty = N — e não N linhas
     // de uma moeda. É o que a tela de gráficos e a média de 7 dias esperam.
-    state.trades.push({ price, qty: compradas, date: Date.now(), buyer: session, seller: sellerId })
+    state.trades.push({
+      price,
+      qty: compradas,
+      date: Date.now(),
+      buyer: session,
+      seller: sellerId,
+      tipoMoeda,
+    })
 
-    return { ok: true, message: `Compra concluída: ${compradas} moeda(s) por ${brl(total)}.` }
+    return {
+      ok: true,
+      message: `Compra concluída: ${compradas} ${tipoMoeda} por ${brl(total)}.`,
+    }
   })
 }
 
@@ -230,11 +252,16 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
  * O preço chega em centavos: quem digita é a tela, e parsePrice() (domain/money)
  * é quem converte. O servidor só aceita inteiro positivo.
  */
-export async function publishBid(qtyPedida: number, precoUnit: Cents): Promise<ActionResult> {
+export async function publishBid(
+  qtyPedida: number,
+  precoUnit: Cents,
+  tipoMoeda: string,
+): Promise<ActionResult> {
   return executar((state, session) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
     if (qtyRaw <= 0 || cents <= 0) return { ok: false, error: BID_INVALIDO_PUBLICAR }
+    if (!isNegociavel(tipoMoeda)) return { ok: false, error: TIPO_NAO_NEGOCIAVEL }
 
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
@@ -250,12 +277,13 @@ export async function publishBid(qtyPedida: number, precoUnit: Cents): Promise<A
       price: cents,
       qty,
       createdAt: Date.now(),
+      tipoMoeda,
     })
 
     const { matched } = matchOrders(state)
 
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
-    let msg = `Oferta de compra publicada: ${qty} moeda(s) a ${brl(cents)} cada.`
+    let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
     if (qty < qtyRaw) msg += ' (ajustada ao seu saldo disponível)'
     if (matched) msg += ' Parte já foi executada automaticamente com ofertas de venda existentes.'
     return { ok: true, message: msg }
@@ -317,6 +345,10 @@ export async function editBid(
     const maxAfford = Math.floor(u.balance / cents)
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
+    // `bo.tipoMoeda` NÃO é editável: trocar o ativo de uma ordem já publicada
+    // preservaria a posição dela na fila de um livro em que ela nunca esteve,
+    // furando a prioridade de quem chegou antes naquele mercado. Para comprar
+    // outro tipo, cancela-se este bid e publica-se outro.
     bo.price = cents
     bo.qty = Math.min(qtyRaw, maxAfford)
 

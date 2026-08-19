@@ -39,16 +39,21 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { BidRow } from '@/components/market/BidRow'
+import { Folder } from '@/components/market/Folder'
 import { LotCard } from '@/components/market/LotCard'
+import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
-import { COIN } from '@/domain/constants'
+import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import type { BuyOrder, Cents, Lot } from '@/domain/types'
 import { buyLot, cancelBid, editBid, publishBid } from '@/server/actions/market'
+
+/** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
+const NEGOCIAVEIS = tiposNegociaveis()
 
 /**
  * Pré-checagem do formulário de oferta (linha 1714). O texto é o mesmo que a
@@ -83,10 +88,26 @@ export default function MercadoPage(): ReactNode {
   const [bidQty, setBidQty] = useState('1')
   const [bidPrice, setBidPrice] = useState('')
 
+  /**
+   * Ativo em foco. Comanda três coisas ao mesmo tempo: os indicadores da coluna
+   * da esquerda, o tipo da oferta de compra e qual pasta da vitrine abre.
+   *
+   * Não existia no monolito — lá havia um ativo só, e por isso "Média de
+   * mercado" podia ser um número solto sem dizer de quê.
+   */
+  const [tipoAtivo, setTipoAtivo] = useState<string>(NEGOCIAVEIS[0].key)
+
+  /** Pastas abertas na vitrine. Ver a nota em components/market/Folder. */
+  const [abertas, setAbertas] = useState<ReadonlySet<string>>(
+    () => new Set([coinTypeInfo(NEGOCIAVEIS[0].key).categoria]),
+  )
+
   /* ---------- recortes do estado ---------- */
 
-  const media7 = avg7(state)
-  const ultima = lastTrade(state)
+  // Indicadores DO TIPO EM FOCO. Misturar os dois ativos numa média só daria um
+  // número que não descreve nem um mercado nem o outro.
+  const media7 = avg7(state, tipoAtivo)
+  const ultima = lastTrade(state, tipoAtivo)
 
   // Filtro de faixa (linha 1364): limite não informado é limite ausente, e por
   // isso o `!min ||` — parsePrice devolve 0 para campo vazio ou inválido.
@@ -100,14 +121,54 @@ export default function MercadoPage(): ReactNode {
     .sort((a, b) => b.price - a.price || a.createdAt - b.createdAt)
     .filter((b) => passa(b.price))
 
-  // Últimas seis negociações, da mais nova para a mais antiga. O índice absoluto
-  // no histórico viaja junto para servir de key: `trades` só cresce por acréscimo
-  // no fim, então a posição de uma negociação nunca muda.
-  const inicioHist = Math.max(0, state.trades.length - 6)
+  /**
+   * Lotes agrupados em pastas: categoria -> tipo -> lotes. É a resposta ao
+   * problema de a vitrine ser uma lista corrida — com dois ativos e vários
+   * anúncios cada, achar o que se procura passou a exigir rolagem cega.
+   *
+   * Map preserva a ordem de inserção, e `lots` já vem ordenado por preço e
+   * data, então cada pasta herda a ordenação correta sem reordenar nada.
+   */
+  const lotesPorCategoria = new Map<string, Map<string, Lot[]>>()
+  lots.forEach((l) => {
+    const cat = coinTypeInfo(l.tipoMoeda).categoria
+    const tipos = lotesPorCategoria.get(cat) ?? new Map<string, Lot[]>()
+    const lista = tipos.get(l.tipoMoeda) ?? []
+    lista.push(l)
+    tipos.set(l.tipoMoeda, lista)
+    lotesPorCategoria.set(cat, tipos)
+  })
+
+  // Últimas seis negociações DO TIPO EM FOCO, da mais nova para a mais antiga.
+  // O índice absoluto no histórico viaja junto para servir de key: `trades` só
+  // cresce por acréscimo no fim, então a posição de uma negociação nunca muda.
   const historico = state.trades
+    .map((trade, idx) => ({ trade, idx }))
+    .filter((h) => h.trade.tipoMoeda === tipoAtivo)
     .slice(-6)
-    .map((t, i) => ({ trade: t, idx: inicioHist + i }))
     .reverse()
+
+  /** Quantos lotes há à venda de cada tipo — alimenta o seletor de foco. */
+  const lotesPorTipo: Record<string, string> = {}
+  NEGOCIAVEIS.forEach((t) => {
+    const n = lots.filter((l) => l.tipoMoeda === t.key).length
+    lotesPorTipo[t.key] = `${n} anúncio(s) à venda`
+  })
+
+  function alternarPasta(categoria: string): void {
+    setAbertas((atual) => {
+      const proxima = new Set(atual)
+      if (proxima.has(categoria)) proxima.delete(categoria)
+      else proxima.add(categoria)
+      return proxima
+    })
+  }
+
+  /** Trocar o foco abre a pasta correspondente — senão o clique não mostra nada. */
+  function trocarTipo(tipo: string): void {
+    setTipoAtivo(tipo)
+    setAbertas(new Set([coinTypeInfo(tipo).categoria]))
+  }
 
   // Prévia do total da oferta de compra (linha 1390).
   const bidQtyNum = parseInt(bidQty, 10) || 0
@@ -149,7 +210,7 @@ export default function MercadoPage(): ReactNode {
       toast(BID_INVALIDO_PUBLICAR)
       return
     }
-    const res = await run(() => publishBid(qtyRaw, bidPriceCents))
+    const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo))
     // Só limpa quando publicou: erro mantém o que foi digitado para corrigir.
     if (res.ok) {
       setBidQty('1')
@@ -169,11 +230,23 @@ export default function MercadoPage(): ReactNode {
               Mercado
             </h3>
 
-            <div className="avg-box">
+            {/* O seletor vem ANTES dos números: é ele que diz de qual moeda os
+                indicadores abaixo estão falando. Invertido, a pessoa leria o
+                preço primeiro e só depois descobriria a que ativo pertence. */}
+            <TipoSelector
+              name="tipo-foco"
+              titulo="Ativo em foco"
+              tipos={NEGOCIAVEIS}
+              valor={tipoAtivo}
+              onChange={trocarTipo}
+              detalhePorTipo={lotesPorTipo}
+            />
+
+            <div className="avg-box" style={{ marginTop: 14 }}>
               <div className="l">Média de mercado — 7 dias</div>
               {/* avg7 devolve null sem negociação na janela: traço, não zero. */}
               <div className="v">{media7 ? brl(media7) : '—'}</div>
-              <div className="s">Base: negociações concluídas na plataforma</div>
+              <div className="s">{tipoAtivo} · negociações concluídas na plataforma</div>
             </div>
 
             <div className="avg-box">
@@ -188,12 +261,17 @@ export default function MercadoPage(): ReactNode {
                 {ultima ? fmtTrade(ultima) : '—'}
               </div>
               <div className="s">
-                {ultima ? fdate(ultima.date) : ''} · {COIN.name}
+                {ultima ? fdate(ultima.date) : ''} · {tipoAtivo}
               </div>
             </div>
 
             <div className="hist">
               <div className="hist-head">Últimas negociações</div>
+              {!historico.length ? (
+                <div className="empty" style={{ marginTop: 8 }}>
+                  Nenhuma negociação de {tipoAtivo} ainda.
+                </div>
+              ) : null}
               {historico.map(({ trade, idx }) => (
                 <div className="hist-row" key={idx}>
                   <span className="d">{fdate(trade.date)}</span>
@@ -254,19 +332,43 @@ export default function MercadoPage(): ReactNode {
               </svg>
               Ofertas de venda
             </h3>
-            {lots.length ? (
-              lots.map((lot) => (
-                <LotCard
-                  key={lot.lotId}
-                  lot={lot}
-                  mine={lot.seller === session}
-                  sellerName={state.users[lot.seller] ? state.users[lot.seller].name : '—'}
-                  balance={me.balance}
-                  qtyEscolhida={buyQty[lot.lotId]}
-                  onAdjust={ajustarQtd}
-                  onBuy={confirmarCompra}
-                />
-              ))
+            {lotesPorCategoria.size ? (
+              [...lotesPorCategoria.entries()].map(([categoria, tipos]) => {
+                const todos = [...tipos.values()].flat()
+                const moedas = todos.reduce((s, l) => s + l.coinIds.length, 0)
+                const menor = Math.min(...todos.map((l) => l.price))
+
+                return (
+                  <Folder
+                    key={categoria}
+                    titulo={categoria}
+                    resumo={`${todos.length} anúncio(s) · ${moedas} moeda(s) · a partir de ${brl(menor)}`}
+                    aberta={abertas.has(categoria)}
+                    destacada={tipos.has(tipoAtivo)}
+                    onToggle={() => alternarPasta(categoria)}
+                  >
+                    {[...tipos.entries()].map(([tipo, lista]) => (
+                      <div key={tipo}>
+                        {tipos.size > 1 ? <div className="folder-sub-head">{tipo}</div> : null}
+                        {lista.map((lot) => (
+                          <LotCard
+                            key={lot.lotId}
+                            lot={lot}
+                            mine={lot.seller === session}
+                            sellerName={
+                              state.users[lot.seller] ? state.users[lot.seller].name : '—'
+                            }
+                            balance={me.balance}
+                            qtyEscolhida={buyQty[lot.lotId]}
+                            onAdjust={ajustarQtd}
+                            onBuy={confirmarCompra}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </Folder>
+                )
+              })
             ) : (
               <div className="empty">
                 Nenhuma oferta de venda encontrada. Use &quot;Vender ativo&quot; em outra conta para
@@ -306,6 +408,18 @@ export default function MercadoPage(): ReactNode {
               Fazer oferta de compra
             </h3>
 
+            {/* Mesmo `tipoAtivo` do painel de indicadores, de propósito: são a
+                mesma pergunta ("qual moeda?") feita uma vez só. Dois seletores
+                independentes deixariam publicar um bid de um ativo enquanto se
+                olha o preço de outro. */}
+            <TipoSelector
+              name="tipo-bid"
+              titulo="Moeda que deseja comprar"
+              tipos={NEGOCIAVEIS}
+              valor={tipoAtivo}
+              onChange={trocarTipo}
+            />
+
             <div className="field-lbl">Quantidade desejada</div>
             <input
               id="bidQty"
@@ -344,8 +458,9 @@ export default function MercadoPage(): ReactNode {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v5M12 16.5v.5" />
               </svg>
-              Se já existir uma oferta de venda igual ou abaixo desse preço, a compra acontece
-              automaticamente ao publicar.
+              Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
+              acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
+              consideradas — cada ativo tem seu próprio livro.
             </div>
           </div>
         </div>
@@ -400,7 +515,7 @@ function ConfirmarCompraModal({
     <>
       <h3 className="serif">Confirmar compra</h3>
       <p>
-        <b style={{ color: 'var(--gold)' }}>{COIN.name}</b> · {qty} unidade(s)
+        <b style={{ color: 'var(--gold)' }}>{lot.tipoMoeda}</b> · {qty} unidade(s)
       </p>
       <p>
         Preço unitário: <b>{brl(lot.price)}</b> · Total: <b>{brl(total)}</b> — debitado do seu saldo
@@ -455,6 +570,12 @@ function EditarBidModal({ bid }: { bid: BuyOrder }): ReactNode {
   return (
     <>
       <h3 className="serif">Editar oferta de compra</h3>
+      {/* O tipo é exibido, não editável: trocar o ativo de uma ordem publicada
+          preservaria a posição dela na fila de um livro em que ela nunca esteve.
+          Ver a nota em server/actions/market.ts, editBid. */}
+      <p>
+        Ativo: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
+      </p>
 
       <div className="field-lbl">Quantidade desejada</div>
       <input

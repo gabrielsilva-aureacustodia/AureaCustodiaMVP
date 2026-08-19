@@ -18,7 +18,7 @@
 
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
+import { tiposNegociaveis } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
@@ -28,19 +28,26 @@ import { useApp } from '@/components/providers/AppProvider'
 export default function RecibosPage(): ReactNode {
   const { state, me } = useApp()
 
-  // Mediana das ofertas abertas nas últimas 24h (domain/market.ts). É a
-  // referência de mercado do ativo negociável; as demais moedas continuam
-  // valendo o `valorEstimado` da própria ficha, que não tem mercado.
-  const med = medianSellPrice(state)
+  // Mediana das ofertas abertas nas últimas 24h (domain/market.ts), uma por
+  // tipo negociável. É a referência de mercado de cada ativo; as moedas de
+  // tipos sem mercado continuam valendo o `valorEstimado` da própria ficha.
+  const medPorTipo: Record<string, Cents | null> = {}
+  tiposNegociaveis().forEach((t) => {
+    medPorTipo[t.key] = medianSellPrice(state, t.key)
+  })
   const coins = me.coins
 
   /**
-   * PORT FIEL da linha 1858. O teste é de VERACIDADE (`med`), não de `!== null`:
-   * uma mediana de zero centavos cai no valor de ficha. Na prática não acontece
-   * — não há oferta de R$ 0,00 — mas trocar por `med !== null` mudaria o
-   * comportamento num canto que ninguém revisitaria.
+   * PORT FIEL da linha 1858, generalizado para vários ativos. O teste é de
+   * VERACIDADE (`med`), não de `!== null`: uma mediana de zero centavos cai no
+   * valor de ficha. Na prática não acontece — não há oferta de R$ 0,00 — mas
+   * trocar por `med !== null` mudaria o comportamento num canto que ninguém
+   * revisitaria.
    */
-  const valOf = (c: Coin): Cents => (c.tipoMoeda === COIN.name && med ? med : c.valorEstimado)
+  const valOf = (c: Coin): Cents => {
+    const med = medPorTipo[c.tipoMoeda]
+    return med ? med : c.valorEstimado
+  }
 
   const totalVal = coins.reduce<Cents>((s, c) => s + valOf(c), 0)
   const recibosAtivos = coins.filter((c) => c.nft.status === 'Ativo').length

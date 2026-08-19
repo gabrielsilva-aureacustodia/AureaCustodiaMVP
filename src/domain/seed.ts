@@ -13,7 +13,7 @@
  * congelaria o acervo no bundle estático.
  */
 
-import { COIN, COIN_TYPES, coinTypeInfo } from '@/domain/constants'
+import { COIN, COIN_TYPES, coinTypeInfo, faixaValor } from '@/domain/constants'
 import { genHash, nextCoinCode, nextEnvioCode, nextNftCode } from '@/domain/codes'
 import { custodyFeeForCount } from '@/domain/fees'
 import { DAY_MS } from '@/domain/dates'
@@ -36,8 +36,36 @@ import type {
  */
 type SeedUserDef = readonly [UserEmail, string, Cents, number, DateBR]
 
-/** Único tipo negociável no marketplace — e, por isso, o que domina o acervo. */
+/** Moeda-referência do marketplace — e, por isso, a que domina o acervo. */
 const BANDEIRA = COIN.name
+
+/** O segundo ativo negociável, incluído no acervo de todas as contas de teste. */
+const DIREITOS_HUMANOS = 'Direitos Humanos'
+
+/**
+ * Quantas Direitos Humanos cada conta fictícia recebe: de 1 a 3.
+ *
+ * Elas são recortadas do total já definido em `usersDef`, e não somadas a ele.
+ * Somar mudaria a contagem de moedas de cada conta e, com ela, a faixa da taxa
+ * de custódia anual — um efeito colateral silencioso numa tabela de preços que
+ * só os sócios podem alterar.
+ */
+const DH_MIN = 1
+const DH_MAX = 3
+
+/**
+ * Tipos que entram no acervo apenas como variedade visual: os olímpicos de 2016
+ * que não são negociáveis. A lista sai do próprio catálogo — assim um ativo
+ * negociável novo nunca cai aqui por engano.
+ */
+const TIPOS_DECORATIVOS = COIN_TYPES.filter((t) => !t.negociavel)
+
+/** Sorteia um valor dentro da faixa do tipo, na granularidade de R$ 5,00. */
+function valorSorteado(tipo: string): Cents {
+  const { min, max } = faixaValor(tipo)
+  const bruto = min + Math.floor(Math.random() * (max - min))
+  return Math.round(bruto / 500) * 500
+}
 
 /**
  * Cria uma moeda já validada e em cofre, com o recibo NFT emitido.
@@ -72,63 +100,114 @@ export function mkCoin(
 /**
  * Monta o acervo de um usuário.
  *
- * A primeira moeda é sempre a Bandeira e as demais têm 72% de chance de também
- * ser — é o que garante liquidez suficiente para o marketplace funcionar na
- * demonstração; os outros 8 tipos entram só como variedade visual na carteira.
+ * De 1 a 3 moedas são Direitos Humanos, para que as sete contas já cheguem com
+ * o segundo ativo negociável em mãos e o mercado dele tenha os dois lados desde
+ * o primeiro acesso. Do que sobra, a primeira é sempre a Bandeira e as demais
+ * têm 72% de chance de também ser — é o que garante liquidez suficiente para o
+ * marketplace funcionar na demonstração; os tipos não negociáveis entram só
+ * como variedade visual na carteira.
+ *
  * Os valores são arredondados para múltiplo de R$5,00 para que as cotações
  * fictícias tenham a mesma "granularidade" dos preços digitados pelos usuários.
  */
 export function mkCoinsForUser(seq: Seq, n: number, entrada: DateBR): Coin[] {
   const arr: Coin[] = []
-  for (let i = 0; i < n; i++) {
+
+  // Teto de segurança: numa conta pequena as DH não podem engolir a Bandeira,
+  // senão o usuário abre a tela de venda sem nada do ativo principal.
+  const nDh = Math.min(DH_MIN + Math.floor(Math.random() * (DH_MAX - DH_MIN + 1)), Math.max(0, n - 1))
+
+  for (let i = 0; i < nDh; i++) {
+    const info = coinTypeInfo(DIREITOS_HUMANOS)
+    arr.push(
+      mkCoin(seq, DIREITOS_HUMANOS, info.anoPadrao, entrada, valorSorteado(DIREITOS_HUMANOS)),
+    )
+  }
+
+  for (let i = 0; i < n - nDh; i++) {
     const type =
       i === 0 || Math.random() < 0.72
         ? BANDEIRA
-        : COIN_TYPES[1 + Math.floor(Math.random() * (COIN_TYPES.length - 1))].key
+        : TIPOS_DECORATIVOS[Math.floor(Math.random() * TIPOS_DECORATIVOS.length)].key
     const info = coinTypeInfo(type)
-    const baseVal =
-      type === BANDEIRA
-        ? 23500 + Math.floor(Math.random() * 6500)
-        : 14000 + Math.floor(Math.random() * 22000)
-    arr.push(mkCoin(seq, type, info.anoPadrao, entrada, Math.round(baseVal / 500) * 500))
+    arr.push(mkCoin(seq, type, info.anoPadrao, entrada, valorSorteado(type)))
   }
+
   return arr
 }
 
 /**
- * Simula ~1 mês (28 dias) de negociações concluídas, com leve tendência de alta
- * (R$235 -> R$300), espalhadas entre os 7 usuários fictícios.
+ * Parâmetros da série fictícia de um ativo: de quanto para quanto o preço
+ * caminha em 28 dias, o piso e quantas negociações gerar.
+ */
+interface SerieDef {
+  tipoMoeda: string
+  /** Preço no começo da janela. */
+  de: Cents
+  /** Preço no fim da janela — a deriva é linear entre os dois. */
+  para: Cents
+  /** Piso absoluto: o jitter nunca produz preço abaixo disto. */
+  piso: Cents
+  /** Quantas negociações espalhar pelos 28 dias. */
+  n: number
+}
+
+/**
+ * As duas séries do seed.
  *
- * A deriva linear é o que dá inclinação positiva ao gráfico da home; o jitter
- * de +/- R$13,00 evita que a curva vire uma reta artificial. O piso de R$200,00
- * existe para o jitter nunca produzir preço fora da faixa plausível do mercado.
+ * Os números da Bandeira são exatamente os do MVP original (R$235 -> R$300 em
+ * 24 negociações) e não podem mudar: é a deriva que dá ao gráfico da home a
+ * inclinação positiva que a demonstração mostra.
+ *
+ * Os da Direitos Humanos são novos e mais discretos de propósito — 8
+ * negociações num mercado que acabou de abrir, girando em torno de R$ 450, que
+ * é o meio da faixa praticada por lojas numismáticas.
+ */
+const SERIES: readonly SerieDef[] = [
+  { tipoMoeda: BANDEIRA, de: 23500, para: 30000, piso: 20000, n: 24 },
+  { tipoMoeda: DIREITOS_HUMANOS, de: 42000, para: 46000, piso: 38000, n: 8 },
+]
+
+/**
+ * Simula ~1 mês (28 dias) de negociações concluídas nos dois ativos
+ * negociáveis, espalhadas entre os 7 usuários fictícios.
+ *
+ * A deriva linear é o que dá inclinação ao gráfico; o jitter de +/- R$13,00
+ * evita que a curva vire uma reta artificial. O piso existe para o jitter nunca
+ * produzir preço fora da faixa plausível de cada moeda.
  */
 export function genHistoryTrades(emails: UserEmail[]): Trade[] {
   const now = Date.now()
   const d = DAY_MS
   const days = 28
-  const n = 24
   const trades: Trade[] = []
-  for (let i = 0; i < n; i++) {
-    const t = i / (n - 1)
-    const dayOffset = days - t * days
-    const drift = 23500 + t * (30000 - 23500)
-    const jitter = (Math.random() - 0.5) * 2600
-    const price = Math.max(20000, Math.round((drift + jitter) / 500) * 500)
-    const seller = emails[Math.floor(Math.random() * emails.length)]
-    let buyer = emails[Math.floor(Math.random() * emails.length)]
-    // Guarda de 10 tentativas: ninguém negocia consigo mesmo, mas com 7 contas
-    // o sorteio pode empatar — e um laço sem teto trava a geração.
-    let guard = 0
-    while (buyer === seller && guard++ < 10) {
-      buyer = emails[Math.floor(Math.random() * emails.length)]
+
+  for (const serie of SERIES) {
+    for (let i = 0; i < serie.n; i++) {
+      const t = i / (serie.n - 1)
+      const dayOffset = days - t * days
+      const drift = serie.de + t * (serie.para - serie.de)
+      const jitter = (Math.random() - 0.5) * 2600
+      const price = Math.max(serie.piso, Math.round((drift + jitter) / 500) * 500)
+      const seller = emails[Math.floor(Math.random() * emails.length)]
+      let buyer = emails[Math.floor(Math.random() * emails.length)]
+      // Guarda de 10 tentativas: ninguém negocia consigo mesmo, mas com 7 contas
+      // o sorteio pode empatar — e um laço sem teto trava a geração.
+      let guard = 0
+      while (buyer === seller && guard++ < 10) {
+        buyer = emails[Math.floor(Math.random() * emails.length)]
+      }
+      const qty = Math.random() < 0.16 ? 2 : 1
+      // Espalha a hora dentro do dia (até 70% dele) para as negociações não
+      // caírem todas no mesmo instante da janela de 24h da mediana.
+      const date = Math.round(now - dayOffset * d - Math.random() * d * 0.7)
+      trades.push({ price, qty, date, buyer, seller, tipoMoeda: serie.tipoMoeda })
     }
-    const qty = Math.random() < 0.16 ? 2 : 1
-    // Espalha a hora dentro do dia (até 70% dele) para as negociações não
-    // caírem todas no mesmo instante da janela de 24h da mediana.
-    const date = Math.round(now - dayOffset * d - Math.random() * d * 0.7)
-    trades.push({ price, qty, date, buyer, seller })
   }
+
+  // Ordenação cronológica GLOBAL: `lastTrade` devolve o último item do array, e
+  // o histórico precisa continuar sendo lido como uma linha do tempo única
+  // mesmo com dois ativos intercalados.
   trades.sort((a, b) => a.date - b.date)
   return trades
 }
@@ -180,5 +259,9 @@ export function seedState(): AppState {
     envios: [],
     seq,
     custodyCharges,
+    // O saldo inicial de cada conta vem de `usersDef` e não é depósito: é
+    // dinheiro que a demonstração assume como pré-existente. O extrato começa
+    // vazio de propósito — só aporte feito na plataforma entra aqui.
+    deposits: [],
   }
 }

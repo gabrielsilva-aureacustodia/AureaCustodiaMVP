@@ -36,10 +36,12 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { DEPOSITO_MAX } from '@/domain/constants'
+import { brl, parsePrice } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
-import { changePassword, toggleNotif, updatePersonal } from '@/server/actions/account'
+import { changePassword, deposit, toggleNotif, updatePersonal } from '@/server/actions/account'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -233,6 +235,98 @@ export function ModalNotificacoes(): ReactNode {
       <div className="m-actions">
         <button className="btn btn-gold" type="button" onClick={close}>
           Concluir
+        </button>
+      </div>
+    </>
+  )
+}
+
+/* -------------------------------------------------------------------------
+ * Depósito em conta (simulado)
+ * ---------------------------------------------------------------------- */
+
+/**
+ * NÃO É PORT — funcionalidade nova. O monolito não tinha como aumentar saldo:
+ * cada conta nascia com o valor do seed e só o perdia comprando.
+ *
+ * O AVISO DE "SIMULADO" É PARTE DA FUNCIONALIDADE, não um rodapé opcional.
+ * Não há Pix, cartão, boleto nem conciliação bancária por trás disto; a ação
+ * soma um número ao saldo. Uma tela que parecesse um caixa eletrônico de
+ * verdade seria enganosa mesmo num ambiente onde só entram sócios.
+ *
+ * A modal NÃO fecha quando o valor é recusado, pelo mesmo motivo das outras
+ * desta tela: a pessoa precisa continuar vendo o campo para corrigi-lo.
+ */
+export function ModalDeposito(): ReactNode {
+  const { me, run } = useApp()
+  const { close } = useModal()
+
+  const [valorTexto, setValorTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const cents = parsePrice(valorTexto)
+  const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
+
+  async function depositar(): Promise<void> {
+    if (!podeDepositar) return
+    setEnviando(true)
+    const res = await run(() => deposit(cents))
+    if (res.ok) close()
+    else setEnviando(false)
+  }
+
+  return (
+    <>
+      <h3 className="serif">Depositar em conta</h3>
+      <p style={{ marginBottom: 10 }}>
+        Depósito <b>simulado</b> neste ambiente de teste: nenhum pagamento é processado e nenhum
+        dinheiro real muda de mãos. O valor entra direto no seu saldo para você poder negociar.
+      </p>
+
+      <div className="summary-row">
+        <span className="k">Saldo atual</span>
+        <span className="v">{brl(me.balance)}</span>
+      </div>
+
+      <div className="field-lbl">Valor a depositar</div>
+      <div className="price-input">
+        <span>R$</span>
+        <input
+          inputMode="decimal"
+          placeholder="0,00"
+          aria-label="Valor a depositar em reais"
+          value={valorTexto}
+          onChange={(e) => setValorTexto(e.target.value)}
+        />
+      </div>
+
+      <div className="summary-row total">
+        <span className="k">Saldo após o depósito</span>
+        <span className="v" style={{ fontSize: 19 }}>
+          {cents > 0 ? brl(me.balance + cents) : '—'}
+        </span>
+      </div>
+
+      {/* O teto é anteparo de ambiente de teste: um zero a mais digitado sem
+          querer desfiguraria o livro de ordens para as outras seis contas. O
+          servidor reaplica o limite — este aviso só evita a ida inútil. */}
+      {cents > DEPOSITO_MAX ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          O depósito máximo por operação é {brl(DEPOSITO_MAX)}.
+        </div>
+      ) : null}
+
+      <div className="m-actions">
+        <button className="btn btn-outline" type="button" onClick={close}>
+          Cancelar
+        </button>
+        <button
+          className="btn btn-gold"
+          type="button"
+          disabled={!podeDepositar}
+          onClick={() => void depositar()}
+        >
+          Confirmar depósito
         </button>
       </div>
     </>

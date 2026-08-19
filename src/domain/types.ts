@@ -130,6 +130,15 @@ export interface SellOffer {
   /** Agrupa as moedas publicadas no mesmo anúncio: 'LOT-<ts>-<rand>'. */
   lotId: string
   createdAt: Timestamp
+  /**
+   * Chave do catálogo COIN_TYPES da moeda anunciada.
+   *
+   * DESNORMALIZAÇÃO DELIBERADA: o tipo já está em `Coin.tipoMoeda`, mas o livro
+   * de ordens precisa saber o que está à venda SEM varrer o inventário de todos
+   * os usuários a cada volta do motor de casamento. Como a moeda anunciada não
+   * pode trocar de tipo, a cópia nunca diverge do original.
+   */
+  tipoMoeda: string
 }
 
 /** Oferta de compra (bid), com preço-limite e quantidade restante. */
@@ -141,6 +150,12 @@ export interface BuyOrder {
   /** Quantidade ainda não preenchida. Chega a 0 e a ordem é removida. */
   qty: number
   createdAt: Timestamp
+  /**
+   * Tipo de moeda que este bid quer comprar. É o que separa os livros: uma
+   * oferta de compra de "Direitos Humanos" nunca casa com uma venda de
+   * "Entrega da Bandeira Olímpica", por mais que o preço cruze.
+   */
+  tipoMoeda: string
 }
 
 /** Negociação concluída. A comissão não é gravada: é recalculável (ver domain/fees.ts). */
@@ -150,6 +165,13 @@ export interface Trade {
   date: Timestamp
   buyer: UserEmail
   seller: UserEmail
+  /**
+   * Tipo negociado. Sem ele, média de 7 dias, mediana de 24h e os gráficos
+   * misturariam preços de moedas diferentes numa série só — uma Bandeira de
+   * R$ 285 e uma Direitos Humanos de R$ 450 na mesma média não descrevem
+   * mercado nenhum.
+   */
+  tipoMoeda: string
 }
 
 /**
@@ -163,6 +185,8 @@ export interface Lot {
   obs: string
   createdAt: Timestamp
   coinIds: string[]
+  /** Tipo das moedas do lote — todas iguais, garantido na publicação. */
+  tipoMoeda: string
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +224,24 @@ export interface Envio {
 // Taxa de custódia
 // ---------------------------------------------------------------------------
 
+/* ---------------------------------------------------------------------------
+ * Depósitos em conta
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Aporte de saldo feito pelo próprio usuário.
+ *
+ * SIMULADO: não existe Pix, cartão nem qualquer integração de pagamento. O
+ * registro existe porque o extrato da conta precisa explicar de onde veio o
+ * dinheiro — um saldo que cresce sem lastro documental é exatamente o que a
+ * tela de extrato serve para evitar.
+ */
+export interface Deposit {
+  userEmail: UserEmail
+  valor: Cents
+  date: Timestamp
+}
+
 export type StatusPagamento = 'Pago' | 'Pendente'
 
 /** Cobrança de custódia vigente de um usuário (1 registro por usuário). */
@@ -233,6 +275,8 @@ export interface AppState {
   envios: Envio[]
   seq: Seq
   custodyCharges: Record<UserEmail, CustodyCharge>
+  /** Histórico de aportes de saldo, na ordem em que aconteceram. */
+  deposits: Deposit[]
 }
 
 // ---------------------------------------------------------------------------
@@ -259,11 +303,21 @@ export interface CryptoData {
 // Catálogo
 // ---------------------------------------------------------------------------
 
-/** Tipo de moeda olímpica aceito em custódia. */
+/** Tipo de moeda comemorativa aceito em custódia. */
 export interface CoinType {
   key: string
   anoPadrao: number
   tiragem: string
+  /**
+   * Pasta em que a moeda aparece nas telas de compra e de venda. Existe porque
+   * a lista corrida de tipos já não cabe na tela e vai crescer a cada ativo
+   * novo — agrupar é o que mantém a escolha navegável.
+   */
+  categoria: string
+  /** true quando o tipo pode ser anunciado e comprado no marketplace. */
+  negociavel: boolean
+  /** Ficha técnica curta, exibida no cartão do lote e no seletor de tipo. */
+  detail: string
 }
 
 // ---------------------------------------------------------------------------

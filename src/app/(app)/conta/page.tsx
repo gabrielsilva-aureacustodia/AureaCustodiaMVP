@@ -22,11 +22,15 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN, LOGO_AUREA } from '@/domain/constants'
+import { COIN, LOGO_AUREA, tiposNegociaveis } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
-import { ModalDadosPessoais, ModalNotificacoes } from '@/components/account/AccountModals'
+import {
+  ModalDadosPessoais,
+  ModalDeposito,
+  ModalNotificacoes,
+} from '@/components/account/AccountModals'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { useModal } from '@/components/ui/Modal'
@@ -46,18 +50,33 @@ export default function ContaPage(): ReactNode {
    */
   const [showAll, setShowAll] = useState(false)
 
-  const med = medianSellPrice(state)
-
   const aVenda = state.sellOffers.filter((o) => o.seller === session).length
   const aCompra = state.buyOrders.filter((b) => b.buyer === session).reduce((s, b) => s + b.qty, 0)
 
   /**
-   * Valor exibido de cada moeda. Só a moeda-referência é negociada, então só ela
-   * ganha o preço de mercado; as demais mostram a estimativa gravada na custódia.
-   * O `&& med` importa: sem negociação nem oferta aberta, medianSellPrice devolve
-   * null e a linha volta para o valor estimado em vez de mostrar "R$ 0,00".
+   * Mediana de mercado de cada tipo negociável, calculada UMA vez por tipo.
+   *
+   * Antes era um único `med`, porque só um ativo tinha mercado. Chamar
+   * medianSellPrice dentro de `valOf` varreria `sellOffers` inteiro a cada
+   * moeda da lista — com 21 moedas na conta são 21 varreduras para responder
+   * duas perguntas distintas.
    */
-  const valOf = (c: Coin): Cents => (c.tipoMoeda === COIN.name && med ? med : c.valorEstimado)
+  const medPorTipo: Record<string, Cents | null> = {}
+  tiposNegociaveis().forEach((t) => {
+    medPorTipo[t.key] = medianSellPrice(state, t.key)
+  })
+
+  /**
+   * Valor exibido de cada moeda: preço de mercado do TIPO dela quando existe,
+   * senão a estimativa gravada na custódia. O teste de veracidade (`?? null`
+   * seguido de `? :`) importa: sem negociação nem oferta aberta,
+   * medianSellPrice devolve null e a linha volta para o valor estimado em vez
+   * de mostrar "R$ 0,00".
+   */
+  const valOf = (c: Coin): Cents => {
+    const med = medPorTipo[c.tipoMoeda]
+    return med ? med : c.valorEstimado
+  }
 
   const coins = me.coins
   const shown = showAll ? coins : coins.slice(0, VISIVEIS)
@@ -77,6 +96,17 @@ export default function ContaPage(): ReactNode {
             {/* .val.small: o saldo é o único número desta faixa que passa de seis
                 dígitos e precisa da fonte menor para não quebrar o cartão. */}
             <div className="val small">{brl(me.balance)}</div>
+            {/* O depósito mora colado ao saldo porque é a única ação que o
+                altera diretamente. Botão pequeno, dentro do cartão, para não
+                competir com os atalhos da coluna da direita. */}
+            <button
+              className="btn btn-outline"
+              type="button"
+              style={{ marginTop: 8, padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
+              onClick={() => open(<ModalDeposito />)}
+            >
+              Depositar
+            </button>
           </div>
         </div>
 
@@ -176,6 +206,20 @@ export default function ContaPage(): ReactNode {
               <div className="qk-t">
                 <div className="qk-name">Segurança</div>
                 <div className="qk-sub">Senha, autenticação e acesso</div>
+              </div>
+              <span className="arr">›</span>
+            </div>
+
+            {/* O extrato é uma tela própria, não uma modal: tem tabela, filtro
+                e exportação, e precisa de URL para poder ser recarregada. */}
+            <div className="qk-row" onClick={() => router.push('/conta/extrato')}>
+              <svg viewBox="0 0 24 24">
+                <path d="M6 3h9l4 4v14H6z" />
+                <path d="M9 11h7M9 15h7" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Extrato da conta</div>
+                <div className="qk-sub">Suas movimentações e exportação</div>
               </div>
               <span className="arr">›</span>
             </div>

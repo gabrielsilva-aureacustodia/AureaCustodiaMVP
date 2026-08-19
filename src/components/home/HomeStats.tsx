@@ -24,7 +24,6 @@
 
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
 import { fmtTrade, lastTrade } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
@@ -45,7 +44,11 @@ export function HomeStats(): ReactNode {
   // Rótulo da última negociação, já com o travessão de "ainda não houve
   // nenhuma". Calculado fora do JSX porque também serve de `key` do elemento —
   // ver a nota logo abaixo.
-  const ultimaNegociacao = lt ? fmtTrade(lt) + ' · ' + COIN.name : '—'
+  // `lastTrade` sem tipo: o painel mostra a última negociação DA PLATAFORMA,
+  // qualquer que seja o ativo. O nome vem da própria negociação — antes era a
+  // constante COIN.name, correta enquanto só a Bandeira era negociada e
+  // mentirosa a partir da segunda moeda no mercado.
+  const ultimaNegociacao = lt ? fmtTrade(lt) + ' · ' + lt.tipoMoeda : '—'
 
   return (
     <div className="stats stats-top">

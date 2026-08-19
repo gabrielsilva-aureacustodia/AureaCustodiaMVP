@@ -64,8 +64,7 @@ Isto é um **port fiel**. Mesmas regras, mesmos números, mesmas mensagens:
 - comissão de 0,5% + R$ 1,00 **por moeda** negociada
 - faixas de custódia anual R$ 5 / 15 / 25 / 30 / 60
 - casamento de ordens por prioridade preço-tempo, uma unidade por volta
-- mediana de 24h como valor estimado do recibo
-- só "Entrega da Bandeira Olímpica" é negociável
+- mediana de 24h como valor estimado do recibo (agora calculada **por tipo de moeda**)
 - dinheiro sempre em **centavos inteiros**
 - senhas em **texto puro** — continua sendo ambiente de teste (ver *Pendências*)
 
@@ -106,6 +105,85 @@ e ficava abaixo do mínimo. Ganhou um `::before` com `inset:-2px` — a mesma t�
 `.switch` já usava — que amplia só a área de toque. O botão continua desenhado em 40×40,
 não há efeito visual nenhum, e os 2px extras cabem dentro do `padding-right:48px` do input,
 então o campo de senha segue clicável.
+
+---
+
+## Mercado multi-ativo, depósito e extrato (agosto/2026)
+
+Primeira leva de funcionalidades que **não** vem do monolito. Aprovada pelos sócios; o
+que ela muda no produto está aqui.
+
+### A Moeda dos Direitos Humanos entrou, e com ela um segundo mercado
+
+O catálogo ganhou a **R$ 1 de 1998, cinquentenário da Declaração Universal dos Direitos
+Humanos** — bimetálica, 27 mm, 7,84 g, tiragem de **600.000**, a menor do Plano Real. As
+sete contas de teste nascem com 1 a 3 delas, recortadas do total que cada conta já tinha
+(a contagem por conta não mudou, e portanto a faixa da taxa de custódia também não).
+
+Os valores simulados ficam entre **R$ 380 e R$ 520**, com histórico girando em torno de
+R$ 450. A faixa vem de cotação real de lojas numismáticas em agosto/2026 (~R$ 350 em MBC,
+~R$ 590 em Soberba, ~R$ 600 em FC), estreitada para o centro porque a plataforma não
+classifica estado de conservação.
+
+**A regra "só a Bandeira é negociável" caiu.** Passam a ser negociáveis ela e a Direitos
+Humanos. Quem responde a pergunta é `isNegociavel(tipo)` — não mais uma comparação com
+`COIN.name`.
+
+### Um livro de ordens por ativo
+
+A prioridade **preço-tempo continua idêntica**: compras da mais alta para a mais baixa,
+vendas da mais barata para a mais cara, empate resolvido por quem chegou primeiro, uma
+unidade por volta. A única regra nova é uma linha: a oferta de venda compatível precisa ter
+o mesmo `tipoMoeda` do bid.
+
+Em português para o Rogério: **cada moeda tem sua própria fila.** Quem quer comprar
+Direitos Humanos entra na fila da Direitos Humanos, e uma oferta de Bandeira Olímpica — por
+mais barata que esteja — nunca é vendida para ele. Dentro de cada fila, quem oferece mais
+compra primeiro; empatou no preço, ganha quem chegou antes.
+
+Consequência disso: **média de 7 dias, mediana de 24 h e as séries dos gráficos passaram a
+ser por tipo.** Sem isso, uma Direitos Humanos de R$ 450 entraria na mesma média de uma
+Bandeira de R$ 285 e o gráfico do Real Olímpico mostraria uma alta que nunca aconteceu.
+
+### As moedas viraram pastas
+
+A lista corrida das telas de compra e venda virou **pastas por categoria** ("Moedas
+Olímpicas", "Moeda dos Direitos Humanos"), com um **seletor de tipo** antes: é ele que diz
+a que moeda o preço unitário se refere. Um anúncio continua sendo de **um tipo só** — lote
+misto é recusado no servidor, porque um lote tem um preço unitário e misturar ativos ali
+venderia a moeda cara pelo preço da barata.
+
+### Depósito em conta (simulado)
+
+Botão "Depositar" junto ao saldo em *Minha conta*. **Não há Pix, cartão nem boleto**: a
+ação soma um número ao saldo e registra o aporte. Teto de **R$ 100.000 por operação**
+(`DEPOSITO_MAX`) — anteparo de ambiente de teste, para um zero a mais digitado sem querer
+não desfigurar o livro de ordens das outras seis contas. A regra roda no servidor: é a
+ação que cria dinheiro, e é a última que poderia morar no navegador.
+
+### Extrato da conta
+
+Tela nova em `/conta/extrato`, com exportação em **CSV e XLSX**. Não confundir com a
+auditoria pública (2.0): aquela é o estoque de todas as contas e **não leva dado de
+proprietário**; esta é de uma conta só, com dinheiro, contraparte e comissão à vista.
+
+Duas limitações estão escritas na própria tela, porque sem elas o extrato parece errado a
+quem for conferir: a **taxa de custódia é registrada mas não é debitada** do saldo (não
+existe ação de pagamento no MVP), e a plataforma guarda **apenas a cobrança vigente**, sem
+histórico. O saldo inicial das contas de demonstração também não aparece como depósito.
+
+**PDF e XML ficaram de fora.** CSV é texto e não precisa de biblioteca; XLSX reaproveita o
+SheetJS que a auditoria já carrega. PDF exigiria uma segunda dependência pesada por um
+documento que ninguém vai reimprimir. As linhas já saem prontas de `@/domain/statement`, e
+o caminho está aberto se o contador pedir.
+
+### O banco de teste foi zerado
+
+`STORE_KEY` subiu para **`aurea-market-v6`**. Ofertas, ordens e negociações gravadas na v5
+não têm `tipoMoeda`; um bid antigo sem tipo jamais casaria com nada e ficaria preso no livro
+para sempre. No primeiro acesso após o deploy, saldos, anúncios abertos e senhas trocadas
+das sete contas de teste voltam ao seed. É dado de demonstração — migrar custaria mais que
+recomeçar.
 
 ---
 
@@ -184,8 +262,9 @@ src/
 │   ├── dates.ts       Timestamp <-> dd/mm/aaaa
 │   ├── codes.ts       RO-000001 / NFT-000001 / RO-ENV-0001
 │   ├── fees.ts        Comissão de negociação e faixas de custódia
-│   ├── market.ts      Casamento de ordens, lotes, indicadores
+│   ├── market.ts      Casamento de ordens (um livro por tipo), lotes, indicadores
 │   ├── selectors.ts   Leituras derivadas do estado
+│   ├── statement.ts   Extrato de UMA conta (não confundir com a auditoria)
 │   └── seed.ts        Dados fictícios das 7 contas
 │
 ├── server/          Só roda no servidor.
@@ -200,7 +279,7 @@ src/
 │   └── api/           state (polling de 10s) e crypto (cotações)
 │
 ├── components/      UI. Providers, casco, gráficos, e uma pasta por área.
-├── lib/             Integrações externas: CoinGecko, jsPDF, SheetJS.
+├── lib/             Integrações externas: CoinGecko, jsPDF, SheetJS, exportadores.
 └── styles/          CSS global por área. Ver nota abaixo.
 ```
 
@@ -220,6 +299,7 @@ src/
 | `/graficos/comparacoes` | 2.3 Comparações com BTC/ETH/USDT |
 | `/conta` | 3.0 Minha conta |
 | `/conta/configuracoes` | 3.2 Configurações e segurança |
+| `/conta/extrato` | 3.3 Extrato da conta (CSV / XLSX) |
 
 ### Nota sobre o CSS
 

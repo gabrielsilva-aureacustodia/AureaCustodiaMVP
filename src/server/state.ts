@@ -28,6 +28,25 @@ import { getStore } from './store'
  */
 
 /**
+ * Preenche campos que um documento gravado por uma versão anterior do formato
+ * pode não ter.
+ *
+ * Hoje só `deposits`, que nasceu na v6. A troca de STORE_KEY já garante que o
+ * banco de produção comece limpo, então esta função nunca deveria ter trabalho
+ * — ela existe para o caso de alguém apontar AUREA_STORE_KEY de volta para uma
+ * chave antiga, em que `state.deposits.push()` estouraria um TypeError no meio
+ * de uma transação de escrita.
+ *
+ * MUTA o estado recebido, de propósito: quem chama está prestes a devolvê-lo
+ * para a camada de persistência, e um objeto novo perderia a identidade que o
+ * `mutate` do store espera.
+ */
+function garantirFormato(state: AppState): AppState {
+  if (!Array.isArray(state.deposits)) state.deposits = []
+  return state
+}
+
+/**
  * Lê o estado. Na primeira execução — banco vazio — semeia com `seedState()` e
  * grava, exatamente como o `loadState` original fazia quando window.storage
  * não devolvia nada.
@@ -36,7 +55,7 @@ export async function getState(): Promise<AppState> {
   const store = getStore()
 
   const current = await store.get<AppState>(STORE_KEY)
-  if (current) return current
+  if (current) return garantirFormato(current)
 
   // A semeadura passa por `mutate` e não por um `set` solto: no Postgres isso
   // a coloca dentro da transação com trava, então duas requisições que chegam
@@ -72,7 +91,7 @@ export async function mutateState<T>(
   return store.mutate<T, AppState>(
     STORE_KEY,
     async (current) => {
-      const state = current ?? seedState()
+      const state = garantirFormato(current ?? seedState())
       captured = { value: await fn(state) }
       return state
     },

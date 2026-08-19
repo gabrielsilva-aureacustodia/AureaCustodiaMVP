@@ -37,17 +37,21 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
+import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { tradeFee } from '@/domain/fees'
 import { availableCoinsForSell, avg7, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import type { BuyOrder, Lot } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { TipoSelector } from '@/components/market/TipoSelector'
 import { CoinPicker } from '@/components/sell/CoinPicker'
 import { SellerBidRow } from '@/components/sell/SellerBidRow'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { cancelLot, editLot, publishOffer, sellToBid } from '@/server/actions/sell'
+
+/** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
+const NEGOCIAVEIS = tiposNegociaveis()
 
 export default function VenderPage(): ReactNode {
   const { state, session, me, run } = useApp()
@@ -67,17 +71,46 @@ export default function VenderPage(): ReactNode {
   const [precoTexto, setPrecoTexto] = useState('')
   const [obs, setObs] = useState('')
 
+  /**
+   * Tipo de moeda que está sendo anunciado. Não existia no monolito porque só
+   * havia um ativo negociável; agora é o que dá sentido ao preço unitário — sem
+   * ele, "R$ 450,00 cada" não diz de qual moeda se está falando.
+   *
+   * Nasce no primeiro tipo do catálogo (a moeda-referência), e não no primeiro
+   * que o usuário possui: assim a tela abre sempre no mesmo lugar, e quem não
+   * tem Bandeira vê a pasta vazia com o motivo à vista em vez de ser levado a
+   * um tipo que não escolheu.
+   */
+  const [tipoAtivo, setTipoAtivo] = useState<string>(NEGOCIAVEIS[0].key)
+
+  /** Categorias abertas na lista de moedas. Ver a nota em components/market/Folder. */
+  const [abertas, setAbertas] = useState<ReadonlySet<string>>(
+    () => new Set([coinTypeInfo(NEGOCIAVEIS[0].key).categoria]),
+  )
+
   /* ---------- recortes do estado (as mesmas quatro linhas do renderSell) ----- */
-  const negociaveis = me.coins.filter((c) => c.tipoMoeda === COIN.name)
+  // Todas as moedas de tipos negociáveis: é o universo das pastas. As não
+  // negociáveis ficam de fora porque esta tela existe para anunciar.
+  const negociaveis = me.coins.filter((c) => coinTypeInfo(c.tipoMoeda).negociavel)
   const anunciadas = new Set(state.sellOffers.map((o) => o.coinId))
-  const avail = availableCoinsForSell(state, me)
+  // Livres DO TIPO ATIVO — é o teto do campo de quantidade e da seleção.
+  const avail = availableCoinsForSell(state, me, tipoAtivo)
   const meusLotes = lotsFromOffers(state).filter((l) => l.seller === session)
   // Ofertas de compra das OUTRAS contas, da mais alta para a mais baixa: quem
-  // vende quer ver primeiro quem paga mais.
+  // vende quer ver primeiro quem paga mais. De TODOS os tipos, de propósito —
+  // o vendedor pode ter moedas de mais de um ativo, e esconder os bids dos
+  // outros tipos esconderia dinheiro que está na mesa para ele.
   const bidsDeTerceiros = state.buyOrders
     .filter((b) => b.buyer !== session)
     .sort((a, b) => b.price - a.price)
-  const media7 = avg7(state)
+  const media7 = avg7(state, tipoAtivo)
+
+  /** Quantas moedas livres o usuário tem de cada tipo — alimenta o seletor. */
+  const livresPorTipo: Record<string, string> = {}
+  NEGOCIAVEIS.forEach((t) => {
+    const n = availableCoinsForSell(state, me, t.key).length
+    livresPorTipo[t.key] = `${n} disponível(is)`
+  })
 
   /* ---------- pré-seleção vinda do certificado NFT (?moeda=RO-000042) -------- */
   /**
@@ -107,8 +140,21 @@ export default function VenderPage(): ReactNode {
     paramConsumido.current = true
     const moedaParam = new URLSearchParams(window.location.search).get('moeda')
     if (!moedaParam) return
+    // O tipo vem da moeda, não do seletor: quem chegou aqui pelo botão "Colocar
+    // à venda" do certificado já escolheu a moeda, e deixar o seletor no tipo
+    // padrão faria a própria moeda pré-selecionada aparecer bloqueada como
+    // "outro tipo".
+    const moeda = me.coins.find((c) => c.id === moedaParam)
+    if (!moeda) return
+    setTipoAtivo(moeda.tipoMoeda)
+    setAbertas(new Set([coinTypeInfo(moeda.tipoMoeda).categoria]))
     setSelecionadas([moedaParam])
     setQtyTexto('1')
+    // `me.coins` fora das dependências de propósito: o efeito consome o
+    // parâmetro UMA vez (ver o `paramConsumido` acima) e reexecutá-lo a cada
+    // chegada de estado novo remarcaria a moeda que o usuário acabou de
+    // desmarcar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /* ---------- prévia de preço (updateSellDerived) ---------------------------- */
@@ -145,6 +191,29 @@ export default function VenderPage(): ReactNode {
   function limparSelecao(): void {
     setSelecionadas([])
     setQtyTexto('')
+  }
+
+  /**
+   * Troca o tipo anunciado. LIMPA a seleção de propósito: as moedas marcadas
+   * são do tipo anterior e um lote não pode misturar ativos — carregá-las para
+   * o tipo novo levaria a uma recusa do servidor que o usuário não teria como
+   * antecipar. Abre também a pasta do tipo escolhido, senão o clique no seletor
+   * não mostraria nada de novo.
+   */
+  function trocarTipo(tipo: string): void {
+    setTipoAtivo(tipo)
+    setSelecionadas([])
+    setQtyTexto('')
+    setAbertas(new Set([coinTypeInfo(tipo).categoria]))
+  }
+
+  function alternarPasta(categoria: string): void {
+    setAbertas((atual) => {
+      const proxima = new Set(atual)
+      if (proxima.has(categoria)) proxima.delete(categoria)
+      else proxima.add(categoria)
+      return proxima
+    })
   }
 
   /**
@@ -192,9 +261,14 @@ export default function VenderPage(): ReactNode {
   function abrirVendaDireta(bid: BuyOrder): void {
     // Limite calculado ANTES de abrir, como em openSellToBidModal (linha 1735):
     // não faz sentido abrir um stepper que não pode passar de zero.
-    const maxQ = Math.min(bid.qty, avail.length)
+    //
+    // O estoque conferido é o DO TIPO DO BID, e não o do tipo ativo no seletor:
+    // a lista de ofertas recebidas mostra todos os ativos, então dá para vender
+    // uma Direitos Humanos com a tela apontada para a Bandeira.
+    const livresDoTipo = availableCoinsForSell(state, me, bid.tipoMoeda).length
+    const maxQ = Math.min(bid.qty, livresDoTipo)
     if (maxQ <= 0) {
-      toast('Você não possui moedas disponíveis para vender agora.')
+      toast(`Você não possui ${bid.tipoMoeda} disponível para vender agora.`)
       return
     }
     modal.open(<ModalVenderParaBid bidId={bid.id} maxQ={maxQ} />)
@@ -213,7 +287,16 @@ export default function VenderPage(): ReactNode {
           Escolha os ativos
         </h3>
 
-        <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+        <TipoSelector
+          name="tipo-venda"
+          titulo="Tipo de moeda a vender"
+          tipos={NEGOCIAVEIS}
+          valor={tipoAtivo}
+          onChange={trocarTipo}
+          detalhePorTipo={livresPorTipo}
+        />
+
+        <div style={{ display: 'flex', gap: 16, margin: '12px 0' }}>
           <span className="back-link" onClick={selecionarTodas}>
             Selecionar todas
           </span>
@@ -227,6 +310,9 @@ export default function VenderPage(): ReactNode {
             moedas={negociaveis}
             anunciadas={anunciadas}
             selecionadas={selecionadas}
+            tipoAtivo={tipoAtivo}
+            abertas={abertas}
+            onToggleFolder={alternarPasta}
             onToggle={alternarMoeda}
           />
         </div>
@@ -239,7 +325,7 @@ export default function VenderPage(): ReactNode {
             {meusLotes.map((l) => (
               <div className="hist-row" key={l.lotId}>
                 <span className="d">
-                  {l.coinIds.length}× {COIN.name} · {brl(l.price)} cada
+                  {l.coinIds.length}× {l.tipoMoeda} · {brl(l.price)} cada
                 </span>
                 <span>
                   <span className="edit-link" onClick={() => abrirEdicaoDeLote(l)}>
@@ -286,7 +372,7 @@ export default function VenderPage(): ReactNode {
           onChange={(e) => aoDigitarQuantidade(e.target.value)}
         />
         <div className="qty-note">
-          {selecionadas.length} de {avail.length} moeda(s) disponíveis selecionada(s)
+          {selecionadas.length} de {avail.length} {tipoAtivo} disponível(is) selecionada(s)
         </div>
 
         <div className="field-lbl">
@@ -383,6 +469,10 @@ export default function VenderPage(): ReactNode {
                 // O fallback '—' é da linha 1503: conta que saiu do estado não
                 // pode derrubar a lista inteira.
                 buyerName={state.users[b.buyer] ? state.users[b.buyer].name : '—'}
+                // Quantas moedas DESTE tipo o vendedor tem livres agora. O botão
+                // fica apagado quando é zero, em vez de abrir a modal só para
+                // recusar em seguida.
+                livres={availableCoinsForSell(state, me, b.tipoMoeda).length}
                 onSellDirect={() => abrirVendaDireta(b)}
               />
             ))
@@ -433,7 +523,10 @@ export default function VenderPage(): ReactNode {
             {/* avg7 devolve null sem negociação nos últimos 7 dias, e aí é traço:
                 média zero seria uma informação falsa. */}
             <div className="v">{media7 ? brl(media7) : '—'}</div>
-            <div className="s">Referência informativa, não recomendação</div>
+            {/* O tipo precisa estar escrito: com dois ativos em preços muito
+                diferentes, um número solto aqui seria lido como se valesse para
+                a moeda errada. */}
+            <div className="s">{tipoAtivo} · referência informativa, não recomendação</div>
           </div>
         </div>
       </div>
@@ -486,7 +579,7 @@ function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
     <>
       <h3 className="serif">Editar anúncio</h3>
       <p>
-        {COIN.name} — {maxQty} moeda(s) anunciada(s) atualmente.
+        {lote.tipoMoeda} — {maxQty} moeda(s) anunciada(s) atualmente.
       </p>
 
       <div className="field-lbl">Novo preço unitário</div>
@@ -575,6 +668,9 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
   return (
     <>
       <h3 className="serif">Vender direto para esta oferta</h3>
+      <p>
+        Ativo: <b style={{ color: 'var(--gold)' }}>{bo.tipoMoeda}</b>
+      </p>
       <p>
         Comprador: <b>{comprador ? comprador.name : '—'}</b> · Preço: <b>{brl(bo.price)}</b> por
         unidade

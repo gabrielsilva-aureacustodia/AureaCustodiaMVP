@@ -31,6 +31,7 @@
  *    negociação que não moveu moeda nenhuma.
  */
 
+import { isNegociavel } from '@/domain/constants'
 import { tradeFee } from '@/domain/fees'
 import { availableCoinsForSell, matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -115,11 +116,12 @@ export async function publishOffer(
         // um cliente que mandasse o mesmo id duas vezes criaria duas ofertas
         // apontando para a mesma moeda.
         const pedidos = [...new Set(coinIds)]
-        const validIds = pedidos.filter(
-          (id) => u.coins.some((c) => c.id === id) && !s.sellOffers.some((o) => o.coinId === id),
-        )
+        const validas = pedidos
+          .map((id) => u.coins.find((c) => c.id === id))
+          .filter((c): c is NonNullable<typeof c> => !!c)
+          .filter((c) => !s.sellOffers.some((o) => o.coinId === c.id))
 
-        if (!validIds.length) {
+        if (!validas.length) {
           return {
             ok: false,
             error: 'As moedas selecionadas não estão mais disponíveis.',
@@ -127,16 +129,48 @@ export async function publishOffer(
           }
         }
 
+        /*
+         * O TIPO DO LOTE SAI DAS MOEDAS, NÃO DO CLIENTE.
+         *
+         * A tela tem um seletor de tipo, mas ele é conveniência de interface: o
+         * que vai para o livro de ordens é o `tipoMoeda` que está gravado em
+         * cada moeda do inventário. Aceitar o tipo pela requisição permitiria
+         * anunciar uma Bandeira de R$ 285 dentro do livro da Direitos Humanos e
+         * casá-la com um bid de R$ 450.
+         */
+        const tipoMoeda = validas[0].tipoMoeda
+
+        // Lote misto: a interface nunca monta um, mas a server action é um
+        // endpoint HTTP e nada impede a chamada direta com ids de tipos
+        // diferentes. Um lote tem UM preço unitário — misturar ativos ali
+        // venderia a moeda cara pelo preço da barata.
+        if (validas.some((c) => c.tipoMoeda !== tipoMoeda)) {
+          return {
+            ok: false,
+            error: 'Um anúncio só pode conter moedas do mesmo tipo.',
+            data: { limparSelecao: true },
+          }
+        }
+
+        if (!isNegociavel(tipoMoeda)) {
+          return {
+            ok: false,
+            error: 'Este tipo de moeda ainda não está disponível para negociação.',
+            data: { limparSelecao: true },
+          }
+        }
+
         const lotId = novoLotId()
-        validIds.forEach((id) => {
+        validas.forEach((c) => {
           const oferta: SellOffer = {
             id: novoOfferId(),
-            coinId: id,
+            coinId: c.id,
             seller: email,
             price: priceCents,
             obs: observacao,
             lotId,
             createdAt: Date.now(),
+            tipoMoeda,
           }
           s.sellOffers.push(oferta)
         })
@@ -148,7 +182,7 @@ export async function publishOffer(
         return {
           ok: true,
           message:
-            `Anúncio publicado: ${validIds.length} moeda(s) a ${brl(priceCents)} cada.` +
+            `Anúncio publicado: ${validas.length} ${tipoMoeda} a ${brl(priceCents)} cada.` +
             (matched
               ? ' Parte já foi vendida automaticamente para ofertas de compra existentes.'
               : ''),
@@ -283,10 +317,17 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // TypeError; aqui a oferta órfã é tratada como oferta que já não existe.
       if (!buyer) return { ok: false, error: BID_SUMIU }
 
-      const availableCoins = availableCoinsForSell(s, seller)
+      // Só as moedas DO TIPO que o bid pede. Sem o recorte, aceitar uma oferta
+      // de compra de Direitos Humanos entregaria a primeira moeda livre do
+      // inventário — que quase sempre seria uma Bandeira, bem mais barata.
+      const availableCoins = availableCoinsForSell(s, seller, bo.tipoMoeda)
       const pedido = Number.isFinite(qtyWanted) ? Math.floor(qtyWanted) : 0
       const n = Math.min(pedido, bo.qty, availableCoins.length)
-      if (n <= 0) return { ok: false, error: 'Você não possui moedas disponíveis para esta venda.' }
+      if (n <= 0)
+        return {
+          ok: false,
+          error: `Você não possui ${bo.tipoMoeda} disponível para esta venda.`,
+        }
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
@@ -306,13 +347,20 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // UM registro para as execN unidades, com qty = execN — é assim que o
       // histórico do MVP guarda venda direta (linha 1786) e é o que a média
       // ponderada de 7 dias espera encontrar.
-      s.trades.push({ price: bo.price, qty: execN, date: Date.now(), buyer: bo.buyer, seller: email })
+      s.trades.push({
+        price: bo.price,
+        qty: execN,
+        date: Date.now(),
+        buyer: bo.buyer,
+        seller: email,
+        tipoMoeda: bo.tipoMoeda,
+      })
       bo.qty -= execN
       s.buyOrders = s.buyOrders.filter((b) => b.qty > 0)
 
       return {
         ok: true,
-        message: `Venda concluída: ${execN} moeda(s) vendida(s) diretamente a ${buyer.name} por ${brl(bo.price)} cada.`,
+        message: `Venda concluída: ${execN} ${bo.tipoMoeda} vendida(s) diretamente a ${buyer.name} por ${brl(bo.price)} cada.`,
       }
     })
     return result

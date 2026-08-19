@@ -105,3 +105,56 @@
 /* editar oferta */
 .edit-link{font-size:11.5px;color:var(--gold);cursor:pointer;text-decoration:underline;margin-left:12px}
 .edit-link:hover{opacity:.8}
+
+/* ============================================================================
+   PASTAS DO CATÁLOGO E SELETOR DE TIPO — mercado multi-ativo.
+
+   Nada disto existe no monolito: lá havia um único ativo negociável, então a
+   tela de venda listava o inventário corrido e a vitrine, os lotes em sequência.
+   Com o segundo ativo essas listas deixaram de caber, e as pastas são o que
+   devolve a navegação.
+
+   Os alvos de toque de .folder-head e .tipo-opt têm min-height:44px — é o
+   mínimo do projeto para dedo em tela pequena, não uma medida estética.
+   ========================================================================= */
+
+.folder{border:1px solid var(--line-soft);border-radius:11px;margin-bottom:11px;overflow:hidden}
+.folder.active{border-color:var(--gold)}
+.folder-head{
+  display:flex;align-items:center;gap:11px;width:100%;min-height:44px;
+  padding:12px 14px;background:transparent;border:none;cursor:pointer;
+  text-align:left;font-family:inherit;transition:background .18s;
+}
+.folder-head:hover{background:var(--card-hover)}
+.folder-chev{
+  width:16px;height:16px;flex-shrink:0;stroke:var(--gold);fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .18s;
+}
+.folder-chev.open{transform:rotate(90deg)}
+.folder-ico{width:20px;height:20px;flex-shrink:0;stroke:var(--gold);fill:none;stroke-width:1.5}
+.folder-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.folder-name{font-size:14.5px;font-weight:700;color:var(--text-strong)}
+.folder-sub{font-size:11.5px;color:var(--text-muted)}
+/* O corpo tem borda só no topo: o contorno lateral já é o da própria pasta. */
+.folder-body{padding:12px 14px 4px;border-top:1px solid var(--line-soft)}
+.folder-sub-head{
+  font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--gold);font-weight:700;margin:4px 0 8px;
+}
+
+/* seletor de tipo de moeda (compra e venda) */
+.tipo-sel{border:none;padding:0;margin:0 0 4px}
+.tipo-sel legend{padding:0}
+.tipo-opt{
+  display:flex;align-items:center;gap:10px;min-height:44px;
+  border:1px solid var(--line-soft);border-radius:10px;padding:9px 13px;margin-bottom:8px;
+  cursor:pointer;transition:all .18s;
+}
+.tipo-opt:hover{border-color:var(--gold)}
+.tipo-opt.on{border-color:var(--gold);background:var(--card-hover);box-shadow:0 0 0 1px var(--gold) inset}
+/* O rádio nativo fica visível de propósito: ele é o que anuncia o estado
+   marcado para o leitor de tela e o que dá navegação por setas de graça. */
+.tipo-opt input{accent-color:var(--gold);width:16px;height:16px;flex-shrink:0;margin:0}
+.tipo-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tipo-nome{font-size:13.5px;font-weight:700;color:var(--text-strong)}
+.tipo-meta{font-size:11px;color:var(--text-muted);line-height:1.35}

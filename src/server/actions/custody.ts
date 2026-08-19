@@ -27,7 +27,7 @@
  */
 
 import { nextEnvioCode } from '@/domain/codes'
-import { COIN, COIN_TYPES } from '@/domain/constants'
+import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodyFeeForCount } from '@/domain/fees'
 import { medianSellPrice } from '@/domain/market'
@@ -262,14 +262,19 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
 
       if (proxima === 'Recibo emitido') {
         const entradaStr = fdate(Date.now())
-        // Só a moeda-referência tem mercado; para ela o valor estimado sai da
-        // mediana das ofertas abertas. Os outros tipos não têm cotação nenhuma,
-        // então recebem um valor fictício da mesma faixa usada pelo seed.
-        const isBandeira = envio.tipoMoeda === COIN.name
-        const med = medianSellPrice(state)
+        // Tipo negociável tem mercado: o valor estimado sai da mediana das
+        // ofertas abertas DELE. Sem mercado — tipo não negociável, ou negociável
+        // ainda sem nenhuma oferta — cai na faixa de referência do próprio tipo,
+        // a mesma que o seed usa. Antes isto olhava só para COIN.name, o que
+        // daria à Direitos Humanos um valor sorteado na faixa das olímpicas
+        // comuns (R$ 140–360) mesmo com o mercado dela aberto e cotado.
+        const negociavel = isNegociavel(envio.tipoMoeda)
+        const med = negociavel ? medianSellPrice(state, envio.tipoMoeda) : null
+        const faixa = faixaValor(envio.tipoMoeda)
 
         for (let i = 0; i < envio.quantidade; i++) {
-          const baseVal = isBandeira && med ? med : 14000 + Math.floor(Math.random() * 22000)
+          const baseVal =
+            med ?? faixa.min + Math.floor(Math.random() * (faixa.max - faixa.min))
           // mkCoin consome DOIS contadores de seq (o do ativo e um de envio,
           // para o campo `protocolo`); o protocolo real é sobrescrito logo
           // abaixo. É assim no original — o seq de envio adiantado é efeito

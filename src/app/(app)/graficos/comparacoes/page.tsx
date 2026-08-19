@@ -27,6 +27,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { COIN } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { roDailySeries, toIndex } from '@/domain/selectors'
 import type { CryptoData } from '@/domain/types'
@@ -109,7 +110,9 @@ export default function ComparacoesPage(): ReactNode {
   }, [])
 
   const cs = crypto ? crypto.series : []
-  const roIdx = indexar(roDailySeries(state, DIAS))
+  // A comparação é do Real Olímpico (a moeda-referência) contra BTC/ETH/USDT —
+  // por isso o recorte por COIN.name e não a série de todos os ativos.
+  const roIdx = indexar(roDailySeries(state, DIAS, COIN.name))
   const btcIdx = indexar(cs.map((x) => ({ t: x.t, v: x.btc })))
   const ethIdx = indexar(cs.map((x) => ({ t: x.t, v: x.eth })))
   const usdtIdx = indexar(cs.map((x) => ({ t: x.t, v: x.usdt })))

@@ -10,7 +10,7 @@
  */
 
 import type { AppState, Cents, Coin, Lot, MatchResult, Trade, User } from '@/domain/types'
-import { COIN } from '@/domain/constants'
+import { isNegociavel } from '@/domain/constants'
 import { DAY_MS, fdate } from '@/domain/dates'
 import { tradeFee } from '@/domain/fees'
 import { brl } from '@/domain/money'
@@ -18,13 +18,18 @@ import { brl } from '@/domain/money'
 /* ---------- indicadores derivados das negociações ---------- */
 
 /**
- * Preço médio dos últimos 7 dias — média PONDERADA pela quantidade, não a
- * média simples dos preços: uma negociação de 5 moedas pesa 5 vezes mais que
- * uma de 1. O `|| 1` protege registros antigos que nasceram sem `qty`.
+ * Preço médio dos últimos 7 dias DO TIPO PEDIDO — média PONDERADA pela
+ * quantidade, não a média simples dos preços: uma negociação de 5 moedas pesa 5
+ * vezes mais que uma de 1. O `|| 1` protege registros antigos que nasceram sem
+ * `qty`.
+ *
+ * O recorte por tipo passou a ser obrigatório quando o mercado deixou de ter um
+ * ativo só. Sem ele, uma Direitos Humanos de R$ 450 e uma Bandeira de R$ 285
+ * entrariam na mesma média, e o número exibido não descreveria mercado nenhum.
  */
-export function avg7(state: AppState): Cents | null {
+export function avg7(state: AppState, tipo: string): Cents | null {
   const cut = Date.now() - 7 * DAY_MS
-  const t = state.trades.filter((x) => x.date >= cut)
+  const t = state.trades.filter((x) => x.date >= cut && x.tipoMoeda === tipo)
   if (!t.length) return null
   const totalQty = t.reduce((s, x) => s + (x.qty || 1), 0)
   const totalVal = t.reduce((s, x) => s + x.price * (x.qty || 1), 0)
@@ -34,9 +39,14 @@ export function avg7(state: AppState): Cents | null {
 /**
  * Última negociação registrada. É o último item do array, não o de maior
  * `date`: o histórico é sempre gravado em ordem cronológica de execução.
+ *
+ * `tipo` omitido devolve a última negociação DA PLATAFORMA, de qualquer ativo —
+ * é o que o painel inicial mostra, e ali a mistura é proposital: o cartão
+ * anuncia o próprio tipo negociado ao lado do preço.
  */
-export function lastTrade(state: AppState): Trade | null {
-  return state.trades.length ? state.trades[state.trades.length - 1] : null
+export function lastTrade(state: AppState, tipo?: string): Trade | null {
+  const lista = tipo ? state.trades.filter((t) => t.tipoMoeda === tipo) : state.trades
+  return lista.length ? lista[lista.length - 1] : null
 }
 
 /** Rótulo curto da negociação. O sufixo só aparece em lote (qty > 1). */
@@ -45,17 +55,27 @@ export function fmtTrade(t: Trade): string {
 }
 
 /**
- * Preço de referência do ativo. A janela preferida é a das ofertas abertas nas
- * últimas 24h — é o que traduz o mercado de agora. Só quando ela está vazia é
- * que se cai para todas as ofertas abertas e, em último caso, para as 10
- * últimas negociações. Mediana (e não média) porque uma oferta absurda
- * isolada não pode arrastar a referência.
+ * Preço de referência de UM tipo de ativo. A janela preferida é a das ofertas
+ * abertas nas últimas 24h — é o que traduz o mercado de agora. Só quando ela
+ * está vazia é que se cai para todas as ofertas abertas do tipo e, em último
+ * caso, para as 10 últimas negociações dele. Mediana (e não média) porque uma
+ * oferta absurda isolada não pode arrastar a referência.
+ *
+ * `tipo` é obrigatório de propósito: esta função decide o valor exibido de uma
+ * moeda na conta, na grade de recibos e no certificado. Um parâmetro opcional
+ * que, esquecido, devolvesse a mediana de todos os ativos misturados escreveria
+ * um valor errado no documento sem que nada acusasse.
  */
-export function medianSellPrice(state: AppState): Cents | null {
+export function medianSellPrice(state: AppState, tipo: string): Cents | null {
   const cutoff = Date.now() - DAY_MS
-  let prices = state.sellOffers.filter((o) => o.createdAt >= cutoff).map((o) => o.price)
-  if (!prices.length) prices = state.sellOffers.map((o) => o.price)
-  if (!prices.length) prices = state.trades.slice(-10).map((t) => t.price)
+  const doTipo = state.sellOffers.filter((o) => o.tipoMoeda === tipo)
+  let prices = doTipo.filter((o) => o.createdAt >= cutoff).map((o) => o.price)
+  if (!prices.length) prices = doTipo.map((o) => o.price)
+  if (!prices.length)
+    prices = state.trades
+      .filter((t) => t.tipoMoeda === tipo)
+      .slice(-10)
+      .map((t) => t.price)
   if (!prices.length) return null
   prices.sort((a, b) => a - b)
   const mid = Math.floor(prices.length / 2)
@@ -65,13 +85,23 @@ export function medianSellPrice(state: AppState): Cents | null {
 /* ---------- ofertas e lotes ---------- */
 
 /**
- * Moedas do usuário que podem ir a leilão agora: só o tipo negociável do
- * catálogo (COIN.name) e nenhuma que já esteja anunciada — uma moeda não pode
- * aparecer em duas ofertas ao mesmo tempo.
+ * Moedas do usuário que podem ir a leilão agora: do tipo pedido, negociável
+ * pelo catálogo e sem oferta aberta — uma moeda não pode aparecer em duas
+ * ofertas ao mesmo tempo.
+ *
+ * `tipo` omitido devolve TODAS as moedas negociáveis livres, de qualquer tipo.
+ * É o que a tela de venda usa para saber se a conta tem alguma coisa a vender
+ * antes de o usuário escolher a pasta.
+ *
+ * A conferência de `isNegociavel` continua aqui mesmo com o tipo vindo por
+ * parâmetro: quem chama pode passar um tipo que o usuário tem em custódia mas
+ * que o mercado não aceita, e é esta função que fecha essa porta.
  */
-export function availableCoinsForSell(state: AppState, u: User): Coin[] {
+export function availableCoinsForSell(state: AppState, u: User, tipo?: string): Coin[] {
   return u.coins.filter(
-    (c) => c.tipoMoeda === COIN.name && !state.sellOffers.some((o) => o.coinId === c.id),
+    (c) =>
+      (tipo === undefined ? isNegociavel(c.tipoMoeda) : c.tipoMoeda === tipo && isNegociavel(tipo)) &&
+      !state.sellOffers.some((o) => o.coinId === c.id),
   )
 }
 
@@ -82,24 +112,30 @@ export function availableCoinsForSell(state: AppState, u: User): Coin[] {
  * própria identidade do anúncio.
  *
  * Ordenação: mais barato primeiro e, no empate, quem anunciou antes.
+ *
+ * `tipo` omitido devolve os lotes de todos os ativos — a vitrine os agrupa por
+ * pasta depois, e ordenar dentro de cada pasta é responsabilidade dela.
  */
-export function lotsFromOffers(state: AppState): Lot[] {
+export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
   const map = new Map<string, Lot>()
-  state.sellOffers.forEach((o) => {
-    const lot = map.get(o.lotId)
-    if (lot) {
-      lot.coinIds.push(o.coinId)
-      return
-    }
-    map.set(o.lotId, {
-      lotId: o.lotId,
-      seller: o.seller,
-      price: o.price,
-      obs: o.obs,
-      createdAt: o.createdAt,
-      coinIds: [o.coinId],
+  state.sellOffers
+    .filter((o) => tipo === undefined || o.tipoMoeda === tipo)
+    .forEach((o) => {
+      const lot = map.get(o.lotId)
+      if (lot) {
+        lot.coinIds.push(o.coinId)
+        return
+      }
+      map.set(o.lotId, {
+        lotId: o.lotId,
+        seller: o.seller,
+        price: o.price,
+        obs: o.obs,
+        createdAt: o.createdAt,
+        coinIds: [o.coinId],
+        tipoMoeda: o.tipoMoeda,
+      })
     })
-  })
   return [...map.values()].sort((a, b) => a.price - b.price || a.createdAt - b.createdAt)
 }
 
@@ -133,12 +169,27 @@ export function transferCoin(seller: User, buyer: User, coinId: string): Coin | 
  * próxima moeda vendida seja de novo a mais barata do livro; "otimizar" o laço
  * para casar em lote muda os resultados.
  *
+ * UM LIVRO POR TIPO DE MOEDA
+ * --------------------------
+ * A única regra nova do mercado multi-ativo mora numa linha só: a oferta de
+ * venda compatível precisa ter `tipoMoeda` igual ao do bid. Não há dois laços
+ * nem duas filas — a prioridade preço-tempo continua sendo a mesma, aplicada
+ * dentro de cada tipo. Preço de Direitos Humanos não cruza com Bandeira
+ * Olímpica por mais alto que seja, porque são ativos diferentes.
+ *
  * MUTA `state`: saldos, inventários, ofertas, ordens e histórico.
  */
 export function matchOrders(state: AppState): MatchResult {
-  // Agrupa execuções unitárias por comprador+vendedor+preço para que N moedas
-  // do mesmo lote virem UM registro no histórico, com qty = N.
-  const fills = new Map<string, number>()
+  /**
+   * Agrupa execuções unitárias por comprador+vendedor+preço+tipo para que N
+   * moedas do mesmo lote virem UM registro no histórico, com qty = N.
+   *
+   * O valor do mapa guarda os campos já separados. Antes eles eram recuperados
+   * de volta com `chave.split('|')`; com o tipo de moeda dentro da chave, esse
+   * split passaria a depender de nenhum nome de moeda do catálogo conter uma
+   * barra vertical — uma armadilha silenciosa esperando o primeiro ativo novo.
+   */
+  const fills = new Map<string, { buyer: string; seller: string; price: Cents; tipoMoeda: string; qty: number }>()
   let progress = true
   while (progress) {
     progress = false
@@ -148,9 +199,14 @@ export function matchOrders(state: AppState): MatchResult {
     for (const bo of state.buyOrders) {
       if (bo.qty <= 0) continue
       const buyer = state.users[bo.buyer]
+      // `s.tipoMoeda === bo.tipoMoeda` é a separação dos livros: sem ela, um bid
+      // de R$ 450 em Direitos Humanos varreria as Bandeiras de R$ 285 do livro,
+      // entregando ao comprador um ativo que ele não pediu.
       // `s.seller !== bo.buyer` impede que alguém compre da própria oferta e
       // fabrique volume artificial no histórico.
-      const so = state.sellOffers.find((s) => s.price <= bo.price && s.seller !== bo.buyer)
+      const so = state.sellOffers.find(
+        (s) => s.tipoMoeda === bo.tipoMoeda && s.price <= bo.price && s.seller !== bo.buyer,
+      )
       // Sem saldo, a ordem é apenas PULADA — não se cancela um bid por falta de
       // caixa momentânea; ele volta a ser tentado na próxima rodada.
       if (so && buyer.balance >= so.price) {
@@ -181,8 +237,17 @@ export function matchOrders(state: AppState): MatchResult {
         seller.balance += price - fee // a comissão sai do lado do vendedor
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         bo.qty -= 1
-        const k = bo.buyer + '|' + so.seller + '|' + price
-        fills.set(k, (fills.get(k) || 0) + 1)
+        const k = bo.buyer + '|' + so.seller + '|' + price + '|' + so.tipoMoeda
+        const atual = fills.get(k)
+        if (atual) atual.qty += 1
+        else
+          fills.set(k, {
+            buyer: bo.buyer,
+            seller: so.seller,
+            price,
+            tipoMoeda: so.tipoMoeda,
+            qty: 1,
+          })
         progress = true
         break
       }
@@ -193,9 +258,15 @@ export function matchOrders(state: AppState): MatchResult {
   // registra o momento do casamento, não o de cada unidade.
   const now = Date.now()
   const trades: Trade[] = []
-  fills.forEach((qty, k) => {
-    const [buyer, seller, priceStr] = k.split('|')
-    const trade: Trade = { price: parseInt(priceStr, 10), qty, date: now, buyer, seller }
+  fills.forEach((f) => {
+    const trade: Trade = {
+      price: f.price,
+      qty: f.qty,
+      date: now,
+      buyer: f.buyer,
+      seller: f.seller,
+      tipoMoeda: f.tipoMoeda,
+    }
     state.trades.push(trade)
     trades.push(trade)
   })

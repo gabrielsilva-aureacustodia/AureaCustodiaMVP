@@ -46,6 +46,38 @@ const MOTIVOS: Record<string, ReactNode | undefined> = {
     />
   ),
 
+  /*
+   * Direitos Humanos (R$ 1, 1998). Motivo NOVO — não há traçado equivalente no
+   * monolito, que não conhecia esta moeda.
+   *
+   * O desenho evoca o anverso da moeda real: o globo com os meridianos e a
+   * figura humana de braços abertos à frente dele. É uma evocação, não um
+   * fac-símile — a plataforma desenha um ícone reconhecível, não reproduz a
+   * arte cunhada pela Casa da Moeda.
+   *
+   * NENHUM anel olímpico aqui, e não por acaso: a restrição de propriedade
+   * intelectual do COB vale para toda arte de moeda do projeto, inclusive a das
+   * moedas que não são olímpicas.
+   */
+  'Direitos Humanos': (
+    <>
+      {/* Globo: círculo, equador e dois meridianos. */}
+      <circle cx={50} cy={48} r={17} fill="none" stroke={GRAVACAO} strokeWidth={1.8} />
+      <path d="M33 48 H67" fill="none" stroke={GRAVACAO} strokeWidth={1.3} />
+      <ellipse cx={50} cy={48} rx={7} ry={17} fill="none" stroke={GRAVACAO} strokeWidth={1.3} />
+      {/* Figura humana de braços abertos, sobreposta ao globo. */}
+      <circle cx={50} cy={38} r={4} fill={GRAVACAO} />
+      <path
+        d="M50 42 V60 M38 50 L50 46 L62 50 M50 60 L43 68 M50 60 L57 68"
+        fill="none"
+        stroke={GRAVACAO}
+        strokeWidth={2.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </>
+  ),
+
   'Bandeira Olímpica': (
     <g fill="none" stroke={GRAVACAO} strokeWidth={2.4}>
       <circle cx={38} cy={42} r={7} />

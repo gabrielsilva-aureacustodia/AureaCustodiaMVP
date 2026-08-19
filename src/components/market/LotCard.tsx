@@ -29,8 +29,8 @@
 
 import type { ReactNode } from 'react'
 
-import { CoinSvg } from '@/components/svg/CoinArt'
-import { COIN } from '@/domain/constants'
+import { CoinArt } from '@/components/svg/CoinArt'
+import { coinTypeInfo } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { Cents, Lot } from '@/domain/types'
@@ -74,16 +74,18 @@ export function LotCard({
 
   return (
     <div className="offer">
-      <CoinSvg />
+      {/* Antes era a <CoinSvg /> fixa da Bandeira: com um ativo só, a arte podia
+          ser constante. Agora o disco desenha o motivo do tipo anunciado. */}
+      <CoinArt type={lot.tipoMoeda} />
 
       <div className="o-info">
         <div className="o-name">
-          {COIN.name}
+          {lot.tipoMoeda}
           {mine ? <span className="mine-badge">SEU ANÚNCIO</span> : null}
         </div>
 
         <div className="o-meta">
-          {COIN.detail}
+          {coinTypeInfo(lot.tipoMoeda).detail}
           <br />
           {qtyAvail} disponível(is) · Vendedor: {mine ? 'você' : sellerName} · Publicado em{' '}
           {fdate(lot.createdAt)}

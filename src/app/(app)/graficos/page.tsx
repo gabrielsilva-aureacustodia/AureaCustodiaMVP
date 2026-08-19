@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { COIN } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { fmtTrade, lastTrade } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -168,7 +169,14 @@ export default function GraficosPage(): ReactNode {
   const dias = PERIOD_DAYS[periodo]
   // O domínio fala centavos; o eixo do gráfico fala reais. A divisão por 100 é
   // a mesma da linha 2377 e precisa acontecer ANTES de o eixo ser escalado.
-  const roPts: ChartPoint[] = roDailySeries(state, dias).map((p) => ({ t: p.t, v: p.v / 100 }))
+  // COIN.name explícito: o "Real Olímpico" destes gráficos É a moeda-referência.
+  // Com o mercado multi-ativo, uma série sem recorte de tipo passaria a somar as
+  // negociações de Direitos Humanos (mais de R$ 400) às da Bandeira (~R$ 285) e
+  // desenharia uma alta que nunca aconteceu no preço do RO.
+  const roPts: ChartPoint[] = roDailySeries(state, dias, COIN.name).map((p) => ({
+    t: p.t,
+    v: p.v / 100,
+  }))
   const tamanho = marketChartSize(movel)
 
   /* ---- comparação simples ---- */
@@ -176,7 +184,7 @@ export default function GraficosPage(): ReactNode {
   const cs = cotacoes ? cotacoes.series : []
   // 30 dias fixos, independentes da aba escolhida: a comparação é um panorama,
   // não um recorte. Divergência do gráfico principal que vem do original.
-  const ro30 = roDailySeries(state, 30)
+  const ro30 = roDailySeries(state, 30, COIN.name)
   const linhas: LinhaComparacao[] = [
     { name: 'RO', color: 'var(--gold)', points: ro30 },
     // Cores literais, como no MVP (linhas 2386-2388). Não viraram token porque

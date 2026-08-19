@@ -49,6 +49,12 @@ uma Server Action em `src/server/actions/`. O cliente pede; quem decide é o ser
 No monolito a regra rodava no navegador e qualquer pessoa com o console aberto comprava
 de graça — não regredir para isso.
 
+**A chave do estado é versionada** (`STORE_KEY`, hoje `aurea-market-v6`). Mudança no
+formato de `AppState` sobe a versão em vez de migrar: o banco de teste recomeça do
+seed, e isso é aceito porque o dado é de demonstração. A v6 nasceu do mercado
+multi-ativo — `SellOffer`, `BuyOrder` e `Trade` passaram a ter `tipoMoeda`, e um
+registro da v5 sem esse campo ficaria preso no livro sem nunca casar.
+
 **Persistência é plugável** (`src/server/store/`) e escolhida por variável de ambiente,
 nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*` ou
 `UPSTASH_REDIS_REST_*`) → memória. Só o Postgres resolve concorrência de verdade
@@ -59,10 +65,17 @@ cold start.
 
 - Comissão: **0,5% + R$ 1,00 por moeda** negociada (`FEE_PCT`, `FEE_FIXED`).
 - Custódia anual por faixas: **R$ 5 / 15 / 25 / 30 / 60**.
-- Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta.
-- **Mediana de 24h** como valor estimado do recibo.
-- Só **"Entrega da Bandeira Olímpica"** é negociável no marketplace.
+- Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
+  **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
+  nunca casa com oferta de outro).
+- **Mediana de 24h** como valor estimado do recibo, calculada **por tipo**.
+- São negociáveis **"Entrega da Bandeira Olímpica"** e **"Direitos Humanos"**
+  (decisão dos sócios, agosto/2026). Quem responde "este tipo pode ir ao
+  mercado?" é `isNegociavel(tipo)` em `src/domain/constants.ts` — nunca uma
+  comparação com `COIN.name`, que era o atalho válido enquanto havia um ativo só.
 - **Dinheiro sempre em centavos inteiros** (`Cents`). Nunca `float` para valor monetário.
+- **Depósito em conta é simulado** e limitado a `DEPOSITO_MAX` (R$ 100.000 por
+  operação). Não há Pix, cartão nem conciliação — a tela precisa dizer isso.
 
 Esses números vivem em `src/domain/constants.ts` e `src/domain/fees.ts`. Alterar
 qualquer um deles altera o produto — confirmar com o Gabriel antes.

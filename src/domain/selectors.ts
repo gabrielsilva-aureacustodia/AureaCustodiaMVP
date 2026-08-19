@@ -90,18 +90,24 @@ export function getSettings(u: User): UserSettings {
 /* ---------- séries para os gráficos ---------- */
 
 /**
- * Série diária do ativo RO: um ponto por dia com negociação, no preço médio
+ * Série diária de UM ativo: um ponto por dia com negociação, no preço médio
  * ponderado pela quantidade do dia. Dias sem negociação simplesmente não
  * existem na série — a linha do gráfico liga os pontos que houver.
+ *
+ * `tipo` é obrigatório desde o mercado multi-ativo. Sem o recorte, um dia com
+ * uma Direitos Humanos de R$ 450 e uma Bandeira de R$ 285 viraria um único
+ * ponto em R$ 367, e o gráfico do Real Olímpico mostraria um salto que nunca
+ * aconteceu no preço dele.
  */
 export function roDailySeries(
   state: AppState,
   days: number,
+  tipo: string,
 ): Array<{ t: Timestamp; v: Cents }> {
   const cut = Date.now() - days * DAY_MS
   const buckets = new Map<Timestamp, { sum: number; q: number }>()
   state.trades
-    .filter((t) => t.date >= cut)
+    .filter((t) => t.date >= cut && t.tipoMoeda === tipo)
     .forEach((t) => {
       const dk = dayStamp(t.date)
       const b = buckets.get(dk) ?? { sum: 0, q: 0 }

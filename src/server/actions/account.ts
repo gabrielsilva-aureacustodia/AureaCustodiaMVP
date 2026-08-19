@@ -28,9 +28,10 @@
  *    run() do AppProvider ficar calado, que é exatamente esse comportamento.
  */
 
-import { ACCOUNTS } from '@/domain/constants'
+import { ACCOUNTS, DEPOSITO_MAX } from '@/domain/constants'
+import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
-import type { ActionResult } from '@/domain/types'
+import type { ActionResult, Cents } from '@/domain/types'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -171,6 +172,57 @@ export async function toggle2FA(): Promise<ActionResult> {
         message: s2.twoFA
           ? 'Verificação em duas etapas ativada (simulada neste ambiente de teste).'
           : 'Verificação em duas etapas desativada.',
+      }
+    })
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Deposita saldo na própria conta. NÃO É PORT — é funcionalidade nova.
+ *
+ * SIMULADO, E ISSO É REQUISITO, NÃO LIMITAÇÃO PROVISÓRIA
+ * -----------------------------------------------------
+ * Não há Pix, cartão, boleto nem qualquer integração de pagamento. A ação soma
+ * um número ao saldo e registra o aporte para o extrato. A tela precisa dizer
+ * isso em texto — um botão "Depositar" que parece movimentar dinheiro de
+ * verdade num ambiente onde nada é cobrado seria enganoso mesmo entre sócios.
+ *
+ * POR QUE A REGRA MORA NO SERVIDOR
+ * --------------------------------
+ * É a ação mais perigosa da plataforma inteira: ela cria dinheiro. Se rodasse
+ * no navegador — como TUDO rodava no monolito — bastaria o console para
+ * inventar saldo e varrer o livro de ordens das outras seis contas.
+ *
+ * O valor chega em centavos; quem digita é a tela, e parsePrice() converte. O
+ * servidor aceita apenas inteiro positivo até DEPOSITO_MAX.
+ */
+export async function deposit(valorCents: Cents): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // Number.isFinite antes de qualquer conta: uma server action é um endpoint
+  // HTTP e NaN/Infinity chegam se alguém quiser mandar. Infinity somado ao
+  // saldo o transformaria em Infinity, e daí em `null` na serialização JSON.
+  const valor = Number.isFinite(valorCents) ? Math.floor(valorCents) : 0
+  if (valor <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
+  if (valor > DEPOSITO_MAX) {
+    return { ok: false, error: `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.` }
+  }
+
+  try {
+    const { result } = await mutateState<ActionResult>((s) => {
+      const u = s.users[email]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+      u.balance += valor
+      s.deposits.push({ userEmail: email, valor, date: Date.now() })
+
+      return {
+        ok: true,
+        message: `Depósito simulado de ${brl(valor)} concluído. Novo saldo: ${brl(u.balance)}.`,
       }
     })
     return result

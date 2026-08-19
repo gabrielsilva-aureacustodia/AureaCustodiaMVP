@@ -13,7 +13,6 @@
 
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
@@ -22,10 +21,21 @@ export interface SellerBidRowProps {
   bid: BuyOrder
   /** Nome do comprador. O original cai em '—' quando a conta não está no estado. */
   buyerName: string
+  /**
+   * Moedas do tipo do bid que o vendedor tem livres agora. Zero desabilita o
+   * botão — no monolito ele estava sempre ativo porque havia um ativo só e a
+   * recusa vinha depois, dentro da modal.
+   */
+  livres: number
   onSellDirect(): void
 }
 
-export function SellerBidRow({ bid, buyerName, onSellDirect }: SellerBidRowProps): ReactNode {
+export function SellerBidRow({
+  bid,
+  buyerName,
+  livres,
+  onSellDirect,
+}: SellerBidRowProps): ReactNode {
   return (
     <div className="offer">
       <div className="block-ico" style={{ width: 52, height: 52 }}>
@@ -39,10 +49,12 @@ export function SellerBidRow({ bid, buyerName, onSellDirect }: SellerBidRowProps
 
       <div className="o-info">
         <div className="o-name">
-          {bid.qty} moeda(s) · {COIN.name}
+          {bid.qty} moeda(s) · {bid.tipoMoeda}
         </div>
         <div className="o-meta">
           Comprador: {buyerName} · Publicada em {fdate(bid.createdAt)}
+          <br />
+          Você tem {livres} desta moeda disponível(is) para vender
         </div>
       </div>
 
@@ -55,9 +67,10 @@ export function SellerBidRow({ bid, buyerName, onSellDirect }: SellerBidRowProps
           className="btn btn-gold"
           type="button"
           style={{ marginTop: 8, padding: '8px 16px', fontSize: 13 }}
+          disabled={livres <= 0}
           onClick={onSellDirect}
         >
-          Vender direto
+          {livres > 0 ? 'Vender direto' : 'Sem estoque'}
         </button>
       </div>
     </div>

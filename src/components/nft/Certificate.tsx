@@ -23,7 +23,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
+import { isNegociavel } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { coinStatusDigital } from '@/domain/selectors'
@@ -75,7 +75,11 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   const ownerName = me.name
 
   const listed = state.sellOffers.some((o) => o.coinId === coin.id)
-  const sellable = coin.tipoMoeda === COIN.name
+  // Antes isto era `coin.tipoMoeda === COIN.name`, o atalho válido enquanto
+  // existia um ativo negociável só. Com a Direitos Humanos no mercado, esse
+  // atalho apagaria o botão "Colocar à venda" de uma moeda perfeitamente
+  // negociável e ainda mostraria a nota dizendo que ela não tem mercado.
+  const sellable = isNegociavel(coin.tipoMoeda)
   const extinto = coin.nft.status === 'Extinto'
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
@@ -83,8 +87,8 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
 
   // Mesma regra de valor da grade 1.4 (linha 1858): mediana de 24h para o ativo
   // negociável, valor de ficha para os demais tipos.
-  const med = medianSellPrice(state)
-  const valorEstimado = sellable && med ? med : coin.valorEstimado
+  const med = sellable ? medianSellPrice(state, coin.tipoMoeda) : null
+  const valorEstimado = med ?? coin.valorEstimado
 
   /**
    * Baixa o recibo em PDF. O import é dinâmico em dois níveis — este módulo
@@ -225,8 +229,9 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 8v5M12 16.5v.5" />
                 </svg>
-                Este tipo de moeda ainda não está disponível para negociação no marketplace de teste
-                — só &quot;Entrega da Bandeira Olímpica&quot;.
+                Este tipo de moeda ainda não está disponível para negociação no marketplace de
+                teste. Hoje são negociáveis a &quot;Entrega da Bandeira Olímpica&quot; e a
+                &quot;Direitos Humanos&quot;.
               </div>
             ) : null}
             {listed ? (

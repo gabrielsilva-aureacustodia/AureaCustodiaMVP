@@ -17,7 +17,6 @@
 
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
@@ -55,7 +54,7 @@ export function BidRow({ bid, buyerName, mine, onEdit, onCancel }: BidRowProps):
 
       <div className="o-info">
         <div className="o-name">
-          {bid.qty} moeda(s) · {COIN.name}
+          {bid.qty} moeda(s) · {bid.tipoMoeda}
           {mine ? <span className="mine-badge">SUA OFERTA</span> : null}
         </div>
         <div className="o-meta">
