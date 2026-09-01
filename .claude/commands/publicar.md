@@ -56,7 +56,8 @@ Diga isto ao Gabriel, em destaque:
 >
 > 1. Vercel → projeto → **Settings** → **Environment Variables**
 > 2. Localize `AUREA_STORE_KEY` (se não existir, crie)
-> 3. Incremente o número: `aurea-market-v5` → `aurea-market-v6`
+> 3. Incremente o número a partir do padrão atual de
+>    `src/domain/constants.ts` — hoje `aurea-market-v6` → `aurea-market-v7`
 > 4. Marque **Production**, **Preview** e **Development** → **Save**
 > 5. Só então faça o push (ou, se já empurrou, **Deployments** → `⋯` → **Redeploy**)
 >

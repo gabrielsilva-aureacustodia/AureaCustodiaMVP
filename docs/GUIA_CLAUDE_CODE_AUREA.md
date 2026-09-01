@@ -141,8 +141,11 @@ Crie `.env.local` na raiz (copie de `.env.example`) com pelo menos:
 
 ```
 SESSION_SECRET="cole-aqui-o-valor-gerado-abaixo"
-AUREA_STORE_KEY="aurea-market-v5"
 ```
+
+Não defina `AUREA_STORE_KEY`: sem ela, o código usa o padrão correto da versão
+atual do formato de estado (ver `src/domain/constants.ts` e o item CD-01 de
+`docs/diario/CRITICAL_DEBUGS.md`).
 
 Gere o segredo:
 
