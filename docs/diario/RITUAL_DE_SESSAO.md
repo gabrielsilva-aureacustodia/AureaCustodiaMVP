@@ -8,7 +8,7 @@ Repositório: github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP · branch m
 Commit:      8e0f0a5
 Gerado em:   28/08/2026
 Fonte:       repositório · documentos do projeto
-Versão base: 1.0
+Versão base: 1.1
 ```
 
 > A versão resumida deste documento é `RITUAL_DE_SESSAO_RESUMO.md`. Ela contém os comandos
@@ -170,8 +170,12 @@ disponibilidade do CDN — não o projeto. Ver item **CD-05** em `CRITICAL_DEBUG
 
 ```bash
 npm run typecheck
+npm test
 npm run build
 ```
+
+`npm test` roda as verificações do motor de mercado, do extrato e do seed (Vitest,
+38 casos) — entrou na versão 1.1 deste ritual, junto com o CD-03.
 
 **Por que este é o passo mais pulado e o mais importante.** Você precisa saber que o projeto
 funcionava **antes** de editar. Sem essa medição, o primeiro erro que aparecer depois de duas
@@ -386,3 +390,4 @@ Divisão natural deste projeto, quando chegar a hora:
 | Versão | Data | O que mudou | Origem |
 |---|---|---|---|
 | 1.0 | 28/08/2026 | Criação, a partir da leitura do commit `8e0f0a5` | Leitura Diária 2026-08-28 |
+| 1.1 | 01/09/2026 | `npm test` entra no Passo 4 da abertura e no `/commit` (Vitest, CD-03); ESLint real e CI no GitHub Actions (CD-06, CD-07); `xlsx` vendorizado — o aviso do Passo 3 sobre o CDN vira histórico (CD-05); rituais versionados em `docs/diario/` (H-02) | Entrada 002 do `VERSION_COMPARISON_DAILY.md` |

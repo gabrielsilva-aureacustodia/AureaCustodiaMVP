@@ -227,6 +227,12 @@ Copie `.env.example` para `.env.local` e preencha o que for usar.
 > conhecido na Seção 4.6 do documento técnico. Com 7 sócios testando é irrelevante. Com
 > clientes reais, use Postgres.
 
+> **Qual camada está ativa em produção (verificado em 01/09/2026, via CLI da Vercel):**
+> **Redis (Vercel KV)** — o projeto tem `KV_REST_API_*` e `REDIS_URL`, e não tem
+> `POSTGRES_URL`/`DATABASE_URL`. A migração para Postgres é o item CD-08 de
+> `docs/diario/CRITICAL_DEBUGS.md`, recomendada junto com o CD-09 para pagar o custo do
+> reset uma vez só.
+
 ---
 
 ## Publicar na Vercel

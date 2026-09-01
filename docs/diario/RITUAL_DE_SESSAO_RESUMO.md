@@ -1,7 +1,7 @@
 # Ritual de Sessão — RESUMO
 
 **Áurea Custódia · para executar, não para ler**
-Versão base 1.0 · commit de referência `8e0f0a5` · 28/08/2026
+Versão base 1.1 · commit de referência `8e0f0a5` · 28/08/2026
 
 > Versão completa com explicações: `RITUAL_DE_SESSAO.md`
 
@@ -24,6 +24,7 @@ npm install
 
 # 4. A base está sã ANTES de eu editar?
 npm run typecheck
+npm test
 npm run build
 
 # 5. Ambiente

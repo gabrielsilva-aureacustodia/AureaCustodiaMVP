@@ -222,3 +222,77 @@ acima não foi descoberta: foi **encontrada já escrita** e apenas promovida a t
 
 *Fim da entrada 001. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+# Entrada 002 — 01/09/2026 — EXECUÇÃO DOS CRITICAL DEBUGS
+
+```
+Leitura:        local, na máquina de trabalho, verificada contra a Vercel (CLI)
+Commit base:    8e0f0a5 "Abre o marketplace para mais de um tipo de moeda"
+Commits novos:  ed623ad → (este) — sessões 0 a 8 do plano de execução
+Plano seguido:  docs/PLANO_EXECUCAO_CRITICAL_DEBUGS.md
+Autor:          gabrielsilva-aureacustodia (Claude Code)
+```
+
+## O que entrou
+
+| Sessão | Item | Commit | Resultado |
+|---|---|---|---|
+| 0 | H-01 + H-02 (achados novos) | `ed623ad` | Clone aninhado do repositório removido; rituais versionados em `docs/diario/`; `AGENTS.md` vira ponteiro para o `CLAUDE.md` |
+| 1 | CD-01 | `7b1dc84` | `.env.example`, guia e `/publicar` deixam de instruir `aurea-market-v5` |
+| 2 | CD-04 + CD-00 (melhoria) + CD-01 (melhoria) | `84b3eee` | `server-only` em `state.ts`, `session.ts` e `store/index.ts` (prova negativa executada: import indevido quebra o build); produção recusa subir sem `SESSION_SECRET`; `garantirFormato()` descarta ordens v5 sem `tipoMoeda` com aviso no log |
+| 3 | CD-05 | `d1cfba2` | `xlsx` vendorizado em `vendor/` (2,3 MB); lockfile sem nenhuma menção ao CDN; `npm ci` do zero comprovado offline do CDN |
+| 4 | CD-03 | `53cc908` | Vitest + **38 testes** em `src/domain/` (motor, parsePrice, extrato, seed); prova negativa: comparação de tipo invertida derruba 8 testes; `npm test` entra no `/commit` |
+| 5 | CD-06 | `6acce7f` | `eslint.config.mjs` (flat config); `npm run lint` roda sem assistente, saída 0 |
+| 6 | CD-07 | `c466d36` | CI no GitHub Actions: lint → typecheck → test → build, Node 24, `npm ci` |
+| 7 | CD-02 | `8b41db7` | Sexto item (concorrência sob Postgres) escrito e lista **selada**; `/commit` Passo 4 aponta para a superfície protegida; `CLAUDE.md` alinhado |
+| 8 | CD-10 | (este) | `.docx` recuperado para `docs/referencia/`; exclusão da branch remota pendente do push |
+
+## Verificações que encerraram itens SEM código
+
+- **CD-00 encerrado**: `SESSION_SECRET` existe na Vercel (Production + Preview), conferido
+  pelo CLI em 01/09. O `DEV_SECRET` público nunca esteve em uso em produção.
+- **CD-08 respondido**: a persistência ativa em produção é **Redis (Vercel KV)** — existem
+  `KV_REST_API_*`/`REDIS_URL`, não existem `POSTGRES_URL`/`DATABASE_URL`. A migração para
+  Postgres virou decisão de agenda (recomendada junto com o CD-09, para um único reset).
+- **CD-05, nuance**: o CDN da SheetJS respondeu 200/2,4 MB em 01/09 — o 403 de 28/08 foi
+  transitório, o que confirma a intermitência em vez de negá-la.
+
+## Achados novos desta execução
+
+1. **H-01 — clone completo do repositório dentro do repositório** (`AureaCustodiaMVP/`,
+   com `.git` próprio, mesmo commit, limpo). Removido após conferência. Era o risco de
+   corrigir o CD-01 na cópia errada e commitar um "resolvido" que não resolve.
+2. **H-02 — `docs/diario/` não existia**, embora o Ritual e o CD-01 apontassem para lá.
+   Os rituais estavam numa pasta solta não versionada. Corrigido na Sessão 0.
+3. **Credencial do GitHub trocada na máquina**: o Credential Manager do Windows guarda
+   `git:https://github.com` da conta `gabrielsilva-sintetica`, sem permissão no
+   repositório. O push está bloqueado até o operador reautenticar — todos os commits
+   desta entrada estão locais até lá.
+
+## Análise crítica do que entrou
+
+- **O maior ganho é o CD-03**: o motor de casamento tem rede versionada pela primeira
+  vez, com prova negativa executada. O maior risco residual é o mesmo de antes em outra
+  escala: `src/server/` continua sem teste (o `server-only` do CD-04 impede inclusive
+  importar esses módulos numa suíte Node comum — limitação registrada no
+  `vitest.config.mts`).
+- **A ordem do plano divergiu do PRIMEIRAS_ACOES_DO_DIA** (CD-03 antecipado, CD-02
+  adiado) com critério explícito: o que bloqueia produto vem antes do que arruma
+  documentação.
+- **Um débito das sessões**: a proteção de branch do GitHub (exigir CI verde) é passo
+  manual do operador, e a exclusão da branch `Useful-Data` depende do push. Nenhum dos
+  dois está concluído nesta entrada.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| CD-00, CD-01, CD-02, CD-03, CD-04, CD-05, CD-06, CD-07 | **Resolvidos** |
+| CD-10 | Resolvido na máquina; exclusão da branch remota pendente do push |
+| CD-08 | Respondido (Redis KV); migração a Postgres é decisão de agenda |
+| CD-09 | Aberto — decisão dos sócios (comissão congelada no `Trade`) |
+
+---
+
+*Fim da entrada 002. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
