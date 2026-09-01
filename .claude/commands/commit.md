@@ -1,7 +1,7 @@
 ---
 description: Verifica, commita e publica seguindo o checklist da Áurea Custódia
 argument-hint: "[descrição opcional do que foi feito]"
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git log:*), Bash(git branch:*), Bash(npm run build:*), Bash(npm run typecheck:*), Bash(npm run lint:*)
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git log:*), Bash(git branch:*), Bash(npm run build:*), Bash(npm run typecheck:*), Bash(npm run lint:*), Bash(npm test:*)
 ---
 
 Execute a rotina de commit da Áurea Custódia. Siga os passos NA ORDEM e **pare no
@@ -34,10 +34,13 @@ rotacionado.
 
 ```bash
 npm run typecheck
+npm test
 npm run build
 ```
 
-Os dois precisam passar. A Vercel roda `next build` a cada push e falha exatamente no
+Os três precisam passar. `npm test` roda as verificações do motor de casamento, do
+extrato e do seed (src/domain/*.test.ts) — é a rede que protege o código que decide
+quem compra de quem e por quanto. A Vercel roda `next build` a cada push e falha exatamente no
 mesmo ponto — falhar aqui custa dez segundos, falhar lá derruba o ambiente que os sócios
 estão testando.
 
