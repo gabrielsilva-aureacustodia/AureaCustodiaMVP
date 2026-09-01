@@ -68,9 +68,23 @@ Isto é um **port fiel**. Mesmas regras, mesmos números, mesmas mensagens:
 - dinheiro sempre em **centavos inteiros**
 - senhas em **texto puro** — continua sendo ambiente de teste (ver *Pendências*)
 
-### As duas divergências autorizadas
+### As seis divergências autorizadas do port · LISTA ENCERRADA EM 28/08/2026
 
-O port é fiel inclusive nos defeitos, com exatamente cinco exceções, revisadas e aprovadas
+> **Registro histórico.** Esta lista cobre o período de refatoração do monolito
+> `aurea-mvp-teste.html` para Next.js, concluído no commit `8e0f0a5`. Ela provava que o port
+> foi fiel, exceto nos seis pontos abaixo, todos revisados e aprovados pelos sócios.
+>
+> **Está encerrada e não recebe itens novos.** O monolito deixou de ser referência quando o
+> repositório passou a receber funcionalidade que nunca existiu nele. Mudanças de
+> comportamento a partir daqui são registradas em `docs/diario/VERSION_COMPARISON_DAILY.md`,
+> que é append-only e tem data e hora por entrada.
+>
+> O que continua exigindo decisão dos sócios antes de mudar é a **superfície protegida**
+> descrita no `CLAUDE.md`: `src/domain/constants.ts` + `fees.ts` + `market.ts` +
+> `types.ts`, o contrato de `src/server/store/types.ts` e as Server Actions — não mais a
+> comparação com o monolito.
+
+O port é fiel inclusive nos defeitos, com exatamente seis exceções, revisadas e aprovadas
 pelos sócios. Quem comparar o comportamento com `aurea-mvp-teste.html` vai achar só estas:
 
 **`parsePrice` deixou de errar 100x.** O original apagava todos os pontos antes de tratar a
@@ -105,6 +119,15 @@ e ficava abaixo do mínimo. Ganhou um `::before` com `inset:-2px` — a mesma t�
 `.switch` já usava — que amplia só a área de toque. O botão continua desenhado em 40×40,
 não há efeito visual nenhum, e os 2px extras cabem dentro do `padding-right:48px` do input,
 então o campo de senha segue clicável.
+
+**A concorrência deixou de ser "última gravação vence" sob Postgres.** O monolito gravava o
+estado inteiro por cima do anterior; duas ações no mesmo segundo perdiam uma, em silêncio. O
+adaptador Postgres (`src/server/store/postgres.ts`, 143–155) abre transação e tranca a linha
+com `SELECT … FOR UPDATE` antes de ler, então a segunda escrita espera a primeira terminar e
+enxerga o resultado dela. Sob Redis e sob memória o comportamento antigo permanece. A
+correção do `globalThis` (`src/server/store/memory.ts`, 19–36, commit `466eddd`) é a metade
+local do mesmo problema: sem ela, dois grafos de bundle mantinham dois estados divergentes no
+mesmo processo de desenvolvimento.
 
 ---
 

@@ -122,16 +122,21 @@ qualquer um deles altera o produto — confirmar com o Gabriel antes.
 1. **Planeje antes de editar.** Em mudança que toca mais de um arquivo, descreva o plano
    e espere aprovação.
 2. **Uma tarefa por sessão.** Terminou, commitou, `/clear` e começa a próxima.
-3. **Não refatore o que não foi pedido.** Este é um port fiel; divergências do monolito
-   foram autorizadas uma a uma e estão listadas no README.
+3. **Não refatore o que não foi pedido.** A fase de port fiel terminou em 28/08/2026 e a
+   lista de divergências do README está encerrada; o que exige parada e decisão dos
+   sócios agora é a **superfície protegida** — `src/domain/constants.ts`, `fees.ts`,
+   `market.ts`, `types.ts`, o contrato de `src/server/store/types.ts` e as Server
+   Actions. Fora dela, é desenvolvimento normal.
 4. **Toda decisão precisa ser explicável ao Rogério**, sócio não técnico. Se a explicação
    só funciona em jargão, a explicação está incompleta.
-5. Antes de commitar: `npm run build` e `npm run typecheck`.
+5. Antes de commitar: `npm run build`, `npm run typecheck` e `npm test`.
 6. **Nunca commitar `.env.local`**, segredo, token ou credencial. Se um segredo vazar
    para o histórico, avise em vez de tentar reescrever o histórico sozinho.
 
 ## Documentos de referência do projeto
 
-- `README.md` deste repositório — divergências autorizadas, deploy e pendências.
+- `README.md` deste repositório — histórico do port, deploy e pendências.
+- `docs/diario/` — rituais de sessão, Critical Debugs e leituras diárias.
+- `docs/PLANO_EXECUCAO_CRITICAL_DEBUGS.md` — o plano verificado dos itens acima.
 - Relatório de Decisão de Arquitetura e Cibersegurança (decisão centralizada, stack).
 - Documento Técnico do MVP HTML (mapa do monolito de origem).

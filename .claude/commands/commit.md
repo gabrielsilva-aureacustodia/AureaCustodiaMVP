@@ -49,15 +49,20 @@ aprovar, corrija e volte ao Passo 1.
 
 ## Passo 4 — Conferência de regra de negócio
 
-Se o diff tocar em `src/domain/constants.ts`, `src/domain/fees.ts` ou
-`src/domain/market.ts`, **pare e me pergunte antes de commitar**. Esses arquivos contêm
-os números combinados com os sócios (comissão de 0,5% + R$ 1,00, faixas de custódia de
-R$ 5/15/25/30/60, mediana de 24h, casamento preço-tempo). Mudar qualquer um deles muda
-o produto, não o código.
+Mudou comportamento de alguma **superfície protegida** — `src/domain/constants.ts`,
+`fees.ts`, `market.ts`, `types.ts`, o contrato de `src/server/store/types.ts` ou qualquer
+Server Action?
 
-Se a alteração criou uma **divergência de comportamento em relação ao monolito**
-(`aurea-mvp-teste.html`), lembre-me de registrá-la na seção "As divergências autorizadas"
-do `README.md`. Hoje são seis; o port se prova mantendo essa lista honesta.
+- **Sim** → pare, explique a mudança e confirme a decisão antes de commitar. São os
+  números combinados com os sócios (comissão de 0,5% + R$ 1,00, faixas de custódia de
+  R$ 5/15/25/30/60, mediana de 24h por tipo, casamento preço-tempo), o modelo de dados
+  (mudança em `types.ts` obriga rotação de `AUREA_STORE_KEY` — ver o `/publicar`) e todo
+  caminho por onde dinheiro e titularidade se movem. Se autorizada, a mudança será
+  registrada na próxima entrada do `docs/diario/VERSION_COMPARISON_DAILY.md`.
+- **Não** → siga. Mudança fora dessas superfícies é desenvolvimento normal.
+
+A lista de divergências do port no `README.md` está **encerrada desde 28/08/2026** e não
+recebe itens novos — o monolito deixou de ser a referência.
 
 ## Passo 5 — Commit
 
