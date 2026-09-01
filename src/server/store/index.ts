@@ -1,3 +1,8 @@
+// EXCLUSIVO DE SERVIDOR: é por aqui que as credenciais de banco entram
+// (process.env). O import abaixo quebra o build se um Client Component
+// tentar puxar este módulo — ver o aviso no topo de ../state.ts.
+import 'server-only'
+
 import { createMemoryStore } from './memory'
 import { createPostgresStore } from './postgres'
 import { createRedisStore } from './redis'

@@ -3,9 +3,11 @@
  *
  * Lê SESSION_SECRET e assina cookies. Nunca importe de um Client Component:
  * o segredo iria junto para o bundle do navegador e a assinatura viraria
- * enfeite. (O ideal seria `import 'server-only'`, mas o pacote não está
- * instalado nesta fase — ver o mesmo aviso em state.ts.)
+ * enfeite. O `import 'server-only'` abaixo faz o build quebrar ao primeiro
+ * import indevido — a barreira é o compilador, não este comentário.
  * ==========================================================================*/
+
+import 'server-only'
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
@@ -43,6 +45,26 @@ let warnedAboutSecret = false
 function sessionSecret(): string {
   const fromEnv = process.env.SESSION_SECRET
   if (fromEnv && fromEnv.length > 0) return fromEnv
+
+  /*
+   * Em produção, faltar SESSION_SECRET deixa de degradar em silêncio e passa a
+   * DERRUBAR a requisição. O fallback silencioso significava assinar o cookie
+   * com um segredo que está escrito neste arquivo — qualquer pessoa com o
+   * repositório forjaria a sessão de qualquer usuário. Melhor a plataforma
+   * fora do ar, visivelmente, do que aberta em silêncio.
+   *
+   * O throw fica AQUI, e não no topo do módulo, de propósito: em tempo de
+   * import ele quebraria também o `next build` (que roda com NODE_ENV de
+   * produção e sem variáveis de runtime); dentro da função ele só dispara
+   * quando uma requisição real precisa assinar ou conferir sessão.
+   */
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SESSION_SECRET é obrigatória em produção. Sem ela, o cookie de sessão seria ' +
+        'assinado com um segredo público e qualquer pessoa entraria como qualquer usuário. ' +
+        'Defina a variável na Vercel (Settings → Environment Variables) e faça Redeploy.',
+    )
+  }
 
   if (!warnedAboutSecret) {
     warnedAboutSecret = true

@@ -5,10 +5,12 @@
  * Ele conversa com Postgres/Redis e carrega segredos de ambiente; puxá-lo para
  * o bundle do navegador vazaria credenciais.
  *
- * O idiomático seria `import 'server-only'` no topo, que quebra o build ao
- * primeiro import indevido — mas o pacote não está no package.json e a
- * instalação está fora do escopo desta fase. Até lá, este aviso é a barreira.
+ * A barreira é o `import 'server-only'` abaixo: qualquer import indevido a
+ * partir de um Client Component QUEBRA O BUILD, com mensagem apontando o
+ * arquivo culpado. Não é mais só este aviso — é o compilador.
  * ==========================================================================*/
+
+import 'server-only'
 
 import { STORE_KEY } from '@/domain/constants'
 import { seedState } from '@/domain/seed'
@@ -28,14 +30,20 @@ import { getStore } from './store'
  */
 
 /**
- * Preenche campos que um documento gravado por uma versão anterior do formato
- * pode não ter.
+ * Normaliza um documento gravado por uma versão anterior do formato de estado.
  *
- * Hoje só `deposits`, que nasceu na v6. A troca de STORE_KEY já garante que o
- * banco de produção comece limpo, então esta função nunca deveria ter trabalho
- * — ela existe para o caso de alguém apontar AUREA_STORE_KEY de volta para uma
- * chave antiga, em que `state.deposits.push()` estouraria um TypeError no meio
- * de uma transação de escrita.
+ * A troca de STORE_KEY já garante que o banco de produção comece limpo, então
+ * esta função nunca deveria ter trabalho — ela existe para o caso de alguém
+ * apontar AUREA_STORE_KEY de volta para uma chave antiga (o cenário do item
+ * CD-01 de docs/diario/CRITICAL_DEBUGS.md). Duas proteções:
+ *
+ *  - `deposits` ausente (nasceu na v6) viraria TypeError no primeiro
+ *    `state.deposits.push()`, no meio de uma transação de escrita;
+ *  - ordem de v5 sem `tipoMoeda` é DESCARTADA do livro. Sem isso, duas ordens
+ *    antigas casariam entre si no motor — `undefined === undefined` é
+ *    verdadeiro — e os mercados voltariam a se misturar sem erro e sem aviso.
+ *    Descartar é a resposta certa porque uma ordem sem tipo não tem livro a
+ *    que pertencer; o dono a republica em segundos.
  *
  * MUTA o estado recebido, de propósito: quem chama está prestes a devolvê-lo
  * para a camada de persistência, e um objeto novo perderia a identidade que o
@@ -43,6 +51,18 @@ import { getStore } from './store'
  */
 function garantirFormato(state: AppState): AppState {
   if (!Array.isArray(state.deposits)) state.deposits = []
+
+  const antes = state.sellOffers.length + state.buyOrders.length
+  state.sellOffers = state.sellOffers.filter((o) => typeof o.tipoMoeda === 'string')
+  state.buyOrders = state.buyOrders.filter((b) => typeof b.tipoMoeda === 'string')
+  const descartadas = antes - state.sellOffers.length - state.buyOrders.length
+  if (descartadas > 0) {
+    console.warn(
+      `[aurea] ${descartadas} ordem(ns) sem tipoMoeda descartada(s) do livro — ` +
+        'documento gravado por formato anterior à v6 (ver CD-01).',
+    )
+  }
+
   return state
 }
 
