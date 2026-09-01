@@ -1,0 +1,52 @@
+# Integração contínua — item CD-07.
+#
+# Antes deste arquivo, typecheck, testes e build rodavam APENAS por disciplina
+# humana, através do /commit. Disciplina é boa e está escrita — mas é
+# exatamente o que falha às duas da manhã, quando alguém quer "só ajustar um
+# texto". A CI é a rede que não depende de ninguém lembrar.
+#
+# A ordem dos passos é deliberada: lint e typecheck primeiro porque são os mais
+# rápidos, testes depois, build por último porque é o mais lento. Falhar cedo
+# economiza minutos em toda falha.
+#
+# Node 24, e não 22: é a versão do Vercel (Node Version 24.x no painel do
+# projeto) e a das máquinas de desenvolvimento. Testar numa versão diferente
+# das que executam o código de verdade reduziria o valor da própria CI.
+#
+# `npm ci`, e não `npm install`: respeita o package-lock.json exatamente e
+# falha se o lock estiver dessincronizado do package.json — uma verificação a
+# mais, de graça. O pacote xlsx vem de vendor/ (CD-05), então o ci não sai
+# para a internet atrás de CDN de terceiro.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Conferir tipos
+        run: npm run typecheck
+
+      - name: Rodar testes
+        run: npm test
+
+      - name: Build de produção
+        run: npm run build
