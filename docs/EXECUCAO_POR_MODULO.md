@@ -34,8 +34,18 @@ mexe em dinheiro real sem ledger) e o parecer jurídico do RA-01.
 
 **Objetivo:** o estado sai do blob JSON único e vira tabelas, **sem perder os 38 testes**.
 
-**Pré-requisito do Gabriel:** projeto Supabase criado, connection string em mãos. Ver
-[`SETUP_CONTAS_E_SERVICOS.md`](SETUP_CONTAS_E_SERVICOS.md).
+**Pré-requisito do Gabriel:** projeto Supabase criado em **São Paulo**, com
+`POSTGRES_URL` (pooler, 6543) e `POSTGRES_URL_DIRECT` (direta, 5432) na Vercel. Ver
+[`SETUP_SUPABASE_PASSO_A_PASSO.md`](SETUP_SUPABASE_PASSO_A_PASSO.md).
+
+**Duas decisões técnicas já tomadas:**
+
+- **Schema `aurea`, não `public`.** O Supabase publica automaticamente uma API na internet
+  para o schema `public`, acessível pela chave `anon` — que é pública por design e ficaria
+  visível no repositório aberto. Tabelas em `aurea` não entram nessa API; a aplicação fala
+  por conexão direta, que a ignora.
+- **`pg` com prepared statements desligados.** O pooler em modo transação não aceita
+  statements nomeados. Configurar isso é do M1, não do Gabriel.
 
 ### Arquivos que nascem
 

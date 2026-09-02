@@ -6,6 +6,7 @@
 docs/
 ├── EXECUCAO_POR_MODULO.md           O passo a passo técnico de cada fase (M1 a M7)
 ├── SETUP_CONTAS_E_SERVICOS.md       O que o Gabriel precisa cadastrar, sem jargão
+├── SETUP_SUPABASE_PASSO_A_PASSO.md  O detalhe do Supabase — escolhas irreversíveis
 ├── ARQUITETURA_E_PASTAS.md          O mapa do repositório e o contrato entre as pastas
 ├── CATALOGO_DE_FEATURES.md          O que foi pedido, o que existe, o que falta
 ├── DECISOES_D1_D9_E_PLANO.md        A ata das decisões e o plano que sai delas

@@ -52,32 +52,35 @@ Também vai cuidar do login e dos vídeos da estação.
    - **Plan:** Free
 4. Espere uns dois minutos enquanto ele cria
 
-### O que me mandar
+### 📘 O detalhamento está em documento próprio
 
-Em **Project Settings → Data API** e **Database**, copie:
+**[`SETUP_SUPABASE_PASSO_A_PASSO.md`](SETUP_SUPABASE_PASSO_A_PASSO.md)** — leia esse antes de
+criar o projeto. Ele existe separado porque **três escolhas aqui não podem ser desfeitas**, e
+uma delas (a região) só se corrige recriando o projeto inteiro.
 
-| Campo | Onde está | Pode mandar no chat? |
+### O essencial, em resumo
+
+| Campo | Valor |
+|---|---|
+| Name | `aurea-custodia` |
+| **Region** | ⚠️ **`South America (São Paulo)`** — as funções da Vercel já foram movidas para lá |
+| Database Password | **Generate a password**, e guarde: só é mostrada uma vez |
+
+Para o M1 preciso de **duas** connection strings, coladas por você na Vercel:
+
+| Nome na Vercel | Qual string | Para quê |
 |---|---|---|
-| Project URL | Data API | ✅ Sim |
-| `anon` public key | Data API | ✅ Sim (é pública por design) |
-| `service_role` key | Data API | ❌ **NÃO.** Cole direto na Vercel |
-| Connection string | Database → Connection string → URI | ❌ **NÃO.** Cole direto na Vercel |
+| `POSTGRES_URL` | Transaction pooler, porta **6543** | O dia a dia da aplicação |
+| `POSTGRES_URL_DIRECT` | Direct connection, porta **5432** | Criar e alterar tabelas |
 
-### Onde colar os secretos
+As chaves `anon` e `service_role` **só entram no M2**, com o login. Deixe para depois.
 
-**Vercel → projeto `aurea-custodia-mvp` → Settings → Environment Variables:**
+> ⚠️ **Não me mande as connection strings pelo chat** — elas contêm a senha do banco.
 
-| Nome | Valor | Ambientes |
-|---|---|---|
-| `POSTGRES_URL` | a connection string | Production, Preview |
-| `SUPABASE_SERVICE_ROLE_KEY` | a service_role key | Production, Preview |
-| `NEXT_PUBLIC_SUPABASE_URL` | o Project URL | Production, Preview, Development |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a anon key | Production, Preview, Development |
-
-> Na connection string há um `[YOUR-PASSWORD]` — troque pela senha do passo 3.
-
-> **Bônus:** assim que `POSTGRES_URL` existir, a plataforma passa a usar Postgres em vez do
-> Redis atual, e o problema de concorrência ([RA-08](../RISCOS_ASSUMIDOS.md#ra-08)) some.
+> **Efeito imediato:** no momento em que `POSTGRES_URL` existir, a plataforma passa a usar
+> Postgres em vez do Redis atual. O problema de concorrência
+> ([RA-08](../RISCOS_ASSUMIDOS.md#ra-08)) some, e **o ambiente recomeça do seed** — avise os
+> sócios antes.
 
 ---
 
