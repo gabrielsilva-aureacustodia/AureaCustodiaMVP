@@ -72,15 +72,23 @@ feita ao banco real**: a migration não foi aplicada em produção e o `FOR UPDA
 conexões de verdade não foi exercitado.
 
 **O que fica descoberto:** diferenças entre PGlite e o pooler do Supabase (Supavisor) — em
-especial statements com várias instruções e o comportamento sob duas conexões.
+especial statements com várias instruções e o comportamento sob duas conexões. O PGlite tem
+**uma conexão só** e enfileira transações por construção: os testes de compra e envio
+simultâneos provam o caminho da recusa, **não a espera na trava**. O critério de aceite
+"duas compras simultâneas" continua aberto até rodar contra o banco real.
 
 **Como se paga:** `npm run db:migrate` no Supabase e, uma vez,
 `AUREA_DB_TEST_URL="postgresql://…" npm test` — a mesma suíte roda contra o banco real num
-schema `aurea_test` descartável. São dois comandos do Gabriel.
+schema `aurea_test` descartável. São dois comandos do Gabriel, e estão no passo 4 de
+`docs/CUTOVER_BANCO_PRODUCAO.md`.
+
+**Situação em 03/09/2026:** ainda não pago. A senha do `.env.local` continua recusada pelo
+Supabase (`npm run db:check` confirma), então nenhuma consulta desta frente jamais tocou o
+banco real.
 
 ---
 
-## RA-13.e 🟡 — `src/server/store/` continua no repositório
+## RA-13.e 🟡 — `src/server/store/` continua no repositório, e parte dele é código morto
 
 **Arquivo:** `../store/*`, `../state.ts`
 
@@ -89,10 +97,18 @@ O blob antigo fica como caminho de `getState()`/`mutateState()` quando não há
 
 **Por quê:** o passo 9 do plano do M1 diz "só então remover", e "então" é depois de a
 produção ter rodado sobre tabelas — o que depende do passo do Gabriel na Vercel. Remover
-antes deixaria `npm run dev` sem banco e a produção sem rede de segurança.
+antes deixaria `npm run dev` sem banco nenhum para subir.
+
+**A correção de 03/09/2026:** a primeira versão desta nota chamava o `store/` de "rede de
+segurança". **Está errado, e é o tipo de erro que custa caro na hora errada.** Com
+`POSTGRES_URL` definida, `store/postgres.ts` nunca é selecionado — é código morto. Tirar a
+variável de um deploy que já roda sobre tabelas manda a aplicação para Redis ou memória, e
+não para o blob. O rollback é o "Instant Rollback" da Vercel para o build anterior; está
+escrito em `docs/CUTOVER_BANCO_PRODUCAO.md`.
 
 **Como se paga:** um commit que apaga `src/server/store/`, o ramo antigo de `state.ts`,
-`STORE_KEY` em `constants.ts` e a variável `AUREA_STORE_KEY` do `.env.example`.
+`STORE_KEY` em `constants.ts` e a variável `AUREA_STORE_KEY` do `.env.example`, mais uma
+migration com `DROP TABLE aurea.aurea_state`.
 
 ---
 

@@ -34,7 +34,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-01** | Custódia de dinheiro de terceiros sem parecer jurídico | 🔴 | `src/server/actions/`, `src/lib/payments/` |
 | **RA-02** | Senhas em texto puro | 🔴 | `src/domain/`, `src/server/actions/` |
 | **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
-| **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 29 testes) | 🟠 | `src/server/actions/`, `session.ts` |
+| **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
 | **RA-06** | Comissão do extrato recalculada, não congelada — **metade paga em 02/09** (coluna `fee`) | 🟠 | `src/domain/` |
 | **RA-07** | Depósito sem idempotência nem limite de frequência | 🟠 | `src/server/actions/` |
@@ -383,8 +383,22 @@ um tem nota própria em `src/server/db/ATALHOS.md`; aqui vai o resumo.
 | **a** | **Uma fila de escrita para tudo.** Toda mutação trava a linha única de `seq`; não há trava por livro de ordens | 🟡 | `mutateBook(tipoMoeda, fn)` para as ações de mercado, quando houver volume |
 | **b** | **Estado inteiro carregado a cada leitura e escrita** (9 consultas). Os ~30 pontos de leitura em `src/app/` não foram recortados — **por contrato**, essas pastas não são da frente B | 🟡 | Depois do merge das três frentes, seletores por fatia |
 | **c** | **Comissão gravada, extrato recalcula.** `trades.fee` existe e é preenchida; `statement.ts` ainda ignora | 🟠 | Uma linha em `statement.ts`, após o "sim" dos sócios (CD-09). Fecha o RA-06 |
-| **d** | **Verificado contra Postgres embutido, não contra o Supabase.** A senha local estava desatualizada e o agente não podia aplicá-la. A migration **não foi aplicada em produção** e o `FOR UPDATE` com duas conexões reais não foi exercitado | 🟠 | `npm run db:migrate` e, uma vez, `AUREA_DB_TEST_URL=… npm test` — dois comandos do Gabriel |
-| **e** | **`src/server/store/` continua no repositório**, como caminho sem `POSTGRES_URL` | 🟡 | Commit de remoção após a produção rodar sobre tabelas (passo 9 do M1) |
+| **d** | **Verificado contra Postgres embutido, não contra o Supabase.** A senha local estava desatualizada e o agente não podia aplicá-la. A migration **não foi aplicada em produção** e o `FOR UPDATE` com duas conexões reais não foi exercitado — o Postgres embutido tem uma conexão só e prova o caminho da recusa, não a espera na trava | 🟠 | `npm run db:migrate` e, uma vez, `AUREA_DB_TEST_URL=… npm test` — dois comandos do Gabriel, no passo 4 da Fase 0 de `docs/CUTOVER_BANCO_PRODUCAO.md` |
+| **e** | **`src/server/store/` continua no repositório**, como caminho sem `POSTGRES_URL`, e o adaptador de blob em `store/postgres.ts` virou **código morto** | 🟡 | Commit de remoção após a produção rodar sobre tabelas (passo 9 do M1), com prompt em `docs/prompts/AGENTE_B2_POS_PRODUCAO.md` |
+
+**Atualização de 03/09/2026.** Duas correções que mudam o que se faz, não só o que se diz:
+
+- **A documentação chamava o `store/` de "rede de segurança". Estava errado.** Com
+  `POSTGRES_URL` definida, o adaptador de blob nunca é selecionado; **remover a variável de
+  um deploy que já roda sobre tabelas manda a aplicação para Redis ou memória, não para o
+  blob**. O rollback é o "Instant Rollback" da Vercel para o build anterior. Corrigido em
+  `src/server/db/README.md`, `src/server/store/README.md` e `src/server/db/ATALHOS.md`.
+- **A ordem da virada é migration antes do merge.** A produção já tem `POSTGRES_URL`; o
+  deploy novo procura `aurea.seq` na primeira requisição e, sem ela, derruba o site
+  inteiro, login incluído. O roteiro está em `docs/CUTOVER_BANCO_PRODUCAO.md`.
+
+O RA-13.d **continua aberto**: `npm run db:check` confirmou em 03/09 que a senha do
+`.env.local` segue recusada, então nenhuma consulta desta frente jamais tocou o banco real.
 
 **Consequência hoje:** nenhuma para os sete sócios. **O que muda com cliente real:** (b) vira
 gargalo de desempenho e (c) vira contradição em extrato impresso.

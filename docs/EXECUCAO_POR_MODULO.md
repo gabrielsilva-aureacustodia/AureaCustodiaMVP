@@ -49,30 +49,50 @@ mexe em dinheiro real sem ledger) e o parecer jurídico do RA-01.
 
 ### Arquivos que nascem
 
+> ✅ **Entregue em 02–03/09/2026** na branch `feat/banco-supabase`. O bloco abaixo é o que
+> foi realmente construído; o plano original previa um `schema.sql` separado, que não
+> existe — **a migration é o schema**, e duplicá-la só criaria duas verdades.
+
 ```
 src/server/db/
 ├── README.md                 obrigatório (regra da casa)
-├── ATALHOS.md                se algum atalho for tomado
-├── client.ts                 cliente Supabase, server-only
-├── schema.sql                o schema versionado
+├── ATALHOS.md                os cinco atalhos do M1 (RA-13)
+├── client.ts                 pool pg, server-only — a única porta da credencial
+├── sql.ts                    Consulta, Executor, nomeDoSchema(), num()
+├── estado.ts                 lerEstado / mutarEstado
+├── diff.ts                   planejador puro: dois AppState → operações
+├── migrar.ts                 aplicador usado pelos testes
+├── diff.test.ts              16 testes, sem banco
+├── db.test.ts                15 testes contra Postgres embutido (PGlite)
 ├── migrations/
-│   └── 001_inicial.sql
+│   ├── README.md
+│   └── 001_inicial.sql       o schema versionado
 └── repositories/
+    ├── README.md
     ├── users.ts
-    ├── coins.ts
+    ├── coins.ts              coins + nfts
     ├── offers.ts             sell_offers + buy_orders
-    ├── trades.ts
+    ├── trades.ts             append-only
     ├── envios.ts
-    └── state.ts              monta o AppState parcial para o motor
+    ├── account.ts            deposits + custody_charges   (a mais que o plano)
+    ├── seq.ts                contadores E a trava         (a mais que o plano)
+    └── state.ts              monta o AppState e grava o diff
+
+scripts/
+├── README.md
+├── env-local.mjs             acha o .env.local, inclusive em git worktree
+├── db-migrate.mjs            npm run db:migrate
+└── db-check.mjs              npm run db:check — diagnóstico somente leitura
 ```
 
 ### Arquivos que mudam
 
 | Arquivo | O que muda |
 |---|---|
-| `src/server/state.ts` | `getState`/`mutateState` passam a falar com o repositório |
-| `src/server/actions/*` | Abrem transação em vez de chamar `mutateState` no blob |
-| `src/server/store/*` | **Fica de pé até M1 terminar.** Só então é removido |
+| `src/server/state.ts` | `getState`/`mutateState` passam a falar com os repositórios quando há `POSTGRES_URL` — **assinatura preservada** |
+| `src/domain/types.ts` | `Trade.fee?` — a comissão congelada na gravação |
+| `src/server/actions/*` | **Nada.** O plano previa abrir transação aqui; não foi preciso, porque a transação vive dentro de `mutateState`. Melhor que o previsto: zero risco na superfície protegida |
+| `src/server/store/*` | **Fica de pé até M1 terminar.** Só então é removido (passo 9) |
 
 ### O schema mínimo
 

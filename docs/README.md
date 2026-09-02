@@ -19,6 +19,7 @@ docs/
 ├── HANDOFF_CORRECAO_SUPABASE.md     A correção da conexão Supabase (02/09)
 ├── PROXIMOS_PASSOS_SUPABASE.md      O que fazer depois da rotação de senha
 ├── HANDOFF_FRENTE_B_BANCO.md        A entrega do M1: o estado em tabelas, e o que o Gabriel faz
+├── CUTOVER_BANCO_PRODUCAO.md        🔴 O roteiro da virada para tabelas, com a ordem obrigatória
 │
 ├── diario/                          Documentos vivos, reescritos por leitura
 │   ├── RITUAL_DE_SESSAO.md            Abertura e fechamento de toda sessão (detalhado)
@@ -62,6 +63,7 @@ Mudam quando o assunto muda, não por rotina.
 | Quer saber o que falta fazer | `CATALOGO_DE_FEATURES.md` |
 | Vai executar um módulo | `EXECUCAO_POR_MODULO.md` |
 | Vai abrir uma frente nova em outro chat | `FRENTES_PARALELAS.md` → `prompts/` |
+| Vai pôr o banco novo em produção | `CUTOVER_BANCO_PRODUCAO.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
 | Quer saber que atalhos a plataforma deve | `../RISCOS_ASSUMIDOS.md` (raiz) |
 | Vai mexer numa pasta específica | O `README.md` da própria pasta |

@@ -9,7 +9,7 @@
 
 **Alcance:** `state.ts`, `session.ts`, `actions/*`, `store/*`
 
-**Atualização de 02/09/2026:** `db/` nasceu com 29 testes, 13 deles contra um Postgres real
+**Atualização de 02/09/2026:** `db/` nasceu com 31 testes, 15 deles contra um Postgres real
 embutido — a primeira cobertura de `src/server/`. O truque foi deixar o `server-only` só em
 `db/client.ts` e parametrizar o resto pelo `Executor`. O mesmo desenho serve para pagar o
 restante: as Server Actions poderiam receber o executor por parâmetro e rodar na mesma suíte.

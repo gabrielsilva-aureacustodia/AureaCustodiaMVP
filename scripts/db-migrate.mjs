@@ -6,7 +6,10 @@
  *
  * Usa POSTGRES_URL_DIRECT (session pooler, porta 5432) — o pooler em modo
  * transação (6543) recusa alguns comandos de criação de tabela. Sem ela, cai
- * em POSTGRES_URL. Se nenhuma estiver no ambiente, lê `.env.local` da raiz.
+ * em POSTGRES_URL. Se nenhuma estiver no ambiente, lê `.env.local` — desta
+ * pasta ou, rodando num git worktree, a do worktree principal (ver
+ * scripts/env-local.mjs; `.env.local` é ignorado pelo Git e não viaja entre
+ * worktrees).
  *
  * `AUREA_DB_SCHEMA` (opcional) aplica a mesma SQL noutro schema — é como o
  * ambiente local ganha uma gaveta própria no mesmo projeto Supabase, sem tocar
@@ -20,25 +23,27 @@
  * Idempotente: rodar duas vezes não aplica nada na segunda.
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import pg from 'pg'
 
+import { carregarEnvLocal, descreverUrl } from './env-local.mjs'
+
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pastaMigrations = join(raiz, 'src', 'server', 'db', 'migrations')
 
 // .env.local só entra se o ambiente não trouxe a URL — na Vercel ela já vem.
-if (!process.env.POSTGRES_URL_DIRECT && !process.env.POSTGRES_URL) {
-  const envLocal = join(raiz, '.env.local')
-  if (existsSync(envLocal)) process.loadEnvFile(envLocal)
-}
+const envUsado = carregarEnvLocal(raiz, ['POSTGRES_URL_DIRECT', 'POSTGRES_URL'])
+if (envUsado) console.log(`db-migrate: variáveis de ${envUsado}`)
 
 const url = process.env.POSTGRES_URL_DIRECT || process.env.POSTGRES_URL
 if (!url) {
   console.error(
-    'db-migrate: defina POSTGRES_URL_DIRECT (ou POSTGRES_URL) no ambiente ou em .env.local.',
+    'db-migrate: defina POSTGRES_URL_DIRECT (ou POSTGRES_URL) no ambiente ou em .env.local.\n' +
+      '            Num git worktree, o .env.local da pasta principal também serve — este\n' +
+      '            comando procura nos dois lugares e não encontrou em nenhum.',
   )
   process.exit(1)
 }
@@ -66,13 +71,7 @@ const local = /^postgres(ql)?:\/\/[^@]*@(localhost|127\.0\.0\.1)/.test(url)
 const client = new pg.Client({ connectionString: url, ssl: local ? false : { rejectUnauthorized: false } })
 
 // O host aparece no log; a senha, nunca.
-const host = (() => {
-  try {
-    return new URL(url).host
-  } catch {
-    return '(url ilegível)'
-  }
-})()
+const host = descreverUrl(url)
 
 await client.connect()
 try {

@@ -1,8 +1,17 @@
 # `src/server/db/` — o estado em tabelas (Supabase Postgres)
 
 **Superfície protegida.** Esta pasta é o motor por baixo de `getState()` e `mutateState()`
-quando `POSTGRES_URL` existe. Substitui o blob JSON de `../store/` — que continua de pé como
-rede de segurança até a produção ter rodado sobre tabelas (passo 9 do M1).
+quando `POSTGRES_URL` existe. Substitui o blob JSON de `../store/`, que continua no
+repositório até o passo 9 do M1.
+
+> ⚠️ **`../store/` não é rede de segurança, e a distinção importa no dia do cutover.**
+> Com `POSTGRES_URL` definida, `state.ts` escolhe esta pasta **antes** de olhar para o
+> `store/` — o adaptador de blob em `store/postgres.ts` nunca mais é selecionado. Tirar a
+> variável **não** volta para o blob: manda a aplicação para o Redis (se as variáveis do KV
+> existirem) ou para a memória, ou seja, para um estado vazio ou velho.
+>
+> **O rollback de produção é o "Instant Rollback" da Vercel** para o deploy anterior, que é
+> o build que ainda lê o blob. Ver [`docs/CUTOVER_BANCO_PRODUCAO.md`](../../../docs/CUTOVER_BANCO_PRODUCAO.md).
 
 ## A frase que explica a pasta
 
@@ -23,7 +32,7 @@ sempre, e os 38 testes do domínio continuam valendo sem uma linha alterada.
 | `migrations/001_inicial.sql` | O schema: 10 tabelas no schema `aurea`, RLS em todas | — |
 | `repositories/` | Uma tabela (ou par) por arquivo: SQL de leitura e escrita. Ver [README](repositories/README.md) | — |
 | `diff.test.ts` | 16 testes do planejador, sem banco | — |
-| `db.test.ts` | 13 testes de integração contra um **Postgres real embutido** (PGlite) | — |
+| `db.test.ts` | 15 testes de integração contra um **Postgres real embutido** (PGlite), incluindo o diagnóstico do `db:check` | — |
 | `ATALHOS.md` | O que esta pasta deve ao próprio rigor | — |
 
 Só `client.ts` tem `import 'server-only'`, e é o único que lê `process.env.POSTGRES_URL`.
@@ -80,15 +89,24 @@ das escritas.
 
 Sem `POSTGRES_URL`, `state.ts` cai no `../store/` (Redis ou memória), como antes.
 
+> **O `.env.local` mora na pasta principal do repositório, não no worktree** — ele é
+> ignorado pelo Git e não viaja entre worktrees. `db:check` e `db:migrate` procuram nos dois
+> lugares e dizem, na primeira linha da saída, qual arquivo usaram. Ver `scripts/README.md`.
+
 ## Como subir do zero
 
 ```bash
+npm run db:check          # a conexão vale? a migration já foi aplicada?
 npm run db:migrate        # aplica migrations/*.sql no POSTGRES_URL_DIRECT
 npm run dev               # a primeira requisição semeia as 7 contas
 ```
 
 A semeadura acontece quando `users` está vazia, dentro da trava — duas primeiras
 requisições simultâneas não semeiam duas vezes.
+
+`npm run db:check` é somente leitura e sai com código 1 quando falta alguma coisa, então
+serve dentro de um `&&`. O roteiro completo da virada para produção está em
+[`docs/CUTOVER_BANCO_PRODUCAO.md`](../../../docs/CUTOVER_BANCO_PRODUCAO.md).
 
 ## O que quebra se você mexer aqui
 
@@ -115,10 +133,18 @@ continuar: o resto da aplicação fala com `getState()`/`mutateState()`.
 | `src/domain/market.ts` | Roda **intocado** dentro da transação |
 | `src/server/store/` | O motor antigo, ativo quando não há `POSTGRES_URL`. Sai no passo 9 |
 | `scripts/db-migrate.mjs` | Aplica as mesmas migrations pela linha de comando |
+| `scripts/db-check.mjs` | Diagnóstico somente leitura; sua função `diagnosticar` é testada aqui, em `db.test.ts` |
 
 ## Próximos passos (na ordem)
 
-1. Gabriel aplica a migration no Supabase (`npm run db:migrate`) e confirma `POSTGRES_URL` na Vercel
-2. Rodar `AUREA_DB_TEST_URL=… npm test` uma vez contra o banco real — prova o `FOR UPDATE` com duas conexões
-3. Remover `src/server/store/` (passo 9), junto com `STORE_KEY`/`AUREA_STORE_KEY`
-4. Trava por livro de ordens em vez de fila única — quando houver volume (ver `ATALHOS.md`)
+Roteiro completo, com verificação a cada passo, em
+[`docs/CUTOVER_BANCO_PRODUCAO.md`](../../../docs/CUTOVER_BANCO_PRODUCAO.md).
+
+1. Rotacionar a senha do banco (RA-12) e acertar o `.env.local` — hoje ela é recusada
+2. `npm run db:check` e `npm run db:migrate` na gaveta local, depois no schema `aurea`
+3. `AUREA_DB_TEST_URL=… npm test` uma vez contra o banco real — é o que prova o `FOR UPDATE`
+   com **duas conexões**, coisa que o Postgres embutido não consegue mostrar
+4. Merge e deploy, nesta ordem: **migration antes do merge**
+5. Uma semana depois: remover `src/server/store/` (passo 9), junto com
+   `STORE_KEY`/`AUREA_STORE_KEY` — prompt em `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`
+6. Trava por livro de ordens em vez de fila única — quando houver volume (ver `ATALHOS.md`)

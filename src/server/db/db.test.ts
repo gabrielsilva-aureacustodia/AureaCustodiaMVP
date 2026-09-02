@@ -31,6 +31,8 @@ import { matchOrders, transferCoin } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import type { Envio } from '@/domain/types'
 
+import { diagnosticar } from '../../../scripts/db-check.mjs'
+
 import { normalizarTrade } from './diff'
 import { lerEstado, mutarEstado } from './estado'
 import { aplicarMigrations } from './migrar'
@@ -428,6 +430,23 @@ function suite(alvo: Alvo): void {
       expect(lido).toEqual(semeado)
     })
 
+    it('o diagnóstico do `npm run db:check` aprova um banco migrado', async () => {
+      // O comando que decide se o cutover pode acontecer, rodando de verdade.
+      // Sem isto, um erro de digitação na SQL dele só apareceria no cutover.
+      const { achados, pronto } = await executar((tx) => diagnosticar(tx, alvo.schema))
+
+      expect(achados.filter((a) => a.nivel === 'falha')).toEqual([])
+      expect(pronto).toBe(true)
+      expect(achados.map((a) => a.texto)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('migrations aplicadas'),
+          expect.stringContaining('tabelas do M1 existem'),
+          expect.stringContaining('RLS ligada'),
+          expect.stringContaining('nenhuma tabela em public'),
+        ]),
+      )
+    })
+
     it('a lista de moedas é lida na ordem do array, e sellToBid vende as mesmas moedas de antes', async () => {
       const semeado = await lerEstado(executar)
       const [vendedor, comprador] = Object.keys(semeado.users)
@@ -447,6 +466,31 @@ function suite(alvo: Alvo): void {
     })
   })
 }
+
+/* ---------- o outro lado do diagnóstico: banco sem migration ---------- */
+
+describe('db:check — banco ainda não migrado', () => {
+  /**
+   * O caso que o comando existe para pegar, e que o cutover não pode viver sem:
+   * publicar antes de aplicar a migration derruba o site inteiro, porque
+   * `aurea.seq` não existe e toda requisição falha. Aqui o banco está vazio de
+   * propósito, e o diagnóstico precisa RECUSAR.
+   */
+  it('recusa, dizendo qual comando resolve', async () => {
+    const vazio = new PGlite()
+    await vazio.waitReady
+    try {
+      const { achados, pronto } = await executorPGlite(vazio)((tx) => diagnosticar(tx, 'aurea'))
+      expect(pronto).toBe(false)
+      const falhas = achados.filter((a) => a.nivel === 'falha')
+      expect(falhas).toHaveLength(1)
+      expect(falhas[0].texto).toContain('migration NÃO aplicada')
+      expect(falhas[0].texto).toContain('npm run db:migrate')
+    } finally {
+      await vazio.close()
+    }
+  })
+})
 
 /* ---------- PGlite: sempre ---------- */
 

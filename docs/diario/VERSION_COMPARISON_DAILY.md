@@ -365,3 +365,77 @@ Handoff: docs/HANDOFF_FRENTE_B_BANCO.md
 
 *Fim da entrada 003. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+---
+
+# Entrada 005 — 03/09/2026 · Frente B (2ª sessão): a branch sai do disco e a virada ganha roteiro
+
+```
+Branch:  feat/banco-supabase — PUBLICADA em origin nesta sessão
+Base:    main dd38a74 · commits 119aff8 (M1) + o desta entrada
+Estado:  typecheck ✅ · lint ✅ · 69 testes ✅ (1 pulado) · build ✅
+Banco:   ❌ nada rodou contra o Supabase — senha do .env.local segue recusada
+
+Nota de numeração: a entrada 004 fica reservada para a frente C, que renumera a
+sua (hoje também marcada como 003) nesta faixa. Esta entrada pula para 005 para
+não criar uma segunda colisão.
+```
+
+## O que entrou
+
+- **A branch foi publicada.** Até hoje a fundação das outras duas frentes existia num
+  único disco. `git push -u origin feat/banco-supabase` resolveu o risco mais barato de
+  todos.
+- **`npm run db:check`** (`scripts/db-check.mjs`): diagnóstico somente leitura que responde,
+  num comando, se o cutover pode acontecer — senha, migration, tabelas, RLS, tabela em
+  `public` e se o blob antigo ainda existe. Sai com código 1 quando falta algo.
+- **`scripts/env-local.mjs`**: acha o `.env.local` mesmo rodando num git worktree.
+- **`docs/CUTOVER_BANCO_PRODUCAO.md`**: o roteiro da virada, com a ordem obrigatória e a
+  tabela de sintomas.
+- **`docs/prompts/AGENTE_B2_POS_PRODUCAO.md`**: o prompt do passo 9, com a lista de
+  pré-condições que precisam estar verdadeiras antes de remover o caminho de volta.
+- `engines.node` para `>=20.12`, exigido por `process.loadEnvFile`.
+
+## Achados
+
+1. **H-06 — `npm run db:migrate` não funcionaria no worktree.** O `.env.local` é ignorado
+   pelo Git e não viaja entre worktrees; o comando procurava só na pasta em que rodava e
+   morria dizendo que a variável não estava definida, quando ela estava viva um diretório
+   ao lado. **Era o próximo comando que o Gabriel ia rodar.** Corrigido: procura nos dois
+   lugares e imprime qual arquivo usou.
+2. **H-07 — a documentação chamava `src/server/store/` de "rede de segurança", e não é.**
+   Com `POSTGRES_URL` definida o adaptador de blob nunca é selecionado; remover a variável
+   manda a aplicação para Redis ou memória, não para o blob. O rollback correto é o Instant
+   Rollback da Vercel para o build anterior. Corrigido em três documentos e no RA-13.
+3. **H-08 — o comando de conferência não era conferido.** `db:check` decide se a virada
+   acontece, e um erro de digitação na SQL dele só apareceria no cutover. A função
+   `diagnosticar` passou a ser exportada e é exercitada pela suíte contra o Postgres
+   embutido nos dois cenários — banco pronto e banco sem migration.
+4. **A conexão continua recusando a senha**, confirmado hoje pelo próprio `db:check`.
+
+## Análise crítica
+
+- **O que esta sessão fez foi diminuir a distância entre "o código está pronto" e "a
+  produção está de pé".** Nenhuma linha do motor mudou; o que mudou foi a chance de o
+  próximo comando do Gabriel falhar por um motivo que não tem nada a ver com o trabalho.
+- **O RA-13.d continua sendo o maior risco residual, e ele não se resolve escrevendo.** O
+  critério "duas compras simultâneas" segue provado apenas contra um Postgres de uma
+  conexão só. A prova custa um comando e depende da senha.
+- A tentação nesta sessão era começar a Fase 2 (remover o `store/`). Seria erro: enquanto a
+  produção não rodar sobre tabelas, o caminho antigo é o único deploy que funciona.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Branch B publicada | ✅ `origin/feat/banco-supabase` |
+| RA-12 (senha no histórico público) | 🔴 aberto — rotação é do Gabriel |
+| RA-13.d (nada verificado contra o Supabase) | 🟠 aberto — depende da senha |
+| RA-13.e (`store/` no repositório) | 🟡 aberto — sai só depois da virada |
+| Cutover de produção | ⏳ roteiro pronto, execução com o Gabriel |
+| CD-09 (extrato ler `t.fee`) | ⏳ decisão dos sócios |
+
+---
+
+*Fim da entrada 005. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
