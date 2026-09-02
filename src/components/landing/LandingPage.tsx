@@ -113,8 +113,8 @@ export function LandingPage(): ReactNode {
           </p>
         </div>
         <nav aria-label="Informações legais">
-          <Link href="/cadastrar#documentos-legais">Termos de Uso</Link>
-          <Link href="/cadastrar#documentos-legais">Política de Privacidade</Link>
+          <Link href="/termos">Termos de Uso</Link>
+          <Link href="/privacidade">Política de Privacidade</Link>
         </nav>
       </footer>
     </main>

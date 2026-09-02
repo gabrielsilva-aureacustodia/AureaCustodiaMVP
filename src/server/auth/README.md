@@ -40,9 +40,11 @@ O cadastro continua fechado enquanto qualquer uma destas condições faltar:
 AUREA_SIGNUP_ENABLED=true
 AUREA_TERMS_VERSION
 AUREA_PRIVACY_VERSION
-AUREA_TERMS_URL
-AUREA_PRIVACY_URL
 ```
+
+`AUREA_TERMS_URL` e `AUREA_PRIVACY_URL` são opcionais. Sem elas, são usadas as
+páginas internas `/termos` e `/privacidade`, que permanecem identificadas como
+rascunhos até a revisão jurídica.
 
 `AUREA_SITE_URL` é opcional; sem ela, a origem do callback é derivada da
 requisição, o que mantém localhost e Preview isolados.
