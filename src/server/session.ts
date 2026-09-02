@@ -1,7 +1,8 @@
 /* ============================================================================
  * ATENÇÃO — MÓDULO EXCLUSIVO DE SERVIDOR.
  *
- * Lê SESSION_SECRET e assina cookies. Nunca importe de um Client Component:
+ * Lê SESSION_SECRET e assina a sessão interna depois que o Supabase Auth já
+ * confirmou a identidade. Nunca importe de um Client Component:
  * o segredo iria junto para o bundle do navegador e a assinatura viraria
  * enfeite. O `import 'server-only'` abaixo faz o build quebrar ao primeiro
  * import indevido — a barreira é o compilador, não este comentário.
@@ -16,17 +17,18 @@ import { cookies } from 'next/headers'
 /**
  * Sessão do usuário.
  *
- * No MVP a sessão era a variável global `session` com o e-mail logado —
+ * O Supabase Auth guarda e valida a senha; este cookie só transporta o e-mail
+ * já autenticado entre as rotas internas. No MVP a sessão era a variável
+ * global `session` com o e-mail logado —
  * suficiente num arquivo que rodava inteiro no navegador de uma pessoa só.
  * No servidor isso não existe: cada requisição chega sozinha e precisa provar
  * quem é. O cookie carrega o e-mail acompanhado de um HMAC-SHA256; sem a
  * assinatura, qualquer visitante trocaria o valor por outro e-mail e entraria
  * na conta alheia.
  *
- * Não há expiração dentro do payload: a validade é a do próprio cookie
- * (maxAge de 7 dias). É o mesmo nível de rigor do original, que não expirava
- * nada. Sessão com prazo assinado entra junto com a troca de senha em texto
- * puro por hash, na Etapa 2 da migração (Seção 4.4 do documento técnico).
+ * Não há senha, token do provedor nem dado de perfil no payload. A validade é
+ * a do próprio cookie (maxAge de 7 dias), e logout encerra também a sessão
+ * transitória mantida pelo cliente SSR do Supabase.
  */
 
 const COOKIE_NAME = 'aurea_session'
