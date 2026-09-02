@@ -18,7 +18,7 @@ Custo:      Grátis no plano Free
 | Escolha | O valor certo | Por que não dá para mudar depois |
 |---|---|---|
 | **Região** | `South America (São Paulo)` | A região de um projeto Supabase é fixa. Errar significa recriar do zero |
-| **Senha do banco** | Gerada pelo próprio Supabase | Ela só é mostrada **uma vez**. Perdida, só resetando |
+| **Senha do banco** | Gerada pelo Supabase | Só é mostrada uma vez — mas **dá para resetar** (ver Passo 2) |
 | **Organização** | A da empresa, não pessoal | Mover projeto entre organizações é trabalhoso |
 
 ---
@@ -47,13 +47,21 @@ Se ele pedir para criar uma **organização**, use `Aurea Custodia`.
 | **Region** | ⚠️ **`South America (São Paulo)`** |
 | **Plan** | Free |
 
-## ⚠️ A senha — o passo que mais dá problema
+## ⚠️ A senha — e o que fazer se o cadastro não perguntou
 
-Clique em **Generate a password** e **copie para o seu gerenciador de senhas antes de
-continuar**. O Supabase mostra essa senha **uma única vez**.
+**O fluxo novo do Supabase pode não pedir a senha na criação** — ele gera uma nos bastidores
+e não mostra. Se foi o seu caso, é normal e tem conserto em trinta segundos:
 
-Ela vai aparecer dentro da connection string, no lugar de `[YOUR-PASSWORD]`. Sem ela, a
-aplicação não conecta.
+1. No projeto, ícone de engrenagem (**Settings**) na barra lateral
+2. **Database**
+3. Seção **Database password** → **Reset database password**
+4. Clique em **Generate a password**, **copie para o gerenciador de senhas** e confirme
+
+Essa é a senha do banco (`postgres`), **diferente** da senha com que você entra no painel do
+Supabase.
+
+Ela aparece dentro da connection string no lugar de `[YOUR-PASSWORD]`. Sem ela, a aplicação
+não conecta — e resetar de novo é sempre possível, então senha perdida não é problema grave.
 
 ## ⚠️ A região — por que São Paulo, e por que eu confirmei isso hoje
 
@@ -74,43 +82,64 @@ Depois de clicar em criar, espere uns dois minutos.
 
 # Passo 3 — Pegar as duas connection strings
 
-Aqui está o detalhe técnico que decide se o **motor de casamento de ordens** vai funcionar.
-Preciso de **duas** strings diferentes, e elas servem para coisas diferentes.
+**Você NÃO precisa criar tabela nenhuma antes.** As connection strings existem desde o
+momento em que o projeto foi criado — elas apontam para o banco, não para o conteúdo dele.
 
-Vá em **Project Settings → Database → Connection string**.
+## Onde estão (o painel mudou de lugar)
 
-Você vai ver algumas opções. As que importam:
+Procure o botão **`Connect`** no **topo da página do projeto**. É o caminho atual; o antigo
+(Settings → Database → Connection string) ainda funciona, mas o botão é mais direto.
+
+Abre uma janela com abas. Você quer a aba de **Connection String**, e dentro dela há três
+opções. **Precisamos de duas delas.**
 
 ## A) Transaction pooler — porta **6543**
 
 ```
-postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-1-sa-east-1.pooler.supabase.com:6543/postgres
 ```
 
-**É esta que a aplicação usa no dia a dia.** Vai na Vercel como `POSTGRES_URL`.
+**É a que a aplicação usa no dia a dia.** Vai na Vercel como `POSTGRES_URL`.
 
-**Por quê:** na Vercel, cada requisição pode subir uma função nova, e cada uma abriria sua
-própria conexão com o banco. O plano Free do Supabase aguenta poucas conexões diretas — sem
-o pooler, um pico de acessos derruba o banco por esgotamento. O pooler reaproveita um punhado
-de conexões entre todas as funções.
+**Por quê:** na Vercel cada requisição pode subir uma função nova, e cada uma abriria sua
+própria conexão. O plano Free aguenta poucas conexões simultâneas — sem o pooler, um pico de
+acessos derruba o banco por esgotamento. O pooler reaproveita um punhado de conexões entre
+todas as funções.
 
-## B) Direct connection — porta **5432**
+## B) Session pooler — porta **5432**
 
 ```
-postgresql://postgres:[YOUR-PASSWORD]@db.xxxx.supabase.co:5432/postgres
+postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
 ```
 
-**Esta é só para criar e alterar tabelas** (as *migrations*). Vai na Vercel como
+**Esta é para criar e alterar tabelas** (as *migrations*). Vai na Vercel como
 `POSTGRES_URL_DIRECT`.
 
-**Por quê:** o pooler da porta 6543 não suporta alguns comandos que criação de tabela usa.
-É o padrão da indústria ter as duas: uma para o dia a dia, outra para mudanças de estrutura.
+> ⚠️ **Session pooler, e não "Direct connection".** As duas parecem servir para a mesma
+> coisa, e a diferença é armadilha conhecida: **a Direct connection do Supabase só responde
+> em IPv6**, salvo se você comprar o adicional de IPv4. Muitas redes e plataformas
+> serverless não falam IPv6, e o sintoma é uma falha de conexão que não explica o motivo.
+>
+> O **Session pooler funciona em IPv4** e se comporta como uma conexão direta — aceita os
+> comandos de criação de tabela que o Transaction pooler recusa. É o caminho certo aqui.
 
-> **Em ambas, troque `[YOUR-PASSWORD]` pela senha do Passo 2.** Ela não vem preenchida.
+## Como reconhecer cada uma
 
-> **O que eu cuido do lado do código:** o pooler em modo transação não aceita *prepared
-> statements* nomeados, e o driver `pg` que o projeto usa precisa ser configurado para isso.
-> Já está mapeado no M1 — você não precisa fazer nada a respeito.
+| | Transaction pooler | Session pooler |
+|---|---|---|
+| Porta | **6543** | **5432** |
+| Host | `...pooler.supabase.com` | `...pooler.supabase.com` |
+| Vai em | `POSTGRES_URL` | `POSTGRES_URL_DIRECT` |
+
+As duas têm `pooler.supabase.com` no endereço — **o que as distingue é a porta**. Se o host
+for `db.xxxxx.supabase.co`, você pegou a Direct connection: volte e escolha o Session pooler.
+
+> **Em ambas, troque `[YOUR-PASSWORD]` pela senha do Passo 2.** Ela vem como texto literal,
+> não preenchida.
+
+> **O que eu cuido no código:** o pooler em modo transação não aceita *prepared statements*
+> nomeados, e o driver `pg` do projeto precisa ser configurado para isso. Está mapeado no
+> M1 — você não precisa fazer nada a respeito.
 
 ---
 
@@ -167,9 +196,14 @@ Só isto, e nada secreto:
 ```
 Supabase criado.
 Região: South America (São Paulo)
-Variáveis POSTGRES_URL e POSTGRES_URL_DIRECT coladas na Vercel.
+POSTGRES_URL colada na Vercel (porta 6543, transaction pooler)
+POSTGRES_URL_DIRECT colada na Vercel (porta 5432, session pooler)
 Exposed schemas: public (sem "aurea")
 ```
+
+Se qualquer passo travar, me diga **em qual tela você está e o que aparece** — o painel do
+Supabase muda com frequência, e é mais rápido eu conferir a navegação atual do que você
+procurar.
 
 Com isso eu começo o M1 na mesma hora.
 
@@ -200,3 +234,17 @@ ser opcional no dia em que o dado for de outra pessoa.
 **"E se eu errar a região?"**
 Me avise antes de colar as variáveis. Recriar o projeto nessa fase custa dez minutos;
 descobrir depois de o banco estar em uso custa uma migração.
+
+**"Preciso criar alguma tabela antes?"**
+Não. As connection strings existem desde que o projeto existe — elas apontam para o banco,
+não para o conteúdo dele. Todas as tabelas são criadas por mim no M1, por migration
+versionada. Você não toca em SQL.
+
+**"O painel não me deixou escolher senha na criação."**
+É o fluxo novo do Supabase: ele gera uma nos bastidores e não mostra. Resolve em
+**Settings → Database → Database password → Reset database password**. Ver Passo 2.
+
+**"Qual a diferença entre Direct connection e Session pooler? As duas são porta 5432."**
+A Direct connection só responde em **IPv6** (salvo com o adicional de IPv4 pago), e muita
+rede não fala IPv6 — a falha aparece como erro de conexão sem explicação. O Session pooler
+faz a mesma coisa por IPv4. **Use o Session pooler.**
