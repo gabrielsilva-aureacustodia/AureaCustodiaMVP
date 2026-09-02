@@ -12,6 +12,7 @@ docs/
 ├── EXECUCAO_POS_FRENTES_PARALELAS.md  Auditoria das três branches e o plano do que falta
 ├── EXECUCAO_BRANCH_C_O_QUE_FALTA.md   Frente C em detalhe: correções, integração e tutoriais
 ├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md   Frente A: relatório simples do que falta, com mensagem para o agente
+├── EXECUCAO_BRANCH_B_O_QUE_FALTA.md   Frente B (backbone): auditoria arquivo a arquivo e o cutover de produção
 ├── ARQUITETURA_E_PASTAS.md          O mapa do repositório e o contrato entre as pastas
 ├── CATALOGO_DE_FEATURES.md          O que foi pedido, o que existe, o que falta
 ├── DECISOES_D1_D9_E_PLANO.md        A ata das decisões e o plano que sai delas

@@ -10,6 +10,7 @@ chat dedicado a uma frente de trabalho.
 | `AGENTE_C_PAGAMENTOS_CORREIOS.md` | Mercado Pago e Correios | `feat/pagamentos-correios` |
 | `AGENTE_C2_CORRECOES.md` | Correções da frente C apontadas na auditoria de 03/09 (não depende da B) | `feat/pagamentos-correios` |
 | `AGENTE_C3_INTEGRACAO.md` | Ligar pagamentos e rastreio ao estado — **só depois do merge da B** | `feat/pagamentos-integracao` |
+| `AGENTE_B2_POS_PRODUCAO.md` | Remover o blob antigo e fechar o M1 — **só depois de a produção rodar sobre tabelas** | `chore/remover-blob` |
 
 ## Antes de abrir qualquer frente
 

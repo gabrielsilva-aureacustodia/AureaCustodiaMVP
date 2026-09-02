@@ -6,7 +6,9 @@
 Escrito em:  03/09/2026
 Branch:      feat/pagamentos-correios (commits 98a79da e 49f0c24, publicada no origin)
 Base:        main em dd38a74
-Verificado:  typecheck ✅ · lint ✅ · 67 testes ✅ · build ✅ (auditoria de 03/09)
+Verificado:  typecheck ✅ · lint ✅ · 67 testes ✅ · build ✅ (auditoria de 03/09, manhã)
+Atualizado:  03/09 à tarde — a sessão C-2 foi executada; ver a seção 8 para o estado atual
+             (commits 8c35bab e 22f7829, 71 testes ✅, build ✅)
 Contexto:    docs/EXECUCAO_POS_FRENTES_PARALELAS.md, seção 3 (itens C1–C12)
 ```
 
@@ -548,3 +550,69 @@ npx vitest src/lib/payments src/lib/shipping src/app/api
 | Rastreio por job agendado | ❌ | ❌ | ✅ (6.6) |
 | Nenhum CEP guardado | ✅ | ✅ | ✅ (tela sem persistência) |
 | Registro em `RISCOS_ASSUMIDOS.md` + `ATALHOS.md` | ❌ parcial | ✅ RA-14 | ✅ RA-14 atualizado |
+
+---
+
+# 8. Estado após a sessão C-2 (auditoria de 03/09/2026, tarde)
+
+```
+Commits novos:  8c35bab "Corrige itens de auditoria da Frente C (Sessao C-2)"
+                22f7829 "Adiciona testes do cron de rastreio e relatorio consolidado de auditoria"
+Publicado:      sim — origin/feat/pagamentos-correios em 22f7829
+Verificado:     typecheck ✅ · lint ✅ · 71 testes ✅ (12 arquivos) · build ✅
+```
+
+## 8.1 O que a C-2 corrigiu, conferido no código
+
+| Item da lista C-2 | Estado | O que eu conferi |
+|---|---|---|
+| 2.1 etapa 1 — idempotência atrás de interface | ✅ | `RepositorioIdempotencia` com `reivindicar`/`concluir`/`falhar`/`verificar`, adaptador `RepositorioIdempotenciaMemoria`, seletor `repositorioIdempotencia()`. A rota usa as funções de conveniência, que delegam ao seletor. Pronto para o adaptador Postgres da C-3 |
+| 2.3 — evento sem id responde 400 | ✅ | `processarPayloadWebhook` devolve `eventoId: null`; sem `id` mas com `data.id` usa `evt-<paymentId>`, que é determinístico (aceitável). Rota responde 400 e registra. Teste com `{}` → 400 |
+| 2.4 — assinatura obrigatória | ✅ | 401 em qualquer `NODE_ENV`; sem segredo só passa com `MP_WEBHOOK_ALLOW_UNSIGNED=true`; sem segredo e sem a variável, **fecha** (401) — inclusive em produção mal configurada, que é o comportamento certo. `dataId.toLowerCase()` no manifesto. Testes com HMAC real: válido → 200, um caractere alterado → 401, reenvio → `already_processed` |
+| Cron protegido | ✅ | Sem `CRON_SECRET` em produção, a rota recusa tudo (fecha). Dois testes novos (401 e 200) |
+| 2.6 — `.env.example` | ✅ | Bloco da seção 5 acrescentado |
+| 2.6 — `shipping/ATALHOS.md` | ✅ com ressalva | A rota de etiqueta PDF deixou de ser "existente" e virou "planejada para a C-3" — mas ela **não está** no escopo da C-3. Ver 8.2 |
+| 2.6 — RA-14 em `RISCOS_ASSUMIDOS.md` | ✅ | Seção RA-14 com a–e, linha no índice, nota de estado no RA-07 |
+| 2.6 — `payments/ATALHOS.md` | ✅ com ressalva | Os cinco subitens estão lá, mas a nota anterior sobre o RA-01 (sandbox até o parecer) foi removida. Ver 8.2 |
+| Diário renumerado para 004 | ✅ | Com seção "Correções de 03/09 (Sessão C-2)" em append |
+| Catálogo 4.4 e 4.5 em 🟡 | ✅ | |
+| Push | ✅ | |
+
+**Veredito da C-2: tudo que cabia à sessão foi feito.** As três correções de segurança do
+webhook (400 sem id, 401 sempre, HMAC real nos testes) estão certas e fecham o modo de
+falha que permitia furar a idempotência.
+
+## 8.2 Restos pequenos (entram na C-3, não valem sessão própria)
+
+| # | O que | Onde |
+|---|---|---|
+| R1 | Recolocar em `src/lib/payments/ATALHOS.md` uma linha ligando a pasta ao **RA-01** (sandbox obrigatório até o parecer jurídico). O RA-14.b fala do simulador, não da trava jurídica | `src/lib/payments/ATALHOS.md` |
+| R2 | Decidir a rota de etiqueta PDF `/api/envios/etiqueta/[protocolo]`: ou entra no escopo da C-3 (o prompt foi atualizado com ela como item opcional), ou sai do `ATALHOS.md` de shipping | `src/lib/shipping/ATALHOS.md`, C-3 |
+| R3 | `docs/RELATORIO_AUDITORIA_E_CORRECOES_BRANCH_C.md` tem um link `file:///c:/dev/...` que só funciona nesta máquina. Trocar por link relativo | `docs/RELATORIO_AUDITORIA_E_CORRECOES_BRANCH_C.md` |
+| R4 | Cópias soltas na raiz do repositório: `EXECUCAO_BRANCH_A_O_QUE_FALTA.md` e `EXECUCAO_BRANCH_C_O_QUE_FALTA.md` são idênticas às de `docs/` e não estão versionadas. Apagar, junto com os quatro `AGENTE_*.md`/`FRENTES_PARALELAS.md` da raiz | raiz |
+| R5 | O `RELATORIO_EXECUCAO_BRANCH_C_...md` e o `RELATORIO_AUDITORIA_...md` se sobrepõem. Manter os dois é aceitável; o segundo é o atual | `docs/` |
+
+## 8.3 Rebase sobre `main + B`: agora são dois conflitos, os dois triviais
+
+Com a B e a C tocando os mesmos documentos compartilhados, a simulação (`git merge-tree`)
+mostra conflito em:
+
+| Arquivo | Por quê | Resolução |
+|---|---|---|
+| `RISCOS_ASSUMIDOS.md` | B inseriu a linha RA-13 no índice e a seção RA-13 antes de "Onde cada atalho está anotado"; C fez o mesmo com RA-14, nos mesmos pontos | **Ficam os dois**: linha RA-13 e depois RA-14 no índice; seção RA-13 e depois RA-14. Na tabela final "Onde cada atalho está anotado", ficam as linhas de `db/`, `payments/` e `shipping/` |
+| `docs/diario/VERSION_COMPARISON_DAILY.md` | B e C apendaram depois da entrada 002 | **Ficam as duas**, 003 (B) antes de 004 (C). Append-only |
+
+Comandos: tutorial 6.7. Nenhum conflito em código.
+
+## 8.4 O que falta na frente C depois da C-2 — resumo para o Gabriel
+
+| Depende de | Item | Sessão |
+|---|---|---|
+| Merge da B | Tabelas `payment_events`, `payment_intents`, `rastreios` (migration 002) e adaptador Postgres da idempotência | C-3 |
+| Merge da B | Webhook creditando saldo via `mutateState`; Server Action `iniciarDeposito` | C-3 |
+| Merge da B | Cron no `vercel.json` (diário, plano Hobby) lendo `envios` e gravando `rastreios` | C-3 |
+| Merge da B + decisão sua (`Envio.modalidade` em `types.ts`) | Telas: modal de depósito com Pix e Checkout Pro; PAC/SEDEX e CEP no wizard; rastreio em `/envios` | C-3 |
+| Você | `MP_ACCESS_TOKEN_TEST`, `MP_WEBHOOK_SECRET`, contas de teste, `CRON_SECRET`, `NEXT_PUBLIC_APP_URL` na Vercel (Preview) | antes da C-3 |
+| Você | Respostas das quatro perguntas do saque (D10) | antes da C-4 |
+| Você e os sócios | Parecer jurídico (RA-01) para sair do sandbox | depois de tudo |
+| Correios | Contrato de API para trocar o simulador | quando chegar |

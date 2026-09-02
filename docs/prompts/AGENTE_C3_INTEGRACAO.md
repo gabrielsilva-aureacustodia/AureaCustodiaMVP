@@ -2,8 +2,10 @@
 
 > Copie o bloco abaixo inteiro como primeira mensagem de um chat dedicado. **Só abra
 > depois que** (1) `feat/banco-supabase` estiver no `main` e a produção rodando sobre
-> tabelas, (2) a sessão C-2 estiver commitada e a branch C rebaseada e mergeada, e
-> (3) `MP_ACCESS_TOKEN_TEST` e `MP_WEBHOOK_SECRET` existirem no ambiente Preview da
+> tabelas, (2) a sessão C-2 estiver commitada (feita em 03/09, commits 8c35bab e 22f7829)
+> e a branch C rebaseada e mergeada — os dois conflitos esperados, em
+> `RISCOS_ASSUMIDOS.md` e no diário, se resolvem mantendo os blocos das duas frentes
+> (seção 8.3 do documento), e (3) `MP_ACCESS_TOKEN_TEST` e `MP_WEBHOOK_SECRET` existirem no ambiente Preview da
 > Vercel e no `.env.local`.
 
 ---
@@ -58,6 +60,12 @@ superfície protegida exige parada e confirmação.
    `src/lib/payments/` e `src/server/db/`, `.env.example` se surgir variável nova,
    `docs/CATALOGO_DE_FEATURES.md` 4.4 e 4.5, entrada nova no
    `VERSION_COMPARISON_DAILY.md`.
+   Restos da C-2 (seção 8.2 do documento): recolocar a nota do **RA-01** em
+   `src/lib/payments/ATALHOS.md`; trocar o link `file:///` do
+   `docs/RELATORIO_AUDITORIA_E_CORRECOES_BRANCH_C.md` por link relativo; e decidir a rota
+   de etiqueta PDF `/api/envios/etiqueta/[protocolo]` citada em `src/lib/shipping/ATALHOS.md`
+   — faça-a **só se** o Gabriel confirmar que quer etiqueta imprimível nesta sessão; senão,
+   remova a menção.
 9. **Prova em sandbox**: siga os tutoriais 6.4, 6.5 e 6.6 no Preview da Vercel e cole
    no relatório final os três resultados: Pix creditado uma vez após três notificações,
    Checkout Pro aprovado, cron respondendo com os códigos pendentes.
