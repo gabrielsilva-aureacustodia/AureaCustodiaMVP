@@ -368,6 +368,61 @@ nada acima.*
 
 ---
 
+# Entrada 004 — 02/09/2026 e 03/09/2026 — EXECUÇÃO DA FRENTE C (MERCADO PAGO E CORREIOS)
+
+```
+Leitura:        local, na branch feat/pagamentos-correios
+Commit base:    dd38a74 "Organiza as tres frentes paralelas com contrato de propriedade e prompts"
+Branch:         feat/pagamentos-correios
+Módulos:        M5 (Mercado Pago / Webhooks / Idempotência) e M6 (Correios / PAC e SEDEX / Rastreio)
+Autor:          gabrielsilva-aureacustodia (Antigravity / Agente C)
+```
+
+## O que entrou
+
+1. **Módulo `src/lib/payments/`**:
+   - `types.ts`: Contrato de tipos com `Cents` estritamente inteiro, métodos Pix, Checkout Pro e estruturas de webhook.
+   - `mercadopago.ts`: Cliente `server-only` para criação de preferências de depósito e cobranças Pix instantâneas (QR Code base64 + Copia e Cola), com fallback determinístico para desenvolvimento/testes.
+   - `webhook.ts`: Validação de assinatura HMAC-SHA256 (`x-signature` + `x-request-id`) com proteção contra ataques de timing e replay (janela de timestamp).
+   - `idempotencia.ts`: Controle obrigatório de idempotência com chave única por evento e TTL de 24h, garantindo que reenvios de webhook não executem crédito duplicado (**RA-07 / RA-14.a**).
+   - `README.md` e `ATALHOS.md`: Documentação de arquitetura e notas de risco.
+
+2. **Módulo `src/lib/shipping/`**:
+   - `types.ts`: Tipo estrito `ModalidadeEnvio = 'PAC' | 'SEDEX'`, proibição total de Carta Comum e constante obrigatória `DESCRICAO_CONTEUDO_PADRAO = 'Moeda comemorativa / colecionável'`.
+   - `correios.ts`: Cálculo de frete PAC e SEDEX com seguro ad valorem e declaração de valor, emissão de pré-postagens e etiquetas, com validação e recusa em tempo de execução de modalidades não autorizadas.
+   - `tracking.ts`: Rastreamento SRO em lote preparado para rotinas agendadas (Cron) com cache local.
+   - `cep.ts`: Consulta de CEP em conformidade com a LGPD (zero retenção de histórico de busca em banco de dados).
+   - `README.md` e `ATALHOS.md`: Documentação de arquitetura e restrições postais.
+
+3. **Rotas de API (`src/app/api/`)**:
+   - `src/app/api/webhooks/mercadopago/route.ts`: Endpoint receptor com validação HMAC, verificação de idempotência (retorno 200 com status `already_processed` para reenvios) e resposta imediata.
+   - `src/app/api/cron/shipping/route.ts`: Endpoint protegido por `CRON_SECRET` para atualização de rastreamento em lote.
+
+4. **Testes Automatizados (Vitest)**:
+   - 31 testes unitários e de integração com mocks (`mercadopago.test.ts`, `webhook.test.ts`, `idempotencia.test.ts`, `correios.test.ts`, `tracking.test.ts`, `cep.test.ts`, `route.test.ts`).
+   - Suíte completa subiu de 38 para **69 testes passando 100%**.
+
+## Correções de 03/09 (Sessão C-2)
+
+- **Idempotência desacoplada (RA-14.a):** Interface `RepositorioIdempotencia` criada com adaptador `RepositorioIdempotenciaMemoria` e ponto de extensão pronto para a tabela `aurea.payment_events` do Postgres na C-3.
+- **Evento sem ID responde 400:** `processarPayloadWebhook` não gera chaves artificiais; payloads anômalos ou sem identificador de evento (`{}`) recebem HTTP 400 imediatamente.
+- **Assinatura HMAC obrigatória:** Validação ativada em todos os ambientes (`validarAssinaturaWebhookMercadoPago`), normalização de `dataId` em minúsculas conforme especificação do MP, e testes com HMAC real e caso de rejeição 401 para assinatura adulterada.
+- **Registro de dívidas:** Registro de RA-14.a até RA-14.e adicionado a `RISCOS_ASSUMIDOS.md`, `.env.example` atualizado com todas as novas variáveis, e referências ajustadas.
+
+## Verificação e Qualidade
+
+- `npm test`: 11 arquivos e 69 testes verdes.
+- `npm run typecheck`: `tsc --noEmit` limpo com zero erros.
+- `npm run lint`: ESLint com zero erros e zero avisos.
+- `npm run build`: Next.js 15 compilado com sucesso gerando todas as 21 rotas estáticas e dinâmicas.
+
+---
+
+*Fim da entrada 004. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+---
+
 # Entrada 005 — 03/09/2026 · Frente B (2ª sessão): a branch sai do disco e a virada ganha roteiro
 
 ```

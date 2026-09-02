@@ -190,29 +190,33 @@ o passado.
 A trilha com hash encadeado **compartilha implementação** com o hash da estação de
 validação. Faz-se uma vez, usa-se nos dois lugares.
 
-## 4.4 🔵 Mercado Pago com liquidação direta
+## 4.4 🟡 Mercado Pago — bibliotecas prontas; ligação na sessão C-3
 
-O comprador paga, o gateway divide na hora: parte do vendedor para a conta dele, comissão
-para a Áurea. **A plataforma nunca guarda o dinheiro.**
+**Modelo de saldo interno (D9 revertido em 02/09).** A Áurea recebe o depósito, guarda e depois distribui.
+Implementado em `src/lib/payments/` e `src/app/api/webhooks/mercadopago/`.
 
-Travas inegociáveis: nunca tocar em número de cartão; nunca creditar no retorno da tela
-(só no webhook); assinatura de webhook verificada; idempotência por id de evento; fila em
-vez de processamento síncrono.
+Travas inegociáveis entregues:
+- Nunca tocar em número de cartão (Checkout Pro hospedado ou Pix nativo)
+- Nunca creditar no retorno da tela (apenas no webhook confirmado)
+- Assinatura de webhook HMAC-SHA256 (`x-signature`) validada
+- Idempotência obrigatória com interface `RepositorioIdempotencia` (RA-14.a / RA-07)
+- Fila/resposta HTTP 200 imediata ao gateway
+- Operação em Sandbox (`MP_SANDBOX`) até obtenção do parecer jurídico (**RA-01**)
 
-⚪ **Aguardando decisão:** como funciona bid a preço-limite sem saldo interno? Vendedor sem
-conta no gateway pode publicar oferta?
+*A ligação final com `src/server/actions/account.ts` e a persistência relacional de idempotência acontecem na sessão C-3.*
 
-## 4.5 🔵 Correios com API oficial
+## 4.5 🟡 Correios — bibliotecas prontas; ligação na sessão C-3
 
-Interface própria em `src/lib/shipping/`. As três restrições do Gabriel viram tipo e
-validação:
+Interface própria em `src/lib/shipping/` e endpoint em `src/app/api/cron/shipping/`.
+As três restrições de negócio entregues como regra de código:
 
-- **Declarar como moeda colecionável**
-- **PAC ou SEDEX** — `type ModalidadeEnvio = 'PAC' | 'SEDEX'`
-- **Nunca carta comum** — o regimento dos Correios permite confisco de dinheiro circulável
-  em carta, e moeda comemorativa é dinheiro circulável. A trava é de tipo, não de aviso
+- **Declarar como moeda colecionável**: `DESCRICAO_CONTEUDO_PADRAO = 'Moeda comemorativa / colecionável'`
+- **PAC ou SEDEX**: `type ModalidadeEnvio = 'PAC' | 'SEDEX'`
+- **Nunca carta comum**: proibição estrita de tipo e validação em tempo de execução
+- **LGPD no CEP**: consulta operacional de CEP sem gravação de histórico
+- **Rastreio por agendamento**: rastreamento preparado para rotinas em lote (cron), com cache
 
-Rastreio por **agendamento** (cron), nunca por carregamento de página.
+*A ligação final com `src/server/actions/custody.ts` e a persistência de rastreios acontecem na sessão C-3.*
 
 ## 4.6 🔵 DRE sob Lucro Presumido
 

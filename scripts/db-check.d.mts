@@ -8,9 +8,17 @@
  * teste em TS, sem `any`.
  */
 
-/** Cliente mínimo: serve o `pg` e serve a transação do Postgres embutido. */
+/**
+ * Cliente mínimo: serve o `pg` e serve a transação do Postgres embutido.
+ *
+ * `R` precisa da MESMA restrição que `Consulta` em src/server/db/sql.ts
+ * (`extends Record<string, unknown>`). Sem ela, um chamador poderia pedir
+ * `R = number`, que a `Consulta` do projeto não sabe devolver — e o
+ * `tsc --noEmit` recusa passar uma à outra, que é exatamente o que a suíte
+ * faz em db.test.ts.
+ */
 export interface ClienteDeConsulta {
-  query<R = Record<string, unknown>>(
+  query<R extends Record<string, unknown> = Record<string, unknown>>(
     texto: string,
     valores?: readonly unknown[],
   ): Promise<{ rows: R[] }>
