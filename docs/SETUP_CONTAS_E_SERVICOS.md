@@ -240,7 +240,7 @@ Não são cadastros — são informações que eu não tenho e não posso invent
 
 | Pergunta | Por quê |
 |---|---|
-| 🔴 **Existe seguro sobre o acervo custodiado?** | É a pergunta nº 1 de quem entrega uma moeda de R$ 500. **Não afirmo cobertura que não sei se existe** |
+| ✅ ~~Existe seguro?~~ **Respondido em 02/09: haverá.** Falta seguradora, cobertura e valores | A landing pode dizer que o acervo é segurado. **Não pode citar seguradora nem valor** antes da apólice — número errado em página pública vira promessa |
 | Texto institucional oficial | O que eu escrever é rascunho meu, não a voz da marca |
 | Fotos do cofre ou das instalações | Página de custódia sem imagem do lugar convence menos |
 | Endereço e canal de atendimento | Rodapé de plataforma financeira costuma exigir |

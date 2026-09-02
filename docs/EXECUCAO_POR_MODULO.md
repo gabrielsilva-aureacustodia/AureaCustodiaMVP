@@ -209,7 +209,7 @@ documentos existirem, com aceite versionado no ato do cadastro.
 
 | Falta | Por quê |
 |---|---|
-| **Existe seguro sobre o acervo?** | Pergunta nº 1 de quem entrega moeda valiosa. **Não invento isso** |
+| ✅ **Seguro: confirmado em 02/09.** Falta seguradora e valores | A copy pode afirmar que o acervo é segurado; **sem citar seguradora, cobertura ou percentual** até a apólice existir |
 | Texto institucional oficial | O que eu escrever é rascunho, não a voz da marca |
 | Fotos do cofre | Página de custódia sem imagem do lugar convence menos |
 | Endereço e canal de atendimento | Rodapé de plataforma financeira costuma exigir |

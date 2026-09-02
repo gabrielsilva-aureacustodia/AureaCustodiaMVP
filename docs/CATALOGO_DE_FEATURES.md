@@ -276,7 +276,7 @@ anual, os dois ativos negociáveis, e as logos aprovadas em `/brand/`.
 | Falta | Por quê importa |
 |---|---|
 | Texto institucional oficial (missão, promessa) | O que eu escrever é rascunho meu, não a voz da marca |
-| **Existe seguro sobre o acervo custodiado?** | É a pergunta nº 1 de quem entrega uma moeda valiosa — e eu não posso afirmar que existe |
+| ~~Existe seguro?~~ **RESPONDIDO 02/09: haverá seguro.** Falta definir seguradora, cobertura e valores | Posso dizer que o acervo será segurado, mas **não** posso citar seguradora, valor ou percentual até a apólice existir |
 | Fotos do cofre ou das instalações | Página de custódia sem imagem do lugar é menos convincente |
 | Endereço e canal de atendimento | Rodapé de plataforma financeira costuma exigir |
 | Termos de uso e política de privacidade | Bloqueiam o cadastro público (acima) |
