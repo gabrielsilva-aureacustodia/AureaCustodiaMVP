@@ -296,3 +296,49 @@ Autor:          gabrielsilva-aureacustodia (Claude Code)
 
 *Fim da entrada 002. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+# Entrada 003 — 02/09/2026 — EXECUÇÃO DA FRENTE C (MERCADO PAGO E CORREIOS)
+
+```
+Leitura:        local, na branch feat/pagamentos-correios
+Commit base:    dd38a74 "Organiza as tres frentes paralelas com contrato de propriedade e prompts"
+Branch:         feat/pagamentos-correios
+Módulos:        M5 (Mercado Pago / Webhooks / Idempotência) e M6 (Correios / PAC e SEDEX / Rastreio)
+Autor:          gabrielsilva-aureacustodia (Antigravity / Agente C)
+```
+
+## O que entrou
+
+1. **Módulo `src/lib/payments/`**:
+   - `types.ts`: Contrato de tipos com `Cents` estritamente inteiro, métodos Pix, Checkout Pro e estruturas de webhook.
+   - `mercadopago.ts`: Cliente `server-only` para criação de preferências de depósito e cobranças Pix instantâneas (QR Code base64 + Copia e Cola), com fallback determinístico para desenvolvimento/testes.
+   - `webhook.ts`: Validação de assinatura HMAC-SHA256 (`x-signature` + `x-request-id`) com proteção contra ataques de timing e replay (janela de timestamp).
+   - `idempotencia.ts`: Controle obrigatório de idempotência com chave única por evento e TTL de 24h, garantindo que reenvios de webhook não executem crédito duplicado (**RA-07 pago**).
+   - `README.md` e `ATALHOS.md`: Documentação de arquitetura e notas de risco.
+
+2. **Módulo `src/lib/shipping/`**:
+   - `types.ts`: Tipo estrito `ModalidadeEnvio = 'PAC' | 'SEDEX'`, proibição total de Carta Comum e constante obrigatória `DESCRICAO_CONTEUDO_PADRAO = 'Moeda comemorativa / colecionável'`.
+   - `correios.ts`: Cálculo de frete PAC e SEDEX com seguro ad valorem e declaração de valor, emissão de pré-postagens e etiquetas, com validação e recusa em tempo de execução de modalidades não autorizadas.
+   - `tracking.ts`: Rastreamento SRO em lote preparado para rotinas agendadas (Cron) com cache local.
+   - `cep.ts`: Consulta de CEP em conformidade com a LGPD (zero retenção de histórico de busca em banco de dados).
+   - `README.md` e `ATALHOS.md`: Documentação de arquitetura e restrições postais.
+
+3. **Rotas de API (`src/app/api/`)**:
+   - `src/app/api/webhooks/mercadopago/route.ts`: Endpoint receptor com validação HMAC, verificação de idempotência (retorno 200 com status `already_processed` para reenvios) e resposta imediata.
+   - `src/app/api/cron/shipping/route.ts`: Endpoint protegido por `CRON_SECRET` para atualização de rastreamento em lote.
+
+4. **Testes Automatizados (Vitest)**:
+   - 29 novos testes unitários e de integração com mocks (`mercadopago.test.ts`, `webhook.test.ts`, `idempotencia.test.ts`, `correios.test.ts`, `tracking.test.ts`, `cep.test.ts`, `route.test.ts`).
+   - Suíte completa subiu de 38 para **67 testes passando 100%**.
+
+## Verificação e Qualidade
+
+- `npm test`: 11 arquivos e 67 testes verdes.
+- `npm run typecheck`: `tsc --noEmit` limpo com zero erros.
+- `npm run lint`: ESLint com zero erros e zero avisos.
+- `npm run build`: Next.js 15 compilado com sucesso gerando todas as 21 rotas estáticas e dinâmicas.
+
+---
+
+*Fim da entrada 003. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*

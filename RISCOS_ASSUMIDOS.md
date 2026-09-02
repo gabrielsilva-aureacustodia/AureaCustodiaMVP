@@ -51,7 +51,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 ```
 Decidido em: 02/09/2026 · REVERTE a decisão D9 de 01/09/2026
 Dono:        Gabriel · pendente de discussão com os sócios
-Pasta:       src/server/actions/ · src/lib/payments/ (a criar)
+Pasta:       src/server/actions/ · src/lib/payments/
 ```
 
 ## O que foi decidido
@@ -343,3 +343,5 @@ algo falhe.
 | `src/server/store/` | [`ATALHOS.md`](src/server/store/ATALHOS.md) |
 | `src/components/` | [`ATALHOS.md`](src/components/ATALHOS.md) |
 | `src/app/` | [`ATALHOS.md`](src/app/ATALHOS.md) |
+| `src/lib/payments/` | [`ATALHOS.md`](src/lib/payments/ATALHOS.md) |
+| `src/lib/shipping/` | [`ATALHOS.md`](src/lib/shipping/ATALHOS.md) |
