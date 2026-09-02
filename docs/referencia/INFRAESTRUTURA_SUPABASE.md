@@ -71,20 +71,16 @@ sintoma engana (parece senha errada).
 
 O próprio painel do Supabase avisa disso na tela de conexão.
 
-### ⚠️ O caso concreto desta senha (02/09/2026)
+### ⚠️ O que aconteceu na configuração de 02/09/2026 — e a lição
 
-A senha atual foi gravada no Supabase **com os caracteres `%21` literais** — ou seja, ela
-contém o sinal `%`. E `%` é justamente o caractere de escape da URL. Consequência:
+A senha foi resetada **três vezes** no mesmo dia, e a cada vez a connection string precisou
+ser refeita — porque a senha tem `!`, e `!` precisa virar `%21` na URL. Numa das tentativas
+a senha foi gravada com o texto `%21` literal, e aí era o `%` que precisava ser codificado
+(`%25`). Cada rodada custou uma falha de autenticação que parecia senha errada.
 
-| Senha real (como está no Supabase) | Como vai na connection string |
-|---|---|
-| `...%21%21...` | `...%2521%2521...` |
-
-**Colar a senha como está** faz o driver decodificar `%21` para `!` e a autenticação falha —
-foi exatamente o que aconteceu na primeira tentativa. Cada `%` precisa virar `%25`.
-
-Verificado em 02/09/2026, das duas portas, a partir da máquina de desenvolvimento: com
-`%2521%2521` conecta; com `%21%21` falha.
+**A regra que resolve:** a senha que está no Supabase é a verdade; a string de conexão é a
+senha **codificada** (`!` → `%21`, `%` → `%25`, `@` → `%40`…). Na dúvida, testar a conexão
+antes de colar na Vercel — o probe leva um segundo e diz exatamente qual das duas está errada.
 
 **A forma de nunca mais ter esse problema:** na rotação final (RA-12), usar **Generate a
 password** no Supabase — a senha gerada tem só letras e números, e a string de conexão não
