@@ -11,13 +11,15 @@ import type { MercadoPagoWebhookPayload } from '@/lib/payments'
 /**
  * Webhook Receptor do Mercado Pago.
  *
- * FLUXO DE SEGURANÇA E IDEMPOTÊNCIA (RA-01, RA-07):
+ * FLUXO DE SEGURANÇA E IDEMPOTÊNCIA (RA-01, RA-07, RA-14):
  *  1. Recebe notificação HTTP POST do Mercado Pago.
- *  2. Valida a assinatura criptográfica (`x-signature` + `x-request-id`).
- *  3. Confere a chave de idempotência: se o evento já foi recebido/processado,
+ *  2. Extrai identificador: se não possuir ID (payload vazio ou anômalo), devolve 400.
+ *  3. Valida a assinatura criptográfica (`x-signature` + `x-request-id`) com HMAC-SHA256.
+ *     Rejeita com 401 se for inválida em qualquer ambiente.
+ *  4. Confere a chave de idempotência: se o evento já foi recebido/processado,
  *     retorna HTTP 200 imediatamente descartando o processamento duplicado.
- *  4. Registra o evento e retorna HTTP 200 imediato ao gateway.
- *  5. Executa a conciliação assíncrona da transação com o saldo da conta.
+ *  5. Registra o evento e retorna HTTP 200 imediato ao gateway.
+ *  6. Executa a conciliação da transação.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -40,16 +42,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const { eventoId, paymentId, tipo, action } = processarPayloadWebhook(payload)
+
+    // 1. Rejeita payloads sem identificador de evento (Item 2.3)
+    if (!eventoId) {
+      console.warn('[Webhook MercadoPago] Requisição de webhook sem identificador de evento.')
+      return NextResponse.json(
+        { ok: false, error: 'Identificador do evento ausente' },
+        { status: 400 },
+      )
+    }
+
     const dataId = paymentId || eventoId
 
-    // 1. Validação Criptográfica de Assinatura
+    // 2. Validação Criptográfica de Assinatura (Item 2.4)
     const assinaturaValida = validarAssinaturaWebhookMercadoPago({
       xSignatureHeader: xSignature,
       xRequestIdHeader: xRequestId,
       dataId,
     })
 
-    if (!assinaturaValida && process.env.NODE_ENV === 'production') {
+    if (!assinaturaValida) {
       console.warn(`[Webhook MercadoPago] Assinatura inválida para evento: ${eventoId}`)
       return NextResponse.json(
         { ok: false, error: 'Assinatura de webhook inválida' },
@@ -57,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // 2. Controle de Idempotência (RA-07)
+    // 3. Controle de Idempotência (RA-07 / RA-14.a)
     const { podeProcessar, registro } = await tentarRegistrarEvento(eventoId, tipo)
 
     if (!podeProcessar) {
@@ -73,7 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // 3. Processamento do Pagamento
+    // 4. Processamento do Pagamento
     if (paymentId) {
       try {
         const detalhes = await consultarPagamentoMercadoPago(paymentId)
@@ -87,14 +99,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         })
       } catch (err) {
         console.error(`[Webhook MercadoPago] Erro ao consultar transação ${paymentId}:`, err)
-        // Mantém como concluído para evitar laço de webhook se for erro de payload
         await concluirEvento(eventoId, { paymentId, status: 'error' })
       }
     } else {
       await concluirEvento(eventoId, { tipo, action })
     }
 
-    // 4. Resposta 200 Imediata ao Gateway
+    // 5. Resposta 200 Imediata ao Gateway
     return NextResponse.json(
       {
         ok: true,

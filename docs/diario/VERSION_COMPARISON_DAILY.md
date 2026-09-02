@@ -297,7 +297,7 @@ Autor:          gabrielsilva-aureacustodia (Claude Code)
 *Fim da entrada 002. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
 
-# Entrada 003 — 02/09/2026 — EXECUÇÃO DA FRENTE C (MERCADO PAGO E CORREIOS)
+# Entrada 004 — 02/09/2026 e 03/09/2026 — EXECUÇÃO DA FRENTE C (MERCADO PAGO E CORREIOS)
 
 ```
 Leitura:        local, na branch feat/pagamentos-correios
@@ -313,7 +313,7 @@ Autor:          gabrielsilva-aureacustodia (Antigravity / Agente C)
    - `types.ts`: Contrato de tipos com `Cents` estritamente inteiro, métodos Pix, Checkout Pro e estruturas de webhook.
    - `mercadopago.ts`: Cliente `server-only` para criação de preferências de depósito e cobranças Pix instantâneas (QR Code base64 + Copia e Cola), com fallback determinístico para desenvolvimento/testes.
    - `webhook.ts`: Validação de assinatura HMAC-SHA256 (`x-signature` + `x-request-id`) com proteção contra ataques de timing e replay (janela de timestamp).
-   - `idempotencia.ts`: Controle obrigatório de idempotência com chave única por evento e TTL de 24h, garantindo que reenvios de webhook não executem crédito duplicado (**RA-07 pago**).
+   - `idempotencia.ts`: Controle obrigatório de idempotência com chave única por evento e TTL de 24h, garantindo que reenvios de webhook não executem crédito duplicado (**RA-07 / RA-14.a**).
    - `README.md` e `ATALHOS.md`: Documentação de arquitetura e notas de risco.
 
 2. **Módulo `src/lib/shipping/`**:
@@ -328,17 +328,24 @@ Autor:          gabrielsilva-aureacustodia (Antigravity / Agente C)
    - `src/app/api/cron/shipping/route.ts`: Endpoint protegido por `CRON_SECRET` para atualização de rastreamento em lote.
 
 4. **Testes Automatizados (Vitest)**:
-   - 29 novos testes unitários e de integração com mocks (`mercadopago.test.ts`, `webhook.test.ts`, `idempotencia.test.ts`, `correios.test.ts`, `tracking.test.ts`, `cep.test.ts`, `route.test.ts`).
-   - Suíte completa subiu de 38 para **67 testes passando 100%**.
+   - 31 testes unitários e de integração com mocks (`mercadopago.test.ts`, `webhook.test.ts`, `idempotencia.test.ts`, `correios.test.ts`, `tracking.test.ts`, `cep.test.ts`, `route.test.ts`).
+   - Suíte completa subiu de 38 para **69 testes passando 100%**.
+
+## Correções de 03/09 (Sessão C-2)
+
+- **Idempotência desacoplada (RA-14.a):** Interface `RepositorioIdempotencia` criada com adaptador `RepositorioIdempotenciaMemoria` e ponto de extensão pronto para a tabela `aurea.payment_events` do Postgres na C-3.
+- **Evento sem ID responde 400:** `processarPayloadWebhook` não gera chaves artificiais; payloads anômalos ou sem identificador de evento (`{}`) recebem HTTP 400 imediatamente.
+- **Assinatura HMAC obrigatória:** Validação ativada em todos os ambientes (`validarAssinaturaWebhookMercadoPago`), normalização de `dataId` em minúsculas conforme especificação do MP, e testes com HMAC real e caso de rejeição 401 para assinatura adulterada.
+- **Registro de dívidas:** Registro de RA-14.a até RA-14.e adicionado a `RISCOS_ASSUMIDOS.md`, `.env.example` atualizado com todas as novas variáveis, e referências ajustadas.
 
 ## Verificação e Qualidade
 
-- `npm test`: 11 arquivos e 67 testes verdes.
+- `npm test`: 11 arquivos e 69 testes verdes.
 - `npm run typecheck`: `tsc --noEmit` limpo com zero erros.
 - `npm run lint`: ESLint com zero erros e zero avisos.
 - `npm run build`: Next.js 15 compilado com sucesso gerando todas as 21 rotas estáticas e dinâmicas.
 
 ---
 
-*Fim da entrada 003. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+*Fim da entrada 004. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*

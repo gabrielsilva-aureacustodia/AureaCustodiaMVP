@@ -43,6 +43,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-10** | Recálculos sem memoização | 🟡 | `src/app/`, `src/components/` |
 | **RA-11** | Repositório público de propósito | 🟡 | — |
 | **RA-12** | Senha do banco Supabase trafegou por chat | 🟠 | — |
+| **RA-14** | Atalhos da frente C (Mercado Pago e Correios) | 🟠 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
 
 ---
 
@@ -223,6 +224,8 @@ duas vezes**.
 **Como se paga:** tabela de eventos processados com o id do evento do gateway como chave
 única. Evento repetido é descartado antes de qualquer efeito. **Não é opcional na Fase 4.**
 
+*Estado em 03/09/2026:* Interface `RepositorioIdempotencia` e adaptador em memória entregues na sessão C-2 (RA-14.a); pagamento definitivo acontece na sessão C-3 com a tabela `aurea.payment_events` no Postgres.
+
 ---
 
 # RA-08 — Persistência em Redis, sem garantia de concorrência 🟡
@@ -330,6 +333,34 @@ também não é o lugar de uma credencial de produção.
 
 Fazer isso **depois** que o ambiente estiver estável, para não misturar dois problemas caso
 algo falhe.
+
+---
+
+# RA-14 — Atalhos da frente C (Mercado Pago e Correios) 🟠
+
+```
+Módulo:  src/lib/payments/ · src/lib/shipping/ · src/app/api/
+Criado:  03/09/2026 (Sessão C-2)
+Dono:    Agente C
+```
+
+Registrado na mesma estrutura dos atalhos das frentes A e B para manter conformidade:
+
+- **RA-14.a — Idempotência em memória:** Até a sessão C-3, a chave de idempotência é mantida
+  pelo adaptador `RepositorioIdempotenciaMemoria`. Funções serverless isoladas não
+  compartilham memória; a persistência relacional com `INSERT ... ON CONFLICT` na tabela
+  `aurea.payment_events` resolve em definitivo na sessão C-3.
+- **RA-14.b — Simulador determinístico sem credenciais:** Na ausência de `MP_ACCESS_TOKEN_TEST`
+  ou contrato dos Correios, as bibliotecas devolvem respostas simuladas determinísticas para
+  manter testes e desenvolvimento local 100% operacionais.
+- **RA-14.c — Assinatura de webhook em desenvolvimento:** A assinatura HMAC-SHA256 é
+  estritamente validada por padrão; apenas é aceita sem chave se
+  `MP_WEBHOOK_ALLOW_UNSIGNED="true"` estiver presente no ambiente de desenvolvimento local.
+- **RA-14.d — Cron de rastreio sem agendamento ativo:** A rota `/api/cron/shipping` foi
+  construída e protegida por `CRON_SECRET`, aguardando a tabela `aurea.rastreios` e a
+  configuração no `vercel.json` na sessão C-3.
+- **RA-14.e — Processamento do webhook antes da resposta:** O webhook valida e responde de
+  imediato, aguardando o `after()` ou fila na sessão C-3 para mover saldo em definitivo.
 
 ---
 

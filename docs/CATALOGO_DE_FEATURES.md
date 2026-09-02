@@ -177,7 +177,7 @@ o passado.
 A trilha com hash encadeado **compartilha implementação** com o hash da estação de
 validação. Faz-se uma vez, usa-se nos dois lugares.
 
-## 4.4 ✅ Mercado Pago — Bibliotecas, Checkout Pro, Pix e Webhook
+## 4.4 🟡 Mercado Pago — bibliotecas prontas; ligação na sessão C-3
 
 **Modelo de saldo interno (D9 revertido em 02/09).** A Áurea recebe o depósito, guarda e depois distribui.
 Implementado em `src/lib/payments/` e `src/app/api/webhooks/mercadopago/`.
@@ -186,13 +186,13 @@ Travas inegociáveis entregues:
 - Nunca tocar em número de cartão (Checkout Pro hospedado ou Pix nativo)
 - Nunca creditar no retorno da tela (apenas no webhook confirmado)
 - Assinatura de webhook HMAC-SHA256 (`x-signature`) validada
-- Idempotência obrigatória por `eventoId` — webhook reenviado 3x executa 1x (**RA-07 pago**)
+- Idempotência obrigatória com interface `RepositorioIdempotencia` (RA-14.a / RA-07)
 - Fila/resposta HTTP 200 imediata ao gateway
 - Operação em Sandbox (`MP_SANDBOX`) até obtenção do parecer jurídico (**RA-01**)
 
-*A ligação final com `src/server/actions/account.ts` aguarda a finalização da Frente B.*
+*A ligação final com `src/server/actions/account.ts` e a persistência relacional de idempotência acontecem na sessão C-3.*
 
-## 4.5 ✅ Correios — PAC, SEDEX, Etiqueta e Rastreio em Lote
+## 4.5 🟡 Correios — bibliotecas prontas; ligação na sessão C-3
 
 Interface própria em `src/lib/shipping/` e endpoint em `src/app/api/cron/shipping/`.
 As três restrições de negócio entregues como regra de código:
@@ -203,7 +203,7 @@ As três restrições de negócio entregues como regra de código:
 - **LGPD no CEP**: consulta operacional de CEP sem gravação de histórico
 - **Rastreio por agendamento**: rastreamento preparado para rotinas em lote (cron), com cache
 
-*A ligação final com `src/server/actions/custody.ts` aguarda a finalização da Frente B.*
+*A ligação final com `src/server/actions/custody.ts` e a persistência de rastreios acontecem na sessão C-3.*
 
 ## 4.6 🔵 DRE sob Lucro Presumido
 

@@ -7,7 +7,8 @@ import 'server-only'
  *  - Verificação com HMAC-SHA256 usando `MP_WEBHOOK_SECRET`.
  *  - Comparação com `crypto.timingSafeEqual` para mitigar timing attacks.
  *  - Validação de expiração de timestamp para evitar ataques de replay (tolerância padrão: 5 min).
- *  - Parse seguro de payload e extração de identificadores de evento.
+ *  - O manifesto oficial do MP utiliza `dataId` em minúsculas quando alfanumérico: `id:${dataId.toLowerCase()};request-id:${xRequestId};ts:${ts};`.
+ *  - Na ausência de segredo, só aceita se `MP_WEBHOOK_ALLOW_UNSIGNED === 'true'` (desenvolvimento local).
  */
 
 import crypto from 'crypto'
@@ -30,7 +31,7 @@ export interface ValidacaoWebhookResult {
  *  - `x-request-id`: UUID único gerado pelo gateway
  *
  * Template do manifesto para hash HMAC:
- *  `id:[data.id];request-id:[x-request-id];ts:[ts];`
+ *  `id:[data.id_em_minusculas];request-id:[x-request-id];ts:[ts];`
  */
 export function validarAssinaturaWebhookMercadoPago(params: {
   xSignatureHeader: string | null
@@ -47,14 +48,9 @@ export function validarAssinaturaWebhookMercadoPago(params: {
     maxTimestampDiffMs = 5 * 60 * 1000, // 5 minutos
   } = params
 
-  // Se não houver segredo configurado (ambiente de desenvolvimento/teste sem chave),
-  // só valida se o formato dos headers for coerente ou se for explicitamente simulado.
+  // Se não houver segredo configurado, só aceita se expressamente liberado por variável de dev
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      return false
-    }
-    // Em dev/test sem secret, aceita se vier com formato simulado
-    return Boolean(xSignatureHeader || xRequestIdHeader || dataId)
+    return process.env.MP_WEBHOOK_ALLOW_UNSIGNED === 'true'
   }
 
   if (!xSignatureHeader || !xRequestIdHeader || !dataId) {
@@ -89,8 +85,9 @@ export function validarAssinaturaWebhookMercadoPago(params: {
     return false
   }
 
-  // Constrói o manifesto de validação do Mercado Pago
-  const manifest = `id:${dataId};request-id:${xRequestIdHeader};ts:${ts};`
+  // Constrói o manifesto de validação oficial do Mercado Pago (com dataId em minúsculas)
+  const normalizedDataId = dataId.toLowerCase()
+  const manifest = `id:${normalizedDataId};request-id:${xRequestIdHeader};ts:${ts};`
 
   // Gera o HMAC SHA256 do manifesto usando a chave secreta
   const expectedHash = crypto
@@ -99,8 +96,8 @@ export function validarAssinaturaWebhookMercadoPago(params: {
     .digest('hex')
 
   try {
-    const hashBufferA = Buffer.from(v1Hash, 'utf8')
-    const hashBufferB = Buffer.from(expectedHash, 'utf8')
+    const hashBufferA = Buffer.from(v1Hash.toLowerCase(), 'utf8')
+    const hashBufferB = Buffer.from(expectedHash.toLowerCase(), 'utf8')
 
     if (hashBufferA.length !== hashBufferB.length) {
       return false
@@ -114,31 +111,32 @@ export function validarAssinaturaWebhookMercadoPago(params: {
 
 /**
  * Extrai e normaliza informações essenciais do payload de webhook.
+ * Se o evento não possuir ID, devolve `eventoId: null` para que a rota recuse com 400.
  */
 export function processarPayloadWebhook(
   payload: MercadoPagoWebhookPayload,
 ): {
-  eventoId: string
+  eventoId: string | null
   paymentId: string | null
   tipo: string
   action: string
 } {
-  // Identificador do evento
-  const eventoId = String(payload.id || payload.data?.id || `EVT-${Date.now()}`)
-
-  // O ID do pagamento pode vir em `data.id` (v2) ou `id` (v1/payments)
+  // Identifica o paymentId (pode vir em data.id ou id do payload v1)
   let paymentId: string | null = null
   if (payload.data?.id) {
     paymentId = String(payload.data.id)
   } else if (payload.type === 'payment' && payload.id) {
     paymentId = String(payload.id)
   } else if (payload.topic === 'payment' && payload.resource) {
-    // Para v1 topic "payment" com resource "https://api.mercadolibre.com/v1/payments/12345"
     const match = payload.resource.match(/\/payments\/(\d+)/)
     if (match) {
       paymentId = match[1]
     }
   }
+
+  // Identificador do evento: se não houver no payload, devolve null (nunca gera chave aleatória)
+  const rawId = payload.id !== undefined && payload.id !== null ? String(payload.id) : null
+  const eventoId = rawId || (paymentId ? `evt-${paymentId}` : null)
 
   const tipo = payload.type || payload.topic || 'payment'
   const action = payload.action || 'payment.updated'
