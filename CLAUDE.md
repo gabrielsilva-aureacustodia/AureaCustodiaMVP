@@ -95,8 +95,10 @@ qualquer um deles altera o produto — confirmar com o Gabriel antes.
 
 ## Pendências conhecidas (não são bugs a "consertar" sem combinar)
 
-- **Senhas em texto puro.** É a Etapa 2 planejada (bcrypt + sessões). O repositório é
-  privado por isso.
+- **Senhas em texto puro.** Some com a migração para Supabase Auth (módulo M2). O
+  repositório está **público de propósito** durante o desenvolvimento, para facilitar
+  leitura por agentes diversos — decisão do Gabriel, reversível. Ver RA-02 e RA-11 em
+  `RISCOS_ASSUMIDOS.md`.
 - **Hash do recibo é simulado.** Substituir por hash determinístico encadeado (SHA-256)
   é item de roadmap, não improviso.
 - Sem termos de uso com aceite versionado nem política de privacidade.
@@ -138,5 +140,9 @@ qualquer um deles altera o produto — confirmar com o Gabriel antes.
 - `README.md` deste repositório — histórico do port, deploy e pendências.
 - `docs/diario/` — rituais de sessão, Critical Debugs e leituras diárias.
 - `docs/PLANO_EXECUCAO_CRITICAL_DEBUGS.md` — o plano verificado dos itens acima.
+- `RISCOS_ASSUMIDOS.md` (raiz) — **todo atalho de teste ou segurança tomado para entregar
+  rápido.** Regra: atalho novo entra aqui E no `ATALHOS.md` da pasta afetada, no mesmo commit.
+- `docs/EXECUCAO_POR_MODULO.md` — o passo a passo de cada módulo (M1 a M7).
+- `docs/SETUP_CONTAS_E_SERVICOS.md` — o que o Gabriel precisa cadastrar.
 - Relatório de Decisão de Arquitetura e Cibersegurança (decisão centralizada, stack).
 - Documento Técnico do MVP HTML (mapa do monolito de origem).

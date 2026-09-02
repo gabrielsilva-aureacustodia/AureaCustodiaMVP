@@ -23,7 +23,7 @@ Estado:        7 decisões fechadas · D7 delegada a chat próprio · D8 fechada
 | **D6** | Onde ficam os vídeos | **Supabase Storage** |
 | **D7** | As cinco decisões da estação | **Delegada** a chat próprio — ver `docs/referencia/QUESTIONARIO_D7_ESTACAO.md` |
 | **D8** | Regime tributário | **Lucro Presumido** |
-| **D9** | Saldo interno ou liquidação direta | **Liquidação direta**, com split imediato no gateway. Sem saldo interno |
+| **D9** | Saldo interno ou liquidação direta | ~~Liquidação direta~~ → **REVERTIDA em 02/09**: saldo interno. A Áurea recebe o depósito, guarda e depois distribui. Risco registrado em [`RISCOS_ASSUMIDOS.md`](../RISCOS_ASSUMIDOS.md#ra-01) |
 
 ### As três restrições do D5, que não são detalhe
 
@@ -105,42 +105,60 @@ errada. Vamos de tabelas.**
 
 ---
 
-## O que muda no produto por causa do D9
+## O que muda no produto por causa do D9 — REVERTIDO EM 02/09/2026
 
-Esta é a decisão que mais muda código, e vale explicar em português claro.
+> ⚠️ **Esta decisão foi tomada em 01/09 e revertida em 02/09.** As duas versões ficam
+> registradas: a primeira porque explica um desenho que pode voltar, a segunda porque é a
+> que vale hoje.
 
-**Antes (modelo de saldo interno):** o cliente depositava, o dinheiro virava saldo na
-plataforma, e a compra debitava um cliente e creditava outro. A Áurea guardava dinheiro de
-terceiros — o que exigiria parecer sobre enquadramento no Banco Central.
+### A decisão que vale (02/09) — saldo interno
 
-**Agora (liquidação direta):** quando uma compra casa, o gateway cobra o comprador e
-**divide o pagamento na hora**: a parte do vendedor vai para a conta dele, a comissão vai
-para a Áurea. **A plataforma nunca guarda o dinheiro** — ela orquestra a transferência.
+**A Áurea recebe o depósito, guarda o dinheiro na conta dela e depois distribui ao
+cliente.** É o modelo que o ambiente simulado já pratica, agora com dinheiro real.
 
-### As consequências concretas
+**Por que reverteu, e o motivo é bom:** a liquidação direta quebrava a compra instantânea.
+Um bid parado no livro não pode cobrar antecipadamente, então casar uma ordem viraria
+"iniciar uma cobrança", e a moeda só trocaria de dono quando o webhook confirmasse. Isso
+introduz um estado que a plataforma não tem — *negociação pendente de pagamento* — e muda a
+experiência inteira do mercado.
 
-1. **O depósito simulado deixa de existir como conceito.** Hoje há `deposit()` em
-   `account.ts`, `DEPOSITO_MAX`, a modal e a linha "Depósito" no extrato. Nada disso
-   sobrevive à liquidação direta — não há para onde depositar.
+Trocar isso por um risco regulatório **conhecido, registrado e reversível** foi decisão do
+Gabriel, pendente de discussão com os sócios.
 
-2. **O vendedor precisa de conta cadastrada no gateway** para receber o split. Isso é
-   onboarding novo: uma tela de "receber pagamentos" com o vínculo da conta Mercado Pago.
-   **Sem esse vínculo, a pessoa não pode vender.**
+### O que isso preserva
 
-3. **O casamento de ordens deixa de ser instantâneo.** Hoje `matchOrders` executa e o saldo
-   muda no mesmo instante. Com liquidação direta, casar uma ordem **inicia uma cobrança** —
-   e a transferência da moeda só acontece quando o webhook confirma o pagamento. Entra um
-   estado intermediário que não existe hoje: *negociação pendente de pagamento*.
+Tudo que já funciona. `matchOrders` continua executando e movendo saldo no mesmo instante;
+`deposit()` continua existindo; a linha "Depósito" continua no extrato; não há estado
+intermediário novo. **A Fase 4 vira "ligar o Mercado Pago ao depósito que já existe"**, em
+vez de reescrever o modelo de liquidação.
 
-4. **Ordem de compra a preço-limite fica mais difícil.** Um bid que fica no livro esperando
-   não pode cobrar antecipadamente. Ou se cobra na hora do casamento (e o comprador pode
-   não pagar, exigindo prazo e cancelamento), ou se pré-autoriza o cartão. **Isto é decisão
-   de produto que ainda não foi tomada** — está na lista de perguntas abertas, no fim.
+### O risco que assume
 
-> **Para o Rogério:** hoje é como uma ficha de fliperama — você troca dinheiro por ficha e
-> a ficha circula dentro da casa. A partir de agora é como um classificado com pagamento
-> integrado: o comprador paga, o sistema já manda a parte do vendedor direto para a conta
-> dele e fica só com a comissão. A Áurea nunca segura o dinheiro de ninguém.
+Guardar e movimentar dinheiro de terceiros **pode configurar arranjo ou conta de pagamento**
+sob a regulação do Banco Central. Não é ilegal e não é impedimento — é pergunta que precisa
+de resposta escrita de advogado antes do primeiro real entrar.
+
+**Está registrado como [RA-01 em `RISCOS_ASSUMIDOS.md`](../RISCOS_ASSUMIDOS.md#ra-01)**, com
+o que precisa acontecer: parecer jurídico, segregação de recursos e reconciliação diária.
+
+**A trava prática:** construir a integração é seguro; **ligá-la em produção com dinheiro
+real depende do parecer.**
+
+### A decisão anterior (01/09), para registro — liquidação direta
+
+O gateway cobraria o comprador e dividiria o pagamento na hora: parte do vendedor para a
+conta dele, comissão para a Áurea. A plataforma nunca guardaria dinheiro.
+
+**Vantagem:** evitava a questão regulatória por construção.
+**Custo, e foi ele que decidiu:** fim da compra instantânea, mais um estado no mercado, e
+vendedor obrigado a vincular conta no gateway antes de poder vender.
+
+> **Para o Rogério:** decidimos que a Áurea vai receber o dinheiro do comprador, segurar por
+> um instante e repassar ao vendedor — como faz um site de classificados com pagamento. Isso
+> mantém a compra acontecendo na hora, que é o que faz o mercado funcionar. A contrapartida
+> é que segurar dinheiro dos outros é atividade que o Banco Central regula, então precisamos
+> de um parecer antes de ligar dinheiro de verdade. A alternativa que evitava isso deixava a
+> compra lenta, e por isso foi descartada.
 
 ---
 
@@ -156,7 +174,7 @@ FASE 2  Autenticação               Supabase Auth + Google + migração das 7 c
 FASE 3  Ledger e trilha            lançamentos, hash encadeado, extrato reapontado
    │                               resolve o CD-09 naturalmente
    ▼
-FASE 4  Mercado Pago               split, webhook idempotente, fim do saldo interno
+FASE 4  Mercado Pago               deposito real, webhook idempotente, saque
    │                               ← a mais delicada: mexe em dinheiro real
    ▼
 FASE 5  Correios                   PAC/SEDEX, colecionável, rastreio agendado
@@ -205,9 +223,21 @@ passado sem precisar de decisão adicional.
 A trilha de auditoria com **hash encadeado** compartilha implementação com o hash da
 estação de validação (frente E). Faz-se uma vez, usa-se nos dois lugares.
 
-### Fase 4 — Mercado Pago
+### Fase 4 — Mercado Pago (modelo de saldo interno)
 
-A mais delicada, porque mexe em dinheiro de verdade. As travas inegociáveis:
+A mais delicada, porque mexe em dinheiro de verdade. Com a reversão do D9, o escopo mudou:
+em vez de reescrever a liquidação, é **ligar o gateway ao depósito que já existe** e
+acrescentar o caminho de volta (saque).
+
+O fluxo: criar cobrança no gateway → cliente paga → **webhook confirma** → lançamento no
+ledger → saldo atualizado. A ordem importa: **saldo só se move na confirmação do webhook,
+nunca no retorno da tela.** O cliente pode fechar o navegador antes do redirecionamento, e
+isso não pode custar o depósito dele.
+
+O saque é o espelho: pedido → conferência → transferência para a conta do cliente →
+lançamento inverso no ledger.
+
+As travas inegociáveis:
 
 - **Nunca receber, trafegar ou guardar número de cartão.** Sempre checkout hospedado ou
   tokenização. Tocar em PAN traz o PCI-DSS inteiro para o escopo.
@@ -247,14 +277,15 @@ gera passivo fiscal retroativo que só aparece na fiscalização, anos depois.
 
 Registro agora para não travar depois:
 
-1. **Ordem de compra a preço-limite com liquidação direta:** cobra-se no casamento (com
-   prazo para pagar e cancelamento automático) ou pré-autoriza-se o cartão?
-2. **Vendedor sem conta no Mercado Pago:** bloqueia a publicação da oferta, ou permite
-   publicar e trava só no recebimento?
-3. **A comissão sai por split automático** do Mercado Pago, ou a Áurea recebe o total e
-   repassa? (O split é mais limpo juridicamente e é o que o D9 pede.)
-4. **Taxa de custódia:** hoje é registrada e nunca cobrada. Com gateway, vira cobrança
-   recorrente? Isso muda o enquadramento e talvez precise voltar ao advogado.
+1. **Como o cliente saca?** Pix para chave dele, transferência bancária, ou os dois? Há
+   prazo de retenção antes do primeiro saque?
+2. **Saldo parado rende para quem?** Dinheiro de terceiros na conta da Áurea gera
+   rendimento; a quem ele pertence é pergunta jurídica, não técnica.
+3. **Taxa de custódia:** hoje é registrada e nunca cobrada. Com gateway, vira débito
+   automático do saldo? Isso é mais simples no modelo de saldo interno do que era na
+   liquidação direta.
+4. **Limite de depósito:** `DEPOSITO_MAX` é R$ 100.000 por operação. Com dinheiro real,
+   qual o teto por período? E há limite de saldo acumulado?
 
 ---
 
@@ -262,8 +293,8 @@ Registro agora para não travar depois:
 
 | O quê | Por quê |
 |---|---|
-| `deposit()`, `DEPOSITO_MAX`, `ModalDeposito` | Não há saldo interno na liquidação direta |
-| A linha "Depósito" no extrato | Idem — vira "Compra" e "Venda" com liquidação |
+| ~~`deposit()`, `DEPOSITO_MAX`, `ModalDeposito`~~ | **PERMANECEM.** A reversão do D9 (02/09) manteve o saldo interno — o que muda é que o depósito passa a ser real |
+| ~~A linha "Depósito" no extrato~~ | **PERMANECE**, pelo mesmo motivo |
 | `src/server/store/` (memory, redis, postgres) | Substituído pela camada de repositório do Supabase |
 | `AUREA_STORE_KEY` e o versionamento de chave | Não há blob a versionar; migração vira migration de schema |
 | A discussão CD-08 (Redis × Postgres) | Encerrada pela decisão D2 |

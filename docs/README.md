@@ -4,6 +4,8 @@
 
 ```
 docs/
+├── EXECUCAO_POR_MODULO.md           O passo a passo técnico de cada fase (M1 a M7)
+├── SETUP_CONTAS_E_SERVICOS.md       O que o Gabriel precisa cadastrar, sem jargão
 ├── ARQUITETURA_E_PASTAS.md          O mapa do repositório e o contrato entre as pastas
 ├── CATALOGO_DE_FEATURES.md          O que foi pedido, o que existe, o que falta
 ├── DECISOES_D1_D9_E_PLANO.md        A ata das decisões e o plano que sai delas
@@ -52,6 +54,9 @@ Mudam quando o assunto muda, não por rotina.
 | Nunca abriu este projeto | `CLAUDE.md` (raiz) → `ARQUITETURA_E_PASTAS.md` |
 | Vai começar uma sessão de trabalho | `diario/RITUAL_DE_SESSAO_RESUMO.md` |
 | Quer saber o que falta fazer | `CATALOGO_DE_FEATURES.md` |
+| Vai executar um módulo | `EXECUCAO_POR_MODULO.md` |
+| Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
+| Quer saber que atalhos a plataforma deve | `../RISCOS_ASSUMIDOS.md` (raiz) |
 | Vai mexer numa pasta específica | O `README.md` da própria pasta |
 | Quer saber por que algo é assim | `MUDANCAS_MERCADO_MULTI_ATIVO.md` ou o `VERSION_COMPARISON_DAILY.md` |
 | Precisa das contas de teste | `referencia/CONTAS_DE_TESTE.md` |
