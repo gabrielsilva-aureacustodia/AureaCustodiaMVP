@@ -5,12 +5,17 @@
 
 ---
 
-## RA-04 🟠 — esta pasta inteira não tem teste automatizado
+## RA-04 🟠 — esta pasta não tem teste automatizado (exceto `db/`, desde 02/09/2026)
 
 **Alcance:** `state.ts`, `session.ts`, `actions/*`, `store/*`
 
-Os 38 testes do projeto cobrem `src/domain/` — a regra de negócio pura. **Nada em
-`src/server/` é exercitado automaticamente.**
+**Atualização de 02/09/2026:** `db/` nasceu com 31 testes, 15 deles contra um Postgres real
+embutido — a primeira cobertura de `src/server/`. O truque foi deixar o `server-only` só em
+`db/client.ts` e parametrizar o resto pelo `Executor`. O mesmo desenho serve para pagar o
+restante: as Server Actions poderiam receber o executor por parâmetro e rodar na mesma suíte.
+
+Os 38 testes do domínio cobrem `src/domain/` — a regra de negócio pura. **Fora de `db/`, nada
+em `src/server/` é exercitado automaticamente.**
 
 **Por que ficou assim, e é uma razão concreta:** o `import 'server-only'` que fecha a
 barreira entre servidor e cliente **impede importar estes módulos numa suíte Node comum** —

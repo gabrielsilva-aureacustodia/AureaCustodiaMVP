@@ -47,10 +47,16 @@ diferentes para a mesma venda. Numa contestação, os dois documentos são prova
 contradizem.
 
 **Por que não foi corrigido:** gravar a comissão no `Trade` altera `types.ts` — superfície
-protegida, fonte da verdade do modelo — e obriga rotação de `AUREA_STORE_KEY`.
+protegida, fonte da verdade do modelo — e obrigava rotação de `AUREA_STORE_KEY`.
 
-**Como se paga:** o ledger da Fase 3 resolve naturalmente. O lançamento grava o valor
-cobrado no momento, e o extrato lê o que foi gravado em vez de recalcular.
+**Atualização de 02/09/2026 (frente B):** `Trade` ganhou o campo **opcional** `fee?` — a
+comissão total congelada na gravação, coluna `fee` de `aurea.trades`. Com o estado em
+tabelas, não há mais chave de blob a rotacionar. O motor e as ações continuam criando o
+`Trade` sem o campo; a camada de banco o preenche ao gravar e o devolve na leitura.
+**`statement.ts` continua recalculando** — trocar para `t.fee ?? tradeFee(t.price) * qty` é
+uma linha, e é a decisão CD-09, dos sócios.
+
+**Como se paga:** a linha acima, depois do "sim". O ledger do M4 herda o valor gravado.
 
 ---
 

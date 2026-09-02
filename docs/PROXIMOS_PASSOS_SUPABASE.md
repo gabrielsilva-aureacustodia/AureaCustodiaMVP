@@ -9,6 +9,13 @@ Contexto completo: docs/HANDOFF_CORRECAO_SUPABASE.md
 
 ---
 
+> 🔴 **Nota da frente B (02/09/2026, madrugada).** A primeira versão deste documento foi
+> commitada **com a senha do banco em texto puro** (commit `0a7d517`) e enviada ao GitHub —
+> repositório público. A senha foi removida daqui, mas **continua no histórico do git**. Isso
+> obriga uma nova rotação; ver RA-12 em `RISCOS_ASSUMIDOS.md` e o passo 1 de
+> `docs/HANDOFF_FRENTE_B_BANCO.md`. Os passos abaixo continuam válidos com a senha que sair
+> dessa rotação.
+
 # ⚡ O que mudou desde o handoff
 
 **A senha foi rotacionada para uma sem caracteres especiais**, e isso elimina a causa raiz de
@@ -16,7 +23,7 @@ todas as falhas até aqui.
 
 | Antes | Agora |
 |---|---|
-| `AureaMoeda!!Token26` | `cG46396b52RIFvcE` |
+| a senha antiga, com `!!` | a senha nova, só letras e números — **no gerenciador de senhas, não aqui** |
 | Precisava virar `%21%21` na URL | **Nenhuma codificação** — só letras e números |
 | Três rotações, três falhas de autenticação | ✅ Testada e funcionando |
 
@@ -43,13 +50,13 @@ Para **`POSTGRES_URL`**: clique em `⋯` → **Edit**, **apague tudo** que está
 exatamente esta linha — sem aspas, sem espaço, sem quebra de linha:
 
 ```
-postgresql://postgres.vjbqikfamqdttbmaqrxf:cG46396b52RIFvcE@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_DO_GERENCIADOR@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 ```
 
 Para **`POSTGRES_URL_DIRECT`**: mesma coisa, mudando **só a porta** para `5432`:
 
 ```
-postgresql://postgres.vjbqikfamqdttbmaqrxf:cG46396b52RIFvcE@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_DO_GERENCIADOR@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 ```
 
 > ⚠️ **O erro anterior foi colar o bloco "Connection parameters"** (aquele com `host:`,
@@ -104,12 +111,12 @@ Só siga se isso estiver verde.
 
 ## Passo 2 — Atualizar o `.env.local`
 
-O arquivo local ainda tem a senha antiga. É gitignorado; a senha nova é `cG46396b52RIFvcE`,
-sem codificação:
+O arquivo local ainda tem a senha antiga. É gitignorado; a senha nova está no gerenciador
+de senhas do Gabriel e entra sem codificação:
 
 ```
-POSTGRES_URL="postgresql://postgres.vjbqikfamqdttbmaqrxf:cG46396b52RIFvcE@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
-POSTGRES_URL_DIRECT="postgresql://postgres.vjbqikfamqdttbmaqrxf:cG46396b52RIFvcE@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+POSTGRES_URL="postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_DO_GERENCIADOR@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+POSTGRES_URL_DIRECT="postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_DO_GERENCIADOR@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
 AUREA_STORE_KEY="aurea-market-v6-local"
 ```
 
@@ -152,7 +159,7 @@ Com a conexão estável, seguir `docs/EXECUCAO_POR_MODULO.md`, módulo M1:
 | Item | Situação |
 |---|---|
 | Banco Supabase | ✅ PostgreSQL 17.6, São Paulo, funcionando |
-| Senha `cG46396b52RIFvcE` | ✅ Testada nas duas portas |
+| Senha rotacionada (no gerenciador) | ✅ Testada nas duas portas em 02/09, 03:30 — **mas commitada: rotacionar de novo** |
 | Tabela `aurea.aurea_state` | ✅ Criada, RLS ligada, seed gravado (32 negociações) |
 | `public.aurea_state` | ✅ Não existe — nada exposto na API pública |
 | Código (commits `9e392db`, `1819574`, `93b7121`) | ✅ Em produção |

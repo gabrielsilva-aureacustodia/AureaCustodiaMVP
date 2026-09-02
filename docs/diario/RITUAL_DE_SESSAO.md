@@ -216,6 +216,29 @@ Cole o valor gerado em `SESSION_SECRET`.
 `src/server/session.ts` linha 38 — um valor fixo que está no código-fonte. Quem tem acesso ao
 repositório forja um cookie de sessão e entra como qualquer usuário.
 
+### 5.1 — O banco (desde 02/09/2026, módulo M1)
+
+Com `POSTGRES_URL` no `.env.local`, o estado vive em **tabelas** no Supabase
+(`src/server/db/`); sem ela, no blob em memória. Para trabalhar com o banco de verdade sem
+mexer no estado dos sócios:
+
+```
+POSTGRES_URL="postgresql://postgres.PROJETO:SENHA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
+POSTGRES_URL_DIRECT="postgresql://postgres.PROJETO:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+AUREA_DB_SCHEMA="aurea_local"
+```
+
+E, **uma vez por gaveta** (e sempre que houver migration nova em `src/server/db/migrations/`):
+
+```bash
+npm run db:migrate
+```
+
+Saída esperada: `+ 001_inicial` (ou `= 001_inicial (já aplicada)`) e `✓ nenhuma tabela em
+public`. A primeira requisição do `npm run dev` semeia as 7 contas na gaveta.
+
+`AUREA_STORE_KEY` só vale para o caminho sem banco.
+
 ## Passo 6 — Subir o servidor local
 
 ```bash

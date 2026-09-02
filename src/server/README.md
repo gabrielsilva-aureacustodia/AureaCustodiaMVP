@@ -24,13 +24,19 @@ carregaria, e as credenciais ficariam legíveis em "ver código-fonte".
 | `state.ts` | `getState()` e `mutateState()` — **o ponto único de escrita** | |
 | `session.ts` | Cookie `httpOnly` assinado com HMAC-SHA256 | |
 | `actions/` | As Server Actions. Ver [README próprio](actions/README.md) | ⚠️ |
-| `store/` | Persistência plugável. Ver [README próprio](store/README.md) | ⚠️ |
+| `db/` | **O estado em tabelas** (Supabase Postgres, schema `aurea`). Ativo com `POSTGRES_URL`. Ver [README próprio](db/README.md) | ⚠️ |
+| `store/` | O blob JSON antigo — ativo **sem** `POSTGRES_URL` (Redis/memória). Sai no fim do M1. Ver [README próprio](store/README.md) | ⚠️ |
 
 ## `state.ts` — o coração da escrita
 
 **Toda mutação de estado passa por `mutateState()`.** A função recebe um callback que pode
-mutar o estado no lugar; a gravação acontece quando ele retorna. No backend que suporta
-atomicidade (Postgres), o ciclo inteiro roda dentro de uma transação com trava.
+mutar o estado no lugar; a gravação acontece quando ele retorna. Com `POSTGRES_URL`, o ciclo
+inteiro roda dentro de uma transação com trava (`db/`); sem ela, no blob (`store/`).
+
+**A assinatura de `getState()` e `mutateState()` está congelada** — é o contrato de
+`docs/FRENTES_PARALELAS.md` que permite às frentes A e C escreverem código enquanto o motor
+por baixo muda. Desde 02/09/2026 há dois motores atrás da mesma fachada, escolhidos por
+variável de ambiente; os chamadores não percebem diferença.
 
 ```typescript
 const { result } = await mutateState((state) => {

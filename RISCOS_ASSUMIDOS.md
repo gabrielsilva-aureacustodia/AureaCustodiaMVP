@@ -34,15 +34,16 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-01** | Custódia de dinheiro de terceiros sem parecer jurídico | 🔴 | `src/server/actions/`, `src/lib/payments/` |
 | **RA-02** | Senhas em texto puro | 🔴 | `src/domain/`, `src/server/actions/` |
 | **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
-| **RA-04** | `src/server/` sem cobertura de teste | 🟠 | `src/server/` |
+| **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
-| **RA-06** | Comissão do extrato recalculada, não congelada | 🟠 | `src/domain/` |
+| **RA-06** | Comissão do extrato recalculada, não congelada — **metade paga em 02/09** (coluna `fee`) | 🟠 | `src/domain/` |
 | **RA-07** | Depósito sem idempotência nem limite de frequência | 🟠 | `src/server/actions/` |
-| **RA-08** | Persistência em Redis, sem garantia de concorrência | 🟡 | `src/server/store/` |
+| **RA-08** | Persistência em Redis, sem garantia de concorrência — **pago por construção com `POSTGRES_URL`** | 🟡 | `src/server/store/` |
 | **RA-09** | Dois controles não operáveis por teclado | 🟡 | `src/components/` |
 | **RA-10** | Recálculos sem memoização | 🟡 | `src/app/`, `src/components/` |
 | **RA-11** | Repositório público de propósito | 🟡 | — |
-| **RA-12** | Senha do banco Supabase trafegou por chat | 🟠 | — |
+| **RA-12** | Senha do banco Supabase trafegou por chat **e foi commitada em documento** | 🔴 | `docs/` |
+| **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
 
 ---
 
@@ -166,6 +167,13 @@ testes.
 **Como se paga:** teste de integração contra o Supabase, na Fase 1, quando o banco já for
 real e houver o que apontar.
 
+**Atualização de 02/09/2026 (frente B):** a nova camada `src/server/db/` nasceu com **29
+testes** — 16 do planejador de diff e 13 de integração contra um Postgres real embutido
+(PGlite), cobrindo migration, semeadura, ida e volta do estado, compra simultânea, envios
+simultâneos e o wizard completo. A saída foi separar o único módulo que carrega segredo
+(`client.ts`, com `server-only`) da orquestração, que é parametrizada e testável. **Continuam
+descobertos:** `session.ts`, `actions/*` e o ramo antigo de `state.ts`/`store/`.
+
 ---
 
 # RA-05 — Hash do recibo é simulado 🟠
@@ -201,6 +209,11 @@ diferentes para a mesma venda. Numa contestação, os dois são prova e se contr
 
 **Como se paga:** o ledger da Fase 3 resolve naturalmente — o lançamento grava o valor
 cobrado no momento e o extrato lê o que foi gravado.
+
+**Atualização de 02/09/2026 (frente B):** a metade que cabe ao banco está paga. `aurea.trades`
+tem a coluna `fee`, toda negociação nova entra com a comissão congelada, e `Trade.fee?` a
+carrega na leitura. **O extrato ainda recalcula** — ligar `statement.ts` ao campo é a decisão
+CD-09, dos sócios. Ver RA-13.c.
 
 ---
 
@@ -240,6 +253,12 @@ falta só a variável de ambiente.
 **Consequência hoje:** irrelevante com sete sócios. **Inaceitável com cliente real.**
 
 **Como se paga:** a Fase 1 (Supabase Postgres) resolve por construção.
+
+**Atualização de 02/09/2026 (frente B):** resolvido por construção quando `POSTGRES_URL` está
+definida — `mutateState` passa a rodar em transação com `FOR UPDATE` sobre `aurea.seq`, e
+duas compras simultâneas viram uma compra e uma recusa (testado). **Falta confirmar que a
+variável está correta na Vercel** e que a produção subiu sobre tabelas — passo do Gabriel
+(ver `docs/HANDOFF_FRENTE_B_BANCO.md`). Até lá, sem a variável, a produção continua no Redis.
 
 ---
 
@@ -297,12 +316,25 @@ documento, não como pendência.
 
 ---
 
-# RA-12 — Senha do banco Supabase trafegou por chat 🟠
+# RA-12 — Senha do banco Supabase trafegou por chat 🔴
 
 ```
 Ocorrido em: 02/09/2026, durante a configuração do Supabase
+Agravado em: 02/09/2026, commit 0a7d517 — a senha ROTACIONADA foi commitada em documento
 Dono:        Gabriel
 ```
+
+> ⚠️ **Agravamento (achado da frente B, 02/09/2026, madrugada).** O documento
+> `docs/PROXIMOS_PASSOS_SUPABASE.md` foi commitado (`0a7d517`) e enviado ao GitHub **com a
+> senha nova em texto puro**, nas duas connection strings. O repositório é público (RA-11):
+> a senha está no histórico do git, acessível a qualquer pessoa, e continuará lá mesmo
+> depois de removida do arquivo. A frente B **removeu a senha do documento atual** (o que
+> não apaga o histórico) e subiu este risco para 🔴.
+>
+> **O que precisa acontecer, nesta ordem:** (1) resetar a senha no Supabase com *Generate a
+> password*; (2) atualizar `POSTGRES_URL` e `POSTGRES_URL_DIRECT` na Vercel e no `.env.local`;
+> (3) redeploy. Reescrever o histórico do git é decisão do Gabriel, não do agente — e não
+> resolve: a senha já pode ter sido copiada. A rotação resolve.
 
 **O que aconteceu.** Durante a configuração, a senha do banco foi colada no chat para que eu
 pudesse montar as connection strings. Também houve o pedido de guardá-la em documento no
@@ -333,6 +365,51 @@ algo falhe.
 
 ---
 
+# RA-13 — Atalhos da migração para tabelas (módulo M1) 🟠
+
+```
+Decidido em: 02/09/2026 · frente B (banco e backend), branch feat/banco-supabase
+Dono:        Gabriel
+Pasta:       src/server/db/ — nota local em src/server/db/ATALHOS.md
+```
+
+O estado saiu do blob JSON e virou dez tabelas no schema `aurea`, **sem tocar no motor de
+casamento e sem mudar a assinatura de `getState()`/`mutateState()`** — a obrigação da frente
+B para com as outras duas. Para entregar isso numa sessão, cinco atalhos foram tomados. Cada
+um tem nota própria em `src/server/db/ATALHOS.md`; aqui vai o resumo.
+
+| | Atalho | Grau | Como se paga |
+|---|---|---|---|
+| **a** | **Uma fila de escrita para tudo.** Toda mutação trava a linha única de `seq`; não há trava por livro de ordens | 🟡 | `mutateBook(tipoMoeda, fn)` para as ações de mercado, quando houver volume |
+| **b** | **Estado inteiro carregado a cada leitura e escrita** (9 consultas). Os ~30 pontos de leitura em `src/app/` não foram recortados — **por contrato**, essas pastas não são da frente B | 🟡 | Depois do merge das três frentes, seletores por fatia |
+| **c** | **Comissão gravada, extrato recalcula.** `trades.fee` existe e é preenchida; `statement.ts` ainda ignora | 🟠 | Uma linha em `statement.ts`, após o "sim" dos sócios (CD-09). Fecha o RA-06 |
+| **d** | **Verificado contra Postgres embutido, não contra o Supabase.** A senha local estava desatualizada e o agente não podia aplicá-la. A migration **não foi aplicada em produção** e o `FOR UPDATE` com duas conexões reais não foi exercitado — o Postgres embutido tem uma conexão só e prova o caminho da recusa, não a espera na trava | 🟠 | `npm run db:migrate` e, uma vez, `AUREA_DB_TEST_URL=… npm test` — dois comandos do Gabriel, no passo 4 da Fase 0 de `docs/CUTOVER_BANCO_PRODUCAO.md` |
+| **e** | **`src/server/store/` continua no repositório**, como caminho sem `POSTGRES_URL`, e o adaptador de blob em `store/postgres.ts` virou **código morto** | 🟡 | Commit de remoção após a produção rodar sobre tabelas (passo 9 do M1), com prompt em `docs/prompts/AGENTE_B2_POS_PRODUCAO.md` |
+
+**Atualização de 03/09/2026.** Duas correções que mudam o que se faz, não só o que se diz:
+
+- **A documentação chamava o `store/` de "rede de segurança". Estava errado.** Com
+  `POSTGRES_URL` definida, o adaptador de blob nunca é selecionado; **remover a variável de
+  um deploy que já roda sobre tabelas manda a aplicação para Redis ou memória, não para o
+  blob**. O rollback é o "Instant Rollback" da Vercel para o build anterior. Corrigido em
+  `src/server/db/README.md`, `src/server/store/README.md` e `src/server/db/ATALHOS.md`.
+- **A ordem da virada é migration antes do merge.** A produção já tem `POSTGRES_URL`; o
+  deploy novo procura `aurea.seq` na primeira requisição e, sem ela, derruba o site
+  inteiro, login incluído. O roteiro está em `docs/CUTOVER_BANCO_PRODUCAO.md`.
+
+O RA-13.d **continua aberto**: `npm run db:check` confirmou em 03/09 que a senha do
+`.env.local` segue recusada, então nenhuma consulta desta frente jamais tocou o banco real.
+
+**Consequência hoje:** nenhuma para os sete sócios. **O que muda com cliente real:** (b) vira
+gargalo de desempenho e (c) vira contradição em extrato impresso.
+
+**Decisão que precisa de ratificação dos sócios:** `src/domain/types.ts` ganhou o campo
+**opcional** `Trade.fee?` — não muda comportamento nenhum, mas `types.ts` é superfície
+protegida. A frente B considerou a adição segura (opcional, aditiva, pedida pelo prompt da
+frente) e a fez; se os sócios discordarem, é uma linha a reverter.
+
+---
+
 ## Onde cada atalho está anotado na própria pasta
 
 | Pasta | Arquivo com a nota |
@@ -341,5 +418,6 @@ algo falhe.
 | `src/server/` | [`ATALHOS.md`](src/server/ATALHOS.md) |
 | `src/server/actions/` | [`ATALHOS.md`](src/server/actions/ATALHOS.md) |
 | `src/server/store/` | [`ATALHOS.md`](src/server/store/ATALHOS.md) |
+| `src/server/db/` | [`ATALHOS.md`](src/server/db/ATALHOS.md) |
 | `src/components/` | [`ATALHOS.md`](src/components/ATALHOS.md) |
 | `src/app/` | [`ATALHOS.md`](src/app/ATALHOS.md) |

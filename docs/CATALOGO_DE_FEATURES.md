@@ -154,12 +154,25 @@ Detalhe completo em [`DECISOES_D1_D9_E_PLANO.md`](DECISOES_D1_D9_E_PLANO.md).
 > A **landing page com cadastro** (4.6b) entrou no pedido em 01/09/2026 e depende da Fase 2
 > (Supabase Auth) para o cadastro funcionar — a página em si pode vir antes.
 
-## 4.1 🔵 Fundação Supabase — tabelas relacionais
+## 4.1 🟢 Fundação Supabase — tabelas relacionais
 
-O estado sai do blob JSON único e vira tabelas. O motor de casamento **não é reescrito**:
-roda dentro da transação sobre um `AppState` parcial, preservando os 38 testes.
+**Entregue em 02/09/2026 na branch `feat/banco-supabase`** (frente B) — ver
+[`HANDOFF_FRENTE_B_BANCO.md`](HANDOFF_FRENTE_B_BANCO.md).
 
-**Critério de aceite mais importante:** os testes atuais passam sem alteração.
+O estado saiu do blob JSON único e virou dez tabelas no schema `aurea`. O motor de casamento
+**não foi reescrito**: roda dentro da transação sobre o `AppState`, e os 38 testes passaram
+sem alteração. `getState()`/`mutateState()` mantiveram a assinatura.
+
+| Critério de aceite | Estado |
+|---|---|
+| Os 38 testes passam sem alteração | ✅ |
+| Duas compras simultâneas da mesma oferta: uma vence, a outra recebe recusa | ✅ testado (PGlite); contra o Supabase real depende do Gabriel |
+| Dois envios simultâneos não geram o mesmo `RO-` | ✅ idem |
+| O ambiente sobe do zero com o seed | ✅ |
+| `npm run build` verde | ✅ |
+| Nenhuma tabela em `public` | ✅ testado; `npm run db:migrate` confere |
+| Migration aplicada no Supabase e produção sobre tabelas | ⏳ passo do Gabriel |
+| Remoção de `src/server/store/` (passo 9) | ⏳ após a produção rodar sobre tabelas |
 
 ## 4.2 🔵 Supabase Auth com Google
 

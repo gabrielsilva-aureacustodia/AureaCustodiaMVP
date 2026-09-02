@@ -8,6 +8,11 @@ chat dedicado a uma frente de trabalho.
 | `AGENTE_A_LOGIN_LANDING.md` | Login, cadastro e landing page | `feat/auth-landing` |
 | `AGENTE_B_BANCO_BACKEND.md` | Banco de dados e backend | `feat/banco-supabase` |
 | `AGENTE_C_PAGAMENTOS_CORREIOS.md` | Mercado Pago e Correios | `feat/pagamentos-correios` |
+| `AGENTE_B2_POS_PRODUCAO.md` | Limpeza do blob, depois da virada (passo 9 do M1) | `feat/limpeza-store` |
+
+⚠️ **`AGENTE_B2_POS_PRODUCAO.md` só se abre depois de a produção rodar sobre tabelas por
+uma semana**, sem incidente. Antes disso, o que aquela sessão remove ainda é o caminho de
+volta. O roteiro da virada é [`../CUTOVER_BANCO_PRODUCAO.md`](../CUTOVER_BANCO_PRODUCAO.md).
 
 ## Antes de abrir qualquer frente
 

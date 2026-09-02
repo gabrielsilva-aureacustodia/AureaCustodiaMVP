@@ -1,5 +1,16 @@
 # `src/server/store/` — persistência plugável ⚠️
 
+> **Desde 02/09/2026 esta pasta é o caminho SEM `POSTGRES_URL`.** Com a variável definida,
+> `state.ts` usa `../db/` (tabelas no schema `aurea`) e nada daqui roda — inclusive o
+> `postgres.ts` do blob, que virou **código morto** naquele momento. A pasta atende hoje
+> apenas quem não tem Postgres configurado: `npm run dev` sem banco (memória) e o deploy
+> antigo em Redis. Sai no passo 9 do M1. Ver RA-13.e em `../db/ATALHOS.md`.
+>
+> ⚠️ **Não é rede de segurança para o cutover.** Remover `POSTGRES_URL` de um deploy que já
+> roda sobre tabelas manda a aplicação para Redis ou memória — **não** para o blob em
+> `aurea.aurea_state`. O rollback é o "Instant Rollback" da Vercel; ver
+> [`docs/CUTOVER_BANCO_PRODUCAO.md`](../../../docs/CUTOVER_BANCO_PRODUCAO.md).
+
 **Superfície protegida.** O contrato desta pasta é o que garante que trocar de banco não
 muda comportamento.
 

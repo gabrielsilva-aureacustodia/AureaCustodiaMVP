@@ -296,3 +296,146 @@ Autor:          gabrielsilva-aureacustodia (Claude Code)
 
 *Fim da entrada 002. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+
+---
+
+# Entrada 003 — 02/09/2026 · Frente B: o estado sai do blob e vira tabelas (M1)
+
+```
+Branch:  feat/banco-supabase · base main dd38a74
+Sessão:  agente da frente B, em worktree separado (C:\dev\AureaCustodiaMVP-banco)
+Estado:  typecheck ✅ · lint ✅ · 67 testes ✅ (1 pulado) · build ✅
+Handoff: docs/HANDOFF_FRENTE_B_BANCO.md
+```
+
+## O que entrou
+
+- `src/server/db/` — migration com 10 tabelas no schema `aurea` (RLS em todas), cliente
+  `pg`, repositórios por tabela, planejador de diff puro, `lerEstado`/`mutarEstado`.
+- `src/server/state.ts` — `getState()`/`mutateState()` com a **assinatura preservada**, usando
+  tabelas quando há `POSTGRES_URL` e o `store/` antigo quando não há.
+- `Trade.fee?` em `src/domain/types.ts` — comissão congelada (metade do RA-06).
+- `npm run db:migrate` (`scripts/db-migrate.mjs`).
+- **29 testes novos**, 13 deles contra um Postgres real embutido (PGlite). Primeira cobertura
+  automatizada de `src/server/` — o RA-04 começa a ser pago.
+
+## O que NÃO entrou, de propósito
+
+- `matchOrders` continua o mesmo arquivo com os mesmos 38 testes. Não foi traduzido para SQL.
+- As Server Actions não mudaram uma linha — o contrato das frentes funcionou.
+- `src/server/store/` fica até a produção rodar sobre tabelas (RA-13.e).
+
+## Achados
+
+1. **H-03 — a senha do Supabase está no histórico público.** O commit `0a7d517` gravou
+   `docs/PROXIMOS_PASSOS_SUPABASE.md` com a senha rotacionada em texto puro e foi para o
+   `origin`. Removida do arquivo atual; **RA-12 subiu para 🔴**; a rotação é do Gabriel.
+2. **H-04 — dois agentes na mesma pasta.** A frente A estava editando `auth.ts`, `session.ts`
+   e `LoginForm.tsx` no mesmo diretório em que esta sessão começou. Resolvido com
+   `git worktree`; recomendação registrada no handoff: um worktree por frente.
+3. **H-05 — a primeira leitura de um banco vazio devolvia `Trade` sem `fee`** e a segunda
+   com. Achado pelo teste de ida e volta; corrigido em `estado.ts` (`congelarComissoes`).
+4. **`.env.local` com senha antiga** — a conexão local ao Supabase falhou com autenticação.
+   O agente não aplicou a senha documentada (bloqueio de permissão, correto); fica com o
+   Gabriel, junto com a rotação.
+
+## Análise crítica
+
+- O maior ganho é estrutural: **concorrência resolvida por construção** (`FOR UPDATE` em
+  `seq`) e o histórico append-only garantido pelo planejador, não por disciplina.
+- O maior risco residual é o **RA-13.d**: nada foi verificado contra o Supabase real nesta
+  sessão. A suíte tem um modo `AUREA_DB_TEST_URL` que roda o mesmo conjunto contra o banco
+  de verdade; é um comando do Gabriel.
+- A fila única de escrita (RA-13.a) é a mesma garantia de antes, e é aceitável com sete
+  sócios. Não confundir com "resolvido para sempre".
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| CD-08 (Postgres em produção) | Código pronto; **depende da variável na Vercel e da migration** |
+| CD-09 (comissão congelada) | Metade paga: coluna e campo existem; extrato ainda recalcula — decisão dos sócios |
+| RA-04 | Parcialmente pago (`db/` testado; `actions/` e `session.ts` não) |
+| RA-08 | Pago por construção com `POSTGRES_URL` |
+| RA-12 | **🔴 agravado** — rotação pendente |
+| RA-13 (novo) | Cinco atalhos registrados, cada um com pagamento descrito |
+
+---
+
+*Fim da entrada 003. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+---
+
+# Entrada 005 — 03/09/2026 · Frente B (2ª sessão): a branch sai do disco e a virada ganha roteiro
+
+```
+Branch:  feat/banco-supabase — PUBLICADA em origin nesta sessão
+Base:    main dd38a74 · commits 119aff8 (M1) + o desta entrada
+Estado:  typecheck ✅ · lint ✅ · 69 testes ✅ (1 pulado) · build ✅
+Banco:   ❌ nada rodou contra o Supabase — senha do .env.local segue recusada
+
+Nota de numeração: a entrada 004 fica reservada para a frente C, que renumera a
+sua (hoje também marcada como 003) nesta faixa. Esta entrada pula para 005 para
+não criar uma segunda colisão.
+```
+
+## O que entrou
+
+- **A branch foi publicada.** Até hoje a fundação das outras duas frentes existia num
+  único disco. `git push -u origin feat/banco-supabase` resolveu o risco mais barato de
+  todos.
+- **`npm run db:check`** (`scripts/db-check.mjs`): diagnóstico somente leitura que responde,
+  num comando, se o cutover pode acontecer — senha, migration, tabelas, RLS, tabela em
+  `public` e se o blob antigo ainda existe. Sai com código 1 quando falta algo.
+- **`scripts/env-local.mjs`**: acha o `.env.local` mesmo rodando num git worktree.
+- **`docs/CUTOVER_BANCO_PRODUCAO.md`**: o roteiro da virada, com a ordem obrigatória e a
+  tabela de sintomas.
+- **`docs/prompts/AGENTE_B2_POS_PRODUCAO.md`**: o prompt do passo 9, com a lista de
+  pré-condições que precisam estar verdadeiras antes de remover o caminho de volta.
+- `engines.node` para `>=20.12`, exigido por `process.loadEnvFile`.
+
+## Achados
+
+1. **H-06 — `npm run db:migrate` não funcionaria no worktree.** O `.env.local` é ignorado
+   pelo Git e não viaja entre worktrees; o comando procurava só na pasta em que rodava e
+   morria dizendo que a variável não estava definida, quando ela estava viva um diretório
+   ao lado. **Era o próximo comando que o Gabriel ia rodar.** Corrigido: procura nos dois
+   lugares e imprime qual arquivo usou.
+2. **H-07 — a documentação chamava `src/server/store/` de "rede de segurança", e não é.**
+   Com `POSTGRES_URL` definida o adaptador de blob nunca é selecionado; remover a variável
+   manda a aplicação para Redis ou memória, não para o blob. O rollback correto é o Instant
+   Rollback da Vercel para o build anterior. Corrigido em três documentos e no RA-13.
+3. **H-08 — o comando de conferência não era conferido.** `db:check` decide se a virada
+   acontece, e um erro de digitação na SQL dele só apareceria no cutover. A função
+   `diagnosticar` passou a ser exportada e é exercitada pela suíte contra o Postgres
+   embutido nos dois cenários — banco pronto e banco sem migration.
+4. **A conexão continua recusando a senha**, confirmado hoje pelo próprio `db:check`.
+
+## Análise crítica
+
+- **O que esta sessão fez foi diminuir a distância entre "o código está pronto" e "a
+  produção está de pé".** Nenhuma linha do motor mudou; o que mudou foi a chance de o
+  próximo comando do Gabriel falhar por um motivo que não tem nada a ver com o trabalho.
+- **O RA-13.d continua sendo o maior risco residual, e ele não se resolve escrevendo.** O
+  critério "duas compras simultâneas" segue provado apenas contra um Postgres de uma
+  conexão só. A prova custa um comando e depende da senha.
+- A tentação nesta sessão era começar a Fase 2 (remover o `store/`). Seria erro: enquanto a
+  produção não rodar sobre tabelas, o caminho antigo é o único deploy que funciona.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Branch B publicada | ✅ `origin/feat/banco-supabase` |
+| RA-12 (senha no histórico público) | 🔴 aberto — rotação é do Gabriel |
+| RA-13.d (nada verificado contra o Supabase) | 🟠 aberto — depende da senha |
+| RA-13.e (`store/` no repositório) | 🟡 aberto — sai só depois da virada |
+| Cutover de produção | ⏳ roteiro pronto, execução com o Gabriel |
+| CD-09 (extrato ler `t.fee`) | ⏳ decisão dos sócios |
+
+---
+
+*Fim da entrada 005. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*

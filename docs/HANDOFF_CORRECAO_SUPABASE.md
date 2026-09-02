@@ -70,14 +70,15 @@ Não repita estes testes — todos foram executados e passaram em 02/09/2026.
 
 ## ✅ A senha
 
-**A senha correta é `AureaMoeda!!Token26`** — com dois pontos de exclamação literais.
+**A senha correta tinha dois pontos de exclamação literais** (valor removido deste documento
+em 02/09/2026 pela frente B — senha em repositório público é senha vazada; ela já foi
+rotacionada de qualquer forma, ver RA-12).
 
 Verificado passando a senha como campo separado (sem depender de codificação de URL): as
 duas portas aceitam. A variante com `%21` literal **falha** — foi gravada por engano numa
 das rotações e depois desfeita.
 
-**Na connection string ela precisa ser codificada:** `!` → `%21`, ficando
-`AureaMoeda%21%21Token26`.
+**Na connection string ela precisava ser codificada:** `!` → `%21`.
 
 ## ✅ A aplicação, rodando localmente contra o Supabase
 
@@ -134,13 +135,13 @@ Apague **todo** o conteúdo do campo e cole exatamente esta linha, **sem quebra 
 espaço antes ou depois, sem aspas**:
 
 ```
-postgresql://postgres.vjbqikfamqdttbmaqrxf:AureaMoeda%21%21Token26@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_CODIFICADA@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 ```
 
 Repita para `POSTGRES_URL_DIRECT`, trocando **apenas a porta** de `6543` para `5432`:
 
 ```
-postgresql://postgres.vjbqikfamqdttbmaqrxf:AureaMoeda%21%21Token26@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.vjbqikfamqdttbmaqrxf:SENHA_CODIFICADA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 ```
 
 Depois: **Deployments → o mais recente → `⋯` → Redeploy.** Variável de ambiente só entra em
