@@ -158,13 +158,24 @@ export interface BuyOrder {
   tipoMoeda: string
 }
 
-/** Negociação concluída. A comissão não é gravada: é recalculável (ver domain/fees.ts). */
+/** Negociação concluída. */
 export interface Trade {
   price: Cents
   qty: number
   date: Timestamp
   buyer: UserEmail
   seller: UserEmail
+  /**
+   * Comissão TOTAL cobrada nesta negociação (por moeda × qty), congelada no
+   * momento da gravação — a coluna `fee` de `aurea.trades`.
+   *
+   * OPCIONAL de propósito: o motor (`matchOrders`) e as ações continuam
+   * criando o Trade sem ela, e a camada de banco a preenche ao gravar com
+   * `tradeFee(price) * qty`. Todo Trade que SAI do banco a carrega. O extrato
+   * ainda recalcula (RA-06) — passar a ler daqui é o passo seguinte, e é
+   * decisão dos sócios (CD-09).
+   */
+  fee?: Cents
   /**
    * Tipo negociado. Sem ele, média de 7 dias, mediana de 24h e os gráficos
    * misturariam preços de moedas diferentes numa série só — uma Bandeira de

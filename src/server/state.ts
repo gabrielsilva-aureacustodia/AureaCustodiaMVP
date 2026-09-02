@@ -16,7 +16,27 @@ import { STORE_KEY } from '@/domain/constants'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
+import { bancoConfigurado, executarNoBanco } from './db/client'
+import { lerEstado, mutarEstado } from './db/estado'
 import { getStore } from './store'
+
+/**
+ * DOIS MOTORES, UMA FACHADA — o contrato das frentes paralelas
+ * -------------------------------------------------------------
+ * `getState()` e `mutateState()` têm a assinatura congelada: é o que permite
+ * às frentes A (login) e C (pagamentos) escreverem código hoje que continua
+ * valendo depois da migração. O que muda é POR BAIXO:
+ *
+ *  - com `POSTGRES_URL` (ou `DATABASE_URL`), o estado vive em TABELAS no
+ *    schema `aurea` do Supabase — ver ./db/. É o módulo M1 entregue;
+ *  - sem ela, vale o caminho antigo do blob JSON em ./store/ (Redis ou
+ *    memória), para `npm run dev` funcionar sem infraestrutura e para a
+ *    produção não cair enquanto a variável não estiver na Vercel.
+ *
+ * O adaptador de blob em ./store/postgres.ts fica sem uso quando o banco está
+ * configurado — a pasta inteira sai no fim do M1, quando a produção tiver
+ * rodado sobre tabelas (passo 9 do plano). Até lá, é a rede de segurança.
+ */
 
 /**
  * Substitui o par loadState/saveState do MVP (aurea-mvp-teste.html, 905-916).
@@ -72,6 +92,8 @@ function garantirFormato(state: AppState): AppState {
  * não devolvia nada.
  */
 export async function getState(): Promise<AppState> {
+  if (bancoConfigurado()) return lerEstado(executarNoBanco)
+
   const store = getStore()
 
   const current = await store.get<AppState>(STORE_KEY)
@@ -101,6 +123,8 @@ export async function getState(): Promise<AppState> {
 export async function mutateState<T>(
   fn: (state: AppState) => T | Promise<T>,
 ): Promise<{ state: AppState; result: T }> {
+  if (bancoConfigurado()) return mutarEstado(executarNoBanco, fn)
+
   const store = getStore()
 
   // O contrato do store separa "mutar" de "extrair o retorno", então o valor

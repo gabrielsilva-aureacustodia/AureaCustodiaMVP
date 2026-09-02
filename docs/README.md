@@ -16,6 +16,9 @@ docs/
 ├── PLANO_EXECUCAO_CRITICAL_DEBUGS.md  O plano dos Critical Debugs, verificado
 ├── GUIA_CLAUDE_CODE_AUREA.md        Onboarding de quem entra no projeto
 ├── PRE_LANCAMENTO_CLIENTES_REAIS.md O que falta antes do primeiro cliente real
+├── HANDOFF_CORRECAO_SUPABASE.md     A correção da conexão Supabase (02/09)
+├── PROXIMOS_PASSOS_SUPABASE.md      O que fazer depois da rotação de senha
+├── HANDOFF_FRENTE_B_BANCO.md        A entrega do M1: o estado em tabelas, e o que o Gabriel faz
 │
 ├── diario/                          Documentos vivos, reescritos por leitura
 │   ├── RITUAL_DE_SESSAO.md            Abertura e fechamento de toda sessão (detalhado)

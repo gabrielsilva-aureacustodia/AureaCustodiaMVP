@@ -1,5 +1,11 @@
 # `src/server/store/` — persistência plugável ⚠️
 
+> **Desde 02/09/2026 esta pasta é o caminho SEM `POSTGRES_URL`.** Com a variável definida,
+> `state.ts` usa `../db/` (tabelas no schema `aurea`) e nada daqui roda — inclusive o
+> `postgres.ts` do blob fica sem uso. A pasta permanece como rede de segurança (Redis em
+> produção enquanto a variável não estiver na Vercel; memória em `npm run dev` sem banco) e
+> sai no passo 9 do M1. Ver RA-13.e em `../db/ATALHOS.md`.
+
 **Superfície protegida.** O contrato desta pasta é o que garante que trocar de banco não
 muda comportamento.
 

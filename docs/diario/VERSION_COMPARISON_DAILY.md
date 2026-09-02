@@ -296,3 +296,72 @@ Autor:          gabrielsilva-aureacustodia (Claude Code)
 
 *Fim da entrada 002. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+
+---
+
+# Entrada 003 — 02/09/2026 · Frente B: o estado sai do blob e vira tabelas (M1)
+
+```
+Branch:  feat/banco-supabase · base main dd38a74
+Sessão:  agente da frente B, em worktree separado (C:\dev\AureaCustodiaMVP-banco)
+Estado:  typecheck ✅ · lint ✅ · 67 testes ✅ (1 pulado) · build ✅
+Handoff: docs/HANDOFF_FRENTE_B_BANCO.md
+```
+
+## O que entrou
+
+- `src/server/db/` — migration com 10 tabelas no schema `aurea` (RLS em todas), cliente
+  `pg`, repositórios por tabela, planejador de diff puro, `lerEstado`/`mutarEstado`.
+- `src/server/state.ts` — `getState()`/`mutateState()` com a **assinatura preservada**, usando
+  tabelas quando há `POSTGRES_URL` e o `store/` antigo quando não há.
+- `Trade.fee?` em `src/domain/types.ts` — comissão congelada (metade do RA-06).
+- `npm run db:migrate` (`scripts/db-migrate.mjs`).
+- **29 testes novos**, 13 deles contra um Postgres real embutido (PGlite). Primeira cobertura
+  automatizada de `src/server/` — o RA-04 começa a ser pago.
+
+## O que NÃO entrou, de propósito
+
+- `matchOrders` continua o mesmo arquivo com os mesmos 38 testes. Não foi traduzido para SQL.
+- As Server Actions não mudaram uma linha — o contrato das frentes funcionou.
+- `src/server/store/` fica até a produção rodar sobre tabelas (RA-13.e).
+
+## Achados
+
+1. **H-03 — a senha do Supabase está no histórico público.** O commit `0a7d517` gravou
+   `docs/PROXIMOS_PASSOS_SUPABASE.md` com a senha rotacionada em texto puro e foi para o
+   `origin`. Removida do arquivo atual; **RA-12 subiu para 🔴**; a rotação é do Gabriel.
+2. **H-04 — dois agentes na mesma pasta.** A frente A estava editando `auth.ts`, `session.ts`
+   e `LoginForm.tsx` no mesmo diretório em que esta sessão começou. Resolvido com
+   `git worktree`; recomendação registrada no handoff: um worktree por frente.
+3. **H-05 — a primeira leitura de um banco vazio devolvia `Trade` sem `fee`** e a segunda
+   com. Achado pelo teste de ida e volta; corrigido em `estado.ts` (`congelarComissoes`).
+4. **`.env.local` com senha antiga** — a conexão local ao Supabase falhou com autenticação.
+   O agente não aplicou a senha documentada (bloqueio de permissão, correto); fica com o
+   Gabriel, junto com a rotação.
+
+## Análise crítica
+
+- O maior ganho é estrutural: **concorrência resolvida por construção** (`FOR UPDATE` em
+  `seq`) e o histórico append-only garantido pelo planejador, não por disciplina.
+- O maior risco residual é o **RA-13.d**: nada foi verificado contra o Supabase real nesta
+  sessão. A suíte tem um modo `AUREA_DB_TEST_URL` que roda o mesmo conjunto contra o banco
+  de verdade; é um comando do Gabriel.
+- A fila única de escrita (RA-13.a) é a mesma garantia de antes, e é aceitável com sete
+  sócios. Não confundir com "resolvido para sempre".
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| CD-08 (Postgres em produção) | Código pronto; **depende da variável na Vercel e da migration** |
+| CD-09 (comissão congelada) | Metade paga: coluna e campo existem; extrato ainda recalcula — decisão dos sócios |
+| RA-04 | Parcialmente pago (`db/` testado; `actions/` e `session.ts` não) |
+| RA-08 | Pago por construção com `POSTGRES_URL` |
+| RA-12 | **🔴 agravado** — rotação pendente |
+| RA-13 (novo) | Cinco atalhos registrados, cada um com pagamento descrito |
+
+---
+
+*Fim da entrada 003. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
