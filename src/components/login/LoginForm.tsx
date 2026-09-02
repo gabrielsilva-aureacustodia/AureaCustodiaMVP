@@ -16,9 +16,9 @@
  * ----------------------------------
  * Lá, doLogin lia ACCOUNTS do próprio bundle e comparava a senha no navegador.
  * Aqui só o par (e-mail, senha) sai daqui; quem decide é login() no servidor, e
- * o que volta é um ActionResult. Este componente NÃO conhece ACCOUNTS para
- * validar — só para desenhar a lista de contas de demonstração, que é texto de
- * vitrine.
+ * o que volta é um ActionResult. Este componente **não importa ACCOUNTS de
+ * forma alguma** — nem para validar, nem para exibir (ver a nota sobre a lista
+ * de contas de teste, mais abaixo).
  *
  * Também sumiu a manipulação de DOM: nada de document.getElementById nem de
  * innerHTML no botão do olho. O ícone é escolhido por JSX a partir do estado
@@ -27,10 +27,10 @@
  */
 
 import { useRouter } from 'next/navigation'
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 
-import { ACCOUNTS, LOGO_AUREA } from '@/domain/constants'
+import { LOGO_AUREA } from '@/domain/constants'
 import { login } from '@/server/actions/auth'
 
 /**
@@ -40,13 +40,21 @@ import { login } from '@/server/actions/auth'
  */
 const PW_REVEAL_MS = 3000
 
-/**
- * As contas de demonstração, na ordem em que ACCOUNTS as declara — que é a
- * mesma ordem escrita à mão na linha 650 do monolito. Derivar em vez de repetir
- * evita que a lista da tela e o catálogo do servidor divirjam em silêncio: se
- * alguém acrescentar uma oitava conta, o "7" e os e-mails acompanham.
+/*
+ * A LISTA DE CONTAS DE TESTE SAIU DESTA TELA — decisão dos sócios, 01/09/2026.
+ *
+ * O monolito (linha 650) e o port imprimiam os sete e-mails e a senha comum
+ * embaixo do botão "Entrar". Era conveniente enquanto só os sócios abriam a
+ * página; deixou de ser quando a URL passou a ser mostrada a terceiros, porque
+ * a tela entregava credencial funcional a quem apenas passasse os olhos.
+ *
+ * As credenciais continuam existindo e continuam válidas — o que mudou é que
+ * elas não são mais anunciadas. Quem precisa delas consulta
+ * `docs/referencia/CONTAS_DE_TESTE.md`, e a fonte da verdade segue sendo
+ * ACCOUNTS em `src/domain/constants.ts`.
+ *
+ * Não recolocar esta lista sem decisão dos sócios.
  */
-const CONTAS_TESTE: string[] = Object.keys(ACCOUNTS)
 
 /** Ícone de olho aberto — ICON_EYE, linha 1076. */
 const IconeOlho = (
@@ -199,21 +207,6 @@ export function LoginForm(): ReactNode {
         <button className="btn btn-gold" onClick={() => void entrar()} disabled={enviando}>
           Entrar
         </button>
-
-        <div className="demo-hint">
-          <b>
-            {CONTAS_TESTE.length} contas de teste — senha igual para todas: 12345678
-          </b>
-          <br />
-          {CONTAS_TESTE.map((conta, i) => (
-            // O separador ' · ' entra como irmão do e-mail para reproduzir o
-            // texto corrido do original sem precisar de innerHTML.
-            <Fragment key={conta}>
-              {i > 0 ? ' · ' : null}
-              {conta}
-            </Fragment>
-          ))}
-        </div>
 
         <div className="env-tag">Ambiente de teste · Pré-MVP · Dados fictícios</div>
       </div>
