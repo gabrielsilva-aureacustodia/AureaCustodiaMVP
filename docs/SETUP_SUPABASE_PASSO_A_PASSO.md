@@ -43,7 +43,7 @@ Se ele pedir para criar uma **organização**, use `Aurea Custodia`.
 | Campo | O que colocar |
 |---|---|
 | **Name** | `aurea-custodia` |
-| **Database Password** | Clique em **Generate a password** |
+| **Database Password** | Se o campo aparecer: **Generate a password**. **Se não aparecer, é normal** — resolve abaixo |
 | **Region** | ⚠️ **`South America (São Paulo)`** |
 | **Plan** | Free |
 
