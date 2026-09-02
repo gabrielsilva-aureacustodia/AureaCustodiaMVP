@@ -95,6 +95,11 @@ export function RegisterForm({
               A estrutura está pronta, mas nenhuma informação pessoal será enviada enquanto os
               Termos de Uso e a Política de Privacidade não estiverem vigentes.
             </p>
+            <p>
+              Consulte os rascunhos operacionais dos{' '}
+              <Link href="/termos">Termos de Uso</Link> e da{' '}
+              <Link href="/privacidade">Política de Privacidade</Link>.
+            </p>
           </div>
         ) : null}
 

@@ -1,0 +1,42 @@
+/* Documentos legais públicos. Sem media query: responsive.css permanece por último. */
+
+.legal-page{min-height:100vh}
+.legal-header{
+  width:min(1060px,calc(100% - 32px));margin:0 auto;padding:20px 0;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+}
+.legal-header nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.legal-header nav>a:not(.btn){color:var(--gold);text-underline-offset:3px}
+.legal-header .btn{min-height:44px;text-decoration:none}
+.legal-document{
+  width:min(900px,calc(100% - 32px));margin:34px auto 70px;padding:clamp(24px,5vw,56px);
+  background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+}
+.legal-document>h1{
+  margin:10px 0 8px;font-family:var(--ff-display);font-size:clamp(38px,6vw,62px);
+  line-height:1.05;color:var(--text-strong);font-weight:600;
+}
+.legal-meta{color:var(--text-muted);font-size:14px}
+.legal-draft-warning{
+  margin:28px 0;padding:20px;border:1px solid var(--gold);border-radius:10px;
+  background:var(--gold-wash);
+}
+.legal-draft-warning strong{color:var(--text-strong)}
+.legal-draft-warning p{margin-top:7px;color:var(--text-muted);line-height:1.5}
+.legal-content{max-width:760px}
+.legal-content section{margin-top:34px}
+.legal-content h2{
+  margin-bottom:12px;font-family:var(--ff-display);font-size:clamp(23px,3vw,30px);
+  color:var(--text-strong);font-weight:600;
+}
+.legal-content p,.legal-content li{color:var(--text);font-size:16px;line-height:1.7}
+.legal-content p+p{margin-top:12px}
+.legal-content ul{margin:12px 0 0 22px}
+.legal-content li+li{margin-top:8px}
+.legal-content a{color:var(--gold);overflow-wrap:anywhere;text-underline-offset:3px}
+.legal-footer{
+  width:min(1060px,calc(100% - 32px));margin:0 auto;padding:28px 0 40px;
+  border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;
+  gap:18px;flex-wrap:wrap;color:var(--text-muted);font-size:13px;
+}
+.legal-footer a{color:var(--gold);text-underline-offset:3px}

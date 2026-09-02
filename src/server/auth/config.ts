@@ -87,13 +87,20 @@ export function getRegistrationStatus(): RegistrationStatus {
   const requested = process.env.AUREA_SIGNUP_ENABLED === 'true'
   const termsVersion = envValue('AUREA_TERMS_VERSION')
   const privacyVersion = envValue('AUREA_PRIVACY_VERSION')
-  const termsUrl = envHttpUrl('AUREA_TERMS_URL')
-  const privacyUrl = envHttpUrl('AUREA_PRIVACY_URL')
+  // Os rascunhos vivem na própria aplicação. URLs externas continuam aceitas
+  // para a versão revisada pelo advogado, mas não são necessárias para testar
+  // o aceite versionado enquanto o RA-03 segue explicitamente aberto.
+  const termsUrl = envHttpUrl('AUREA_TERMS_URL') ?? '/termos'
+  const privacyUrl = envHttpUrl('AUREA_PRIVACY_URL') ?? '/privacidade'
 
   if (!authConfigured) {
     return {
       enabled: false,
       authConfigured,
+      termsVersion,
+      privacyVersion,
+      termsUrl,
+      privacyUrl,
       reason: 'A autenticação ainda não foi configurada neste ambiente.',
     }
   }
@@ -102,14 +109,22 @@ export function getRegistrationStatus(): RegistrationStatus {
     return {
       enabled: false,
       authConfigured,
+      termsVersion,
+      privacyVersion,
+      termsUrl,
+      privacyUrl,
       reason: 'Novos cadastros estão temporariamente fechados.',
     }
   }
 
-  if (!termsVersion || !privacyVersion || !termsUrl || !privacyUrl) {
+  if (!termsVersion || !privacyVersion) {
     return {
       enabled: false,
       authConfigured,
+      termsVersion,
+      privacyVersion,
+      termsUrl,
+      privacyUrl,
       reason: 'O cadastro aguarda as versões vigentes dos documentos legais.',
     }
   }
