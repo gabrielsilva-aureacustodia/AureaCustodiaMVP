@@ -42,6 +42,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-09** | Dois controles não operáveis por teclado | 🟡 | `src/components/` |
 | **RA-10** | Recálculos sem memoização | 🟡 | `src/app/`, `src/components/` |
 | **RA-11** | Repositório público de propósito | 🟡 | — |
+| **RA-12** | Senha do banco Supabase trafegou por chat | 🟠 | — |
 
 ---
 
@@ -293,6 +294,42 @@ RA-02 também. Ambos só valem no ambiente de demonstração.
 
 **Não é defeito e não deve ser sinalizado como tal.** Está aqui por completude do
 documento, não como pendência.
+
+---
+
+# RA-12 — Senha do banco Supabase trafegou por chat 🟠
+
+```
+Ocorrido em: 02/09/2026, durante a configuração do Supabase
+Dono:        Gabriel
+```
+
+**O que aconteceu.** Durante a configuração, a senha do banco foi colada no chat para que eu
+pudesse montar as connection strings. Também houve o pedido de guardá-la em documento no
+repositório.
+
+**O que NÃO foi feito, e por quê.** A senha **não foi commitada**. O repositório está público
+(RA-11): credencial em commit público é varrida por bots em minutos e fica permanente no
+histórico do git — remover depois exige reescrever o histórico e ainda assim já foi copiada.
+É também o que o `CLAUDE.md` proíbe explicitamente.
+
+O que foi documentado em `docs/referencia/INFRAESTRUTURA_SUPABASE.md` são os parâmetros
+públicos: host, porta, usuário, região e qual variável recebe o quê. **Nenhum deles serve
+para nada sem a senha.**
+
+**Exposição real:** a senha existe no histórico desta conversa. Não é exposição pública, mas
+também não é o lugar de uma credencial de produção.
+
+**Como se paga — trinta segundos:**
+
+1. Supabase → **Settings → Database → Reset database password**
+2. **Generate a password**, copiar para o gerenciador de senhas
+3. Atualizar `POSTGRES_URL` e `POSTGRES_URL_DIRECT` na Vercel (percent-encoding, se houver
+   caractere especial)
+4. **Redeploy** — a variável antiga vale até o build seguinte
+
+Fazer isso **depois** que o ambiente estiver estável, para não misturar dois problemas caso
+algo falhe.
 
 ---
 
