@@ -43,14 +43,14 @@ export default async function AppLayout({
   children: ReactNode
 }): Promise<ReactNode> {
   const session = await getSessionEmail()
-  if (!session) redirect('/')
+  if (!session) redirect('/entrar')
 
   const state = await getState()
 
   // Cookie assinado apontando para um usuário que não está mais no estado (banco
   // recriado, seed trocado). Sem esta checagem, `me` seria undefined e a topbar
   // quebraria em me.name — um erro de tela cheia onde o certo é pedir login.
-  if (!state.users[session]) redirect('/')
+  if (!state.users[session]) redirect('/entrar')
 
   return (
     <AppProvider initialState={state} session={session}>

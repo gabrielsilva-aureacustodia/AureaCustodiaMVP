@@ -24,6 +24,7 @@
 
 /* Telas, na ordem em que apareciam no <style> do monolito. */
 @import '../styles/login.css';
+@import '../styles/landing.css';
 @import '../styles/shell.css';
 @import '../styles/home.css';
 @import '../styles/market.css';
