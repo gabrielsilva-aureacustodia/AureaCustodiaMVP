@@ -20,7 +20,13 @@ import type { StateStore, StoreKind } from './types'
  * ficam aqui em cima — eles somem na compilação e não geram require nenhum.
  */
 
-const TABLE = 'aurea_state'
+/**
+ * Schema próprio, fora do `public`. No Supabase, `public` é publicado como API
+ * REST na internet; `aurea` não está na lista de schemas expostos. Ver o
+ * comentário em ensureTable().
+ */
+const SCHEMA = 'aurea'
+const TABLE = `${SCHEMA}.aurea_state`
 
 /** `ssl` do pg aceita boolean ou opções de TLS; só usamos essas duas formas. */
 type SslConfig = boolean | { rejectUnauthorized: boolean }
@@ -90,6 +96,26 @@ export function createPostgresStore(connectionString: string): StateStore {
   function ensureTable(): Promise<void> {
     tablePromise ??= (async () => {
       const pool = await getPool()
+      /*
+       * SCHEMA PRÓPRIO E RLS LIGADA — não é enfeite, é a diferença entre o
+       * estado ficar privado ou público.
+       *
+       * O Supabase publica automaticamente uma API REST na internet para toda
+       * tabela do schema `public`, acessível com a chave `anon` — que é pública
+       * por design e está no repositório aberto. Uma tabela `public.aurea_state`
+       * sem RLS seria o estado inteiro (saldos, ofertas, senhas de teste)
+       * legível e ALTERÁVEL por qualquer pessoa, sem passar pela plataforma.
+       *
+       * Duas defesas independentes, e as duas ficam:
+       *  1. o schema `aurea` não está na lista de schemas expostos pela API;
+       *  2. RLS ligada sem política nenhuma nega tudo aos papéis `anon` e
+       *     `authenticated`. O dono da tabela (este mesmo usuário `postgres`,
+       *     via conexão direta) não é afetado — RLS não vale para o dono.
+       *
+       * Em Postgres fora do Supabase (Neon, local) o schema e o RLS são
+       * inócuos: custam nada e não mudam comportamento.
+       */
+      await pool.query(`CREATE SCHEMA IF NOT EXISTS ${SCHEMA}`)
       await pool.query(
         `CREATE TABLE IF NOT EXISTS ${TABLE} (
            key TEXT PRIMARY KEY,
@@ -97,6 +123,7 @@ export function createPostgresStore(connectionString: string): StateStore {
            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
          )`,
       )
+      await pool.query(`ALTER TABLE ${TABLE} ENABLE ROW LEVEL SECURITY`)
     })()
     return tablePromise
   }

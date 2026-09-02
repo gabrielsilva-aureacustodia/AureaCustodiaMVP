@@ -39,6 +39,21 @@ Escolhida sozinha em `index.ts`, **nesta ordem**:
 Postgres já está implementado e testado; ligá-lo é acrescentar uma variável, não escrever
 código.
 
+## O blob vive em `aurea.aurea_state`, com RLS ligada — desde 02/09/2026
+
+O adaptador Postgres cria a tabela no schema **`aurea`**, não no `public`, e liga **Row
+Level Security** sem política nenhuma. Não é enfeite:
+
+- o Supabase publica automaticamente uma API REST na internet para toda tabela do schema
+  `public`, acessível com a chave `anon` — que é pública por design e está no repositório
+  aberto. Uma `public.aurea_state` sem RLS seria o estado inteiro **legível e alterável por
+  qualquer pessoa**, sem passar pela plataforma;
+- `aurea` não está na lista de schemas expostos (conferir em *Settings → Data API*), e a RLS
+  sem política nega tudo aos papéis `anon`/`authenticated`. O dono da tabela — o usuário
+  `postgres`, via conexão direta — não é afetado.
+
+Em Postgres fora do Supabase (Neon, local) as duas medidas são inócuas.
+
 ## Duas armadilhas que já custaram caro
 
 **`globalThis` em `memory.ts`.** O `Map` fica pendurado em `globalThis`, não no escopo do
