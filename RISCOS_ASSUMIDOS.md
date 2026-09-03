@@ -521,6 +521,12 @@ isso, sete atalhos:
 | **f** | **Custódia entra no ledger com sinal zero** — registrada, não debitada, como o extrato já diz | 🟡 | Decisão de negócio: debitar a custódia do saldo |
 | **g** | **Saldo alterado por caminho desconhecido vira `ajuste`**, com aviso no log, em vez de exceção. O livro sempre fecha; a linha fica visível para alguém explicar | 🟡 | Manter zero: o relatório `analise` mostra a soma; toda ação nova precisa de fato gerador reconhecido em `derivar.ts` |
 
+> **Atualização de 03/09/2026 (check-up geral).** Parte do **(c)** foi paga: a regra de
+> acesso ganhou `src/server/relatorios/acesso.test.ts` (8 testes: `ehAdmin`, token, matriz
+> sessão × token) e `/api/admin/conciliacao` — que exigia só sessão — passou a exigir
+> administrador, com 4 testes. Continuam sem teste as rotas de `/api/relatorios/*` em si e
+> `dados.ts`. Ver `docs/CHECKUP_GERAL_03_09.md`.
+
 **O que NÃO é atalho:** nenhuma alíquota em código (é requisito do M7); catálogos contábeis
 upsertados do domínio (uma fonte só); lançamento manual corrigido por estorno (append-only).
 

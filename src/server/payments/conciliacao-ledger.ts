@@ -4,27 +4,49 @@ import 'server-only'
  * Módulo de Auditoria e Conciliação Gateway × Ledger × Custódia Física.
  *
  * RESPONSABILIDADE:
- *  - Cruzar as intenções de pagamento do gateway com o saldo circulante dos usuários.
+ *  - Conferir que o saldo de cada conta bate com a soma do livro-razão (ledger).
+ *  - Somar o que entrou pelo gateway, o que está pendente e o que foi recusado.
  *  - Apurar receitas da empresa (taxas de custódia + comissões de corretagem).
  *  - Mapear a esteira física de recebimento e avaliação de moedas na Central de Custódia.
+ *
+ * O QUE "CONCILIADO" SIGNIFICA AQUI (mudado em 03/09/2026)
+ * -----------------------------------------------------
+ * Até 03/09 a discrepância era |depósitos do gateway − saldo total dos usuários|.
+ * Isso nunca fecha: o saldo total inclui os saldos iniciais do seed e as
+ * negociações entre contas, que não passam pelo gateway — o relatório acusaria
+ * "discrepância" todo dia, e alarme que dispara sempre é alarme que ninguém lê.
+ *
+ * A conferência certa é a do M4: para cada conta, `users.balance` tem de ser
+ * igual à soma do ledger (`saldo_apos` acumulado). Sem banco não há ledger, e
+ * o relatório diz `nao_verificavel` em vez de fingir que conciliou.
  */
 
+import { tradeFee } from '@/domain/fees'
 import type { Cents, Timestamp } from '@/domain/types'
+import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { saldosPeloLedger } from '@/server/db/repositories/ledger'
 import { getState } from '@/server/state'
+
 import { repositorioIntencoes } from './repositorios'
 
 export interface RelatorioConciliacaoFinanceira {
   geradoEm: Timestamp
   financeiro: {
     totalSaldoUsuariosCents: Cents
+    /** Intenções creditadas pelo webhook do gateway. */
     totalDepositadoGatewayCents: Cents
+    /** Todos os depósitos registrados no estado — simulados e do gateway. */
+    totalDepositosRegistradosCents: Cents
     totalIntencoesPendentesCents: Cents
     totalIntencoesRecusadasCents: Cents
     totalTaxasCustodiaCents: Cents
     totalComissoesTradesCents: Cents
     totalReceitaEmpresaCents: Cents
+    /** Soma de |saldo da conta − soma do ledger| sobre todas as contas. */
     discrepanciaCents: Cents
-    statusConciliacao: 'conciliado' | 'discrepancia_detectada'
+    /** Contas cujo saldo não bate com o livro. Vazio quando conciliado. */
+    contasDivergentes: Array<{ email: string; saldo: Cents; ledger: Cents }>
+    statusConciliacao: 'conciliado' | 'discrepancia_detectada' | 'nao_verificavel'
   }
   moedasECustodia: {
     totalMoedasCustodiadas: number
@@ -70,10 +92,9 @@ export async function gerarRelatorioConciliacao(): Promise<RelatorioConciliacaoF
     }
   }
 
-  // Se não houver intenções no banco (ex: dev / seed local), usa o histórico de state.deposits
-  if (todasIntencoes.length === 0 && state.deposits.length > 0) {
-    totalDepositadoGatewayCents = state.deposits.reduce((acc, d) => acc + (d.valor || 0), 0)
-  }
+  // Depósitos do estado incluem os simulados E os creditados pelo gateway (a
+  // conciliação também os grava lá). Ficam separados do gateway de propósito.
+  const totalDepositosRegistradosCents = state.deposits.reduce((acc, d) => acc + d.valor, 0)
 
   // 3. Apuração de Receitas da Áurea Custódia
   const totalTaxasCustodiaCents = Object.values(state.custodyCharges).reduce(
@@ -81,13 +102,32 @@ export async function gerarRelatorioConciliacao(): Promise<RelatorioConciliacaoF
     0,
   )
 
+  // `fee` só existe gravada quando o estado veio do banco; no seed em memória
+  // ela é `undefined`, e `t.fee || 0` zerava a receita inteira. A regra é a
+  // mesma de `normalizarTrade` em db/diff.ts: o que está gravado vale, senão
+  // a comissão que o motor cobrou.
   const totalComissoesTradesCents = state.trades.reduce(
-    (acc, t) => acc + (t.fee || 0),
+    (acc, t) => acc + (t.fee ?? tradeFee(t.price) * (t.qty || 1)),
     0,
   )
 
   const totalReceitaEmpresaCents = totalTaxasCustodiaCents + totalComissoesTradesCents
-  const discrepanciaCents = Math.abs(totalDepositadoGatewayCents - totalSaldoUsuariosCents)
+
+  // A conferência que vale: saldo de cada conta × soma do livro-razão.
+  const contasDivergentes: Array<{ email: string; saldo: Cents; ledger: Cents }> = []
+  let discrepanciaCents = 0
+  let statusConciliacao: RelatorioConciliacaoFinanceira['financeiro']['statusConciliacao'] = 'nao_verificavel'
+  if (bancoConfigurado()) {
+    const saldosLedger = await executarNoBanco((tx) => saldosPeloLedger(tx))
+    for (const [email, u] of Object.entries(state.users)) {
+      const ledger = saldosLedger[email] ?? 0
+      if (ledger !== u.balance) {
+        contasDivergentes.push({ email, saldo: u.balance, ledger })
+        discrepanciaCents += Math.abs(u.balance - ledger)
+      }
+    }
+    statusConciliacao = discrepanciaCents === 0 ? 'conciliado' : 'discrepancia_detectada'
+  }
 
   // 4. Mapeamento de Moedas e Trilha de Avaliação Física
   const allCoins = Object.values(state.users).flatMap((u) => u.coins || [])
@@ -135,13 +175,15 @@ export async function gerarRelatorioConciliacao(): Promise<RelatorioConciliacaoF
     financeiro: {
       totalSaldoUsuariosCents,
       totalDepositadoGatewayCents,
+      totalDepositosRegistradosCents,
       totalIntencoesPendentesCents,
       totalIntencoesRecusadasCents,
       totalTaxasCustodiaCents,
       totalComissoesTradesCents,
       totalReceitaEmpresaCents,
       discrepanciaCents,
-      statusConciliacao: discrepanciaCents === 0 ? 'conciliado' : 'discrepancia_detectada',
+      contasDivergentes,
+      statusConciliacao,
     },
     moedasECustodia: {
       totalMoedasCustodiadas,
