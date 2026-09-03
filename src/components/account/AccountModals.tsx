@@ -42,6 +42,8 @@ import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { changePassword, deposit, toggleNotif, updatePersonal } from '@/server/actions/account'
+import { iniciarDeposito } from '@/server/actions/payments'
+import type { DepositoIniciado } from '@/server/payments/tipos'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -263,6 +265,11 @@ export function ModalDeposito(): ReactNode {
 
   const [valorTexto, setValorTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  // Resultado da cobrança Pix aberta no Mercado Pago (sandbox). Fica no estado
+  // porque o QR e o copia-e-cola precisam continuar na tela enquanto a pessoa
+  // paga no aplicativo do banco.
+  const [pix, setPix] = useState<DepositoIniciado | null>(null)
+  const [erroMp, setErroMp] = useState('')
 
   const cents = parsePrice(valorTexto)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
@@ -273,6 +280,35 @@ export function ModalDeposito(): ReactNode {
     const res = await run(() => deposit(cents))
     if (res.ok) close()
     else setEnviando(false)
+  }
+
+  /**
+   * Abre a cobrança no gateway. NÃO mexe no saldo — quem credita é o webhook,
+   * depois de o Mercado Pago confirmar o pagamento. É por isso que a modal
+   * continua aberta mostrando o código: o saldo aparece sozinho quando o ciclo
+   * de 10 segundos trouxer o estado novo.
+   */
+  async function cobrar(metodo: 'pix' | 'checkout_pro'): Promise<void> {
+    if (!podeDepositar) return
+    setEnviando(true)
+    setErroMp('')
+    try {
+      const res = await iniciarDeposito(cents, metodo)
+      if (!res.ok || !res.data) {
+        setErroMp(res.error ?? 'Não foi possível abrir a cobrança.')
+        return
+      }
+      if (metodo === 'pix') {
+        setPix(res.data)
+        return
+      }
+      // Checkout Pro é página do Mercado Pago, e é assim que nenhum dado de
+      // cartão passa pelo servidor da Áurea. Abre em aba nova para a pessoa não
+      // perder a modal.
+      if (res.data.initPoint) window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -329,6 +365,68 @@ export function ModalDeposito(): ReactNode {
           Confirmar depósito
         </button>
       </div>
+
+      {/* ------------------------------------------------------------------
+          Mercado Pago em SANDBOX (RA-01). Nenhum valor real é cobrado, e o
+          saldo só se move quando o webhook confirmar — nunca no retorno da
+          tela. Some quando o parecer jurídico liberar a produção e este bloco
+          virar o caminho principal.
+         ------------------------------------------------------------------ */}
+      <div className="note" style={{ marginTop: 18 }}>
+        <b>Pagar de verdade (ambiente de teste do Mercado Pago).</b> O saldo só entra depois
+        que o pagamento for confirmado pelo gateway, o que pode levar alguns segundos. Nenhum
+        valor real é cobrado.
+      </div>
+
+      <div className="m-actions" style={{ marginTop: 10 }}>
+        <button
+          className="btn btn-outline"
+          type="button"
+          disabled={!podeDepositar}
+          onClick={() => void cobrar('pix')}
+        >
+          Pagar com Pix
+        </button>
+        <button
+          className="btn btn-outline"
+          type="button"
+          disabled={!podeDepositar}
+          onClick={() => void cobrar('checkout_pro')}
+        >
+          Cartão ou boleto
+        </button>
+      </div>
+
+      {erroMp ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          {erroMp}
+        </div>
+      ) : null}
+
+      {pix ? (
+        <div style={{ marginTop: 14 }}>
+          <div className="field-lbl">Pix copia e cola</div>
+          <textarea
+            readOnly
+            rows={3}
+            aria-label="Código Pix copia e cola"
+            value={pix.qrCode ?? ''}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+          />
+          {pix.qrCodeBase64 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`data:image/png;base64,${pix.qrCodeBase64}`}
+              alt="QR Code do Pix"
+              style={{ display: 'block', width: 180, height: 180, margin: '12px auto' }}
+            />
+          ) : null}
+          <div className="note">
+            Referência {pix.externalReference} · {brl(pix.valorCents)}. Assim que o pagamento
+            for confirmado, o saldo aparece sozinho nesta tela.
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

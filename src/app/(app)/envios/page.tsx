@@ -35,7 +35,7 @@
  */
 
 import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { COIN_TYPES, coinTypeInfo } from '@/domain/constants'
@@ -51,6 +51,66 @@ import { advanceAnalysis, createProtocol, markPosted } from '@/server/actions/cu
 
 /** Os quatro passos da tela. */
 type Passo = 1 | 2 | 3 | 4
+
+/** O que `/api/rastreios` devolve por protocolo. */
+interface RastreioNaTela {
+  statusAtual: string
+  etapaDescricao: string
+  atualizadoEm: number
+}
+
+/**
+ * O último estado do objeto nos Correios, lido do BANCO.
+ *
+ * A tela nunca chama a API dos Correios: quem consulta é o job agendado
+ * (`/api/cron/shipping`), que grava em `aurea.rastreios`. Consultar por visita
+ * geraria custo, esbarraria no limite de requisições e deixaria a página lenta
+ * — e o estado de um objeto postal muda algumas vezes por dia, não a cada F5.
+ *
+ * Sem banco configurado a consulta volta vazia e o bloco explica isso, em vez
+ * de sumir sem motivo aparente.
+ */
+function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
+  const [rastreio, setRastreio] = useState<RastreioNaTela | null>(null)
+  const [carregando, setCarregando] = useState(true)
+
+  useEffect(() => {
+    let ativo = true
+    void (async () => {
+      try {
+        const res = await fetch('/api/rastreios')
+        if (!res.ok) return
+        const dados = (await res.json()) as { rastreios: Record<string, RastreioNaTela> }
+        if (ativo) setRastreio(dados.rastreios[protocolo] ?? null)
+      } finally {
+        if (ativo) setCarregando(false)
+      }
+    })()
+    // Cancelamento: sair da tela antes da resposta não pode virar setState em
+    // componente desmontado.
+    return () => {
+      ativo = false
+    }
+  }, [protocolo])
+
+  if (carregando) return null
+
+  return (
+    <div className="note" style={{ marginTop: 14 }}>
+      {rastreio ? (
+        <>
+          <b>Correios:</b> {rastreio.etapaDescricao || rastreio.statusAtual}. Última consulta em{' '}
+          {fdate(rastreio.atualizadoEm)}.
+        </>
+      ) : (
+        <>
+          <b>Correios:</b> rastreio ainda não consultado. A atualização é feita por rotina
+          agendada, uma vez por dia — a tela nunca consulta os Correios sozinha.
+        </>
+      )}
+    </div>
+  )
+}
 
 /** Posição do wizard: o passo mostrado e o protocolo que ele acompanha. */
 interface EstadoWizard {
@@ -508,6 +568,8 @@ export default function EnviosPage(): ReactNode {
             </h3>
 
             <Timeline envio={envio} />
+
+            <RastreioCorreios protocolo={envio.protocolo} />
 
             {envio.etapaAtual === 'Recibo emitido' ? (
               <>

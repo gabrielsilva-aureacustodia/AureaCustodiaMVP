@@ -37,14 +37,14 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
 | **RA-06** | Comissão do extrato recalculada, não congelada — **metade paga em 02/09** (coluna `fee`) | 🟠 | `src/domain/` |
-| **RA-07** | Depósito sem idempotência nem limite de frequência | 🟠 | `src/server/actions/` |
+| **RA-07** | Depósito sem idempotência — **pago em 03/09** (`aurea.payment_events`); falta o limite de frequência | 🟡 | `src/server/payments/` |
 | **RA-08** | Persistência em Redis, sem garantia de concorrência — **pago por construção com `POSTGRES_URL`** | 🟡 | `src/server/store/` |
 | **RA-09** | Dois controles não operáveis por teclado | 🟡 | `src/components/` |
 | **RA-10** | Recálculos sem memoização | 🟡 | `src/app/`, `src/components/` |
 | **RA-11** | Repositório público de propósito | 🟡 | — |
 | **RA-12** | Senha do banco Supabase trafegou por chat **e foi commitada em documento** | 🔴 | `docs/` |
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
-| **RA-14** | Atalhos da frente C (Mercado Pago e Correios) | 🟠 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
+| **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; restam b e c, que dependem de credencial | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
 | **RA-15** | Cadastro simulado e entrada sem senha, para demonstração local | 🔴 | `src/app/criar-conta/`, `src/app/entrar-demo/`, `src/server/actions/signup.ts` |
 
 ---
@@ -219,7 +219,7 @@ CD-09, dos sócios. Ver RA-13.c.
 
 ---
 
-# RA-07 — Depósito sem idempotência nem limite de frequência 🟠
+# RA-07 — Depósito sem idempotência nem limite de frequência 🟡
 
 ```
 Pasta: src/server/actions/account.ts
@@ -238,7 +238,9 @@ duas vezes**.
 **Como se paga:** tabela de eventos processados com o id do evento do gateway como chave
 única. Evento repetido é descartado antes de qualquer efeito. **Não é opcional na Fase 4.**
 
-*Estado em 03/09/2026:* Interface `RepositorioIdempotencia` e adaptador em memória entregues na sessão C-2 (RA-14.a); pagamento definitivo acontece na sessão C-3 com a tabela `aurea.payment_events` no Postgres.
+**Estado em 03/09/2026 — a idempotência está PAGA.** A tabela `aurea.payment_events` entrou na migration 002, e a reivindicação de um evento é um `INSERT … ON CONFLICT (gateway, event_id) DO NOTHING RETURNING`: quem recebe linha processa, quem não recebe descarta. Há uma segunda trava no crédito, sobre `aurea.payment_intents` (`UPDATE … WHERE status = 'pendente' RETURNING`), para o caso de duas entregas simultâneas. Provado em `src/server/db/payments.test.ts` e `src/server/payments/conciliacao.test.ts`.
+
+**O que continua aberto:** o LIMITE DE FREQUÊNCIA. Não há teto por período nem por saldo acumulado — o teto de R$ 100.000 continua sendo por operação, sem limite de repetição. É uma das quatro perguntas de negócio em aberto (ver `docs/EXECUCAO_BRANCH_C_O_QUE_FALTA.md`), e depende de decisão dos sócios, não de código.
 
 ---
 
@@ -422,23 +424,38 @@ Criado:  03/09/2026 (Sessão C-2)
 Dono:    Agente C
 ```
 
+> **Atualização de 03/09/2026 (sessão C-3).** Três dos cinco subitens foram pagos: a
+> idempotência passou para o banco (a), o cron ganhou agendamento (d) e o webhook passou a
+> responder antes de conciliar (e). Os que continuam abertos são (b) e (c), e os dois
+> dependem de credencial, não de código.
+
 Registrado na mesma estrutura dos atalhos das frentes A e B para manter conformidade:
 
-- **RA-14.a — Idempotência em memória:** Até a sessão C-3, a chave de idempotência é mantida
-  pelo adaptador `RepositorioIdempotenciaMemoria`. Funções serverless isoladas não
-  compartilham memória; a persistência relacional com `INSERT ... ON CONFLICT` na tabela
-  `aurea.payment_events` resolve em definitivo na sessão C-3.
+- **RA-14.a — Idempotência em memória — ✅ PAGO em 03/09/2026.** A tabela
+  `aurea.payment_events` entrou na migration 002, e a reivindicação é um
+  `INSERT … ON CONFLICT (gateway, event_id) DO NOTHING RETURNING`. Quem arbitra é a chave
+  primária, não a memória de um processo — que em serverless nasce vazia a cada cold start.
+  O adaptador em memória continua existindo para `npm run dev` sem banco, e é escolhido por
+  `bancoConfigurado()`. Provado em `src/server/db/payments.test.ts` (reivindicações
+  simultâneas, uma só vence) e em `src/server/payments/conciliacao.test.ts` (três entregas,
+  um crédito).
 - **RA-14.b — Simulador determinístico sem credenciais:** Na ausência de `MP_ACCESS_TOKEN_TEST`
   ou contrato dos Correios, as bibliotecas devolvem respostas simuladas determinísticas para
   manter testes e desenvolvimento local 100% operacionais.
 - **RA-14.c — Assinatura de webhook em desenvolvimento:** A assinatura HMAC-SHA256 é
   estritamente validada por padrão; apenas é aceita sem chave se
   `MP_WEBHOOK_ALLOW_UNSIGNED="true"` estiver presente no ambiente de desenvolvimento local.
-- **RA-14.d — Cron de rastreio sem agendamento ativo:** A rota `/api/cron/shipping` foi
-  construída e protegida por `CRON_SECRET`, aguardando a tabela `aurea.rastreios` e a
-  configuração no `vercel.json` na sessão C-3.
-- **RA-14.e — Processamento do webhook antes da resposta:** O webhook valida e responde de
-  imediato, aguardando o `after()` ou fila na sessão C-3 para mover saldo em definitivo.
+- **RA-14.d — Cron de rastreio sem agendamento ativo — ✅ PAGO em 03/09/2026.** O bloco
+  `crons` entrou no `vercel.json`, a rota lê os envios pendentes de `getState()` e grava em
+  `aurea.rastreios`, e a tela de envios lê de lá por `/api/rastreios`. **A cadência é
+  DIÁRIA** porque o plano Hobby da Vercel só permite uma execução por dia; com plano Pro, a
+  mesma rota aceita cadência maior sem mudar código. Falta o `CRON_SECRET` na Vercel — é
+  configuração, não código.
+- **RA-14.e — Processamento do webhook antes da resposta — ✅ PAGO em 03/09/2026.** A rota
+  responde 200 e concilia dentro de `after()` do `next/server`. Há um fallback deliberado:
+  fora do escopo de requisição `after()` LANÇA, e sem a proteção a exceção viraria 500 — que
+  é justamente o que faz o Mercado Pago reenviar. No fallback a tarefa roda solta, sem
+  `await`.
 
 ---
 # RA-15 — Cadastro simulado e entrada sem senha, para demonstração local 🔴

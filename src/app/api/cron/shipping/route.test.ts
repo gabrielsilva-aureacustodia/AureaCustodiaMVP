@@ -39,7 +39,7 @@ describe('Cron Shipping Route — GET /api/cron/shipping', () => {
 
     const data = await res.json()
     expect(data.ok).toBe(true)
-    expect(data.totalVerificados).toBe(0)
-    expect(data.resultados).toBeDefined()
+    expect(data.verificados).toBe(0)
+    expect(data.codigos).toEqual([])
   })
 })

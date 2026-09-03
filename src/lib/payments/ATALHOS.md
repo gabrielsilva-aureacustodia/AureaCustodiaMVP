@@ -8,9 +8,9 @@ Data:          03/09/2026 (atualizado na sessão C-2)
 
 ## Atalhos e riscos registrados (RA-14)
 
-### 1. RA-14.a — Idempotência em memória (até a sessão C-3)
+### 1. RA-14.a — Idempotência em memória — PAGO em 03/09/2026
 - **Situação:** A Vercel executa cada requisição em funções serverless isoladas.
-- **Implementação:** Desenvolvida interface `RepositorioIdempotencia` com adaptador em memória (`RepositorioIdempotenciaMemoria`) na sessão C-2. A persistência multi-instância em banco Postgres (`aurea.payment_events`) entra na sessão C-3 após a Frente B.
+- **Implementação:** A interface nasceu na C-2 com adaptador em memória; na C-3 entrou o adaptador Postgres sobre `aurea.payment_events`, escolhido por `bancoConfigurado()` em `src/server/payments/repositorios.ts`. A memória continua servindo `npm run dev` sem banco. **Quem arbitra agora é a chave primária do banco**, não a memória de um processo.
 
 ### 2. RA-14.b — Simulador determinístico sem credenciais
 - **Situação:** Ausência de `MP_ACCESS_TOKEN_TEST` no ambiente local/CI.

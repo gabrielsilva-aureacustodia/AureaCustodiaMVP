@@ -190,7 +190,7 @@ o passado.
 A trilha com hash encadeado **compartilha implementação** com o hash da estação de
 validação. Faz-se uma vez, usa-se nos dois lugares.
 
-## 4.4 🟡 Mercado Pago — bibliotecas prontas; ligação na sessão C-3
+## 4.4 🟢 Mercado Pago — depósito ligado ao saldo (Checkout Pro, Pix e webhook)
 
 **Modelo de saldo interno (D9 revertido em 02/09).** A Áurea recebe o depósito, guarda e depois distribui.
 Implementado em `src/lib/payments/` e `src/app/api/webhooks/mercadopago/`.
@@ -203,9 +203,9 @@ Travas inegociáveis entregues:
 - Fila/resposta HTTP 200 imediata ao gateway
 - Operação em Sandbox (`MP_SANDBOX`) até obtenção do parecer jurídico (**RA-01**)
 
-*A ligação final com `src/server/actions/account.ts` e a persistência relacional de idempotência acontecem na sessão C-3.*
+**Ligado em 03/09/2026 (sessão C-3).** `iniciarDeposito()` grava a intenção e abre a cobrança; o webhook confere no gateway, confere o valor, reivindica a intenção e credita por `mutateState`. Idempotência em `aurea.payment_events`. Falta: sandbox ponta a ponta com credencial real e a tela de saque (depende do D10).
 
-## 4.5 🟡 Correios — bibliotecas prontas; ligação na sessão C-3
+## 4.5 🟢 Correios — rastreio agendado, gravado e exibido
 
 Interface própria em `src/lib/shipping/` e endpoint em `src/app/api/cron/shipping/`.
 As três restrições de negócio entregues como regra de código:
@@ -216,7 +216,7 @@ As três restrições de negócio entregues como regra de código:
 - **LGPD no CEP**: consulta operacional de CEP sem gravação de histórico
 - **Rastreio por agendamento**: rastreamento preparado para rotinas em lote (cron), com cache
 
-*A ligação final com `src/server/actions/custody.ts` e a persistência de rastreios acontecem na sessão C-3.*
+**Ligado em 03/09/2026 (sessão C-3).** O cron diário do `vercel.json` lê os envios pendentes, consulta em lote e grava em `aurea.rastreios`; a tela lê por `/api/rastreios` e nunca chama os Correios. Falta: contrato de API dos Correios e a escolha de PAC/SEDEX no wizard (pede campo novo em `types.ts`).
 
 ## 4.6 🔵 DRE sob Lucro Presumido
 

@@ -117,7 +117,11 @@ function suite(alvo: Alvo): void {
       const S = alvo.schema
       await executar(async (tx) => {
         await tx.query(
-          `TRUNCATE ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
+          // As três tabelas da migration 002 apontam para `users` e `envios`, e
+          // o Postgres recusa truncar uma tabela referenciada se quem a
+          // referencia ficar de fora da mesma instrução.
+          `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+                    ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.nfts, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
@@ -149,6 +153,10 @@ function suite(alvo: Alvo): void {
         'deposits',
         'envios',
         'nfts',
+        // Migration 002 — pagamentos e rastreio (frente C).
+        'payment_events',
+        'payment_intents',
+        'rastreios',
         'schema_migrations',
         'sell_offers',
         'seq',

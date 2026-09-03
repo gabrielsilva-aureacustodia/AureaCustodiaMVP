@@ -3,5 +3,11 @@
   "framework": "nextjs",
   "regions": [
     "gru1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/shipping",
+      "schedule": "0 9 * * *"
+    }
   ]
 }

@@ -1,32 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
+
 import {
-  concluirEvento,
-  consultarPagamentoMercadoPago,
   processarPayloadWebhook,
-  tentarRegistrarEvento,
   validarAssinaturaWebhookMercadoPago,
+  type MercadoPagoWebhookPayload,
 } from '@/lib/payments'
-import type { MercadoPagoWebhookPayload } from '@/lib/payments'
+import { conciliarPagamento } from '@/server/payments/conciliacao'
+import { repositorioIdempotencia } from '@/server/payments/repositorios'
 
 /**
- * Webhook Receptor do Mercado Pago.
+ * Webhook receptor do Mercado Pago.
  *
- * FLUXO DE SEGURANÇA E IDEMPOTÊNCIA (RA-01, RA-07, RA-14):
- *  1. Recebe notificação HTTP POST do Mercado Pago.
- *  2. Extrai identificador: se não possuir ID (payload vazio ou anômalo), devolve 400.
- *  3. Valida a assinatura criptográfica (`x-signature` + `x-request-id`) com HMAC-SHA256.
- *     Rejeita com 401 se for inválida em qualquer ambiente.
- *  4. Confere a chave de idempotência: se o evento já foi recebido/processado,
- *     retorna HTTP 200 imediatamente descartando o processamento duplicado.
- *  5. Registra o evento e retorna HTTP 200 imediato ao gateway.
- *  6. Executa a conciliação da transação.
+ * A ORDEM DOS PASSOS É A SEGURANÇA (RA-01, RA-07, RA-14)
+ * ------------------------------------------------------
+ *  1. Extrai o identificador. Payload sem id nenhum é recusado com 400: um
+ *     evento que não se identifica não pode ser desduplicado, e aceitá-lo
+ *     furaria a idempotência a cada reenvio.
+ *  2. Confere a assinatura HMAC-SHA256 em QUALQUER ambiente. Inválida, 401.
+ *  3. Reivindica o evento. Quem não ganha a reivindicação recebe 200 com
+ *     `already_processed` — o gateway precisa do 200 para parar de reenviar,
+ *     mas nada é reprocessado.
+ *  4. **Responde 200 e só então concilia**, dentro de `after()`. O Mercado Pago
+ *     espera pouco pela resposta; consultar a API dele e gravar no banco antes
+ *     de responder transformaria toda cobrança lenta num reenvio garantido.
+ *
+ * O crédito em si mora em `src/server/payments/conciliacao.ts` — esta rota
+ * decide *se* processa, não *como*.
  */
+/**
+ * Agenda a conciliação para depois da resposta, sem deixar que a falta do
+ * contexto derrube a requisição.
+ *
+ * `after()` só existe dentro do escopo de uma requisição do Next; fora dele
+ * (numa suíte de testes, por exemplo) ele LANÇA. Sem esta proteção, a exceção
+ * subiria até o catch da rota e o gateway receberia 500 — que é o pior desfecho
+ * possível, porque 500 é justamente o que faz o Mercado Pago reenviar.
+ *
+ * No fallback a tarefa roda solta, sem `await`: a resposta sai na mesma hora, e
+ * a tarefa já trata os próprios erros.
+ */
+function agendarDepoisDaResposta(tarefa: () => Promise<void>): void {
+  try {
+    after(tarefa)
+  } catch {
+    void tarefa()
+  }
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const xSignature = req.headers.get('x-signature')
     const xRequestId = req.headers.get('x-request-id')
 
-    // Suporta payload via JSON ou query string (padrão v1/v2 do Mercado Pago)
+    // O Mercado Pago entrega tanto JSON (v2) quanto query string (v1). Aceitar
+    // os dois evita perder notificação de configuração antiga do painel.
     let payload: MercadoPagoWebhookPayload = {}
     try {
       payload = (await req.json()) as MercadoPagoWebhookPayload
@@ -35,26 +62,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       payload = {
         id: searchParams.get('id') || searchParams.get('data.id') || undefined,
         type: searchParams.get('type') || searchParams.get('topic') || undefined,
-        data: {
-          id: searchParams.get('data.id') || searchParams.get('id') || undefined,
-        },
+        data: { id: searchParams.get('data.id') || searchParams.get('id') || undefined },
       }
     }
 
     const { eventoId, paymentId, tipo, action } = processarPayloadWebhook(payload)
 
-    // 1. Rejeita payloads sem identificador de evento (Item 2.3)
     if (!eventoId) {
-      console.warn('[Webhook MercadoPago] Requisição de webhook sem identificador de evento.')
-      return NextResponse.json(
-        { ok: false, error: 'Identificador do evento ausente' },
-        { status: 400 },
-      )
+      console.warn('[Webhook MercadoPago] Requisição sem identificador de evento.')
+      return NextResponse.json({ ok: false, error: 'Identificador do evento ausente' }, { status: 400 })
     }
 
     const dataId = paymentId || eventoId
-
-    // 2. Validação Criptográfica de Assinatura (Item 2.4)
     const assinaturaValida = validarAssinaturaWebhookMercadoPago({
       xSignatureHeader: xSignature,
       xRequestIdHeader: xRequestId,
@@ -62,64 +81,47 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     })
 
     if (!assinaturaValida) {
-      console.warn(`[Webhook MercadoPago] Assinatura inválida para evento: ${eventoId}`)
-      return NextResponse.json(
-        { ok: false, error: 'Assinatura de webhook inválida' },
-        { status: 401 },
-      )
+      console.warn(`[Webhook MercadoPago] Assinatura inválida para o evento ${eventoId}.`)
+      return NextResponse.json({ ok: false, error: 'Assinatura de webhook inválida' }, { status: 401 })
     }
 
-    // 3. Controle de Idempotência (RA-07 / RA-14.a)
-    const { podeProcessar, registro } = await tentarRegistrarEvento(eventoId, tipo)
+    const idempotencia = repositorioIdempotencia()
+    const { podeProcessar, registro } = await idempotencia.reivindicar(eventoId, tipo, paymentId)
 
     if (!podeProcessar) {
-      // Evento repetido é aceito com 200 para liberar o gateway, mas NÃO reprocessa
       return NextResponse.json(
-        {
-          ok: true,
-          status: 'already_processed',
-          eventoId,
-          statusOriginal: registro?.status,
-        },
+        { ok: true, status: 'already_processed', eventoId, statusOriginal: registro?.status },
         { status: 200 },
       )
     }
 
-    // 4. Processamento do Pagamento
     if (paymentId) {
-      try {
-        const detalhes = await consultarPagamentoMercadoPago(paymentId)
-        // Registra a conclusão do evento para assegurar idempotência
-        await concluirEvento(eventoId, {
-          paymentId,
-          status: detalhes.status,
-          valorCents: detalhes.valorCents,
-          externalReference: detalhes.externalReference,
-          action,
-        })
-      } catch (err) {
-        console.error(`[Webhook MercadoPago] Erro ao consultar transação ${paymentId}:`, err)
-        await concluirEvento(eventoId, { paymentId, status: 'error' })
-      }
+      // Depois da resposta. Uma exceção aqui não vira 500 para o gateway — ela
+      // libera o evento para a próxima retentativa, que é o comportamento certo
+      // quando a falha é de rede ou do gateway.
+      agendarDepoisDaResposta(async () => {
+        try {
+          const r = await conciliarPagamento(paymentId)
+          await idempotencia.concluir(eventoId, { paymentId, action, ...r })
+          if (r.creditado) {
+            console.info(`[Webhook MercadoPago] ${r.externalReference}: crédito aplicado.`)
+          } else {
+            console.info(`[Webhook MercadoPago] ${eventoId}: sem crédito — ${r.motivo}.`)
+          }
+        } catch (err) {
+          console.error(`[Webhook MercadoPago] Falha ao conciliar ${paymentId}:`, err)
+          await idempotencia.falhar(eventoId)
+        }
+      })
     } else {
-      await concluirEvento(eventoId, { tipo, action })
+      // Notificação que não é de pagamento (assinatura, contestação). Fica
+      // registrada como vista, para não voltar, e nada mais acontece.
+      await idempotencia.concluir(eventoId, { tipo, action })
     }
 
-    // 5. Resposta 200 Imediata ao Gateway
-    return NextResponse.json(
-      {
-        ok: true,
-        status: 'received',
-        eventoId,
-        paymentId,
-      },
-      { status: 200 },
-    )
+    return NextResponse.json({ ok: true, status: 'received', eventoId, paymentId }, { status: 200 })
   } catch (error) {
     console.error('[Webhook MercadoPago] Erro no processamento do webhook:', error)
-    return NextResponse.json(
-      { ok: false, error: 'Erro interno ao processar notificação' },
-      { status: 500 },
-    )
+    return NextResponse.json({ ok: false, error: 'Erro interno ao processar notificação' }, { status: 500 })
   }
 }

@@ -49,6 +49,12 @@ export const TABELAS_ESPERADAS = [
   'deposits',
   'custody_charges',
   'seq',
+  // Migration 002 — pagamentos e rastreio (frente C). Sem elas o webhook do
+  // Mercado Pago não tem onde gravar a idempotência, e o depósito credita duas
+  // vezes no primeiro reenvio. Por isso entram na conferência de prontidão.
+  'payment_events',
+  'payment_intents',
+  'rastreios',
 ]
 
 /**
