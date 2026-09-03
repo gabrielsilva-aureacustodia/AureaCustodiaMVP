@@ -11,7 +11,10 @@ docs/
 ├── prompts/                        Mensagens de abertura de cada frente
 ├── EXECUCAO_POS_FRENTES_PARALELAS.md  Auditoria das três branches e o plano do que falta
 ├── EXECUCAO_BRANCH_C_O_QUE_FALTA.md   Frente C em detalhe: correções, integração e tutoriais
-├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md   Frente A: relatório simples do que falta, com mensagem para o agente
+├── EXECUCAO_FINAL_AGENTE_A.md       🅰️ O que falta na frente A — para entregar ao agente dela
+├── EXECUCAO_FINAL_AGENTE_B.md       🅱️ O que falta na frente B: a virada de produção, em ordem
+├── EXECUCAO_FINAL_AGENTE_C.md       🅲 O que falta na frente C depois da C-3
+├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md   Frente A: histórico da auditoria da manhã de 03/09
 ├── EXECUCAO_BRANCH_B_O_QUE_FALTA.md   Frente B (backbone): auditoria arquivo a arquivo e o cutover de produção
 ├── ARQUITETURA_E_PASTAS.md          O mapa do repositório e o contrato entre as pastas
 ├── CATALOGO_DE_FEATURES.md          O que foi pedido, o que existe, o que falta
@@ -69,6 +72,7 @@ Mudam quando o assunto muda, não por rotina.
 | Vai abrir uma frente nova em outro chat | `FRENTES_PARALELAS.md` → `prompts/` |
 | Vai pôr o banco novo em produção | `CUTOVER_BANCO_PRODUCAO.md` |
 | Vai juntar as três frentes de 02/09 | `EXECUCAO_POS_FRENTES_PARALELAS.md` |
+| **Vai tocar uma frente hoje** | `EXECUCAO_FINAL_AGENTE_A.md`, `_B.md` ou `_C.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
 | Quer saber que atalhos a plataforma deve | `../RISCOS_ASSUMIDOS.md` (raiz) |
 | Vai mexer numa pasta específica | O `README.md` da própria pasta |

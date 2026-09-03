@@ -148,3 +148,15 @@ Roteiro completo, com verificação a cada passo, em
 5. Uma semana depois: remover `src/server/store/` (passo 9), junto com
    `STORE_KEY`/`AUREA_STORE_KEY` — prompt em `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`
 6. Trava por livro de ordens em vez de fila única — quando houver volume (ver `ATALHOS.md`)
+
+## Rode a suíte com o `npm run dev` PARADO
+
+Três instâncias de Postgres em WebAssembly convivem mal com o servidor de desenvolvimento na
+mesma máquina: `db.test.ts` sobe duas e `payments.test.ts` sobe uma, e com o `next dev`
+ocupando memória um dos workers do Vitest morre com *"Worker exited unexpectedly"*.
+
+O sintoma é traiçoeiro: **a suíte reporta verde com testes que nunca rodaram** — some de
+"16 passed / 117 tests" para "14 passed / 93 tests", e o resumo continua sem falha vermelha.
+Sempre confira o número de arquivos e de testes, não só a ausência de erro.
+
+Com o servidor parado, a suíte é determinística.
