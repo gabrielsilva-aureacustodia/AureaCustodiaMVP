@@ -26,6 +26,7 @@
  * realmente protege — dentro da server action.
  */
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
@@ -207,6 +208,13 @@ export function LoginForm(): ReactNode {
         <button className="btn btn-gold" onClick={() => void entrar()} disabled={enviando}>
           Entrar
         </button>
+
+        {/* Caminho para o cadastro SIMULADO (RA-15). Provisório: sai junto com
+            a pasta src/app/criar-conta/ quando a frente A entregar o cadastro
+            real com Supabase Auth. */}
+        <div className="login-sub" style={{ marginTop: 16, marginBottom: 0 }}>
+          Não tem conta? <Link href="/criar-conta">Criar conta de demonstração</Link>
+        </div>
 
         <div className="env-tag">Ambiente de teste · Pré-MVP · Dados fictícios</div>
       </div>

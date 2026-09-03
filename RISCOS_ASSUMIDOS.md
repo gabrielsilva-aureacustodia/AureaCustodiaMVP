@@ -45,6 +45,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-12** | Senha do banco Supabase trafegou por chat **e foi commitada em documento** | 🔴 | `docs/` |
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
 | **RA-14** | Atalhos da frente C (Mercado Pago e Correios) | 🟠 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
+| **RA-15** | Cadastro simulado e entrada sem senha, para demonstração local | 🔴 | `src/app/criar-conta/`, `src/app/entrar-demo/`, `src/server/actions/signup.ts` |
 
 ---
 
@@ -440,6 +441,44 @@ Registrado na mesma estrutura dos atalhos das frentes A e B para manter conformi
   imediato, aguardando o `after()` ou fila na sessão C-3 para mover saldo em definitivo.
 
 ---
+# RA-15 — Cadastro simulado e entrada sem senha, para demonstração local 🔴
+
+```
+Criado em: 03/09/2026, a pedido do Gabriel, para poder abrir a plataforma na hora
+Dono:      Gabriel
+Pasta:     src/app/criar-conta/ · src/app/entrar-demo/ · src/server/actions/signup.ts
+Some em:   no merge da frente A (feat/auth-landing), que traz o cadastro real
+```
+
+A frente A ainda não entrou, e sem ela não havia como criar conta nem entrar sem digitar
+uma credencial do seed. Para destravar a demonstração local, três peças provisórias foram
+acrescentadas.
+
+| | Atalho | Grau | Como se paga |
+|---|---|---|---|
+| **a** | **`/criar-conta` cria conta sem verificar e-mail e sem aceite de termos.** A conta nasce com R$ 5.000,00 e 6 moedas fictícias | 🟠 | `git rm -r src/app/criar-conta src/server/actions/signup.ts src/components/login/SignupForm.tsx` no merge da frente A, que traz `/cadastrar` com Supabase Auth, confirmação por e-mail e aceite versionado |
+| **b** | **`/entrar-demo` entra na conta de qualquer e-mail do seed SEM SENHA** | 🔴 | `git rm -r src/app/entrar-demo` no mesmo merge |
+| **c** | **A senha do cadastro simulado é gravada em texto puro**, como o resto do MVP | 🔴 | É o RA-02, que a frente A paga com o Supabase Auth |
+
+## Por que o (b) é vermelho mesmo com duas travas
+
+`/entrar-demo` responde 404 quando `NODE_ENV === 'production'` **e** quando o host não é
+`localhost`/`127.0.0.1`. As duas travas juntas o tornam inalcançável em qualquer deploy da
+Vercel, inclusive nos previews, que também compilam como produção.
+
+Ainda assim o grau é vermelho, porque o que está escrito no repositório é um login sem
+senha, e o repositório é público (RA-11). Uma edição distraída em qualquer uma das duas
+condições vira acesso à conta de um sócio por URL. **Não relaxar as travas, não remover a
+checagem de host, e apagar a pasta assim que a frente A entrar.**
+
+## Consequência hoje
+
+Nenhuma além do risco de código acima: o ambiente é local, em memória, com sete contas de
+teste e dinheiro simulado. **A frente A já está em andamento** e é o que encerra este
+registro inteiro.
+
+---
+
 
 ## Onde cada atalho está anotado na própria pasta
 

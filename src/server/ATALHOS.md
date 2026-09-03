@@ -45,3 +45,16 @@ subir um container, semear e exercitar as ações ponta a ponta.
   reinício do `next dev` deslogaria quem estivesse testando. Em produção a ausência de
   `SESSION_SECRET` **derruba a requisição**, não degrada.
 - **`garantirFormato()` descartar ordens sem `tipoMoeda`** é proteção, não dívida.
+
+---
+
+## RA-15 🔴 — `actions/signup.ts`, o cadastro simulado (03/09/2026)
+
+Cria conta com dados fictícios e abre a sessão, sem verificação de e-mail e sem aceite de
+termos. A senha é gravada em texto puro, como no resto do MVP (RA-02).
+
+É arquivo NOVO em vez de um trecho dentro de `actions/auth.ts` porque a frente A reescreveu
+`auth.ts` inteiro: separado, ele some com um `git rm` no dia do merge, sem conflito.
+
+**Como se paga:** apagar o arquivo junto com `src/app/criar-conta/` e `src/app/entrar-demo/`
+quando a frente A entrar. Ver RA-15 em `RISCOS_ASSUMIDOS.md`.

@@ -49,3 +49,25 @@ filtrar as de uma conta. Cresce com o histórico global, não com o do usuário.
   requisição.
 - **O título vir do pathname** (na Topbar) é decisão de arquitetura, e está explicada no
   README da pasta.
+
+---
+
+## RA-15 🔴 — cadastro simulado e entrada sem senha (03/09/2026)
+
+**Pastas:** `criar-conta/`, `entrar-demo/`
+
+Duas rotas provisórias, criadas para conseguir abrir a plataforma antes de a frente A
+entregar o login real:
+
+- **`/criar-conta`** cria uma conta com dados fictícios (R$ 5.000,00 e 6 moedas), **sem
+  verificar e-mail e sem aceite de termos**. O cadastro de verdade é `/cadastrar`, da frente
+  A, com Supabase Auth e aceite versionado.
+- **`/entrar-demo`** entra numa conta do seed **sem senha**. Responde 404 fora de
+  `localhost` e em qualquer build de produção — as duas travas juntas, nunca uma só.
+
+O nome `/criar-conta` é diferente de `/cadastrar` de propósito: assim as duas pastas não
+colidem no merge da frente A, e esta some com um `git rm -r` sem tocar naquela.
+
+**Como se paga:** apagar as duas pastas, `src/server/actions/signup.ts` e
+`src/components/login/SignupForm.tsx` no merge da frente A, além do link que a
+`LoginForm.tsx` ganhou para `/criar-conta`. Detalhes em `RISCOS_ASSUMIDOS.md`, RA-15.
