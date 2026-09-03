@@ -27,6 +27,9 @@ Java acontecer.
 | `selectors.ts` | Leituras derivadas: auditoria, séries de gráfico, preferências | |
 | `statement.ts` | O extrato de UMA conta (não confundir com a auditoria pública) | |
 | `seed.ts` | As 7 contas fictícias, o acervo e ~1 mês de negociações | |
+| `hash.ts` | SHA-256 puro e a fórmula **congelada** do hash encadeado do ledger (M4) | ⚠️ |
+| `ledger.ts` | Os lançamentos do livro-razão: derivação, encadeamento, verificação da cadeia (M4) | ⚠️ |
+| `dre.ts` | A DRE sob Lucro Presumido: parâmetros (nulos por padrão), plano de contas, períodos, análise (M7) | ⚠️ |
 
 ### Testes
 
@@ -36,10 +39,23 @@ Java acontecer.
 | `money.test.ts` | `parsePrice` — a divergência autorizada nº 1 do port |
 | `statement.test.ts` | O extrato fecha com o saldo ao centavo |
 | `seed.test.ts` | Invariantes do seed (faixas e propriedades, nunca valores sorteados) |
+| `hash.test.ts` | Vetores oficiais do SHA-256 e conferência contra `node:crypto` |
+| `ledger.test.ts` | Soma do ledger = saldo; adulteração detectada; hash fixado (muda = migration) |
+| `dre.test.ts` | Receita lida do ledger; alíquota ausente zera e declara; aritmética inteira; adicional de IRPJ |
 | `testing/fixtures.ts` | Fábricas de estado usadas pelos testes. **Não é código de produção** |
 
-`npm test` roda os quatro. **São 38 casos e todos precisam passar antes de qualquer
+`npm test` roda todos. **São 52 casos nesta pasta e todos precisam passar antes de qualquer
 commit.**
+
+### `hash.ts`, `ledger.ts` e `dre.ts` — por que são protegidos
+
+- A fórmula do hash (`CAMPOS_DO_LANCAMENTO` em `ledger.ts`, `textoParaHash` em `hash.ts`)
+  está gravada em toda linha de `aurea.ledger_entries`. Mudá-la exige migration de recálculo.
+- `dre.ts` **não tem alíquota nenhuma**, de propósito; os números vêm de
+  `aurea.parametros_contabeis`, preenchida pelo contador. Pôr um percentual aqui é mudar o
+  produto — e criar passivo fiscal.
+- O plano de contas (`PLANO_DE_CONTAS`) é a única fonte da verdade; o banco o recebe por
+  upsert. Conta nova entra aqui, e só aqui.
 
 ## O que quebra se você mexer aqui
 

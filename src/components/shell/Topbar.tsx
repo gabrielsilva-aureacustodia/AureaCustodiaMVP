@@ -122,6 +122,13 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   if (pathname === '/conta') {
     return { h1: 'Minha conta', p: `Olá, ${primeiroNome}` }
   }
+  // Tela nova (M4/M7), sem equivalente no monolito — texto próprio.
+  if (pathname === '/relatorios') {
+    return {
+      h1: 'Relatórios e contabilidade',
+      p: 'DRE, livro-razão, trilha de auditoria e exportação para planilha.',
+    }
+  }
 
   // Rota desconhecida: cai no painel, que é o destino de `go('home')` do
   // original. Melhor um título honesto do que um cabeçalho vazio.

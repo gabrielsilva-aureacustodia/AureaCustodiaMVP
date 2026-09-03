@@ -73,7 +73,7 @@ A funcionalidade de saque está travada aguardando definições societárias reg
 1. **Credenciais no Painel do Mercado Pago (para testes em Sandbox)**:
    - Obter `MP_ACCESS_TOKEN_TEST` e `MP_WEBHOOK_SECRET` em *Suas integrações → Aplicação*.
    - Configurar a URL de Webhook no painel do MP: `https://<url-preview>.vercel.app/api/webhooks/mercadopago`.
-2. **Parecer Jurídico ([RA-01](file:///c:/dev/AureaCustodiaMVP/RISCOS_ASSUMIDOS.md#ra-01))**:
+2. **Parecer Jurídico ([RA-01](../RISCOS_ASSUMIDOS.md#ra-01))**:
    - Manter a operação em Sandbox (`MP_SANDBOX=true`) até a obtenção de parecer jurídico sobre arranjo de pagamento / conta de pagamento junto ao Banco Central.
 3. **Sequência de Merges**:
    - 1º: Merge da **Frente B** no `main`.

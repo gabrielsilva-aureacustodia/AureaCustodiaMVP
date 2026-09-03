@@ -37,6 +37,7 @@ import type { ReactNode } from 'react'
 
 import { LOGO_AUREA } from '@/domain/constants'
 import { logout } from '@/server/actions/auth'
+import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
 
 /* ------------------------------------------------------------------------- */
@@ -210,11 +211,28 @@ const NAV: NavLink[] = [
   },
 ]
 
+/**
+ * O oitavo item, só para administradores (M4/M7). Fora do array NAV porque a
+ * lista dos sete é o port fiel do monolito, e este é acréscimo: ledger, DRE,
+ * auditoria e exportação da EMPRESA, não da conta.
+ */
+const NAV_ADMIN: NavLink = {
+  href: '/relatorios',
+  label: 'Relatórios',
+  icon: (
+    <>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </>
+  ),
+}
+
 export function Sidebar(): ReactNode {
   const { open, setOpen } = useSidebar()
   const { dark, toggle } = useTheme()
+  const { admin } = useApp()
   const pathname = usePathname()
   const sair = useLogout()
+  const itens = admin ? [...NAV, NAV_ADMIN] : NAV
 
   return (
     <>
@@ -239,7 +257,7 @@ export function Sidebar(): ReactNode {
           </div>
         </div>
 
-        {NAV.map((item) => (
+        {itens.map((item) => (
           <Link
             key={item.href}
             href={item.href}

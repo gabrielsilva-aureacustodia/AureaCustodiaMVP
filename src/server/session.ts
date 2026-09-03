@@ -98,21 +98,25 @@ function signatureMatches(received: string, expected: string): boolean {
  * cookie de um segredo antigo é situação normal depois de uma rotação.
  */
 export async function getSessionEmail(): Promise<string | null> {
-  const jar = await cookies()
-  const raw = jar.get(COOKIE_NAME)?.value
-  if (!raw) return null
+  try {
+    const jar = await cookies()
+    const raw = jar.get(COOKIE_NAME)?.value
+    if (!raw) return null
 
-  // O payload é base64url e nunca contém ponto, então o último ponto separa
-  // com segurança o valor da assinatura.
-  const cut = raw.lastIndexOf('.')
-  if (cut <= 0) return null
+    // O payload é base64url e nunca contém ponto, então o último ponto separa
+    // com segurança o valor da assinatura.
+    const cut = raw.lastIndexOf('.')
+    if (cut <= 0) return null
 
-  const payload = raw.slice(0, cut)
-  const signature = raw.slice(cut + 1)
-  if (!signatureMatches(signature, sign(payload))) return null
+    const payload = raw.slice(0, cut)
+    const signature = raw.slice(cut + 1)
+    if (!signatureMatches(signature, sign(payload))) return null
 
-  const email = Buffer.from(payload, 'base64url').toString('utf8')
-  return email.length > 0 ? email : null
+    const email = Buffer.from(payload, 'base64url').toString('utf8')
+    return email.length > 0 ? email : null
+  } catch {
+    return null
+  }
 }
 
 /**

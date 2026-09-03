@@ -21,12 +21,17 @@ app/
 │   ├── graficos/             2.0 Mercado e auditoria
 │   │   ├── auditoria/          2.2 Auditoria de estoque
 │   │   └── comparacoes/        2.3 Comparação com BTC/ETH/USDT
-│   └── conta/                3.0 Minha conta
-│       ├── configuracoes/      3.2 Configurações e segurança
-│       └── extrato/            3.3 Extrato da conta
+│   ├── conta/                3.0 Minha conta
+│   │   ├── configuracoes/      3.2 Configurações e segurança
+│   │   └── extrato/            3.3 Extrato da conta
+│   └── relatorios/           4.0 Relatórios e contabilidade — SÓ administradores (M4/M7)
 └── api/
     ├── state/                GET do estado — o polling de 10s
-    └── crypto/               Cotações BTC/ETH/USDT (CoinGecko, cache de 1h)
+    ├── crypto/               Cotações BTC/ETH/USDT (CoinGecko, cache de 1h)
+    ├── rastreios/            O rastreio gravado pelo cron (frente C)
+    ├── cron/shipping/        O job diário dos Correios (frente C)
+    ├── webhooks/mercadopago/ O webhook do gateway (frente C)
+    └── relatorios/           Os relatórios financeiros por URL: JSON, CSV, XLSX e push ao Sheets. Ver README próprio
 ```
 
 ## O grupo `(app)`
@@ -65,6 +70,14 @@ monta o par título/subtítulo é `components/shell/Topbar.tsx`, **derivando-o d
 |---|---|---|
 | `api/state` | Devolve o estado para o polling de 10s | `cache: 'no-store'` no cliente, `no-store` no servidor e `force-dynamic` na rota — **os três precisam concordar**, senão o CDN congela a resposta e a sincronização entre contas some |
 | `api/crypto` | Série de cotações, revalidada a cada hora | Tem fallback simulado quando a CoinGecko falha |
+| `api/relatorios/*` | DRE, ledger, auditoria e os demais relatórios da empresa, em JSON/CSV/XLSX; POST `sheets` empurra para o Google Sheets | Sessão de administrador **ou** `AUREA_RELATORIOS_TOKEN`. `no-store` em tudo. Contrato em `docs/API_RELATORIOS.md` |
+
+## A única tela server-side de `(app)`: `/relatorios`
+
+`relatorios/page.tsx` é Server Component de propósito: decide no servidor se a sessão é de
+administrador (`ehAdmin`) e manda quem não é para `/inicio` antes de qualquer HTML sair. O
+conteúdo é o Client Component `components/relatorios/RelatoriosPainel`, que busca os dados
+em `/api/relatorios/*` — o ledger não está no `AppState`.
 
 ## O que quebra se você mexer aqui
 

@@ -18,7 +18,26 @@ import type { AppState } from '@/domain/types'
 
 import { bancoConfigurado, executarNoBanco } from './db/client'
 import { lerEstado, mutarEstado } from './db/estado'
+import { getSessionEmail } from './session'
 import { getStore } from './store'
+
+/**
+ * Quem está por trás desta mutação, para a trilha de auditoria (M4).
+ *
+ * Lido do cookie de sessão quando existe um — Server Actions e Route Handlers
+ * têm escopo de requisição. Fora dele (`after()` do webhook, cron, teste),
+ * `cookies()` LANÇA; o catch traduz isso em 'sistema' em vez de derrubar a
+ * mutação. É deliberadamente aqui, e não nas Server Actions: a assinatura de
+ * `mutateState(fn)` está congelada pelo contrato das frentes, e nenhuma ação
+ * precisa saber que a auditoria existe.
+ */
+async function atorDaRequisicao(): Promise<string> {
+  try {
+    return (await getSessionEmail()) ?? 'sistema'
+  } catch {
+    return 'sistema'
+  }
+}
 
 /**
  * DOIS MOTORES, UMA FACHADA — o contrato das frentes paralelas
@@ -123,7 +142,7 @@ export async function getState(): Promise<AppState> {
 export async function mutateState<T>(
   fn: (state: AppState) => T | Promise<T>,
 ): Promise<{ state: AppState; result: T }> {
-  if (bancoConfigurado()) return mutarEstado(executarNoBanco, fn)
+  if (bancoConfigurado()) return mutarEstado(executarNoBanco, fn, { ator: await atorDaRequisicao() })
 
   const store = getStore()
 

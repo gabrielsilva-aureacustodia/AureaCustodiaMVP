@@ -29,10 +29,13 @@ sempre, e os 38 testes do domínio continuam valendo sem uma linha alterada.
 | `estado.ts` | `lerEstado` / `mutarEstado` — o ciclo carregar → mutar → gravar o diff | — |
 | `diff.ts` | **Puro.** Compara dois `AppState` e devolve a lista de operações, na ordem das chaves estrangeiras | — |
 | `migrar.ts` | Aplica `migrations/*.sql` (a versão que os testes usam) | — |
+| `derivar.ts` | **Puro.** Deriva do diff os lançamentos do ledger e a linha de auditoria (M4) | — |
 | `migrations/001_inicial.sql` | O schema: 10 tabelas no schema `aurea`, RLS em todas | — |
+| `migrations/002_pagamentos_rastreio.sql` | Pagamentos e rastreio (frente C): 3 tabelas | — |
+| `migrations/003_ledger_dre_auditoria.sql` | Ledger, trilha de auditoria e base contábil da DRE (M4/M7): 6 tabelas | — |
 | `repositories/` | Uma tabela (ou par) por arquivo: SQL de leitura e escrita. Ver [README](repositories/README.md) | — |
 | `diff.test.ts` | 16 testes do planejador, sem banco | — |
-| `db.test.ts` | 15 testes de integração contra um **Postgres real embutido** (PGlite), incluindo o diagnóstico do `db:check` | — |
+| `db.test.ts` | 21 testes de integração contra um **Postgres real embutido** (PGlite), incluindo ledger, auditoria, catálogos contábeis e o diagnóstico do `db:check` | — |
 | `ATALHOS.md` | O que esta pasta deve ao próprio rigor | — |
 
 Só `client.ts` tem `import 'server-only'`, e é o único que lê `process.env.POSTGRES_URL`.
@@ -50,8 +53,16 @@ mutateState(fn)                                  src/server/state.ts
           3. state = structuredClone(antes); result = fn(state)
           4. planejarDiff(antes, state)          diff.ts  → lista de operações
           5. executa cada operação               repositories/*
+          6. derivarLancamentos + resumirParaAuditoria   derivar.ts (M4)
+             → INSERT em ledger_entries (hash encadeado) e em audit_log
           COMMIT
 ```
+
+**O ledger vai na mesma transação.** Não existe saldo alterado sem lançamento: ou os dois
+commitam, ou nenhum. O que mudar de saldo sem negociação, depósito ou conta nova vira um
+lançamento `ajuste` visível — nunca some. O `ultimoHash` é lido atrás da mesma trava, então
+duas mutações concorrentes nunca encadeiam a partir do mesmo hash. Quem fez (`ator`) vem da
+sessão, via `state.ts`, ou é `sistema`.
 
 **A trava vem antes da leitura.** Quem chega segundo espera o commit do primeiro e lê o
 estado já gravado. É o que faz duas compras simultâneas da mesma oferta virarem uma compra
@@ -72,6 +83,11 @@ das escritas.
   converte, e é o único lugar onde isso acontece.
 - **`trades` e `deposits` são append-only.** Não há `UPDATE`/`DELETE` nos repositórios e o
   planejador recusa lista que encolheu.
+- **`ledger_entries`, `audit_log` e `exportacoes` também.** Corrige-se com lançamento inverso.
+  Editar uma linha por fora quebra a cadeia de hashes, e `verificarCadeia` acusa.
+- **Os catálogos contábeis (plano de contas, chaves de alíquota) vêm do domínio**
+  (`src/domain/dre.ts`) e são upsertados por `garantirCatalogos`; a migration só cria as
+  tabelas. As alíquotas nascem nulas e só o contador as preenche.
 - **`fee` em `trades`** é a comissão congelada na gravação (RA-06). O extrato ainda recalcula —
   ligar os dois é decisão dos sócios (CD-09).
 - **Toda leitura devolve um `AppState` idêntico ao do blob** — mesmas chaves, mesma ordem dos
@@ -120,8 +136,10 @@ serve dentro de um `&&`. O roteiro completo da virada para produção está em
 
 ## Quem depende desta pasta
 
-Só `src/server/state.ts`. **Nenhum outro arquivo importa daqui**, e é assim que deve
-continuar: o resto da aplicação fala com `getState()`/`mutateState()`.
+`src/server/state.ts` (o motor do `AppState`), `src/server/payments/repositorios.ts` (frente
+C, tabelas da 002) e `src/server/relatorios/` + `src/server/actions/contabil.ts` (as tabelas
+da 003, que não entram no `AppState`). Fora isso, nada: o resto da aplicação fala com
+`getState()`/`mutateState()`.
 
 ## Conexões com as outras pastas
 

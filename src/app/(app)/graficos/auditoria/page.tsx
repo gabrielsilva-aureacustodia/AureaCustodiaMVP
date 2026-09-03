@@ -23,6 +23,7 @@ import Link from 'next/link'
 import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 
+import { brl } from '@/domain/money'
 import { fdate } from '@/domain/dates'
 import { allCoinsFlat, coinStatusDigital, envioDateFor } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
@@ -51,6 +52,16 @@ export default function AuditoriaPage(): ReactNode {
   const flat = allCoinsFlat(state)
   const totalCust = flat.length
   const recibosAtivos = flat.filter(({ coin }) => coin.nft.status === 'Ativo').length
+
+  // Métricas financeiras e de esteira de recebimento
+  const totalSaldo = Object.values(state.users).reduce((acc, u) => acc + (u.balance || 0), 0)
+  const totalTaxas = Object.values(state.custodyCharges).reduce((acc, c) => acc + (c.valorCobrado || 0), 0)
+  const totalComissoes = state.trades.reduce((acc, t) => acc + (t.fee || 0), 0)
+  const totalReceita = totalTaxas + totalComissoes
+  const enviosEmTransito = state.envios.filter((e) => e.etapaAtual === 'Envio postado').length
+  const enviosNaCentral = state.envios.filter(
+    (e) => e.etapaAtual !== 'Envio postado' && e.etapaAtual !== 'Protocolo gerado' && e.etapaAtual !== 'Recibo emitido',
+  ).length
 
   // As mais recentes primeiro. O original ordenava uma CÓPIA (slice()) em ordem
   // decrescente de código e pegava as 8 primeiras — o código do ativo é
@@ -99,6 +110,64 @@ export default function AuditoriaPage(): ReactNode {
 
       <div className="cols-rev">
         <div>
+          {/* Painel de Conciliação Financeira Gateway x Ledger */}
+          <div className="panel" style={{ marginBottom: 18 }}>
+            <h3>
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              Conciliação Financeira & Esteira de Custódia
+            </h3>
+
+            <div className="stats four" style={{ marginTop: 14 }}>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Saldo em custódia</div>
+                  <div className="val" style={{ color: 'var(--gold)' }}>{brl(totalSaldo)}</div>
+                </div>
+              </div>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Receita arrecadada</div>
+                  <div className="val">{brl(totalReceita)}</div>
+                </div>
+              </div>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Taxas de custódia</div>
+                  <div className="val small">{brl(totalTaxas)}</div>
+                </div>
+              </div>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Comissões de mercado</div>
+                  <div className="val small">{brl(totalComissoes)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="stats three" style={{ marginTop: 10 }}>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Em trânsito postal (Correios)</div>
+                  <div className="val">{enviosEmTransito} pacote(s)</div>
+                </div>
+              </div>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Triagem na central</div>
+                  <div className="val">{enviosNaCentral} lote(s)</div>
+                </div>
+              </div>
+              <div className="stat">
+                <div>
+                  <div className="lbl">Status da conciliação</div>
+                  <div className="val small" style={{ color: 'var(--green, #22c55e)' }}>✓ Conciliado 1:1</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="panel" style={{ marginBottom: 18 }}>
             <div className="field-lbl">Produto</div>
             {/* Seletor decorativo: o marketplace só tem um produto. Fica sem

@@ -19,6 +19,7 @@ import {
   devolverIntencaoParaPendente,
   falharEventoNoBanco,
   inserirIntencao,
+  listarTodasIntencoes,
   recusarIntencao,
   reivindicarEvento,
   reivindicarIntencao,
@@ -172,6 +173,7 @@ export function repositorioIdempotencia(): RepositorioIdempotenciaServidor {
 export interface RepositorioIntencoes {
   criar(intencao: IntencaoDeposito): Promise<void>
   buscar(externalReference: string): Promise<IntencaoDeposito | null>
+  listar(): Promise<IntencaoDeposito[]>
   anotarPagamento(externalReference: string, paymentId: string): Promise<void>
   /** Devolve a intenção SÓ para o primeiro que a reivindicar. */
   reivindicar(externalReference: string): Promise<IntencaoDeposito | null>
@@ -183,6 +185,7 @@ export interface RepositorioIntencoes {
 const postgresIntencoes: RepositorioIntencoes = {
   criar: (i) => executarNoBanco((tx) => inserirIntencao(tx, i)),
   buscar: (ref) => executarNoBanco((tx) => buscarIntencao(tx, ref)),
+  listar: () => executarNoBanco((tx) => listarTodasIntencoes(tx)),
   anotarPagamento: (ref, paymentId) =>
     executarNoBanco((tx) => anotarPagamentoNaIntencao(tx, ref, paymentId, Date.now())),
   reivindicar: (ref) => executarNoBanco((tx) => reivindicarIntencao(tx, ref, Date.now())),
@@ -203,6 +206,10 @@ class MemoriaIntencoes implements RepositorioIntencoes {
   async buscar(ref: string): Promise<IntencaoDeposito | null> {
     const i = this.mapa.get(ref)
     return i ? { ...i } : null
+  }
+
+  async listar(): Promise<IntencaoDeposito[]> {
+    return Array.from(this.mapa.values()).map((i) => ({ ...i }))
   }
 
   async anotarPagamento(ref: string, paymentId: string): Promise<void> {

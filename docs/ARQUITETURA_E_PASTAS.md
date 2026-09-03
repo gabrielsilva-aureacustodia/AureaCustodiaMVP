@@ -62,6 +62,10 @@ domain/    ──────> (nada)      não importa de NENHUMA outra pasta d
 | `src/server/` | [README](../src/server/README.md) | Sessão, estado, o ponto único de escrita |
 | `src/server/actions/` | [README](../src/server/actions/README.md) | As Server Actions — **superfície protegida** |
 | `src/server/store/` | [README](../src/server/store/README.md) | Persistência plugável — **superfície protegida** |
+| `src/server/db/` | [README](../src/server/db/README.md) | O estado em tabelas, o ledger e a trilha — **superfície protegida** |
+| `src/server/relatorios/` | [README](../src/server/relatorios/README.md) | DRE, relatórios, exportação e Google Sheets |
+| `src/app/api/relatorios/` | [README](../src/app/api/relatorios/README.md) | A API dos relatórios — contrato em [`API_RELATORIOS.md`](API_RELATORIOS.md) |
+| `src/components/relatorios/` | [README](../src/components/relatorios/README.md) | O painel `/relatorios` |
 | `src/app/` | [README](../src/app/README.md) | Rotas e telas |
 | `src/components/` | [README](../src/components/README.md) | UI, uma subpasta por área |
 | `src/lib/` | [README](../src/lib/README.md) | Integrações externas e exportadores |
@@ -79,6 +83,7 @@ deles, é desenvolvimento normal e não precisa de autorização especial.
 |---|---|
 | `src/domain/constants.ts`, `fees.ts`, `market.ts` | Os números combinados com os sócios e o motor que os aplica |
 | `src/domain/types.ts` | O modelo de dados. Mudança aqui obriga rotação de `AUREA_STORE_KEY` |
+| `src/domain/hash.ts`, `ledger.ts`, `dre.ts` | A fórmula do hash gravada em toda linha do ledger; a DRE sem alíquota em código |
 | Contrato de `src/server/store/types.ts` | O que garante que trocar de banco não muda comportamento |
 | As Server Actions | Todo caminho por onde dinheiro e titularidade se movem |
 

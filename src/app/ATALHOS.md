@@ -42,6 +42,17 @@ filtrar as de uma conta. Cresce com o histórico global, não com o do usuário.
 
 ---
 
+## RA-16.b 🟠 — `api/relatorios/` aceita o token de integração em `?token=` (03/09/2026)
+
+**Pasta:** `api/relatorios/`
+
+Existe porque o `IMPORTDATA` do Google Sheets não manda cabeçalho. O token fica na fórmula
+da célula e no log do servidor, e lê todos os relatórios — inclusive os extratos de todas as
+contas. É só leitura. Sem `AUREA_RELATORIOS_TOKEN`, o caminho está desligado. Ver
+`src/server/relatorios/ATALHOS.md` e RA-16 na raiz.
+
+---
+
 ## O que NÃO é atalho nesta pasta
 
 - **Quase toda tela ser Client Component** é necessidade: elas dependem do estado vivo que

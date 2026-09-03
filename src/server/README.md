@@ -24,8 +24,11 @@ carregaria, e as credenciais ficariam legíveis em "ver código-fonte".
 | `state.ts` | `getState()` e `mutateState()` — **o ponto único de escrita** | |
 | `session.ts` | Cookie `httpOnly` assinado com HMAC-SHA256 | |
 | `actions/` | As Server Actions. Ver [README próprio](actions/README.md) | ⚠️ |
-| `db/` | **O estado em tabelas** (Supabase Postgres, schema `aurea`). Ativo com `POSTGRES_URL`. Ver [README próprio](db/README.md) | ⚠️ |
+| `db/` | **O estado em tabelas** (Supabase Postgres, schema `aurea`) — e, desde o M4, o ledger e a trilha de auditoria gravados na mesma transação. Ativo com `POSTGRES_URL`. Ver [README próprio](db/README.md) | ⚠️ |
 | `store/` | O blob JSON antigo — ativo **sem** `POSTGRES_URL` (Redis/memória). Sai no fim do M1. Ver [README próprio](store/README.md) | ⚠️ |
+| `payments/` | Conciliação do Mercado Pago e a escolha banco × memória das tabelas da 002 (frente C). Ver [README próprio](payments/README.md) | |
+| `shipping/` | Rastreio dos Correios gravado pelo cron (frente C). Ver [README próprio](shipping/README.md) | |
+| `relatorios/` | **Os relatórios da empresa** (M4/M7): DRE, ledger, auditoria, exportação CSV/XLSX e Google Sheets. Ver [README próprio](relatorios/README.md) | |
 
 ## `state.ts` — o coração da escrita
 
@@ -44,6 +47,10 @@ const { result } = await mutateState((state) => {
   return { ok: true, message: '...' }
 })
 ```
+
+Com banco, `mutateState` também descobre **quem** está mutando (o e-mail da sessão, ou
+`sistema` fora de requisição) e o passa ao motor, que grava a linha de auditoria e o ledger
+na mesma transação. Nenhuma Server Action precisou mudar para isso.
 
 `garantirFormato()` normaliza documentos gravados por formato anterior: preenche `deposits`
 e **descarta ordens sem `tipoMoeda`**. Sem esse descarte, duas ordens antigas casariam

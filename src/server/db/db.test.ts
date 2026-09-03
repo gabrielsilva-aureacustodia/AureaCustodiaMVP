@@ -31,11 +31,25 @@ import { matchOrders, transferCoin } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import type { Envio } from '@/domain/types'
 
+import { montarDre, periodoAnual } from '@/domain/dre'
+import { GENESIS } from '@/domain/hash'
+import { saldoPorSoma, verificarCadeia } from '@/domain/ledger'
+
 import { diagnosticar } from '../../../scripts/db-check.mjs'
 
 import { normalizarTrade } from './diff'
 import { lerEstado, mutarEstado } from './estado'
 import { aplicarMigrations } from './migrar'
+import { listarAuditoria } from './repositories/auditoria'
+import {
+  carregarParametros,
+  garantirCatalogos,
+  gravarParametro,
+  inserirLancamentoManual,
+  listarContas,
+  listarLancamentosVigentes,
+} from './repositories/contabil'
+import { listarLancamentos, saldosPeloLedger } from './repositories/ledger'
 import { carregarEstado, persistirEstado } from './repositories/state'
 import type { Consulta, Executor } from './sql'
 
@@ -121,6 +135,7 @@ function suite(alvo: Alvo): void {
           // o Postgres recusa truncar uma tabela referenciada se quem a
           // referencia ficar de fora da mesma instrução.
           `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+                    ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.nfts, ${S}.coins, ${S}.users`,
         )
@@ -147,12 +162,19 @@ function suite(alvo: Alvo): void {
         ),
       )
       expect(tabelas.map((t) => t.relname)).toEqual([
+        // Migration 003 — ledger, auditoria e DRE (M4/M7).
+        'audit_log',
         'buy_orders',
         'coins',
+        'contas_contabeis',
         'custody_charges',
         'deposits',
         'envios',
+        'exportacoes',
+        'lancamentos_manuais',
+        'ledger_entries',
         'nfts',
+        'parametros_contabeis',
         // Migration 002 — pagamentos e rastreio (frente C).
         'payment_events',
         'payment_intents',
@@ -453,6 +475,158 @@ function suite(alvo: Alvo): void {
           expect.stringContaining('nenhuma tabela em public'),
         ]),
       )
+    })
+
+    /* ---------- M4: ledger e auditoria ---------- */
+
+    it('a semeadura grava o ledger do histórico: a soma por conta bate com o saldo, e a cadeia confere', async () => {
+      const semeado = await lerEstado(executar)
+      const livro = await executar((tx) => listarLancamentos(tx))
+
+      // 7 aberturas + 3 lançamentos por negociação + 7 cobranças de custódia
+      expect(livro).toHaveLength(7 + semeado.trades.length * 3 + 7)
+      expect(livro.filter((l) => l.tipo === 'saldo_inicial')).toHaveLength(7)
+      expect(livro.filter((l) => l.tipo === 'ajuste')).toEqual([])
+      expect(livro[0].hashAnterior).toBe(GENESIS)
+      expect(verificarCadeia(livro, GENESIS).ok).toBe(true)
+
+      for (const [email, u] of Object.entries(semeado.users)) {
+        expect(saldoPorSoma(livro, email)).toBe(u.balance)
+        // e o saldo resultante da ÚLTIMA linha da conta é o saldo atual
+        const daConta = livro.filter((l) => l.userEmail === email)
+        expect(daConta[daConta.length - 1].saldoApos).toBe(u.balance)
+      }
+      expect(await executar((tx) => saldosPeloLedger(tx))).toEqual(
+        Object.fromEntries(Object.entries(semeado.users).map(([e, u]) => [e, u.balance])),
+      )
+
+      const trilha = await executar((tx) => listarAuditoria(tx))
+      expect(trilha).toHaveLength(1)
+      expect(trilha[0]).toMatchObject({ ator: 'sistema', acao: 'semeadura' })
+      expect(trilha[0].usuariosAfetados).toHaveLength(7)
+    })
+
+    it('negociação e depósito viram lançamentos com a comissão congelada, e a auditoria diz quem fez', async () => {
+      const semeado = await lerEstado(executar)
+      const [vendedor, comprador] = Object.keys(semeado.users)
+      const coinId = semeado.users[vendedor].coins.find((c) => c.tipoMoeda === BANDEIRA)!.id
+      const antes = await executar((tx) => listarLancamentos(tx))
+
+      await mutarEstado(
+        executar,
+        (s) => {
+          const now = Date.now()
+          s.sellOffers.push({ id: 'OF-1', coinId, seller: vendedor, price: 30_000, obs: '', lotId: 'LOT-1', createdAt: now, tipoMoeda: BANDEIRA })
+          s.buyOrders.push({ id: 'BID-1', buyer: comprador, price: 30_000, qty: 1, createdAt: now, tipoMoeda: BANDEIRA })
+          matchOrders(s)
+        },
+        { ator: comprador },
+      )
+      await mutarEstado(
+        executar,
+        (s) => {
+          s.users[comprador].balance += 5_000
+          s.deposits.push({ userEmail: comprador, valor: 5_000, date: Date.now() })
+        },
+        { ator: comprador },
+      )
+
+      const livro = await executar((tx) => listarLancamentos(tx))
+      const novos = livro.slice(antes.length)
+      expect(novos.map((l) => l.tipo)).toEqual(['compra', 'venda', 'comissao', 'deposito'])
+      expect(novos[2]).toMatchObject({ userEmail: vendedor, valor: tradeFee(30_000), sinal: -1, refInterna: 'TRADE-33' })
+      expect(novos[3]).toMatchObject({ userEmail: comprador, valor: 5_000, sinal: 1, refInterna: 'DEP-1' })
+      expect(verificarCadeia(livro, GENESIS).ok).toBe(true)
+
+      const lido = await lerEstado(executar)
+      expect(saldoPorSoma(livro, comprador)).toBe(lido.users[comprador].balance)
+      expect(saldoPorSoma(livro, vendedor)).toBe(lido.users[vendedor].balance)
+
+      const trilha = await executar((tx) => listarAuditoria(tx))
+      expect(trilha.map((t) => t.acao)).toEqual(['deposito', 'negociacao', 'semeadura'])
+      expect(trilha[1]).toMatchObject({ ator: comprador })
+      expect(trilha[1].usuariosAfetados).toEqual([comprador, vendedor].sort())
+      expect(trilha[1].detalhes).toMatchObject({ operacoes: { 'trade.inserir': 1 } })
+    })
+
+    it('saldo alterado sem fato gerador vira um `ajuste` visível, e o livro continua fechando', async () => {
+      const semeado = await lerEstado(executar)
+      const email = Object.keys(semeado.users)[2]
+      await mutarEstado(executar, (s) => {
+        s.users[email].balance += 777 // nenhuma ação real faz isto; é o caso que o ledger precisa denunciar
+      })
+      const livro = await executar((tx) => listarLancamentos(tx, { userEmail: email }))
+      const ultimo = livro[livro.length - 1]
+      expect(ultimo).toMatchObject({ tipo: 'ajuste', valor: 777, sinal: 1 })
+      expect(ultimo.saldoApos).toBe(semeado.users[email].balance + 777)
+      expect(verificarCadeia(await executar((tx) => listarLancamentos(tx)), GENESIS).ok).toBe(true)
+      const trilha = await executar((tx) => listarAuditoria(tx, { limite: 1 }))
+      expect(trilha[0].detalhes).toMatchObject({ ajustes: [{ email, diferenca: 777 }] })
+    })
+
+    it('conta nova ganha saldo_inicial, e uma mutação que não grava nada não deixa rastro', async () => {
+      await lerEstado(executar)
+      const trilhaAntes = await executar((tx) => listarAuditoria(tx))
+      await mutarEstado(executar, (s) => {
+        if (!s.users['ninguem@x.com']) return 'recusado' // nada mudou
+        return 'ok'
+      })
+      expect(await executar((tx) => listarAuditoria(tx))).toHaveLength(trilhaAntes.length)
+
+      await mutarEstado(executar, (s) => {
+        s.users['novo@x.com'] = { name: 'Novo', balance: 500_000, coins: [] }
+      }, { ator: 'novo@x.com' })
+      const livro = await executar((tx) => listarLancamentos(tx, { userEmail: 'novo@x.com' }))
+      expect(livro).toHaveLength(1)
+      expect(livro[0]).toMatchObject({ tipo: 'saldo_inicial', valor: 500_000, sinal: 1, saldoApos: 500_000 })
+      const trilha = await executar((tx) => listarAuditoria(tx, { limite: 1 }))
+      expect(trilha[0]).toMatchObject({ acao: 'conta.criar', ator: 'novo@x.com' })
+    })
+
+    /* ---------- M7: catálogos, lançamentos manuais e a DRE a partir do banco ---------- */
+
+    it('os catálogos contábeis nascem do domínio, os parâmetros nascem nulos e o contador os preenche', async () => {
+      await executar((tx) => garantirCatalogos(tx))
+      const contas = await executar((tx) => listarContas(tx))
+      expect(contas.map((c) => c.codigo)).toContain('3.1.01')
+      expect(contas.find((c) => c.codigo === '3.1.01')?.automatica).toBe(true)
+
+      const vazios = await executar((tx) => carregarParametros(tx))
+      expect(Object.values(vazios).every((v) => v === null)).toBe(true)
+
+      await executar((tx) => gravarParametro(tx, 'issBp', 500, 'contador@x.com', Date.now()))
+      // rodar de novo os catálogos NÃO apaga o que o contador preencheu
+      await executar((tx) => garantirCatalogos(tx))
+      expect((await executar((tx) => carregarParametros(tx))).issBp).toBe(500)
+    })
+
+    it('lançamento manual estornado some da DRE junto com o estorno; a DRE lê a receita do ledger', async () => {
+      const semeado = await lerEstado(executar)
+      await executar((tx) => garantirCatalogos(tx))
+      const ano = new Date().getFullYear()
+      const idErrado = await executar((tx) =>
+        inserirLancamentoManual(tx, { data: Date.now(), contaCodigo: '4.1.03', descricao: 'Aluguel (errado)', valor: 900_000, criadoPor: 'x' }, Date.now()),
+      )
+      await executar((tx) =>
+        inserirLancamentoManual(tx, { data: Date.now(), contaCodigo: '4.1.03', descricao: 'estorno', valor: 900_000, criadoPor: 'x', estornaId: idErrado }, Date.now()),
+      )
+      await executar((tx) =>
+        inserirLancamentoManual(tx, { data: Date.now(), contaCodigo: '4.1.03', descricao: 'Aluguel', valor: 100_000, criadoPor: 'x' }, Date.now()),
+      )
+
+      const vigentes = await executar((tx) => listarLancamentosVigentes(tx))
+      expect(vigentes.map((l) => l.valor)).toEqual([100_000])
+
+      const ledger = await executar((tx) => listarLancamentos(tx))
+      const parametros = await executar((tx) => carregarParametros(tx))
+      const dre = montarDre({ ledger, manuais: vigentes, parametros, periodo: periodoAnual(ano) })
+
+      // a receita de comissões é a soma das comissões congeladas do seed — o dado gravado, não recalculado
+      const esperado = semeado.trades.reduce((s, t) => s + (t.fee ?? 0), 0)
+      expect(dre.totais.receitaComissoes).toBe(esperado)
+      expect(dre.totais.despesasOperacionais).toBe(100_000)
+      expect(dre.analise.numNegociacoes).toBe(semeado.trades.length)
+      expect(dre.pendencias.length).toBeGreaterThan(0) // nenhuma alíquota configurada
     })
 
     it('a lista de moedas é lida na ordem do array, e sellToBid vende as mesmas moedas de antes', async () => {

@@ -135,7 +135,13 @@ para 4.3 — é o esperado na primeira vez.
 cd C:/dev/AureaCustodiaMVP && npm run db:migrate
 ```
 
-Esperado: `+ 001_inicial`, `+ 002_pagamentos_rastreio`, e `✓ nenhuma tabela em public`.
+Esperado: `+ 001_inicial`, `+ 002_pagamentos_rastreio`, `+ 003_ledger_dre_auditoria` e
+`✓ nenhuma tabela em public`.
+
+> **Atualização de 03/09/2026 (madrugada):** a migration **003** (ledger, auditoria e DRE —
+> M4/M7) entrou no `main` e é tão obrigatória quanto a 001: sem ela toda mutação falha ao
+> gravar o lançamento. O `db:check` só aprova com **19** tabelas. O que essa sessão entregou
+> está em `docs/EXECUCAO_AGENTE_B_LEDGER_DRE.md`.
 
 ## 4.4 Provar a fila de escrita com duas conexões reais (🤖, 2 min)
 

@@ -46,6 +46,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
 | **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; restam b e c, que dependem de credencial | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
 | **RA-15** | Cadastro simulado e entrada sem senha, para demonstração local | 🔴 | `src/app/criar-conta/`, `src/app/entrar-demo/`, `src/server/actions/signup.ts` |
+| **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/server/actions/contabil.ts`, `src/app/api/relatorios/` |
 
 ---
 
@@ -497,6 +498,45 @@ registro inteiro.
 ---
 
 
+# RA-16 — Atalhos do ledger, da DRE e dos relatórios (módulos M4 e M7) 🟠
+
+```
+Decidido em: 03/09/2026 · frente B (banco e backend)
+Dono:        Gabriel
+Pastas:      src/server/relatorios/ (ATALHOS.md) · src/server/db/ (ATALHOS.md, RA-16.e–g)
+             src/server/actions/ (ATALHOS.md, RA-16.c) · src/app/ (ATALHOS.md, RA-16.b)
+```
+
+O livro-razão, a trilha de auditoria, a DRE e a camada de relatórios entraram numa sessão,
+sem tocar em nenhuma Server Action existente e sem mudar a assinatura de `mutateState`. Para
+isso, sete atalhos:
+
+| | Atalho | Grau | Como se paga |
+|---|---|---|---|
+| **a** | **Administrador é quem está em `AUREA_ADMIN_EMAILS`**, ou, sem a variável, as 7 contas do seed. Não há papel de usuário no modelo | 🟠 | O M2 (Supabase Auth) traz identidade com papel; `ehAdmin` passa a ler o banco |
+| **b** | **O token de integração viaja na URL** (`?token=`), porque o `IMPORTDATA` do Sheets não manda cabeçalho. Fica visível na fórmula e no log; lê todos os relatórios, inclusive extratos de todas as contas. Só leitura; desligado sem a variável | 🟠 | Rotacionar ao trocar de contador; preferir o push por conta de serviço; ou um token por relatório |
+| **c** | **Rotas de `/api/relatorios` e `actions/contabil.ts` sem teste.** Testados: serialização, JWT, regra pura e a gravação do ledger no PGlite | 🟡 | Parametrizar `dados.ts` pelo `Executor` e testar rotas com sessão/token/recusa |
+| **d** | **O push para o Google Sheets nunca foi executado contra o Google** (sem conta de serviço no ambiente). JWT provado localmente | 🟡 | Passos 1–5 de `docs/INTEGRACAO_GOOGLE_SHEETS.md` e um clique |
+| **e** | **O ledger começa na semeadura**; nada do blob antigo é migrado. `saldo_apos` de linhas do histórico fictício pode ficar negativo no meio | 🟡 | Aceito: a produção recomeça do seed no cutover (RA-08) |
+| **f** | **Custódia entra no ledger com sinal zero** — registrada, não debitada, como o extrato já diz | 🟡 | Decisão de negócio: debitar a custódia do saldo |
+| **g** | **Saldo alterado por caminho desconhecido vira `ajuste`**, com aviso no log, em vez de exceção. O livro sempre fecha; a linha fica visível para alguém explicar | 🟡 | Manter zero: o relatório `analise` mostra a soma; toda ação nova precisa de fato gerador reconhecido em `derivar.ts` |
+
+**O que NÃO é atalho:** nenhuma alíquota em código (é requisito do M7); catálogos contábeis
+upsertados do domínio (uma fonte só); lançamento manual corrigido por estorno (append-only).
+
+**Meio pagos por esta entrega:** RA-05 (o SHA-256 existe e o ledger o usa; o recibo NFT ainda
+usa `genHash()`) e RA-06 (o ledger e a DRE leem a comissão gravada; o extrato da conta ainda
+recalcula — CD-09).
+
+**Consequência hoje:** nenhuma para os sete sócios. **Com cliente real:** (a) e (b) viram
+controle de acesso de verdade; (f) vira receita não cobrada.
+
+> **Para o Rogério:** a plataforma ganhou um livro-caixa que ninguém edita sem deixar marca,
+> e uma DRE que nasce dele. O que falta é de cadastro — quem pode ver, e a planilha do
+> contador — e uma decisão: se a taxa de custódia passa a ser descontada do saldo.
+
+---
+
 ## Onde cada atalho está anotado na própria pasta
 
 | Pasta | Arquivo com a nota |
@@ -506,6 +546,7 @@ registro inteiro.
 | `src/server/actions/` | [`ATALHOS.md`](src/server/actions/ATALHOS.md) |
 | `src/server/store/` | [`ATALHOS.md`](src/server/store/ATALHOS.md) |
 | `src/server/db/` | [`ATALHOS.md`](src/server/db/ATALHOS.md) |
+| `src/server/relatorios/` | [`ATALHOS.md`](src/server/relatorios/ATALHOS.md) |
 | `src/components/` | [`ATALHOS.md`](src/components/ATALHOS.md) |
 | `src/app/` | [`ATALHOS.md`](src/app/ATALHOS.md) |
 | `src/lib/payments/` | [`ATALHOS.md`](src/lib/payments/ATALHOS.md) |

@@ -33,6 +33,9 @@ O retorno é sempre `ActionResult`: `{ ok, message?, error?, data? }`. Sucesso m
 | `market.ts` | `buyLot`, `publishBid`, `cancelBid`, `editBid` | **Dinheiro e moedas** — lado da compra |
 | `sell.ts` | `publishOffer`, `cancelLot`, `editLot`, `sellToBid` | **Dinheiro e moedas** — lado da venda |
 | `custody.ts` | `createProtocol`, `markPosted`, `advanceAnalysis` | Cria moedas e emite recibos |
+| `payments.ts` | `iniciarDeposito` | Grava a intenção e abre a cobrança no gateway (frente C) |
+| `signup.ts` | `criarContaSimulada` | Conta de demonstração (RA-15, provisória) |
+| `contabil.ts` | `registrarLancamentoManual`, `estornarLancamentoManual`, `definirParametroContabil`, `sincronizarGoogleSheets`, `verificarIntegridadeLedger` | **A base contábil** (M4/M7). Só administradores; não passa por `mutateState` — escreve nas tabelas da 003 e na trilha |
 
 ## As travas que não podem cair
 
@@ -65,6 +68,7 @@ TypeScript aponta. O que ele **não** aponta:
 | `market.ts` | `app/(app)/mercado/page.tsx` |
 | `sell.ts` | `app/(app)/vender/page.tsx` |
 | `custody.ts` | `app/(app)/envios/page.tsx` |
+| `contabil.ts` | `components/relatorios/RelatoriosPainel.tsx` |
 
 ## Antes de editar
 

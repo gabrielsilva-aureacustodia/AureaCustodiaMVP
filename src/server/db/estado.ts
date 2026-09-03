@@ -21,12 +21,18 @@
  *  - Mudou: a semeadura. O blob semeava quando `get` devolvia null; aqui, quando
  *    a tabela de usuários está vazia. O gatilho é diferente, o efeito é o mesmo:
  *    banco recém-migrado sobe com as 7 contas na primeira requisição.
+ *  - Mudou (M4, 03/09/2026): a MESMA transação grava o ledger e a trilha de
+ *    auditoria, derivados do diff (ver derivar.ts). Não existe saldo alterado
+ *    sem lançamento: ou os dois commitam, ou nenhum.
  */
 
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
+import { derivarLancamentos, resumirParaAuditoria } from './derivar'
 import { normalizarTrade } from './diff'
+import { registrarAuditoria } from './repositories/auditoria'
+import { inserirLancamentos, ultimoHash } from './repositories/ledger'
 import { carregarEstado, estaVazio, persistirEstado } from './repositories/state'
 import type { Executor } from './sql'
 
@@ -39,7 +45,12 @@ import type { Executor } from './sql'
 export async function lerEstado(executar: Executor): Promise<AppState> {
   const state = await executar((tx) => carregarEstado(tx), { somenteLeitura: true })
   if (!estaVazio(state)) return state
-  return (await mutarEstado(executar, (s) => s)).state
+  return (await mutarEstado(executar, (s) => s, { ator: 'sistema' })).state
+}
+
+export interface ContextoMutacao {
+  /** Quem está fazendo: e-mail da sessão, 'sistema', 'webhook:…', 'cron:…'. */
+  ator: string
 }
 
 /**
@@ -48,21 +59,50 @@ export async function lerEstado(executar: Executor): Promise<AppState> {
  *   2. carrega o estado JÁ com o commit de quem passou antes;
  *   3. `fn` muta uma cópia;
  *   4. grava a diferença entre o carregado e a cópia;
- *   5. commit — e a trava solta.
+ *   5. deriva e grava o ledger e a linha de auditoria (M4);
+ *   6. commit — e a trava solta.
  */
 export async function mutarEstado<T>(
   executar: Executor,
   fn: (state: AppState) => T | Promise<T>,
+  contexto: ContextoMutacao = { ator: 'sistema' },
 ): Promise<{ state: AppState; result: T }> {
   return executar(async (tx) => {
     const antes = await carregarEstado(tx, { travar: true })
+    const semeadura = estaVazio(antes)
     // `structuredClone` em vez de mutar `antes`: o planejador de diff precisa
     // dos dois retratos. Num banco vazio o "depois" nasce do seed, e o diff
     // contra o retrato vazio vira a semeadura inteira em INSERTs.
-    const state = estaVazio(antes) ? seedState() : structuredClone(antes)
+    const state = semeadura ? seedState() : structuredClone(antes)
     const result = await fn(state)
-    await persistirEstado(tx, antes, state)
+    const ops = await persistirEstado(tx, antes, state)
     congelarComissoes(state, antes.trades.length)
+
+    // Nada gravado (recusa, leitura disfarçada de mutação): nem ledger nem
+    // auditoria. Uma trilha cheia de "nada aconteceu" esconde o que aconteceu.
+    if (ops.length > 0) {
+      const agora = Date.now()
+      const hashAnterior = await ultimoHash(tx)
+      const { lancamentos, ajustes } = derivarLancamentos({ antes, depois: state, ops, semeadura, agora, hashAnterior })
+      await inserirLancamentos(tx, lancamentos)
+      if (ajustes.length) {
+        console.warn(
+          `[aurea] ledger: ${ajustes.length} ajuste(s) gravado(s) — saldo alterado sem negociação, depósito ou abertura: ` +
+            ajustes.map((a) => `${a.email} (${a.diferenca})`).join(', '),
+        )
+      }
+      const resumo = resumirParaAuditoria(ops, semeadura, ajustes)
+      await registrarAuditoria(tx, {
+        createdAt: agora,
+        ator: contexto.ator,
+        acao: resumo.acao,
+        entidade: null,
+        entidadeId: null,
+        usuariosAfetados: resumo.usuariosAfetados,
+        detalhes: { ...resumo.detalhes, lancamentos: lancamentos.length },
+      })
+    }
+
     return { state, result }
   })
 }
@@ -73,6 +113,8 @@ export async function mutarEstado<T>(
  * volta (e a primeira leitura de um banco recém-semeado) teria Trades sem
  * `fee`, e a leitura seguinte os traria com — o mesmo dado com duas caras,
  * dependendo de quem perguntou. Achado pelo teste de ida e volta.
+ *
+ * Roda ANTES da derivação do ledger: o lançamento de comissão lê `t.fee`.
  */
 function congelarComissoes(state: AppState, aPartirDe: number): void {
   for (const t of state.trades.slice(aPartirDe)) {

@@ -56,6 +56,17 @@ A comparação é literal: `atual !== senhaEfetiva`. Não há hash em lugar nenh
 
 ---
 
+## RA-16.c 🟡 — `contabil.ts` não tem teste, e decide "quem é administrador" por variável
+
+**Arquivo:** `contabil.ts`
+
+As cinco ações conferem sessão, `ehAdmin` e banco configurado antes de qualquer escrita, e
+cada escrita deixa linha na trilha de auditoria com o e-mail de quem fez. Mas a orquestração
+não é exercitada por teste (mesmo motivo do RA-04), e `ehAdmin` lê `AUREA_ADMIN_EMAILS` ou cai
+nas sete contas do seed (RA-16.a) — não há papel de usuário no modelo até o M2.
+
+---
+
 ## RA-04 🟠 — nenhuma destas ações tem teste
 
 Os 38 testes cobrem `src/domain/`. **As cinco Server Actions não têm nenhum.**

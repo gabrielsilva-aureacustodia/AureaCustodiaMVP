@@ -317,3 +317,14 @@ export async function devolverIntencaoParaPendente(
     [externalReference, agora],
   )
 }
+
+export async function listarTodasIntencoes(tx: Consulta): Promise<IntencaoDeposito[]> {
+  const S = nomeDoSchema()
+  const { rows } = await tx.query<LinhaIntencao>(
+    `SELECT external_reference, user_email, valor, metodo, status, payment_id, motivo_recusa,
+            created_at, updated_at
+       FROM ${S}.payment_intents ORDER BY created_at DESC`,
+  )
+  return rows.map(paraIntencao)
+}
+

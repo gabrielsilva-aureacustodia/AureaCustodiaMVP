@@ -51,6 +51,12 @@ interface AppCtx {
   session: UserEmail
   /** Atalho para state.users[session] — o "u" que o monolito calculava em toda tela. */
   me: User
+  /**
+   * true quando a sessão é de administrador (sócio ou contador): decide se o
+   * menu mostra "Relatórios". Vem do servidor, pelo (app)/layout — a regra
+   * mora em src/server/relatorios/acesso.ts e o cliente só a recebe pronta.
+   */
+  admin: boolean
   /** Relê GET /api/state e atualiza, se mudou. */
   refresh(): Promise<void>
   /** Executa a server action, mostra o toast e relê o estado. Ver nota do topo. */
@@ -77,10 +83,12 @@ interface Props {
   /** Estado buscado no servidor pelo (app)/layout — a primeira pintura já vem cheia. */
   initialState: AppState
   session: UserEmail
+  /** Decidido no servidor. Padrão false: ninguém vira administrador por omissão. */
+  admin?: boolean
   children: ReactNode
 }
 
-export function AppProvider({ initialState, session, children }: Props): ReactNode {
+export function AppProvider({ initialState, session, admin = false, children }: Props): ReactNode {
   const router = useRouter()
   const toast = useToast()
 
@@ -197,8 +205,8 @@ export function AppProvider({ initialState, session, children }: Props): ReactNo
   const me = state.users[session]
 
   const value = useMemo<AppCtx>(
-    () => ({ state, session, me, refresh, run }),
-    [state, session, me, refresh, run],
+    () => ({ state, session, me, admin, refresh, run }),
+    [state, session, me, admin, refresh, run],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

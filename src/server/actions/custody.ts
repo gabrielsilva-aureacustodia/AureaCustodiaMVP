@@ -316,3 +316,51 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * 4. Consulta de CEP e Cotação de Frete (Passo 1 do Envio)
+ * ------------------------------------------------------------------------- */
+
+import { consultarCep } from '@/lib/shipping/cep'
+import { calcularFreteCorreios } from '@/lib/shipping/correios'
+import type { CotacaoFreteResult, EnderecoCep, ModalidadeEnvio } from '@/lib/shipping/types'
+
+/**
+ * Consulta CEP para preenchimento de endereço de remetente (zero persistência - LGPD).
+ */
+export async function consultarCepEnvio(cep: string): Promise<ActionResult<EnderecoCep>> {
+  try {
+    const endereco = await consultarCep(cep)
+    if (!endereco.valido) {
+      return { ok: false, error: 'CEP não encontrado ou inválido.' }
+    }
+    return { ok: true, data: endereco }
+  } catch {
+    return { ok: false, error: 'Erro ao consultar CEP. Tente novamente.' }
+  }
+}
+
+/**
+ * Cota prazo e frete para envio de moedas sob custódia (PAC ou SEDEX).
+ */
+export async function cotarFreteEnvio(
+  cepOrigem: string,
+  modalidade: ModalidadeEnvio,
+  valorDeclaradoCents: number = 30000,
+): Promise<ActionResult<CotacaoFreteResult>> {
+  try {
+    const cotacao = await calcularFreteCorreios({
+      cepOrigem,
+      cepDestino: '01310-100', // Central de Custódia Áurea (São Paulo)
+      modalidade,
+      valorDeclaradoCents,
+    })
+    return { ok: true, data: cotacao }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao calcular frete.',
+    }
+  }
+}
+

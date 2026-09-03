@@ -47,7 +47,8 @@ import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import type { Fotos, FotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
-import { advanceAnalysis, createProtocol, markPosted } from '@/server/actions/custody'
+import { advanceAnalysis, consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '@/server/actions/custody'
+import type { ModalidadeEnvio } from '@/lib/shipping'
 
 /** Os quatro passos da tela. */
 type Passo = 1 | 2 | 3 | 4
@@ -175,9 +176,37 @@ export default function EnviosPage(): ReactNode {
   const [qtdTexto, setQtdTexto] = useState<string>('1')
   const [fotos, setFotos] = useState<Fotos>(FOTOS_VAZIAS)
   const [confirmOk, setConfirmOk] = useState<boolean>(false)
+  const [modalidade, setModalidade] = useState<ModalidadeEnvio>('SEDEX')
+  const [cepOrigem, setCepOrigem] = useState<string>('')
+  const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
+  const [cotacaoFrete, setCotacaoFrete] = useState<{ valorTotal: number; prazo: number } | null>(null)
+  const [buscandoCep, setBuscandoCep] = useState<boolean>(false)
 
   /** `Math.max(1, parseInt(...)||1)` da linha 2077. */
   const quantidade = Math.max(1, parseInt(qtdTexto, 10) || 1)
+
+  const handleBuscarCep = useCallback(async () => {
+    const cepLimpo = cepOrigem.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+    setBuscandoCep(true)
+    try {
+      const res = await consultarCepEnvio(cepLimpo)
+      if (res.ok && res.data) {
+        setEnderecoDescricao(`${res.data.logradouro}, ${res.data.bairro} — ${res.data.cidade}/${res.data.uf}`)
+        const cot = await cotarFreteEnvio(cepLimpo, modalidade, quantidade * 15000)
+        if (cot.ok && cot.data) {
+          setCotacaoFrete({
+            valorTotal: cot.data.valorTotalCents,
+            prazo: cot.data.prazoDiasUteis,
+          })
+        }
+      } else {
+        setEnderecoDescricao('CEP não encontrado.')
+      }
+    } finally {
+      setBuscandoCep(false)
+    }
+  }, [cepOrigem, modalidade, quantidade])
 
   /* ---------- ações ---------- */
 
@@ -293,6 +322,50 @@ export default function EnviosPage(): ReactNode {
               onChange={(e) => setQtdTexto(e.target.value)}
             />
 
+            <div className="field-lbl">Modalidade dos Correios</div>
+            <select
+              className="tinput"
+              value={modalidade}
+              onChange={(e) => setModalidade(e.target.value as ModalidadeEnvio)}
+            >
+              <option value="SEDEX">SEDEX com seguro (Mais rápido — 1 a 2 dias úteis)</option>
+              <option value="PAC">PAC com seguro (Econômico — 4 a 6 dias úteis)</option>
+            </select>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2, marginBottom: 12 }}>
+              🔒 Carta comum não é permitida por regimento postal para envio de valores/moedas.
+            </div>
+
+            <div className="field-lbl">CEP de Origem (Remetente)</div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <input
+                type="text"
+                placeholder="00000-000"
+                maxLength={9}
+                className="tinput"
+                style={{ flex: 1 }}
+                value={cepOrigem}
+                onChange={(e) => setCepOrigem(e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn btn-outline"
+                disabled={buscandoCep || cepOrigem.replace(/\D/g, '').length !== 8}
+                onClick={() => void handleBuscarCep()}
+              >
+                {buscandoCep ? 'Buscando...' : 'Buscar CEP'}
+              </button>
+            </div>
+            {enderecoDescricao && (
+              <div className="note" style={{ marginTop: -4, marginBottom: 12 }}>
+                📍 <b>Endereço:</b> {enderecoDescricao}
+                {cotacaoFrete && (
+                  <div style={{ marginTop: 4 }}>
+                    📦 <b>Estimativa Correios:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="field-lbl">Fotos da moeda</div>
             <div className="photo-row">
               <PhotoSlot
@@ -405,6 +478,16 @@ export default function EnviosPage(): ReactNode {
               <span className="k">Quantidade</span>
               <span className="v">{quantidade}</span>
             </div>
+            <div className="sr">
+              <span className="k">Modalidade Correios</span>
+              <span className="v">{modalidade} (com seguro)</span>
+            </div>
+            {enderecoDescricao && (
+              <div className="sr">
+                <span className="k">Origem do Remetente</span>
+                <span className="v">{enderecoDescricao}</span>
+              </div>
+            )}
             {/* Texto fixo: chegar ao passo 2 já exige as duas fotos. */}
             <div className="sr">
               <span className="k">Fotos anexadas</span>
@@ -487,12 +570,12 @@ export default function EnviosPage(): ReactNode {
                 <span className="v">Áurea Custódia — Central de Recebimento</span>
               </div>
               <div className="mb-row">
-                <span className="k">Caixa Postal</span>
-                <span className="v">15.230</span>
+                <span className="k">Endereço</span>
+                <span className="v">Avenida Paulista, 1500 — Andar 14</span>
               </div>
               <div className="mb-row">
                 <span className="k">CEP</span>
-                <span className="v">01000-970 — São Paulo/SP</span>
+                <span className="v">01310-100 — São Paulo/SP</span>
               </div>
               <div className="mb-row">
                 <span className="k">Referência</span>
@@ -505,20 +588,29 @@ export default function EnviosPage(): ReactNode {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v5M12 16.5v.5" />
               </svg>
-              Endereço simulado para fins de teste. Prefira sempre serviços com código de
-              rastreamento e seguro.
+              Envio via PAC ou SEDEX com declaração de conteúdo obrigatória como &quot;Moeda comemorativa / colecionável&quot;.
             </div>
 
-            {/* <a> externo, não next/link: sai da aplicação. */}
-            <a
-              href="https://www.correios.com.br"
-              target="_blank"
-              rel="noopener"
-              className="btn btn-outline"
-              style={{ width: '100%', marginTop: 14, textDecoration: 'none' }}
-            >
-              Abrir postagem online dos Correios
-            </a>
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <a
+                href={`/api/envios/etiqueta/${envio.protocolo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-gold"
+                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                🖨️ Imprimir Etiqueta Postal
+              </a>
+              <a
+                href="https://www.correios.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline"
+                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                Abrir Correios Online ↗
+              </a>
+            </div>
 
             {envio.dataPostagem ? (
               <>

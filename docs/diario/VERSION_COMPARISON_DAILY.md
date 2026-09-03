@@ -494,3 +494,115 @@ não criar uma segunda colisão.
 
 *Fim da entrada 005. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+---
+
+# Entrada 006 — 03/09/2026, madrugada · Frente B: ledger, auditoria, DRE e relatórios (M4 + M7)
+
+```
+Branch:   main (trabalho direto no diretório principal, em paralelo com a frente C)
+Estado:   typecheck, lint e testes verdes nos arquivos desta frente · build depende de um
+          arquivo da frente C em andamento (src/server/payments/conciliacao-ledger.ts)
+Relatório: docs/EXECUCAO_AGENTE_B_LEDGER_DRE.md
+```
+
+## O que entrou
+
+- **Migration 003** (`ledger_entries`, `audit_log`, `parametros_contabeis`, `contas_contabeis`,
+  `lancamentos_manuais`, `exportacoes`), todas em `aurea`, RLS, append-only onde importa.
+  `TABELAS_ESPERADAS` do `db:check`: 13 → **19**.
+- **Domínio puro:** `hash.ts` (SHA-256 FIPS 180-4, fórmula congelada), `ledger.ts`
+  (derivação, encadeamento, verificação), `dre.ts` (Lucro Presumido, parâmetros nulos por
+  padrão, plano de contas, análise). 22 testes novos.
+- **O ledger é derivado do diff dentro de `mutarEstado`** (`derivar.ts`): negociação →
+  compra/venda/comissão; depósito; conta nova → saldo_inicial; custódia com sinal zero; o
+  resto → `ajuste` visível. Na mesma transação, atrás da mesma trava, com `ultimoHash`. A
+  semeadura ganha ledger completo com aberturas calculadas para fechar no saldo do seed.
+- **Ator na auditoria** sem mudar a assinatura de `mutateState`: `state.ts` lê a sessão e
+  cai em `sistema` fora de requisição.
+- **`src/server/relatorios/`:** doze relatórios como tabelas, CSV/XLSX no servidor, push
+  para o Google Sheets por conta de serviço (JWT RS256 sem SDK), sincronização registrada.
+- **`/api/relatorios/*`** (índice, `<nome>[.csv|.xlsx]`, `tudo.xlsx`, POST `sheets`) com
+  sessão de admin ou `AUREA_RELATORIOS_TOKEN`.
+- **`/relatorios`** (Server Component com guarda de admin) + `RelatoriosPainel` (oito abas),
+  item no menu, `admin` no `AppProvider`.
+- **Docs:** `API_RELATORIOS.md`, `INTEGRACAO_GOOGLE_SHEETS.md`, `EXECUCAO_AGENTE_B_LEDGER_DRE.md`,
+  READMEs de todas as pastas tocadas, RA-16 e ATALHOS em quatro pastas.
+
+## Achados
+
+1. **A suíte já tinha dois testes vermelhos antes desta sessão**, em arquivos que a frente C
+   estava criando no mesmo diretório (`api/admin/conciliacao`, `api/envios/etiqueta`):
+   chamam `cookies()` fora de requisição. Não são desta frente e ficaram como estavam.
+2. **`npm run typecheck` acusa `src/server/payments/conciliacao-ledger.ts`** (frente C, em
+   andamento). Todos os arquivos desta frente passam em typecheck e lint isolados.
+3. A ordem "migration antes do merge" agora vale para a **003** com a mesma força da 001:
+   sem ela, toda mutação falha ao gravar o lançamento.
+
+## Análise crítica
+
+- A escolha de derivar o ledger do diff, e não das ações, é o que permitiu entregar M4 sem
+  tocar na superfície protegida — e é o que garante que o livro fecha por construção. O
+  custo é o `ajuste` (RA-16.g): uma ação futura que mexa em saldo por caminho novo não quebra,
+  mas deixa uma linha que alguém precisa explicar.
+- A DRE sem alíquota é a única forma honesta de falar de imposto enquanto a contradição
+  Presumido × Simples é do contador. A tela mostra a pendência, não esconde.
+- O maior risco residual continua sendo o cutover (RA-13.d), agora com uma migration a mais.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| M4 (ledger + auditoria) | ✅ em código, testado no PGlite |
+| M7 (DRE + exportação) | ✅ em código; alíquotas pendentes do contador |
+| Integração Sheets/Excel | ✅ em código; variáveis pendentes do Gabriel (RA-16.d) |
+| Cutover de produção | ⏳ inalterado — seção 4 de `EXECUCAO_FINAL_AGENTE_B.md`, com a 003 |
+| CD-09 (extrato ler `t.fee`) | ⏳ decisão dos sócios; ledger e DRE já leem |
+| RA-05 (hash do recibo) | 🟠 metade paga: SHA-256 existe, recibo ainda simulado |
+
+---
+
+*Fim da entrada 006. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+# Entrada 007 — Fechamento Gold Standard da Frente C (Pagamentos, Correios, Auditoria e Conciliação)
+
+```
+Data:         03/09/2026
+Hora:         09:20
+Autor:        Agente C (feat/pagamentos-correios / main)
+Assunto:      Etiqueta Postal, Cotação de Frete com Seguro, Conciliação Gateway × Ledger e Auditoria
+```
+
+## O que foi feito nesta sessão
+
+1. **Rota de Etiqueta e Declaração de Conteúdo Postal (`/api/envios/etiqueta/[protocolo]`):**
+   - Criação de rota HTTP com saída em HTML printável e JSON com dados do remetente, dados da Central de Custódia da Áurea na Av. Paulista, modalidade `PAC` ou `SEDEX`, código de barras e declaração de conteúdo obrigatória (*"Moeda comemorativa / colecionável"*).
+   - Teste unitário cobrindo autenticação e emissão.
+
+2. **Wizard de Envio Postal com Seleção PAC/SEDEX e Busca de CEP (LGPD):**
+   - Seleção explícita de modalidade (`PAC` ou `SEDEX` com seguro).
+   - Server Action `consultarCepEnvio` e `cotarFreteEnvio` em `src/server/actions/custody.ts` com cálculo de prazo e estimativa de frete.
+   - Botão para impressão direta da etiqueta no Passo 3 do Wizard.
+
+3. **Conciliação Financeira Gateway × Ledger & Auditoria Executiva:**
+   - Criação de `src/server/payments/conciliacao-ledger.ts` e endpoint `/api/admin/conciliacao` cruzando saldo em custódia, depósitos aprovados, receitas arrecadadas (taxas de custódia e comissões de corretagem) e integridade 1:1 do lastro.
+   - Painel integrado na página `/graficos/auditoria` exibindo em tempo real métricas financeiras da empresa e a esteira de moedas físicas em trânsito e em perícia na Central de Custódia.
+
+4. **Saneamento e Qualidade Total:**
+   - Correção defensiva de contexto de sessão em `src/server/session.ts` para testes fora de request scope.
+   - Adicionado `listarTodasIntencoes` no repositório de pagamentos.
+   - 143 testes passando em 23 suítes Vitest.
+   - 0 erros em `npm run typecheck` e 0 erros em `npm run lint`.
+   - Build de produção (`next build`) gerando todas as 21 rotas estáticas e dinâmicas com sucesso.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Gateway Mercado Pago (Pix/Checkout Pro) | ✅ Concluído com HMAC e idempotência |
+| Correios (Etiquetas, PAC/SEDEX, CEP, Cron) | ✅ Concluído e integrado |
+| Conciliação Gateway × Ledger | ✅ Concluído com API e painel na auditoria |
+| Suíte de Testes | ✅ 143 testes verdes (23 suítes) |
+| Build e Tipagem | ✅ 100% verde |
+

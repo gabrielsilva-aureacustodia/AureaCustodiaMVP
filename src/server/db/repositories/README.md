@@ -12,7 +12,12 @@ repositório importa outro, exceto `state.ts`, que é o montador.
 | `envios.ts` | `envios` | `state.envios` | inserir · atualizar · remover |
 | `account.ts` | `deposits`, `custody_charges` | `state.deposits`, `state.custodyCharges` | inserir (append-only) · upsert |
 | `seq.ts` | `seq` | `state.seq` — **e a trava de escrita** | atualizar |
-| `state.ts` | todas | o `AppState` inteiro | `carregarEstado`, `persistirEstado` |
+| `state.ts` | todas as do M1 | o `AppState` inteiro | `carregarEstado`, `persistirEstado` |
+| `payments.ts` | `payment_events`, `payment_intents` | (não entram no `AppState`) | reivindicar · concluir · recusar |
+| `rastreios.ts` | `rastreios` | (não entra no `AppState`) | upsert |
+| `ledger.ts` | `ledger_entries` | (não entra no `AppState`) | **só inserir**; `ultimoHash`, `listar`, `saldosPeloLedger` |
+| `auditoria.ts` | `audit_log` | — | **só inserir**; `listar` |
+| `contabil.ts` | `parametros_contabeis`, `contas_contabeis`, `lancamentos_manuais`, `exportacoes` | — | `garantirCatalogos` (upsert do domínio) · gravar parâmetro · inserir lançamento/estorno · registrar exportação |
 
 ## As três regras dos repositórios
 
@@ -37,5 +42,7 @@ operação por operação, **em sequência** — a ordem é a das chaves estrang
 
 - `../diff.ts` define as formas canônicas (`UserRegistro`, `CoinRegistro`, `TradeRegistro`)
   que os repositórios leem e gravam. Mudou a forma lá, muda a SQL aqui.
-- `../migrations/001_inicial.sql` é o schema que estas consultas assumem. Coluna nova entra
-  numa migration `002_…` **e** no repositório, no mesmo commit.
+- `../migrations/*.sql` é o schema que estas consultas assumem. Coluna nova entra na próxima
+  migration **e** no repositório, no mesmo commit.
+- `../derivar.ts` é quem decide o que `ledger.ts` e `auditoria.ts` gravam a cada mutação;
+  `../estado.ts` é quem chama, dentro da transação.

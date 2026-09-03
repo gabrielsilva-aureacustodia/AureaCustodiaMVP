@@ -55,6 +55,16 @@ seed, e isso é aceito porque o dado é de demonstração. A v6 nasceu do mercad
 multi-ativo — `SellOffer`, `BuyOrder` e `Trade` passaram a ter `tipoMoeda`, e um
 registro da v5 sem esse campo ficaria preso no livro sem nunca casar.
 
+**Com `POSTGRES_URL`, toda mutação também grava o ledger e a trilha de auditoria** na mesma
+transação (`src/server/db/derivar.ts`, migration 003): lançamentos append-only com hash
+SHA-256 encadeado (`src/domain/hash.ts`, `ledger.ts`). Saldo que mudar sem negociação,
+depósito ou conta nova vira um lançamento `ajuste` visível — nunca some. A DRE
+(`src/domain/dre.ts`) lê a receita desses lançamentos e **não tem alíquota nenhuma em
+código**: os percentuais vêm de `aurea.parametros_contabeis`, preenchida pelo contador. Os
+relatórios saem por `/relatorios` (só administradores) e por `/api/relatorios/*` —
+contrato em `docs/API_RELATORIOS.md`, integração com Sheets/Excel em
+`docs/INTEGRACAO_GOOGLE_SHEETS.md`.
+
 **Persistência é plugável** (`src/server/store/`) e escolhida por variável de ambiente,
 nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*` ou
 `UPSTASH_REDIS_REST_*`) → memória. Só o Postgres resolve concorrência de verdade

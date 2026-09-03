@@ -55,6 +55,14 @@ export const TABELAS_ESPERADAS = [
   'payment_events',
   'payment_intents',
   'rastreios',
+  // Migration 003 — ledger, auditoria e DRE (M4/M7). Sem elas toda mutação
+  // falha ao gravar o lançamento, e o site cai como cairia sem `seq`.
+  'ledger_entries',
+  'audit_log',
+  'parametros_contabeis',
+  'contas_contabeis',
+  'lancamentos_manuais',
+  'exportacoes',
 ]
 
 /**

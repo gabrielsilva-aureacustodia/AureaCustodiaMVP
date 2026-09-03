@@ -34,6 +34,7 @@ import { AppProvider } from '@/components/providers/AppProvider'
 import { Sidebar, SidebarProvider } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { ModalHost } from '@/components/ui/Modal'
+import { ehAdmin } from '@/server/relatorios/acesso'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -53,7 +54,10 @@ export default async function AppLayout({
   if (!state.users[session]) redirect('/')
 
   return (
-    <AppProvider initialState={state} session={session}>
+    // `admin` é decidido aqui, no servidor, e só liga o item "Relatórios" do
+    // menu. A tela e as rotas de API conferem de novo — o menu é conveniência,
+    // não barreira.
+    <AppProvider initialState={state} session={session} admin={ehAdmin(session)}>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa. */}
         <div className="app active">

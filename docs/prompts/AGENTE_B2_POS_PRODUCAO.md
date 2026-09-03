@@ -49,7 +49,7 @@ para desenvolvimento. **Não escolha sozinho.**
 
 ### 2. Migration de limpeza
 
-Crie `src/server/db/migrations/003_limpeza.sql` (a `002` é da frente C — confira antes se
+Crie `src/server/db/migrations/004_limpeza.sql` (a `002` é da frente C e a `003` é o ledger/DRE da própria frente B — confira antes se
 ela já existe e ajuste o número):
 
 - `DROP TABLE IF EXISTS aurea.aurea_state`

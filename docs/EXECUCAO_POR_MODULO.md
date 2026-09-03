@@ -260,6 +260,14 @@ documentos existirem, com aceite versionado no ato do cadastro.
 
 **Depende de M1.** **Bloqueia M5** — não se liga gateway sem ledger.
 
+> ✅ **Entregue em 03/09/2026** (frente B). O que foi construído difere do plano num ponto
+> que vale registrar: **o ledger é derivado do diff dentro de `mutateState`**
+> (`src/server/db/derivar.ts`), não escrito por cada Server Action — assim nenhuma ação pode
+> esquecer o lançamento, e nenhuma precisou mudar. O hash é SHA-256 puro em
+> `src/domain/hash.ts`, com a fórmula congelada em `ledger.ts`. Relatório da entrega e o que
+> falta em [`EXECUCAO_AGENTE_B_LEDGER_DRE.md`](EXECUCAO_AGENTE_B_LEDGER_DRE.md). Critérios:
+> os quatro primeiros ✅ (testados); o último ("máquinas diferentes") ✅ por hash fixado no teste.
+
 ### Arquivos
 
 ```
@@ -402,6 +410,12 @@ Consultar CEP para sugerir agência é **tratamento de dado pessoal**. Consulte,
 # M7 — DRE sob Lucro Presumido
 
 **Objetivo:** estrutura contábil e exportação. **Depende de M4.**
+
+> ✅ **Entregue em 03/09/2026** (frente B), junto com o M4: `src/domain/dre.ts` (estrutura,
+> parâmetros nulos por padrão, plano de contas, análise básica), a tela `/relatorios`, a API
+> `/api/relatorios/*` em JSON/CSV/XLSX e o push para o Google Sheets. Os três critérios
+> abaixo ✅. O que falta é do contador (preencher as alíquotas) e do Gabriel (variáveis) —
+> ver [`INTEGRACAO_GOOGLE_SHEETS.md`](INTEGRACAO_GOOGLE_SHEETS.md).
 
 ### ⚠️ Estrutura sim, alíquotas não
 

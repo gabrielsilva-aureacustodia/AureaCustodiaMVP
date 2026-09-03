@@ -112,6 +112,39 @@ migration com `DROP TABLE aurea.aurea_state`.
 
 ---
 
+## RA-16.e 🟡 — o ledger começa na semeadura; o blob antigo não ganha histórico (03/09/2026)
+
+**Arquivo:** `derivar.ts`, `estado.ts`
+
+O livro-razão nasce quando o banco é semeado sobre tabelas: sete `saldo_inicial` calculados
+para que, somados às ~32 negociações do histórico fictício, o livro chegue ao saldo do seed.
+Nada do que aconteceu no blob JSON (Redis/produção atual) é migrado — a produção recomeça do
+seed no cutover (RA-08), e o ledger recomeça com ela.
+
+**Consequência:** o `saldo_apos` de uma linha do histórico do seed pode ficar negativo no
+meio do caminho (a conta "comprou" antes de "vender"), porque a abertura é calculada para
+fechar no fim. É dado de demonstração; num cliente real a abertura é o depósito.
+
+## RA-16.f 🟡 — custódia entra no ledger com sinal zero
+
+**Arquivo:** `derivar.ts` (`lancamentoDeCustodia`)
+
+A taxa de custódia é registrada, não debitada — o mesmo que o extrato já diz. O lançamento
+existe para a DRE conhecer a receita de custódia; o saldo de ninguém muda. Passar a debitar
+é decisão de negócio (ver `docs/EXECUCAO_AGENTE_B_LEDGER_DRE.md`, 4.5).
+
+## RA-16.g 🟡 — `ajuste` cobre o que o derivador não reconhece
+
+**Arquivo:** `derivar.ts`
+
+Se uma ação nova alterar saldo por um caminho que não é negociação, depósito nem conta nova,
+a diferença vira um lançamento `ajuste` com aviso no log — em vez de lançar exceção e derrubar
+a ação. É a escolha entre "o livro não fecha e o site cai" e "o livro fecha com uma linha que
+alguém precisa explicar". O relatório `analise` mostra a soma dos ajustes, que precisa ser
+zero; o teste garante que as ações existentes não produzem nenhum.
+
+---
+
 ## O que NÃO é atalho nesta pasta
 
 - **Duas versões do aplicador de migrations** (`migrar.ts` e `scripts/db-migrate.mjs`) —

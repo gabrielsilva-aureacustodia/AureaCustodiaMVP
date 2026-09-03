@@ -28,6 +28,11 @@ congelada** (quais campos entram, em que ordem, com que separador e normalizaç�
 espaço a mais muda o hash). Compartilha implementação com a trilha de auditoria da Fase 3 e
 com o hash da estação de validação física.
 
+**Atualização de 03/09/2026 (frente B, M4):** a implementação existe — `hash.ts` é o SHA-256
+puro com a fórmula congelada, e o ledger já a usa em toda linha. **O recibo NFT continua com
+`genHash()`**: trocar o hash de recibos já emitidos muda o texto do certificado, e a regra de
+transição é decisão dos sócios (ver `docs/EXECUCAO_AGENTE_B_LEDGER_DRE.md`, 4.5). Metade paga.
+
 ---
 
 ## RA-06 🟠 — a comissão do extrato é recalculada, não congelada
@@ -57,6 +62,10 @@ tabelas, não há mais chave de blob a rotacionar. O motor e as ações continua
 uma linha, e é a decisão CD-09, dos sócios.
 
 **Como se paga:** a linha acima, depois do "sim". O ledger do M4 herda o valor gravado.
+
+**Atualização de 03/09/2026 (M4):** o ledger e a DRE já leem `t.fee` — a receita da empresa
+não recalcula. Só o extrato da conta (`statement.ts`) ainda recalcula, e continua sendo a
+decisão CD-09.
 
 ---
 
