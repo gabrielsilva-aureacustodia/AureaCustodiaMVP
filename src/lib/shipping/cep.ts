@@ -16,9 +16,11 @@ import type { EnderecoCep } from './types'
  * Não salva histórico de buscas.
  */
 export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
-  const cep = normalizarCep(cepInput)
+  const digitos = cepInput.replace(/\D/g, '')
 
-  if (cep.length !== 8) {
+  // Valide antes de normalizar: normalizarCep completa zeros à esquerda para
+  // cálculos internos e, portanto, sempre devolve oito caracteres.
+  if (digitos.length !== 8) {
     return {
       cep: cepInput,
       logradouro: '',
@@ -29,6 +31,8 @@ export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
       valido: false,
     }
   }
+
+  const cep = normalizarCep(cepInput)
 
   // Fallback para CEP da Central de Custódia
   if (cep === '01310100') {
