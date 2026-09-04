@@ -606,3 +606,37 @@ Assunto:      Etiqueta Postal, Cotação de Frete com Seguro, Conciliação Gate
 | Suíte de Testes | ✅ 143 testes verdes (23 suítes) |
 | Build e Tipagem | ✅ 100% verde |
 
+---
+
+# Entrada 008 — 03/09/2026 · Validação de CEP e arquitetura Vercel/HostGator
+
+```
+Branch:   main
+Escopo:   corrigir a validação encontrada pelo checklist e consolidar a operação de domínio
+Estado:   validações executadas no fechamento desta sessão
+```
+
+## Achado e correção
+
+- O teste de entrada inválida revelou que `consultarCep('123')` passava pelo fallback como
+  CEP válido. A função chamava `normalizarCep` antes de validar; o normalizador completa
+  zeros à esquerda e sempre produz oito caracteres.
+- `consultarCep` agora conta os dígitos reais da entrada antes da normalização e rejeita
+  qualquer valor que não possua exatamente oito dígitos.
+- A mudança não persiste CEP, não altera PAC/SEDEX, preço, prazo, seguro, declaração de
+  conteúdo nem qualquer número de negócio.
+
+## Decisão operacional documentada
+
+- O site permanece em `aurea-custodia-mvp.vercel.app` durante a configuração inicial.
+- A Vercel continuará hospedando o Next.js.
+- A HostGator manterá o registro dos domínios, a Zona DNS e as caixas humanas, sem hospedar
+  o site.
+- O Resend ficará isolado em `auth.aureacustodia.com.br` quando o SMTP transacional for
+  ativado, sem substituir os MX das caixas HostGator/Titan.
+- O roteiro canônico é `docs/GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md`.
+
+---
+
+*Fim da entrada 008. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*

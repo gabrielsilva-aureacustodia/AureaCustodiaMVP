@@ -13,6 +13,7 @@ docs/
 ├── EXECUCAO_BRANCH_C_O_QUE_FALTA.md   Frente C em detalhe: correções, integração e tutoriais
 ├── CHECKUP_GERAL_03_09.md           🩺 Check-up geral do repositório: achados, correções, rotas testadas
 ├── EXECUCOES_MANUAIS_PENDENTES.md   👤 Tudo que só o Gabriel/sócios fazem, em ordem, com como conferir
+├── GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md  🌐 Vercel agora; e-mail HostGator e domínio próprio depois
 ├── ARQUITETURA_O_QUE_FALTA.md       🏗️ O que ainda falta ou pode melhorar na arquitetura, com custo e caminho
 ├── EXECUCAO_FINAL_AGENTE_A.md       🅰️ O que falta na frente A — para entregar ao agente dela
 ├── EXECUCAO_FINAL_AGENTE_B.md       🅱️ O que falta na frente B: a virada de produção, em ordem
@@ -80,6 +81,7 @@ Mudam quando o assunto muda, não por rotina.
 | Vai juntar as três frentes de 02/09 | `EXECUCAO_POS_FRENTES_PARALELAS.md` |
 | **Vai tocar uma frente hoje** | `EXECUCAO_FINAL_AGENTE_A.md`, `_B.md` ou `_C.md` |
 | **Vai configurar contas, DNS, variáveis** | `EXECUCOES_MANUAIS_PENDENTES.md` |
+| **Vai configurar Vercel, e-mail HostGator ou domínio próprio** | `GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md` |
 | Quer saber o que a arquitetura ainda deve | `ARQUITETURA_O_QUE_FALTA.md` |
 | Vai ligar a planilha do contador | `INTEGRACAO_GOOGLE_SHEETS.md` → `API_RELATORIOS.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |

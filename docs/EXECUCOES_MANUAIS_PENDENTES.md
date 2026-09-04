@@ -175,8 +175,10 @@ O login novo confere a senha no Supabase Auth, confirma o e-mail por link, e ace
 
 ## Onde se faz
 
-Painéis do Supabase, do Google Cloud, do Resend e do provedor de DNS do domínio. Guia
-detalhado do agente A: `docs/CONFIGURACAO_BRANCH_A_SUPABASE_GOOGLE_RESEND.md` (na branch).
+Painéis do Supabase, do Google Cloud, do Resend e do provedor de DNS do domínio. O roteiro
+canônico, já ajustado à decisão de manter o site na Vercel e usar a HostGator somente para
+domínios, DNS e caixas humanas, é
+`docs/GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md`.
 
 ## Passo a passo
 
@@ -204,9 +206,11 @@ público só abre depois do advogado (RA-03). Em *Preview* pode ficar `true` par
 Supabase** (`https://vjbqikfamqdttbmaqrxf.supabase.co/auth/v1/callback`); depois Supabase →
 Auth → Providers → Google → colar Client ID e Secret.
 
-**3.5 — Resend: DNS do domínio.** É o item que depende do **e-mail do sócio majoritário**.
-No Resend, adicionar o domínio e criar no DNS os registros que ele mostrar (SPF, DKIM e
-DMARC). Esperar "Verified". Sem isto, e-mail de confirmação vai para spam ou não sai.
+**3.5 — Resend: adiado na fase Vercel-only.** A URL `.vercel.app` não é um domínio cujo
+DNS controlamos e, portanto, não pode ser usada como domínio remetente no Resend. Quando
+esta etapa for ativada, usar `auth.aureacustodia.com.br` e criar na Zona DNS da HostGator
+somente os registros exatos mostrados pelo Resend. Os MX de `aureacustodia.com.br`
+continuam pertencendo às caixas humanas da HostGator/Titan.
 
 **3.6 — Supabase: SMTP.** Auth → SMTP Settings → host, porta, usuário e senha do Resend;
 remetente com o domínio verificado.
