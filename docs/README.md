@@ -12,6 +12,7 @@ docs/
 ├── EXECUCAO_POS_FRENTES_PARALELAS.md  Auditoria das três branches e o plano do que falta
 ├── EXECUCAO_BRANCH_C_O_QUE_FALTA.md   Frente C em detalhe: correções, integração e tutoriais
 ├── CHECKUP_GERAL_03_09.md           🩺 Check-up geral do repositório: achados, correções, rotas testadas
+├── METODO_PUBLICACAO_VIA_FORK.md    🔓 Publicar via fork quando o push direto for negado por permissão
 ├── EXECUCOES_MANUAIS_PENDENTES.md   👤 Tudo que só o Gabriel/sócios fazem, em ordem, com como conferir
 ├── GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md  🌐 Vercel agora; e-mail HostGator e domínio próprio depois
 ├── ARQUITETURA_O_QUE_FALTA.md       🏗️ O que ainda falta ou pode melhorar na arquitetura, com custo e caminho
