@@ -4,7 +4,7 @@
 
 ```
 Aberto em:     01/09/2026
-Atualizado em: 02/09/2026
+Atualizado em: 06/09/2026
 Autorizado por: Gabriel Silva (sócio)
 Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 ```
@@ -32,7 +32,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | ID | Atalho | Grau | Pasta afetada |
 |---|---|---|---|
 | **RA-01** | Custódia de dinheiro de terceiros sem parecer jurídico | 🔴 | `src/server/actions/`, `src/lib/payments/` |
-| **RA-02** | Senhas em texto puro | 🔴 | `src/domain/`, `src/server/actions/` |
+| **RA-02** | Senhas em texto puro — **pago no fluxo Supabase; resta a contingência do seed** | 🔴 | `src/domain/`, `src/server/actions/` |
 | **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
 | **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
@@ -45,8 +45,9 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-12** | Senha do banco Supabase trafegou por chat **e foi commitada em documento** | 🔴 | `docs/` |
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
 | **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; restam b e c, que dependem de credencial | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
-| **RA-15** | Cadastro simulado e entrada sem senha, para demonstração local | 🔴 | `src/app/criar-conta/`, `src/app/entrar-demo/`, `src/server/actions/signup.ts` |
+| **RA-15** | Cadastro simulado e entrada sem senha — **pago em 06/09/2026** | ✅ | arquivos removidos |
 | **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/server/actions/contabil.ts`, `src/app/api/relatorios/` |
+| **RA-17** | Contingência temporária do login do seed quando o Supabase não está configurado | 🟡 | `src/server/actions/auth.ts`, `src/server/auth/` |
 
 ---
 
@@ -459,41 +460,46 @@ Registrado na mesma estrutura dos atalhos das frentes A e B para manter conformi
   `await`.
 
 ---
-# RA-15 — Cadastro simulado e entrada sem senha, para demonstração local 🔴
+# RA-15 — Cadastro simulado e entrada sem senha ✅ PAGO
 
 ```
 Criado em: 03/09/2026, a pedido do Gabriel, para poder abrir a plataforma na hora
 Dono:      Gabriel
 Pasta:     src/app/criar-conta/ · src/app/entrar-demo/ · src/server/actions/signup.ts
-Some em:   no merge da frente A (feat/auth-landing), que traz o cadastro real
+Pago em:   06/09/2026, pela frente A (feat/auth-landing)
 ```
 
-A frente A ainda não entrou, e sem ela não havia como criar conta nem entrar sem digitar
-uma credencial do seed. Para destravar a demonstração local, três peças provisórias foram
-acrescentadas.
+As rotas provisórias `/criar-conta` e `/entrar-demo`, a ação `signup.ts` e o formulário
+`SignupForm.tsx` foram removidos. O único cadastro passa a ser `/cadastrar`, com identidade
+no Supabase Auth, confirmação por e-mail ou Google OAuth e aceite legal versionado.
 
 | | Atalho | Grau | Como se paga |
 |---|---|---|---|
-| **a** | **`/criar-conta` cria conta sem verificar e-mail e sem aceite de termos.** A conta nasce com R$ 5.000,00 e 6 moedas fictícias | 🟠 | `git rm -r src/app/criar-conta src/server/actions/signup.ts src/components/login/SignupForm.tsx` no merge da frente A, que traz `/cadastrar` com Supabase Auth, confirmação por e-mail e aceite versionado |
-| **b** | **`/entrar-demo` entra na conta de qualquer e-mail do seed SEM SENHA** | 🔴 | `git rm -r src/app/entrar-demo` no mesmo merge |
-| **c** | **A senha do cadastro simulado é gravada em texto puro**, como o resto do MVP | 🔴 | É o RA-02, que a frente A paga com o Supabase Auth |
+| **a** | `/criar-conta` sem confirmação | ✅ pago | substituído por `/cadastrar` |
+| **b** | `/entrar-demo` sem senha | ✅ pago | rota removida |
+| **c** | senha do cadastro em texto puro | ✅ pago | credencial passa a viver no Supabase Auth |
 
-## Por que o (b) é vermelho mesmo com duas travas
+O provisionamento de R$ 5.000,00 e seis moedas fictícias foi preservado, mas agora acontece
+somente no servidor depois de o Supabase confirmar a identidade. O navegador não escolhe
+saldo nem acervo.
 
-`/entrar-demo` responde 404 quando `NODE_ENV === 'production'` **e** quando o host não é
-`localhost`/`127.0.0.1`. As duas travas juntas o tornam inalcançável em qualquer deploy da
-Vercel, inclusive nos previews, que também compilam como produção.
+---
 
-Ainda assim o grau é vermelho, porque o que está escrito no repositório é um login sem
-senha, e o repositório é público (RA-11). Uma edição distraída em qualquer uma das duas
-condições vira acesso à conta de um sócio por URL. **Não relaxar as travas, não remover a
-checagem de host, e apagar a pasta assim que a frente A entrar.**
+# RA-17 — Contingência temporária das contas do seed 🟡
 
-## Consequência hoje
+```
+Decidido em: 06/09/2026
+Dono:        Gabriel
+Pasta:       src/server/actions/auth.ts · src/server/auth/
+```
 
-Nenhuma além do risco de código acima: o ambiente é local, em memória, com sete contas de
-teste e dinheiro simulado. **A frente A já está em andamento** e é o que encerra este
-registro inteiro.
+Enquanto `SUPABASE_URL` e a chave publicável não existirem num ambiente, `/entrar` ainda
+aceita as sete contas do seed com a senha histórica. Quando o Supabase está configurado,
+esse caminho não roda: senha, cadastro, Google OAuth e troca de senha usam o Auth externo.
+
+O atalho existe para desenvolvimento local e para não bloquear as frentes durante o
+rebase. Ele pode ser removido depois que todas as contas dos sócios forem recriadas no
+Supabase e todos os ambientes tiverem as variáveis de Auth.
 
 ---
 
@@ -520,6 +526,12 @@ isso, sete atalhos:
 | **e** | **O ledger começa na semeadura**; nada do blob antigo é migrado. `saldo_apos` de linhas do histórico fictício pode ficar negativo no meio | 🟡 | Aceito: a produção recomeça do seed no cutover (RA-08) |
 | **f** | **Custódia entra no ledger com sinal zero** — registrada, não debitada, como o extrato já diz | 🟡 | Decisão de negócio: debitar a custódia do saldo |
 | **g** | **Saldo alterado por caminho desconhecido vira `ajuste`**, com aviso no log, em vez de exceção. O livro sempre fecha; a linha fica visível para alguém explicar | 🟡 | Manter zero: o relatório `analise` mostra a soma; toda ação nova precisa de fato gerador reconhecido em `derivar.ts` |
+
+> **Atualização de 03/09/2026 (check-up geral).** Parte do **(c)** foi paga: a regra de
+> acesso ganhou `src/server/relatorios/acesso.test.ts` (8 testes: `ehAdmin`, token, matriz
+> sessão × token) e `/api/admin/conciliacao` — que exigia só sessão — passou a exigir
+> administrador, com 4 testes. Continuam sem teste as rotas de `/api/relatorios/*` em si e
+> `dados.ts`. Ver `docs/CHECKUP_GERAL_03_09.md`.
 
 **O que NÃO é atalho:** nenhuma alíquota em código (é requisito do M7); catálogos contábeis
 upsertados do domínio (uma fonte só); lançamento manual corrigido por estorno (append-only).

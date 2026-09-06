@@ -62,8 +62,12 @@ Sua branch não tocou em `RISCOS_ASSUMIDOS.md`, não criou `src/server/auth/ATAL
 marcou nada no catálogo. O padrão do repositório é: **todo atalho entra no documento da raiz
 E na nota da pasta, no mesmo commit**.
 
-Crie **RA-16 — Atalhos da frente A** (o RA-15 já está ocupado), no formato do RA-13 e do
-RA-14, com pelo menos:
+Crie **RA-17 — Atalhos da frente A**, no formato do RA-13 e do RA-14, com pelo menos:
+
+> ⚠️ **Numeração corrigida em 03/09 à noite:** este documento pedia "RA-16", mas o RA-16
+> foi ocupado pelo ledger e pela DRE (módulos M4/M7) enquanto a frente A trabalhava. O
+> próximo número livre é **RA-17**. Confira o índice de `RISCOS_ASSUMIDOS.md` antes de
+> escrever.
 
 - **a** — a contingência de login de 3.1, e quando ela sai;
 - **b** — a troca de senha órfã de 3.4;

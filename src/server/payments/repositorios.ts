@@ -8,7 +8,7 @@
 
 import 'server-only'
 
-import type { RegistroIdempotencia } from '@/lib/payments'
+import { RepositorioIdempotenciaMemoria, type RegistroIdempotencia } from '@/lib/payments'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import {
   anotarPagamentoNaIntencao,
@@ -117,50 +117,14 @@ const postgresIdempotencia: RepositorioIdempotenciaServidor = {
   },
 }
 
-/** Adaptador em memória — para `npm run dev` sem banco e para a suíte. */
-class MemoriaIdempotencia implements RepositorioIdempotenciaServidor {
-  private mapa = new Map<string, RegistroIdempotencia>()
-
-  async reivindicar(eventoId: string, tipo = 'payment') {
-    const existente = this.mapa.get(eventoId)
-    if (existente && existente.status !== 'falha') {
-      return { podeProcessar: false, registro: existente }
-    }
-    const novo: RegistroIdempotencia = {
-      id: `${GATEWAY}:${eventoId}`,
-      eventoId,
-      gateway: GATEWAY,
-      tipo,
-      processadoEm: Date.now(),
-      status: 'em_processamento',
-    }
-    this.mapa.set(eventoId, novo)
-    return { podeProcessar: true, registro: novo }
-  }
-
-  async concluir(eventoId: string, resultado?: unknown): Promise<void> {
-    const reg = this.mapa.get(eventoId)
-    if (reg) {
-      reg.status = 'processado'
-      reg.resultado = resultado
-    }
-  }
-
-  async falhar(eventoId: string): Promise<void> {
-    this.mapa.delete(eventoId)
-  }
-
-  async verificar(eventoId: string): Promise<boolean> {
-    const reg = this.mapa.get(eventoId)
-    return reg !== undefined && reg.status !== 'falha'
-  }
-
-  limpar(): void {
-    this.mapa.clear()
-  }
-}
-
-const memoriaIdempotencia = new MemoriaIdempotencia()
+/**
+ * Adaptador em memória — para `npm run dev` sem banco e para a suíte.
+ *
+ * É a MESMA classe de `src/lib/payments/idempotencia.ts`: até 03/09/2026 havia
+ * uma segunda implementação aqui, quase igual, e duas cópias da mesma regra
+ * divergem no primeiro dia em que alguém corrige só uma.
+ */
+const memoriaIdempotencia = new RepositorioIdempotenciaMemoria()
 
 export function repositorioIdempotencia(): RepositorioIdempotenciaServidor {
   return bancoConfigurado() ? postgresIdempotencia : memoriaIdempotencia
@@ -267,7 +231,7 @@ export function repositorioIntencoes(): RepositorioIntencoes {
 
 /** Usado só pela suíte, para que um teste não enxergue o estado do anterior. */
 export function _limparRepositoriosEmMemoria(): void {
-  memoriaIdempotencia.limpar()
+  memoriaIdempotencia.resetParaTestes()
   memoriaIntencoes.limpar()
 }
 

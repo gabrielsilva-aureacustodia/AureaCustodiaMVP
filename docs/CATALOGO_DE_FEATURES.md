@@ -174,12 +174,14 @@ sem alteração. `getState()`/`mutateState()` mantiveram a assinatura.
 | Migration aplicada no Supabase e produção sobre tabelas | ⏳ passo do Gabriel |
 | Remoção de `src/server/store/` (passo 9) | ⏳ após a produção rodar sobre tabelas |
 
-## 4.2 🔵 Supabase Auth com Google
+## 4.2 ✅ Supabase Auth com Google
 
-Google é integração nativa do Supabase Auth. Resolve de uma vez a dívida de senhas em texto
-puro.
+Implementado na frente `feat/auth-landing`: login e cadastro por e-mail, confirmação,
+Google OAuth com PKCE, callback servidor, aceite legal versionado e troca de senha pelo
+Supabase. A decisão foi recriar as contas dos sócios do zero. Cada identidade confirmada
+recebe automaticamente R$ 5.000,00 e seis moedas fictícias para o teste.
 
-⚪ **Aguardando decisão:** as sete contas de teste migram ou são recriadas?
+O caminho histórico do seed só funciona em ambiente sem as variáveis do Supabase (RA-17).
 
 ## 4.3 🔵 Ledger financeiro e trilha de auditoria
 
@@ -223,10 +225,10 @@ As três restrições de negócio entregues como regra de código:
 Estrutura contábil pronta, **alíquotas como configuração externa**. Mesmo com o regime
 decidido, a alíquota efetiva depende de faturamento e muda por lei.
 
-## 4.6b 🔵 Landing page e cadastro de usuário
+## 4.6b ✅ Landing page e cadastro de usuário
 
-**Pedido em 01/09/2026.** Hoje a raiz `/` é a tela de login — quem chega no endereço cai
-direto num formulário, sem nenhuma explicação do que é a plataforma.
+**Entregue pela frente A.** A raiz `/` é a landing pública, `/entrar` concentra o login e
+`/cadastrar` cria contas reais no Supabase Auth com dados operacionais fictícios.
 
 ### O que muda de rota
 
@@ -263,8 +265,8 @@ os caminhos funcionando.
   `aureacustodia.com.br` — sem isso a mensagem cai em spam, e e-mail de confirmação que não
   chega é cadastro que não acontece)
 
-**Depende da Fase 2** (Supabase Auth). A landing em si pode ser construída antes; o cadastro
-funcional, não.
+O código e as rotas estão completos. O teste externo depende apenas do deploy da branch com
+as variáveis e redirects já configurados nos painéis da Vercel, Supabase e Google.
 
 ### ⚪ O que trava esta feature, e não é técnico
 

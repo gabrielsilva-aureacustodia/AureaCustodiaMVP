@@ -11,11 +11,19 @@ docs/
 ├── prompts/                        Mensagens de abertura de cada frente
 ├── EXECUCAO_POS_FRENTES_PARALELAS.md  Auditoria das três branches e o plano do que falta
 ├── EXECUCAO_BRANCH_C_O_QUE_FALTA.md   Frente C em detalhe: correções, integração e tutoriais
+├── CHECKUP_GERAL_03_09.md           🩺 Check-up geral do repositório: achados, correções, rotas testadas
+├── EXECUCOES_MANUAIS_PENDENTES.md   👤 Tudo que só o Gabriel/sócios fazem, em ordem, com como conferir
+├── GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md  🌐 Vercel agora; e-mail HostGator e domínio próprio depois
+├── ARQUITETURA_O_QUE_FALTA.md       🏗️ O que ainda falta ou pode melhorar na arquitetura, com custo e caminho
+├── GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md  🚀 Roteiro executivo do merge e deploy da Frente A
+├── RELATORIO_FINAL_BRANCH_A_LOGIN_LANDING.md  ✅ Entrega final, mudanças e teste da Branch A
+├── CONFIGURACAO_BRANCH_A_SUPABASE_GOOGLE_RESEND.md  🔑 Guia de credenciais e variáveis da Frente A
+├── ENTREGA_AUTH_LANDING.md          Especificação técnica detalhada da Frente A
 ├── EXECUCAO_FINAL_AGENTE_A.md       🅰️ O que falta na frente A — para entregar ao agente dela
 ├── EXECUCAO_FINAL_AGENTE_B.md       🅱️ O que falta na frente B: a virada de produção, em ordem
 ├── EXECUCAO_FINAL_AGENTE_C.md       🅲 O que falta na frente C depois da C-3
-├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md   Frente A: histórico da auditoria da manhã de 03/09
-├── EXECUCAO_BRANCH_B_O_QUE_FALTA.md   Frente B (backbone): auditoria arquivo a arquivo e o cutover de produção
+├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md Frente A: histórico da auditoria da manhã de 03/09
+├── EXECUCAO_BRANCH_B_O_QUE_FALTA.md Frente B (backbone): auditoria arquivo a arquivo e o cutover de produção
 ├── ARQUITETURA_E_PASTAS.md          O mapa do repositório e o contrato entre as pastas
 ├── CATALOGO_DE_FEATURES.md          O que foi pedido, o que existe, o que falta
 ├── DECISOES_D1_D9_E_PLANO.md        A ata das decisões e o plano que sai delas
@@ -75,7 +83,11 @@ Mudam quando o assunto muda, não por rotina.
 | Vai abrir uma frente nova em outro chat | `FRENTES_PARALELAS.md` → `prompts/` |
 | Vai pôr o banco novo em produção | `CUTOVER_BANCO_PRODUCAO.md` |
 | Vai juntar as três frentes de 02/09 | `EXECUCAO_POS_FRENTES_PARALELAS.md` |
+| **Vai fazer o merge e publicar a Frente A** | `GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md` |
 | **Vai tocar uma frente hoje** | `EXECUCAO_FINAL_AGENTE_A.md`, `_B.md` ou `_C.md` |
+| **Vai configurar contas, DNS, variáveis** | `EXECUCOES_MANUAIS_PENDENTES.md` |
+| **Vai configurar Vercel, e-mail HostGator ou domínio próprio** | `GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md` |
+| Quer saber o que a arquitetura ainda deve | `ARQUITETURA_O_QUE_FALTA.md` |
 | Vai ligar a planilha do contador | `INTEGRACAO_GOOGLE_SHEETS.md` → `API_RELATORIOS.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
 | Quer saber que atalhos a plataforma deve | `../RISCOS_ASSUMIDOS.md` (raiz) |
@@ -92,3 +104,10 @@ Mudam quando o assunto muda, não por rotina.
 | `diario/VERSION_COMPARISON_DAILY.md` | A cada leitura diária — **acrescentando**, nunca editando |
 | `diario/RITUAL_DE_SESSAO.md` | Só quando a **estrutura** muda: banco, serviço, variável, dependência ou processo de deploy. Não muda por causa de feature |
 | `README.md` de uma pasta | **No mesmo commit** em que um arquivo é criado ou removido nela |
+
+## Regra: nada na raiz
+
+Documento de projeto vive **aqui**, em `docs/`. A raiz do repositório tem só `CLAUDE.md`,
+`AGENTS.md`, `README.md`, `RISCOS_ASSUMIDOS.md` e arquivos de configuração. Três vezes
+apareceram cópias de `docs/*.md` na raiz — uma delas desatualizada em relação à original.
+Duas cópias divergem no primeiro dia em que alguém atualiza só uma.

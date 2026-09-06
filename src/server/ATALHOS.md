@@ -48,13 +48,9 @@ subir um container, semear e exercitar as ações ponta a ponta.
 
 ---
 
-## RA-15 🔴 — `actions/signup.ts`, o cadastro simulado (03/09/2026)
+## RA-15 ✅ — cadastro simulado removido (06/09/2026)
 
-Cria conta com dados fictícios e abre a sessão, sem verificação de e-mail e sem aceite de
-termos. A senha é gravada em texto puro, como no resto do MVP (RA-02).
-
-É arquivo NOVO em vez de um trecho dentro de `actions/auth.ts` porque a frente A reescreveu
-`auth.ts` inteiro: separado, ele some com um `git rm` no dia do merge, sem conflito.
-
-**Como se paga:** apagar o arquivo junto com `src/app/criar-conta/` e `src/app/entrar-demo/`
-quando a frente A entrar. Ver RA-15 em `RISCOS_ASSUMIDOS.md`.
+`actions/signup.ts`, `/criar-conta`, `/entrar-demo` e `SignupForm.tsx` foram removidos.
+O provisionamento fictício passou para `auth/provisioning.ts` e só roda depois de a
+identidade ser confirmada pelo Supabase. A contingência das sete contas do seed está no
+RA-17 e em `src/server/auth/ATALHOS.md`.

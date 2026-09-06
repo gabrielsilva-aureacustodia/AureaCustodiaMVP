@@ -355,7 +355,7 @@ Estas vieram do MVP e continuam abertas — nenhuma é regressão da refatoraç�
   documento de requisitos NFT, ainda não implementado.
 - **Sem termos de uso com aceite versionado nem política de privacidade/LGPD.** Entram
   antes de qualquer cliente real.
-- **Integrações ausentes:** Pix/cartão (PSP nacional), Correios/Melhor Envio, login Google,
+- **Integrações externas a validar no ambiente:** credenciais sandbox, Correios e Google OAuth;
   e-mail transacional. O MVP já modela os objetos que essas APIs devolvem.
 - **Contradição tributária em aberto:** planilha usa Lucro Presumido 16,33%; documento
   explicativo fala Simples Nacional com Fator R. Definir com o contador.
