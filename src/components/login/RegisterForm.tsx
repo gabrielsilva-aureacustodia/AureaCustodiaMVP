@@ -1,6 +1,6 @@
 'use client'
 
-/** Formulário de cadastro protegido pela trava legal do RA-03. */
+/** Formulário de cadastro. Sem trava de aceite legal — ver RA-18. */
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -30,7 +30,9 @@ export function RegisterForm({
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
-  const [accepted, setAccepted] = useState(false)
+  // Marcado por padrao e sem `required`: o aceite e registrado, nunca trava
+  // o cadastro. Ver RA-18.
+  const [accepted, setAccepted] = useState(true)
   const [erro, setErro] = useState(initialError)
   const [mensagem, setMensagem] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -47,7 +49,7 @@ export function RegisterForm({
     setErro('')
     setMensagem('')
     try {
-      const result = await registerWithEmail(name, email, senha, accepted)
+      const result = await registerWithEmail(name, email, senha)
       if (!result.ok) {
         setErro(result.error ?? 'Não foi possível criar a conta.')
         return
@@ -63,7 +65,7 @@ export function RegisterForm({
     setEnviando(true)
     setErro('')
     try {
-      const result = await registerWithGoogle(accepted)
+      const result = await registerWithGoogle()
       if (!result.ok || !result.data?.redirectTo) {
         setErro(result.error ?? 'Não foi possível iniciar o acesso com Google.')
         return
@@ -159,7 +161,6 @@ export function RegisterForm({
                 type="checkbox"
                 checked={accepted}
                 onChange={(event) => setAccepted(event.target.checked)}
-                required
               />
               <span>
                 Li e aceito os{' '}
