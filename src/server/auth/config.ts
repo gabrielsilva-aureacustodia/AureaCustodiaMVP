@@ -78,15 +78,25 @@ export function isAuthConfigured(): boolean {
 }
 
 /**
- * O cadastro só abre quando há uma decisão operacional explícita E versões
- * dos dois documentos legais. Assim uma variável esquecida não reabre sozinha
- * a coleta pública de dados pessoais registrada no RA-03.
+ * Versão legal padrão do ambiente de teste. Os rascunhos vivem em /termos e
+ * /privacidade; o aceite continua sendo gravado com versão e data, mas a
+ * ausência da variável não fecha mais o cadastro — ver RA-18.
+ */
+const VERSAO_LEGAL_PADRAO = 'rascunho-teste-2026-09-06'
+
+/**
+ * O cadastro fica aberto sempre que o Supabase Auth existir no ambiente.
+ *
+ * Antes exigia também `AUREA_SIGNUP_ENABLED=true` e as duas versões legais, e
+ * uma variável faltando derrubava a função inteira em produção com a tela
+ * "Cadastro temporariamente fechado". Num MVP de teste, sem cliente real e sem
+ * dado pessoal de terceiros, essa trava só impedia o que se queria testar.
+ * O que sobrou é dependência técnica de verdade: sem Supabase não há cadastro.
  */
 export function getRegistrationStatus(): RegistrationStatus {
   const authConfigured = isAuthConfigured()
-  const requested = process.env.AUREA_SIGNUP_ENABLED === 'true'
-  const termsVersion = envValue('AUREA_TERMS_VERSION')
-  const privacyVersion = envValue('AUREA_PRIVACY_VERSION')
+  const termsVersion = envValue('AUREA_TERMS_VERSION') ?? VERSAO_LEGAL_PADRAO
+  const privacyVersion = envValue('AUREA_PRIVACY_VERSION') ?? VERSAO_LEGAL_PADRAO
   // Os rascunhos vivem na própria aplicação. URLs externas continuam aceitas
   // para a versão revisada pelo advogado, mas não são necessárias para testar
   // o aceite versionado enquanto o RA-03 segue explicitamente aberto.
@@ -102,30 +112,6 @@ export function getRegistrationStatus(): RegistrationStatus {
       termsUrl,
       privacyUrl,
       reason: 'A autenticação ainda não foi configurada neste ambiente.',
-    }
-  }
-
-  if (!requested) {
-    return {
-      enabled: false,
-      authConfigured,
-      termsVersion,
-      privacyVersion,
-      termsUrl,
-      privacyUrl,
-      reason: 'Novos cadastros estão temporariamente fechados.',
-    }
-  }
-
-  if (!termsVersion || !privacyVersion) {
-    return {
-      enabled: false,
-      authConfigured,
-      termsVersion,
-      privacyVersion,
-      termsUrl,
-      privacyUrl,
-      reason: 'O cadastro aguarda as versões vigentes dos documentos legais.',
     }
   }
 

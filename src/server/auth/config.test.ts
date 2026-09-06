@@ -49,12 +49,19 @@ describe('configuração do Supabase Auth', () => {
     })
   })
 
-  it('mantém cadastro fechado quando faltam as versões legais', () => {
+  // O cadastro não depende mais das versões legais nem de AUREA_SIGNUP_ENABLED:
+  // com o Supabase configurado, ele abre e o aceite usa a versão padrão de
+  // teste. Ver RA-18 — a trava anterior derrubava a função em produção.
+  it('abre o cadastro só com o Auth configurado, usando a versão legal padrão', () => {
     limparAuthEnv()
     vi.stubEnv('SUPABASE_URL', 'https://projeto.supabase.co')
     vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_teste')
-    vi.stubEnv('AUREA_SIGNUP_ENABLED', 'true')
 
-    expect(getRegistrationStatus()).toMatchObject({ enabled: false, authConfigured: true })
+    expect(getRegistrationStatus()).toMatchObject({
+      enabled: true,
+      authConfigured: true,
+      termsVersion: 'rascunho-teste-2026-09-06',
+      privacyVersion: 'rascunho-teste-2026-09-06',
+    })
   })
 })
