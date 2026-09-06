@@ -35,3 +35,14 @@ Removidas todas as barreiras entre identidade confirmada e sessão:
 - `setPendingLegalAcceptance()` nunca lança: guardar aceite é registro, não autorização.
 
 O aceite continua sendo gravado quando existe. Ele deixou de decidir quem entra.
+
+## RA-19 🟠 — entrada pelo catálogo local
+
+`loginDoCatalogoLocal()` em `src/server/actions/auth.ts` roda **antes** do Supabase para
+qualquer e-mail de `ACCOUNTS`. A conta do Rogério (`rogerio@aureacustodia.com.br`, senha
+`12345678`) existe para garantir a demonstração do site mesmo com a autenticação fora.
+
+Quando a conta ainda não existe no estado, é criada com o saldo e o acervo de `DEMO_DATA`
+em `src/domain/constants.ts` — R$ 85.000,00 e 18 moedas no caso do Rogério.
+
+Remover antes do primeiro cliente real.

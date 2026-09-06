@@ -194,6 +194,10 @@ export const COIN_TYPES: CoinType[] = [
  * quebraria a paridade de comportamento que este port precisa provar.
  */
 export const ACCOUNTS: Record<string, { pass: string; name: string }> = {
+  // Conta de demonstração do Rogério. Entra sempre pelo catálogo local, sem
+  // depender do Supabase, para que a apresentação do site funcione mesmo se a
+  // integração de login estiver fora do ar. Ver RA-19.
+  'rogerio@aureacustodia.com.br': { pass: '12345678', name: 'Rogério Pena' },
   'rogeriopena@testeaurea.com.br': { pass: '12345678', name: 'Rogério Pena' },
   'gabrielsilva@testeaurea.com.br': { pass: '12345678', name: 'Gabriel Silva' },
   'alex@testeaurea.com.br': { pass: '12345678', name: 'Alex' },
@@ -201,6 +205,22 @@ export const ACCOUNTS: Record<string, { pass: string; name: string }> = {
   'rozane@testeaurea.com.br': { pass: '12345678', name: 'Rozane' },
   'goturuba@testeaurea.com.br': { pass: '12345678', name: 'Goturuba' },
   'solares@testeaurea.com.br': { pass: '12345678', name: 'Solares' },
+}
+
+/**
+ * Saldo e acervo de cada conta do catálogo, usados quando ela precisa ser
+ * criada sob demanda — banco já semeado antes de a conta existir, por exemplo.
+ * Mantém a demonstração idêntica ao que o seed produziria.
+ */
+export const DEMO_DATA: Record<string, { balance: number; coins: number; entrada: string }> = {
+  'rogerio@aureacustodia.com.br': { balance: 8_500_000, coins: 18, entrada: '15/06/2026' },
+  'rogeriopena@testeaurea.com.br': { balance: 6_200_000, coins: 15, entrada: '18/06/2026' },
+  'gabrielsilva@testeaurea.com.br': { balance: 5_400_000, coins: 13, entrada: '20/06/2026' },
+  'alex@testeaurea.com.br': { balance: 3_800_000, coins: 9, entrada: '22/06/2026' },
+  'pegge@testeaurea.com.br': { balance: 4_100_000, coins: 10, entrada: '22/06/2026' },
+  'rozane@testeaurea.com.br': { balance: 3_550_000, coins: 8, entrada: '23/06/2026' },
+  'goturuba@testeaurea.com.br': { balance: 9_700_000, coins: 21, entrada: '18/06/2026' },
+  'solares@testeaurea.com.br': { balance: 4_400_000, coins: 11, entrada: '24/06/2026' },
 }
 
 /**

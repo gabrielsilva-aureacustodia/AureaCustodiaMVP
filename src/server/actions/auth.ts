@@ -9,8 +9,10 @@
  * mockados daquele e-mail antes de criar a sessão interna.
  */
 
-import { ACCOUNTS } from '@/domain/constants'
-import type { ActionResult } from '@/domain/types'
+import { ACCOUNTS, DEMO_DATA } from '@/domain/constants'
+import { fdate } from '@/domain/dates'
+import { mkCoinsForUser } from '@/domain/seed'
+import type { ActionResult, User } from '@/domain/types'
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
 import {
@@ -34,24 +36,46 @@ function authError<T = unknown>(): ActionResult<T> {
   return { ok: false, error: FALHA_AUTENTICACAO }
 }
 
-/** Mantém as sete contas do seed acessíveis até o Supabase existir no ambiente. */
-async function loginDeContingencia(email: string, senha: string): Promise<ActionResult> {
+/**
+ * Entrada pelo catálogo local — RA-19.
+ *
+ * Vale para as contas de demonstração (`ACCOUNTS`), entre elas a do Rogério em
+ * `rogerio@aureacustodia.com.br`. Não passa pelo Supabase em momento nenhum:
+ * se a integração de login estiver fora do ar, com chave errada, com o e-mail
+ * de confirmação barrado ou com o OAuth quebrado, a demonstração do site
+ * continua funcionando. É a rede de segurança da apresentação.
+ *
+ * Quando a conta ainda não existe no estado — banco semeado antes de ela ser
+ * criada, por exemplo — ela é criada aqui com o saldo e o acervo de `DEMO_DATA`,
+ * os mesmos que o seed produziria.
+ */
+async function loginDoCatalogoLocal(email: string, senha: string): Promise<ActionResult | null> {
   const account = ACCOUNTS[email]
-  if (!account) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+  if (!account) return null
 
   const state = await getState()
-  const user = state.users[email]
-  if (!user) return { ok: false, error: CREDENCIAIS_INVALIDAS }
-  if (senha !== (user.pass || account.pass)) {
-    return { ok: false, error: CREDENCIAIS_INVALIDAS }
-  }
+  const existente = state.users[email]
+  const senhaEsperada = existente?.pass || account.pass
+  if (senha !== senhaEsperada) return { ok: false, error: CREDENCIAIS_INVALIDAS }
 
   await mutateState((current) => {
-    const currentUser = current.users[email]
-    if (!currentUser) return
-    currentUser.prevAccess = currentUser.lastAccess
-    currentUser.lastAccess = Date.now()
+    const atual = current.users[email]
+    if (atual) {
+      atual.prevAccess = atual.lastAccess
+      atual.lastAccess = Date.now()
+      return
+    }
+
+    const demo = DEMO_DATA[email]
+    const novo: User = {
+      name: account.name,
+      balance: demo?.balance ?? 500_000,
+      coins: mkCoinsForUser(current.seq, demo?.coins ?? 6, demo?.entrada ?? fdate(Date.now())),
+      lastAccess: Date.now(),
+    }
+    current.users[email] = novo
   })
+
   await setSession(email)
   return { ok: true }
 }
@@ -64,6 +88,11 @@ function nomeDoSupabase(metadata: Record<string, unknown>): string | undefined {
 export async function login(email: string, senha: string): Promise<ActionResult> {
   const normalized = email.trim().toLowerCase()
   if (!normalized || !senha) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+  // As contas de demonstração entram sempre por aqui, antes de qualquer
+  // chamada ao Supabase. Ver RA-19.
+  const local = await loginDoCatalogoLocal(normalized, senha)
+  if (local) return local
 
   try {
     const client = await createAuthClient()
@@ -89,11 +118,7 @@ export async function login(email: string, senha: string): Promise<ActionResult>
     return { ok: true }
   } catch (error) {
     if (error instanceof AuthConfigurationError) {
-      try {
-        return await loginDeContingencia(normalized, senha)
-      } catch {
-        return { ok: false, error: FALHA_AUTENTICACAO }
-      }
+      return { ok: false, error: CREDENCIAIS_INVALIDAS }
     }
     return authError()
   }
