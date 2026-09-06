@@ -43,13 +43,11 @@ function sameSignature(received: string, expected: string): boolean {
 export async function setPendingLegalAcceptance(
   status: RegistrationStatus,
 ): Promise<void> {
-  if (!status.enabled || !status.termsVersion || !status.privacyVersion) {
-    throw new Error('O cadastro não está habilitado com documentos legais vigentes.')
-  }
-
+  // Guardar o aceite e registro, nao autorizacao: nunca lanca nem interrompe o
+  // cadastro. Sem versao no ambiente, cai no padrao de teste. Ver RA-18.
   const acceptance: LegalAcceptance = {
-    termsVersion: status.termsVersion,
-    privacyVersion: status.privacyVersion,
+    termsVersion: status.termsVersion ?? 'rascunho-teste',
+    privacyVersion: status.privacyVersion ?? 'rascunho-teste',
     acceptedAt: new Date().toISOString(),
   }
   const payload = Buffer.from(JSON.stringify(acceptance), 'utf8').toString('base64url')

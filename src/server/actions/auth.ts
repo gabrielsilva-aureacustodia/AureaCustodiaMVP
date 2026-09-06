@@ -24,9 +24,6 @@ import { clearSession, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
-const EMAIL_NAO_CONFIRMADO = 'Confirme seu e-mail antes de entrar.'
-const CONTA_NAO_PROVISIONADA =
-  'Conta autenticada, mas os dados de teste ainda não foram carregados. Fale com a equipe da Áurea.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
 
 export interface OAuthStartData {
@@ -64,14 +61,6 @@ function nomeDoSupabase(metadata: Record<string, unknown>): string | undefined {
   return typeof name === 'string' ? name : undefined
 }
 
-function possuiAceiteLegal(metadata: Record<string, unknown>): boolean {
-  return (
-    typeof metadata.legal_terms_version === 'string' &&
-    typeof metadata.privacy_policy_version === 'string' &&
-    typeof metadata.legal_accepted_at === 'string'
-  )
-}
-
 export async function login(email: string, senha: string): Promise<ActionResult> {
   const normalized = email.trim().toLowerCase()
   if (!normalized || !senha) return { ok: false, error: CREDENCIAIS_INVALIDAS }
@@ -84,23 +73,16 @@ export async function login(email: string, senha: string): Promise<ActionResult>
     })
 
     if (error || !data.user?.email) return { ok: false, error: CREDENCIAIS_INVALIDAS }
-    if (!data.user.email_confirmed_at) {
-      await client.auth.signOut({ scope: 'local' })
-      return { ok: false, error: EMAIL_NAO_CONFIRMADO }
-    }
 
-    let provisioned = await authorizeProvisionedUser(data.user.email)
-    if (!provisioned && possuiAceiteLegal(data.user.user_metadata)) {
+    // Identidade confirmada pelo Supabase basta para provisionar. A exigência
+    // de aceite legal no metadata trancava para fora quem tinha confirmado o
+    // e-mail mas cujo aceite não sobreviveu ao caminho — ver RA-18.
+    const provisioned = await authorizeProvisionedUser(data.user.email)
+    if (!provisioned) {
       await provisionAuthenticatedUser(
         data.user.email,
         nomeDoSupabase(data.user.user_metadata),
       )
-      provisioned = true
-    }
-    if (!provisioned) {
-      await client.auth.signOut({ scope: 'local' })
-      await clearSession()
-      return { ok: false, error: CONTA_NAO_PROVISIONADA }
     }
 
     await setSession(data.user.email.trim().toLowerCase())
@@ -121,21 +103,16 @@ export async function registerWithEmail(
   name: string,
   email: string,
   senha: string,
-  acceptedLegalTerms: boolean,
 ): Promise<ActionResult> {
   const status = getRegistrationStatus()
-  if (!status.enabled || !status.termsVersion || !status.privacyVersion) {
+  if (!status.enabled) {
     return { ok: false, error: status.reason ?? 'Novos cadastros estão fechados.' }
   }
-  if (!acceptedLegalTerms) {
-    return { ok: false, error: 'Aceite os Termos de Uso e a Política de Privacidade.' }
-  }
 
+  // Sem validacao local de nome, e-mail ou tamanho de senha: quem valida e o
+  // Supabase, e a mensagem dele e mais precisa do que a nossa. Ver RA-18.
   const normalizedName = name.trim()
   const normalizedEmail = email.trim().toLowerCase()
-  if (normalizedName.length < 3) return { ok: false, error: 'Informe seu nome completo.' }
-  if (!normalizedEmail.includes('@')) return { ok: false, error: 'Informe um e-mail válido.' }
-  if (senha.length < 8) return { ok: false, error: 'A senha precisa ter pelo menos 8 caracteres.' }
 
   try {
     const client = await createAuthClient()
@@ -154,7 +131,7 @@ export async function registerWithEmail(
       },
     })
 
-    if (error) return { ok: false, error: FALHA_AUTENTICACAO }
+    if (error) return { ok: false, error: error.message || FALHA_AUTENTICACAO }
     if (data.user?.email && data.user.email_confirmed_at) {
       await provisionAuthenticatedUser(data.user.email, normalizedName)
       await client.auth.signOut({ scope: 'local' })
@@ -192,15 +169,10 @@ export async function loginWithGoogle(): Promise<ActionResult<OAuthStartData>> {
   }
 }
 
-export async function registerWithGoogle(
-  acceptedLegalTerms: boolean,
-): Promise<ActionResult<OAuthStartData>> {
+export async function registerWithGoogle(): Promise<ActionResult<OAuthStartData>> {
   const status = getRegistrationStatus()
   if (!status.enabled) {
     return { ok: false, error: status.reason ?? 'Novos cadastros estão fechados.' }
-  }
-  if (!acceptedLegalTerms) {
-    return { ok: false, error: 'Aceite os Termos de Uso e a Política de Privacidade.' }
   }
 
   try {

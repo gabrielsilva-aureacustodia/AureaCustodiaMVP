@@ -21,3 +21,17 @@ variável de ambiente. Com o Supabase configurado, o cadastro abre; as versões 
 
 A trava anterior derrubou a função em produção por uma variável ausente. Rever quando
 houver cliente real: aí a versão vigente volta a vir de variável.
+
+### Ampliação de 06/09/2026 — nenhuma trava de login
+
+Removidas todas as barreiras entre identidade confirmada e sessão:
+
+- o callback aceita `code`, `token_hash`, `token` e a sessão no fragmento, então o template
+  padrão do Supabase funciona sem SMTP próprio;
+- o provisionamento não exige mais aceite legal — era o que quebrava "Entrar com Google";
+- o login não exige mais `email_confirmed_at`;
+- o cadastro não exige checkbox de aceite nem valida nome, e-mail e senha localmente: quem
+  valida é o Supabase, cuja mensagem é mais precisa;
+- `setPendingLegalAcceptance()` nunca lança: guardar aceite é registro, não autorização.
+
+O aceite continua sendo gravado quando existe. Ele deixou de decidir quem entra.
