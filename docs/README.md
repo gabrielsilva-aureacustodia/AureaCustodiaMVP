@@ -16,6 +16,7 @@ docs/
 ├── GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md  🌐 Vercel agora; e-mail HostGator e domínio próprio depois
 ├── ARQUITETURA_O_QUE_FALTA.md       🏗️ O que ainda falta ou pode melhorar na arquitetura, com custo e caminho
 ├── EXECUCAO_FINAL_AGENTE_A.md       🅰️ O que falta na frente A — para entregar ao agente dela
+├── RELATORIO_FINAL_BRANCH_A_LOGIN_LANDING.md  ✅ Entrega final, mudanças e teste da Branch A
 ├── EXECUCAO_FINAL_AGENTE_B.md       🅱️ O que falta na frente B: a virada de produção, em ordem
 ├── EXECUCAO_FINAL_AGENTE_C.md       🅲 O que falta na frente C depois da C-3
 ├── EXECUCAO_BRANCH_A_O_QUE_FALTA.md   Frente A: histórico da auditoria da manhã de 03/09

@@ -13,10 +13,24 @@ import type { User } from '@supabase/supabase-js'
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
 import { consumePendingLegalAcceptance } from '@/server/auth/legal'
+import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { clearSession, setSession } from '@/server/session'
 
 function destination(request: Request, path: string): URL {
   return new URL(path, request.url)
+}
+
+function nomeDoUsuario(user: User): string | undefined {
+  const name = user.user_metadata.full_name ?? user.user_metadata.name
+  return typeof name === 'string' ? name : undefined
+}
+
+function possuiAceiteLegal(user: User): boolean {
+  return (
+    typeof user.user_metadata.legal_terms_version === 'string' &&
+    typeof user.user_metadata.privacy_policy_version === 'string' &&
+    typeof user.user_metadata.legal_accepted_at === 'string'
+  )
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -51,31 +65,39 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
     }
 
+    let podeProvisionar = possuiAceiteLegal(user)
+
     if (user.app_metadata.provider === 'google') {
       const acceptance = await consumePendingLegalAcceptance()
-      if (!acceptance) {
-        await client.auth.signOut({ scope: 'local' })
-        return NextResponse.redirect(destination(request, '/cadastrar?erro=aceite-oauth'))
-      }
-
-      const { error: metadataError } = await client.auth.updateUser({
-        data: {
-          legal_terms_version: acceptance.termsVersion,
-          privacy_policy_version: acceptance.privacyVersion,
-          legal_accepted_at: acceptance.acceptedAt,
-        },
-      })
-      if (metadataError) {
-        await client.auth.signOut({ scope: 'local' })
-        return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+      if (acceptance) {
+        const { error: metadataError } = await client.auth.updateUser({
+          data: {
+            legal_terms_version: acceptance.termsVersion,
+            privacy_policy_version: acceptance.privacyVersion,
+            legal_accepted_at: acceptance.acceptedAt,
+          },
+        })
+        if (metadataError) {
+          await client.auth.signOut({ scope: 'local' })
+          return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+        }
+        podeProvisionar = true
       }
     }
 
-    const provisioned = await authorizeProvisionedUser(user.email)
+    let provisioned = await authorizeProvisionedUser(user.email)
+    if (!provisioned && podeProvisionar) {
+      await provisionAuthenticatedUser(user.email, nomeDoUsuario(user))
+      provisioned = true
+    }
     if (!provisioned) {
       await client.auth.signOut({ scope: 'local' })
       await clearSession()
-      return NextResponse.redirect(destination(request, '/entrar?status=conta-pendente'))
+      const path =
+        user.app_metadata.provider === 'google'
+          ? '/cadastrar?erro=aceite-oauth'
+          : '/entrar?status=conta-pendente'
+      return NextResponse.redirect(destination(request, path))
     }
 
     await setSession(user.email.trim().toLowerCase())

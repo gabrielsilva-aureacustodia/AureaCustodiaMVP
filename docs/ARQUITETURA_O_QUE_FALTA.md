@@ -34,11 +34,11 @@ Tom:        cada item diz o que existe hoje, por que está assim, o que custa e 
 
 | # | O quê | Onde | Sai quando |
 |---|---|---|---|
-| 2.1 | **Login sem senha e cadastro simulado** (RA-15) | `src/app/entrar-demo/`, `src/app/criar-conta/`, `src/server/actions/signup.ts`, `SignupForm.tsx` | No merge da frente A |
+| 2.1 | **Login sem senha e cadastro simulado** (RA-15) | ✅ removidos na frente A | Pago em 06/09/2026 |
 | 2.2 | **Dois motores atrás da mesma fachada** (`store/` blob + `db/` tabelas) | `src/server/store/`, ramo antigo de `state.ts`, `STORE_KEY` | Sessão B-2, uma semana depois da virada |
 | 2.3 | **Blob antigo no banco** (`aurea.aurea_state`) | Supabase | Migration `003_limpeza` na B-2 |
-| 2.4 | **Senha em texto puro** (`ACCOUNTS`, `user.pass`) | `domain/constants.ts`, `actions/account.ts` | Supabase Auth (frente A) + decisão sobre `changePassword` |
-| 2.5 | **Contingência de login** que a frente A vai adicionar | `actions/auth.ts` | Quando as sete contas existirem no Supabase Auth |
+| 2.4 | **Senha em texto puro** (`ACCOUNTS`, `user.pass`) | só contingência local RA-17 | Remover após recriar os sócios no Auth |
+| 2.5 | **Contingência de login** | `actions/auth.ts` | Quando as contas dos sócios existirem no Supabase Auth |
 
 ---
 
@@ -147,8 +147,8 @@ resumo fica verde com testes a menos. Confira sempre o número de arquivos e tes
 |---|---|---|
 | 8.1 | `/api/admin/conciliacao` só exigia sessão | **Corrigido no check-up** — exige administrador, com teste |
 | 8.2 | Token de relatórios na URL (RA-16.b) | Aceito para o `IMPORTDATA`; rotacionar ao trocar de contador |
-| 8.3 | `/entrar-demo` (RA-15) | Duas travas; sai com a frente A |
-| 8.4 | Sem limite de tentativas no login | Supabase Auth traz; até lá, sete contas |
+| 8.3 | `/entrar-demo` (RA-15) | **Removido em 06/09/2026** |
+| 8.4 | Sem limite de tentativas no login | Pago no Supabase; resta somente a contingência local RA-17 |
 | 8.5 | Sem cabeçalhos de segurança (CSP, HSTS) em `next.config.mjs` | Cinco linhas; entra antes do cliente real |
 | 8.6 | Logs com `console.*` e sem correlação | Um logger mínimo com id de requisição, quando houver mais de uma pessoa lendo log |
 | 8.7 | Alerta de `ajuste` no ledger só no log | Com cliente real: e-mail ou Slack a cada `ajuste` — é o sinal de que alguma ação mexeu em saldo por caminho desconhecido |

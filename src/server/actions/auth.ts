@@ -9,6 +9,7 @@
  * mockados daquele e-mail antes de criar a sessão interna.
  */
 
+import { ACCOUNTS } from '@/domain/constants'
 import type { ActionResult } from '@/domain/types'
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
@@ -18,25 +19,57 @@ import {
 } from '@/server/auth/config'
 import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
+import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { clearSession, setSession } from '@/server/session'
+import { getState, mutateState } from '@/server/state'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const EMAIL_NAO_CONFIRMADO = 'Confirme seu e-mail antes de entrar.'
 const CONTA_NAO_PROVISIONADA =
   'Conta autenticada, mas os dados de teste ainda não foram carregados. Fale com a equipe da Áurea.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
-const AUTH_NAO_CONFIGURADO =
-  'A autenticação ainda não está configurada neste ambiente. Fale com a equipe da Áurea.'
 
 export interface OAuthStartData {
   redirectTo: string
 }
 
-function authError<T = unknown>(error: unknown): ActionResult<T> {
-  if (error instanceof AuthConfigurationError) {
-    return { ok: false, error: AUTH_NAO_CONFIGURADO }
-  }
+function authError<T = unknown>(): ActionResult<T> {
   return { ok: false, error: FALHA_AUTENTICACAO }
+}
+
+/** Mantém as sete contas do seed acessíveis até o Supabase existir no ambiente. */
+async function loginDeContingencia(email: string, senha: string): Promise<ActionResult> {
+  const account = ACCOUNTS[email]
+  if (!account) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+  const state = await getState()
+  const user = state.users[email]
+  if (!user) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+  if (senha !== (user.pass || account.pass)) {
+    return { ok: false, error: CREDENCIAIS_INVALIDAS }
+  }
+
+  await mutateState((current) => {
+    const currentUser = current.users[email]
+    if (!currentUser) return
+    currentUser.prevAccess = currentUser.lastAccess
+    currentUser.lastAccess = Date.now()
+  })
+  await setSession(email)
+  return { ok: true }
+}
+
+function nomeDoSupabase(metadata: Record<string, unknown>): string | undefined {
+  const name = metadata.full_name ?? metadata.name
+  return typeof name === 'string' ? name : undefined
+}
+
+function possuiAceiteLegal(metadata: Record<string, unknown>): boolean {
+  return (
+    typeof metadata.legal_terms_version === 'string' &&
+    typeof metadata.privacy_policy_version === 'string' &&
+    typeof metadata.legal_accepted_at === 'string'
+  )
 }
 
 export async function login(email: string, senha: string): Promise<ActionResult> {
@@ -56,7 +89,14 @@ export async function login(email: string, senha: string): Promise<ActionResult>
       return { ok: false, error: EMAIL_NAO_CONFIRMADO }
     }
 
-    const provisioned = await authorizeProvisionedUser(data.user.email)
+    let provisioned = await authorizeProvisionedUser(data.user.email)
+    if (!provisioned && possuiAceiteLegal(data.user.user_metadata)) {
+      await provisionAuthenticatedUser(
+        data.user.email,
+        nomeDoSupabase(data.user.user_metadata),
+      )
+      provisioned = true
+    }
     if (!provisioned) {
       await client.auth.signOut({ scope: 'local' })
       await clearSession()
@@ -66,7 +106,14 @@ export async function login(email: string, senha: string): Promise<ActionResult>
     await setSession(data.user.email.trim().toLowerCase())
     return { ok: true }
   } catch (error) {
-    return authError(error)
+    if (error instanceof AuthConfigurationError) {
+      try {
+        return await loginDeContingencia(normalized, senha)
+      } catch {
+        return { ok: false, error: FALHA_AUTENTICACAO }
+      }
+    }
+    return authError()
   }
 }
 
@@ -93,7 +140,7 @@ export async function registerWithEmail(
   try {
     const client = await createAuthClient()
     const acceptedAt = new Date().toISOString()
-    const { error } = await client.auth.signUp({
+    const { data, error } = await client.auth.signUp({
       email: normalizedEmail,
       password: senha,
       options: {
@@ -108,13 +155,40 @@ export async function registerWithEmail(
     })
 
     if (error) return { ok: false, error: FALHA_AUTENTICACAO }
+    if (data.user?.email && data.user.email_confirmed_at) {
+      await provisionAuthenticatedUser(data.user.email, normalizedName)
+      await client.auth.signOut({ scope: 'local' })
+      return {
+        ok: true,
+        message: 'Conta criada e confirmada. Você já pode entrar.',
+      }
+    }
     await client.auth.signOut({ scope: 'local' })
     return {
       ok: true,
       message: 'Conta criada. Abra o e-mail de confirmação para validar seu acesso.',
     }
-  } catch (error) {
-    return authError(error)
+  } catch {
+    return authError()
+  }
+}
+
+/** Inicia Google OAuth para uma conta que já aceitou os termos anteriormente. */
+export async function loginWithGoogle(): Promise<ActionResult<OAuthStartData>> {
+  try {
+    const client = await createAuthClient()
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: await authCallbackUrl(),
+        skipBrowserRedirect: true,
+      },
+    })
+
+    if (error || !data.url) return { ok: false, error: FALHA_AUTENTICACAO }
+    return { ok: true, data: { redirectTo: data.url } }
+  } catch {
+    return authError<OAuthStartData>()
   }
 }
 
@@ -143,8 +217,8 @@ export async function registerWithGoogle(
 
     if (error || !data.url) return { ok: false, error: FALHA_AUTENTICACAO }
     return { ok: true, data: { redirectTo: data.url } }
-  } catch (error) {
-    return authError<OAuthStartData>(error)
+  } catch {
+    return authError<OAuthStartData>()
   }
 }
 

@@ -5,14 +5,16 @@ substitui a conferência de senhas do seed, mas preserva o cookie assinado e o
 contrato de sessão consumido pelas Server Actions durante a migração paralela
 do banco.
 
+Os atalhos temporários desta transição estão em [`ATALHOS.md`](ATALHOS.md), RA-17.
+
 ## Fluxos
 
-- E-mail e senha: `signInWithPassword` valida no Supabase; a aplicação só cria
-  sua sessão quando o e-mail também já existe no estado carregado pela frente B.
+- E-mail e senha: `signInWithPassword` valida no Supabase; depois da confirmação,
+  `provisioning.ts` cria saldo e acervo mockados se a conta ainda não existir.
 - Cadastro: `signUp` solicita confirmação por e-mail e grava em metadata as
   versões dos Termos e da Política aceitas, com data e hora.
-- Google: o OAuth usa PKCE e volta por `/entrar/callback`; o callback aplica a
-  mesma trava de provisionamento antes de liberar `/inicio`.
+- Google: o OAuth usa PKCE e volta por `/entrar/callback`; após o aceite legal,
+  o callback cria os dados mockados antes de liberar `/inicio`.
 - E-mail transacional: o Supabase Auth deve usar o SMTP do Resend configurado no
   painel. Nenhuma chave do Resend pertence ao navegador ou ao repositório.
 
@@ -51,7 +53,7 @@ requisição, o que mantém localhost e Preview isolados.
 
 ## Fronteira com a frente B
 
-Criar a identidade não inventa saldo nem moedas. Depois de criar e confirmar as
-contas reais dos sócios, a frente B carrega os dados mockados usando os e-mails
-normalizados como ligação. Até essa carga, o login informa que a conta está
-autenticada, mas ainda não habilitada na plataforma.
+O provisionamento usa exclusivamente `mutateState()`. Assim, com Postgres, a
+conta, o saldo, as moedas, o ledger e a auditoria são gravados na mesma camada
+transacional entregue pela frente B; sem Postgres, o mesmo fluxo funciona no
+adaptador de demonstração.

@@ -46,13 +46,13 @@ retentativa, por falha de rede. Sem idempotência, **o mesmo pagamento credita d
 
 ---
 
-## RA-02 🔴 — senha comparada em texto puro
+## RA-02 🔴 — senha em texto puro somente na contingência do seed
 
-**Arquivos:** `auth.ts` (`login`), `account.ts` (`changePassword`)
+**Arquivos:** `auth.ts` (`loginDeContingencia`), `account.ts` (`changePasswordContingencia`)
 
-A comparação é literal: `atual !== senhaEfetiva`. Não há hash em lugar nenhum do caminho.
-
-**Como se paga:** Supabase Auth (Fase 2) tira a senha das mãos da plataforma por completo.
+O fluxo configurado usa Supabase Auth no login e na troca de senha. A comparação literal
+resta apenas quando as variáveis do Supabase não existem, para manter as sete contas do
+seed acessíveis durante desenvolvimento. Remover junto com o RA-17 após recriar os sócios.
 
 ---
 

@@ -7,19 +7,13 @@
  * O QUE MUDA DE LUGAR (e é o motivo de existir esta camada)
  * --------------------------------------------------------
  * No monolito estas quatro rotinas rodavam no navegador em cima da global
- * `state`. A pior delas era savePassword: a senha efetiva vinha de ACCOUNTS, que
- * estava no bundle, e a comparação `cur !== effective` era uma linha que
- * qualquer pessoa reescrevia pelo console — trocar a senha de uma conta alheia
- * era questão de editar `session` antes. Aqui o e-mail vem do cookie assinado
- * (getSessionEmail) e a senha atual é conferida contra o estado do SERVIDOR.
+ * `state`. Aqui o e-mail vem do cookie assinado e a troca de senha é validada
+ * pelo Supabase Auth. A comparação com o seed resta somente como contingência
+ * para ambientes locais sem as variáveis de Auth (RA-17).
  *
  * O QUE NÃO MUDA (port fiel, dívidas conhecidas e deliberadas)
  * ------------------------------------------------------------
- *  - A senha continua em texto puro, tanto em ACCOUNTS quanto em `user.pass`.
- *    Hash é a Etapa 2 da migração (Seção 4.4 do documento técnico); mexer agora
- *    quebraria a paridade de comportamento com o login já portado em auth.ts.
- *  - `user.pass` tem precedência sobre ACCOUNTS — mesma regra do login. Sem ela,
- *    trocar a senha aqui não teria efeito nenhum na próxima entrada.
+ *  - `user.pass` tem precedência sobre ACCOUNTS apenas na contingência local.
  *  - A ordem das validações da troca de senha é a do original: senha atual,
  *    depois tamanho, depois confirmação. Trocar a ordem muda qual mensagem
  *    aparece quando há mais de um erro ao mesmo tempo.
@@ -32,6 +26,8 @@ import { ACCOUNTS, DEPOSITO_MAX } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
 import type { ActionResult, Cents } from '@/domain/types'
+import { createAuthClient } from '@/server/auth/client'
+import { AuthConfigurationError } from '@/server/auth/config'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -70,14 +66,12 @@ const NOTIF_KEYS: readonly string[] = ['notifEnvios', 'notifNegociacoes', 'notif
  * aqui — diferente do login — quem chama já está autenticado, então não existe a
  * superfície de força bruta anônima que fez auth.ts evitar escrever.
  */
-export async function changePassword(
+async function changePasswordContingencia(
+  email: string,
   atual: string,
   nova: string,
   confirmacao: string,
 ): Promise<ActionResult> {
-  const email = await getSessionEmail()
-  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
-
   try {
     const { result } = await mutateState<ActionResult>((s) => {
       const u = s.users[email]
@@ -106,6 +100,41 @@ export async function changePassword(
     })
     return result
   } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+export async function changePassword(
+  atual: string,
+  nova: string,
+  confirmacao: string,
+): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const client = await createAuthClient()
+    const { error: loginError } = await client.auth.signInWithPassword({
+      email,
+      password: atual,
+    })
+    if (loginError) return { ok: false, error: 'Senha atual incorreta.' }
+    if (nova.length < 8)
+      return { ok: false, error: 'A nova senha precisa de pelo menos 8 caracteres.' }
+    if (nova !== confirmacao)
+      return { ok: false, error: 'A confirmação da nova senha não confere.' }
+
+    const { error: updateError } = await client.auth.updateUser({ password: nova })
+    if (updateError) return { ok: false, error: FALHA_GRAVACAO }
+
+    return {
+      ok: true,
+      message: 'Senha alterada com sucesso. Use a nova senha no próximo login.',
+    }
+  } catch (error) {
+    if (error instanceof AuthConfigurationError) {
+      return changePasswordContingencia(email, atual, nova, confirmacao)
+    }
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }

@@ -63,22 +63,10 @@ contas. É só leitura. Sem `AUREA_RELATORIOS_TOKEN`, o caminho está desligado.
 
 ---
 
-## RA-15 🔴 — cadastro simulado e entrada sem senha (03/09/2026)
+## RA-15 ✅ — cadastro simulado e entrada sem senha (pago em 06/09/2026)
 
-**Pastas:** `criar-conta/`, `entrar-demo/`
+**Pastas removidas:** `criar-conta/`, `entrar-demo/`
 
-Duas rotas provisórias, criadas para conseguir abrir a plataforma antes de a frente A
-entregar o login real:
-
-- **`/criar-conta`** cria uma conta com dados fictícios (R$ 5.000,00 e 6 moedas), **sem
-  verificar e-mail e sem aceite de termos**. O cadastro de verdade é `/cadastrar`, da frente
-  A, com Supabase Auth e aceite versionado.
-- **`/entrar-demo`** entra numa conta do seed **sem senha**. Responde 404 fora de
-  `localhost` e em qualquer build de produção — as duas travas juntas, nunca uma só.
-
-O nome `/criar-conta` é diferente de `/cadastrar` de propósito: assim as duas pastas não
-colidem no merge da frente A, e esta some com um `git rm -r` sem tocar naquela.
-
-**Como se paga:** apagar as duas pastas, `src/server/actions/signup.ts` e
-`src/components/login/SignupForm.tsx` no merge da frente A, além do link que a
-`LoginForm.tsx` ganhou para `/criar-conta`. Detalhes em `RISCOS_ASSUMIDOS.md`, RA-15.
+As duas rotas foram removidas pela frente A. `/cadastrar` agora cria a identidade no
+Supabase e só provisiona saldo e moedas fictícias depois da confirmação. `/entrar` exige
+senha ou Google OAuth. Detalhes em `RISCOS_ASSUMIDOS.md`, RA-15 e RA-17.

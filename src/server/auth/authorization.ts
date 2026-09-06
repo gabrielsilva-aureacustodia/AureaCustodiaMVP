@@ -3,8 +3,9 @@
  *
  * Supabase Auth prova quem é a pessoa; o AppState ainda responde se aquela
  * identidade já recebeu os dados mockados. Separar as duas decisões permite
- * recriar as contas dos sócios do zero sem inventar usuário vazio ou saldo no
- * fluxo de login — essa carga pertence à frente B.
+ * distinguir uma entrada comum de uma primeira confirmação. O provisionamento
+ * dos dados mockados fica em provisioning.ts e só roda após a identidade ter
+ * sido confirmada pelo Supabase.
  * ==========================================================================*/
 
 import 'server-only'

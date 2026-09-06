@@ -129,23 +129,24 @@ Esperado `200`; depois login manual e painel com saldo e moedas.
 
 ---
 
-# 2. Frente A — rebase e merge do login real
+# 2. Frente A — ✅ rebase e fechamento executados; falta apenas o merge
 
 ## O que é
 
 A branch `feat/auth-landing` (landing, `/entrar`, `/cadastrar`, `/termos`, `/privacidade`,
-Supabase Auth) está pronta e publicada, mas nasceu antes do ledger e da frente C.
+Supabase Auth) foi rebaseada sobre a `main` local em 06/09/2026 e recebeu o fechamento do
+provisionamento e do Google Auth.
 
 ## Passo a passo
 
-**2.1 — Rebase sobre o `main`.** Há **um conflito previsto**: `src/components/login/LoginForm.tsx`.
+**2.1 — ✅ Rebase sobre o `main`.** O conflito previsto em `LoginForm.tsx` foi resolvido.
 O `main` tem um link provisório para `/criar-conta`; a sua versão tem o link para
 `/cadastrar`. **Fica a sua versão.**
 
-**2.2 — Contingência de login** (item 3.1 de `docs/EXECUCAO_FINAL_AGENTE_A.md`). Sem ela,
+**2.2 — ✅ Contingência de login** (item 3.1 de `docs/EXECUCAO_FINAL_AGENTE_A.md`). Sem ela,
 no instante do merge ninguém entra, porque o Supabase Auth ainda não tem usuário.
 
-**2.3 — Apagar as rotas provisórias** no mesmo commit:
+**2.3 — ✅ Rotas provisórias apagadas** no mesmo fechamento:
 
 ```bash
 git rm -r src/app/criar-conta src/app/entrar-demo src/components/login/SignupForm.tsx src/server/actions/signup.ts
@@ -153,11 +154,11 @@ git rm -r src/app/criar-conta src/app/entrar-demo src/components/login/SignupFor
 
 E encerrar o **RA-15** em `RISCOS_ASSUMIDOS.md`.
 
-**2.4 — Registro dos atalhos da frente A.** ⚠️ **Correção:** o documento da frente A
+**2.4 — ✅ Registro dos atalhos da frente A.** O RA-17 foi criado.
 pedia "RA-16", mas o RA-16 já foi ocupado pelo ledger. **Use RA-17.**
 
-**2.5 — Verificar e mergear.** `npm run typecheck && npm test && npm run build`, com o
-`npm run dev` **parado** (ver bloco 10).
+**2.5 — Verificar e mergear.** A validação local e os commits pertencem à entrega da branch;
+o Gabriel só precisa mergeá-la e validar o OAuth no deployment resultante.
 
 ## O que quebra se pular
 
@@ -367,7 +368,7 @@ de `state.ts`, `STORE_KEY` e o blob `aurea.aurea_state`. **Não antes.**
 
 - [ ] 1.5 feito e `db:check` aprova 19 tabelas em produção
 - [ ] Produção responde 200 e o login funciona
-- [ ] Frente A mergeada com contingência de login e sem `/entrar-demo`
+- [ ] Frente A mergeada; a branch já contém contingência e não contém `/entrar-demo`
 - [ ] Sete contas no Supabase Auth, confirmadas
 - [ ] E-mail de confirmação chega (Resend verificado)
 - [ ] `CRON_SECRET` e `AUREA_ADMIN_EMAILS` na Vercel

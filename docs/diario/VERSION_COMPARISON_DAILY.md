@@ -640,3 +640,27 @@ Estado:   validações executadas no fechamento desta sessão
 
 *Fim da entrada 008. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+# Entrada 009 — 06/09/2026 · Fechamento da Branch A (login e landing)
+
+```
+Branch:   feat/auth-landing
+Base:     main local em 657dd9f
+Escopo:   cadastro Supabase, Google OAuth, mocks automáticos e landing pública
+```
+
+- A branch foi rebaseada sobre a `main`; o conflito previsto de `LoginForm.tsx` foi
+  resolvido preservando o login Supabase.
+- Cadastro por e-mail e Google agora provisiona, depois da confirmação, R$ 5.000,00 e seis
+  moedas fictícias por `mutateState()`.
+- O login ganhou Google OAuth e a troca de senha passou a atualizar o Supabase Auth.
+- `/criar-conta`, `/entrar-demo`, `SignupForm.tsx` e `actions/signup.ts` foram removidos;
+  o RA-15 foi pago.
+- O RA-17 registra a contingência das contas históricas somente para ambientes sem Auth.
+- Foram adicionados testes de configuração, callback e idempotência do provisionamento.
+- A entrega detalhada vive em `docs/RELATORIO_FINAL_BRANCH_A_LOGIN_LANDING.md`.
+
+---
+
+*Fim da entrada 009. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*

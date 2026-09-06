@@ -3,7 +3,7 @@
 **Ambiente de demonstração · sem cliente real · sem dinheiro real**
 
 ```
-Atualizado em: 01/09/2026
+Atualizado em: 06/09/2026
 Fonte da verdade: src/domain/constants.ts (ACCOUNTS) e src/domain/seed.ts (usersDef)
 ```
 
@@ -17,7 +17,16 @@ Fonte da verdade: src/domain/constants.ts (ACCOUNTS) e src/domain/seed.ts (users
 
 ---
 
-## As sete contas
+## Como criar a conta de teste agora
+
+No ambiente com Supabase configurado, abra `/cadastrar` e escolha e-mail/senha ou Google.
+Depois da confirmação, o servidor cria a conta interna com **R$ 5.000,00 e seis moedas
+fictícias**. Repetir o callback não duplica o saldo nem o acervo.
+
+As contas reais dos sócios serão recriadas dessa forma; não há migração automática das
+identidades antigas.
+
+## As sete contas históricas do seed (contingência local)
 
 Todas usam a **mesma senha: `12345678`**.
 
@@ -30,6 +39,9 @@ Todas usam a **mesma senha: `12345678`**.
 | `rozane@testeaurea.com.br` | Rozane | R$ 35.500,00 | 8 | 23/06/2026 |
 | `goturuba@testeaurea.com.br` | Goturuba | R$ 97.000,00 | 21 | 18/06/2026 |
 | `solares@testeaurea.com.br` | Solares | R$ 44.000,00 | 11 | 24/06/2026 |
+
+Essas credenciais só são usadas quando o ambiente **não** tem `SUPABASE_URL` e chave
+publicável. Em Vercel com Supabase configurado, o login é exclusivamente pelo Auth.
 
 ### O que cada conta recebe no seed
 
@@ -50,9 +62,8 @@ e R$ 520; demais tipos entre R$ 140 e R$ 360. Sempre múltiplos de R$ 5,00.
 
 ## Como trocar a senha de uma conta
 
-A senha efetiva de um usuário é `user.pass` quando existe, e a de `ACCOUNTS` quando não —
-mesma regra do login e da troca de senha. Trocar pela interface (Minha conta → Segurança)
-grava em `user.pass` e passa a valer no próximo acesso.
+A conta Supabase troca a senha no próprio Auth pela interface Minha conta → Segurança. No
+modo de contingência, continua valendo a regra histórica `user.pass` ou `ACCOUNTS`.
 
 **Atenção:** a troca é gravada no estado persistido. Ela **se perde** quando a chave
 `AUREA_STORE_KEY` é rotacionada (o banco recomeça do seed) — o que acontece a cada mudança
@@ -70,8 +81,8 @@ Nenhuma é bug a "consertar" sem combinar; todas estão registradas no `CLAUDE.m
   migração para Supabase Auth (frente B).
 - **Não há verificação de e-mail nem recuperação de senha.** Os domínios
   `@testeaurea.com.br` são fictícios e não recebem mensagem.
-- **Estas sete contas não sobrevivem à migração para Supabase Auth** sem uma decisão:
-  migrá-las conscientemente ou recriá-las. Está no critério de aceite da frente B.
+- **Estas sete identidades não são migradas para o Supabase Auth.** A decisão dos sócios foi
+  recriar as contas pelo cadastro real.
 
 ---
 

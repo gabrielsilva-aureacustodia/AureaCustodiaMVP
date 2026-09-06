@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
 import { LOGO_AUREA } from '@/domain/constants'
-import { login } from '@/server/actions/auth'
+import { login, loginWithGoogle } from '@/server/actions/auth'
 
 const PW_REVEAL_MS = 3000
 const ERRO_GENERICO = 'Não foi possível entrar. Tente novamente.'
@@ -83,6 +83,24 @@ export function LoginForm({
     }
   }
 
+  async function entrarGoogle(): Promise<void> {
+    if (enviando) return
+    setEnviando(true)
+    setErro('')
+    setMensagem('')
+
+    try {
+      const result = await loginWithGoogle()
+      if (!result.ok || !result.data?.redirectTo) {
+        setErro(result.error ?? ERRO_GENERICO)
+        return
+      }
+      window.location.assign(result.data.redirectTo)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <main className="login-wrap auth-page">
       <section className="login-card" aria-labelledby="login-title">
@@ -141,6 +159,17 @@ export function LoginForm({
 
           <button className="btn btn-gold" type="submit" disabled={enviando}>
             {enviando ? 'Entrando…' : 'Entrar'}
+          </button>
+          <div className="auth-divider" aria-hidden="true">
+            <span>ou</span>
+          </div>
+          <button
+            className="btn btn-outline auth-google"
+            type="button"
+            disabled={enviando}
+            onClick={() => void entrarGoogle()}
+          >
+            Entrar com Google
           </button>
         </form>
 
