@@ -157,8 +157,9 @@ E encerrar o **RA-15** em `RISCOS_ASSUMIDOS.md`.
 **2.4 — ✅ Registro dos atalhos da frente A.** O RA-17 foi criado.
 pedia "RA-16", mas o RA-16 já foi ocupado pelo ledger. **Use RA-17.**
 
-**2.5 — Verificar e mergear.** A validação local e os commits pertencem à entrega da branch;
-o Gabriel só precisa mergeá-la e validar o OAuth no deployment resultante.
+**2.5 — ✅ Verificar e mergear.** A validação local foi 100% concluída (161 testes verdes,
+typecheck, lint e build aprovados). O roteiro passo a passo executivo com comandos exatos está em
+[`docs/GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md`](GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md).
 
 ## O que quebra se pular
 

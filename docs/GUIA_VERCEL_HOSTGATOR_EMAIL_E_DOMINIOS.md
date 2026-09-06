@@ -5,9 +5,60 @@ Projeto:          Áurea Custódia
 Produção atual:   https://aurea-custodia-mvp.vercel.app
 Projeto Vercel:   aurea-custodia-mvp
 Supabase ref:     vjbqikfamqdttbmaqrxf
-Decisão:          Vercel hospeda o site; HostGator mantém domínios, DNS e e-mail humano
-Atualizado em:    03/09/2026
+Decisão:          Vercel hospeda o site; HostGator mantém domínios e DNS;
+                  Google Workspace entrega o e-mail humano
+Atualizado em:    06/09/2026
 ```
+
+> ## ⛔ Correção de 06/09/2026 — leia antes de tocar em qualquer registro `MX`
+>
+> **O e-mail humano de `@aureacustodia.com.br` está no Google Workspace, não no Titan.**
+> As versões anteriores deste guia afirmavam o contrário e mandavam apontar o `MX` para
+> `mx1.titan.email` e `mx2.titan.email`. **Isso está errado e derrubou o recebimento de
+> e-mail do Gabriel em 06/09/2026**, junto com o segundo fator de acesso dele a serviços
+> de trabalho, o GitHub entre eles.
+>
+> Restos da configuração antiga do Titan continuam na zona DNS — um SPF
+> `include:spf.titan.email`, um DKIM `titan1._domainkey` e um CNAME
+> `webmail → titan.hostgator.com.br` — e enganam quem lê a zona de fora. **Os registros
+> que valem são os do Google:** `google._domainkey` e `google-site-verification`.
+>
+> **Regra que decorre disso:** o `MX` do domínio raiz governa o e-mail **que chega** para
+> pessoas. Ele **não** tem relação nenhuma com o cadastro de clientes na plataforma, que
+> depende de e-mail **de saída**. Nunca alterar o `MX` do domínio raiz para habilitar
+> funcionalidade da plataforma. Ver a seção 4.
+
+---
+
+## 0. O mínimo para o cadastro de clientes funcionar
+
+Esta seção existe porque em 06/09/2026 a configuração do cadastro foi confundida com a
+configuração do e-mail corporativo, e o resultado foi o e-mail do Gabriel parar.
+
+**Para usuários finais criarem conta na plataforma, nada precisa mudar no DNS.** O
+necessário é só isto:
+
+| # | O que | Onde | Toca DNS? |
+|---|---|---|---|
+| 1 | `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` | Vercel → Environment Variables | Não |
+| 2 | `AUREA_SIGNUP_ENABLED=true` | Vercel → Environment Variables | Não |
+| 3 | `AUREA_TERMS_VERSION` e `AUREA_PRIVACY_VERSION` | Vercel → Environment Variables | Não |
+| 4 | Redirect URL `…/entrar/callback` autorizada | Supabase → Authentication → URL Configuration | Não |
+| 5 | Redeploy | Vercel | Não |
+
+O e-mail de confirmação de cadastro sai pelo **servidor do próprio Supabase**, com
+remetente dele. Não exige domínio, nem SPF, nem MX. O limite é baixo — algumas mensagens
+por hora — e isso basta para o MVP de teste com os sócios.
+
+### Quando o volume crescer
+
+Aí entra um SMTP próprio (Resend), e **somente então** aparece DNS — sempre num
+**subdomínio de envio**, `auth.aureacustodia.com.br`, com registros próprios daquele nome.
+
+**O `MX` de `aureacustodia.com.br` não participa disso em nenhuma hipótese.** Ele governa
+o e-mail humano que chega para as pessoas, e vive no Google Workspace. Mexer nele para
+habilitar cadastro é trocar o encanamento da casa para consertar a torneira do vizinho: não
+resolve o que se queria e quebra o que funcionava.
 
 Este é o roteiro canônico da configuração da Frente A enquanto o domínio personalizado
 ainda não estiver ligado ao site. Ele também contém a migração futura, sem exigir uma
@@ -16,7 +67,7 @@ hospedagem de site na HostGator e sem interromper os e-mails corporativos.
 > **Resumo da decisão:** por enquanto, o endereço público continua sendo
 > `https://aurea-custodia-mvp.vercel.app`. O fato de os domínios estarem registrados na
 > HostGator não os conecta automaticamente à Vercel. Quando chegar a hora, a HostGator
-> continuará como registradora, administradora de DNS e provedora das caixas de e-mail;
+> continuará como registradora e administradora de DNS, com as caixas no Google Workspace;
 > somente os registros de site (`A` e `CNAME`) apontarão para a Vercel.
 
 ---
@@ -26,10 +77,11 @@ hospedagem de site na HostGator e sem interromper os e-mails corporativos.
 | Serviço | Responsabilidade | O que não fará |
 |---|---|---|
 | **Vercel** | Hospedar o Next.js, publicar cada deploy e emitir SSL/HTTPS | Não hospeda caixas de e-mail |
-| **HostGator** | Manter os domínios registrados, a Zona DNS e as caixas humanas | Não hospedará o site Next.js |
+| **HostGator** | Manter os domínios registrados e a Zona DNS | Não hospedará o site Next.js **e não entrega o e-mail humano** |
+| **Google Workspace** | Entregar e guardar as caixas humanas `@aureacustodia.com.br` | Não hospeda o site |
 | **Supabase** | Banco e autenticação; emitir links de confirmação e recuperação | Não deve ser o entregador de e-mail de produção sem SMTP customizado |
 | **Google Cloud** | Identidade do botão “Continuar com Google” | Não hospeda o site nem recebe o e-mail corporativo |
-| **Resend** | Mais adiante, entregar apenas e-mails automáticos do Supabase Auth | Não substituirá as caixas humanas da HostGator |
+| **Resend** | Mais adiante, entregar apenas e-mails automáticos do Supabase Auth, sempre por um **subdomínio** | Não substituirá as caixas humanas do Google Workspace e **não encosta no MX do domínio raiz** |
 
 Fluxo atual:
 
@@ -38,7 +90,7 @@ visitante ──> aurea-custodia-mvp.vercel.app ──> Next.js na Vercel
                                                    │
                                                    └──> Supabase Auth
 
-pessoa ──> contato@aureacustodia.com.br ──> e-mail HostGator/Titan
+pessoa ──> gabriel.silva@aureacustodia.com.br ──MX──> Google Workspace
 ```
 
 Fluxo futuro:
@@ -46,7 +98,7 @@ Fluxo futuro:
 ```text
 visitante ──> aureacustodia.com.br ──DNS A/CNAME──> Vercel
 
-mensagem recebida em @aureacustodia.com.br ──MX──> HostGator/Titan
+mensagem recebida em @aureacustodia.com.br ──MX──> Google Workspace
 
 confirmação automática de cadastro
 Supabase ──SMTP──> Resend ──auth.aureacustodia.com.br──> destinatário
@@ -208,16 +260,12 @@ login sem depender do e-mail de confirmação do Supabase.
 
 **Não para o site.** O Next.js deve continuar na Vercel.
 
-Para ter caixas como `contato@aureacustodia.com.br`, é necessário apenas um produto de
-e-mail. A opção mais direta na HostGator é o **Titan**, separado da hospedagem web. Registro
-de domínio sozinho pode não incluir caixas postais.
+**Não para o e-mail também.** As caixas humanas `@aureacustodia.com.br` já existem e são
+servidas pelo **Google Workspace**, que o Gabriel já paga e usa. A HostGator entra apenas
+como registradora do domínio e administradora da Zona DNS.
 
-- Se ainda não existe e-mail corporativo: contratar somente o plano Titan necessário para
-  a quantidade de caixas desejada.
-- Se já existem caixas Titan: mantê-las.
-- Se já existem caixas no cPanel de um plano de hospedagem: não cancelar nada durante a
-  migração. Primeiro identificar e preservar todos os registros; depois decidir se vale
-  migrar as caixas para Titan.
+Não há nada a contratar na HostGator para o e-mail funcionar. O que a HostGator precisa
+fazer é **publicar corretamente os registros do Google** na zona — e não sobrescrevê-los.
 
 ### 4.2 Caminho no painel atual da HostGator
 
@@ -228,32 +276,56 @@ A partir da tela mostrada na imagem:
 3. se o painel pedir onde o site será hospedado, selecionar **Sem hospedagem (apenas Zona
    de DNS)**. Em algumas contas a alternativa aparece como **Outra plataforma de
    hospedagem**; nesse caso, avançar até **Editar Zona Avançada de DNS**;
-4. para escolher o e-mail, abrir a seção de plataforma de e-mail e selecionar o plano
-   **Titan** já contratado ou iniciar a contratação;
-5. criar as caixas humanas necessárias.
+4. **não** selecionar nem contratar plataforma de e-mail da HostGator: as caixas já são do
+   Google Workspace, e escolher um produto de e-mail aqui faz o painel reescrever o `MX`.
 
-### 4.3 Registros esperados para Titan
+### 4.3 Registros corretos — Google Workspace
 
-Antes de mudar qualquer registro, tirar capturas de tela de toda a Zona DNS. Os valores
-exibidos pela HostGator na sua assinatura são a fonte final. Em uma configuração Titan
-padrão, os registros costumam ser:
+Antes de mudar qualquer registro, tirar capturas de tela de toda a Zona DNS.
 
 | Tipo | Nome/Host | Prioridade | Valor/Destino |
 |---|---|---:|---|
-| `MX` | `@` ou `aureacustodia.com.br` | `10` | `mx1.titan.email` |
-| `MX` | `@` ou `aureacustodia.com.br` | `20` | `mx2.titan.email` |
-| `TXT` | `@` ou `aureacustodia.com.br` | — | `v=spf1 include:spf.titan.email ~all` |
-| `TXT`/`CNAME` | seletor DKIM informado pela HostGator | — | valor individual mostrado no painel |
+| `MX` | `@` ou `aureacustodia.com.br` | `1` | `smtp.google.com` |
+| `TXT` | `@` ou `aureacustodia.com.br` | — | `v=spf1 include:_spf.google.com ~all` |
+| `TXT` | `google._domainkey` | — | chave DKIM emitida no Admin do Google |
+| `TXT` | `@` | — | `google-site-verification=…` (verificação do domínio) |
 
-Não criar um segundo SPF começando com `v=spf1` para o mesmo nome. Se já houver um, ele
-precisa ser combinado de forma válida, não simplesmente duplicado.
+`smtp.google.com` é o registro único que o Google recomenda desde 2023. Se o painel da
+HostGator recusar esse valor, usar o conjunto clássico equivalente:
+
+| Tipo | Nome/Host | Prioridade | Valor/Destino |
+|---|---|---:|---|
+| `MX` | `@` | `1` | `aspmx.l.google.com` |
+| `MX` | `@` | `5` | `alt1.aspmx.l.google.com` |
+| `MX` | `@` | `5` | `alt2.aspmx.l.google.com` |
+| `MX` | `@` | `10` | `alt3.aspmx.l.google.com` |
+| `MX` | `@` | `10` | `alt4.aspmx.l.google.com` |
+
+Não criar um segundo SPF começando com `v=spf1` para o mesmo nome: dois registros SPF
+invalidam os dois. Se já houver um, editar o existente em vez de acrescentar outro.
+
+### 4.3.1 Registros que devem sair da zona
+
+Sobraram da configuração antiga do Titan e só servem para confundir:
+
+| Tipo | Nome | Por que sai |
+|---|---|---|
+| `MX` | `@` → `mx1.titan.email` / `mx2.titan.email` | mandam o correio para um servidor que não tem as caixas |
+| `MX` | `@` prioridade `0` → `aureacustodia.com.br` | roteamento local da hospedagem; sequestra todo o correio |
+| `TXT` | `@` → `v=spf1 include:spf.titan.email ~all` | substituir pelo SPF do Google, não somar |
+| `TXT` | `titan1._domainkey` | DKIM de um provedor que não é mais usado |
+| `CNAME` | `webmail` → `titan.hostgator.com.br` | webmail que não corresponde às caixas reais |
+
+Um `MX` de prioridade `0` apontando para o próprio domínio significa que a hospedagem
+assumiu o correio para si. Ele tem prioridade sobre qualquer `MX` externo — inclusive os do
+Google — e precisa ser removido, não apenas complementado.
 
 ### 4.4 Conferência do e-mail
 
 Depois da propagação:
 
 1. enviar de uma conta externa para `contato@aureacustodia.com.br`;
-2. responder a partir da caixa HostGator/Titan;
+2. responder a partir da caixa do Google Workspace;
 3. conferir recebimento, envio e pasta de spam;
 4. manter um registro dos MX, SPF e DKIM aprovados.
 
@@ -284,7 +356,7 @@ HostGator permite alterar apenas o site e preservar os registros de e-mail já f
 2. Capturar ou exportar todos os registros atuais: `A`, `AAAA`, `CNAME`, `MX`, `TXT`,
    `CAA`, `SRV` e DKIM.
 3. Marcar explicitamente os registros de e-mail que não podem ser removidos:
-   - MX da HostGator/Titan;
+   - MX do Google Workspace;
    - SPF;
    - DKIM;
    - DMARC;
@@ -413,7 +485,7 @@ do controle da Zona DNS na HostGator, não da hospedagem do site.
 ### 7.1 Separação correta
 
 ```text
-HostGator/Titan: caixas em @aureacustodia.com.br
+Google Workspace: caixas em @aureacustodia.com.br
 Resend:          envio automático em @auth.aureacustodia.com.br
 ```
 
@@ -510,7 +582,7 @@ origens do cliente Web no Google. Fazer Redeploy depois de corrigir a Vercel.
 - [ ] cadastro público continua fechado;
 - [ ] Google OAuth foi testado com test user;
 - [ ] contas manuais confirmadas entram e recebem dados mockados;
-- [ ] se desejado, caixas Titan foram criadas em `@aureacustodia.com.br`.
+- [ ] as caixas do Google Workspace em `@aureacustodia.com.br` continuam recebendo.
 
 ### Quando ativar o domínio próprio
 
@@ -526,7 +598,7 @@ origens do cliente Web no Google. Fazer Redeploy depois de corrigir a Vercel.
 ### Quando ativar e-mails automáticos
 
 - [ ] `auth.aureacustodia.com.br` verificado no Resend;
-- [ ] MX do domínio raiz continuam apontando para HostGator/Titan;
+- [ ] MX do domínio raiz continuam apontando para o Google Workspace;
 - [ ] SMTP do Resend configurado no Supabase;
 - [ ] confirmação de cadastro entregue;
 - [ ] recuperação de senha entregue;
@@ -542,7 +614,7 @@ origens do cliente Web no Google. Fazer Redeploy depois de corrigir a Vercel.
 - [HostGator — acessar a Zona DNS](https://suporte.hostgator.com.br/hc/pt-br/articles/30813666911123-Como-acessar-a-Zona-DNS-de-um-dom%C3%ADnio)
 - [HostGator — criar ou alterar A, MX, TXT e CNAME](https://suporte.hostgator.com.br/hc/pt-br/articles/30813120385427-Como-criar-ou-alterar-um-registro-A-MX-TXT-CNAME-e-outros-na-Zona-DNS)
 - [HostGator — domínio registrado aqui e hospedado em outra plataforma](https://suporte.hostgator.com.br/hc/pt-br/articles/30810621770387-Como-configurar-o-DNS-de-um-dom%C3%ADnio)
-- [HostGator — configurar domínio no Titan](https://suporte.hostgator.com.br/hc/pt-br/articles/30811264809235-Como-configurar-um-dom%C3%ADnio-no-e-mail-Titan)
+- [Google Workspace — registros MX do Gmail](https://support.google.com/a/answer/140034)
 - [Supabase — SMTP customizado](https://supabase.com/docs/guides/auth/auth-smtp)
 - [Supabase — login com Google](https://supabase.com/docs/guides/auth/social-login/auth-google)
 - [Resend — verificação de domínio](https://resend.com/docs/dashboard/domains/introduction)
