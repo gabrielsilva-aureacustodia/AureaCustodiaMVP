@@ -21,10 +21,10 @@ export const metadata: Metadata = {
 }
 
 interface EntrarPageProps {
-  searchParams: Promise<{ erro?: string; status?: string }>
+  searchParams: Promise<{ erro?: string; status?: string; motivo?: string }>
 }
 
-function feedback(params: { erro?: string; status?: string }): {
+function feedback(params: { erro?: string; status?: string; motivo?: string }): {
   error?: string
   message?: string
 } {
@@ -35,7 +35,14 @@ function feedback(params: { erro?: string; status?: string }): {
     }
   }
   if (params.erro === 'callback') {
-    return { error: 'O link de autenticação expirou ou não pôde ser validado. Tente novamente.' }
+    // O motivo vem do callback. Mostrar o texto real do Supabase economiza uma
+    // rodada de adivinhação quando o OAuth ou a confirmação falham.
+    const motivo = params.motivo?.trim()
+    return {
+      error: motivo
+        ? `Não foi possível concluir a autenticação: ${motivo}`
+        : 'O link de autenticação expirou ou não pôde ser validado. Tente novamente.',
+    }
   }
   return {}
 }
