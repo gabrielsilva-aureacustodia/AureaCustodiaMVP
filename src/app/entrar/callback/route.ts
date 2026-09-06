@@ -31,6 +31,17 @@ function destination(request: Request, path: string): URL {
   return new URL(path, request.url)
 }
 
+/**
+ * Leva o motivo real ate a tela de entrada. Antes toda falha virava a mesma
+ * frase generica, e diagnosticar OAuth ficava impossivel sem os logs.
+ */
+function falha(request: Request, motivo: string): NextResponse {
+  const url = destination(request, '/entrar')
+  url.searchParams.set('erro', 'callback')
+  url.searchParams.set('motivo', motivo.slice(0, 300))
+  return NextResponse.redirect(url)
+}
+
 function nomeDoUsuario(user: User): string | undefined {
   const name = user.user_metadata.full_name ?? user.user_metadata.name
   return typeof name === 'string' ? name : undefined
@@ -71,9 +82,8 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   // Sem nenhum parâmetro conhecido a informação pode estar no fragmento.
   if (!code && !tokenHash && !token && !accessToken) {
-    if (params.get('error') || params.get('error_description')) {
-      return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
-    }
+    const erroExterno = params.get('error_description') ?? params.get('error')
+    if (erroExterno) return falha(request, erroExterno)
     return paginaQueRecuperaOFragmento()
   }
 
@@ -86,11 +96,11 @@ export async function GET(request: Request): Promise<NextResponse> {
         access_token: accessToken,
         refresh_token: refreshToken,
       })
-      if (error) return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+      if (error) return falha(request, `setSession: ${error.message}`)
       user = data.user
     } else if (code) {
       const { data, error } = await client.auth.exchangeCodeForSession(code)
-      if (error) return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+      if (error) return falha(request, `exchangeCode: ${error.message}`)
       user = data.user
     } else {
       const { data, error } = await client.auth.verifyOtp(
@@ -98,13 +108,11 @@ export async function GET(request: Request): Promise<NextResponse> {
           ? { token_hash: tokenHash, type: tipo }
           : { token_hash: token as string, type: tipo },
       )
-      if (error) return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+      if (error) return falha(request, `verifyOtp: ${error.message}`)
       user = data.user
     }
 
-    if (!user?.email) {
-      return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
-    }
+    if (!user?.email) return falha(request, 'identidade sem e-mail')
 
     // O aceite legal, quando existir, é apenas registrado. Ele nunca decide se
     // a pessoa entra: falhar aqui não interrompe o acesso.
@@ -130,7 +138,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     await setSession(user.email.trim().toLowerCase())
     return NextResponse.redirect(destination(request, '/inicio'))
-  } catch {
-    return NextResponse.redirect(destination(request, '/entrar?erro=callback'))
+  } catch (erro) {
+    return falha(request, erro instanceof Error ? erro.message : 'excecao no callback')
   }
 }
