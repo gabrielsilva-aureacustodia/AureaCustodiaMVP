@@ -48,6 +48,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-15** | Cadastro simulado e entrada sem senha — **pago em 06/09/2026** | ✅ | arquivos removidos |
 | **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/server/actions/contabil.ts`, `src/app/api/relatorios/` |
 | **RA-17** | Contingência temporária do login do seed quando o Supabase não está configurado | 🟡 | `src/server/actions/auth.ts`, `src/server/auth/` |
+| **RA-18** | Cadastro aberto sem exigir `AUREA_SIGNUP_ENABLED` nem versões legais em variável | 🟡 | `src/server/auth/config.ts` |
 
 ---
 
@@ -563,3 +564,21 @@ controle de acesso de verdade; (f) vira receita não cobrada.
 | `src/app/` | [`ATALHOS.md`](src/app/ATALHOS.md) |
 | `src/lib/payments/` | [`ATALHOS.md`](src/lib/payments/ATALHOS.md) |
 | `src/lib/shipping/` | [`ATALHOS.md`](src/lib/shipping/ATALHOS.md) |
+
+# RA-18 — Cadastro aberto por padrão 🟡
+
+O cadastro exigia três variáveis para abrir: `AUREA_SIGNUP_ENABLED=true`,
+`AUREA_TERMS_VERSION` e `AUREA_PRIVACY_VERSION`. Faltando qualquer uma, a tela
+`/cadastrar` mostrava "Cadastro temporariamente fechado" e a Server Action recusava —
+foi o que aconteceu em produção em 06/09/2026, derrubando a função que era a mais
+urgente do projeto.
+
+Decisão do Gabriel na mesma data: em fase de teste, a função se entrega liberada. O
+cadastro agora abre sempre que o Supabase Auth existir no ambiente, que é dependência
+técnica real e não trava de conformidade. O aceite continua gravado com versão e data,
+usando `rascunho-teste-2026-09-06` quando não houver variável.
+
+O que fica em aberto: a coleta de dados pessoais passa a ser possível antes dos
+documentos legais revisados. Aceitável enquanto o ambiente tem sete contas de sócios,
+sem cliente real. Antes do primeiro cliente real, os documentos precisam estar vigentes
+e a versão vigente precisa vir de variável — ver `docs/PRE_LANCAMENTO_CLIENTES_REAIS.md`.
