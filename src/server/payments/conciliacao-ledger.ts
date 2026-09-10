@@ -132,7 +132,7 @@ export async function gerarRelatorioConciliacao(): Promise<RelatorioConciliacaoF
   // 4. Mapeamento de Moedas e Trilha de Avaliação Física
   const allCoins = Object.values(state.users).flatMap((u) => u.coins || [])
   const totalMoedasCustodiadas = allCoins.length
-  const recibosNftAtivos = allCoins.filter((c) => c.nft?.status === 'Ativo').length
+  const recibosNftAtivos = allCoins.filter((c) => c.recibo?.status === 'Ativo').length
 
   const activeOfferCoinIds = new Set(state.sellOffers.map((s) => s.coinId))
 

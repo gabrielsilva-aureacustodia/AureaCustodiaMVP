@@ -47,7 +47,7 @@ const sans = Source_Sans_3({
 
 export const metadata: Metadata = {
   title: 'Áurea Custódia — Ambiente de Teste MVP',
-  description: 'Plataforma de custódia, tokenização e negociação de moedas olímpicas brasileiras.',
+  description: 'Plataforma de custódia e marketplace de moedas comemorativas brasileiras.',
 }
 
 export const viewport: Viewport = {

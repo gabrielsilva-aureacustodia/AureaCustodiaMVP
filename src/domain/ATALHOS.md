@@ -16,7 +16,7 @@ atalhos abaixo são pontuais e conhecidos, não lacunas de cobertura.
 // gera '0xA1B2...C3D4' com Math.random()
 ```
 
-O recibo NFT exibe um hash com cara de registro on-chain que **não prova nada**: não é
+O recibo de custódia exibe um hash com cara de registro externo que **não prova nada**: não é
 determinístico (a mesma moeda gera hash diferente a cada chamada), não é encadeado, e não
 se reproduz em outra máquina.
 
@@ -29,7 +29,7 @@ espaço a mais muda o hash). Compartilha implementação com a trilha de auditor
 com o hash da estação de validação física.
 
 **Atualização de 03/09/2026 (frente B, M4):** a implementação existe — `hash.ts` é o SHA-256
-puro com a fórmula congelada, e o ledger já a usa em toda linha. **O recibo NFT continua com
+puro com a fórmula congelada, e o ledger já a usa em toda linha. **O recibo continua com
 `genHash()`**: trocar o hash de recibos já emitidos muda o texto do certificado, e a regra de
 transição é decisão dos sócios (ver `docs/EXECUCAO_AGENTE_B_LEDGER_DRE.md`, 4.5). Metade paga.
 

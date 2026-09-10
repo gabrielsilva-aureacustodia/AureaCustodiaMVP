@@ -13,7 +13,7 @@ Client Components, organizados **uma subpasta por área da aplicação**.
 | `market/` | `LotCard`, `BidRow`, `Folder`, `TipoSelector` | **`/mercado` e `/vender`** |
 | `sell/` | `CoinPicker`, `SellerBidRow` | `/vender` |
 | `account/` | As modais de conta (dados, senha, notificações, depósito) | `/conta` e `/conta/configuracoes` |
-| `nft/` | `NftCard` e `Certificate` | `/recibos` e `/recibos/[coinId]` |
+| `recibo/` | `ReciboCard` e `Certificate` | `/recibos` e `/recibos/[coinId]` |
 | `custody/` | `WizardSteps`, `Timeline`, `PhotoSlot` | `/envios` |
 | `charts/` | `LineChart`, `Sparkline` | `/graficos` e subrotas |
 | `reports/` | `PeriodTabs` | `/graficos` |

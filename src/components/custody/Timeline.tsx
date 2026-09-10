@@ -40,7 +40,7 @@ function notaDaEtapa(etapa: EtapaEnvio, envio: Envio): string {
     case 'Em análise física':
       return 'Item em análise física e registro fotográfico pela equipe.'
     case 'Recibo emitido':
-      return 'Custódia validada — recibo NFT emitido.'
+      return 'Custódia validada — recibo de custódia emitido.'
     default:
       return ''
   }

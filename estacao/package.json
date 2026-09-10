@@ -1,0 +1,31 @@
+{
+  "name": "aurea-estacao",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Estação de análise física — Áurea Custódia / Real Olímpico",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable",
+    "build:instalador": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "br.com.aureacustodia.estacao",
+    "productName": "AureaEstacao",
+    "files": ["main.js", "preload.js", "renderer/**", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": ["portable"],
+      "artifactName": "AureaEstacao.exe"
+    },
+    "portable": {
+      "artifactName": "AureaEstacao.exe"
+    }
+  }
+}

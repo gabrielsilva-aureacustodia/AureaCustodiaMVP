@@ -23,7 +23,7 @@ Java acontecer.
 | `market.ts` | **O motor de casamento de ordens**, lotes e indicadores | ⚠️ |
 | `money.ts` | Centavos ↔ exibição em BRL. `parsePrice` e `brl` | |
 | `dates.ts` | `Timestamp` ↔ `dd/mm/aaaa`, e o início do dia local | |
-| `codes.ts` | Geradores de `RO-000001`, `NFT-000001`, `RO-ENV-0001` e do hash | |
+| `codes.ts` | Geradores de `RO-000001`, `REC-000001`, `RO-ENV-0001` e do hash | |
 | `selectors.ts` | Leituras derivadas: auditoria, séries de gráfico, preferências | |
 | `statement.ts` | O extrato de UMA conta (não confundir com a auditoria pública) | |
 | `seed.ts` | As 7 contas fictícias, o acervo e ~1 mês de negociações | |

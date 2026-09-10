@@ -3,6 +3,30 @@
 Cada arquivo aqui é um **prompt pronto para copiar e colar** como primeira mensagem de um
 chat dedicado a uma frente de trabalho.
 
+## Publicação oficial para clientes — a rodada em curso
+
+Ordem obrigatória: **a Fase 0 roda sozinha e primeiro.** Ela renomeia terminologia em 25
+arquivos espalhados pela interface, e renomear arquivo enquanto outro agente o edita produz
+conflito que o Git não resolve. Os outros três só criam suas branches depois que ela estiver
+na `main`.
+
+| Arquivo | Frente | Branch |
+|---|---|---|
+| `PUBLICACAO_FASE_0.md` | ⚠️ **Primeiro e sozinho.** Terminologia, vitrine e lacre | `main` |
+| `PUBLICACAO_AGENTE_A.md` | Jurídico, textos e domínio | `feat/juridico-textos-dominio` |
+| `PUBLICACAO_AGENTE_B.md` | Cadastro e financeiro | `feat/cadastro-financeiro` |
+| `PUBLICACAO_AGENTE_C.md` | Retirada e logística | `feat/retirada-logistica` |
+
+O contrato dos três está em
+[`../publish_docs/EXECUCAO_3_BRANCHES_PUBLICACAO.md`](../publish_docs/EXECUCAO_3_BRANCHES_PUBLICACAO.md),
+e as regras comuns em
+[`../publish_docs/PROTOCOLO_DO_AGENTE.md`](../publish_docs/PROTOCOLO_DO_AGENTE.md).
+**Ordem de merge: B → C → A.** A entra por último porque B e C escrevem texto novo de
+interface, e a última coisa antes da publicação é a varredura de terminologia de A sobre
+esse texto.
+
+## Rodadas anteriores
+
 | Arquivo | Frente | Branch |
 |---|---|---|
 | `AGENTE_A_LOGIN_LANDING.md` | Login, cadastro e landing page | `feat/auth-landing` |

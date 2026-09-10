@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 1.4 MEUS RECIBOS NFT — port de aurea-mvp-teste.html, linhas 1851-1893
+ * 1.4 MEUS RECIBOS — port de aurea-mvp-teste.html, linhas 1851-1893
  * (`renderNfts`).
  *
  * Client Component de propósito: a grade precisa reagir ao ciclo de
@@ -10,10 +10,11 @@
  * "À venda" — no monolito era o `render()` disparado pelo startSync que fazia
  * isso; aqui é o próprio React, ao receber o estado novo.
  *
- * O título da tela ('Meus recibos NFT' / 'Recibos digitais de validação e
+ * O título da tela ('Meus recibos' / 'Recibos digitais de validação e
  * recebimento de custódia.') NÃO está aqui: a Topbar o deriva da rota, ver a
  * nota no topo de components/shell/Topbar.tsx. O original o escrevia à mão em
- * #pageTitle na linha 1855.
+ * #pageTitle na linha 1855, e dizia 'Meus recibos NFT' — a palavra saiu por
+ * decisão do jurídico em 09/09/2026.
  */
 
 import type { ReactNode } from 'react'
@@ -22,7 +23,7 @@ import { tiposNegociaveis } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
-import { NftCard } from '@/components/nft/NftCard'
+import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { useApp } from '@/components/providers/AppProvider'
 
 export default function RecibosPage(): ReactNode {
@@ -50,7 +51,7 @@ export default function RecibosPage(): ReactNode {
   }
 
   const totalVal = coins.reduce<Cents>((s, c) => s + valOf(c), 0)
-  const recibosAtivos = coins.filter((c) => c.nft.status === 'Ativo').length
+  const recibosAtivos = coins.filter((c) => c.recibo.status === 'Ativo').length
 
   return (
     <div className="cols-rev">
@@ -62,15 +63,15 @@ export default function RecibosPage(): ReactNode {
           </svg>
           Moedas em custódia
         </h3>
-        {/* O estado vazio fica DENTRO da .nft-grid, como no original (linha
+        {/* O estado vazio fica DENTRO da .recibo-grid, como no original (linha
             1879): o `cardsHtml` era ou os cartões, ou o .empty, e os dois
             entravam no mesmo contêiner de grade. */}
-        <div className="nft-grid">
+        <div className="recibo-grid">
           {coins.length ? (
             coins.map((c) => (
               // A chave é o código do ativo: sequencial, único e estável mesmo
               // quando a moeda troca de dono ou muda de status.
-              <NftCard
+              <ReciboCard
                 key={c.id}
                 coin={c}
                 valor={valOf(c)}
@@ -111,7 +112,7 @@ export default function RecibosPage(): ReactNode {
             <svg viewBox="0 0 24 24">
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
-            Cada recibo NFT comprova a recepção e custódia da moeda física, com registro na
+            Cada recibo de custódia comprova a recepção e guarda da moeda física, com registro na
             plataforma. Segurança, transparência e conformidade em cada etapa.
           </div>
         </div>

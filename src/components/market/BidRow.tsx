@@ -17,21 +17,20 @@
 
 import type { ReactNode } from 'react'
 
+import { apelidoComprador } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
 
 export interface BidRowProps {
   bid: BuyOrder
-  /** Nome do comprador já resolvido pela página; '—' quando a conta sumiu do estado. */
-  buyerName: string
   /** true quando a oferta é da própria sessão — só então aparecem as ações. */
   mine: boolean
   onEdit(bid: BuyOrder): void
   onCancel(bid: BuyOrder): void
 }
 
-export function BidRow({ bid, buyerName, mine, onEdit, onCancel }: BidRowProps): ReactNode {
+export function BidRow({ bid, mine, onEdit, onCancel }: BidRowProps): ReactNode {
   return (
     <div className="offer">
       {/* .block-ico com medidas reduzidas no próprio elemento, como na linha
@@ -58,7 +57,9 @@ export function BidRow({ bid, buyerName, mine, onEdit, onCancel }: BidRowProps):
           {mine ? <span className="mine-badge">SUA OFERTA</span> : null}
         </div>
         <div className="o-meta">
-          Comprador: {mine ? 'você' : buyerName} · Publicada em {fdate(bid.createdAt)}
+          {/* Anonimato da vitrine (D-5, 10/09/2026): ver a nota em LotCard. */}
+          {mine ? 'Comprador: você' : apelidoComprador(bid.id)} · Publicada em{' '}
+          {fdate(bid.createdAt)}
         </div>
       </div>
 

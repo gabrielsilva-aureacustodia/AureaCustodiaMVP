@@ -53,6 +53,7 @@ describe('planejarDiff — nada mudou', () => {
       seq: { coin: 0, envio: 0 },
       custodyCharges: {},
       deposits: [],
+      analises: [],
     }
     const seed = seedState()
     const ops = planejarDiff(vazio, seed)

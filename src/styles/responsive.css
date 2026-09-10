@@ -3,7 +3,7 @@
 
    ESTE ARQUIVO PRECISA SER O ÚLTIMO IMPORT DA CADEIA DE ESTILOS.
    Ordem correta:
-     tokens -> base -> login -> shell -> home -> market -> wizard -> nft
+     tokens -> base -> login -> shell -> home -> market -> wizard -> recibo
             -> reports -> account -> responsive
 
    Motivo: quase toda regra daqui tem a MESMA especificidade da regra de

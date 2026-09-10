@@ -14,7 +14,7 @@
  */
 
 import { COIN, COIN_TYPES, coinTypeInfo, faixaValor } from '@/domain/constants'
-import { genHash, nextCoinCode, nextEnvioCode, nextNftCode } from '@/domain/codes'
+import { genHash, nextCoinCode, nextEnvioCode, nextCodigoRecibo } from '@/domain/codes'
 import { custodyFeeForCount } from '@/domain/fees'
 import { DAY_MS } from '@/domain/dates'
 import type {
@@ -68,7 +68,7 @@ function valorSorteado(tipo: string): Cents {
 }
 
 /**
- * Cria uma moeda já validada e em cofre, com o recibo NFT emitido.
+ * Cria uma moeda já validada e em cofre, com o recibo de custódia emitido.
  *
  * Consome DOIS contadores de `seq`: o do ativo e o de envio. No MVP cada moeda
  * do seed nasce com um protocolo próprio mesmo sem existir registro em
@@ -93,7 +93,7 @@ export function mkCoin(
     protocolo: nextEnvioCode(seq),
     // dataEmissao nasce igual à entrada e fica congelada: o recibo não é
     // reemitido quando a moeda troca de dono.
-    nft: { codigo: nextNftCode(id), hash: genHash(), dataEmissao: entrada, status: 'Ativo' },
+    recibo: { codigo: nextCodigoRecibo(id), hash: genHash(), dataEmissao: entrada, status: 'Ativo' },
   }
 }
 
@@ -214,14 +214,14 @@ export function genHistoryTrades(emails: UserEmail[]): Trade[] {
 
 /**
  * Estado inicial completo do sistema fictício: 7 contas, seus acervos com
- * recibo NFT, a cobrança de custódia já quitada e o histórico de mercado.
+ * recibo de custódia, a cobrança já quitada e o histórico de mercado.
  *
  * A ordem das chamadas importa: os acervos são gerados ANTES das cobranças
  * (que dependem da contagem final de moedas) e o `seq` sai daqui já adiantado,
  * de modo que os códigos criados em produção continuem da sequência do seed.
  */
 export function seedState(): AppState {
-  const seq: Seq = { coin: 0, envio: 0 }
+  const seq: Seq = { coin: 0, envio: 0, analise: 0 }
   const usersDef: readonly SeedUserDef[] = [
     ['rogeriopena@testeaurea.com.br', 'Rogério Pena', 6200000, 15, '18/06/2026'],
     ['gabrielsilva@testeaurea.com.br', 'Gabriel Silva', 5400000, 13, '20/06/2026'],
@@ -263,5 +263,10 @@ export function seedState(): AppState {
     // dinheiro que a demonstração assume como pré-existente. O extrato começa
     // vazio de propósito — só aporte feito na plataforma entra aqui.
     deposits: [],
+    // A bancada ainda nao analisou nada: o historico de demonstracao nasce com
+    // as moedas ja em custodia, sem procedimento gravado. Recibo de moeda do
+    // seed continua com o hash simulado de genHash(); so o que passa pela
+    // estacao ganha hash real.
+    analises: [],
   }
 }

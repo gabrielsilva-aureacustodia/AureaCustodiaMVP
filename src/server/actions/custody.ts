@@ -7,7 +7,7 @@
  * POR QUE ESTAS TRÊS FUNÇÕES PRECISAVAM SAIR DO NAVEGADOR
  * ------------------------------------------------------
  * No monolito elas eram as mais perigosas do arquivo, e não por acaso: são as
- * únicas que CRIAM valor do nada. `advanceAnalysis` emite moedas com recibo NFT
+ * únicas que CRIAM valor do nada. `advanceAnalysis` emite moedas com recibo
  * e escreve o inventário do usuário. Rodando no cliente, bastava chamar
  * `advanceAnalysis()` pelo console — ou mexer em `envio.quantidade` antes — para
  * fabricar acervo. Aqui a quantidade é congelada no protocolo, no servidor, e o
@@ -230,7 +230,7 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
  *
  * Ao chegar em 'Recibo emitido' acontecem as três coisas que dão valor ao
  * envio, na ordem do original:
- *   1. as moedas são criadas com recibo NFT e amarradas ao protocolo;
+ *   1. as moedas são criadas com recibo e amarradas ao protocolo;
  *   2. a taxa de custódia é RECALCULADA pela faixa da nova contagem total —
  *      não é a taxa do envio, é a do acervo inteiro depois dele;
  *   3. a cobrança nasce 'Pendente'.

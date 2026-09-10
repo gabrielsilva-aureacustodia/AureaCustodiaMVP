@@ -392,7 +392,7 @@ function relatorioEstoque(fontes: Fontes): Relatorio {
   const linhas = allCoinsFlat(s).map(({ owner, ownerName, coin }) => {
     if (!(coin.tipoMoeda in medianas)) medianas[coin.tipoMoeda] = medianSellPrice(s, coin.tipoMoeda)
     return {
-      Codigo_Ativo: coin.id,
+      Codigo_Moeda: coin.id,
       Tipo_Moeda: coin.tipoMoeda,
       Ano: coin.ano,
       Proprietario: owner,
@@ -401,14 +401,14 @@ function relatorioEstoque(fontes: Fontes): Relatorio {
       Status_Digital: coinStatusDigital(s, coin),
       Data_Envio: envioDateFor(s, coin),
       Data_Entrada: coin.entrada,
-      Recibo: coin.nft.codigo,
-      Recibo_Status: coin.nft.status,
+      Recibo: coin.recibo.codigo,
+      Recibo_Status: coin.recibo.status,
       Valor_Estimado: reais(coin.valorEstimado),
       Valor_Mercado: medianas[coin.tipoMoeda] === null ? '' : reais(medianas[coin.tipoMoeda] as number),
       Protocolo: coin.protocolo,
     }
   })
-  return comLinhas(r, linhas, ['Codigo_Ativo', 'Tipo_Moeda', 'Ano', 'Proprietario', 'Nome', 'Status_Fisico', 'Status_Digital', 'Data_Envio', 'Data_Entrada', 'Recibo', 'Recibo_Status', 'Valor_Estimado', 'Valor_Mercado', 'Protocolo'])
+  return comLinhas(r, linhas, ['Codigo_Moeda', 'Tipo_Moeda', 'Ano', 'Proprietario', 'Nome', 'Status_Fisico', 'Status_Digital', 'Data_Envio', 'Data_Entrada', 'Recibo', 'Recibo_Status', 'Valor_Estimado', 'Valor_Mercado', 'Protocolo'])
 }
 
 function relatorioContas(fontes: Fontes): Relatorio {

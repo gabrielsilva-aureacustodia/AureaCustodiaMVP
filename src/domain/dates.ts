@@ -13,7 +13,7 @@ import type { Timestamp, DateBR } from '@/domain/types'
  */
 export const DAY_MS: number = 86400000
 
-/** Timestamp -> 'dd/mm/aaaa'. É a forma congelada que vai para dentro do NFT. */
+/** Timestamp -> 'dd/mm/aaaa'. É a forma congelada que vai para dentro do recibo. */
 export function fdate(ts: Timestamp): DateBR {
   return new Date(ts).toLocaleDateString('pt-BR')
 }

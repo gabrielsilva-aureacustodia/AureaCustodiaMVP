@@ -11,3 +11,11 @@ build/
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Estacao de analise (frente E): o .exe empacotado e as dependencias do Electron.
+# O executavel tem ~96 MB e e gerado por `npm run build` dentro de estacao/.
+estacao/dist/
+
+# Documentos privados (transcricoes, atas, dados pessoais). O repositorio e publico
+# de proposito durante o MVP; nada desta pasta pode ir junto.
+docs/privado/

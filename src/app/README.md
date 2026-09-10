@@ -16,7 +16,7 @@ app/
 │   ├── mercado/              1.1 Comprar moedas
 │   ├── vender/               1.2 Colocar ativo à venda
 │   ├── envios/               1.3 Enviar para custódia
-│   ├── recibos/              1.4 Meus recibos NFT
+│   ├── recibos/              1.4 Meus recibos
 │   │   └── [coinId]/           3.1 Certificado de um recibo
 │   ├── graficos/             2.0 Mercado e auditoria
 │   │   ├── auditoria/          2.2 Auditoria de estoque

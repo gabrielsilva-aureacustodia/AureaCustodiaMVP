@@ -15,7 +15,7 @@
  *    já com sinal. Somados ao saldo inicial da conta, reconstroem o saldo atual.
  *  - Envios e cobranças de custódia NÃO movem saldo — entram com impacto zero,
  *    porque o extrato também responde "o que aconteceu com as minhas moedas",
- *    e um envio concluído é o evento que criou os recibos NFT da conta.
+ *    e um envio concluído é o evento que criou os recibos da conta.
  *
  * A COMISSÃO SAI DO LADO DO VENDEDOR. É a mesma regra do motor de casamento e
  * das ações de compra e venda: o comprador paga o preço cheio, e é do vendedor

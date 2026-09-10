@@ -9,7 +9,7 @@ Tudo que fala com o mundo de fora, ou que gera arquivo para o usuário baixar.
 | `coingecko.ts` | Busca cotações BTC/ETH/USDT, com fallback simulado | Servidor (`api/crypto`) |
 | `charts.ts` | Medidas e escalas dos gráficos | Cliente |
 | `qr-seed.ts` | Padrão determinístico do QR do recibo | Ambos |
-| `pdf/nft-receipt.ts` | Gera o recibo NFT em PDF (jsPDF) | **Cliente** |
+| `pdf/recibo-pdf.ts` | Gera o recibo de custódia em PDF (jsPDF) | **Cliente** |
 | `xlsx/audit-export.ts` | Planilha da auditoria pública de estoque | **Cliente** |
 | `export/statement-export.ts` | Extrato da conta em CSV e XLSX | **Cliente** |
 
@@ -86,5 +86,5 @@ Cada uma nasce com seu `README.md`.
 |---|---|
 | `charts.ts` | Todos os gráficos, nas três telas de `/graficos` |
 | `qr-seed.ts` | O QR de **recibos já emitidos** — o padrão é determinístico por design |
-| `pdf/nft-receipt.ts` | O documento precisa continuar dizendo o mesmo que a tela do certificado |
+| `pdf/recibo-pdf.ts` | O documento precisa continuar dizendo o mesmo que a tela do certificado |
 | `xlsx/audit-export.ts` | Os nomes das chaves são o contrato do arquivo — pode haver script lendo por eles |

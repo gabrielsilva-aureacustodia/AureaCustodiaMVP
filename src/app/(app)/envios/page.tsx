@@ -398,8 +398,8 @@ export default function EnviosPage(): ReactNode {
                 <path d="M12 3l9 16H3z" />
                 <path d="M12 10v4M12 17v.5" />
               </svg>
-              Envie a moeda em seu lacre original, ou em recipiente/plástico/caixa segura, para
-              preservar sua conservação até a validação da nossa equipe.
+              Envie a moeda em envelope lacrado, para preservar sua conservação até a validação
+              da nossa equipe.
             </div>
 
             <button
@@ -688,7 +688,7 @@ export default function EnviosPage(): ReactNode {
                     style={{ flex: 1 }}
                     onClick={() => router.push('/recibos')}
                   >
-                    Ver meus recibos NFT
+                    Ver meus recibos
                   </button>
                   <button
                     type="button"

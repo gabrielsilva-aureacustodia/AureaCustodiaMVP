@@ -20,7 +20,7 @@ const TINTA = 'var(--qr-ink)'
 const PAPEL = 'var(--cream)'
 
 export interface QrCodeProps {
-  /** Semente determinística. No certificado: `nft.codigo + nft.hash`. */
+  /** Semente determinística. No certificado: `recibo.codigo + recibo.hash`. */
   seed: string
   /** Lado do quadrado, em px. O certificado usa 78. */
   size?: number

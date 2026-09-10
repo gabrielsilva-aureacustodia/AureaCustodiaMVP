@@ -16,15 +16,20 @@ import type { DateBR } from '@/domain/types'
 
 /**
  * Uma linha da planilha. As chaves viram o cabeçalho da aba, então os nomes
- * (sem acento, com underline) são os do original e fazem parte do contrato do
- * arquivo exportado — sistemas de conferência podem estar lendo por eles.
+ * (sem acento, com underline) fazem parte do contrato do arquivo exportado —
+ * sistemas de conferência podem estar lendo por eles.
+ *
+ * `Codigo_Ativo` virou `Codigo_Moeda` em 10/09/2026. É quebra de contrato
+ * assumida: 'ativo' foi proibido pelo jurídico, e manter dois nomes para a
+ * mesma coluna seria pior do que renomear enquanto nenhum cliente real
+ * consome a planilha.
  */
 export interface AuditRow {
-  Codigo_Ativo: string
+  Codigo_Moeda: string
   Tipo_Moeda: string
   /** Data de postagem do envio; cai para a data de entrada quando não houver. */
   Data_Envio: DateBR
-  /** Data de emissão do recibo NFT. */
+  /** Data de emissão do recibo de custódia. */
   Data_Avaliacao: DateBR
 }
 

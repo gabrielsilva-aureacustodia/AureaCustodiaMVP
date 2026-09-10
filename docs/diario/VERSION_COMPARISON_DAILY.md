@@ -664,3 +664,465 @@ Escopo:   cadastro Supabase, Google OAuth, mocks automáticos e landing pública
 
 *Fim da entrada 009. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+# Entrada 010 — 10/09/2026 · Retrato consolidado e abertura da frente E (estação)
+
+```
+Branch:   feat/auth-landing (idêntica em conteúdo à main; origin/main tem 6 merges de fork a mais)
+Escopo:   ritual de sessão executado, leitura de todas as execuções anteriores e plano
+          executivo do software de análise de moedas
+Estado:   nenhum código de produção alterado nesta entrada — a sessão produziu documento
+```
+
+## Verificação da base
+
+Rodado no início da sessão, antes de qualquer escrita:
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | ✅ limpo |
+| `npx vitest run` | ✅ 27 arquivos · 161 testes · 1 pulado |
+| `npm run build` | ✅ verde, 20 rotas |
+| `git status` | limpo |
+
+**Achado de sincronização, sem consequência:** `origin/main` está seis commits à frente da
+branch local, e os seis são merges das pull requests 1 a 6 vindas do fork
+`gabrielsilva-sintetica`. O `git diff HEAD origin/main` é vazio: as árvores são idênticas.
+É o método de publicação via fork funcionando como documentado em
+`docs/METODO_PUBLICACAO_VIA_FORK.md`, não divergência a resolver.
+
+## O retrato das cinco frentes, hoje
+
+Releitura de todas as entradas 001 a 009 e dos relatórios de execução por frente:
+
+| Frente | Estado | O que sustenta a leitura |
+|---|---|---|
+| **A — banco e ledger** | Entregue | Estado em tabelas no Supabase (M1), ledger append-only com hash encadeado, DRE sem alíquota em código, relatórios em `/relatorios` e `/api/relatorios/*` |
+| **B — login e landing** | Entregue | Cadastro Supabase, Google OAuth, landing pública, travas de login removidas em 06/09 |
+| **C — pagamentos e Correios** | Entregue | Mercado Pago com webhook assinado, conciliação fechada para administradores, rastreio por cron diário |
+| **D — logística** | Entregue junto com a C | Etiqueta, CEP validado antes da normalização, painel de envios |
+| **E — estação de análise** | **Não começou** | Era a única frente bloqueada por decisão (D7), e é o assunto desta sessão |
+
+Ou seja: quatro das cinco frentes estão de pé, e o que falta para a plataforma fazer sentido
+ponta a ponta é justamente a bancada — o ponto onde a moeda física vira ativo digital.
+
+## A decisão desta sessão: destravar a frente E sem esperar o D7
+
+O questionário `docs/referencia/QUESTIONARIO_D7_ESTACAO.md` está sem resposta formal desde
+01/09. Em vez de manter a frente parada, o plano executivo adota padrão recomendado para as
+cinco decisões e deixa cada uma sobrescrevível.
+
+**Duas das cinco já estavam respondidas pelo código, e ninguém tinha percebido:**
+
+- **D7a (quando o número da moeda é reservado):** já é *depois* do veredito. `nextCoinCode`
+  só roda quando `advanceAnalysis` chega em "Recibo emitido". A sequência já nasce sem
+  buracos.
+- **D7d (como duas estações não pegam o mesmo número):** já é atômico. `mutateState()` roda
+  dentro de `SELECT … FOR UPDATE` no adaptador Postgres. A sugestão de criar
+  `CREATE SEQUENCE` trocaria uma garantia que funciona por outra equivalente.
+
+Isso reduz o D7 de cinco perguntas para três, e nenhuma das três impede a primeira moeda de
+ser analisada.
+
+## Achados técnicos desta leitura
+
+**1. O `tsconfig.json` da raiz vai engolir a pasta da estação.** O `include` é
+`["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]`. No minuto em que
+`estacao/` existir com código de Electron, o `npm run typecheck` da raiz tenta compilá-lo com
+a configuração do Next — e o build da Vercel quebra pelo mesmo motivo. O primeiro commit da
+frente E precisa acrescentar `"estacao/**"` ao `exclude` e ao `ignores` do
+`eslint.config.mjs`, **antes** de qualquer arquivo de Electron entrar. Achado antes de custar
+um deploy quebrado.
+
+**2. O hash da estação não precisa de código novo.** `src/domain/hash.ts` já tem SHA-256
+encadeado escrito à mão, testado contra os vetores do FIPS 180-4 e contra o `node:crypto`, e
+puro justamente para rodar nos dois lados. A frente E acrescenta a lista de campos, não o
+algoritmo. Isso muda a estimativa da frente E para baixo.
+
+**3. A autorização máquina-a-máquina também já tem molde.** `src/server/relatorios/acesso.ts`
+faz comparação em tempo constante de token via `Authorization: Bearer`. A estação copia esse
+padrão em vez de inventar autenticação.
+
+**4. A frente E força `STORE_KEY` de v6 para v7.** Peso, veredito, operador e caminho de
+vídeo são campos novos em `AppState`. Pela regra da casa, formato novo sobe a versão em vez
+de migrar, e o banco de teste recomeça do seed. Aceito — sete contas de sócios, dado de
+demonstração — mas precisa ser avisado antes do deploy, não descoberto depois.
+
+## Análise crítica
+
+O que esta sessão fez de melhor foi **procurar as respostas no código antes de pedi-las ao
+Gabriel**. Duas das cinco decisões do D7 estavam implementadas há semanas; mantê-las na fila
+de perguntas custava tempo dele para confirmar algo que já era verdade.
+
+O que ficou de fora, de propósito: nenhuma linha de código foi escrita. A frente E toca a
+superfície protegida (`types.ts`, `custody.ts`, `STORE_KEY`), e a regra do repositório é
+plano aprovado antes de edição que atravessa arquivos.
+
+O que continua desconfortável: as três perguntas abertas do D7 — destino da moeda recusada,
+estrutura física do cofre e existência de reanálise — não travam a primeira análise, mas
+ficam caras se forem respondidas com duzentas cápsulas já guardadas. Elas estão na seção 9 do
+plano executivo, e valem uma conversa curta com o Rogério antes da Fase 2.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| CD-08 — persistência de produção no Postgres | Aberto (decisão) |
+| CD-09 — comissão do extrato recalculada, não congelada | Aberto (decisão dos sócios) |
+| D7 — cinco decisões da estação | **Reduzido a três**, e nenhuma bloqueia a Fase 0 |
+| Frente E | Plano executivo escrito: `docs/PLANO_EXECUTIVO_ESTACAO.md` |
+| Base do repositório | typecheck ✅ · testes ✅ · build ✅ |
+
+---
+
+*Fim da entrada 010. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+# Entrada 011 — 10/09/2026 · A estação de análise sai do papel (frente E)
+
+```
+Branch:   feat/auth-landing
+Escopo:   as cinco decisões do D7 respondidas, e a bancada construída
+Estado:   typecheck ✅ · 192 testes ✅ · build ✅ · ponta a ponta contra o banco de teste ✅
+```
+
+## As cinco decisões do D7, fechadas
+
+Gabriel respondeu as três que sobravam. Com as duas que o próprio código já respondia
+(entrada 010), o questionário aberto desde 01/09 está encerrado.
+
+| | Decisão |
+|---|---|
+| **D7a** | O número da moeda é reservado DEPOIS do veredito — já era o que o código fazia |
+| **D7b** | Envio inteiro de uma vez; sem aprovação parcial |
+| **D7c** | Papel único: quem analisa é quem aprova |
+| **D7d** | O contador travado que já existe (`SELECT … FOR UPDATE`) |
+| **D7e** | Endereço é a caixa física, digitada pelo operador |
+
+**Moeda recusada é devolvida ao cliente, com frete por conta dele. Não existe reanálise por
+enquanto.**
+
+A resposta do D7e veio com uma foto do cofre real, e ela decidiu mais do que a pergunta: as
+cápsulas ficam em caixinhas de acrílico rotuladas `Caixa EB 001`. O **EB é Entrega da
+Bandeira** — o rótulo já carrega o tipo da moeda. O formato adotado no código é esse mesmo,
+e ele cresce sozinho para outros tipos (`DH-001`) sem virar outro esquema.
+
+## O que entrou
+
+**O domínio.**
+- `src/domain/analise.ts` — `CAMPOS_DA_ANALISE` (quinze campos, ordem congelada),
+  `hashDaAnalise()`, `encadearAnalise()`, `conferirCadeia()` e `nextAnaliseCode()`.
+  O algoritmo NÃO é novo: reaproveita `hashEncadeado()` de `hash.ts`, que já era SHA-256
+  puro conferido contra os vetores do FIPS 180-4.
+- `src/domain/analise.test.ts` — **vetor congelado**: dois hashes escritos à mão em
+  hexadecimal, conferidos contra o `node:crypto`, não contra o próprio código sob teste.
+- `types.ts` ganhou `Analise`, `VereditoAnalise`, `AppState.analises` e `Seq.analise`.
+
+**A persistência.** Migration 004, tabela `aurea.analises` (append-only, com RLS),
+repositório próprio, e o diff planejando `analise.inserir` pelo mesmo caminho de `trades` e
+`deposits`.
+
+**O servidor.** `src/server/estacao/` com acesso por token em tempo constante, a fila, a
+abertura e o fechamento. Cinco rotas em `/api/estacao/*`.
+
+**A bancada.** `estacao/` — Electron em JavaScript puro, sem etapa de build, empacotado como
+`.exe` portátil. Câmera, gravação em disco, peso, veredito, fila offline.
+
+## Três decisões da execução que divergiram do plano — e por quê
+
+**1. A `STORE_KEY` NÃO subiu para v7, e o banco de teste não foi apagado.** O plano previa
+isso e avisava que o acervo de demonstração se perderia. Na hora ficou claro que a regra não
+se aplicava: subir a versão existe para mudança que deixa **registro velho preso** — foi o
+caso da v6 com `tipoMoeda`, em que uma ordem antiga ficava no livro sem nunca casar.
+Acrescentar uma lista vazia não é esse caso. `garantirFormato()` preenche `analises: []`
+quando falta, a migration é inteiramente aditiva, e nenhum registro antigo fica inválido.
+Aplicar a regra literalmente teria custado o acervo dos sete sócios sem ganho nenhum.
+
+**2. `advanceAnalysis` não foi tocada.** Ela continua servindo à demonstração pela tela, com
+`genHash()`. A estação é um caminho novo e paralelo que escreve o mesmo estado pela mesma
+transação. Assim o RA-05 é pago onde importa — na moeda que existe de verdade — sem mexer em
+Server Action que já funciona.
+
+**3. O valor de entrada da moeda da bancada não é sorteado.** `advanceAnalysis` sorteia
+dentro da faixa de referência quando não há mercado, e ali isso é aceitável porque a tela é
+demonstração. A moeda da bancada existe de verdade: ela nasce com a mediana do tipo ou, sem
+mercado, com o **meio** da faixa. Valor sorteado num recibo de custódia é um número que
+ninguém consegue explicar ao cliente que perguntar de onde veio.
+
+## Achados
+
+**A armadilha do `tsconfig` era real e foi paga antes de custar.** O `include` da raiz é
+`**/*.ts`. `"estacao"` entrou no `exclude` e `'estacao/**'` no `ignores` do ESLint **no
+primeiro commit da frente**, antes de qualquer arquivo de Electron existir.
+
+**A migration 004 precisou ser aplicada à mão no Supabase.** A rota da fila devolveu 500 até
+`npm run db:migrate` rodar. Vale para o deploy: **aplicar a migration antes de publicar**.
+Ela é aditiva, então rodar antes do deploy é seguro — o código antigo simplesmente não
+enxerga a tabela nova.
+
+**Duas coisas foram desenhadas hoje para não custar caro depois.** O campo `aprovador` já
+está na fórmula do hash, repetindo o `operador` — quando a segregação de função chegar, a
+fórmula não muda e nenhum recibo emitido é invalidado. E o `validadoEm` sai do relógio do
+servidor: **não existe campo de horário na entrada da rota**, e é essa ausência que garante
+que o hash não dependa do relógio do notebook.
+
+## O que foi verificado de verdade
+
+Contra o banco de teste real, com o servidor local:
+
+- 401 sem chave, 401 com chave errada, 200 com a certa, 503 quando falta a variável
+- A fila devolveu o envio com o nome do cliente
+- Abrir duas vezes seguidas: idempotente, sem erro
+- Peso digitado em gramas (27 em vez de 27000): 400 apontando o campo e sugerindo a causa
+- Quantidade diferente da do envio: 422
+- Fechar com 1 aprovada e 1 recusada: moeda criada com `nft.hash` igual ao hash da análise,
+  recusada sem moeda e com motivo gravado, corrente encadeada do GENESIS
+- Fechar de novo: 409, sem emitir moeda duas vezes
+
+O dado de teste foi removido do banco ao fim, com as posições do inventário e a cobrança de
+custódia restauradas.
+
+## Atalhos registrados
+
+RA-20 (executável sem assinatura), RA-21 (papel único), RA-22 (endereço digitado) e RA-23
+(vídeo não obrigatório) entraram em `RISCOS_ASSUMIDOS.md` e em `estacao/ATALHOS.md`.
+
+O RA-23 é o que merece leitura: vídeo obrigatório significaria que uma câmera com cabo solto
+ou uma internet caída **impedem a moeda de ser analisada** — com a moeda já fora da cápsula,
+na mesa. A gravação é prova; a análise é operação. Travar a operação na prova inverte a
+prioridade. No lugar da trava, o campo entra no hash, e a ausência do vídeo fica permanente
+e visível.
+
+## Análise crítica
+
+O que ficou bom: o hash não foi reimplementado. A estação não calcula hash nenhum — quem
+calcula é o servidor, com o relógio dele. Isso elimina por construção a classe de bug mais
+provável desta frente, que seria duas implementações divergirem em algum detalhe de
+normalização.
+
+O que ficou pela metade, de propósito: o upload do vídeo tem código pronto e testado no
+caminho de erro (503 quando falta configuração), mas nunca subiu um arquivo — falta criar o
+balde e cadastrar `SUPABASE_SERVICE_ROLE_KEY`. É dependência externa, não código.
+
+O que continua desconfortável: nenhuma moeda foi analisada com hardware real. Câmera com
+anel de foco manual, microscópio e balança ainda não foram comprados. A primeira análise de
+verdade vai revelar coisas de ergonomia de bancada que nenhuma leitura de código revela.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| D7 — as cinco decisões da estação | **Fechado** em 10/09/2026 |
+| RA-05 — hash do recibo simulado | **Pago para moeda da bancada**; moeda do seed continua simulada, e é honesto que continue |
+| Frente E | Fases 0, 1, 2 e 4 entregues. Fase 3 espera o balde do Supabase |
+| CD-08 — persistência de produção no Postgres | Aberto (decisão) |
+| CD-09 — comissão do extrato recalculada | Aberto (decisão dos sócios) |
+| Base do repositório | typecheck ✅ · 192 testes ✅ · build ✅ |
+
+---
+
+*Fim da entrada 011. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+# Entrada 012 — 10/09/2026, tarde · A bancada rodando de verdade, e o que o teste revelou
+
+```
+Branch:   feat/auth-landing
+Escopo:   testar o executável com hardware real e corrigir o que aparecesse
+Estado:   typecheck ✅ · lint ✅ · 192 testes ✅ · executável validado com a webcam USB
+```
+
+## O que esta entrada acrescenta à 011
+
+A entrada 011 registrou a construção. Esta registra o **teste com máquina e câmera de
+verdade** — e ele encontrou seis defeitos que a leitura de código não encontraria. Cinco
+deles teriam aparecido na primeira análise da bancada.
+
+O método importa: a tela foi dirigida por **protocolo de depuração do Chromium**, avaliando
+JavaScript dentro do programa empacotado. Foi assim que se descobriu que meu próprio teste
+estava errado — ele conferia `el.hidden`, o atributo, quando o que importa é o que a tela
+mostra.
+
+## Os seis defeitos
+
+**1. A janela de configuração ficava presa na tela.** `.modal { display: flex }` vence o
+`[hidden]` do navegador. O atributo estava correto e a janela aparecia mesmo assim, tapando
+o programa inteiro. **Quem descobriu foi o Gabriel, mandando um print** — nenhum teste
+automático pegaria, porque todos liam o atributo. Corrigido com `[hidden] { display: none
+!important }` no topo do CSS.
+
+**2. `MediaRecorder.start()` recusando fluxo sem áudio.**
+`isTypeSupported('video/webm')` devolve `true` e o `start()` lança `NotSupportedError` mesmo
+assim: o formato genérico deixa o Chromium escolher um contêiner que espera trilha de áudio,
+e a bancada grava só imagem. **E falhava em silêncio** — o botão não mudava e nenhuma
+mensagem aparecia, o que faria o operador conduzir a análise inteira achando que gravava.
+
+**3. `deviceId: { exact }` com id velho.** O identificador de uma câmera não é estável: muda
+ao reconectar a webcam noutra porta USB e entre sessões. A mensagem na tela era "confira se
+o cabo USB está conectado", com o cabo conectado.
+
+**4. `input[type=number]` descartando a vírgula.** O operador digita `27,05`, como o display
+da balança mostra, e o Chromium devolve string vazia. O programa acusava "digite o peso" para
+quem tinha acabado de digitar.
+
+**5. O travamento da pilha de captura do Windows — o mais grave.** Com a webcam USB
+conectada, `enumerateDevices()` e `getUserMedia()` **travavam**: mais de vinte segundos sem
+responder, e o travamento **sobrevivia a reiniciar o programa**. A lista de câmeras ficava
+vazia e nada acusava erro. A causa é o **MediaFoundation**, a pilha moderna e padrão do
+Chromium, com o driver de câmera desta máquina. Forçando o **DirectShow**, a mesma máquina
+enumerou as três câmeras em **747 ms** e gravou de todas.
+
+**6. Vídeo em 640x480.** Sem pedir resolução, o Chromium entrega o mínimo — pouco para
+enxergar relevo de moeda. Passou a pedir `ideal: 1920x1080`: a USB da bancada entrega 1080p,
+a do notebook entrega 720p.
+
+## O que foi verificado funcionando
+
+Contra o banco real, com servidor local, dirigindo a tela por protocolo:
+
+- Conectou, fila com o nome do cliente, procedimento abriu, fase avançou no site
+- **Gravou pela webcam USB `KE-WB1080P2` em 1920x1080**, VP9, arquivo de 974 KB com
+  assinatura WebM válida no disco
+- Peso `27,05` virou 27050 mg; uma moeda aprovada em `EB-001` posição 7, outra recusada com
+  motivo
+- Fechou: moeda criada com o hash da análise no recibo, recusada sem moeda, corrente
+  encadeada do GENESIS
+- **Fila offline:** com o site apontado para uma porta morta, a análise foi para o disco e a
+  tela disse "sobe sozinha quando a internet voltar"; ao religar, subiu e o contador zerou
+
+## Achados de infraestrutura
+
+**O balde `analises` foi criado pelo Gabriel e está privado** (`public = false`), sem limite
+de tamanho nem restrição de tipo. Conferido no banco.
+
+**A tentativa de criar o balde por SQL foi bloqueada** pelo classificador de segurança da
+ferramenta. Não foi contornada; em vez disso o comando pronto foi entregue ao Gabriel, que o
+executou. Fica como precedente: quando uma ação minha é bloqueada, a saída é entregar o
+comando, não procurar outro caminho.
+
+**A frente E não está publicada.** `origin/main` não tem nenhum arquivo de `estacao/` nem de
+`api/estacao/`, e `https://aurea-custodia-mvp.vercel.app/api/estacao` responde 404. É o que
+impede mandar o executável aos sócios hoje: eles abririam e veriam "Sem conexão".
+
+## Análise crítica
+
+O que ficou bom: **nenhum destes seis apareceria numa revisão de código**. Cinco só
+aparecem executando, e um só apareceu porque um humano olhou a tela. Vale como método para
+as próximas frentes com interface — dirigir o programa de verdade, e conferir o que a tela
+mostra, não o que o estado diz.
+
+O que ficou desconfortável: o defeito 5 é de ambiente, não de código. Forçar o DirectShow
+resolve nesta máquina e pode não ser o certo numa futura com câmera que só fale
+MediaFoundation. O escape existe (`"capturaModerna": true` no `estacao.json`), mas é o tipo
+de decisão que se descobre errada só no dia.
+
+O que continua pendente: o upload do vídeo nunca subiu um arquivo de verdade — falta a
+`SUPABASE_SERVICE_ROLE_KEY`, que só o Gabriel obtém. O caminho de erro está testado; o de
+sucesso, não.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Frente E — programa da bancada | Funcionando, validado com câmera real |
+| Frente E — publicação | **Não publicada**: rotas dão 404 em produção |
+| Upload de vídeo | Código pronto; falta a chave de serviço |
+| RA-20 a RA-23 | Registrados |
+| Base do repositório | typecheck ✅ · lint ✅ · 192 testes ✅ |
+
+---
+
+*Fim da entrada 012. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
+
+# Entrada 013 — 10/09/2026, noite · O desenho do painel, e três buracos que ele revelou
+
+```
+Branch:   feat/auth-landing
+Escopo:   planejar a bancada como tela do painel administrativo
+Estado:   nenhum código de produção alterado — a sessão produziu desenho
+```
+
+## A correção que originou a entrada
+
+Eu havia escrito, no roteiro da bancada, "no programa, em Configuração, trocar o endereço
+para produção". **O Gabriel apontou que isso não funciona** — e estava certo: a frente E
+nunca foi publicada, então o endereço de produção não tem as rotas.
+
+Ele então redirecionou a estratégia: em vez de distribuir o `.exe` aos sócios, a bancada
+vira **uma tela do painel administrativo**, no navegador. O `.exe` fica para a bancada.
+
+## O check-up que fechou o assunto do redeploy
+
+O Gabriel cadastrou as variáveis na Vercel e republicou. Conferido:
+
+| | |
+|---|---|
+| `/api/estacao` em produção | **404** |
+| `estacao` na `origin/main` | nenhum arquivo |
+| Commits locais não enviados | 2 |
+
+**O redeploy republicou a versão antiga do site.** As variáveis estão certas e não há código
+que as leia. Nada mais falta de tarefa manual dele: falta publicar.
+
+Fica a lição de diagnóstico: quando a configuração está certa e nada funciona, conferir
+**se o código que a consome chegou lá** antes de mexer na configuração de novo.
+
+## Os três buracos que o desenho revelou
+
+**1. O navegador não pode forçar a pilha de captura do Windows.** O `.exe` resolve o
+travamento do MediaFoundation com uma opção de linha de comando que passa a si mesmo. Uma
+página não pode fazer isso — existe só a configuração por máquina em
+`chrome://flags/#enable-media-foundation-video-capture`. Consequência de produto: o `.exe`
+não é descartado quando o painel nascer; ele vira a alternativa para a máquina que precisar.
+O webapp não resolve, **diagnostica**.
+
+**2. Não existe UUID de usuário na plataforma.** A chave de junção é o e-mail, como texto,
+em sete tabelas — `users`, `coins`, `envios`, `deposits`, `custody_charges`,
+`ledger_entries`, `payment_intents` — e nenhuma migration cria coluna `uuid`. O Supabase
+Auth emite `auth.users.id` e `provisionAuthenticatedUser()` o descarta.
+
+O conserto é aditivo e pequeno: `auth_user_id uuid` em `aurea.users`, preenchido no
+provisionamento, nulo para as sete contas do seed. **O e-mail continua sendo a chave
+primária** — trocá-la rippleria por sete tabelas e pelo tipo `UserEmail` do domínio.
+
+E a armadilha que precisa ficar registrada: **`operador` e `aprovador` estão na fórmula
+congelada do hash.** Trocar o conteúdo deles de e-mail para UUID faria todo recibo emitido
+deixar de conferir. O UUID entra em colunas novas, fora da fórmula.
+
+**3. As análises da bancada entram na trilha de auditoria como `'sistema'`.** As rotas
+`/api/estacao/*` são chamadas sem cookie, então `atorDaRequisicao()` cai no `catch`. A
+tabela `analises` sabe quem operou; o `audit_log`, que é o documento feito para auditar, não.
+E ele é append-only: o que entrou errado fica errado. É o buraco mais urgente dos três, e o
+único que piora a cada análise feita.
+
+## Uma decisão de arquitetura que vale o registro
+
+O painel como **grupo de rotas da mesma aplicação Next**, e não projeto separado. Projeto
+separado custaria CORS em todas as rotas da estação, cookie entre origens com
+`SameSite=None` — enfraquecendo a proteção contra CSRF que hoje é de graça — e o risco de
+duplicar a fórmula do hash em duas bases, que é exatamente o que a frente E foi desenhada
+para evitar. Branch separada continua dando o isolamento de desenvolvimento que se quer.
+
+## O que entrou
+
+Pasta nova `docs/publish_docs/`, para planos do que **ainda não existe**, separada do resto
+de `docs/`, que descreve o construído. Misturar os dois faz alguém abrir um plano, achar que
+é relato, e contar com uma feature que não existe. Regra da pasta: documento é **movido**
+para lá, nunca copiado, e sai quando o plano vira realidade.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Frente E — programa da bancada | Funcionando, validado com câmera real |
+| Frente E — publicação | **Não publicada**: 404 em produção, 2 commits locais |
+| Frente E — fase 2 (painel) | Planejada: `docs/publish_docs/` |
+| UUID de usuário | **Não existe** — correção aditiva desenhada |
+| Ator da auditoria na bancada | **Registra `'sistema'`** — correção desenhada |
+| Base do repositório | typecheck ✅ · lint ✅ · 192 testes ✅ |
+
+---
+
+*Fim da entrada 013. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*

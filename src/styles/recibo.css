@@ -1,20 +1,20 @@
 /* ============================================================================
-   RECIBOS NFT — grade de recibos (1.4) e o certificado impresso (3.1).
+   RECIBOS — grade de recibos (1.4) e o certificado impresso (3.1).
 
    O certificado é o único componente que ignora o tema: fundo creme e tintas
    fixas nos dois modos, porque é um documento que também vira PDF. Por isso
    suas cores moram no :root de tokens.css, não nos blocos de tema.
    ========================================================================= */
 
-.nft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
-.nft-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card);box-shadow:var(--shadow);text-align:center;transition:transform .15s}
-.nft-card:hover{transform:translateY(-2px)}
-.nft-card .nft-art{width:96px;height:96px;margin:0 auto 10px}
-.nft-card .nft-code{font-weight:700;color:var(--text-strong);font-size:14.5px}
-.nft-card .nft-type{font-size:12px;color:var(--text-muted);margin-top:2px;min-height:15px}
-.nft-card .nft-val{font-size:13.5px;color:var(--gold);font-weight:700;margin:8px 0 4px;font-family:var(--ff-display)}
+.recibo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.recibo-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card);box-shadow:var(--shadow);text-align:center;transition:transform .15s}
+.recibo-card:hover{transform:translateY(-2px)}
+.recibo-card .recibo-art{width:96px;height:96px;margin:0 auto 10px}
+.recibo-card .recibo-code{font-weight:700;color:var(--text-strong);font-size:14.5px}
+.recibo-card .recibo-type{font-size:12px;color:var(--text-muted);margin-top:2px;min-height:15px}
+.recibo-card .recibo-val{font-size:13.5px;color:var(--gold);font-weight:700;margin:8px 0 4px;font-family:var(--ff-display)}
 
-/* ---- 3.1 CERTIFICADO NFT -------------------------------------------------- */
+/* ---- 3.1 CERTIFICADO ------------------------------------------------------ */
 .cert-wrap{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
 .cert{
   background:var(--cream);color:var(--navy-deep);border-radius:14px;padding:44px 40px;

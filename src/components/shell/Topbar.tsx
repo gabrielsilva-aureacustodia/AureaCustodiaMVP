@@ -66,7 +66,7 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   }
   if (pathname === '/vender') {
     return {
-      h1: 'Colocar ativo à venda',
+      h1: 'Colocar moeda à venda',
       p: 'Selecione uma ou mais moedas em custódia e publique seu anúncio com transparência.',
     }
   }
@@ -79,20 +79,20 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   // Certificado de uma moeda (3.1) antes da grade de recibos (1.4).
   if (pathname.startsWith('/recibos/')) {
     return {
-      h1: 'Recibo NFT de Custódia',
+      h1: 'Recibo de Custódia',
       p: 'Certificado digital de custódia vinculado ao banco de dados fictício.',
     }
   }
   if (pathname === '/recibos') {
     return {
-      h1: 'Meus recibos NFT',
+      h1: 'Meus recibos',
       p: 'Recibos digitais de validação e recebimento de custódia.',
     }
   }
   if (pathname === '/graficos/auditoria') {
     return {
       h1: 'Auditoria de estoque custodiado',
-      p: 'Moedas físicas recebidas, lacradas e vinculadas aos recibos digitais.',
+      p: 'Moedas físicas recebidas, conferidas e vinculadas aos recibos digitais.',
     }
   }
   if (pathname === '/graficos/comparacoes') {

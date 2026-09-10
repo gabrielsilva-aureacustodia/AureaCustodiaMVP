@@ -15,11 +15,11 @@
  *      * `Timestamp` (number, Date.now()) para tudo que precisa de ordenação
  *        ou janela de tempo — negociações, médias de 7 dias, mediana 24h.
  *      * `DateBR` (string 'dd/mm/aaaa') para campos congelados por regra de
- *        negócio — a data de emissão do NFT não muda quando a moeda troca
+ *        negócio — a data de emissão do recibo não muda quando a moeda troca
  *        de dono.
  *
  *  - Identificadores são sequenciais e persistentes, gerados a partir de
- *    `state.seq`: RO-000001 (ativo), NFT-000001 (recibo, espelha o ativo),
+ *    `state.seq`: RO-000001 (moeda), REC-000001 (recibo, espelha a moeda),
  *    RO-ENV-0001 (protocolo de envio).
  */
 
@@ -36,7 +36,7 @@ export type Cents = number
 export type UserEmail = string
 
 // ---------------------------------------------------------------------------
-// Moedas e recibos NFT
+// Moedas e recibos de custódia
 // ---------------------------------------------------------------------------
 
 /**
@@ -48,26 +48,31 @@ export type StatusFisico = 'Recebido' | 'Armazenado'
 /** Situação do registro digital. No MVP toda moeda validada nasce 'Validado'. */
 export type StatusDigital = 'Validado'
 
-/** Situação do recibo NFT. 'Extinto' fica reservado para a retirada física (bloco 4.3). */
-export type NftStatus = 'Ativo' | 'Extinto'
+/** Situação do recibo. 'Extinto' fica reservado para a retirada física (bloco 4.3). */
+export type StatusRecibo = 'Ativo' | 'Extinto'
 
 /**
- * Recibo NFT de custódia. Relação 1:1 com a moeda — desnormalização
- * consciente descrita na Seção 2.5 do documento técnico.
+ * Recibo de custódia. Relação 1:1 com a moeda — desnormalização consciente
+ * descrita na Seção 2.5 do documento técnico.
+ *
+ * Chamava-se `Nft` até 10/09/2026. O jurídico proibiu a palavra em 09/09/2026
+ * (D-4), e o nome do tipo conta porque este repositório é público — quem lê o
+ * código lê o produto. A troca zerou o banco pela subida de STORE_KEY para
+ * `aurea-market-v7`, o que só é barato enquanto não há cliente real.
  */
-export interface Nft {
-  /** Deriva do código do ativo: RO-000042 -> NFT-000042. */
+export interface Recibo {
+  /** Deriva do código da moeda: RO-000042 -> REC-000042. */
   codigo: string
   /** Hash curto no formato 0xA1B2...C3D4. SIMULADO — não há blockchain. */
   hash: string
   /** Congelada na emissão: não muda quando a moeda troca de dono. */
   dataEmissao: DateBR
-  status: NftStatus
+  status: StatusRecibo
 }
 
-/** Moeda física em custódia, com seu recibo NFT embutido. */
+/** Moeda física em custódia, com seu recibo embutido. */
 export interface Coin {
-  /** Código sequencial global do ativo: 'RO-000042'. */
+  /** Código sequencial global da moeda: 'RO-000042'. */
   id: string
   /** Chave do catálogo COIN_TYPES. */
   tipoMoeda: string
@@ -81,7 +86,7 @@ export interface Coin {
   protocolo: string
   /** true quando a moeda já mudou de dono ao menos uma vez ('Alienado' na auditoria). */
   transferido?: boolean
-  nft: Nft
+  recibo: Recibo
 }
 
 // ---------------------------------------------------------------------------
@@ -232,6 +237,69 @@ export interface Envio {
 }
 
 // ---------------------------------------------------------------------------
+// Análise física na estação de validação (frente E)
+// ---------------------------------------------------------------------------
+
+export type VereditoAnalise = 'aprovada' | 'recusada'
+
+/**
+ * O procedimento de análise de UMA moeda na bancada.
+ *
+ * Tem identidade própria (`RO-ANL-0001`), distinta do código da moeda, porque
+ * uma moeda recusada nunca vira ativo e mesmo assim precisa ter registro — é
+ * ela que explica ao cliente por que o pacote está voltando.
+ *
+ * A lista `AppState.analises` é APPEND-ONLY, como `trades` e `deposits`:
+ * análise não se corrige, se refaz. Quando a reanálise existir, ela entra como
+ * um registro novo apontando para a mesma moeda, e o anterior continua lá.
+ *
+ * Os campos entram no hash na ordem de CAMPOS_DA_ANALISE (domain/analise.ts).
+ * Acrescentar campo aqui NÃO muda o hash; acrescentar naquela lista muda todos
+ * os hashes seguintes.
+ */
+export interface Analise {
+  /** Identidade do procedimento: 'RO-ANL-0001'. */
+  protocolo: string
+  /** Envio que trouxe a moeda: 'RO-ENV-0001'. */
+  protocoloEnvio: string
+  /** Moeda gerada quando aprovada: 'RO-000042'. `null` quando recusada. */
+  codigoMoeda: string | null
+  /** Recibo da moeda: 'REC-000042'. `null` quando recusada. */
+  codigoRecibo: string | null
+  tipoMoeda: string
+  ano: number
+  /**
+   * Peso aferido em MILIGRAMAS INTEIROS. Nunca gramas com vírgula: '27.0' e
+   * '27' são o mesmo peso e são textos diferentes, e texto diferente é hash
+   * diferente. Mesma razão do `Cents` para dinheiro.
+   */
+  pesoMg: number
+  veredito: VereditoAnalise
+  /** Obrigatório quando recusada; `null` quando aprovada. */
+  motivoRecusa: string | null
+  /** Quem operou a bancada. */
+  operador: string
+  /**
+   * Quem homologou. Hoje é sempre igual a `operador` — papel único (D7c).
+   * O campo já existe para que a segregação de função, quando chegar, não
+   * mude a fórmula do hash e não invalide recibo já emitido.
+   */
+  aprovador: string
+  /** Caixa física onde a cápsula ficou: 'EB-001'. Interno, não vai ao cliente. */
+  caixa: string | null
+  /** Posição da cápsula dentro da caixa, quando anotada. */
+  posicao: number | null
+  /** Relógio do SERVIDOR, nunca o do notebook da bancada. */
+  validadoEm: Timestamp
+  /** Caminho no armazenamento: 'analises/RO-000042/RO-ANL-0001.webm'. */
+  caminhoVideo: string | null
+  /** Hash da análise anterior — GENESIS na primeira. */
+  hashAnterior: string
+  /** SHA-256 desta análise. É o que vai para o recibo da moeda. */
+  hash: string
+}
+
+// ---------------------------------------------------------------------------
 // Taxa de custódia
 // ---------------------------------------------------------------------------
 
@@ -271,6 +339,8 @@ export interface CustodyCharge {
 export interface Seq {
   coin: number
   envio: number
+  /** Contador de 'RO-ANL-0001'. Ausente em estado gravado antes da frente E. */
+  analise?: number
 }
 
 /**
@@ -288,6 +358,8 @@ export interface AppState {
   custodyCharges: Record<UserEmail, CustodyCharge>
   /** Histórico de aportes de saldo, na ordem em que aconteceram. */
   deposits: Deposit[]
+  /** Análises da bancada, append-only, na ordem em que foram fechadas (frente E). */
+  analises: Analise[]
 }
 
 // ---------------------------------------------------------------------------

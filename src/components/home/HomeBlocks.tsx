@@ -25,7 +25,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 interface Bloco {
-  /** Destino. Substitui o argumento de go(): 'buy'|'sell'|'send'|'nfts'. */
+  /** Destino. Substitui o argumento de go(): 'buy'|'sell'|'send'|'nfts' no monolito. */
   href: string
   titulo: string
   texto: string
@@ -48,7 +48,7 @@ const BLOCOS: Bloco[] = [
   },
   {
     href: '/vender', // go('sell')
-    titulo: 'Vender ativo',
+    titulo: 'Vender moeda',
     texto: 'Anuncie uma ou várias moedas, ou venda direto para uma oferta de compra.',
     icone: (
       <>
@@ -71,7 +71,7 @@ const BLOCOS: Bloco[] = [
   },
   {
     href: '/recibos', // go('nfts')
-    titulo: 'Meus recibos NFT',
+    titulo: 'Meus recibos',
     texto: 'Acesse e gerencie seus recibos digitais de forma fácil.',
     icone: (
       <>

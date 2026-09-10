@@ -13,14 +13,13 @@
 
 import type { ReactNode } from 'react'
 
+import { apelidoComprador } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
 
 export interface SellerBidRowProps {
   bid: BuyOrder
-  /** Nome do comprador. O original cai em '—' quando a conta não está no estado. */
-  buyerName: string
   /**
    * Moedas do tipo do bid que o vendedor tem livres agora. Zero desabilita o
    * botão — no monolito ele estava sempre ativo porque havia um ativo só e a
@@ -32,7 +31,6 @@ export interface SellerBidRowProps {
 
 export function SellerBidRow({
   bid,
-  buyerName,
   livres,
   onSellDirect,
 }: SellerBidRowProps): ReactNode {
@@ -52,7 +50,9 @@ export function SellerBidRow({
           {bid.qty} moeda(s) · {bid.tipoMoeda}
         </div>
         <div className="o-meta">
-          Comprador: {buyerName} · Publicada em {fdate(bid.createdAt)}
+          {/* Anonimato da vitrine (D-5, 10/09/2026): quem recebe a oferta não
+              precisa saber de quem ela é para decidir vender. */}
+          {apelidoComprador(bid.id)} · Publicada em {fdate(bid.createdAt)}
           <br />
           Você tem {livres} desta moeda disponível(is) para vender
         </div>

@@ -1,5 +1,5 @@
 /**
- * Recibo NFT de custódia em PDF — porte de `downloadNftPdf` / `drawPdfQR`
+ * Recibo de custódia em PDF — porte de `downloadNftPdf` / `drawPdfQR`
  * (MVP, linhas 1951-2026).
  *
  * Roda no CLIENTE: o jsPDF monta um Blob e dispara o download pelo DOM, coisa
@@ -20,7 +20,7 @@ import { qrMatrix } from '@/lib/qr-seed'
 /**
  * Desenha o "QR" decorativo ponto a ponto. Usa o mesmo PRNG do QR em SVG da
  * tela (ver lib/qr-seed.ts) para que o recibo impresso e o recibo em tela
- * mostrem o desenho idêntico para o mesmo NFT.
+ * mostrem o desenho idêntico para o mesmo recibo.
  */
 function drawPdfQR(doc: jsPDF, seedStr: string, x: number, y: number, size: number): void {
   const cells = 12
@@ -66,7 +66,7 @@ function drawPdfQR(doc: jsPDF, seedStr: string, x: number, y: number, size: numb
  * Imprimir valor no recibo é mudança de escopo, e vem junto com o
  * reposicionamento da página.
  */
-export async function downloadNftReceipt(params: {
+export async function baixarReciboPdf(params: {
   coin: Coin
   ownerName: string
 }): Promise<void> {
@@ -102,11 +102,11 @@ export async function downloadNftReceipt(params: {
   doc.setFont('times', 'bold')
   doc.setFontSize(19)
   doc.setTextColor(20, 36, 66)
-  doc.text('Recibo NFT de Custódia', 240, 150, { align: 'center' })
+  doc.text('Recibo de Custódia', 240, 150, { align: 'center' })
   doc.setFont('times', 'bold')
   doc.setFontSize(12)
   doc.setTextColor(138, 108, 42)
-  doc.text(coin.nft.codigo, 240, 168, { align: 'center' })
+  doc.text(coin.recibo.codigo, 240, 168, { align: 'center' })
 
   // Os CINCO campos do original, nesta ordem. Não acrescente linha aqui: o `y`
   // é acumulador (30pt por campo) e tudo que vem depois — selo, QR e rodapé —
@@ -115,11 +115,11 @@ export async function downloadNftReceipt(params: {
   // O ano só aparece junto do tipo quando NÃO é a moeda negociável — para ela
   // o ano é sempre 2012 e repetir seria ruído.
   const fields: Array<[string, string]> = [
-    ['Ativo', coin.tipoMoeda + (coin.tipoMoeda !== COIN.name ? ' ' + coin.ano : '')],
-    ['Status', coin.nft.status === 'Extinto' ? 'Retirado da custódia' : 'Moeda física recebida e custodiada'],
-    ['Data de emissão', coin.nft.dataEmissao],
+    ['Moeda', coin.tipoMoeda + (coin.tipoMoeda !== COIN.name ? ' ' + coin.ano : '')],
+    ['Status', coin.recibo.status === 'Extinto' ? 'Retirado da custódia' : 'Moeda física recebida e custodiada'],
+    ['Data de emissão', coin.recibo.dataEmissao],
     ['Proprietário atual', ownerName],
-    ['Hash (curto)', coin.nft.hash],
+    ['Hash (curto)', coin.recibo.hash],
   ]
   let y = 198
   for (const [k, v] of fields) {
@@ -146,7 +146,7 @@ export async function downloadNftReceipt(params: {
   doc.text('CUSTÓDIA', 112, y + 37, { align: 'center' })
   doc.text('VERIFICADA', 112, y + 47, { align: 'center' })
 
-  drawPdfQR(doc, coin.nft.codigo + coin.nft.hash, 320, y + 12, 78)
+  drawPdfQR(doc, coin.recibo.codigo + coin.recibo.hash, 320, y + 12, 78)
   doc.setFontSize(7)
   doc.setTextColor(160, 142, 94)
   doc.text('código simulado', 359, y + 98, { align: 'center' })
@@ -162,5 +162,5 @@ export async function downloadNftReceipt(params: {
   doc.setTextColor(160, 142, 94)
   doc.text('Ambiente de teste · Pré-MVP · Dados fictícios', 240, y + 156, { align: 'center' })
 
-  doc.save(`recibo-${coin.nft.codigo}.pdf`)
+  doc.save(`recibo-${coin.recibo.codigo}.pdf`)
 }

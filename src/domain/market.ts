@@ -140,8 +140,8 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
 }
 
 /**
- * Move a moeda INTEIRA (tipo, ano, protocolo, NFT, hash) de um dono para
- * outro. O recibo NFT viaja junto e conserva a data de emissão — só a
+ * Move a moeda INTEIRA (tipo, ano, protocolo, recibo, hash) de um dono para
+ * outro. O recibo viaja junto e conserva a data de emissão — só a
  * `entrada`, que é a data de aquisição pelo dono atual, é reescrita.
  *
  * MUTA os dois usuários. Devolve null quando a moeda não está no inventário

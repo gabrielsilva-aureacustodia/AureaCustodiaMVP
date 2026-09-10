@@ -12,7 +12,7 @@
    sem erro de build e sem aviso no console.
 
    Sequência obrigatória (a mesma anotada no cabeçalho de responsive.css):
-     tokens -> base -> login -> shell -> home -> market -> wizard -> nft
+     tokens -> base -> login -> shell -> home -> market -> wizard -> recibo
             -> reports -> account -> responsive
    ========================================================================= */
 
@@ -30,7 +30,7 @@
 @import '../styles/home.css';
 @import '../styles/market.css';
 @import '../styles/wizard.css';
-@import '../styles/nft.css';
+@import '../styles/recibo.css';
 @import '../styles/reports.css';
 @import '../styles/account.css';
 

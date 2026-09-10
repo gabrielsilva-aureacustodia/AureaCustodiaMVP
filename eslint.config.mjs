@@ -27,7 +27,20 @@ const config = [
     // next-env.d.ts é gerado pelo Next e está no .gitignore — não é código
     // nosso para revisar, e a referência triple-slash dele é como o Next o
     // escreve.
-    ignores: ['.next/**', 'node_modules/**', 'vendor/**', 'out/**', 'build/**', 'next-env.d.ts'],
+    // `estacao/` é o programa da bancada: Electron, JavaScript puro, sem
+    // Next e sem React. Rodar `next/core-web-vitals` nele acusaria erro em
+    // código correto — e, pior, o `tsconfig` da raiz tentaria compilá-lo com a
+    // configuração do site, quebrando o build da Vercel por um motivo que não
+    // se parece com a causa. Ver docs/PLANO_EXECUTIVO_ESTACAO.md, seção 5.
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'vendor/**',
+      'out/**',
+      'build/**',
+      'estacao/**',
+      'next-env.d.ts',
+    ],
   },
 ]
 
