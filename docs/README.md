@@ -35,6 +35,7 @@ docs/
 ├── TUTORIAL_ESTACAO_PASSO_A_PASSO.md  👤 Os 6 passos para pôr a bancada no ar, com valores literais
 ├── TUTORIAL_BALDE_SUPABASE.md       👤 O balde de vídeos e a chave de serviço, passo a passo
 ├── ESTACAO_O_QUE_FALTA_PARA_CONECTAR.md  🔌 O que falta para a bancada falar com a plataforma
+├── PLANO_EXECUTIVO_BANCADA_WEBAPP.md  🅴 Fase 2 da frente E: a bancada como tela do painel admin
 ├── GUIA_CLAUDE_CODE_AUREA.md        Onboarding de quem entra no projeto
 ├── PRE_LANCAMENTO_CLIENTES_REAIS.md O que falta antes do primeiro cliente real
 ├── HANDOFF_CORRECAO_SUPABASE.md     A correção da conexão Supabase (02/09)
@@ -95,6 +96,7 @@ Mudam quando o assunto muda, não por rotina.
 | **Vai configurar Vercel, e-mail HostGator ou domínio próprio** | `GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md` |
 | **Vai pôr a estação de análise no ar** | `TUTORIAL_ESTACAO_PASSO_A_PASSO.md` |
 | **Quer saber por que a bancada ainda não conecta em produção** | `ESTACAO_O_QUE_FALTA_PARA_CONECTAR.md` |
+| **Vai levar a bancada para dentro do painel administrativo** | `PLANO_EXECUTIVO_BANCADA_WEBAPP.md` |
 | Quer saber o que a arquitetura ainda deve | `ARQUITETURA_O_QUE_FALTA.md` |
 | Vai ligar a planilha do contador | `INTEGRACAO_GOOGLE_SHEETS.md` → `API_RELATORIOS.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
