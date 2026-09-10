@@ -90,6 +90,12 @@ async function atorDaRequisicao(): Promise<string> {
  */
 function garantirFormato(state: AppState): AppState {
   if (!Array.isArray(state.deposits)) state.deposits = []
+  // Estado gravado antes da frente E nao tem a lista. Default vazio em vez de
+  // subir a STORE_KEY: nenhum registro antigo fica preso por faltar analise --
+  // o caso que criou a regra era outro (ordem da v5 sem tipoMoeda, que casava
+  // com qualquer livro). Apagar o acervo de demonstracao aqui seria custo sem
+  // ganho nenhum.
+  if (!Array.isArray(state.analises)) state.analises = []
 
   const antes = state.sellOffers.length + state.buyOrders.length
   state.sellOffers = state.sellOffers.filter((o) => typeof o.tipoMoeda === 'string')

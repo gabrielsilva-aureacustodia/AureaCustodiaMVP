@@ -162,6 +162,8 @@ function suite(alvo: Alvo): void {
         ),
       )
       expect(tabelas.map((t) => t.relname)).toEqual([
+        // Migration 004 — a estação de validação física (frente E).
+        'analises',
         // Migration 003 — ledger, auditoria e DRE (M4/M7).
         'audit_log',
         'buy_orders',

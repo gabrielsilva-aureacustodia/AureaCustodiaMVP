@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Áurea Custódia — Estação de Análise</title>
+    <link rel="stylesheet" href="estilo.css" />
+  </head>
+  <body>
+    <header class="topo">
+      <div class="marca">
+        <strong>Áurea Custódia</strong>
+        <span>Estação de Análise</span>
+      </div>
+      <div class="estado">
+        <span id="pendentes" class="chip chip-fila" hidden></span>
+        <span id="conexao" class="chip">Verificando…</span>
+        <button id="btn-config" class="btn btn-ghost" type="button">Configuração</button>
+      </div>
+    </header>
+
+    <main class="corpo">
+      <!-- ------------------------------------------------------------------
+           Coluna da esquerda: a fila
+      ------------------------------------------------------------------- -->
+      <section class="painel painel-fila">
+        <div class="painel-topo">
+          <h2>Na bancada</h2>
+          <button id="btn-atualizar" class="btn btn-ghost" type="button">Atualizar</button>
+        </div>
+        <ul id="fila" class="fila"></ul>
+        <p id="fila-vazia" class="vazio">Nada esperando análise.</p>
+      </section>
+
+      <!-- ------------------------------------------------------------------
+           Coluna da direita: o procedimento
+      ------------------------------------------------------------------- -->
+      <section class="painel painel-analise">
+        <div id="sem-selecao" class="vazio grande">
+          Escolha um envio na lista ao lado para começar.
+        </div>
+
+        <div id="procedimento" hidden>
+          <div class="painel-topo">
+            <h2 id="titulo-envio">—</h2>
+            <span id="subtitulo-envio" class="sub"></span>
+          </div>
+
+          <!-- Câmera -->
+          <div class="camera-area">
+            <video id="video" autoplay muted playsinline></video>
+            <div class="camera-controles">
+              <label class="campo">
+                <span>Câmera</span>
+                <select id="cameras"></select>
+              </label>
+              <button id="btn-gravar" class="btn btn-gravar" type="button">Gravar</button>
+              <span id="cronometro" class="cronometro">00:00</span>
+            </div>
+            <p id="aviso-video" class="aviso"></p>
+          </div>
+
+          <!-- Aviso de LGPD, ao lado do botão que liga a câmera -->
+          <p class="lgpd">
+            Antes de gravar: tire a etiqueta dos Correios do enquadramento. Ela tem o
+            endereço do cliente, e vídeo gravado errado não se desgrava.
+          </p>
+
+          <!-- Vereditos -->
+          <div id="moedas" class="moedas"></div>
+
+          <div class="rodape">
+            <p id="mensagem" class="mensagem"></p>
+            <button id="btn-fechar" class="btn btn-primario" type="button">
+              Fechar análise e emitir recibos
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- --------------------------------------------------------------------
+         Configuração — só aparece quando pedida, ou quando falta chave
+    --------------------------------------------------------------------- -->
+    <div id="modal-config" class="modal" hidden>
+      <div class="modal-caixa">
+        <h2>Configuração da estação</h2>
+        <label class="campo">
+          <span>Endereço do site</span>
+          <input id="cfg-site" type="text" placeholder="https://aurea-custodia-mvp.vercel.app" />
+        </label>
+        <label class="campo">
+          <span>Chave da estação</span>
+          <input id="cfg-token" type="password" placeholder="deixe em branco para manter a atual" />
+          <small id="cfg-token-estado"></small>
+        </label>
+        <label class="campo">
+          <span>Operador</span>
+          <input id="cfg-operador" type="text" placeholder="seu.email@aureacustodia.com.br" />
+        </label>
+        <p class="caminho">
+          Arquivo: <code id="cfg-caminho"></code>
+        </p>
+        <div class="modal-botoes">
+          <button id="cfg-pasta" class="btn btn-ghost" type="button">Abrir a pasta</button>
+          <button id="cfg-cancelar" class="btn btn-ghost" type="button">Fechar</button>
+          <button id="cfg-salvar" class="btn btn-primario" type="button">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

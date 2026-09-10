@@ -232,6 +232,69 @@ export interface Envio {
 }
 
 // ---------------------------------------------------------------------------
+// Análise física na estação de validação (frente E)
+// ---------------------------------------------------------------------------
+
+export type VereditoAnalise = 'aprovada' | 'recusada'
+
+/**
+ * O procedimento de análise de UMA moeda na bancada.
+ *
+ * Tem identidade própria (`RO-ANL-0001`), distinta do código da moeda, porque
+ * uma moeda recusada nunca vira ativo e mesmo assim precisa ter registro — é
+ * ela que explica ao cliente por que o pacote está voltando.
+ *
+ * A lista `AppState.analises` é APPEND-ONLY, como `trades` e `deposits`:
+ * análise não se corrige, se refaz. Quando a reanálise existir, ela entra como
+ * um registro novo apontando para a mesma moeda, e o anterior continua lá.
+ *
+ * Os campos entram no hash na ordem de CAMPOS_DA_ANALISE (domain/analise.ts).
+ * Acrescentar campo aqui NÃO muda o hash; acrescentar naquela lista muda todos
+ * os hashes seguintes.
+ */
+export interface Analise {
+  /** Identidade do procedimento: 'RO-ANL-0001'. */
+  protocolo: string
+  /** Envio que trouxe a moeda: 'RO-ENV-0001'. */
+  protocoloEnvio: string
+  /** Ativo gerado quando aprovada: 'RO-000042'. `null` quando recusada. */
+  codigoMoeda: string | null
+  /** Recibo do ativo: 'NFT-000042'. `null` quando recusada. */
+  codigoRecibo: string | null
+  tipoMoeda: string
+  ano: number
+  /**
+   * Peso aferido em MILIGRAMAS INTEIROS. Nunca gramas com vírgula: '27.0' e
+   * '27' são o mesmo peso e são textos diferentes, e texto diferente é hash
+   * diferente. Mesma razão do `Cents` para dinheiro.
+   */
+  pesoMg: number
+  veredito: VereditoAnalise
+  /** Obrigatório quando recusada; `null` quando aprovada. */
+  motivoRecusa: string | null
+  /** Quem operou a bancada. */
+  operador: string
+  /**
+   * Quem homologou. Hoje é sempre igual a `operador` — papel único (D7c).
+   * O campo já existe para que a segregação de função, quando chegar, não
+   * mude a fórmula do hash e não invalide recibo já emitido.
+   */
+  aprovador: string
+  /** Caixa física onde a cápsula ficou: 'EB-001'. Interno, não vai ao cliente. */
+  caixa: string | null
+  /** Posição da cápsula dentro da caixa, quando anotada. */
+  posicao: number | null
+  /** Relógio do SERVIDOR, nunca o do notebook da bancada. */
+  validadoEm: Timestamp
+  /** Caminho no armazenamento: 'analises/RO-000042/RO-ANL-0001.webm'. */
+  caminhoVideo: string | null
+  /** Hash da análise anterior — GENESIS na primeira. */
+  hashAnterior: string
+  /** SHA-256 desta análise. É o que vai para o recibo da moeda. */
+  hash: string
+}
+
+// ---------------------------------------------------------------------------
 // Taxa de custódia
 // ---------------------------------------------------------------------------
 
@@ -271,6 +334,8 @@ export interface CustodyCharge {
 export interface Seq {
   coin: number
   envio: number
+  /** Contador de 'RO-ANL-0001'. Ausente em estado gravado antes da frente E. */
+  analise?: number
 }
 
 /**
@@ -288,6 +353,8 @@ export interface AppState {
   custodyCharges: Record<UserEmail, CustodyCharge>
   /** Histórico de aportes de saldo, na ordem em que aconteceram. */
   deposits: Deposit[]
+  /** Análises da bancada, append-only, na ordem em que foram fechadas (frente E). */
+  analises: Analise[]
 }
 
 // ---------------------------------------------------------------------------

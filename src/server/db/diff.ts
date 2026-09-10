@@ -31,6 +31,7 @@
 
 import { tradeFee } from '@/domain/fees'
 import type {
+  Analise,
   AppState,
   BuyOrder,
   Cents,
@@ -174,6 +175,37 @@ export function normalizarDeposit(d: Deposit): Deposit {
   return { userEmail: d.userEmail, valor: d.valor, date: d.date }
 }
 
+/**
+ * A análise sai daqui com TODAS as chaves presentes, inclusive as nulas.
+ *
+ * Diferente de `transferido` na moeda, aqui nenhum campo é omitido quando é
+ * nulo: os quinze campos de `CAMPOS_DA_ANALISE` entram no hash, e um campo
+ * ausente e um campo `null` produziriam o mesmo texto canônico mas objetos
+ * diferentes — o suficiente para o diff achar que a linha mudou e tentar
+ * reinserir uma análise que já existe.
+ */
+export function normalizarAnalise(a: Analise): Analise {
+  return {
+    protocolo: a.protocolo,
+    protocoloEnvio: a.protocoloEnvio,
+    codigoMoeda: a.codigoMoeda,
+    codigoRecibo: a.codigoRecibo,
+    tipoMoeda: a.tipoMoeda,
+    ano: a.ano,
+    pesoMg: a.pesoMg,
+    veredito: a.veredito,
+    motivoRecusa: a.motivoRecusa,
+    operador: a.operador,
+    aprovador: a.aprovador,
+    caixa: a.caixa,
+    posicao: a.posicao,
+    validadoEm: a.validadoEm,
+    caminhoVideo: a.caminhoVideo,
+    hashAnterior: a.hashAnterior,
+    hash: a.hash,
+  }
+}
+
 export function normalizarCustodyCharge(c: CustodyCharge): CustodyCharge {
   return {
     totalMoedas: c.totalMoedas,
@@ -183,8 +215,13 @@ export function normalizarCustodyCharge(c: CustodyCharge): CustodyCharge {
   }
 }
 
+/**
+ * `analise` só entra quando existe. Estado gravado antes da frente E não tem o
+ * contador, e materializá-lo como `0` faria o diff enxergar mudança em toda
+ * leitura de um banco antigo — um UPDATE por requisição, sem nada ter mudado.
+ */
 export function normalizarSeq(s: Seq): Seq {
-  return { coin: s.coin, envio: s.envio }
+  return { coin: s.coin, envio: s.envio, ...(s.analise === undefined ? {} : { analise: s.analise }) }
 }
 
 /** Achata os inventários: uma entrada por moeda, com dono e posição. */
@@ -216,6 +253,7 @@ export type Operacao =
   | { tipo: 'envio.atualizar'; envio: Envio }
   | { tipo: 'envio.remover'; protocolo: string }
   | { tipo: 'deposit.inserir'; deposito: Deposit }
+  | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
   | { tipo: 'custodyCharge.gravar'; email: UserEmail; cobranca: CustodyCharge }
   | { tipo: 'custodyCharge.remover'; email: UserEmail }
   | { tipo: 'seq.atualizar'; seq: Seq }
@@ -320,6 +358,12 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   )
   const tradesNovos = caudaNova('trades', antes.trades, depois.trades).map(normalizarTrade)
   const depositsNovos = caudaNova('deposits', antes.deposits, depois.deposits).map(normalizarDeposit)
+  // A posição de cada análise nova é o índice dela no array final — é o que a
+  // tabela guarda para devolver a corrente na ordem em que foi encadeada.
+  const analisesAntes = antes.analises?.length ?? 0
+  const analisesNovas = caudaNova('analises', antes.analises ?? [], depois.analises ?? []).map(
+    (a, i) => ({ posicao: analisesAntes + i, analise: normalizarAnalise(a) }),
+  )
 
   // 1. remoções, das folhas para as raízes
   for (const id of sellOffers.removidos) ops.push({ tipo: 'sellOffer.remover', id })
@@ -346,13 +390,20 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   for (const envio of envios.atualizados) ops.push({ tipo: 'envio.atualizar', envio })
   for (const trade of tradesNovos) ops.push({ tipo: 'trade.inserir', trade })
   for (const deposito of depositsNovos) ops.push({ tipo: 'deposit.inserir', deposito })
+  for (const { posicao, analise } of analisesNovas) {
+    ops.push({ tipo: 'analise.inserir', posicao, analise })
+  }
   for (const { email, cobranca } of [...cobrancas.inseridos, ...cobrancas.atualizados]) {
     ops.push({ tipo: 'custodyCharge.gravar', email, cobranca })
   }
 
   const seqAntes = normalizarSeq(antes.seq)
   const seqDepois = normalizarSeq(depois.seq)
-  if (seqAntes.coin !== seqDepois.coin || seqAntes.envio !== seqDepois.envio) {
+  if (
+    seqAntes.coin !== seqDepois.coin ||
+    seqAntes.envio !== seqDepois.envio ||
+    seqAntes.analise !== seqDepois.analise
+  ) {
     ops.push({ tipo: 'seq.atualizar', seq: seqDepois })
   }
 

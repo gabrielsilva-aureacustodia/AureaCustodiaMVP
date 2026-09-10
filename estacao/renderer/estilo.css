@@ -1,0 +1,472 @@
+/*
+ * A tela da bancada.
+ *
+ * Fundo escuro de propósito: a análise acontece com dois LEDs difusos a 45°
+ * apontados para a moeda, e uma tela branca ao lado joga luz no relevo e
+ * atrapalha exatamente o que o operador está tentando enxergar.
+ *
+ * Alvo de toque mínimo de 44px, igual ao site — a bancada pode virar um
+ * notebook com tela sensível ao toque, e a mão do operador está de luva.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+/*
+ * O `hidden` do HTML precisa vencer QUALQUER `display` declarado aqui.
+ *
+ * Sem esta regra, `.modal { display: flex }` sobrepõe o `[hidden] {display:none}`
+ * do navegador, e a janela de configuração fica na tela para sempre — tapando o
+ * programa inteiro, mesmo com o atributo corretamente marcado no elemento.
+ * Aconteceu em 10/09/2026, e nenhum teste pegou: quem confere `el.hidden` está
+ * lendo o atributo, que estava certo. Só olhando a tela dá para ver.
+ */
+[hidden] {
+  display: none !important;
+}
+
+:root {
+  --fundo: #10131a;
+  --painel: #171b24;
+  --painel-alto: #1e2430;
+  --borda: #2a313f;
+  --texto: #e8ecf3;
+  --texto-fraco: #97a1b4;
+  --dourado: #c8a44d;
+  --verde: #3fa96a;
+  --vermelho: #d1584f;
+  --ambar: #d9a441;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* ---------- topo ---------- */
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--painel);
+  border-bottom: 1px solid var(--borda);
+}
+
+.marca strong {
+  color: var(--dourado);
+  letter-spacing: 0.02em;
+}
+
+.marca span {
+  margin-left: 10px;
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+
+.estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: var(--painel-alto);
+  border: 1px solid var(--borda);
+  color: var(--texto-fraco);
+}
+
+.chip.ok {
+  color: var(--verde);
+  border-color: rgba(63, 169, 106, 0.4);
+}
+
+.chip.erro {
+  color: var(--vermelho);
+  border-color: rgba(209, 88, 79, 0.4);
+}
+
+.chip-fila {
+  color: var(--ambar);
+  border-color: rgba(217, 164, 65, 0.4);
+}
+
+/* ---------- corpo ---------- */
+
+.corpo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  padding: 16px 20px 20px;
+  min-height: 0;
+}
+
+.painel {
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.painel-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.painel-topo h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sub {
+  color: var(--texto-fraco);
+  font-size: 13px;
+}
+
+/* ---------- fila ---------- */
+
+.fila {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fila button {
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  background: var(--painel-alto);
+  color: var(--texto);
+  cursor: pointer;
+  font: inherit;
+}
+
+.fila button:hover {
+  border-color: var(--dourado);
+}
+
+.fila button[aria-current="true"] {
+  border-color: var(--dourado);
+  background: #23293a;
+}
+
+.fila .protocolo {
+  display: block;
+  font-weight: 600;
+  color: var(--dourado);
+}
+
+.fila .detalhe {
+  display: block;
+  color: var(--texto-fraco);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.vazio {
+  color: var(--texto-fraco);
+  font-size: 14px;
+  padding: 8px 2px;
+}
+
+.vazio.grande {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 15px;
+}
+
+/* ---------- câmera ---------- */
+
+.camera-area {
+  margin-bottom: 12px;
+}
+
+video {
+  width: 100%;
+  max-height: 340px;
+  background: #000;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  object-fit: contain;
+}
+
+.camera-controles {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.cronometro {
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  color: var(--texto-fraco);
+  min-width: 60px;
+}
+
+.cronometro.gravando {
+  color: var(--vermelho);
+}
+
+.aviso {
+  margin: 8px 0 0;
+  color: var(--ambar);
+  font-size: 13px;
+  min-height: 18px;
+}
+
+.lgpd {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ambar);
+  background: rgba(217, 164, 65, 0.08);
+  color: var(--texto-fraco);
+  font-size: 13px;
+  border-radius: 0 6px 6px 0;
+}
+
+/* ---------- vereditos ---------- */
+
+.moedas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moeda {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--painel-alto);
+}
+
+.moeda-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.moeda-topo h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.linha {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 130px;
+}
+
+.campo span {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.campo small {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+input,
+select,
+textarea {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--borda);
+  background: #0e1119;
+  color: var(--texto);
+  font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--dourado);
+  outline-offset: -1px;
+}
+
+.veredito-botoes {
+  display: flex;
+  gap: 8px;
+}
+
+.veredito-botoes button {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid var(--borda);
+  background: #0e1119;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  font: inherit;
+}
+
+.veredito-botoes button[aria-pressed="true"][data-veredito="aprovada"] {
+  border-color: var(--verde);
+  color: var(--verde);
+  background: rgba(63, 169, 106, 0.12);
+}
+
+.veredito-botoes button[aria-pressed="true"][data-veredito="recusada"] {
+  border-color: var(--vermelho);
+  color: var(--vermelho);
+  background: rgba(209, 88, 79, 0.12);
+}
+
+/* ---------- rodapé ---------- */
+
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borda);
+  flex-wrap: wrap;
+}
+
+.mensagem {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-fraco);
+  flex: 1;
+}
+
+.mensagem.ok {
+  color: var(--verde);
+}
+
+.mensagem.erro {
+  color: var(--vermelho);
+}
+
+/* ---------- botões ---------- */
+
+.btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 6px;
+  border: 1px solid var(--borda);
+  background: var(--painel-alto);
+  color: var(--texto);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--dourado);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primario {
+  background: var(--dourado);
+  border-color: var(--dourado);
+  color: #16110a;
+  font-weight: 600;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-gravar {
+  background: var(--vermelho);
+  border-color: var(--vermelho);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-gravar.parando {
+  background: transparent;
+  color: var(--vermelho);
+}
+
+/* ---------- modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-caixa {
+  width: min(520px, 100%);
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-caixa h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.modal-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.caminho {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+code {
+  background: #0e1119;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

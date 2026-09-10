@@ -23,12 +23,12 @@ import type { Seq } from '@/domain/types'
 
 import { nomeDoSchema, num, type Consulta } from '../sql'
 
-type LinhaSeq = { coin: unknown; envio: unknown }
+type LinhaSeq = { coin: unknown; envio: unknown; analise: unknown }
 
 export async function carregarSeq(tx: Consulta, opcoes: { travar: boolean }): Promise<Seq> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaSeq>(
-    `SELECT coin, envio FROM ${S}.seq WHERE id = 1${opcoes.travar ? ' FOR UPDATE' : ''}`,
+    `SELECT coin, envio, analise FROM ${S}.seq WHERE id = 1${opcoes.travar ? ' FOR UPDATE' : ''}`,
   )
   const linha = rows[0]
   if (!linha) {
@@ -39,10 +39,14 @@ export async function carregarSeq(tx: Consulta, opcoes: { travar: boolean }): Pr
       `${S}.seq está vazia — a migration inicial não foi aplicada. Rode: npm run db:migrate`,
     )
   }
-  return { coin: num(linha.coin), envio: num(linha.envio) }
+  return { coin: num(linha.coin), envio: num(linha.envio), analise: num(linha.analise) }
 }
 
 export async function atualizarSeq(tx: Consulta, seq: Seq): Promise<void> {
   const S = nomeDoSchema()
-  await tx.query(`UPDATE ${S}.seq SET coin = $1, envio = $2 WHERE id = 1`, [seq.coin, seq.envio])
+  await tx.query(`UPDATE ${S}.seq SET coin = $1, envio = $2, analise = $3 WHERE id = 1`, [
+    seq.coin,
+    seq.envio,
+    seq.analise ?? 0,
+  ])
 }

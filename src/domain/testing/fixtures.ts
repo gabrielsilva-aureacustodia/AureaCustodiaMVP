@@ -53,6 +53,7 @@ export function estado(users: Record<string, User>): AppState {
     seq: { coin: 100, envio: 100 },
     custodyCharges: {},
     deposits: [],
+    analises: [],
   }
 }
 

@@ -221,7 +221,7 @@ export function genHistoryTrades(emails: UserEmail[]): Trade[] {
  * de modo que os códigos criados em produção continuem da sequência do seed.
  */
 export function seedState(): AppState {
-  const seq: Seq = { coin: 0, envio: 0 }
+  const seq: Seq = { coin: 0, envio: 0, analise: 0 }
   const usersDef: readonly SeedUserDef[] = [
     ['rogeriopena@testeaurea.com.br', 'Rogério Pena', 6200000, 15, '18/06/2026'],
     ['gabrielsilva@testeaurea.com.br', 'Gabriel Silva', 5400000, 13, '20/06/2026'],
@@ -263,5 +263,10 @@ export function seedState(): AppState {
     // dinheiro que a demonstração assume como pré-existente. O extrato começa
     // vazio de propósito — só aporte feito na plataforma entra aqui.
     deposits: [],
+    // A bancada ainda nao analisou nada: o historico de demonstracao nasce com
+    // as moedas ja em custodia, sem procedimento gravado. Recibo de moeda do
+    // seed continua com o hash simulado de genHash(); so o que passa pela
+    // estacao ganha hash real.
+    analises: [],
   }
 }

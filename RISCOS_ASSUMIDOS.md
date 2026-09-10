@@ -50,6 +50,10 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-17** | Contingência temporária do login do seed quando o Supabase não está configurado | 🟡 | `src/server/actions/auth.ts`, `src/server/auth/` |
 | **RA-18** | Cadastro aberto sem exigir `AUREA_SIGNUP_ENABLED` nem versões legais em variável | 🟡 | `src/server/auth/config.ts` |
 | **RA-19** | Contas de demonstração entram pelo catálogo local, sem passar pelo Supabase | 🟠 | `src/domain/constants.ts`, `src/server/actions/auth.ts` |
+| **RA-20** | Executável da bancada sem assinatura digital (SmartScreen na 1ª execução) | 🟡 | `estacao/` |
+| **RA-21** | Papel único na bancada: quem analisa é quem aprova, sem segregação de função | 🟡 | `src/server/estacao/`, `src/domain/analise.ts` |
+| **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
+| **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
 
 ---
 
@@ -601,3 +605,87 @@ configurado e funcionando. Quem lê o código entra nessas contas.
 Antes do primeiro cliente real, `loginDoCatalogoLocal()` sai de `src/server/actions/auth.ts`
 e as contas de demonstração são apagadas. Item do Bloco 1 de
 `docs/PRE_LANCAMENTO_CLIENTES_REAIS.md`.
+
+# RA-20 — O executável da bancada não é assinado digitalmente 🟡
+
+`AureaEstacao.exe` sai do `electron-builder` sem certificado de assinatura de código. Na
+primeira execução em cada notebook, o Windows mostra "O Windows protegeu o computador".
+Contorna-se com **Mais informações → Executar assim mesmo**, e o aviso não volta naquela
+máquina.
+
+Decisão de 10/09/2026, junto com a entrega da frente E. A bancada tem um ou dois notebooks
+e quem opera é sócio. Um certificado custa entre US$ 200 e 400 por ano e exige validação da
+empresa — custo e prazo que não se justificam para provar a um sócio que o programa que ele
+mandou construir é confiável.
+
+Deixa de valer no dia em que houver operador contratado que não seja sócio. Aí o aviso deixa
+de ser inconveniência e vira problema de confiança: a pessoa não tem como distinguir este
+programa de um malware, e treinar alguém a ignorar avisos do Windows é treinar a ignorar o
+próximo, que pode ser verdadeiro.
+
+Nota em `estacao/ATALHOS.md`.
+
+# RA-21 — Papel único na bancada: quem analisa é quem aprova 🟡
+
+Não há segregação de função na estação. O operador registra o veredito e ele mesmo o
+homologa: `analise.aprovador` recebe sempre o mesmo valor de `analise.operador`.
+
+Decisão D7c do Gabriel, em 10/09/2026. São dois sócios operando uma bancada; exigir duas
+pessoas para cada moeda transformaria a homologação em gargalo antes de existir fila.
+
+**O conserto já foi barateado.** O campo `aprovador` está na fórmula do hash desde o
+primeiro dia, separado do `operador` (ver `CAMPOS_DA_ANALISE` em `src/domain/analise.ts`).
+Quando a segregação chegar, o campo passa a receber outro valor e a fórmula não muda —
+nenhum recibo emitido é invalidado. Acrescentá-lo depois exigiria recalcular a corrente
+inteira e registrar a troca.
+
+Deixa de valer quando houver cliente real e due diligence: segregação de função é a primeira
+coisa que auditoria procura em custódia de bem de terceiro. O mesmo conjunto de papéis
+também sustenta o registro de quem autorizou um estorno, na frente C — decidir diferente nos
+dois lugares cria dois sistemas de permissão.
+
+Nota em `estacao/ATALHOS.md`.
+
+# RA-22 — Endereçamento físico da cápsula é texto digitado 🟡
+
+O endereço da moeda no cofre é um campo de texto (`caixa`) e um número opcional (`posicao`),
+ambos digitados pelo operador. Não há validação de que a caixa existe, de que a posição está
+livre, nem inventário conferível.
+
+Decisão D7e do Gabriel, em 10/09/2026. A estrutura física hoje é um conjunto de caixinhas de
+acrílico rotuladas — o exemplo real é `Caixa EB 001`, onde EB é Entrega da Bandeira. Modelar
+prateleira, gaveta e posição antes de existir prateleira seria inventar uma estrutura para
+depois descobrir que não é a do cofre.
+
+O formato adotado já cresce: `EB-001` carrega o tipo da moeda no próprio código, então
+outros tipos entram como `DH-001` sem virar outro esquema.
+
+O que custa enquanto durar: erro de digitação não é detectado, duas moedas podem ser
+gravadas na mesma posição sem que nada acuse, e achar uma cápsula depende de o operador ter
+digitado certo.
+
+Deixa de valer quando o cofre tiver estrutura definida — a pergunta está aberta desde
+10/09/2026. **Migrar endereçamento depois significa mexer fisicamente em cada cápsula**,
+então quanto antes a estrutura existir, mais barato.
+
+Nota em `estacao/ATALHOS.md`.
+
+# RA-23 — O vídeo não é obrigatório para fechar a análise 🟡
+
+`POST /api/estacao/analise/fechar` aceita `caminhoVideo` nulo. É possível fechar um
+procedimento sem ter gravado nada.
+
+Decisão de 10/09/2026, e o motivo é que o contrário é pior. Vídeo obrigatório significa que
+uma câmera com cabo solto, um balde do Supabase ainda não criado ou uma internet caída
+**impedem a moeda de ser analisada** — com a moeda já fora da cápsula, na mesa. A gravação é
+prova; a análise é operação. Travar a operação na prova inverte a prioridade.
+
+No lugar da trava, o campo entra no hash: uma análise sem vídeo tem `caminhoVideo` vazio no
+texto hasheado, permanentemente e de forma visível. Não dá para alegar depois que o vídeo
+existia.
+
+Deixa de valer quando houver cliente real: aí o vídeo faz parte do que foi contratado, e a
+ausência dele precisa aparecer como pendência na tela de quem administra — não
+necessariamente como trava.
+
+Nota em `estacao/ATALHOS.md`.
