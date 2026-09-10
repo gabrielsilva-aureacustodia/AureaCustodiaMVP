@@ -12,13 +12,41 @@ uma feature que não existe.
 
 ## O que tem aqui
 
+### A publicação oficial para clientes — leia nesta ordem
+
+| Documento | O que responde |
+|---|---|
+| [`PLANO_EXECUTIVO_PUBLICACAO.md`](PLANO_EXECUTIVO_PUBLICACAO.md) | **O quê e o porquê.** Os treze blocos que faltam para abrir a plataforma ao público, a tabela de preços e prazos nova, e as seis decisões que travam execução |
+| [`EXECUCAO_3_BRANCHES_PUBLICACAO.md`](EXECUCAO_3_BRANCHES_PUBLICACAO.md) | **Quem e quando.** Três agentes em paralelo, com território de arquivos, cronologia sessão a sessão e ordem de merge |
+| [`PROTOCOLO_DO_AGENTE.md`](PROTOCOLO_DO_AGENTE.md) | **Como.** As onze regras que todo agente segue: ritual de sessão, teste por feature, tutorial de ação manual, registro de pendência, e o que fazer quando uma permissão bloqueia |
+
+Os três se leem em ordem e não se repetem: o plano executivo não explica *como* trabalhar, e
+o protocolo não explica *o que* construir.
+
+### O painel administrativo dos sócios — vem depois da publicação
+
 | Documento | O que responde |
 |---|---|
 | [`PLANO_EXECUTIVO_BANCADA_WEBAPP.md`](PLANO_EXECUTIVO_BANCADA_WEBAPP.md) | Como o programa da bancada (hoje um `.exe`) vira uma tela do painel administrativo, no navegador. Cinco fases, ~4,5 dias |
 | [`DADOS_VIDEOS_E_IDENTIDADE_NO_PAINEL.md`](DADOS_VIDEOS_E_IDENTIDADE_NO_PAINEL.md) | Onde o vídeo fica e quem pode assistir; como cada registro se amarra à pessoa certa; o que é gravado automaticamente |
 
 Os dois se leem em ordem: o primeiro é o roteiro, o segundo é o desenho de dados que ele
-assume.
+assume. **Nenhum dos dois entra na publicação** — mas o bloco 13 do plano executivo garante
+que tudo construído agora já nasça pronto para eles.
+
+---
+
+## A fonte que não está no repositório
+
+O plano executivo nasceu da reunião com o jurídico de **09/09/2026** (Felipe Moraes e
+Eduarda Teixeira Martins, 38 minutos). A transcrição fica em **`docs/privado/`**, que está no
+`.gitignore` e **não sobe para o GitHub** — o repositório é público durante o MVP, e o
+documento traz estratégia jurídica, estratégia comercial que o próprio advogado pediu para
+não publicar, e dado pessoal de terceiros.
+
+Um agente que clonar o repositório **não terá esse arquivo**. Ele não precisa: tudo o que
+virou decisão de produto está escrito no plano executivo, com a razão explicada. Se precisar
+do original, peça ao Gabriel.
 
 ---
 
