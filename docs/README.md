@@ -35,7 +35,6 @@ docs/
 ├── TUTORIAL_ESTACAO_PASSO_A_PASSO.md  👤 Os 6 passos para pôr a bancada no ar, com valores literais
 ├── TUTORIAL_BALDE_SUPABASE.md       👤 O balde de vídeos e a chave de serviço, passo a passo
 ├── ESTACAO_O_QUE_FALTA_PARA_CONECTAR.md  🔌 O que falta para a bancada falar com a plataforma
-├── PLANO_EXECUTIVO_BANCADA_WEBAPP.md  🅴 Fase 2 da frente E: a bancada como tela do painel admin
 ├── GUIA_CLAUDE_CODE_AUREA.md        Onboarding de quem entra no projeto
 ├── PRE_LANCAMENTO_CLIENTES_REAIS.md O que falta antes do primeiro cliente real
 ├── HANDOFF_CORRECAO_SUPABASE.md     A correção da conexão Supabase (02/09)
@@ -45,6 +44,10 @@ docs/
 ├── EXECUCAO_AGENTE_B_LEDGER_DRE.md  🅱️ M4 + M7 entregues: ledger, auditoria, DRE, relatórios — e o que falta
 ├── API_RELATORIOS.md                O contrato da API de relatórios (JSON/CSV/XLSX, token, Sheets)
 ├── INTEGRACAO_GOOGLE_SHEETS.md      O que o Gabriel configura para Sheets e Excel, passo a passo
+│
+├── publish_docs/                    📤 Planos do que ainda vai ao ar — descreve o FUTURO
+│   ├── PLANO_EXECUTIVO_BANCADA_WEBAPP.md   A bancada como tela do painel administrativo
+│   └── DADOS_VIDEOS_E_IDENTIDADE_NO_PAINEL.md  Vídeos, UUID e o que é gravado sozinho
 │
 ├── diario/                          Documentos vivos, reescritos por leitura
 │   ├── RITUAL_DE_SESSAO.md            Abertura e fechamento de toda sessão (detalhado)
@@ -79,6 +82,11 @@ antiga. É a memória longa: um registro alterável não vale como prova.
 
 Mudam quando o assunto muda, não por rotina.
 
+### Planos do que ainda não existe — `publish_docs/`
+
+Descrevem o **futuro**, não o construído. Separados de propósito: misturar plano com relato
+faz alguém contar com uma feature que não existe. Plano cumprido sai de lá.
+
 ## Por onde começar
 
 | Se você… | Leia |
@@ -96,7 +104,7 @@ Mudam quando o assunto muda, não por rotina.
 | **Vai configurar Vercel, e-mail HostGator ou domínio próprio** | `GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md` |
 | **Vai pôr a estação de análise no ar** | `TUTORIAL_ESTACAO_PASSO_A_PASSO.md` |
 | **Quer saber por que a bancada ainda não conecta em produção** | `ESTACAO_O_QUE_FALTA_PARA_CONECTAR.md` |
-| **Vai levar a bancada para dentro do painel administrativo** | `PLANO_EXECUTIVO_BANCADA_WEBAPP.md` |
+| **Vai levar a bancada para dentro do painel administrativo** | `publish_docs/` — leia o README da pasta primeiro |
 | Quer saber o que a arquitetura ainda deve | `ARQUITETURA_O_QUE_FALTA.md` |
 | Vai ligar a planilha do contador | `INTEGRACAO_GOOGLE_SHEETS.md` → `API_RELATORIOS.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |

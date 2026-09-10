@@ -1034,3 +1034,95 @@ sucesso, não.
 
 *Fim da entrada 012. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+# Entrada 013 — 10/09/2026, noite · O desenho do painel, e três buracos que ele revelou
+
+```
+Branch:   feat/auth-landing
+Escopo:   planejar a bancada como tela do painel administrativo
+Estado:   nenhum código de produção alterado — a sessão produziu desenho
+```
+
+## A correção que originou a entrada
+
+Eu havia escrito, no roteiro da bancada, "no programa, em Configuração, trocar o endereço
+para produção". **O Gabriel apontou que isso não funciona** — e estava certo: a frente E
+nunca foi publicada, então o endereço de produção não tem as rotas.
+
+Ele então redirecionou a estratégia: em vez de distribuir o `.exe` aos sócios, a bancada
+vira **uma tela do painel administrativo**, no navegador. O `.exe` fica para a bancada.
+
+## O check-up que fechou o assunto do redeploy
+
+O Gabriel cadastrou as variáveis na Vercel e republicou. Conferido:
+
+| | |
+|---|---|
+| `/api/estacao` em produção | **404** |
+| `estacao` na `origin/main` | nenhum arquivo |
+| Commits locais não enviados | 2 |
+
+**O redeploy republicou a versão antiga do site.** As variáveis estão certas e não há código
+que as leia. Nada mais falta de tarefa manual dele: falta publicar.
+
+Fica a lição de diagnóstico: quando a configuração está certa e nada funciona, conferir
+**se o código que a consome chegou lá** antes de mexer na configuração de novo.
+
+## Os três buracos que o desenho revelou
+
+**1. O navegador não pode forçar a pilha de captura do Windows.** O `.exe` resolve o
+travamento do MediaFoundation com uma opção de linha de comando que passa a si mesmo. Uma
+página não pode fazer isso — existe só a configuração por máquina em
+`chrome://flags/#enable-media-foundation-video-capture`. Consequência de produto: o `.exe`
+não é descartado quando o painel nascer; ele vira a alternativa para a máquina que precisar.
+O webapp não resolve, **diagnostica**.
+
+**2. Não existe UUID de usuário na plataforma.** A chave de junção é o e-mail, como texto,
+em sete tabelas — `users`, `coins`, `envios`, `deposits`, `custody_charges`,
+`ledger_entries`, `payment_intents` — e nenhuma migration cria coluna `uuid`. O Supabase
+Auth emite `auth.users.id` e `provisionAuthenticatedUser()` o descarta.
+
+O conserto é aditivo e pequeno: `auth_user_id uuid` em `aurea.users`, preenchido no
+provisionamento, nulo para as sete contas do seed. **O e-mail continua sendo a chave
+primária** — trocá-la rippleria por sete tabelas e pelo tipo `UserEmail` do domínio.
+
+E a armadilha que precisa ficar registrada: **`operador` e `aprovador` estão na fórmula
+congelada do hash.** Trocar o conteúdo deles de e-mail para UUID faria todo recibo emitido
+deixar de conferir. O UUID entra em colunas novas, fora da fórmula.
+
+**3. As análises da bancada entram na trilha de auditoria como `'sistema'`.** As rotas
+`/api/estacao/*` são chamadas sem cookie, então `atorDaRequisicao()` cai no `catch`. A
+tabela `analises` sabe quem operou; o `audit_log`, que é o documento feito para auditar, não.
+E ele é append-only: o que entrou errado fica errado. É o buraco mais urgente dos três, e o
+único que piora a cada análise feita.
+
+## Uma decisão de arquitetura que vale o registro
+
+O painel como **grupo de rotas da mesma aplicação Next**, e não projeto separado. Projeto
+separado custaria CORS em todas as rotas da estação, cookie entre origens com
+`SameSite=None` — enfraquecendo a proteção contra CSRF que hoje é de graça — e o risco de
+duplicar a fórmula do hash em duas bases, que é exatamente o que a frente E foi desenhada
+para evitar. Branch separada continua dando o isolamento de desenvolvimento que se quer.
+
+## O que entrou
+
+Pasta nova `docs/publish_docs/`, para planos do que **ainda não existe**, separada do resto
+de `docs/`, que descreve o construído. Misturar os dois faz alguém abrir um plano, achar que
+é relato, e contar com uma feature que não existe. Regra da pasta: documento é **movido**
+para lá, nunca copiado, e sai quando o plano vira realidade.
+
+## Estado dos itens ao fim desta entrada
+
+| Item | Estado |
+|---|---|
+| Frente E — programa da bancada | Funcionando, validado com câmera real |
+| Frente E — publicação | **Não publicada**: 404 em produção, 2 commits locais |
+| Frente E — fase 2 (painel) | Planejada: `docs/publish_docs/` |
+| UUID de usuário | **Não existe** — correção aditiva desenhada |
+| Ator da auditoria na bancada | **Registra `'sistema'`** — correção desenhada |
+| Base do repositório | typecheck ✅ · lint ✅ · 192 testes ✅ |
+
+---
+
+*Fim da entrada 013. A próxima entrada será acrescentada abaixo desta linha, sem alterar
+nada acima.*
