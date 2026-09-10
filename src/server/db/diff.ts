@@ -59,7 +59,7 @@ export interface UserRegistro {
   settings: UserSettings | null
 }
 
-/** A linha de `coins` + `nfts`: a moeda, seu dono e sua posição no inventário dele. */
+/** A linha de `coins` + `recibos`: a moeda, seu dono e sua posição no inventário dele. */
 export interface CoinRegistro {
   owner: UserEmail
   posicao: number
@@ -105,11 +105,11 @@ export function normalizarCoin(c: Coin): Coin {
     valorEstimado: c.valorEstimado,
     protocolo: c.protocolo,
     ...(c.transferido ? { transferido: true as const } : {}),
-    nft: {
-      codigo: c.nft.codigo,
-      hash: c.nft.hash,
-      dataEmissao: c.nft.dataEmissao,
-      status: c.nft.status,
+    recibo: {
+      codigo: c.recibo.codigo,
+      hash: c.recibo.hash,
+      dataEmissao: c.recibo.dataEmissao,
+      status: c.recibo.status,
     },
   }
 }

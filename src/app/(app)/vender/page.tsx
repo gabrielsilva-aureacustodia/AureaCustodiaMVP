@@ -38,6 +38,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
+import { apelidoComprador } from '@/domain/contraparte'
 import { tradeFee } from '@/domain/fees'
 import { availableCoinsForSell, avg7, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
@@ -112,7 +113,7 @@ export default function VenderPage(): ReactNode {
     livresPorTipo[t.key] = `${n} disponível(is)`
   })
 
-  /* ---------- pré-seleção vinda do certificado NFT (?moeda=RO-000042) -------- */
+  /* ---------- pré-seleção vinda do certificado (?moeda=RO-000042) ------------ */
   /**
    * Equivalente do par preselectCoinId/goSellFromNft (linhas 901, 1111-1112 e
    * 1949): o original guardava o id numa global, consumia na primeira montagem
@@ -284,7 +285,7 @@ export default function VenderPage(): ReactNode {
             <ellipse cx="12" cy="6.5" rx="7" ry="3" />
             <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
           </svg>
-          Escolha os ativos
+          Escolha as moedas
         </h3>
 
         <TipoSelector
@@ -466,9 +467,6 @@ export default function VenderPage(): ReactNode {
               <SellerBidRow
                 key={b.id}
                 bid={b}
-                // O fallback '—' é da linha 1503: conta que saiu do estado não
-                // pode derrubar a lista inteira.
-                buyerName={state.users[b.buyer] ? state.users[b.buyer].name : '—'}
                 // Quantas moedas DESTE tipo o vendedor tem livres agora. O botão
                 // fica apagado quando é zero, em vez de abrir a modal só para
                 // recusar em seguida.
@@ -609,8 +607,8 @@ function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
         </button>
       </div>
       <p style={{ fontSize: 12, marginTop: 4 }}>
-        Só é possível reduzir a quantidade aqui — moedas removidas voltam para &quot;Escolha os
-        ativos&quot;. Para anunciar mais moedas, publique um novo anúncio.
+        Só é possível reduzir a quantidade aqui — moedas removidas voltam para &quot;Escolha as
+        moedas&quot;. Para anunciar mais moedas, publique um novo anúncio.
       </p>
 
       <div className="m-actions">
@@ -650,7 +648,6 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
 
   if (!bo) return null
 
-  const comprador = state.users[bo.buyer]
   const total = bo.price * qty
 
   function ajustar(d: number): void {
@@ -669,11 +666,12 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
     <>
       <h3 className="serif">Vender direto para esta oferta</h3>
       <p>
-        Ativo: <b style={{ color: 'var(--gold)' }}>{bo.tipoMoeda}</b>
+        Moeda: <b style={{ color: 'var(--gold)' }}>{bo.tipoMoeda}</b>
       </p>
+      {/* O nome do comprador saiu daqui em 10/09/2026 (D-5). Quem decide
+          vender precisa saber o preço e a quantidade, não de quem é a oferta. */}
       <p>
-        Comprador: <b>{comprador ? comprador.name : '—'}</b> · Preço: <b>{brl(bo.price)}</b> por
-        unidade
+        <b>{apelidoComprador(bo.id)}</b> · Preço: <b>{brl(bo.price)}</b> por unidade
       </p>
 
       <div className="stepper" style={{ justifyContent: 'center', margin: '18px 0' }}>

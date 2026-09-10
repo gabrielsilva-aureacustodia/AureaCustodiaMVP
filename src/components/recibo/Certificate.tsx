@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 3.1 RECIBO NFT (CERTIFICADO) — port de aurea-mvp-teste.html, linhas 1895-1948
+ * 3.1 RECIBO DE CUSTÓDIA (CERTIFICADO) — port de aurea-mvp-teste.html, 1895-1948
  * (`renderNftDetail`), mais `goSellFromNft` (1949) e o gatilho do PDF (1968).
  *
  * Client Component porque três coisas aqui são vivas: a etiqueta "já está
@@ -11,7 +11,7 @@
  *
  * O CERTIFICADO IGNORA O TEMA DE PROPÓSITO: fundo creme e tintas fixas nos dois
  * modos, porque é o mesmo documento que sai em PDF. Quem garante isso é o
- * styles/nft.css; aqui não há uma cor sequer escrita à mão.
+ * styles/recibo.css; aqui não há uma cor sequer escrita à mão.
  *
  * SOBRE "CÓDIGO SIMULADO": o rótulo abaixo do QR é requisito de negócio, não
  * enfeite. Não existe blockchain por trás deste recibo e a interface não pode
@@ -34,7 +34,7 @@ import { useToast } from '@/components/ui/Toast'
 
 /**
  * Texto exibido quando o gerador de PDF não carrega. É o mesmo da linha 1973 do
- * monolito, e o módulo @/lib/pdf/nft-receipt já lança um Error com ele — este
+ * monolito, e o módulo @/lib/pdf/recibo-pdf já lança um Error com ele — este
  * literal só cobre o caso improvável de vir um throw que não seja Error.
  */
 const FALHA_PDF =
@@ -80,7 +80,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   // atalho apagaria o botão "Colocar à venda" de uma moeda perfeitamente
   // negociável e ainda mostraria a nota dizendo que ela não tem mercado.
   const sellable = isNegociavel(coin.tipoMoeda)
-  const extinto = coin.nft.status === 'Extinto'
+  const extinto = coin.recibo.status === 'Extinto'
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
     : 'Moeda física recebida e custodiada'
@@ -92,7 +92,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
 
   /**
    * Baixa o recibo em PDF. O import é dinâmico em dois níveis — este módulo
-   * carrega @/lib/pdf/nft-receipt sob demanda, e ele carrega o jsPDF — porque
+   * carrega @/lib/pdf/recibo-pdf sob demanda, e ele carrega o jsPDF — porque
    * nada disso pode entrar no bundle de quem só está olhando o certificado.
    *
    * O toast é responsabilidade de quem chama: o módulo de PDF devolve void e
@@ -107,8 +107,8 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
     // `coin` é const e já foi estreitado pelo retorno antecipado lá em cima, por
     // isso continua sendo Coin aqui dentro — não há guarda redundante a fazer.
     try {
-      const { downloadNftReceipt } = await import('@/lib/pdf/nft-receipt')
-      await downloadNftReceipt({ coin, ownerName })
+      const { baixarReciboPdf } = await import('@/lib/pdf/recibo-pdf')
+      await baixarReciboPdf({ coin, ownerName })
       toast('Recibo em PDF gerado com sucesso.')
     } catch (err) {
       toast(err instanceof Error ? err.message : FALHA_PDF)
@@ -132,16 +132,16 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
           <h2 className="serif">REAL OLÍMPICO</h2>
           <div className="cert-sub">Real Olímpico</div>
           <div className="cert-rule"></div>
-          <div className="cert-title">Recibo NFT de Custódia</div>
-          <div className="cert-code">{coin.nft.codigo}</div>
+          <div className="cert-title">Recibo de Custódia</div>
+          <div className="cert-code">{coin.recibo.codigo}</div>
 
           {/* Os CINCO campos do documento, nesta ordem e com estes textos. É a
-              mesma lista que @/lib/pdf/nft-receipt imprime: tela e PDF precisam
+              mesma lista que @/lib/pdf/recibo-pdf imprime: tela e PDF precisam
               dizer a mesma coisa, senão o recibo baixado contradiz o que a
               pessoa viu. Dado novo entra no painel lateral, não aqui. */}
           <div className="cert-fields">
             <div className="cf-row">
-              <span className="k">Ativo</span>
+              <span className="k">Moeda</span>
               <span className="v">
                 {coin.tipoMoeda}
                 {!sellable ? ' ' + coin.ano : ''}
@@ -154,7 +154,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <div className="cf-row">
               <span className="k">Data de emissão</span>
               {/* Congelada na emissão: não muda quando a moeda troca de dono. */}
-              <span className="v">{coin.nft.dataEmissao}</span>
+              <span className="v">{coin.recibo.dataEmissao}</span>
             </div>
             <div className="cf-row">
               <span className="k">Proprietário atual</span>
@@ -162,7 +162,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             </div>
             <div className="cf-row">
               <span className="k">Hash (curto)</span>
-              <span className="v">{coin.nft.hash}</span>
+              <span className="v">{coin.recibo.hash}</span>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             </div>
             {/* Semente = código + hash, igual ao original (linha 1932): o mesmo
                 recibo desenha sempre o mesmo padrão, na tela e no PDF. */}
-            <QrCode seed={coin.nft.codigo + coin.nft.hash} size={78} />
+            <QrCode seed={coin.recibo.codigo + coin.recibo.hash} size={78} />
           </div>
 
           <div className="cert-foot">
@@ -251,9 +251,9 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               FORA do documento, num painel lateral com classes já existentes,
               para que o .cert continue idêntico ao que o PDF imprime. */}
           <div className="panel" style={{ marginBottom: '16px' }}>
-            <h3>Dados do ativo</h3>
+            <h3>Dados da moeda</h3>
             <div className="summary-row">
-              <span className="k">Código do ativo</span>
+              <span className="k">Código da moeda</span>
               <span className="v">{coin.id}</span>
             </div>
             <div className="summary-row">

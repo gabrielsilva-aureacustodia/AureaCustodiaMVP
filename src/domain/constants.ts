@@ -21,8 +21,21 @@ import type { CoinType, Cents } from '@/domain/types'
  * esses campos — um bid antigo sem tipo jamais casaria com nada e ficaria preso
  * no livro para sempre. Recomeçar do seed é mais honesto que migrar dado de
  * demonstração.
+ *
+ * v7 (terminologia do jurídico, D-4 de 10/09/2026): o campo `Coin.nft` virou
+ * `Coin.recibo` e o código do recibo trocou o prefixo 'NFT-' por 'REC-'. Uma
+ * moeda gravada em v6 chegaria sem `recibo` e derrubaria toda tela que lê o
+ * certificado.
+ *
+ * ATENÇÃO — esta chave só zera o estado no store EM MEMÓRIA e no blob antigo.
+ * Com Postgres o estado vive em tabelas e `STORE_KEY` não as apaga; ali quem
+ * faz a troca são as migrations 005 (renomeia `aurea.nfts` para
+ * `aurea.recibos`) e 006 (reescreve o prefixo dos códigos já gravados). Subir a
+ * versão aqui e esquecer a migration deixa o banco com o formato velho e a
+ * aplicação lendo o novo — foi exatamente o que aconteceu em 10/09/2026, e o
+ * sintoma foi `relation "aurea.recibos" does not exist` no login.
  */
-export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v6'
+export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v7'
 
 /**
  * Chave do banco de cotações BTC/ETH/USDT que alimenta a tela de comparações.

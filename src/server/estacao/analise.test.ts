@@ -112,7 +112,7 @@ describe('fecharAnalise', () => {
     const novas = state.users[CLIENTE].coins.slice(antes)
     for (const coin of novas) {
       // 64 hexadecimais: SHA-256 de verdade, não o '0xA1B2...C3D4' de genHash().
-      expect(coin.nft.hash).toMatch(/^[0-9a-f]{64}$/)
+      expect(coin.recibo.hash).toMatch(/^[0-9a-f]{64}$/)
       expect(coin.protocolo).toBe('RO-ENV-0001')
       expect(coin.statusFisico).toBe('Recebido')
     }
@@ -133,8 +133,8 @@ describe('fecharAnalise', () => {
     const coin = state.users[CLIENTE].coins[antes]
     const analise = state.analises.find((a) => a.codigoMoeda === coin.id)
     expect(analise).toBeDefined()
-    expect(coin.nft.hash).toBe(analise?.hash)
-    expect(analise?.codigoRecibo).toBe(coin.nft.codigo)
+    expect(coin.recibo.hash).toBe(analise?.hash)
+    expect(analise?.codigoRecibo).toBe(coin.recibo.codigo)
   })
 
   it('moeda recusada NÃO vira ativo, mas deixa registro com o motivo', async () => {

@@ -27,20 +27,26 @@ export function genHash(): string {
   return '0x' + hex() + '...' + hex()
 }
 
-/** Próximo código de ativo: 'RO-000042'. Incrementa `seq.coin` (ver nota do topo). */
+/** Próximo código de moeda: 'RO-000042'. Incrementa `seq.coin` (ver nota do topo). */
 export function nextCoinCode(seq: Seq): string {
   seq.coin += 1
   return 'RO-' + String(seq.coin).padStart(6, '0')
 }
 
 /**
- * Código do recibo derivado do código do ativo: 'RO-000042' -> 'NFT-000042'.
+ * Código do recibo derivado do código da moeda: 'RO-000042' -> 'REC-000042'.
  *
  * Deriva em vez de ter contador próprio porque a relação moeda:recibo é 1:1 —
  * assim os dois números nunca saem de sincronia.
+ *
+ * O prefixo era 'NFT-' até 10/09/2026 (D-4). Ele aparecia no certificado, no
+ * PDF baixado, na tabela de auditoria e nos relatórios do contador — era a
+ * palavra proibida mais visível do produto inteiro. A troca só é possível de
+ * graça porque `STORE_KEY` subiu para `aurea-market-v7` no mesmo commit e o
+ * banco recomeça do seed; código já gravado não é reescrito por ninguém.
  */
-export function nextNftCode(coinCode: string): string {
-  return 'NFT-' + coinCode.split('-')[1]
+export function nextCodigoRecibo(coinCode: string): string {
+  return 'REC-' + coinCode.split('-')[1]
 }
 
 /** Próximo protocolo de envio: 'RO-ENV-0001'. Incrementa `seq.envio`. */

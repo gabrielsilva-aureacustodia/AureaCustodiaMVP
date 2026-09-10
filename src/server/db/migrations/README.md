@@ -9,8 +9,11 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `001_inicial.sql` | As 10 tabelas do M1 no schema `aurea`, índices, chaves estrangeiras, `CHECK`s, a linha única de `seq` e RLS em todas |
 | `002_pagamentos_rastreio.sql` | Frente C: `payment_events` (idempotência), `payment_intents`, `rastreios` |
 | `003_ledger_dre_auditoria.sql` | M4/M7: `ledger_entries` (append-only, hash encadeado), `audit_log`, `parametros_contabeis`, `contas_contabeis`, `lancamentos_manuais`, `exportacoes`. Só cria tabelas; os catálogos vêm de `src/domain/dre.ts` |
+| `004_analise_estacao.sql` | Frente E: `analises` (a bancada) e o contador `RO-ANL-0001` em `seq` |
+| `005_renomeia_recibos.sql` | `aurea.nfts` vira `aurea.recibos` (D-4, 10/09/2026). Renomeia a tabela preservando dados, chaves e a FK; recria com o nome novo se ela não existir, e religa o RLS |
 
-A próxima é a **004** (a de limpeza do passo 9 do M1, ver `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`).
+A próxima é a **006**. A limpeza do passo 9 do M1 continua pendente — ver
+`docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 ## Regras
 

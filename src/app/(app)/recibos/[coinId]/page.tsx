@@ -1,5 +1,5 @@
 /**
- * 3.1 RECIBO NFT (CERTIFICADO) — rota do certificado de uma moeda.
+ * 3.1 RECIBO DE CUSTÓDIA (CERTIFICADO) — rota do certificado de uma moeda.
  *
  * No monolito esta tela não tinha endereço: `openNftDetail(ownerEmail, coinId)`
  * (linha 1179) guardava a moeda na global `viewingCoin` e trocava a view. Um F5
@@ -26,7 +26,7 @@
 import { notFound, redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
-import { Certificate } from '@/components/nft/Certificate'
+import { Certificate } from '@/components/recibo/Certificate'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 

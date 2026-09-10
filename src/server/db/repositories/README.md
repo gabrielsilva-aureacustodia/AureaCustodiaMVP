@@ -6,7 +6,7 @@ repositório importa outro, exceto `state.ts`, que é o montador.
 | Arquivo | Tabela(s) | Substitui, no blob | Escrita |
 |---|---|---|---|
 | `users.ts` | `users` | `state.users[email]` sem `coins` | inserir · atualizar · remover |
-| `coins.ts` | `coins` + `nfts` | `user.coins[]` (moeda com recibo embutido) | inserir · atualizar · remover |
+| `coins.ts` | `coins` + `recibos` | `user.coins[]` (moeda com recibo embutido) | inserir · atualizar · remover |
 | `offers.ts` | `sell_offers`, `buy_orders` | `state.sellOffers`, `state.buyOrders` | inserir · atualizar · remover |
 | `trades.ts` | `trades` | `state.trades` | **só inserir** (append-only) |
 | `envios.ts` | `envios` | `state.envios` | inserir · atualizar · remover |

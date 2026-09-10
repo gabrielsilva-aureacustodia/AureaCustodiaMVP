@@ -149,8 +149,13 @@ interface NavLink {
 }
 
 /**
- * Os 7 itens navegáveis, na ordem exata do monolito. O rótulo é o texto
- * original — 'Vender ativo' e não 'Vender', 'Meus recibos NFT' e não 'Recibos'.
+ * Os 7 itens navegáveis, na ordem exata do monolito.
+ *
+ * O rótulo DEIXOU de ser o texto original em 10/09/2026. O monolito dizia
+ * 'Vender ativo' e 'Meus recibos NFT'; as duas palavras foram proibidas pelo
+ * jurídico em 09/09/2026 porque puxam a operação para regulação que não é a
+ * dela — 'ativo' para o mercado de capitais, 'NFT' para ativos virtuais. A
+ * ordem e a quantidade de itens continuam fiéis; só o texto mudou.
  */
 const NAV: NavLink[] = [
   {
@@ -171,7 +176,7 @@ const NAV: NavLink[] = [
   },
   {
     href: '/vender',
-    label: 'Vender ativo',
+    label: 'Vender moeda',
     icon: (
       <>
         <path d="M20 12l-8 8-9-9V4h7z" />
@@ -186,7 +191,7 @@ const NAV: NavLink[] = [
   },
   {
     href: '/recibos',
-    label: 'Meus recibos NFT',
+    label: 'Meus recibos',
     icon: (
       <>
         <path d="M6 3h9l4 4v14H6z" />

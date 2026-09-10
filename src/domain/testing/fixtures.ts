@@ -30,8 +30,8 @@ export function moeda(id: string, tipo: string): Coin {
     statusDigital: 'Validado',
     valorEstimado: 28500,
     protocolo: 'RO-ENV-0001',
-    nft: {
-      codigo: 'NFT-' + id.split('-')[1],
+    recibo: {
+      codigo: 'REC-' + id.split('-')[1],
       hash: '0xA1B2...C3D4',
       dataEmissao: '01/01/2026',
       status: 'Ativo',

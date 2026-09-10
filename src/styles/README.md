@@ -9,7 +9,7 @@ devem virar.**
 ordem que não pode mudar**:
 
 ```
-tokens → base → login → shell → home → market → wizard → nft → reports → account → responsive
+tokens → base → login → shell → home → market → wizard → recibo → reports → account → responsive
 ```
 
 **Por que isso é frágil de um jeito específico:** quase toda regra de `responsive.css` tem a
@@ -33,7 +33,7 @@ build, sem aviso no console. O sintoma aparece só no celular de alguém.
 | `home.css` | Painel inicial e `.stats` | |
 | `market.css` | Mercado, venda, `.offer`, `.sell-coin`, pastas e seletor de tipo | O maior arquivo |
 | `wizard.css` | Envios (telas 1.3, 4.1, 4.2) | |
-| `nft.css` | Recibos e certificado | O certificado **ignora o tema de propósito** |
+| `recibo.css` | Recibos e certificado | O certificado **ignora o tema de propósito** |
 | `reports.css` | Gráficos e `.audit-table` | |
 | `account.css` | Minha conta e configurações | |
 | `responsive.css` | **Todas as media queries** | **Último import, obrigatoriamente** |
@@ -52,7 +52,7 @@ build, sem aviso no console. O sintoma aparece só no celular de alguém.
 
 ## O certificado e o tema
 
-`nft.css` mantém o `.cert` com fundo creme e tintas fixas nos dois modos, porque **é o mesmo
+`recibo.css` mantém o `.cert` com fundo creme e tintas fixas nos dois modos, porque **é o mesmo
 documento que sai em PDF**. Nenhuma cor do certificado é escrita à mão nos componentes — a
 regra inteira está aqui.
 

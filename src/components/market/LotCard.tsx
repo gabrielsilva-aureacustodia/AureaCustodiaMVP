@@ -31,14 +31,13 @@ import type { ReactNode } from 'react'
 
 import { CoinArt } from '@/components/svg/CoinArt'
 import { coinTypeInfo } from '@/domain/constants'
+import { apelidoVendedor } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { Cents, Lot } from '@/domain/types'
 
 export interface LotCardProps {
   lot: Lot
-  /** Nome do vendedor já resolvido pela página; '—' quando a conta sumiu do estado. */
-  sellerName: string
   /** true quando o anúncio é da própria sessão — esconde seletor e botão. */
   mine: boolean
   /** Saldo do comprador, para o teto de quantidade. */
@@ -51,7 +50,6 @@ export interface LotCardProps {
 
 export function LotCard({
   lot,
-  sellerName,
   mine,
   balance,
   qtyEscolhida,
@@ -87,8 +85,13 @@ export function LotCard({
         <div className="o-meta">
           {coinTypeInfo(lot.tipoMoeda).detail}
           <br />
-          {qtyAvail} disponível(is) · Vendedor: {mine ? 'você' : sellerName} · Publicado em{' '}
-          {fdate(lot.createdAt)}
+          {/* O nome do vendedor saiu daqui em 10/09/2026 (D-5): mostrar quem é
+              o dono de cada lote expunha dado pessoal de um cliente para todos
+              os outros. O código anônimo deriva do id da oferta — ver
+              domain/contraparte.ts. Na oferta da própria sessão continua
+              'você', que é informação dele sobre ele. */}
+          {qtyAvail} disponível(is) · {mine ? 'Vendedor: você' : apelidoVendedor(lot.lotId)} ·
+          Publicado em {fdate(lot.createdAt)}
         </div>
 
         {/* A observação do vendedor entre aspas e em itálico, como na linha 1255. */}

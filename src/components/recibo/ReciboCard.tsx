@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Cartão de recibo NFT da grade 1.4 — port de aurea-mvp-teste.html, linhas
+ * Cartão de recibo de custódia da grade 1.4 — port de aurea-mvp-teste.html, linhas
  * 1860-1872 (o `coins.map(...)` de `renderNfts`).
  *
  * É 'use client' porque o botão "Ver recibo" navega. No monolito ele chamava
@@ -12,7 +12,7 @@
  *
  * A DECISÃO DE RÓTULO/ETIQUETA MORA AQUI, e não em quem monta a grade, porque é
  * exatamente o trecho que o original calculava dentro do `map`. Manter junto do
- * cartão evita que a lista precise saber de status de NFT.
+ * cartão evita que a lista precise saber de status de recibo.
  */
 
 import { useRouter } from 'next/navigation'
@@ -23,7 +23,7 @@ import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
 import { CoinArt } from '@/components/svg/CoinArt'
 
-export interface NftCardProps {
+export interface ReciboCardProps {
   coin: Coin
   /**
    * Valor já resolvido por quem chama. A regra do original (mediana de 24h para
@@ -36,34 +36,34 @@ export interface NftCardProps {
   listed: boolean
 }
 
-export function NftCard({ coin, valor, listed }: NftCardProps): ReactNode {
+export function ReciboCard({ coin, valor, listed }: ReciboCardProps): ReactNode {
   const router = useRouter()
 
   // Precedência do original (linha 1862): "Retirado" ganha de "À venda", que
   // ganha de "Em custódia". Um recibo extinto não é mais negociável, então nem
   // se pergunta se está anunciado.
-  const label = coin.nft.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
+  const label = coin.recibo.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
   const emCustodia = label === 'Em custódia'
   const badgeCls = emCustodia ? 'badge-green' : 'badge-gold'
 
   return (
-    <div className="nft-card">
-      {/* .nft-art tem 96px e a .coin-svg lá dentro, 64px — a arte NÃO preenche o
-          quadro. É assim no monolito (nft.css linha 12 x market.css linha 32) e
+    <div className="recibo-card">
+      {/* .recibo-art tem 96px e a .coin-svg lá dentro, 64px — a arte NÃO preenche o
+          quadro. É assim no monolito (recibo.css linha 12 x market.css linha 32) e
           a folga é o que centraliza o disco no cartão. */}
-      <div className="nft-art">
+      <div className="recibo-art">
         <CoinArt type={coin.tipoMoeda} />
       </div>
-      <div className="nft-code">{coin.nft.codigo}</div>
+      <div className="recibo-code">{coin.recibo.codigo}</div>
       {/* O ano só aparece quando NÃO é a moeda negociável: para ela o ano é
           sempre 2012 e repetir viraria ruído. Separador ' · ' na grade — o
           certificado usa espaço simples, e essa diferença é do original. */}
-      <div className="nft-type">
+      <div className="recibo-type">
         {coin.tipoMoeda}
         {coin.tipoMoeda !== COIN.name ? ' · ' + coin.ano : ''}
       </div>
       <span className={badgeCls}>{emCustodia ? `✓ ${label}` : label}</span>
-      <div className="nft-val">{brl(valor)}</div>
+      <div className="recibo-val">{brl(valor)}</div>
       {/* Os quatro valores do `style` inline vêm literalmente da linha 1871:
           o botão da grade é menor que o .btn padrão e ocupa a largura do cartão. */}
       <button

@@ -137,7 +137,7 @@ function suite(alvo: Alvo): void {
           `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
-                    ${S}.sell_offers, ${S}.buy_orders, ${S}.nfts, ${S}.coins, ${S}.users`,
+                    ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
       })
@@ -175,12 +175,13 @@ function suite(alvo: Alvo): void {
         'exportacoes',
         'lancamentos_manuais',
         'ledger_entries',
-        'nfts',
         'parametros_contabeis',
         // Migration 002 — pagamentos e rastreio (frente C).
         'payment_events',
         'payment_intents',
         'rastreios',
+        // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
+        'recibos',
         'schema_migrations',
         'sell_offers',
         'seq',

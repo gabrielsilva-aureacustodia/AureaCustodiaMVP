@@ -9,6 +9,15 @@
  * alguém mexeu em CAMPOS_DA_ANALISE, na ordem dela, ou na forma canônica de um
  * campo. Recibo já emitido deixou de conferir. Reverta, ou escreva a migration
  * que recalcula a cadeia inteira e registra a troca.
+ *
+ * OS DOIS HASHES MUDARAM UMA VEZ, em 10/09/2026, e a razão fica registrada
+ * aqui para que ninguém tome isso por precedente. A fórmula NÃO mudou: o que
+ * mudou foi a ENTRADA — `codigoRecibo` passou de 'NFT-000042' para
+ * 'REC-000042' (D-4), e `codigoRecibo` é um dos campos da fórmula. Nenhum
+ * recibo gravado deixou de conferir, porque `STORE_KEY` subiu para
+ * `aurea-market-v7` no mesmo commit e o banco recomeçou do seed. Os valores
+ * abaixo foram recalculados com `node:crypto`, não copiados da saída do código
+ * sob teste.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -29,7 +38,7 @@ const APROVADA: AnalisePendente = {
   protocolo: 'RO-ANL-0001',
   protocoloEnvio: 'RO-ENV-0001',
   codigoMoeda: 'RO-000042',
-  codigoRecibo: 'NFT-000042',
+  codigoRecibo: 'REC-000042',
   tipoMoeda: 'Entrega da Bandeira Olímpica',
   ano: 2016,
   pesoMg: 27000,
@@ -61,8 +70,8 @@ const RECUSADA: AnalisePendente = {
   caminhoVideo: null,
 }
 
-const HASH_1 = '5dfddb59680f91c23940ff88b39e9df5e382d426cf2be2b3e47cf278d7166a2c'
-const HASH_2 = 'b9b5b0444075854d666ba82e781f301963a349073cbd04a898524eb71006a347'
+const HASH_1 = '641be50c7b9aca325ea7ce9df9c07abe35b51f1e01cf5685bd50b265bc9d4802'
+const HASH_2 = '911c01355b01a35498db4482a2525f24cc20dacd87004cfa545bcc8ce2690f33'
 
 describe('a fórmula do hash da análise', () => {
   it('produz o hash congelado para a análise aprovada', () => {

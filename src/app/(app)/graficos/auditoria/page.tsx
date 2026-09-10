@@ -51,7 +51,7 @@ export default function AuditoriaPage(): ReactNode {
   // Inventário global do sistema, já ordenado por código do ativo crescente.
   const flat = allCoinsFlat(state)
   const totalCust = flat.length
-  const recibosAtivos = flat.filter(({ coin }) => coin.nft.status === 'Ativo').length
+  const recibosAtivos = flat.filter(({ coin }) => coin.recibo.status === 'Ativo').length
 
   // Métricas financeiras e de esteira de recebimento
   const totalSaldo = Object.values(state.users).reduce((acc, u) => acc + (u.balance || 0), 0)
@@ -77,10 +77,10 @@ export default function AuditoriaPage(): ReactNode {
     // E, por regra de negócio, NENHUMA coluna de proprietário entra aqui — é a
     // promessa que a nota logo abaixo do botão faz ao usuário.
     const rows: AuditRow[] = allCoinsFlat(state).map(({ coin }) => ({
-      Codigo_Ativo: coin.id,
+      Codigo_Moeda: coin.id,
       Tipo_Moeda: coin.tipoMoeda,
       Data_Envio: envioDateFor(state, coin),
-      Data_Avaliacao: coin.nft.dataEmissao,
+      Data_Avaliacao: coin.recibo.dataEmissao,
     }))
 
     try {
@@ -229,12 +229,12 @@ export default function AuditoriaPage(): ReactNode {
               <table className="audit-table">
                 <thead>
                   <tr>
-                    <th>Código do ativo</th>
+                    <th>Código da moeda</th>
                     <th>Tipo de moeda</th>
                     <th>Status físico</th>
                     <th>Status digital</th>
                     <th>Data de entrada</th>
-                    <th>Recibo NFT</th>
+                    <th>Recibo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -262,7 +262,7 @@ export default function AuditoriaPage(): ReactNode {
                           <span className={pillDigital(digital)}>{digital}</span>
                         </td>
                         <td>{coin.entrada}</td>
-                        <td>{coin.nft.codigo}</td>
+                        <td>{coin.recibo.codigo}</td>
                       </tr>
                     )
                   })}
@@ -318,7 +318,7 @@ export default function AuditoriaPage(): ReactNode {
               <span className="pill g">✓</span>
             </div>
             <div className="note" style={{ marginTop: 12 }}>
-              Todos os ativos exibidos nesta auditoria passaram por conferência física e vinculação
+              Todas as moedas exibidas nesta auditoria passaram por conferência física e vinculação
               documental.
             </div>
           </div>

@@ -41,7 +41,7 @@ import { carregarEnvLocal, descreverUrl } from './env-local.mjs'
 export const TABELAS_ESPERADAS = [
   'users',
   'coins',
-  'nfts',
+  'recibos',
   'sell_offers',
   'buy_orders',
   'trades',

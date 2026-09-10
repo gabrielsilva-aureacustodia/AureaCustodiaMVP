@@ -235,7 +235,7 @@ export default function MercadoPage(): ReactNode {
                 preço primeiro e só depois descobriria a que ativo pertence. */}
             <TipoSelector
               name="tipo-foco"
-              titulo="Ativo em foco"
+              titulo="Moeda em foco"
               tipos={NEGOCIAVEIS}
               valor={tipoAtivo}
               onChange={trocarTipo}
@@ -355,9 +355,6 @@ export default function MercadoPage(): ReactNode {
                             key={lot.lotId}
                             lot={lot}
                             mine={lot.seller === session}
-                            sellerName={
-                              state.users[lot.seller] ? state.users[lot.seller].name : '—'
-                            }
                             balance={me.balance}
                             qtyEscolhida={buyQty[lot.lotId]}
                             onAdjust={ajustarQtd}
@@ -371,7 +368,7 @@ export default function MercadoPage(): ReactNode {
               })
             ) : (
               <div className="empty">
-                Nenhuma oferta de venda encontrada. Use &quot;Vender ativo&quot; em outra conta para
+                Nenhuma oferta de venda encontrada. Use &quot;Vender moeda&quot; em outra conta para
                 publicar um anúncio e vê-lo aqui.
               </div>
             )}
@@ -390,7 +387,6 @@ export default function MercadoPage(): ReactNode {
                   key={bid.id}
                   bid={bid}
                   mine={bid.buyer === session}
-                  buyerName={state.users[bid.buyer] ? state.users[bid.buyer].name : '—'}
                   onEdit={(b) => modal.open(<EditarBidModal bid={b} />)}
                   onCancel={(b) => void run(() => cancelBid(b.id))}
                 />
@@ -460,7 +456,7 @@ export default function MercadoPage(): ReactNode {
               </svg>
               Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
               acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
-              consideradas — cada ativo tem seu próprio livro.
+              consideradas — cada tipo de moeda tem seu próprio livro.
             </div>
           </div>
         </div>
@@ -574,7 +570,7 @@ function EditarBidModal({ bid }: { bid: BuyOrder }): ReactNode {
           preservaria a posição dela na fila de um livro em que ela nunca esteve.
           Ver a nota em server/actions/market.ts, editBid. */}
       <p>
-        Ativo: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
+        Moeda: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
       </p>
 
       <div className="field-lbl">Quantidade desejada</div>

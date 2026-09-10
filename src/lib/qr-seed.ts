@@ -6,7 +6,7 @@
  * padrão para o mesmo recibo, senão o QR da tela e o do PDF divergiriam e o
  * usuário perceberia. Aqui o gerador vive num lugar só: o `buildQr` de
  * `lib/charts.ts` (que o componente `components/svg/QrCode.tsx` desenha) e o
- * gerador de PDF em `lib/pdf/nft-receipt.ts` importam esta função.
+ * gerador de PDF em `lib/pdf/recibo-pdf.ts` importam esta função.
  *
  * ATENÇÃO — não "conserte" a aritmética abaixo. `seed * 1103515245` estoura os
  * 53 bits de precisão do double e perde bits baixos antes do `>>> 0`. Isso é um
@@ -20,7 +20,7 @@
  * a mesma ordem de consumo do PRNG do original, o que garante o mesmo desenho.
  */
 export function qrMatrix(seed: string, cells: number): boolean[][] {
-  // Hash 31x da string-semente (código do NFT + hash), idêntico ao do MVP.
+  // Hash 31x da string-semente (código do recibo + hash), idêntico ao do MVP.
   let s = 0
   for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0
 

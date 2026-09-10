@@ -7,7 +7,7 @@
 import 'server-only'
 
 import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePendente } from '@/domain/analise'
-import { nextNftCode } from '@/domain/codes'
+import { nextCodigoRecibo } from '@/domain/codes'
 import { faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodyFeeForCount } from '@/domain/fees'
@@ -236,8 +236,8 @@ export async function fecharAnalise(
             statusDigital: 'Validado',
             valorEstimado: valor,
             protocolo: envio.protocolo,
-            nft: {
-              codigo: nextNftCode(id),
+            recibo: {
+              codigo: nextCodigoRecibo(id),
               // Preenchido logo abaixo com o hash da análise: o recibo desta
               // moeda É a prova do procedimento que a aprovou.
               hash: '',
@@ -251,7 +251,7 @@ export async function fecharAnalise(
           protocolo: nextAnaliseCode(state.seq),
           protocoloEnvio: envio.protocolo,
           codigoMoeda: coin ? coin.id : null,
-          codigoRecibo: coin ? coin.nft.codigo : null,
+          codigoRecibo: coin ? coin.recibo.codigo : null,
           tipoMoeda: envio.tipoMoeda,
           ano: envio.ano,
           pesoMg: Math.round(m.pesoMg),
@@ -274,7 +274,7 @@ export async function fecharAnalise(
         state.analises.push(analise)
 
         if (coin) {
-          coin.nft.hash = analise.hash
+          coin.recibo.hash = analise.hash
           dono.coins.push(coin)
           envio.codigosAtivosGerados.push(coin.id)
         }

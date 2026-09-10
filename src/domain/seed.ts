@@ -14,7 +14,7 @@
  */
 
 import { COIN, COIN_TYPES, coinTypeInfo, faixaValor } from '@/domain/constants'
-import { genHash, nextCoinCode, nextEnvioCode, nextNftCode } from '@/domain/codes'
+import { genHash, nextCoinCode, nextEnvioCode, nextCodigoRecibo } from '@/domain/codes'
 import { custodyFeeForCount } from '@/domain/fees'
 import { DAY_MS } from '@/domain/dates'
 import type {
@@ -68,7 +68,7 @@ function valorSorteado(tipo: string): Cents {
 }
 
 /**
- * Cria uma moeda já validada e em cofre, com o recibo NFT emitido.
+ * Cria uma moeda já validada e em cofre, com o recibo de custódia emitido.
  *
  * Consome DOIS contadores de `seq`: o do ativo e o de envio. No MVP cada moeda
  * do seed nasce com um protocolo próprio mesmo sem existir registro em
@@ -93,7 +93,7 @@ export function mkCoin(
     protocolo: nextEnvioCode(seq),
     // dataEmissao nasce igual à entrada e fica congelada: o recibo não é
     // reemitido quando a moeda troca de dono.
-    nft: { codigo: nextNftCode(id), hash: genHash(), dataEmissao: entrada, status: 'Ativo' },
+    recibo: { codigo: nextCodigoRecibo(id), hash: genHash(), dataEmissao: entrada, status: 'Ativo' },
   }
 }
 
@@ -214,7 +214,7 @@ export function genHistoryTrades(emails: UserEmail[]): Trade[] {
 
 /**
  * Estado inicial completo do sistema fictício: 7 contas, seus acervos com
- * recibo NFT, a cobrança de custódia já quitada e o histórico de mercado.
+ * recibo de custódia, a cobrança já quitada e o histórico de mercado.
  *
  * A ordem das chamadas importa: os acervos são gerados ANTES das cobranças
  * (que dependem da contagem final de moedas) e o `seq` sai daqui já adiantado,

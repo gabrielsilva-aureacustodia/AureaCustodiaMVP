@@ -118,7 +118,7 @@ export default function ContaPage(): ReactNode {
             </svg>
           </div>
           <div>
-            <div className="lbl">Moedas tokenizadas</div>
+            <div className="lbl">Moedas em custódia</div>
             <div className="val">{coins.length}</div>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function ContaPage(): ReactNode {
             </svg>
           </div>
           <div>
-            <div className="lbl">Ativos à venda</div>
+            <div className="lbl">Moedas à venda</div>
             {/* Conta OFERTAS, não lotes: um anúncio de 3 moedas são 3 registros
                 em sellOffers, e é isso que o usuário tem exposto no mercado. */}
             <div className="val">{aVenda}</div>
@@ -145,7 +145,7 @@ export default function ContaPage(): ReactNode {
             </svg>
           </div>
           <div>
-            <div className="lbl">Ativos à compra</div>
+            <div className="lbl">Moedas à compra</div>
             {/* Soma as quantidades RESTANTES das ordens de compra: uma ordem de 5
                 que já teve 2 preenchidas conta 3. */}
             <div className="val">{aCompra}</div>
@@ -279,9 +279,9 @@ function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
   const router = useRouter()
 
   const listed = state.sellOffers.some((o) => o.coinId === coin.id)
-  // 'Retirado' vem do NFT extinto (retirada física, bloco 4.3 — ainda não
+  // 'Retirado' vem do recibo extinto (retirada física, bloco 4.3 — ainda não
   // implementado); no MVP nenhuma moeda chega nesse estado, mas o ramo existe.
-  const status = coin.nft.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
+  const status = coin.recibo.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
   const pill = status === 'Em custódia' ? 'g' : status === 'À venda' ? 'y' : 'n'
 
   return (
@@ -297,7 +297,7 @@ function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
         </div>
         <div className="a-line2">
           <span className="a-meta">
-            {coin.id} · {coin.nft.codigo}
+            {coin.id} · {coin.recibo.codigo}
           </span>
           <span className="a-val">{brl(valor)}</span>
         </div>
