@@ -20,7 +20,7 @@ const etapas = [
   {
     number: '03',
     title: 'Marketplace',
-    text: 'Sócios negociam moedas elegíveis dentro da plataforma, com histórico e transparência.',
+    text: 'Colecionadores negociam moedas elegíveis dentro da plataforma, com histórico e transparência.',
   },
 ] as const
 
@@ -36,6 +36,9 @@ export function LandingPage(): ReactNode {
           </span>
         </Link>
         <nav className="landing-nav" aria-label="Acesso à plataforma">
+          <Link className="landing-nav-link" href="/academy">
+            Academy
+          </Link>
           <Link className="btn btn-outline" href="/entrar">
             Entrar
           </Link>
@@ -93,6 +96,28 @@ export function LandingPage(): ReactNode {
         </div>
       </section>
 
+      <section className="landing-origin" aria-labelledby="origin-title">
+        <div className="landing-section-heading">
+          <p className="landing-eyebrow">Nossa história</p>
+          <h2 id="origin-title">De colecionador para colecionador</h2>
+        </div>
+        <div className="landing-origin-grid">
+          <p>
+            A Áurea Custódia nasceu da experiência direta de quem vivencia o colecionismo.
+            Rogério Pena, um dos fundadores da empresa, começou a reunir sua coleção particular
+            da série de moedas comemorativas Real Olímpico e logo se deparou com desafios que todo
+            colecionador conhece: a preocupação com a guarda segura em domicílio e o alto custo
+            e atrito de fretes com declaração de valor a cada negociação entre estados.
+          </p>
+          <p>
+            A solução foi estruturar um serviço de custódia profissional: guarda física em cofre
+            especializado com cobertura securitária, comprovação digital por meio de recibos de custódia
+            auditáveis e um marketplace onde a posse das moedas pode ser negociada instantaneamente
+            entre colecionadores, sem a necessidade de despachar o item físico a cada transação comercial.
+          </p>
+        </div>
+      </section>
+
       <section className="landing-assurance" aria-labelledby="assurance-title">
         <div>
           <p className="landing-eyebrow">Cuidado em cada etapa</p>
@@ -104,6 +129,27 @@ export function LandingPage(): ReactNode {
         </p>
       </section>
 
+      <section className="landing-positioning" aria-labelledby="positioning-title">
+        <div className="landing-positioning-card">
+          <div className="landing-section-heading">
+            <p className="landing-eyebrow">Transparência e conformidade</p>
+            <h2 id="positioning-title">Nosso posicionamento institucional</h2>
+          </div>
+          <blockquote className="landing-positioning-quote">
+            &ldquo;A Áurea <strong>não é corretora</strong> e não está sujeita à regulação da CVM ou do
+            mercado de capitais. A Áurea <strong>não é instituição financeira</strong>. A Áurea{' '}
+            <strong>não é plataforma de ativos digitais</strong>. A Áurea é um serviço de guarda de itens de
+            coleção com um marketplace onde quem guarda pode negociar o recibo do item sem precisar
+            resgatá-lo fisicamente.&rdquo;
+          </blockquote>
+          <div className="landing-positioning-actions">
+            <Link className="landing-link-academy" href="/academy">
+              Entenda em detalhes no Áurea Academy &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <footer className="landing-footer">
         <div className="landing-footer-brand">
           <Image src={LOGO_AUREA} alt="" width={52} height={52} />
@@ -112,7 +158,8 @@ export function LandingPage(): ReactNode {
             <span>CNPJ 68.071.452/0001-06</span>
           </p>
         </div>
-        <nav aria-label="Informações legais">
+        <nav aria-label="Informações institucionais e legais">
+          <Link href="/academy">Academy</Link>
           <Link href="/termos">Termos de Uso</Link>
           <Link href="/privacidade">Política de Privacidade</Link>
         </nav>

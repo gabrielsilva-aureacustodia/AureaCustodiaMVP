@@ -7,6 +7,69 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 4 · A-3 — Academy e Posicionamento na Landing · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `44c317e`
+
+## 1. O que entrou
+
+### Rota Nova Pública `/academy` (`src/app/academy/page.tsx`)
+- Criada a rota pública `/academy`, totalmente acessível deslogado e indexável por buscadores.
+- Reuso de `src/components/legal/LegalDocument.tsx` para consistência visual e identidade institucional.
+- Primeiro artigo educativo completo: **"O que a Áurea é e o que a Áurea não é"**, transcrevendo e aprofundando o texto da seção 1.3 do plano executivo em linguagem acessível e didática para o público leigo:
+  - Posicionamento institucional negativo formal (não é corretora CVM, não é instituição financeira, não é plataforma de cripto/ativos virtuais e não promete rentabilidade).
+  - O que a Áurea é (serviço de guarda física especializada, emissão de recibos digitais auditáveis e marketplace de colecionadores com resgate físico garantido sob demanda).
+  - A história de origem (a coleção particular de moedas da série Real Olímpico do cofundador Rogério Pena, as dores de armazenamento residencial e atrito de fretes sucessivos).
+  - Ciclo da custódia na prática (do envio pelos Correios com seguro à entrada em cofre, negociação de recibos e resgate físico).
+  - FAQ do colecionador com explicação da equiparabilidade numismática das moedas e prazos operacionais (D+3 para saques em reais, D+30 para resgate físico).
+
+### Posicionamento e História de Origem na Landing (`src/components/landing/LandingPage.tsx`)
+- Inserido link para `Academy` na navegação pública do cabeçalho (`.landing-nav`) com alvo de toque $\ge 44\text{px}$.
+- Atualizado texto de etapas de "Sócios negociam..." para "Colecionadores negociam moedas elegíveis dentro da plataforma, com histórico e transparência."
+- Inserida nova seção `landing-origin` ("Nossa história — De colecionador para colecionador"): narrativa institucional de Rogério Pena e a solução da Áurea Custódia para segurança e liquidez numismática.
+- Inserida nova seção `landing-positioning` ("Transparência e conformidade — Nosso posicionamento institucional"): citação formal da Seção 1.3 do Plano Executivo com link direto para o Áurea Academy.
+- Inserido link para `Academy` no rodapé da landing (`.landing-footer nav`).
+- Remoção de qualquer terminologia de investimento, retorno ou promessa de valorização garantida.
+
+### Componente LegalDocument e Estilos (`src/components/legal/LegalDocument.tsx`, `src/styles/landing.css`, `src/styles/legal.css`)
+- `LegalDocument.tsx`:
+  - Suporte a `eyebrow`, `noticeTitle` e `noticeDescription` customizados com fallbacks elegantes.
+  - Inclusão do link para `/academy` no cabeçalho e rodapé dos documentos institucionais.
+- `src/styles/landing.css`:
+  - Estilização responsiva para `.landing-nav-link`, `.landing-origin`, `.landing-positioning`, `.landing-positioning-quote` e `.landing-link-academy`.
+  - Garantia de alvos de toque $\ge 44\text{px}$ para links de navegação e rodapé em dispositivos móveis.
+- `src/styles/legal.css`:
+  - Suporte a `.legal-quote`, listas ordenadas (`ol`) e `.legal-footer-nav`.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos obrigatórios
+```
+npm run typecheck   ✓ (0 erros)
+npm run lint        ✓ (0 erros)
+npm test            ✓ 33 arquivos · 218 testes passando (100% verde)
+npm run build       ✓ 24 páginas estáticas geradas com sucesso (incluindo /academy)
+```
+
+### Varredura de termos proibidos
+- Executado `git grep -n -E "NFT|token|cripto|ativo digital|investimento"`:
+  - Zero termos proibidos em textos visíveis do cliente na landing e no Academy, exceto no posicionamento institucional formal expressamente delimitando o que a empresa NÃO faz.
+
+### Testes manuais e responsividade
+- Verificado que `/academy` abre deslogado com metadados e estrutura HTML semântica.
+- Verificado que todos os botões e links de navegação mantêm alvos de toque mínimos de 44px em viewport mobile.
+
+## 3. O que ficou de manual (fora do repositório)
+- Nenhuma pendência manual adicionada pelo Agente A nesta sessão. As pendências D-6 continuam registradas e atribuídas ao Gabriel em `PENDENCIAS_MANUAIS_AGENTE_A.md`.
+
+## 4. O que o próximo agente precisa saber
+- A rota `/academy` é pública e já está referenciada na landing page e nos documentos legais.
+- A landing page agora expressa formalmente o posicionamento institucional aprovado pelo jurídico (Seção 1.3) e a história de origem da coleção de moedas.
+- Próxima sessão do Agente A: **Sessão A-4 · Tutorial do domínio oficial** (`docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`).
+
+---
+
 # Sessão 3 · A-2 — Aceite por blocos dos Termos e Privacidade · 10/09/2026
 
 **Branch:** `feat/juridico-textos-dominio`

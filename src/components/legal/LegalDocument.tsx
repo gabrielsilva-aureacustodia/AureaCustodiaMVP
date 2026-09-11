@@ -40,6 +40,7 @@ export function LegalDocument({
           </span>
         </Link>
         <nav aria-label="Documentos e acesso">
+          <Link href="/academy">Academy</Link>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>
           <Link className="btn btn-outline" href="/entrar">
@@ -67,7 +68,10 @@ export function LegalDocument({
 
       <footer className="legal-footer">
         <p>AUREA CUSTODIA LTDA · CNPJ 68.071.452/0001-06</p>
-        <Link href="/">Voltar à página inicial</Link>
+        <div className="legal-footer-nav">
+          <Link href="/academy">Academy</Link>
+          <Link href="/">Voltar à página inicial</Link>
+        </div>
       </footer>
     </main>
   )
