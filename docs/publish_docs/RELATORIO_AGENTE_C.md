@@ -7,6 +7,74 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão C-5 · Bloqueio de recibo por débito, ciclo completo E2E e conciliação · 11/09/2026
+
+**Branch:** `feat/retirada-logistica`.
+**Base:** `2b8919b` (Sessão C-4).
+
+## 1. O que entrou
+
+### Bloqueio de Recibo por Débito / Inadimplência (C-5 / Pedido do Agente B / Item B-5)
+- **`src/domain/types.ts`**:
+  - `StatusRecibo` expandido para `'Ativo' | 'Extinto' | 'Bloqueado'`, implementado formalmente como estado de domínio do recibo (não como regra espalhada).
+- **`src/server/actions/custody.ts`**:
+  - `bloquearReciboPorDebito(coinId)`: Bloqueia o recibo de titular inadimplente ou com pendência administrativa, removendo imediatamente qualquer oferta aberta da moeda do livro de ofertas e impedindo sua negociação e retirada física.
+  - `desbloquearRecibo(coinId)`: Restaura o recibo para o estado `'Ativo'`.
+  - `solicitarRetirada(coinId, ...)`: Rejeita com mensagem clara e explícita qualquer pedido de retirada física para moedas com recibo em estado `'Bloqueado'` ou `'Extinto'`.
+- **`src/domain/market.ts` & `src/server/actions/sell.ts`**:
+  - `availableCoinsForSell` e `publishOffer` atualizados para exigir `coin.recibo.status === 'Ativo'`, garantindo que moedas com recibo extinto ou bloqueado não fiquem disponíveis para venda nem possam ser listadas no mercado.
+- **`src/server/db/derivar.ts`**:
+  - Auditoria identifica a mutação de bloqueio de recibo como `'recibo.bloquear'`.
+- **Componentes Visuais e PDF**:
+  - **`src/components/recibo/Certificate.tsx`**: Exibe o carimbo visual indelével `.cert-stamp-bloqueado` ("RECIBO BLOQUEADO / RESTRIÇÃO ADMINISTRATIVA"), desabilita os botões de "Solicitar retirada" e "Colocar à venda", e exibe nota explicativa.
+  - **`src/styles/recibo.css`**: Adicionado estilo para `.cert-stamp-bloqueado`.
+  - **`src/components/recibo/ReciboCard.tsx`**: Rótulo "Bloqueado" com badge vermelho quando `coin.recibo.status === 'Bloqueado'`.
+  - **`src/app/(app)/conta/page.tsx`**: Status "Bloqueado" na listagem de acervo da conta.
+  - **`src/lib/pdf/recibo-pdf.ts`**: Carimbo d'água "RECIBO BLOQUEADO — RESTRIÇÃO" e status de pendência administrativa no PDF.
+
+### Acessibilidade Mobile e Touch Targets (Regra 44px)
+- **`src/components/recibo/ModalSolicitarRetirada.tsx`**:
+  - Navegação por teclado (`onKeyDown` com Enter/Espaço) e atributos ARIA (`role="button"`, `role="checkbox"`, `aria-pressed`, `aria-checked`) nos cards de modalidade e na caixa de ciência de equiparação de acervo.
+  - Alvos de clique com `minHeight: '44px'` nos botões de ação e na caixa de confirmação.
+- **`src/components/recibo/Certificate.tsx`**: Botões de ação configurados com `minHeight: '44px'`.
+- **`src/app/(app)/retirada/page.tsx`**: Links de visualização do recibo extinto e botão direto de impressão da etiqueta dos Correios com `minHeight: '44px'`.
+
+### Suíte de Integração Ponta a Ponta (E2E)
+- **`src/server/actions/retirada-ciclo-completo.test.ts`**:
+  - Teste de integração ponta a ponta que percorre todo o ciclo:
+    1. Rejeição de endereço incompleto (Trava 2: sem endereço o prazo D+30 não começa).
+    2. Bloqueio e recusa de retirada para recibo bloqueado por inadimplência.
+    3. Confirmação da solicitação de retirada com modalidade comum (R$ 50,00).
+    4. Débito exato no saldo e extinção imediata do recibo digital.
+    5. Tentativas subsequentes de solicitar retirada ou vender a moeda no mercado rejeitadas.
+    6. Validação contábil no Ledger: lançamento `taxa_retirada`, hash encadeado íntegro e 0 ajustes espúrios na conciliação.
+    7. Emissão e leitura da etiqueta oficial dos Correios (`/api/retiradas/etiqueta/[id]`) com Caixa Postal 7990 Belo Horizonte/MG.
+    8. Avanço operacional de esteira pelo operador: `separacao` -> `postada` (com exigência e persistência do código de rastreio) -> `entregue`.
+    9. Conferência do relatório consolidado de auditoria e custódia em `gerarRelatorio('retiradas')`.
+
+## 2. O que foi testado, e como
+
+### Comandos de Verificação (4 Verdes)
+- `npm run typecheck`: OK (0 erros).
+- `npm run lint`: OK (0 erros/advertências).
+- `npm test`: OK — **34 arquivos de teste, 242 testes passando** (1 pulado propositalmente na suíte de banco).
+- `npm run build`: OK — build Next.js com todas as rotas estáticas e dinâmicas geradas perfeitamente.
+
+### Casos de Uso Testados
+- Ciclo de vida completo do pedido de retirada (solicitação até entrega).
+- Impossibilidade de negociação ou retirada de recibos extintos e bloqueados.
+- Impressão da etiqueta postal padronizada dos Correios com chancela e Caixa Postal 7990.
+- Auditoria contábil e conciliação sem distorção ou vazamento de centavos.
+
+## 3. O que ficou de manual
+- Nada impeditivo de código. As migrations 009 e 010 devem ser aplicadas no banco Supabase de produção (conforme registrado em `PENDENCIAS_MANUAIS_AGENTE_C.md`).
+
+## 4. O que o próximo agente precisa saber
+- Todas as tarefas dos blocos 10, 11 (11a, 11b, 11c) e 13 pertencentes ao Agente C estão concluídas, testadas e integradas.
+- O estado `'Bloqueado'` para o recibo (`StatusRecibo`) e as Server Actions `bloquearReciboPorDebito` e `desbloquearRecibo` em `src/server/actions/custody.ts` estão prontos para consumo pelo Agente B durante a execução do cron de faturamento de custódia (B-5).
+
+---
+
 # Sessão C-4 · Correios de saída, etiqueta e rastreio · 11/09/2026
 
 **Branch:** `feat/retirada-logistica`.

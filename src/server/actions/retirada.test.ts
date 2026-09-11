@@ -20,6 +20,8 @@ import { gerarRelatorio } from '@/server/relatorios/dados'
 import { _limparRetiradasMemoriaParaTestes } from '@/server/shipping/retiradas'
 import {
   avancarStatusRetirada,
+  bloquearReciboPorDebito,
+  desbloquearRecibo,
   obterMinhasRetiradas,
   obterRetiradaPorCoin,
   solicitarRetirada,
@@ -302,6 +304,61 @@ describe('Consultas e Relatórios de Retiradas (Bloco 13)', () => {
       const res = await avancarStatusRetirada('RET-INEXISTENTE', 'separacao')
       expect(res.ok).toBe(false)
       expect(res.error).toContain('não encontrada')
+    })
+  })
+
+  describe('bloquearReciboPorDebito e desbloquearRecibo (C-5 / B-5)', () => {
+    it('bloqueia o recibo, cancela oferta no mercado e impede retirada física', async () => {
+      const moeda = state.users[USER_EMAIL].coins[0]
+
+      // Simula oferta aberta para essa moeda
+      state.sellOffers.push({
+        id: 'OF-TEST-BLOQUEIO',
+        lotId: 'LOT-TEST-BLOQUEIO',
+        coinId: moeda.id,
+        seller: USER_EMAIL,
+        price: 35000,
+        obs: 'Teste',
+        createdAt: Date.now(),
+        tipoMoeda: moeda.tipoMoeda,
+      })
+
+      // 1. Bloquear recibo
+      const resBloqueio = await bloquearReciboPorDebito(moeda.id)
+      expect(resBloqueio.ok).toBe(true)
+      expect(resBloqueio.data?.status).toBe('Bloqueado')
+      expect(moeda.recibo.status).toBe('Bloqueado')
+
+      // Oferta foi cancelada e retirada do livro de ofertas
+      expect(state.sellOffers.some((o) => o.coinId === moeda.id)).toBe(false)
+
+      // 2. Tentativa de solicitar retirada com recibo bloqueado é recusada
+      const resRetirada = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+      expect(resRetirada.ok).toBe(false)
+      expect(resRetirada.error).toContain('bloqueado por pendência administrativa ou financeira')
+
+      // 3. Desbloquear recibo
+      const resDesbloqueio = await desbloquearRecibo(moeda.id)
+      expect(resDesbloqueio.ok).toBe(true)
+      expect(resDesbloqueio.data?.status).toBe('Ativo')
+      expect(moeda.recibo.status).toBe('Ativo')
+
+      // 4. Agora a retirada é permitida
+      const resRetirada2 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+      expect(resRetirada2.ok).toBe(true)
+    })
+
+    it('rejeita bloqueio ou desbloqueio de recibo já extinto', async () => {
+      const moeda = state.users[USER_EMAIL].coins[0]
+      moeda.recibo.status = 'Extinto'
+
+      const bloq = await bloquearReciboPorDebito(moeda.id)
+      expect(bloq.ok).toBe(false)
+      expect(bloq.error).toContain('recibo já extinto')
+
+      const desbloq = await desbloquearRecibo(moeda.id)
+      expect(desbloq.ok).toBe(false)
+      expect(desbloq.error).toContain('recibo já extinto')
     })
   })
 })

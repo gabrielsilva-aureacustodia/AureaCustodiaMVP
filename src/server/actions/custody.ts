@@ -33,7 +33,7 @@ import { custodyFeeForCount } from '@/domain/fees'
 import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { ActionResult, Envio, EtapaEnvio } from '@/domain/types'
+import type { ActionResult, Coin, Envio, EtapaEnvio, StatusRecibo, User } from '@/domain/types'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -431,11 +431,23 @@ export async function solicitarRetirada(
         } as const
       }
 
-      // Rejeita se recibo já extinto
+      // Rejeita se recibo já extinto ou bloqueado
       if (coin.recibo.status === 'Extinto') {
         return {
           ok: false,
           error: 'O recibo desta moeda já está extinto. A retirada já foi solicitada anteriormente.',
+        } as const
+      }
+      if (coin.recibo.status === 'Bloqueado') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda está bloqueado por pendência administrativa ou financeira. Regularize sua situação para solicitar retirada.',
+        } as const
+      }
+      if (coin.recibo.status !== 'Ativo') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda não está ativo.',
         } as const
       }
 
@@ -576,6 +588,110 @@ export async function avancarStatusRetirada(
     return {
       ok: false,
       error: err instanceof Error ? err.message : 'Falha ao atualizar status da retirada.',
+    }
+  }
+}
+
+/**
+ * Bloqueia o recibo de uma moeda por inadimplência ou restrição administrativa (C-5 / B-5).
+ * Enquanto bloqueado, o recibo não pode ser negociado no mercado nem retirado fisicamente.
+ */
+export async function bloquearReciboPorDebito(
+  coinId: string,
+): Promise<ActionResult<{ coinId: string; status: StatusRecibo }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((s) => {
+      let donoEncontrado: User | undefined
+      let moedaEncontrada: Coin | undefined
+
+      for (const u of Object.values(s.users)) {
+        const c = u.coins.find((m) => m.id === coinId)
+        if (c) {
+          donoEncontrado = u
+          moedaEncontrada = c
+          break
+        }
+      }
+
+      if (!moedaEncontrada || !donoEncontrado) {
+        return { ok: false, error: `Moeda ${coinId} não encontrada.` } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Extinto') {
+        return { ok: false, error: 'Não é possível bloquear recibo já extinto.' } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Bloqueado') {
+        return { ok: true, data: { coinId, status: 'Bloqueado' as const } } as const
+      }
+
+      // Se houver oferta de venda aberta para essa moeda, cancela e remove do mercado
+      s.sellOffers = s.sellOffers.filter((o) => o.coinId !== coinId)
+
+      moedaEncontrada.recibo.status = 'Bloqueado'
+
+      return {
+        ok: true,
+        data: { coinId, status: 'Bloqueado' as const },
+      } as const
+    })
+
+    return result
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao bloquear recibo.',
+    }
+  }
+}
+
+/**
+ * Desbloqueia o recibo de uma moeda retornando-o ao status 'Ativo' (C-5 / B-5).
+ */
+export async function desbloquearRecibo(
+  coinId: string,
+): Promise<ActionResult<{ coinId: string; status: StatusRecibo }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((s) => {
+      let donoEncontrado: User | undefined
+      let moedaEncontrada: Coin | undefined
+
+      for (const u of Object.values(s.users)) {
+        const c = u.coins.find((m) => m.id === coinId)
+        if (c) {
+          donoEncontrado = u
+          moedaEncontrada = c
+          break
+        }
+      }
+
+      if (!moedaEncontrada || !donoEncontrado) {
+        return { ok: false, error: `Moeda ${coinId} não encontrada.` } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Extinto') {
+        return { ok: false, error: 'Não é possível desbloquear recibo já extinto.' } as const
+      }
+
+      moedaEncontrada.recibo.status = 'Ativo'
+
+      return {
+        ok: true,
+        data: { coinId, status: 'Ativo' as const },
+      } as const
+    })
+
+    return result
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao desbloquear recibo.',
     }
   }
 }

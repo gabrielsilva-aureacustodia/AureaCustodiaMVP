@@ -63,6 +63,28 @@
   line-height: 1.25;
 }
 
+.cert-stamp-bloqueado {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  border: 4px dashed #d97706;
+  color: #b45309;
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 21px;
+  letter-spacing: 0.12em;
+  padding: 12px 24px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  background: rgba(254, 243, 199, 0.94);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px #d97706 inset, 0 4px 14px rgba(217, 119, 6, 0.18);
+  text-align: center;
+  z-index: 10;
+  line-height: 1.25;
+}
+
 /* ---- Card / Seletor de Modalidade de Retirada ---------------------------- */
 .modalidade-card {
   border: 1.5px solid var(--line-soft);

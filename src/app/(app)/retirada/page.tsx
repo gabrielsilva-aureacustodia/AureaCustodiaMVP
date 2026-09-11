@@ -144,14 +144,35 @@ export default function RetiradasPage(): ReactNode {
                   {r.endereco.cidade}/{r.endereco.uf} - CEP {r.endereco.cep}
                 </div>
 
-                <div style={{ marginTop: '12px', display: 'flex', gap: '10px' }}>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <Link
                     href={`/recibos/${r.coinId}`}
                     className="btn btn-outline"
-                    style={{ padding: '6px 12px', fontSize: '12px' }}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      minHeight: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                    }}
                   >
                     Ver recibo extinto
                   </Link>
+                  <a
+                    href={`/api/retiradas/etiqueta/${r.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      minHeight: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    🏷️ Imprimir etiqueta Correios
+                  </a>
                 </div>
               </div>
             ))}

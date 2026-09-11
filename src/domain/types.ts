@@ -48,8 +48,13 @@ export type StatusFisico = 'Recebido' | 'Armazenado'
 /** Situação do registro digital. No MVP toda moeda validada nasce 'Validado'. */
 export type StatusDigital = 'Validado'
 
-/** Situação do recibo. 'Extinto' fica reservado para a retirada física (bloco 4.3). */
-export type StatusRecibo = 'Ativo' | 'Extinto'
+/**
+ * Situação do recibo.
+ * 'Ativo' = em custódia e negociável;
+ * 'Extinto' = moeda retirada fisicamente (bloco 10), recibo invalidado de forma irreversível;
+ * 'Bloqueado' = bloqueado por inadimplência financeira ou restrição administrativa (bloco C-5).
+ */
+export type StatusRecibo = 'Ativo' | 'Extinto' | 'Bloqueado'
 
 /**
  * Recibo de custódia. Relação 1:1 com a moeda — desnormalização consciente

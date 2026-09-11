@@ -119,6 +119,7 @@ export async function publishOffer(
         const validas = pedidos
           .map((id) => u.coins.find((c) => c.id === id))
           .filter((c): c is NonNullable<typeof c> => !!c)
+          .filter((c) => c.recibo.status === 'Ativo')
           .filter((c) => !s.sellOffers.some((o) => o.coinId === c.id))
 
         if (!validas.length) {

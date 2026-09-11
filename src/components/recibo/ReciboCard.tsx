@@ -39,12 +39,22 @@ export interface ReciboCardProps {
 export function ReciboCard({ coin, valor, listed }: ReciboCardProps): ReactNode {
   const router = useRouter()
 
-  // Precedência do original (linha 1862): "Retirado" ganha de "À venda", que
-  // ganha de "Em custódia". Um recibo extinto não é mais negociável, então nem
-  // se pergunta se está anunciado.
-  const label = coin.recibo.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
+  // Precedência: "Retirado" > "Bloqueado" > "À venda" > "Em custódia".
+  const label =
+    coin.recibo.status === 'Extinto'
+      ? 'Retirado'
+      : coin.recibo.status === 'Bloqueado'
+      ? 'Bloqueado'
+      : listed
+      ? 'À venda'
+      : 'Em custódia'
   const emCustodia = label === 'Em custódia'
-  const badgeCls = emCustodia ? 'badge-green' : 'badge-gold'
+  const badgeCls =
+    label === 'Bloqueado'
+      ? 'badge-red'
+      : emCustodia
+      ? 'badge-green'
+      : 'badge-gold'
 
   return (
     <div className="recibo-card">

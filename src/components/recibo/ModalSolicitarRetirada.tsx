@@ -126,7 +126,14 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       <div
         className={`modalidade-card ${modalidade === 'comum' ? 'selecionada' : ''}`}
         onClick={() => setModalidade('comum')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setModalidade('comum')
+          }
+        }}
         role="button"
+        aria-pressed={modalidade === 'comum'}
         tabIndex={0}
       >
         <div className="modalidade-header">
@@ -141,7 +148,14 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       <div
         className={`modalidade-card ${modalidade === 'segura' ? 'selecionada' : ''}`}
         onClick={() => setModalidade('segura')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setModalidade('segura')
+          }
+        }}
         role="button"
+        aria-pressed={modalidade === 'segura'}
         tabIndex={0}
       >
         <div className="modalidade-header">
@@ -268,7 +282,23 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       <div
         className={`confirm-box ${cienteEquiparacao ? 'on' : ''}`}
         onClick={() => setCienteEquiparacao(!cienteEquiparacao)}
-        style={{ marginTop: '16px', background: 'var(--gold-wash)', padding: '12px', borderRadius: '8px' }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setCienteEquiparacao(!cienteEquiparacao)
+          }
+        }}
+        role="checkbox"
+        aria-checked={cienteEquiparacao}
+        tabIndex={0}
+        style={{
+          marginTop: '16px',
+          background: 'var(--gold-wash)',
+          padding: '12px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          minHeight: '44px',
+        }}
       >
         <div className="cb">{cienteEquiparacao ? '✓' : ''}</div>
         <div style={{ fontSize: '12.5px', color: 'var(--text-strong)' }}>
@@ -320,7 +350,13 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       ) : null}
 
       <div className="m-actions" style={{ marginTop: '18px' }}>
-        <button className="btn btn-outline" type="button" onClick={close} disabled={submetendo}>
+        <button
+          className="btn btn-outline"
+          type="button"
+          onClick={close}
+          disabled={submetendo}
+          style={{ minHeight: '44px' }}
+        >
           Cancelar
         </button>
         <button
@@ -328,6 +364,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           type="button"
           disabled={!saldoSuficiente || !cienteEquiparacao || submetendo}
           onClick={() => void confirmar()}
+          style={{ minHeight: '44px' }}
         >
           {submetendo ? 'Processando...' : 'Confirmar e extinguir recibo'}
         </button>

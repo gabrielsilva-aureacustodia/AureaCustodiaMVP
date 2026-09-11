@@ -234,6 +234,7 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   else if (tem('trade.inserir')) acao = 'negociacao'
   else if (tem('deposit.inserir')) acao = 'deposito'
   else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Extinto')) acao = 'retirada.solicitar'
+  else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Bloqueado')) acao = 'recibo.bloquear'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

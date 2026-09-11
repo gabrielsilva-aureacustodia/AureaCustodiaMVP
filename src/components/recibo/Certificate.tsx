@@ -66,6 +66,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   const coin = me.coins.find((c) => c.id === coinId)
 
   const extinto = coin?.recibo.status === 'Extinto'
+  const bloqueado = coin?.recibo.status === 'Bloqueado'
 
   useEffect(() => {
     if (extinto && coin) {
@@ -101,6 +102,8 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   const sellable = isNegociavel(coin.tipoMoeda)
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
+    : bloqueado
+    ? 'Bloqueado — restrição financeira'
     : 'Moeda física recebida e custodiada'
 
   // Mesma regra de valor da grade 1.4 (linha 1858): mediana de 24h para o ativo
@@ -147,6 +150,14 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               <br />
               <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
                 RETIRADA FÍSICA SOLICITADA
+              </span>
+            </div>
+          ) : bloqueado ? (
+            <div className="cert-stamp-bloqueado" aria-label="Recibo Bloqueado">
+              RECIBO BLOQUEADO
+              <br />
+              <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
+                RESTRIÇÃO ADMINISTRATIVA
               </span>
             </div>
           ) : null}
@@ -222,11 +233,15 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <button
               className="btn btn-outline"
               type="button"
-              style={{ width: '100%', marginBottom: '10px' }}
-              disabled={extinto || listed}
+              style={{ width: '100%', marginBottom: '10px', minHeight: '44px' }}
+              disabled={extinto || listed || bloqueado}
               onClick={() => modal.open(<ModalSolicitarRetirada coin={coin} />)}
             >
-              {extinto ? '✓ Retirada física solicitada' : 'Solicitar retirada'}
+              {extinto
+                ? '✓ Retirada física solicitada'
+                : bloqueado
+                ? 'Recibo bloqueado por pendência'
+                : 'Solicitar retirada'}
             </button>
             {/* No monolito este botão levava a global `preselectCoinId` para a
                 tela de venda; aqui a pré-seleção viaja na URL, que é o mesmo
@@ -234,8 +249,8 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <button
               className="btn btn-outline"
               type="button"
-              style={{ width: '100%', marginBottom: '10px' }}
-              disabled={!sellable || listed || extinto}
+              style={{ width: '100%', marginBottom: '10px', minHeight: '44px' }}
+              disabled={!sellable || listed || extinto || bloqueado}
               onClick={() => router.push(`/vender?moeda=${coin.id}`)}
             >
               Colocar à venda
@@ -243,7 +258,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <button
               className="btn btn-gold"
               type="button"
-              style={{ width: '100%' }}
+              style={{ width: '100%', minHeight: '44px' }}
               onClick={() => void baixarPdf()}
             >
               Baixar recibo PDF
@@ -257,6 +272,15 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                   <path d="M12 8v5M12 16.5v.5" />
                 </svg>
                 O recibo desta moeda foi extinto para retirada física da custódia.
+              </div>
+            ) : null}
+            {bloqueado ? (
+              <div className="note" style={{ marginTop: '10px', color: '#b45309' }}>
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3l9 16H3z" />
+                  <path d="M12 10v4M12 17v.5" />
+                </svg>
+                O recibo desta moeda está bloqueado por pendência administrativa ou inadimplência financeira.
               </div>
             ) : null}
             {!sellable ? (
