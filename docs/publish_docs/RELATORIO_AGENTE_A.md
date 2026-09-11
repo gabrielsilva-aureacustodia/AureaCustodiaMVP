@@ -7,6 +7,79 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 6 · O merge das três frentes · 11/09/2026
+
+**Branch:** `main`. **De** `f7a5e8c` **para** `ab3db39`.
+
+A auditoria completa está em
+[`RELATORIO_EXECUCAO_PUBLICACAO.md`](RELATORIO_EXECUCAO_PUBLICACAO.md). Esta seção registra
+só o que coube ao Agente A.
+
+## 1. O que entrou
+
+Os três merges, na ordem **B → C → A** do plano executivo, mais a varredura final de
+terminologia — que é a razão de a frente A entrar por último.
+
+Duas correções foram feitas **durante** o merge, porque sem elas ele ficaria silenciosamente
+quebrado:
+
+1. **A restrição de tipos do ledger.** As frentes B e C reescreveram a mesma regra do banco,
+   cada uma com a própria lista. A da C rodaria por último e apagaria `saque` e `taxa_saque`.
+   A migration foi reescrita com a união dos onze tipos e renumerada para rodar por último.
+2. **A numeração das migrations.** As duas frentes criaram uma `009` e uma `010`. As da C
+   viraram `011` e `012`.
+
+Seis conflitos de merge em C e um em A, todos resolvidos pela **união** dos dois lados —
+nenhuma funcionalidade foi substituída por outra.
+
+## 2. O que foi testado, e como
+
+```
+npm run typecheck   ✓
+npm run lint        ✓
+npm test            ✓  47 arquivos · 343 testes
+npm run build       ✓  25 páginas, sem warning novo
+```
+
+A soma fecha: **197** da base + **79** de B + **45** de C + **21** de A = 342, mais 1 pulado.
+Nenhum teste se perdeu na resolução dos conflitos.
+
+**A varredura de terminologia sobre o texto novo de B e C voltou limpa.** As ocorrências que
+restam são de quatro tipos legítimos: posicionamento negativo exigido pela seção 1.3,
+vocabulário de segurança, `token` técnico e a tela de comparações liberada em 10/09.
+
+**As telas, com o servidor no ar e o banco migrado**, entrando como
+`rogeriopena@testeaurea.com.br`: início, minha conta, extrato, retiradas físicas e academy.
+Console e log limpos. Confirmei na tela que a trava de saque segue o padrão pedido — botão
+visível e desabilitado, **com o motivo escrito ao lado** — e que o extrato não mostra mais
+nome de contraparte.
+
+**As doze migrations foram aplicadas no Supabase** e conferidas com `npm run db:check`. A
+restrição do ledger foi lida direto do banco depois: os onze tipos estão lá.
+
+## 3. O que ficou de manual
+
+- **CD-11 🔴** — a custódia informa um preço que não é o vigente. É o achado mais relevante
+  desta sessão e precisa de decisão dos sócios antes de qualquer linha de código.
+- **D-2 🟡** — o prazo da retirada continua aberto.
+- **A jornada completa** nunca foi percorrida com uma conta nova de verdade.
+- **`git push origin main`** — o merge está local. A `main` remota ainda é `f7a5e8c`.
+
+## 4. O que o próximo agente precisa saber
+
+**A próxima migration é a 013.**
+
+**Antes de escolher número de migration ou reescrever restrição de banco, olhe as branches
+vivas.** As duas colisões desta rodada vieram de cada frente olhar só para a `main`.
+
+**Restrição de lista se reescreve declarando a lista inteira.** Declarar só o valor da própria
+frente apaga o das outras, e o Git não acusa.
+
+**`src/domain/types.ts` precisa de dono único** (CD-12). Foi o único arquivo a conflitar nas
+três frentes, e as três escreveram tipos umas das outras ali.
+
+---
+
 # Sessão 5 · A-4 — Tutorial do Domínio Oficial · 10/09/2026
 
 **Branch:** `feat/juridico-textos-dominio`

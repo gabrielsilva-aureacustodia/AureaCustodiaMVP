@@ -15,37 +15,43 @@ Item resolvido **não some**: é marcado `✅ FEITO em dd/mm`, para o próximo a
 
 ## Abertas
 
-### D-6 · Endereço real de recebimento dos Correios 🔴
+### A-4 · O preço da custódia informado ao cliente está errado 🔴
 
 | | |
 |---|---|
-| **O que falta** | O endereço físico para onde o cliente manda a moeda |
-| **Quem pode fazer** | **Gabriel** — é decisão da empresa, ninguém deduz |
-| **O que está bloqueado** | O bloco 11 do plano executivo, e toda etiqueta de postagem real |
-| **Como conferir que foi feito** | `src/lib/shipping/correios.ts:29` deixa de conter "Avenida Paulista" |
+| **O que falta** | Decidir se o `custodyCharges` legado sai e as faturas mensais assumem, e se o texto passa a dizer "mensal" |
+| **Quem pode fazer** | **Gabriel e os sócios** — é preço dito ao cliente, e `src/domain/fees.ts` é superfície protegida |
+| **O que está bloqueado** | A publicação. A plataforma informa hoje um preço de custódia que não é o vigente |
+| **Como conferir que foi feito** | `/conta/extrato` mostra período e valor que batem com a tabela do plano executivo, e a palavra "faixa" não aparece em tela nenhuma |
 
-O endereço que está no código hoje é **fictício desde que o módulo nasceu**. Enquanto ele
-estiver lá, **nenhuma etiqueta pode ser gerada de verdade — nem para teste**: a moeda do
-cliente sairia para uma Avenida Paulista que não é da empresa.
+Descoberto na auditoria do merge, em 11/09/2026. A decisão **D-3** trocou a custódia de faixas
+anuais por **R$ 2,00 por moeda por mês**. A frente B construiu o modelo novo, mas o antigo não
+saiu — e é o antigo que o cliente lê:
 
-Precisa vir **completo e literal**, com todos os campos, porque endereço pela metade vira
-etiqueta pela metade:
+> `Custódia anual de 15 moeda(s) — Pago · R$ 25,00`
 
-```
-Logradouro:
-Número:
-Complemento:
-Bairro:
-Cidade:
-UF:
-CEP:
-Telefone:
-Nome do responsável pelo recebimento:
-```
+Três erros numa linha: o período é mensal, não anual; o valor mensal de 15 moedas seria
+R$ 30,00; e R$ 25,00 vem da tabela de faixas que foi aposentada. Em `/envios` aparece ainda
+"nova **faixa**", palavra do modelo que deixou de existir.
 
----
+Detalhe completo em `docs/diario/CRITICAL_DEBUGS.md`, item **CD-11**.
 
 ## Resolvidas
+
+### D-6 · Endereço real de recebimento dos Correios ✅ FEITO em 10/09
+
+Resolvida pelo **Agente C**, não por mim: o Gabriel passou o endereço direto para a frente que
+ia usá-lo. O valor está em `src/lib/shipping/correios.ts` e vem de um Termo de Assinatura de
+Caixa Postal dos Correios:
+
+```
+AUREA CUSTODIA LTDA — Caixa Postal 7990
+AGF Bandeirantes — Av. dos Bandeirantes
+Mangabeiras · Belo Horizonte · MG · CEP 30315-970
+```
+
+Com isso a etiqueta de postagem deixa de ser fictícia e o bloco 11 do plano executivo
+desbloqueia.
 
 ### A-3 · Aceite por blocos dos Termos de Uso e Privacidade ✅ FEITO em 10/09
 

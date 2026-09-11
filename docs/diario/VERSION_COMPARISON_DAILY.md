@@ -1126,3 +1126,85 @@ para lá, nunca copiado, e sai quando o plano vira realidade.
 
 *Fim da entrada 013. A próxima entrada será acrescentada abaixo desta linha, sem alterar
 nada acima.*
+
+---
+
+# Entrada 014 — 11/09/2026 · As três frentes viram uma, e o merge revela o que o paralelo escondia
+
+```
+Leitura:        local, worktrees das três frentes + main
+Commit:         ab3db39 "Merge da frente A: termos por blocos, Academy, posicionamento e extrato anonimo"
+Commit anterior lido: f7a5e8c "Traz a bancada, os planos e a Fase 0 para a main"
+Cobertura:      19 commits · 108 arquivos · +11.881 / −428 linhas · 51 arquivos novos
+Ordem de merge: B -> C -> A, conforme a seção 7.2 do plano executivo
+Testes:         197 -> 343
+```
+
+## O que entrou
+
+**Frente B — cadastro e financeiro.** Cadastro formal progressivo (CPF, endereço, dados
+bancários), compra direta pelo gateway, saque de recursos com taxa fixa e prazo D+3, e
+faturamento mensal da custódia com inadimplência e DRE consolidada. Migrations 007 a 010.
+
+**Frente C — retirada e logística.** Máquina de estados da saída física da moeda, telas do
+cliente, Correios de saída com etiqueta de postagem, carimbo no PDF, extinção imediata do
+recibo no ato do pedido, e bloqueio de recibo por débito. Migrations 011 e 012 (nasceram como
+009 e 010 — ver adiante). O **endereço real dos Correios entrou aqui**: Caixa Postal 7990,
+AGF Bandeirantes, Belo Horizonte/MG, fechando a decisão D-6.
+
+**Frente A — jurídico e publicação.** Aceite dos termos por blocos, rota `/academy` com o
+material educativo versionado, posicionamento institucional e história de origem na landing,
+tutorial de apontamento do domínio com plano de rollback, e a anonimização do extrato pessoal
+— o item A-2 que a Fase 0 tinha deixado aberto.
+
+## Análise crítica do que entrou
+
+**O merge encontrou um defeito que nenhuma das três frentes podia ver, e ele era grave.**
+
+As frentes B e C precisaram, cada uma, alargar a mesma restrição do banco que lista os tipos
+de lançamento aceitos no livro-razão. Cada uma escreveu um `DROP` seguido de um `ADD` com a
+sua própria lista. B antecipou o tipo da C; C não antecipou os dois da B. Como o aplicador
+roda os arquivos em ordem alfabética, a migration da C rodaria por último e **apagaria os
+tipos `saque` e `taxa_saque`** — o banco passaria a recusar todo lançamento de saque, sem
+erro de compilação, sem teste vermelho e sem sinal na tela, até o primeiro cliente real
+clicar em "Sacar".
+
+O Git não acusa isso: os arquivos têm nomes diferentes, o merge junta os dois em silêncio, e
+cada frente passa nos próprios testes porque cada uma testa o próprio banco isolado. **É um
+defeito que só existe na interseção, e só aparece em produção.** A correção foi reescrever a
+migration da C com a união completa dos onze tipos e renumerá-la para ser a última a tocar a
+restrição, o que foi conferido no banco depois de aplicada.
+
+**A mesma raiz produziu a colisão de numeração.** As duas frentes olharam a `main`, viram a
+última migration `006` e seguiram a partir dali — as duas criaram uma `009` e uma `010`.
+Nenhuma olhou as branches vivas. As da C viraram 011 e 012.
+
+**O território de arquivos que o plano prometia não se sustentou em `src/domain/types.ts`.**
+A frente B escreveu os tipos da retirada física, que são da C. A frente C escreveu os tipos
+de aceite legal, que são da A — idênticos até nos comentários. Quando a A finalmente entrou,
+o lado dela do conflito estava vazio: o trabalho dela já tinha chegado por outro caminho.
+Desta vez não deu prejuízo porque as definições batiam, mas foi sorte: duas frentes
+escrevendo o mesmo tipo com campos diferentes fariam o merge escolher um e o sistema
+compilar com o modelo errado.
+
+**A auditoria também encontrou uma inconsistência de preço que não é de merge, e sim de
+transição incompleta.** A decisão D-3 trocou a custódia de faixas anuais por R$ 2,00 por
+moeda por mês. A frente B construiu o modelo novo, mas o antigo não saiu: o `custodyCharges`
+do seed continua alimentando três textos visíveis que dizem "Custódia **anual**" e, num
+deles, exibem um valor da tabela de faixas que foi aposentada. O rótulo diz "anual", a conta
+por trás é mensal, e o número na tela é de um terceiro modelo que já não existe. Não foi
+corrigido nesta sessão porque é preço dito ao cliente e a decisão é dos sócios.
+
+**O que funcionou bem.** A ordem B → C → A provou o próprio valor: a varredura de
+terminologia da frente A passou sobre o texto novo de B e C e voltou limpa, com as únicas
+ocorrências sendo o posicionamento negativo que o jurídico exige, vocabulário de segurança e
+a tela de comparações liberada. A trava de saque no padrão PayPal — botão visível com o
+motivo escrito ao lado — está funcionando na tela. E a contagem de testes fecha por soma
+exata (197 + 79 + 45 + 21), o que mostra que nenhuma resolução de conflito engoliu teste.
+
+## Lição registrada
+
+Trabalho paralelo em três frentes exige, antes de escolher número de migration ou reescrever
+restrição de banco, **olhar as branches vivas e não só a `main`**. E restrição de lista se
+reescreve declarando a lista inteira, nunca só o valor da própria frente. Os dois estão
+anotados em `src/server/db/migrations/README.md`.
