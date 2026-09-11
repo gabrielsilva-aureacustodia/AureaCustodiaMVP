@@ -268,5 +268,6 @@ export function seedState(): AppState {
     // seed continua com o hash simulado de genHash(); so o que passa pela
     // estacao ganha hash real.
     analises: [],
+    saques: [],
   }
 }

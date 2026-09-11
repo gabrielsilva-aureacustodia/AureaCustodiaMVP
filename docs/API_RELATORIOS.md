@@ -59,6 +59,7 @@ GET /api/relatorios/tudo.xlsx           → todos, uma aba cada
 | `lancamentos-manuais` | Despesas/receitas lançadas à mão, com situação (vigente, estorno, estornado) | — |
 | `parametros` | As alíquotas (nulas até o contador preencher) | — |
 | `exportacoes` | Quem exportou o quê, quando, por onde | — |
+| `saques` | Todas as solicitações de saque com status, dados bancários, taxa e data-limite | com `recortar=1` |
 
 ### Parâmetros de consulta
 

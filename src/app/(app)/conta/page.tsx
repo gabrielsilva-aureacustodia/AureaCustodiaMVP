@@ -32,7 +32,7 @@ import {
   ModalDadosPessoais,
   ModalDeposito,
   ModalNotificacoes,
-  ModalSaqueInfo,
+  ModalSaque,
 } from '@/components/account/AccountModals'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
@@ -55,6 +55,9 @@ export default function ContaPage(): ReactNode {
 
   const aVenda = state.sellOffers.filter((o) => o.seller === session).length
   const aCompra = state.buyOrders.filter((b) => b.buyer === session).reduce((s, b) => s + b.qty, 0)
+  const saquesPendentes = (state.saques ?? []).filter(
+    (s) => s.userEmail === session && (s.status === 'solicitado' || s.status === 'em_processamento'),
+  )
 
   /**
    * Mediana de mercado de cada tipo negociável, calculada UMA vez por tipo.
@@ -136,16 +139,21 @@ export default function ContaPage(): ReactNode {
               <button
                 className="btn btn-outline"
                 type="button"
-                disabled={!temDadosBancarios(me)}
                 style={{
                   padding: '6px 14px',
                   fontSize: '12.5px',
                   width: 'auto',
-                  opacity: temDadosBancarios(me) ? 1 : 0.45,
                 }}
                 onClick={() => {
                   if (temDadosBancarios(me)) {
-                    open(<ModalSaqueInfo />)
+                    open(<ModalSaque />)
+                  } else {
+                    open(
+                      <ModalCadastro
+                        motivo="saque"
+                        onSuccess={() => open(<ModalSaque />)}
+                      />,
+                    )
                   }
                 }}
               >
@@ -166,10 +174,40 @@ export default function ContaPage(): ReactNode {
                 <span
                   className="back-link"
                   style={{ display: 'inline', fontSize: '11.5px', padding: 0 }}
-                  onClick={() => open(<ModalCadastro motivo="saque" />)}
+                  onClick={() =>
+                    open(
+                      <ModalCadastro
+                        motivo="saque"
+                        onSuccess={() => open(<ModalSaque />)}
+                      />,
+                    )
+                  }
                 >
                   Cadastrar dados
                 </span>
+              </div>
+            )}
+
+            {saquesPendentes.length > 0 && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '8px 10px',
+                  background: 'var(--input-bg)',
+                  borderRadius: 6,
+                  border: '1px solid var(--line-soft)',
+                  fontSize: '11.5px',
+                }}
+              >
+                <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
+                  Saque em processamento (D+3)
+                </div>
+                {saquesPendentes.map((sq) => (
+                  <div key={sq.id} style={{ marginTop: 2, color: 'var(--text-muted)' }}>
+                    {brl(sq.valorLiquido)} líquido · Previsão até{' '}
+                    {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ({sq.status})
+                  </div>
+                ))}
               </div>
             )}
           </div>

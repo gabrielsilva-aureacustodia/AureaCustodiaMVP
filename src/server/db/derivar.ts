@@ -31,6 +31,8 @@ import {
   lancamentoDeCustodia,
   lancamentoDeDeposito,
   lancamentoDeSaldoInicial,
+  lancamentoDeSaque,
+  lancamentoDeTaxaSaque,
   lancamentosDeTrade,
   type LancamentoPendente,
   type LedgerEntry,
@@ -80,6 +82,13 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
   const depositsNovos = depois.deposits.slice(antes.deposits.length)
   depositsNovos.forEach((d, i) => {
     pendentes.push(lancamentoDeDeposito(d, `DEP-${antes.deposits.length + i + 1}`))
+  })
+
+  /* saques novos */
+  const saquesNovos = (depois.saques ?? []).slice((antes.saques ?? []).length)
+  saquesNovos.forEach((s) => {
+    pendentes.push(lancamentoDeSaque(s.userEmail, s.valorLiquido, s.criadoEm, s.id, s.comprovanteRef ?? null))
+    pendentes.push(lancamentoDeTaxaSaque(s.userEmail, s.taxa, s.criadoEm, s.id))
   })
 
   /* cobranças de custódia gravadas nesta mutação (sinal zero) */
@@ -202,6 +211,15 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
       case 'deposit.inserir':
         anotar(op, String(op.deposito.valor), op.deposito.userEmail)
         break
+      case 'analise.inserir':
+        anotar(op, op.analise.protocolo, op.analise.operador)
+        break
+      case 'saque.inserir':
+        anotar(op, op.saque.id, op.saque.userEmail)
+        break
+      case 'saque.atualizar':
+        anotar(op, op.saque.id, op.saque.userEmail)
+        break
       case 'custodyCharge.gravar':
       case 'custodyCharge.remover':
         anotar(op, op.email, op.email)
@@ -217,6 +235,8 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   if (semeadura) acao = 'semeadura'
   else if (tem('trade.inserir')) acao = 'negociacao'
   else if (tem('deposit.inserir')) acao = 'deposito'
+  else if (tem('saque.inserir')) acao = 'saque.solicitar'
+  else if (tem('saque.atualizar')) acao = 'saque.atualizar'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

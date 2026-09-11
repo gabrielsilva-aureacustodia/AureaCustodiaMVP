@@ -52,3 +52,18 @@ O Agente B gerencia o faturamento e a marcação de inadimplência; por contrato
 
 A migration adiciona apenas as colunas `tipo_operacao` (com default `'deposito'`) e `metadata` (jsonb anulável) na tabela `aurea.payment_intents`. Totalmente inócua e retrocompatível com as linhas existentes.
 
+---
+
+### B-4 · Aplicar a migration 009 no Supabase de produção 🟡
+
+| | |
+|---|---|
+| **O que falta** | Executar a migration `009_saques.sql` no banco Supabase |
+| **Quem pode fazer** | **Gabriel** via `npm run db:migrate` com a senha do banco, ou colando o SQL no editor do Supabase |
+| **O que está bloqueado** | Persistência da tabela de saques (`aurea.saques`) e novos tipos de lançamentos contábeis (`saque`, `taxa_saque`, `taxa_retirada`) em produção com Postgres conectado |
+| **Como conferir que foi feito** | `npm run db:check` reporta `009_saques` aplicada e tabela `aurea.saques` presente |
+
+A migration cria a tabela `aurea.saques` com restrições e índices, e atualiza a constraint de tipos no livro contábil (`aurea.ledger_entries`).
+Operacionalmente, os saques entram no status `solicitado` com prazo D+3 úteis e são liquidados manualmente pelo sócio via Pix (RA-30), conforme detalhado em [`docs/tutoriais/TUTORIAL_GATEWAY_SAQUE.md`](../tutoriais/TUTORIAL_GATEWAY_SAQUE.md).
+
+

@@ -36,3 +36,9 @@ export function custodyFeeForCount(n: number): Cents {
 export function tradeFee(price: Cents): Cents {
   return Math.round(price * FEE_PCT) + FEE_FIXED
 }
+
+/**
+ * Tarifa fixa de saque de recursos: R$ 5,00 debitados do valor sacado (Sessão B-4).
+ * Cobre os custos operacionais e bancários de liquidação Pix/TED para o cliente.
+ */
+export const TAXA_SAQUE_FIXA_CENTS: Cents = 500

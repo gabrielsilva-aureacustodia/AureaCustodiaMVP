@@ -6,6 +6,73 @@ Repositório: `github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP`
 
 ---
 
+## Sessão B-4 — Saque de recursos (`migration 009`), liquidação manual (RA-30) e relatórios
+**Data:** 11/09/2026  
+**Status:** Concluída com sucesso
+
+### 1. O que entrou
+- **Taxa e prazo de saque no domínio:**
+  - `src/domain/fees.ts`: exportada a constante oficial `TAXA_SAQUE_FIXA_CENTS = 500` (R$ 5,00).
+  - `src/domain/dates.ts`: adicionada a constante `PRAZO_SAQUE_DIAS = 3` e a função pura `calcularDataLimiteSaque` (com retorno de timestamp e data formatada DD/MM/AAAA).
+  - `src/domain/types.ts`: tipo `StatusSaque` ('solicitado' | 'em_processamento' | 'pago' | 'falhou'), interface `Saque` e campo `saques?: Saque[]` no `AppState`.
+  - `src/domain/ledger.ts`: expansão de `LedgerTipo` com `'saque' | 'taxa_saque' | 'taxa_retirada'`, e geradores puros `lancamentoDeSaque` (-valorLiquido) e `lancamentoDeTaxaSaque` (-taxa).
+  - `src/domain/statement.ts`: adicionado `'Saque'` a `StatementKind`, campo `sacado` em `StatementTotals`, mapeamento dos saques no extrato do usuário (`userStatement`) e acumulação nos totais.
+- **Banco de dados e persistência (Migration 009):**
+  - `src/server/db/migrations/009_saques.sql`: criação da tabela `aurea.saques` com restrições (`valor_total > taxa`, `taxa = 500`, `valor_liquido = valor_total - taxa`), índices por usuário e status, e atualização do `CHECK` de tipos em `aurea.ledger_entries`.
+  - `src/server/db/repositories/saques.ts`: repositório completo com `carregarSaques`, `inserirSaque`, `atualizarSaque` e `buscarSaquePorId`.
+  - `src/server/db/diff.ts`: normalização de saques, operações `saque.inserir` e `saque.atualizar`, e inclusão no planejamento de diff.
+  - `src/server/db/repositories/state.ts`: carregamento de saques via `carregarSaques` em `carregarEstado` e execução das operações de saques em `executarOperacao`.
+  - `src/server/db/derivar.ts`: geração atômica dos lançamentos contábeis `saque` (-líquido) e `taxa_saque` (-R$ 5,00) a partir de saques novos, e registro de auditoria.
+  - **Invariante contábil comprovada:** Débito de saldo = `-(valorLiquido + taxa)`. A diferença fecha em 0 centavos, com exatamente zero lançamentos de `ajuste` espúrio.
+- **Server Actions de Saque em `src/server/actions/account.ts`:**
+  - `solicitarSaque(valorCents)`: valida sessão, dados bancários cadastrados (`temDadosBancarios(u)`), valor mínimo (R$ 5,01), saldo suficiente, debita saldo imediatamente e registra saque no estado.
+  - `listarMeusSaques()`: lista histórico de saques do usuário logado ordenados por data.
+  - `confirmarLiquidacaoSaque(saqueId, comprovanteRef)`: confirmação operacional da transferência Pix pelo sócio (RA-30).
+  - `rejeitarSaque(saqueId, motivo)`: cancelamento/recusa com estorno integral imediato do saldo para a conta do usuário e auditoria.
+- **Interface e Experiência do Cliente:**
+  - `src/components/account/AccountModals.tsx`:
+    - `ModalSaque`: modal completo com valor dinâmico, exibição do saldo disponível, cálculo instantâneo da taxa fixa (R$ 5,00) e do valor líquido, destino bancário com atalho para edição, data de liquidação prevista D+3 e validações amigáveis de saldo.
+    - Se o usuário não tiver dados bancários cadastrados, apresenta aviso orientador com botão direto para cadastrar.
+    - Mantido `ModalSaqueInfo` como alias para retrocompatibilidade.
+  - `src/app/(app)/conta/page.tsx`:
+    - Botão "Sacar" conectado à `ModalSaque` e ao fluxo guiado de cadastro bancário.
+    - Painel visual de saques em andamento com valor líquido, previsão D+3 e status atual.
+  - `src/app/(app)/conta/extrato/page.tsx`:
+    - Filtro `'Saques'` adicionado aos filtros da tela.
+  - `src/lib/export/statement-export.ts`:
+    - Adicionado indicador `'Total sacado'` na aba Resumo do extrato XLSX.
+- **Relatórios Operacionais e Fila de Liquidação (RA-30):**
+  - `src/server/relatorios/dados.ts`: implementado relatório `'saques'` (`Solicitações de saque`) com todas as colunas exigidas e valores em reais.
+  - `docs/API_RELATORIOS.md`: documentação atualizada com a nova rota `/api/relatorios/saques`.
+  - `docs/tutoriais/TUTORIAL_GATEWAY_SAQUE.md`: tutorial detalhado do procedimento operacional do sócio para conferência de fila, realização de Pix de mesma titularidade estrita e confirmação/estorno na plataforma.
+
+### 2. O que foi testado e como
+- **Testes das Server Actions (`src/server/actions/saque.test.ts`):**
+  - 7 testes cobrindo rejeição sem sessão, validação de valor (inteiro, > 500, positivo), trava por ausência de dados bancários, trava de saldo insuficiente, débito de saldo e gravação de prazo D+3, confirmação de liquidação com comprovante e rejeição com estorno integral de saldo.
+- **Testes de Contabilidade e Invariante do Ledger (`src/server/db/derivar.test.ts`):**
+  - Comprova a geração atômica dos lançamentos `saque` e `taxa_saque` e garante 0 centavos de ajuste.
+- **Testes de Diff e Persistência em Banco Real (`src/server/db/diff.test.ts` e `src/server/db/db.test.ts`):**
+  - Testes do diff para `saque.inserir` e `saque.atualizar`.
+  - Teste de ciclo de vida completo no PGlite (Postgres WebAssembly): criação, aplicação da migration 009 com RLS, inserção, alteração de status e recarga idêntica.
+- **Testes de Relatórios (`src/server/relatorios/saques.test.ts`):**
+  - Validação da estrutura de colunas, conversão de centavos para reais e formatação de dados bancários.
+- **Verificação completa de integridade dos 4 Verdes:**
+  - `npm run typecheck`: ✅ verde (0 erros)
+  - `npm run lint`: ✅ verde (0 erros, 0 warnings)
+  - `npm test`: ✅ 37 suítes, 251 testes passando
+  - `npm run build`: ✅ 23 páginas estáticas e todas as rotas compiladas com sucesso
+
+### 3. O que ficou de manual
+- Registrar aplicação da migration `009_saques.sql` no Supabase antes do cutover em produção (`PENDENCIAS_MANUAIS_AGENTE_B.md`).
+- Operação da fila manual de liquidação Pix em D+3 pelo sócio (RA-30), orientada por `docs/tutoriais/TUTORIAL_GATEWAY_SAQUE.md`.
+
+### 4. O que o próximo agente precisa saber
+- O fluxo de saque de recursos está 100% ativo, testado e auditado contabilmente.
+- O cliente consegue tanto depositar e comprar quanto sacar seu saldo disponível a qualquer momento com prazo D+3.
+- Na próxima sessão (B-5), implementaremos o Faturamento mensal de custódia (R$ 10,00 ou 0,1%), cobrança por cartão/Pix, régua D+30/D+60 e inadimplência.
+
+---
+
 ## Sessão B-3 — Compra direta pelo gateway (`migration 008`)
 **Data:** 11/09/2026  
 **Status:** Concluída com sucesso

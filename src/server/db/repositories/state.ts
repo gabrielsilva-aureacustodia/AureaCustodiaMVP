@@ -45,6 +45,7 @@ import {
 import { atualizarSeq, carregarSeq } from './seq'
 import { carregarTrades, inserirTrade } from './trades'
 import { atualizarUser, carregarUsers, inserirUser, removerUser } from './users'
+import { atualizarSaque, carregarSaques, inserirSaque } from './saques'
 
 export interface OpcoesCarregar {
   /**
@@ -64,7 +65,7 @@ export interface OpcoesCarregar {
 export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}): Promise<AppState> {
   const seq = await carregarSeq(tx, { travar: opcoes.travar === true })
 
-  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, cobrancas, analises] =
+  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, cobrancas, analises, saques] =
     await Promise.all([
       carregarUsers(tx),
       carregarCoins(tx),
@@ -75,6 +76,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
       carregarDeposits(tx),
       carregarCustodyCharges(tx),
       carregarAnalises(tx),
+      carregarSaques(tx),
     ])
 
   const users: Record<UserEmail, User> = {}
@@ -101,7 +103,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
   const custodyCharges: AppState['custodyCharges'] = {}
   for (const { email, cobranca } of cobrancas) custodyCharges[email] = cobranca
 
-  return { users, sellOffers, buyOrders, trades, envios, seq, custodyCharges, deposits, analises }
+  return { users, sellOffers, buyOrders, trades, envios, seq, custodyCharges, deposits, analises, saques }
 }
 
 /** Banco recém-migrado: nenhuma conta. É o gatilho da semeadura, como o `null` do blob era. */
@@ -164,6 +166,10 @@ export async function executarOperacao(tx: Consulta, op: Operacao): Promise<void
       return inserirDeposit(tx, op.deposito)
     case 'analise.inserir':
       return inserirAnalise(tx, op.posicao, op.analise)
+    case 'saque.inserir':
+      return inserirSaque(tx, op.saque)
+    case 'saque.atualizar':
+      return atualizarSaque(tx, op.saque)
     case 'custodyCharge.gravar':
       return gravarCustodyCharge(tx, op.email, op.cobranca)
     case 'custodyCharge.remover':

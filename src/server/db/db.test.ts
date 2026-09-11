@@ -137,6 +137,7 @@ function suite(alvo: Alvo): void {
           `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
+                    ${S}.saques,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
@@ -182,6 +183,8 @@ function suite(alvo: Alvo): void {
         'rastreios',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
+        // Migration 009 — saques de recursos (Sessão B-4).
+        'saques',
         'schema_migrations',
         'sell_offers',
         'seq',
@@ -514,6 +517,58 @@ function suite(alvo: Alvo): void {
         completadoEm: 1_700_000_000_000,
         confirmadoEm: 1_700_000_000_000,
       })
+    })
+
+    it('saques: persiste solicitação, atualiza para pago e recarrega do banco fielmente', async () => {
+      await lerEstado(executar)
+      const email = 'gabrielsilva@testeaurea.com.br'
+
+      await mutarEstado(executar, (s) => {
+        s.saques = [
+          {
+            id: 'SAQ-PG-001',
+            userEmail: email,
+            valorTotal: 10_000,
+            taxa: 500,
+            valorLiquido: 9_500,
+            dadosBancarios: {
+              chavePix: '52998224725',
+              tipoChavePix: 'cpf',
+            },
+            status: 'solicitado',
+            criadoEm: 1_700_000_000_000,
+            previsaoPagamentoEm: 1_700_259_200_000,
+            atualizadoEm: 1_700_000_000_000,
+          },
+        ]
+      })
+
+      let lido = await lerEstado(executar)
+      expect(lido.saques).toHaveLength(1)
+      expect(lido.saques?.[0]).toMatchObject({
+        id: 'SAQ-PG-001',
+        userEmail: email,
+        valorTotal: 10_000,
+        taxa: 500,
+        valorLiquido: 9_500,
+        status: 'solicitado',
+      })
+
+      // Atualiza status para pago
+      await mutarEstado(executar, (s) => {
+        const sq = s.saques?.find((item) => item.id === 'SAQ-PG-001')
+        if (sq) {
+          sq.status = 'pago'
+          sq.pagoEm = 1_700_100_000_000
+          sq.comprovanteRef = 'PIX-123456'
+          sq.atualizadoEm = 1_700_100_000_000
+        }
+      })
+
+      lido = await lerEstado(executar)
+      expect(lido.saques?.[0].status).toBe('pago')
+      expect(lido.saques?.[0].comprovanteRef).toBe('PIX-123456')
+      expect(lido.saques?.[0].pagoEm).toBe(1_700_100_000_000)
     })
 
     it('apagar histórico é erro, e a transação inteira volta atrás', async () => {

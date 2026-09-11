@@ -40,6 +40,7 @@ import type {
   CustodyCharge,
   Deposit,
   Envio,
+  Saque,
   SellOffer,
   Seq,
   Trade,
@@ -244,6 +245,31 @@ export function normalizarCustodyCharge(c: CustodyCharge): CustodyCharge {
   }
 }
 
+export function normalizarSaque(s: Saque): Saque {
+  return {
+    id: s.id,
+    userEmail: s.userEmail,
+    valorTotal: s.valorTotal,
+    taxa: s.taxa,
+    valorLiquido: s.valorLiquido,
+    dadosBancarios: {
+      chavePix: s.dadosBancarios.chavePix ?? undefined,
+      tipoChavePix: s.dadosBancarios.tipoChavePix ?? undefined,
+      banco: s.dadosBancarios.banco ?? undefined,
+      agencia: s.dadosBancarios.agencia ?? undefined,
+      conta: s.dadosBancarios.conta ?? undefined,
+      tipoConta: s.dadosBancarios.tipoConta ?? undefined,
+    },
+    status: s.status,
+    motivoFalha: s.motivoFalha ?? null,
+    criadoEm: s.criadoEm,
+    previsaoPagamentoEm: s.previsaoPagamentoEm,
+    pagoEm: s.pagoEm ?? null,
+    comprovanteRef: s.comprovanteRef ?? null,
+    atualizadoEm: s.atualizadoEm,
+  }
+}
+
 /**
  * `analise` só entra quando existe. Estado gravado antes da frente E não tem o
  * contador, e materializá-lo como `0` faria o diff enxergar mudança em toda
@@ -283,6 +309,8 @@ export type Operacao =
   | { tipo: 'envio.remover'; protocolo: string }
   | { tipo: 'deposit.inserir'; deposito: Deposit }
   | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
+  | { tipo: 'saque.inserir'; saque: Saque }
+  | { tipo: 'saque.atualizar'; saque: Saque }
   | { tipo: 'custodyCharge.gravar'; email: UserEmail; cobranca: CustodyCharge }
   | { tipo: 'custodyCharge.remover'; email: UserEmail }
   | { tipo: 'seq.atualizar'; seq: Seq }
@@ -393,6 +421,17 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   const analisesNovas = caudaNova('analises', antes.analises ?? [], depois.analises ?? []).map(
     (a, i) => ({ posicao: analisesAntes + i, analise: normalizarAnalise(a) }),
   )
+  const saquesNovos = caudaNova('saques', antes.saques ?? [], depois.saques ?? []).map(normalizarSaque)
+  const saquesAntes = antes.saques ?? []
+  const saquesDepois = depois.saques ?? []
+  const saquesAtualizados: Saque[] = []
+  for (let i = 0; i < saquesAntes.length; i++) {
+    const a = saquesAntes[i]
+    const d = saquesDepois[i]
+    if (d && JSON.stringify(normalizarSaque(a)) !== JSON.stringify(normalizarSaque(d))) {
+      saquesAtualizados.push(normalizarSaque(d))
+    }
+  }
 
   // 1. remoções, das folhas para as raízes
   for (const id of sellOffers.removidos) ops.push({ tipo: 'sellOffer.remover', id })
@@ -422,6 +461,8 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   for (const { posicao, analise } of analisesNovas) {
     ops.push({ tipo: 'analise.inserir', posicao, analise })
   }
+  for (const saque of saquesNovos) ops.push({ tipo: 'saque.inserir', saque })
+  for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
   for (const { email, cobranca } of [...cobrancas.inseridos, ...cobrancas.atualizados]) {
     ops.push({ tipo: 'custodyCharge.gravar', email, cobranca })
   }

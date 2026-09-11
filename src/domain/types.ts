@@ -343,6 +343,28 @@ export interface Seq {
   analise?: number
 }
 
+/* ---------------------------------------------------------------------------
+ * Saques de recursos (Sessão B-4)
+ * ------------------------------------------------------------------------- */
+
+export type StatusSaque = 'solicitado' | 'em_processamento' | 'pago' | 'falhou'
+
+export interface Saque {
+  id: string
+  userEmail: UserEmail
+  valorTotal: Cents
+  taxa: Cents
+  valorLiquido: Cents
+  dadosBancarios: DadosBancarios
+  status: StatusSaque
+  motivoFalha?: string | null
+  criadoEm: Timestamp
+  previsaoPagamentoEm: Timestamp
+  pagoEm?: Timestamp | null
+  comprovanteRef?: string | null
+  atualizadoEm: Timestamp
+}
+
 /**
  * O estado inteiro do sistema — o que o MVP guardava numa única chave
  * compartilhada e que aqui vive na camada de persistência (src/server/store).
@@ -360,6 +382,8 @@ export interface AppState {
   deposits: Deposit[]
   /** Análises da bancada, append-only, na ordem em que foram fechadas (frente E). */
   analises: Analise[]
+  /** Histórico de solicitações de saque de recursos (Sessão B-4). */
+  saques?: Saque[]
 }
 
 // ---------------------------------------------------------------------------

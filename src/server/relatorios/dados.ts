@@ -24,6 +24,7 @@ import { verificarCadeia, type LedgerEntry } from '@/domain/ledger'
 import { medianSellPrice } from '@/domain/market'
 import { allCoinsFlat, coinStatusDigital, envioDateFor } from '@/domain/selectors'
 import { statementTotals, userStatement } from '@/domain/statement'
+import { descreverDadosBancarios } from '@/domain/cadastro'
 import type { AppState } from '@/domain/types'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { listarAuditoria, type EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria'
@@ -77,6 +78,7 @@ export const NOMES_RELATORIOS = [
   'lancamentos-manuais',
   'parametros',
   'exportacoes',
+  'saques',
 ] as const
 
 export type NomeRelatorio = (typeof NOMES_RELATORIOS)[number]
@@ -98,6 +100,7 @@ export const TITULOS: Record<NomeRelatorio, string> = {
   'lancamentos-manuais': 'Lançamentos manuais',
   parametros: 'Parâmetros contábeis',
   exportacoes: 'Registro de exportações',
+  saques: 'Solicitações de saque',
 }
 
 /** Centavos -> reais com duas casas. 28500 -> 285 */
@@ -142,7 +145,7 @@ function clampInt(v: string | null | undefined, min: number, max: number): numbe
 
 /* ---------- as fontes ---------- */
 
-interface Fontes {
+export interface Fontes {
   state: AppState
   ledger: LedgerEntryGravado[]
   auditoria: EntradaAuditoriaGravada[]
@@ -481,6 +484,48 @@ function relatorioExportacoes(fontes: Fontes): Relatorio {
   return comLinhas(r, linhas, ['Id', 'Data', 'Relatorio', 'Formato', 'Destino', 'Ator', 'Linhas', 'Ok', 'Detalhe'])
 }
 
+function relatorioSaques(fontes: Fontes, periodo: Periodo | null): Relatorio {
+  const r = base('saques', fontes, periodo)
+  const nomes = nomesDe(fontes.state)
+  const todosSaques = fontes.state.saques ?? []
+  const saques = todosSaques.filter((s) => {
+    if (!periodo) return true
+    return s.criadoEm >= periodo.inicio && s.criadoEm < periodo.fim
+  })
+
+  const linhas = saques.map((s) => ({
+    Id: s.id,
+    Data_Solicitacao: dataHora(s.criadoEm),
+    Email_Usuario: s.userEmail,
+    Nome_Usuario: nomes[s.userEmail] ?? s.userEmail,
+    Valor_Total: reais(s.valorTotal),
+    Taxa: reais(s.taxa),
+    Valor_Liquido: reais(s.valorLiquido),
+    Forma_Recebimento: descreverDadosBancarios(s.dadosBancarios),
+    Status: s.status,
+    Previsao_Pagamento: fdate(s.previsaoPagamentoEm),
+    Data_Pagamento: s.pagoEm ? dataHora(s.pagoEm) : '',
+    Comprovante_Ref: s.comprovanteRef ?? '',
+    Motivo_Falha: s.motivoFalha ?? '',
+  }))
+
+  return comLinhas(r, linhas, [
+    'Id',
+    'Data_Solicitacao',
+    'Email_Usuario',
+    'Nome_Usuario',
+    'Valor_Total',
+    'Taxa',
+    'Valor_Liquido',
+    'Forma_Recebimento',
+    'Status',
+    'Previsao_Pagamento',
+    'Data_Pagamento',
+    'Comprovante_Ref',
+    'Motivo_Falha',
+  ])
+}
+
 function nomesDe(state: AppState): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [e, u] of Object.entries(state.users)) out[e] = u.name
@@ -505,7 +550,7 @@ export async function gerarTodosRelatorios(opcoes: OpcoesRelatorio = {}): Promis
   return NOMES_RELATORIOS.map((nome) => montarRelatorio(nome, fontes, opcoes))
 }
 
-function montarRelatorio(nome: NomeRelatorio, fontes: Fontes, opcoes: OpcoesRelatorio): Relatorio {
+export function montarRelatorio(nome: NomeRelatorio, fontes: Fontes, opcoes: OpcoesRelatorio = {}): Relatorio {
   const periodo = periodoDaConsulta(opcoes)
   const recorte = opcoes.recortar ? periodo : null
   switch (nome) {
@@ -533,6 +578,8 @@ function montarRelatorio(nome: NomeRelatorio, fontes: Fontes, opcoes: OpcoesRela
       return relatorioParametros(fontes)
     case 'exportacoes':
       return relatorioExportacoes(fontes)
+    case 'saques':
+      return relatorioSaques(fontes, recorte)
   }
 }
 

@@ -37,12 +37,14 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { DEPOSITO_MAX } from '@/domain/constants'
-import { descreverDadosBancarios, temCadastroCompleto } from '@/domain/cadastro'
+import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
+import { TAXA_SAQUE_FIXA_CENTS } from '@/domain/fees'
+import { calcularDataLimiteSaque } from '@/domain/dates'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
-import { changePassword, deposit, toggleNotif, updatePersonal } from '@/server/actions/account'
+import { changePassword, deposit, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
 import type { DepositoIniciado } from '@/server/payments/tipos'
 import { ModalCadastro } from './ModalCadastro'
@@ -512,18 +514,83 @@ export function ModalDeposito(): ReactNode {
 }
 
 /* -------------------------------------------------------------------------
- * Saque de recursos (informativo / prontidão para B-4)
+ * Saque de recursos (Agente B - Sessão B-4)
  * ---------------------------------------------------------------------- */
 
-export function ModalSaqueInfo(): ReactNode {
-  const { me } = useApp()
+export function ModalSaque(): ReactNode {
+  const { me, run } = useApp()
   const { close, open } = useModal()
+
+  const [valorTexto, setValorTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  // Defesa em profundidade: sem dados bancários cadastrados, o prazo D+3 não
+  // começa a correr e o saque não pode ser concluído.
+  if (!temDadosBancarios(me)) {
+    return (
+      <>
+        <h3 className="serif">Dados bancários necessários</h3>
+        <p style={{ marginBottom: 14 }}>
+          Para solicitar saque do seu saldo, é necessário cadastrar sua chave Pix ou dados
+          bancários de mesma titularidade (CPF correspondente).
+        </p>
+
+        <div className="note" style={{ marginBottom: 16 }}>
+          O prazo regulamentar de liquidação de <b>D+3 úteis</b> só tem início após a confirmação
+          dos dados de destino da transferência.
+        </div>
+
+        <div className="m-actions">
+          <button className="btn btn-outline" type="button" onClick={close}>
+            Cancelar
+          </button>
+          <button
+            className="btn btn-gold"
+            type="button"
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="saque"
+                  onSuccess={() => open(<ModalSaque />)}
+                />,
+              )
+            }
+          >
+            Cadastrar dados bancários
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  const cents = parsePrice(valorTexto)
+  const { formatada: dataPrevistaBR } = calcularDataLimiteSaque()
+  const podeSacar = cents > TAXA_SAQUE_FIXA_CENTS && cents <= me.balance && !enviando
+
+  async function executarSaque(): Promise<void> {
+    if (!podeSacar) return
+    setEnviando(true)
+    setErro('')
+    try {
+      const res = await run(() => solicitarSaque(cents))
+      if (res.ok) {
+        close()
+      } else {
+        setErro(res.error ?? 'Não foi possível solicitar o saque.')
+        setEnviando(false)
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao processar solicitação.')
+      setEnviando(false)
+    }
+  }
 
   return (
     <>
-      <h3 className="serif">Saque de recursos</h3>
-      <p style={{ marginBottom: 12 }}>
-        Dados bancários e regras para solicitação de saque de saldo disponível.
+      <h3 className="serif">Solicitar saque</h3>
+      <p style={{ marginBottom: 10 }}>
+        Transferência do saldo em conta para sua chave Pix ou conta bancária cadastrada.
       </p>
 
       <div className="summary-row">
@@ -532,39 +599,98 @@ export function ModalSaqueInfo(): ReactNode {
       </div>
 
       <div className="summary-row">
-        <span className="k">Tarifa de saque</span>
-        <span className="v">R$ 5,00 (fixa)</span>
+        <span className="k">Conta de destino</span>
+        <span className="v" style={{ textAlign: 'right' }}>
+          {descreverDadosBancarios(me.cadastro?.dadosBancarios)}
+          <span
+            className="back-link"
+            style={{ display: 'block', fontSize: 11, marginTop: 2, cursor: 'pointer' }}
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="saque"
+                  onSuccess={() => open(<ModalSaque />)}
+                />,
+              )
+            }
+          >
+            Alterar dados
+          </span>
+        </span>
+      </div>
+
+      <div className="field-lbl">Valor a sacar</div>
+      <div className="price-input">
+        <span>R$</span>
+        <input
+          inputMode="decimal"
+          placeholder="0,00"
+          aria-label="Valor a sacar em reais"
+          value={valorTexto}
+          onChange={(e) => setValorTexto(e.target.value)}
+        />
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Tarifa de saque (fixa)</span>
+        <span className="v">{brl(TAXA_SAQUE_FIXA_CENTS)}</span>
+      </div>
+
+      <div className="summary-row total">
+        <span className="k">Valor líquido a receber</span>
+        <span className="v" style={{ fontSize: 19 }}>
+          {cents > TAXA_SAQUE_FIXA_CENTS ? brl(cents - TAXA_SAQUE_FIXA_CENTS) : '—'}
+        </span>
       </div>
 
       <div className="summary-row">
         <span className="k">Prazo de liquidação</span>
-        <span className="v">D+3 (72 horas úteis)</span>
+        <span className="v">D+3 úteis (previsão: {dataPrevistaBR})</span>
       </div>
 
-      <div className="summary-row">
-        <span className="k">Destino cadastrado</span>
-        <span className="v">{descreverDadosBancarios(me.cadastro?.dadosBancarios)}</span>
+      {cents > 0 && cents <= TAXA_SAQUE_FIXA_CENTS ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          O valor do saque deve ser superior à tarifa fixa de {brl(TAXA_SAQUE_FIXA_CENTS)}.
+        </div>
+      ) : null}
+
+      {cents > me.balance ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          Saldo insuficiente para este saque. Seu saldo disponível é {brl(me.balance)}.
+        </div>
+      ) : null}
+
+      {erro ? (
+        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+          {erro}
+        </div>
+      ) : null}
+
+      <div className="m-actions">
+        <button className="btn btn-outline" type="button" onClick={close} disabled={enviando}>
+          Cancelar
+        </button>
+        <button
+          className="btn btn-gold"
+          type="button"
+          disabled={!podeSacar}
+          onClick={() => void executarSaque()}
+        >
+          {enviando ? 'Solicitando...' : 'Confirmar saque'}
+        </button>
       </div>
 
       <div className="note" style={{ marginTop: 14 }}>
-        A liquidação direta com débito de taxa e prazo D+3 será disponibilizada na próxima etapa
-        (Sessão B-4). Seus dados estão validados e prontos para recebimento.
-      </div>
-
-      <div className="m-actions">
-        <button
-          className="btn btn-outline"
-          type="button"
-          onClick={() => open(<ModalCadastro motivo="saque" />)}
-        >
-          Editar dados bancários
-        </button>
-        <button className="btn btn-gold" type="button" onClick={close}>
-          Entendido
-        </button>
+        A liquidação é realizada via Pix para a conta informada. O débito no saldo é imediato e a
+        transferência ocorre em até 3 dias úteis.
       </div>
     </>
   )
+}
+
+/** Mantido para retrocompatibilidade. */
+export function ModalSaqueInfo(): ReactNode {
+  return <ModalSaque />
 }
 
 export { ModalCadastro }
