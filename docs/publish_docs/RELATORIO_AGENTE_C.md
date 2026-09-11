@@ -7,6 +7,74 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão C-3 · Fluxo de retirada (tela) e extinção do recibo · 11/09/2026
+
+**Branch:** `feat/retirada-logistica`.
+**Base:** `705b6ea` (Sessão C-2), com typecheck, lint, 236 testes e build verdes antes de qualquer edição.
+
+## 1. O que entrou
+
+### Interface de Solicitação de Retirada Física (Bloco 10)
+- **`src/components/recibo/ModalSolicitarRetirada.tsx`**: Componente de modal interativo contendo:
+  - Seleção da modalidade de retirada (D-1): Comum a R$ 50,00 (Correios com AR e seguro) ou Segura a R$ 180,00 (transporte de valores blindado).
+  - Formulário completo de endereço de entrega (Trava 2): destinatário, CPF/CNPJ, logradouro, número, complemento, bairro, cidade, UF, CEP e telefone de contato com DDD.
+  - Autocompletar de endereço por CEP integrado à ação segura `consultarCepEnvio` (zero persistência / LGPD compliant).
+  - Cláusula obrigatória de equiparação de acervo (Bloco 10): checkbox de confirmação de que a moeda física devolvida é equiparável em mesmo padrão e estado de conservação.
+  - Verificação de saldo em tempo real: exibe saldo atual, taxa a debitar e saldo restante; bloqueia envio e orienta depósito caso o saldo seja insuficiente.
+  - Integração via `useApp().run()` com a Server Action `solicitarRetirada`.
+
+### Certificado e Extinção Imediata do Recibo
+- **`src/components/recibo/Certificate.tsx`**:
+  - Habilitado o botão "Solicitar retirada" (desbloqueado quando a moeda pertence ao usuário, não está anunciada e o recibo está ativo).
+  - Ao clicar, abre a modal `ModalSolicitarRetirada`.
+  - Quando o recibo torna-se `'Extinto'`:
+    - Botão desabilita e passa a exibir `✓ Retirada física solicitada`.
+    - Exibição de carimbo visual indelével `.cert-stamp-extinto` ("RECIBO EXTINTO / RETIRADA FÍSICA SOLICITADA") sobre o pergaminho do certificado.
+    - Painel lateral de "Retirada Física" com acompanhamento em tempo real (status da saída, modalidade, data-limite D+30, rastreamento postal e destino).
+- **`src/styles/recibo.css`**: Adicionados estilos para o carimbo de extinção do recibo (`.cert-stamp-extinto`), cards de seleção de modalidade (`.modalidade-card`, `.selecionada`) e badges de status da retirada (`.badge-solicitada`, `.badge-paga`, `.badge-separacao`, `.badge-postada`, `.badge-entregue`).
+
+### Página de Acompanhamento do Cliente
+- **`src/app/(app)/retirada/page.tsx`**: Nova tela no casco autenticado listando todas as retiradas físicas solicitadas pelo usuário com cards detalhados, histórico, link direto para o recibo extinto e badges de status.
+- **`src/components/shell/Topbar.tsx`**: Rota `/retirada` registrada com cabeçalho "Retiradas físicas" / "Acompanhe a saída e expedição física de moedas da custódia.".
+- **`src/app/(app)/recibos/page.tsx`**: Resumo da carteira atualizado com contagem de recibos extintos e link rápido de navegação para "Minhas retiradas físicas".
+
+### Correios e Caixa Postal Real (Bloco 11a / D-6)
+- **`src/lib/shipping/cep.ts`**: Fallback da Central de Custódia atualizado para a Caixa Postal oficial `7990` em Belo Horizonte/MG (`CEP 30315-970`). Endereço fictício da Avenida Paulista completamente removido do módulo de CEP.
+- **`src/lib/shipping/cep.test.ts`**: Suíte de testes atualizada e validada com o CEP oficial `30315-970`.
+
+## 2. O que foi testado, e como
+
+### Comandos de Verificação (4 Verdes)
+- `npm run typecheck`: OK (0 erros).
+- `npm run lint`: OK (0 advertências/erros).
+- `npm test`: OK — **32 arquivos de teste, 236 testes passando** (incluindo suíte de CEP e suíte completa de retirada).
+- `npm run build`: OK — build Next.js com todas as 24 rotas estáticas e dinâmicas geradas com sucesso (incluindo `/retirada` e `/recibos/[coinId]`).
+
+### Casos de Uso Testados Manualmente e em Código
+- Validação de endereço: rejeita campos em branco ou formatos inválidos.
+- Consulta de CEP com preenchimento automático de logradouro, bairro, cidade e UF.
+- Trava de saldo insuficiente: impede confirmação se o usuário não possuir saldo para a taxa.
+- Trava de equiparação de acervo: exige checkbox marcado.
+- Extinção imediata do recibo no clique de confirmação.
+- Renderização do carimbo extinto e painel de rastreio no certificado.
+- Navegação entre `/recibos`, `/recibos/[coinId]` e `/retirada`.
+
+## 3. O que ficou de manual
+
+- **C-1** 🟡 — Aplicação da migration `009_retiradas.sql` no Supabase via `npm run db:migrate`.
+- **C-2** 🟡 — Aplicação da migration `010_retiradas_ledger.sql` no Supabase via `npm run db:migrate`.
+- **D-2** 🟡 — Confirmação formal do prazo de 30 dias (D+30 total vs D+30 + D+5) para alinhamento com termos do Agente A.
+
+## 4. O que o próximo agente precisa saber
+
+1. **O fluxo da retirada física do cliente está 100% completo e operacional.** O usuário pode solicitar retirada de qualquer moeda sua em custódia, pagar a taxa com saldo, ter o recibo extinto imediatamente e acompanhar a expedição em `/retirada`.
+2. **Na Sessão C-4 (Correios de saída, etiqueta e rastreio)**:
+   - Implementar rota/geração de etiqueta reversa/saída (Áurea → Cliente) com dados da Caixa Postal oficial.
+   - Atualização do PDF do recibo extinto para carimbar o status "Extinto" no documento baixado.
+3. **Endereço da Caixa Postal oficial em Belo Horizonte/MG (30315-970)** está consolidado em `correios.ts`, `cep.ts` e `custody.ts`.
+
+---
+
 # Sessão C-2 · Fluxo no servidor, ledger de taxa de retirada e auditoria · 10/09/2026
 
 **Branch:** `feat/retirada-logistica`.

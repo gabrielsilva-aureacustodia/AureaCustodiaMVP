@@ -89,6 +89,12 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: 'Recibos digitais de validação e recebimento de custódia.',
     }
   }
+  if (pathname === '/retirada' || pathname.startsWith('/retirada')) {
+    return {
+      h1: 'Retiradas físicas',
+      p: 'Acompanhe a saída e expedição física de moedas da custódia.',
+    }
+  }
   if (pathname === '/graficos/auditoria') {
     return {
       h1: 'Auditoria de estoque custodiado',

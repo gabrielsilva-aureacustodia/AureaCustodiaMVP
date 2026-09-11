@@ -21,16 +21,22 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { isNegociavel } from '@/domain/constants'
+import { fdate } from '@/domain/dates'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { coinStatusDigital } from '@/domain/selectors'
+import type { Retirada } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { QrCode } from '@/components/svg/QrCode'
+import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { ModalSolicitarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
+import { obterRetiradaPorCoin } from '@/server/actions/custody'
 
 /**
  * Texto exibido quando o gerador de PDF não carrega. É o mesmo da linha 1973 do
@@ -47,14 +53,27 @@ export interface CertificateProps {
 
 export function Certificate({ coinId }: CertificateProps): ReactNode {
   const { state, me } = useApp()
+  const modal = useModal()
   const toast = useToast()
   const router = useRouter()
+
+  const [retirada, setRetirada] = useState<Retirada | null>(null)
 
   // A página (Server Component) já garantiu a posse antes de renderizar; esta
   // busca é sobre o estado VIVO. Ela falha quando a moeda sai do inventário com
   // a tela aberta — venda casada por outra aba, por exemplo —, e é exatamente o
   // ramo "não encontrado" do original (linha 1900).
   const coin = me.coins.find((c) => c.id === coinId)
+
+  const extinto = coin?.recibo.status === 'Extinto'
+
+  useEffect(() => {
+    if (extinto && coin) {
+      void obterRetiradaPorCoin(coin.id).then((res) => {
+        if (res.ok && res.data) setRetirada(res.data)
+      })
+    }
+  }, [coin, extinto])
 
   if (!coin) {
     return (
@@ -80,7 +99,6 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   // atalho apagaria o botão "Colocar à venda" de uma moeda perfeitamente
   // negociável e ainda mostraria a nota dizendo que ela não tem mercado.
   const sellable = isNegociavel(coin.tipoMoeda)
-  const extinto = coin.recibo.status === 'Extinto'
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
     : 'Moeda física recebida e custodiada'
@@ -123,6 +141,16 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
 
       <div className="cert-wrap">
         <div className="cert">
+          {extinto ? (
+            <div className="cert-stamp-extinto" aria-label="Recibo Extinto">
+              RECIBO EXTINTO
+              <br />
+              <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
+                RETIRADA FÍSICA SOLICITADA
+              </span>
+            </div>
+          ) : null}
+
           {/* .cert-art tem 150px e a .coin-svg lá dentro, 64px. A arte não
               preenche o quadro — é assim no monolito, e a folga é o respiro
               acima do brasão. */}
@@ -190,15 +218,15 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
         <div>
           <div className="panel" style={{ marginBottom: '16px' }}>
             <h3>Ações</h3>
-            {/* Retirada física é o bloco 4.3, fora do escopo do pré-MVP. O botão
-                existe desabilitado no original para sinalizar o caminho. */}
+            {/* Retirada física conectada à Server Action e modal de endereço/pagamento */}
             <button
               className="btn btn-outline"
               type="button"
               style={{ width: '100%', marginBottom: '10px' }}
-              disabled
+              disabled={extinto || listed}
+              onClick={() => modal.open(<ModalSolicitarRetirada coin={coin} />)}
             >
-              Solicitar retirada
+              {extinto ? '✓ Retirada física solicitada' : 'Solicitar retirada'}
             </button>
             {/* No monolito este botão levava a global `preselectCoinId` para a
                 tela de venda; aqui a pré-seleção viaja na URL, que é o mesmo
@@ -221,8 +249,16 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               Baixar recibo PDF
             </button>
 
-            {/* As duas notas do original explicam POR QUE o botão acima está
-                apagado. Sem elas o desabilitado vira mistério. */}
+            {/* As notas explicam o estado dos botões */}
+            {extinto ? (
+              <div className="note" style={{ marginTop: '10px' }}>
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v5M12 16.5v.5" />
+                </svg>
+                O recibo desta moeda foi extinto para retirada física da custódia.
+              </div>
+            ) : null}
             {!sellable ? (
               <div className="note" style={{ marginTop: '10px' }}>
                 <svg viewBox="0 0 24 24">
@@ -244,6 +280,62 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               </div>
             ) : null}
           </div>
+
+          {/* Painel de Acompanhamento da Retirada quando extinto */}
+          {extinto ? (
+            <div className="panel" style={{ marginBottom: '16px' }}>
+              <h3>
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                Retirada Física
+              </h3>
+              <div className="summary-row">
+                <span className="k">Status da saída</span>
+                <span className="v">
+                  <span className={`badge-retirada badge-${retirada?.status ?? 'solicitada'}`}>
+                    {retirada?.status ?? 'solicitada'}
+                  </span>
+                </span>
+              </div>
+              <div className="summary-row">
+                <span className="k">Modalidade</span>
+                <span className="v">
+                  {retirada?.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios (AR)'}
+                </span>
+              </div>
+              {retirada ? (
+                <div className="summary-row">
+                  <span className="k">Prazo limite</span>
+                  <span className="v">D+30 ({fdate(retirada.dataLimiteD30)})</span>
+                </div>
+              ) : null}
+              {retirada?.codigoRastreio ? (
+                <div className="summary-row">
+                  <span className="k">Código de rastreio</span>
+                  <span className="v" style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                    {retirada.codigoRastreio}
+                  </span>
+                </div>
+              ) : null}
+              {retirada ? (
+                <div className="summary-row">
+                  <span className="k">Destino</span>
+                  <span className="v">
+                    {retirada.endereco.cidade} / {retirada.endereco.uf}
+                  </span>
+                </div>
+              ) : null}
+              <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                O recibo documental desta moeda foi extinto. A moeda física está em processo de expedição para o endereço confirmado.
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <Link href="/retirada" className="back-link" style={{ margin: 0, fontSize: '12.5px' }}>
+                  Ver todas as minhas retiradas ›
+                </Link>
+              </div>
+            </div>
+          ) : null}
 
           {/* ACRÉSCIMO A ESTE PORT (registrado em issues). O escopo desta tela
               pede código do ativo, situação física, situação digital e valor

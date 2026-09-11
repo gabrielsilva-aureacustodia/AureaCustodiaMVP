@@ -39,3 +39,83 @@
 .cert-seal svg.seal-ico{width:34px;height:34px;stroke:var(--cert-ink-gold);fill:none;stroke-width:1.4}
 .cert-foot{font-size:11.5px;color:var(--cert-ink-foot);margin-top:20px;line-height:1.5}
 .qr-note{font-size:9.5px;color:var(--cert-ink-qr);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+
+/* ---- Carimbo de extinção do recibo por retirada física ------------------- */
+.cert-stamp-extinto {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  border: 4px dashed #b91c1c;
+  color: #b91c1c;
+  font-family: var(--ff-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  padding: 12px 24px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  background: rgba(254, 242, 242, 0.92);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px #b91c1c inset, 0 4px 14px rgba(185, 28, 28, 0.15);
+  text-align: center;
+  z-index: 10;
+  line-height: 1.25;
+}
+
+/* ---- Card / Seletor de Modalidade de Retirada ---------------------------- */
+.modalidade-card {
+  border: 1.5px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--card);
+}
+.modalidade-card:hover {
+  border-color: var(--gold);
+}
+.modalidade-card.selecionada {
+  border-color: var(--gold);
+  background: var(--gold-wash);
+}
+.modalidade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-strong);
+  margin-bottom: 4px;
+}
+.modalidade-preco {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 14px;
+  font-family: var(--ff-display);
+}
+.modalidade-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ---- Badges de Status da Retirada ---------------------------------------- */
+.badge-retirada {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-solicitada { background: var(--gold-tint-10); color: var(--gold); border: 1px solid var(--gold); }
+.badge-paga { background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-separacao { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-postada { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-entregue { background: rgba(34, 197, 94, 0.15); color: #15803d; border: 1px solid rgba(34, 197, 94, 0.4); }
+.badge-cancelada { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3); }

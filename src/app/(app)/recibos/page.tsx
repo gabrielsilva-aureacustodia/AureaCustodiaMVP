@@ -17,6 +17,7 @@
  * decisão do jurídico em 09/09/2026.
  */
 
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { tiposNegociaveis } from '@/domain/constants'
@@ -104,6 +105,21 @@ export default function RecibosPage(): ReactNode {
           <div className="summary-row total">
             <span className="k">Recibos ativos</span>
             <span className="v">{recibosAtivos}</span>
+          </div>
+          {coins.length - recibosAtivos > 0 ? (
+            <div className="summary-row" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              <span className="k">Recibos extintos</span>
+              <span className="v">{coins.length - recibosAtivos}</span>
+            </div>
+          ) : null}
+          <div style={{ marginTop: '14px' }}>
+            <Link
+              href="/retirada"
+              className="btn btn-outline"
+              style={{ width: '100%', padding: '8px', fontSize: '12.5px' }}
+            >
+              Minhas retiradas físicas ›
+            </Link>
           </div>
         </div>
 
