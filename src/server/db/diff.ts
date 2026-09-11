@@ -40,6 +40,7 @@ import type {
   CustodyCharge,
   Deposit,
   Envio,
+  FaturaCustodia,
   Saque,
   SellOffer,
   Seq,
@@ -60,6 +61,7 @@ export interface UserRegistro {
   prevAccess: number | null
   settings: UserSettings | null
   cadastro: Cadastro | null
+  inadimplente: boolean
 }
 
 /** A linha de `coins` + `recibos`: a moeda, seu dono e sua posição no inventário dele. */
@@ -116,6 +118,7 @@ export function normalizarUser(u: User): UserRegistro {
           confirmadoEm: u.cadastro.confirmadoEm,
         }
       : null,
+    inadimplente: Boolean(u.inadimplente),
   }
 }
 
@@ -270,6 +273,23 @@ export function normalizarSaque(s: Saque): Saque {
   }
 }
 
+export function normalizarFatura(f: FaturaCustodia): FaturaCustodia {
+  return {
+    id: f.id,
+    userEmail: f.userEmail,
+    competencia: f.competencia,
+    quantidadeMoedas: f.quantidadeMoedas,
+    moedaIds: [...f.moedaIds],
+    valorCents: f.valorCents,
+    status: f.status,
+    dataEmissao: f.dataEmissao,
+    dataVencimento: f.dataVencimento,
+    dataPagamento: f.dataPagamento ?? null,
+    formaPagamento: f.formaPagamento ?? null,
+    paymentIntentId: f.paymentIntentId ?? null,
+  }
+}
+
 /**
  * `analise` só entra quando existe. Estado gravado antes da frente E não tem o
  * contador, e materializá-lo como `0` faria o diff enxergar mudança em toda
@@ -311,6 +331,8 @@ export type Operacao =
   | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
   | { tipo: 'saque.inserir'; saque: Saque }
   | { tipo: 'saque.atualizar'; saque: Saque }
+  | { tipo: 'fatura.inserir'; fatura: FaturaCustodia }
+  | { tipo: 'fatura.atualizar'; fatura: FaturaCustodia }
   | { tipo: 'custodyCharge.gravar'; email: UserEmail; cobranca: CustodyCharge }
   | { tipo: 'custodyCharge.remover'; email: UserEmail }
   | { tipo: 'seq.atualizar'; seq: Seq }
@@ -433,6 +455,11 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
     }
   }
 
+  const faturas = diffPorChave(
+    indexar((antes.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
+    indexar((depois.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
+  )
+
   // 1. remoções, das folhas para as raízes
   for (const id of sellOffers.removidos) ops.push({ tipo: 'sellOffer.remover', id })
   for (const id of buyOrders.removidos) ops.push({ tipo: 'buyOrder.remover', id })
@@ -463,6 +490,8 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   }
   for (const saque of saquesNovos) ops.push({ tipo: 'saque.inserir', saque })
   for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
+  for (const fatura of faturas.inseridos) ops.push({ tipo: 'fatura.inserir', fatura })
+  for (const fatura of faturas.atualizados) ops.push({ tipo: 'fatura.atualizar', fatura })
   for (const { email, cobranca } of [...cobrancas.inseridos, ...cobrancas.atualizados]) {
     ops.push({ tipo: 'custodyCharge.gravar', email, cobranca })
   }

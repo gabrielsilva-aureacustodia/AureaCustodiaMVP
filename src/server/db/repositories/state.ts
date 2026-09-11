@@ -46,6 +46,7 @@ import { atualizarSeq, carregarSeq } from './seq'
 import { carregarTrades, inserirTrade } from './trades'
 import { atualizarUser, carregarUsers, inserirUser, removerUser } from './users'
 import { atualizarSaque, carregarSaques, inserirSaque } from './saques'
+import { atualizarFatura, carregarFaturas, inserirFatura } from './faturas'
 
 export interface OpcoesCarregar {
   /**
@@ -65,7 +66,7 @@ export interface OpcoesCarregar {
 export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}): Promise<AppState> {
   const seq = await carregarSeq(tx, { travar: opcoes.travar === true })
 
-  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, cobrancas, analises, saques] =
+  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, cobrancas, analises, saques, faturas] =
     await Promise.all([
       carregarUsers(tx),
       carregarCoins(tx),
@@ -77,6 +78,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
       carregarCustodyCharges(tx),
       carregarAnalises(tx),
       carregarSaques(tx),
+      carregarFaturas(tx),
     ])
 
   const users: Record<UserEmail, User> = {}
@@ -90,6 +92,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
     if (user.prevAccess !== null) u.prevAccess = user.prevAccess
     if (user.settings !== null) u.settings = user.settings
     if (user.cadastro !== null) u.cadastro = user.cadastro
+    if (user.inadimplente) u.inadimplente = true
     users[email] = u
   }
 
@@ -103,7 +106,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
   const custodyCharges: AppState['custodyCharges'] = {}
   for (const { email, cobranca } of cobrancas) custodyCharges[email] = cobranca
 
-  return { users, sellOffers, buyOrders, trades, envios, seq, custodyCharges, deposits, analises, saques }
+  return { users, sellOffers, buyOrders, trades, envios, seq, custodyCharges, deposits, analises, saques, faturasCustodia: faturas }
 }
 
 /** Banco recém-migrado: nenhuma conta. É o gatilho da semeadura, como o `null` do blob era. */
@@ -170,6 +173,10 @@ export async function executarOperacao(tx: Consulta, op: Operacao): Promise<void
       return inserirSaque(tx, op.saque)
     case 'saque.atualizar':
       return atualizarSaque(tx, op.saque)
+    case 'fatura.inserir':
+      return inserirFatura(tx, op.fatura)
+    case 'fatura.atualizar':
+      return atualizarFatura(tx, op.fatura)
     case 'custodyCharge.gravar':
       return gravarCustodyCharge(tx, op.email, op.cobranca)
     case 'custodyCharge.remover':

@@ -98,6 +98,29 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     pendentes.push(lancamentoDeCustodia(op.email, op.cobranca, quando, null))
   }
 
+  /* faturas de custódia liquidadas com débito de saldo (sinal -1) */
+  const faturasAntes = new Map((antes.faturasCustodia ?? []).map((f) => [f.id, f]))
+  for (const op of ops) {
+    if (op.tipo !== 'fatura.inserir' && op.tipo !== 'fatura.atualizar') continue
+    const f = op.fatura
+    const antesFat = faturasAntes.get(f.id)
+    const eraPagaComSaldo = antesFat?.status === 'paga' && antesFat?.formaPagamento === 'saldo'
+    if (f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo) {
+      pendentes.push({
+        createdAt: f.dataPagamento || agora,
+        userEmail: f.userEmail,
+        tipo: 'custodia',
+        valor: f.valorCents,
+        sinal: -1,
+        tipoMoeda: null,
+        quantidade: f.quantidadeMoedas,
+        refInterna: f.id,
+        refExterna: null,
+        descricao: `Custódia mensal ${f.competencia} (${f.quantidadeMoedas} moeda(s))`,
+      })
+    }
+  }
+
   /* efeito líquido dos lançamentos acima, por conta */
   const efeito: Record<UserEmail, Cents> = {}
   for (const p of pendentes) efeito[p.userEmail] = (efeito[p.userEmail] ?? 0) + p.valor * p.sinal
@@ -220,6 +243,10 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
       case 'saque.atualizar':
         anotar(op, op.saque.id, op.saque.userEmail)
         break
+      case 'fatura.inserir':
+      case 'fatura.atualizar':
+        anotar(op, op.fatura.id, op.fatura.userEmail)
+        break
       case 'custodyCharge.gravar':
       case 'custodyCharge.remover':
         anotar(op, op.email, op.email)
@@ -237,6 +264,8 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   else if (tem('deposit.inserir')) acao = 'deposito'
   else if (tem('saque.inserir')) acao = 'saque.solicitar'
   else if (tem('saque.atualizar')) acao = 'saque.atualizar'
+  else if (tem('fatura.inserir')) acao = 'custodia.faturar'
+  else if (tem('fatura.atualizar')) acao = 'custodia.atualizar_fatura'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

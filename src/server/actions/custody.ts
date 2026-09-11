@@ -29,11 +29,12 @@
 import { nextEnvioCode } from '@/domain/codes'
 import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { custodyFeeForCount } from '@/domain/fees'
+import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { ActionResult, Envio, EtapaEnvio } from '@/domain/types'
+import type { ActionResult, Envio, EtapaEnvio, FaturaCustodia } from '@/domain/types'
+import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -299,7 +300,7 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
         const totalMoedas = u.coins.length
         state.custodyCharges[session] = {
           totalMoedas,
-          valorCobrado: custodyFeeForCount(totalMoedas),
+          valorCobrado: custodiaMensalPorMoeda(totalMoedas),
           dataCobranca: entradaStr,
           statusPagamento: 'Pendente',
         }
@@ -362,5 +363,20 @@ export async function cotarFreteEnvio(
       error: err instanceof Error ? err.message : 'Falha ao calcular frete.',
     }
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. Pagamento de Fatura de Custódia com Saldo
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Paga uma fatura de custódia mensal pendente utilizando o saldo disponível em conta.
+ */
+export async function pagarFaturaCustodia(
+  faturaId: string,
+): Promise<ActionResult<{ fatura: FaturaCustodia }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: 'Sessão expirada.' }
+  return pagarFaturaCustodiaComSaldo(faturaId, session)
 }
 

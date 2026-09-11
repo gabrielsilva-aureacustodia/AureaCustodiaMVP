@@ -365,6 +365,28 @@ export interface Saque {
   atualizadoEm: Timestamp
 }
 
+/* ---------------------------------------------------------------------------
+ * Faturamento mensal de custódia (Sessão B-5 / Bloco 8)
+ * ------------------------------------------------------------------------- */
+
+export type StatusFatura = 'paga' | 'pendente' | 'atrasada' | 'cancelada'
+export type FormaPagamentoFatura = 'saldo' | 'pix' | 'cartao'
+
+export interface FaturaCustodia {
+  id: string
+  userEmail: UserEmail
+  competencia: string // 'AAAA-MM'
+  quantidadeMoedas: number
+  moedaIds: string[]
+  valorCents: Cents
+  status: StatusFatura
+  dataEmissao: Timestamp
+  dataVencimento: Timestamp
+  dataPagamento?: Timestamp | null
+  formaPagamento?: FormaPagamentoFatura | null
+  paymentIntentId?: string | null
+}
+
 /**
  * O estado inteiro do sistema — o que o MVP guardava numa única chave
  * compartilhada e que aqui vive na camada de persistência (src/server/store).
@@ -384,6 +406,8 @@ export interface AppState {
   analises: Analise[]
   /** Histórico de solicitações de saque de recursos (Sessão B-4). */
   saques?: Saque[]
+  /** Histórico de faturas de custódia mensal (Sessão B-5). */
+  faturasCustodia?: FaturaCustodia[]
 }
 
 // ---------------------------------------------------------------------------
@@ -565,4 +589,5 @@ export interface Cadastro {
 
 export interface User {
   cadastro?: Cadastro
+  inadimplente?: boolean
 }

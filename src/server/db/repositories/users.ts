@@ -31,6 +31,7 @@ type LinhaUser = {
   dados_bancarios: unknown
   cadastro_completado_em: unknown
   cadastro_confirmado_em: unknown
+  inadimplente: unknown
 }
 
 export interface UserCarregado {
@@ -43,7 +44,7 @@ export async function carregarUsers(tx: Consulta): Promise<UserCarregado[]> {
   const { rows } = await tx.query<LinhaUser>(
     `SELECT email, name, balance, pass, last_access, prev_access, settings,
             cpf, nome_completo, data_nascimento, telefone, endereco, dados_bancarios,
-            cadastro_completado_em, cadastro_confirmado_em
+            cadastro_completado_em, cadastro_confirmado_em, inadimplente
        FROM ${S}.users
       ORDER BY ord`,
   )
@@ -73,6 +74,7 @@ export async function carregarUsers(tx: Consulta): Promise<UserCarregado[]> {
         prevAccess: numOuNulo(r.prev_access),
         settings: json<UserSettings>(r.settings),
         cadastro,
+        inadimplente: Boolean(r.inadimplente),
       },
     }
   })
@@ -84,9 +86,9 @@ export async function inserirUser(tx: Consulta, email: UserEmail, u: UserRegistr
     `INSERT INTO ${S}.users (
        email, name, balance, pass, last_access, prev_access, settings,
        cpf, nome_completo, data_nascimento, telefone, endereco, dados_bancarios,
-       cadastro_completado_em, cadastro_confirmado_em
+       cadastro_completado_em, cadastro_confirmado_em, inadimplente
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14, $15)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14, $15, $16)`,
     [
       email,
       u.name,
@@ -103,6 +105,7 @@ export async function inserirUser(tx: Consulta, email: UserEmail, u: UserRegistr
       u.cadastro?.dadosBancarios ? JSON.stringify(u.cadastro.dadosBancarios) : null,
       u.cadastro?.completadoEm ?? null,
       u.cadastro?.confirmadoEm ?? null,
+      u.inadimplente ?? false,
     ],
   )
 }
@@ -124,7 +127,8 @@ export async function atualizarUser(tx: Consulta, email: UserEmail, u: UserRegis
             endereco = $12::jsonb,
             dados_bancarios = $13::jsonb,
             cadastro_completado_em = $14,
-            cadastro_confirmado_em = $15
+            cadastro_confirmado_em = $15,
+            inadimplente = $16
       WHERE email = $1`,
     [
       email,
@@ -142,6 +146,7 @@ export async function atualizarUser(tx: Consulta, email: UserEmail, u: UserRegis
       u.cadastro?.dadosBancarios ? JSON.stringify(u.cadastro.dadosBancarios) : null,
       u.cadastro?.completadoEm ?? null,
       u.cadastro?.confirmadoEm ?? null,
+      u.inadimplente ?? false,
     ],
   )
 }

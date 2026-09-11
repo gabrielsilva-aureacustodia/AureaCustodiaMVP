@@ -10,7 +10,7 @@ import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePend
 import { nextCodigoRecibo } from '@/domain/codes'
 import { faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { custodyFeeForCount } from '@/domain/fees'
+import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
@@ -290,7 +290,7 @@ export async function fecharAnalise(
         const totalMoedas = dono.coins.length
         state.custodyCharges[envio.userEmail] = {
           totalMoedas,
-          valorCobrado: custodyFeeForCount(totalMoedas),
+          valorCobrado: custodiaMensalPorMoeda(totalMoedas),
           dataCobranca: entradaStr,
           statusPagamento: 'Pendente',
         }

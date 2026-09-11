@@ -6,6 +6,60 @@ Repositório: `github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP`
 
 ---
 
+## Sessões B-5 e B-6 — Faturamento mensal de custódia (`migration 010`), cron, inadimplência e DRE consolidada
+**Data:** 11/09/2026  
+**Status:** Concluída com sucesso
+
+### 1. O que entrou
+- **Taxa de custódia unificada no domínio (Decisão D-3, 10/09/2026):**
+  - `src/domain/fees.ts`:
+    - Adicionada constante oficial `CUSTODIA_MENSAL_POR_MOEDA_CENTS = 200` (R$ 2,00/moeda/mês).
+    - Adicionada constante `CUSTODIA_ANUAL_POR_MOEDA_CENTS = 2400` (R$ 24,00/moeda/ano em até 12x).
+    - Funções puras `custodiaMensalPorMoeda(qtd)` e `custodiaAnualPorMoeda(qtd)`.
+    - `custodyFeeForCount` mantido como alias compatível direcionando para `custodiaMensalPorMoeda`.
+  - `src/domain/types.ts`:
+    - Adicionado `StatusFatura` ('paga' | 'pendente' | 'atrasada' | 'cancelada') e `FormaPagamentoFatura` ('saldo' | 'pix' | 'cartao').
+    - Adicionada interface `FaturaCustodia` e campo `faturasCustodia?: FaturaCustodia[]` no `AppState`.
+    - Adicionada flag `inadimplente?: boolean` na interface `User`.
+- **Domínio de custódia e inadimplência (`src/domain/custody.ts` e `src/domain/custody.test.ts`):**
+  - Funções puras: `competenciaAtual`, `calcularVencimentoFatura` (D+10 dias de tolerância), `gerarFaturaParaUsuario`, `verificarStatusFatura` e `isInadimplente`.
+  - 12 testes unitários passando cobrindo cálculo por moeda ativa, tolerância e inadimplência.
+- **DRE Consolidada com 4 fontes de receita (`src/domain/dre.ts` e `src/domain/dre.test.ts`):**
+  - Adicionadas as contas `3.1.03` (*Receita de tarifas de saque*) e `3.1.04` (*Receita de tarifas de retirada física*) ao `PLANO_DE_CONTAS`.
+  - Em `montarDre`: cálculo e segregação das quatro receitas (`receitaComissoes`, `receitaCustodia`, `receitaTaxaSaque`, `receitaTaxaRetirada`) totalizando `receitaBruta`.
+  - Testes passando comprovando a segregação das 4 receitas no ledger.
+- **Banco de Dados e Persistência (Migration 010):**
+  - `src/server/db/migrations/010_faturamento_custodia.sql`:
+    - Adição da coluna `inadimplente boolean NOT NULL DEFAULT false` na tabela `aurea.users`.
+    - Criação da tabela `aurea.faturas_custodia` com restrições e unicidade `(user_email, competencia)`.
+    - RLS ativado (`ENABLE ROW LEVEL SECURITY`).
+  - `src/server/db/repositories/faturas.ts`: repositório com `carregarFaturas`, `inserirFatura`, `atualizarFatura`, `buscarFaturasPorUsuario` e `buscarFaturaPorId`.
+  - `src/server/db/repositories/users.ts`: persistência e leitura da coluna `inadimplente`.
+  - `src/server/db/diff.ts` e `src/server/db/repositories/state.ts`:
+    - Operações de diff `fatura.inserir` e `fatura.atualizar`, normalização canônica e inclusão no `carregarEstado` e `executarOperacao`.
+  - `src/server/db/derivar.ts`:
+    - Quando fatura é quitada com saldo em conta (`user.balance -= valor`), gera lançamento contábil `custodia` com `sinal = -1`.
+    - **Invariante contábil:** fechamento rigoroso em 0 centavos de ajuste espúrio.
+  - `src/server/db/db.test.ts`: inclusão de `faturas_custodia` no `TRUNCATE`, verificação de RLS e teste de ciclo de vida completo no PGlite.
+- **Serviço de Faturamento, Server Actions e Cron Job:**
+  - `src/server/custodia/faturamento.ts`:
+    - `processarCicloFaturamento`: loop mensal idempotente, varredura de usuários, emissão de faturas, débito automático em saldo, régua de tolerância e marcação de inadimplência.
+    - `pagarFaturaCustodiaComSaldo`: quitação manual de fatura pendente com saldo disponível e desmarcação automática de inadimplência.
+  - `src/server/actions/custody.ts`: inclusão da Server Action `pagarFaturaCustodia`.
+  - `src/app/api/cron/faturamento/route.ts`: endpoint do cron protegido por `CRON_SECRET`.
+  - `vercel.json`: agendamento configurado `"0 8 1 * *"` para `/api/cron/faturamento`.
+- **Documentação e Tutoriais:**
+  - `docs/tutoriais/TUTORIAL_FATURAMENTO_CUSTODIA.md`: guia detalhado das regras de faturamento, invariante contábil, inadimplência e cron.
+  - `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md`: item B-5 registrado para a migration 010.
+
+### 2. O que foi testado e como
+- **Testes de Taxas e Domínio (`src/domain/fees.test.ts` e `src/domain/custody.test.ts`):** 16 testes unitários.
+- **Testes de Serviço (`src/server/custodia/faturamento.test.ts`):** 5 testes cobrindo débito automático, pendência por saldo insuficiente, idempotência, vencimento e quitação com saldo.
+- **Testes da DRE Consolidada (`src/domain/dre.test.ts`):** 6 testes validando o reconhecimento das 4 fontes de receita.
+- **Testes de Integração em Banco Real PGlite (`src/server/db/db.test.ts`):** 25 testes passando incluindo a migration 010, RLS e persistência de faturas.
+
+---
+
 ## Sessão B-4 — Saque de recursos (`migration 009`), liquidação manual (RA-30) e relatórios
 **Data:** 11/09/2026  
 **Status:** Concluída com sucesso

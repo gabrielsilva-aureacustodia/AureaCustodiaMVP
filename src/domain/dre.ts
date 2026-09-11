@@ -117,6 +117,8 @@ export interface ContaContabil {
 export const PLANO_DE_CONTAS: readonly ContaContabil[] = [
   { codigo: '3.1.01', nome: 'Receita de comissões de corretagem', natureza: 'receita', automatica: true },
   { codigo: '3.1.02', nome: 'Receita de custódia', natureza: 'receita', automatica: true },
+  { codigo: '3.1.03', nome: 'Receita de tarifas de saque', natureza: 'receita', automatica: true },
+  { codigo: '3.1.04', nome: 'Receita de tarifas de retirada física', natureza: 'receita', automatica: true },
   { codigo: '3.1.99', nome: 'Outras receitas operacionais', natureza: 'receita', automatica: false },
   { codigo: '3.2.01', nome: 'ISS', natureza: 'deducao', automatica: true },
   { codigo: '3.2.02', nome: 'PIS', natureza: 'deducao', automatica: true },
@@ -216,6 +218,8 @@ export interface LinhaDre {
 export interface TotaisDre {
   receitaComissoes: Cents
   receitaCustodia: Cents
+  receitaTaxaSaque: Cents
+  receitaTaxaRetirada: Cents
   outrasReceitas: Cents
   receitaBruta: Cents
   iss: Cents
@@ -270,6 +274,8 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   const noPer = ledger.filter((l) => noPeriodo(l.createdAt, periodo))
   const comissoes = noPer.filter((l) => l.tipo === 'comissao')
   const custodias = noPer.filter((l) => l.tipo === 'custodia')
+  const taxasSaque = noPer.filter((l) => l.tipo === 'taxa_saque')
+  const taxasRetirada = noPer.filter((l) => l.tipo === 'taxa_retirada')
   const manuaisNoPer = manuais.filter((m) => noPeriodo(m.data, periodo))
 
   /* receita de comissões: o valor retido, congelado no ledger */
@@ -279,6 +285,12 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   const vigentePorUsuario = new Map<string, LedgerEntry>()
   for (const l of custodias) vigentePorUsuario.set(l.userEmail, l) // o ledger vem em ordem de id
   const receitaCustodia = [...vigentePorUsuario.values()].reduce((s, l) => s + l.valor, 0)
+
+  /* receita de tarifas de saque: taxa fixa retida no saque de recursos */
+  const receitaTaxaSaque = taxasSaque.reduce((s, l) => s + l.valor, 0)
+
+  /* receita de tarifas de retirada física */
+  const receitaTaxaRetirada = taxasRetirada.reduce((s, l) => s + l.valor, 0)
 
   /* lançamentos manuais, por conta */
   const porConta = new Map<string, Cents>()
@@ -297,7 +309,7 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   const outrasReceitas = somaNatureza('receita')
   const despesasOperacionais = somaNatureza('despesa')
 
-  const receitaBruta = receitaComissoes + receitaCustodia + outrasReceitas
+  const receitaBruta = receitaComissoes + receitaCustodia + receitaTaxaSaque + receitaTaxaRetirada + outrasReceitas
 
   /* deduções sobre a receita bruta */
   const comBp = (bp: number | null, rotulo: string): Cents => {
@@ -339,6 +351,8 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   const totais: TotaisDre = {
     receitaComissoes,
     receitaCustodia,
+    receitaTaxaSaque,
+    receitaTaxaRetirada,
     outrasReceitas,
     receitaBruta,
     iss,
@@ -362,7 +376,9 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   }
   linha('3', 'RECEITA BRUTA', receitaBruta, 0)
   linha('3.1.01', 'Receita de comissões de corretagem', receitaComissoes, 2, `${comissoes.length} negociação(ões)`)
-  linha('3.1.02', 'Receita de custódia', receitaCustodia, 2, 'cobrança vigente por conta; registrada, não debitada')
+  linha('3.1.02', 'Receita de custódia', receitaCustodia, 2, 'cobrança de custódia')
+  linha('3.1.03', 'Receita de tarifas de saque', receitaTaxaSaque, 2, `${taxasSaque.length} saque(s) tarifado(s)`)
+  linha('3.1.04', 'Receita de tarifas de retirada física', receitaTaxaRetirada, 2, `${taxasRetirada.length} retirada(s) física(s)`)
   linha('3.1.99', 'Outras receitas operacionais', outrasReceitas, 2, outrasReceitas ? 'lançamento manual' : null)
   linha('3.2', '(−) Deduções da receita', -deducoes, 1)
   linha('3.2.01', 'ISS', -iss, 2, parametros.issBp === null ? 'não configurado' : `${fmtBp(parametros.issBp)} sobre a receita bruta`)

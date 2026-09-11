@@ -137,7 +137,7 @@ function suite(alvo: Alvo): void {
           `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
-                    ${S}.saques,
+                    ${S}.saques, ${S}.faturas_custodia,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
@@ -174,6 +174,8 @@ function suite(alvo: Alvo): void {
         'deposits',
         'envios',
         'exportacoes',
+        // Migration 010 — faturamento de custódia (Sessão B-5).
+        'faturas_custodia',
         'lancamentos_manuais',
         'ledger_entries',
         'parametros_contabeis',
@@ -569,6 +571,60 @@ function suite(alvo: Alvo): void {
       expect(lido.saques?.[0].status).toBe('pago')
       expect(lido.saques?.[0].comprovanteRef).toBe('PIX-123456')
       expect(lido.saques?.[0].pagoEm).toBe(1_700_100_000_000)
+    })
+
+    it('faturas: persiste fatura de custódia, liquidação e recarrega fielmente', async () => {
+      await lerEstado(executar)
+      const email = 'gabrielsilva@testeaurea.com.br'
+
+      await mutarEstado(executar, (s) => {
+        s.faturasCustodia = [
+          {
+            id: 'FAT-2026-09-gabriel',
+            userEmail: email,
+            competencia: '2026-09',
+            quantidadeMoedas: 3,
+            moedaIds: ['RO-000001', 'RO-000002', 'RO-000003'],
+            valorCents: 600,
+            status: 'pendente',
+            dataEmissao: 1_700_000_000_000,
+            dataVencimento: 1_700_864_000_000,
+            dataPagamento: null,
+            formaPagamento: null,
+            paymentIntentId: null,
+          },
+        ]
+      })
+
+      let lido = await lerEstado(executar)
+      expect(lido.faturasCustodia).toHaveLength(1)
+      expect(lido.faturasCustodia?.[0]).toMatchObject({
+        id: 'FAT-2026-09-gabriel',
+        userEmail: email,
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        valorCents: 600,
+        status: 'pendente',
+      })
+
+      // Liquida a fatura com saldo
+      await mutarEstado(executar, (s) => {
+        const f = s.faturasCustodia?.find((x) => x.id === 'FAT-2026-09-gabriel')
+        if (f) {
+          f.status = 'paga'
+          f.dataPagamento = 1_700_050_000_000
+          f.formaPagamento = 'saldo'
+          s.users[email].balance -= f.valorCents
+        }
+        s.users[email].inadimplente = false
+      })
+
+      lido = await lerEstado(executar)
+      expect(lido.faturasCustodia?.[0]).toMatchObject({
+        id: 'FAT-2026-09-gabriel',
+        status: 'paga',
+        formaPagamento: 'saldo',
+      })
     })
 
     it('apagar histórico é erro, e a transação inteira volta atrás', async () => {

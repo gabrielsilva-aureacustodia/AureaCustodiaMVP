@@ -269,5 +269,6 @@ export function seedState(): AppState {
     // estacao ganha hash real.
     analises: [],
     saques: [],
+    faturasCustodia: [],
   }
 }

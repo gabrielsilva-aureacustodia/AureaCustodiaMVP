@@ -66,4 +66,18 @@ A migration adiciona apenas as colunas `tipo_operacao` (com default `'deposito'`
 A migration cria a tabela `aurea.saques` com restrições e índices, e atualiza a constraint de tipos no livro contábil (`aurea.ledger_entries`).
 Operacionalmente, os saques entram no status `solicitado` com prazo D+3 úteis e são liquidados manualmente pelo sócio via Pix (RA-30), conforme detalhado em [`docs/tutoriais/TUTORIAL_GATEWAY_SAQUE.md`](../tutoriais/TUTORIAL_GATEWAY_SAQUE.md).
 
+---
+
+### B-5 · Aplicar a migration 010 no Supabase de produção 🟡
+
+| | |
+|---|---|
+| **O que falta** | Executar a migration `010_faturamento_custodia.sql` no banco Supabase |
+| **Quem pode fazer** | **Gabriel** via `npm run db:migrate` com a senha do banco, ou colando o SQL no editor do Supabase |
+| **O que está bloqueado** | Persistência da tabela de faturas de custódia (`aurea.faturas_custodia`) e coluna `inadimplente` em `aurea.users` em produção com Postgres conectado |
+| **Como conferir que foi feito** | `npm run db:check` reporta `010_faturamento_custodia` aplicada e tabela `aurea.faturas_custodia` presente |
+
+A migration cria a tabela `aurea.faturas_custodia` com restrições e chave de unicidade `(user_email, competencia)`, adiciona a coluna `inadimplente` na tabela `aurea.users` e habilita RLS.
+Totalmente inócua e retrocompatível com as contas existentes.
+
 
