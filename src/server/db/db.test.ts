@@ -132,10 +132,9 @@ function suite(alvo: Alvo): void {
       await executar(async (tx) => {
         await tx.query(
           // As três tabelas da migration 002 apontam para `users` e `envios`, e
-          // `retiradas` (migration 007) aponta para `coins` e `users`. O Postgres
-          // recusa truncar uma tabela referenciada se quem a referencia ficar de
-          // fora da mesma instrução.
-          `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+          // o Postgres recusa truncar uma tabela referenciada se quem a
+          // referencia ficar de fora da mesma instrução.
+          `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
@@ -183,8 +182,6 @@ function suite(alvo: Alvo): void {
         'rastreios',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
-        // Migration 009 — retiradas físicas da custódia (frente C).
-        'retiradas',
         'schema_migrations',
         'sell_offers',
         'seq',

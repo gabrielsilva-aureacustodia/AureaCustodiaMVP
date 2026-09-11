@@ -6,6 +6,58 @@ Repositório: `github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP`
 
 ---
 
+## Sessão B-2 — Tela e travas do cadastro formal progressivo e trava do saque
+**Data:** 10/09/2026  
+**Status:** Concluída com sucesso
+
+### 1. O que entrou
+- **Regras e utilitários de domínio em `src/domain/cadastro.ts`:**
+  - `temCadastroCompleto(user)`: valida presença de todos os dados cadastrais obrigatórios e dados bancários/Pix.
+  - `temDadosBancarios(user)`: valida se há chave Pix válida ou conta bancária completa configurada.
+  - Formatadores de máscara: `formatarCpf`, `formatarCep`, `formatarTelefone` e `descreverDadosBancarios`.
+  - Módulo 100% puro, sem dependência de I/O ou React.
+- **Componente `ModalCadastro.tsx` em `src/components/account/`:**
+  - Modal do cadastro formal progressivo, acionado apenas quando há movimentação de dinheiro.
+  - Coleta: CPF (validação instantânea por módulo 11), Nome Completo, Data de Nascimento, Telefone com DDD.
+  - Endereço com busca automática de CEP via `consultarCepEnvio(cep)`: preenchimento instantâneo de logradouro, bairro, cidade e UF.
+  - Dados bancários para saque: alternância entre Chave Pix (CPF, E-mail, Telefone, Aleatória) e Conta Bancária (Banco, Agência, Conta com dígito e Tipo de Conta).
+  - Aviso explícito de privacidade e LGPD: menção formal de que fotos de documento (RG/CNH), selfies e biometria facial não são coletadas (dispensa jurídica de Felipe Moraes e Gabriel).
+  - Submissão via Server Action `salvarCadastro()`.
+- **Travas e integrações em `src/components/account/AccountModals.tsx`:**
+  - `ModalDeposito`: defesa em profundidade que intercepta tentativas de depósito direto por usuário sem cadastro completo, oferecendo o botão para completar o cadastro.
+  - `ModalDadosPessoais`: inclusão do cartão de status cadastral com atalho para edição no modal completo.
+  - `ModalSaqueInfo`: modal informativo de prontidão para a etapa de saque (B-4), com confirmação da taxa fixa de R$ 5,00, prazo D+3 e destino bancário cadastrado.
+- **Interface e trava de saque em `src/app/(app)/conta/page.tsx`:**
+  - Botão **Depositar**: se `!temCadastroCompleto(me)`, abre `ModalCadastro` com redirecionamento automático para `ModalDeposito` após salvar.
+  - Botão **Sacar** (Trava 1 / Regra 3.3 do Plano Executivo):
+    - Botão visível permanentemente (nunca escondido).
+    - Desabilitado se `!temDadosBancarios(me)`, acompanhado do aviso: *"Cadastre sua chave Pix ou dados bancários para liberar saques (prazo D+3)."* e link *"Cadastrar dados"* abrindo o modal.
+    - Habilitado se os dados bancários estiverem preenchidos, abrindo `ModalSaqueInfo`.
+- **Saneamento e independência de testes em `src/server/db/db.test.ts`:**
+  - Removidas referências prematuras à tabela `retiradas` (pertencente à frente C / migration 009) que quebravam a execução da suíte de testes PGlite na branch `feat/cadastro-financeiro`.
+
+### 2. O que foi testado e como
+- **Testes unitários de domínio (`src/domain/cadastro.test.ts`):**
+  - 14 testes cobrindo `temCadastroCompleto` (completude, ausência de campos, rejeição de telefones curtos, validação de endereço), `temDadosBancarios` (Pix vs conta tradicional) e funções de máscara/descrição.
+- **Verificação completa de integridade do projeto:**
+  - `npm run typecheck`: ✅ verde (0 erros de tipagem)
+  - `npm run lint`: ✅ verde (0 erros, 0 warnings)
+  - `npm test`: ✅ 33 suítes, 229 testes passando
+  - `npm run build`: ✅ 23 páginas estáticas e rotas compiladas sem warnings
+- **Varredura de terminologia proibida:**
+  - `git grep -inE "NFT|token|cripto|ativo digital|investimento" -- src/domain/cadastro.ts src/domain/cadastro.test.ts src/components/account/ModalCadastro.tsx src/components/account/AccountModals.tsx "src/app/(app)/conta/page.tsx"`
+  - 0 ocorrências de termos regulatórios proibidos em texto visível ao cliente.
+
+### 3. O que ficou de manual
+- Nenhuma pendência manual nova gerada na Sessão B-2.
+
+### 4. O que o próximo agente precisa saber
+- O cadastro progressivo está ativo e pronto para ser chamado em qualquer ponto de movimentação financeira.
+- Na Sessão B-3 (Compra direta no gateway), se o usuário tentar comprar direto sem cadastro prévio, a mesma regra de trava progressiva deve ser acionada.
+- Na Sessão B-4 (Saque), a ação `solicitarSaque` consumirá os dados bancários já validados e persistidos pelo cadastro.
+
+---
+
 ## Sessão B-1 — Modelo do cadastro formal (`migration 007`)
 **Data:** 10/09/2026  
 **Status:** Concluída com sucesso

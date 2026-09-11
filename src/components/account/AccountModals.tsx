@@ -37,6 +37,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { DEPOSITO_MAX } from '@/domain/constants'
+import { descreverDadosBancarios, temCadastroCompleto } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
@@ -44,6 +45,7 @@ import { useModal } from '@/components/ui/Modal'
 import { changePassword, deposit, toggleNotif, updatePersonal } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
 import type { DepositoIniciado } from '@/server/payments/tipos'
+import { ModalCadastro } from './ModalCadastro'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -67,13 +69,14 @@ const NOTIF_LABEL: Record<NotifKey, string> = {
 
 export function ModalDadosPessoais(): ReactNode {
   const { me, session, run } = useApp()
-  const { close } = useModal()
+  const { close, open } = useModal()
 
   // O original lia o valor do input só na hora de salvar. Aqui o campo é
   // controlado — é o que permite desabilitar o botão durante o envio sem
   // perder o que foi digitado.
   const [nome, setNome] = useState(me.name)
   const [salvando, setSalvando] = useState(false)
+  const completo = temCadastroCompleto(me)
 
   async function salvar(): Promise<void> {
     setSalvando(true)
@@ -103,6 +106,43 @@ export function ModalDadosPessoais(): ReactNode {
       {/* `disabled` já basta para o React aceitar um campo sem onChange — e é
           exatamente o atributo que o original usava (linha 2740). */}
       <input className="tinput" value={session} disabled style={{ opacity: 0.6 }} />
+
+      {/* Identificação formal progressiva (Agente B) */}
+      <div className="field-lbl" style={{ marginTop: 18 }}>
+        Cadastro formal e bancário
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 14px',
+          background: 'var(--input-bg)',
+          borderRadius: 8,
+          border: '1px solid var(--line-soft)',
+          marginBottom: 10,
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-strong)' }}>
+            {completo ? 'Cadastro completo' : 'Cadastro pendente'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            {completo
+              ? `${me.cadastro?.cpf ? `CPF ${me.cadastro.cpf} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
+              : 'Necessário para depósitos e saques'}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn btn-outline"
+          style={{ padding: '6px 14px', fontSize: 12, width: 'auto', flexShrink: 0 }}
+          onClick={() => open(<ModalCadastro motivo="configuracoes" />)}
+        >
+          {completo ? 'Editar dados' : 'Completar'}
+        </button>
+      </div>
 
       <div className="m-actions">
         <button className="btn btn-outline" type="button" onClick={close}>
@@ -261,7 +301,7 @@ export function ModalNotificacoes(): ReactNode {
  */
 export function ModalDeposito(): ReactNode {
   const { me, run } = useApp()
-  const { close } = useModal()
+  const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -270,6 +310,46 @@ export function ModalDeposito(): ReactNode {
   // paga no aplicativo do banco.
   const [pix, setPix] = useState<DepositoIniciado | null>(null)
   const [erroMp, setErroMp] = useState('')
+
+  // Defesa em profundidade (Agente B): se a modal de depósito for invocada diretamente
+  // sem cadastro completo, orienta a pessoa a preencher antes de continuar.
+  if (!temCadastroCompleto(me)) {
+    return (
+      <>
+        <h3 className="serif">Cadastro necessário</h3>
+        <p style={{ marginBottom: 14 }}>
+          Por conformidade legal e fiscal, é necessário completar seu cadastro antes de realizar o
+          primeiro depósito em conta.
+        </p>
+
+        <div className="note" style={{ marginBottom: 16 }}>
+          A Áurea Custódia protege o que tem valor para gerações. Seus dados são protegidos sob a LGPD
+          e utilizados exclusivamente para identificação fiscal e transferências bancárias. Não
+          solicitamos fotos de documentos nem biometria facial.
+        </div>
+
+        <div className="m-actions">
+          <button className="btn btn-outline" type="button" onClick={close}>
+            Cancelar
+          </button>
+          <button
+            className="btn btn-gold"
+            type="button"
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="deposito"
+                  onSuccess={() => open(<ModalDeposito />)}
+                />,
+              )
+            }
+          >
+            Completar cadastro
+          </button>
+        </div>
+      </>
+    )
+  }
 
   const cents = parsePrice(valorTexto)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
@@ -430,3 +510,62 @@ export function ModalDeposito(): ReactNode {
     </>
   )
 }
+
+/* -------------------------------------------------------------------------
+ * Saque de recursos (informativo / prontidão para B-4)
+ * ---------------------------------------------------------------------- */
+
+export function ModalSaqueInfo(): ReactNode {
+  const { me } = useApp()
+  const { close, open } = useModal()
+
+  return (
+    <>
+      <h3 className="serif">Saque de recursos</h3>
+      <p style={{ marginBottom: 12 }}>
+        Dados bancários e regras para solicitação de saque de saldo disponível.
+      </p>
+
+      <div className="summary-row">
+        <span className="k">Saldo disponível</span>
+        <span className="v">{brl(me.balance)}</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Tarifa de saque</span>
+        <span className="v">R$ 5,00 (fixa)</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Prazo de liquidação</span>
+        <span className="v">D+3 (72 horas úteis)</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Destino cadastrado</span>
+        <span className="v">{descreverDadosBancarios(me.cadastro?.dadosBancarios)}</span>
+      </div>
+
+      <div className="note" style={{ marginTop: 14 }}>
+        A liquidação direta com débito de taxa e prazo D+3 será disponibilizada na próxima etapa
+        (Sessão B-4). Seus dados estão validados e prontos para recebimento.
+      </div>
+
+      <div className="m-actions">
+        <button
+          className="btn btn-outline"
+          type="button"
+          onClick={() => open(<ModalCadastro motivo="saque" />)}
+        >
+          Editar dados bancários
+        </button>
+        <button className="btn btn-gold" type="button" onClick={close}>
+          Entendido
+        </button>
+      </div>
+    </>
+  )
+}
+
+export { ModalCadastro }
+
