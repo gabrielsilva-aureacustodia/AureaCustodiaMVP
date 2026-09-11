@@ -427,3 +427,118 @@ export interface ActionResult<T = unknown> {
   error?: string
   data?: T
 }
+
+/* === Publicação · Agente C === */
+
+/** Modalidade de retirada da moeda física (decisão D-1). */
+export type ModalidadeRetirada = 'comum' | 'segura'
+
+/**
+ * Estados do ciclo de vida da retirada física da moeda:
+ * solicitada -> paga -> separacao -> postada -> entregue (ou cancelada).
+ */
+export type StatusRetirada =
+  | 'solicitada'
+  | 'paga'
+  | 'separacao'
+  | 'postada'
+  | 'entregue'
+  | 'cancelada'
+
+/**
+ * Snapshot do endereço de destino congelado no momento da solicitação de retirada.
+ * Não é uma referência dinâmica ao cadastro — se o cliente alterar o endereço
+ * posteriormente, a etiqueta e os documentos já emitidos permanecem vinculados ao endereço confirmado.
+ */
+export interface EnderecoEntrega {
+  nome: string
+  cpfOuCnpj: string
+  logradouro: string
+  numero: string
+  complemento?: string
+  bairro: string
+  cidade: string
+  uf: string
+  cep: string
+  telefone: string
+}
+
+/** Registro de transição de estado da retirada. */
+export interface EventoHistoricoRetirada {
+  de: StatusRetirada | null
+  para: StatusRetirada
+  data: Timestamp
+  motivo?: string
+  autor?: string
+}
+
+/**
+ * Solicitação e operação de retirada física da moeda de custódia.
+ */
+export interface Retirada {
+  /** Identificador único da retirada: 'RET-000001'. */
+  id: string
+  /** Código sequencial global da moeda sendo retirada: 'RO-000042'. */
+  coinId: string
+  /** Código do recibo extinto na retirada: 'REC-000042'. */
+  reciboCodigo: string
+  /** E-mail do solicitante / proprietário da moeda. */
+  userEmail: UserEmail
+  /** Modalidade escolhida: 'comum' (R$ 50,00) ou 'segura' (R$ 180,00 em 2x). */
+  modalidade: ModalidadeRetirada
+  /** Estado atual no fluxo de retirada. */
+  status: StatusRetirada
+  /** Valor cobrado pela operação em centavos inteiros (Cents). */
+  valorTaxaCents: Cents
+  /** Endereço congelado no momento do pedido. */
+  endereco: EnderecoEntrega
+  /** Data/hora do pedido de retirada (relógio do servidor). */
+  solicitadoEm: Timestamp
+  /** Data/hora da confirmação do pagamento da taxa. */
+  pagoEm?: Timestamp
+  /** Prazo-limite D+30 calculado a partir do momento de solicitação com endereço confirmado. */
+  dataLimiteD30: Timestamp
+  /** Código de rastreamento oficial dos Correios (quando postada). */
+  codigoRastreio?: string
+  /** Trilha de auditoria e transições de estado da retirada. */
+  historico: EventoHistoricoRetirada[]
+}
+
+/* === Publicação · Agente B === */
+
+export type TipoChavePix = 'cpf' | 'email' | 'telefone' | 'aleatoria'
+export type TipoContaBancaria = 'corrente' | 'poupanca'
+
+export interface DadosBancarios {
+  chavePix?: string
+  tipoChavePix?: TipoChavePix
+  banco?: string
+  agencia?: string
+  conta?: string
+  tipoConta?: TipoContaBancaria
+}
+
+export interface Endereco {
+  logradouro: string
+  numero: string
+  complemento?: string
+  bairro: string
+  cidade: string
+  uf: string
+  cep: string
+}
+
+export interface Cadastro {
+  cpf: string
+  nomeCompleto: string
+  dataNascimento: string
+  telefone: string
+  endereco: Endereco
+  dadosBancarios: DadosBancarios
+  completadoEm: Timestamp
+  confirmadoEm?: Timestamp
+}
+
+export interface User {
+  cadastro?: Cadastro
+}

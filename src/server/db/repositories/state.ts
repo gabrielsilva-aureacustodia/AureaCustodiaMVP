@@ -87,6 +87,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
     if (user.lastAccess !== null) u.lastAccess = user.lastAccess
     if (user.prevAccess !== null) u.prevAccess = user.prevAccess
     if (user.settings !== null) u.settings = user.settings
+    if (user.cadastro !== null) u.cadastro = user.cadastro
     users[email] = u
   }
 

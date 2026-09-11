@@ -25,11 +25,12 @@
 import { ACCOUNTS, DEPOSITO_MAX } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
-import type { ActionResult, Cents } from '@/domain/types'
+import { limparCpf, validarCpf } from '@/domain/cpf'
+import type { ActionResult, Cadastro, Cents } from '@/domain/types'
 import { createAuthClient } from '@/server/auth/client'
 import { AuthConfigurationError } from '@/server/auth/config'
 import { getSessionEmail } from '@/server/session'
-import { mutateState } from '@/server/state'
+import { getState, mutateState } from '@/server/state'
 
 /** Cookie ausente, expirado ou com assinatura que não bate. */
 const SESSAO_EXPIRADA = 'Sessão expirada.'
@@ -290,3 +291,150 @@ export async function toggleNotif(key: NotifKey): Promise<ActionResult> {
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }
+
+/**
+ * Payload de entrada para preenchimento do cadastro formal progressivo (sessão B-1 / B-2).
+ */
+export interface CadastroInput {
+  cpf: string
+  nomeCompleto: string
+  dataNascimento: string // YYYY-MM-DD
+  telefone: string
+  endereco: {
+    logradouro: string
+    numero: string
+    complemento?: string
+    bairro: string
+    cidade: string
+    uf: string
+    cep: string
+  }
+  dadosBancarios: {
+    chavePix?: string
+    tipoChavePix?: 'cpf' | 'email' | 'telefone' | 'aleatoria'
+    banco?: string
+    agencia?: string
+    conta?: string
+    tipoConta?: 'corrente' | 'poupanca'
+  }
+}
+
+/**
+ * Salva ou atualiza o cadastro formal progressivo do usuário autenticado (sessão B-1).
+ *
+ * Exigido no primeiro movimento de dinheiro (depósito, compra direta, saque).
+ * Não pede upload de documento nem biometria (dispensados pelo jurídico).
+ */
+export async function salvarCadastro(input: CadastroInput): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!input) return { ok: false, error: 'Dados cadastrais não informados.' }
+
+  if (!validarCpf(input.cpf)) {
+    return { ok: false, error: 'CPF inválido.' }
+  }
+
+  const nomeCompleto = (input.nomeCompleto || '').trim()
+  if (nomeCompleto.length < 3) {
+    return { ok: false, error: 'Informe seu nome completo.' }
+  }
+
+  const dataNascimento = (input.dataNascimento || '').trim()
+  if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
+    return { ok: false, error: 'Data de nascimento inválida (use o formato AAAA-MM-DD).' }
+  }
+
+  const telefone = (input.telefone || '').replace(/\D/g, '')
+  if (telefone.length < 10 || telefone.length > 11) {
+    return { ok: false, error: 'Informe um telefone válido com DDD (10 ou 11 dígitos).' }
+  }
+
+  const end = input.endereco
+  if (
+    !end ||
+    !end.logradouro?.trim() ||
+    !end.numero?.trim() ||
+    !end.bairro?.trim() ||
+    !end.cidade?.trim() ||
+    !end.uf?.trim() ||
+    !end.cep?.trim()
+  ) {
+    return { ok: false, error: 'Endereço incompleto. Preencha todos os campos obrigatórios.' }
+  }
+
+  const cep = end.cep.replace(/\D/g, '')
+  if (cep.length !== 8) {
+    return { ok: false, error: 'CEP inválido (deve conter 8 dígitos).' }
+  }
+
+  const db = input.dadosBancarios
+  const temPix = Boolean(db?.chavePix?.trim() && db?.tipoChavePix)
+  const temConta = Boolean(db?.banco?.trim() && db?.agencia?.trim() && db?.conta?.trim() && db?.tipoConta)
+  if (!temPix && !temConta) {
+    return {
+      ok: false,
+      error: 'Informe uma chave Pix válida ou os dados bancários completos para recebimento.',
+    }
+  }
+
+  try {
+    const { result } = await mutateState<ActionResult>((s) => {
+      const u = s.users[email]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+      const cadastroAtualizado: Cadastro = {
+        cpf: limparCpf(input.cpf),
+        nomeCompleto,
+        dataNascimento,
+        telefone,
+        endereco: {
+          logradouro: end.logradouro.trim(),
+          numero: end.numero.trim(),
+          complemento: end.complemento?.trim() || undefined,
+          bairro: end.bairro.trim(),
+          cidade: end.cidade.trim(),
+          uf: end.uf.trim().toUpperCase(),
+          cep,
+        },
+        dadosBancarios: {
+          chavePix: db?.chavePix?.trim() || undefined,
+          tipoChavePix: db?.tipoChavePix,
+          banco: db?.banco?.trim() || undefined,
+          agencia: db?.agencia?.trim() || undefined,
+          conta: db?.conta?.trim() || undefined,
+          tipoConta: db?.tipoConta,
+        },
+        completadoEm: Date.now(),
+        confirmadoEm: Date.now(),
+      }
+
+      u.cadastro = cadastroAtualizado
+      return {
+        ok: true,
+        message: 'Cadastro concluído com sucesso.',
+      }
+    })
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Consulta os dados cadastrais do usuário autenticado.
+ */
+export async function obterCadastro(): Promise<ActionResult<Cadastro | null>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const s = await getState()
+    const u = s.users[email]
+    if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+    return { ok: true, data: u.cadastro ?? null }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+

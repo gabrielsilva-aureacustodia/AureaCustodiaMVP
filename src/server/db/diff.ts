@@ -34,6 +34,7 @@ import type {
   Analise,
   AppState,
   BuyOrder,
+  Cadastro,
   Cents,
   Coin,
   CustodyCharge,
@@ -57,6 +58,7 @@ export interface UserRegistro {
   lastAccess: number | null
   prevAccess: number | null
   settings: UserSettings | null
+  cadastro: Cadastro | null
 }
 
 /** A linha de `coins` + `recibos`: a moeda, seu dono e sua posição no inventário dele. */
@@ -84,6 +86,33 @@ export function normalizarUser(u: User): UserRegistro {
           notifEnvios: u.settings.notifEnvios,
           notifNegociacoes: u.settings.notifNegociacoes,
           notifNovidades: u.settings.notifNovidades,
+        }
+      : null,
+    cadastro: u.cadastro
+      ? {
+          cpf: u.cadastro.cpf,
+          nomeCompleto: u.cadastro.nomeCompleto,
+          dataNascimento: u.cadastro.dataNascimento,
+          telefone: u.cadastro.telefone,
+          endereco: {
+            logradouro: u.cadastro.endereco.logradouro,
+            numero: u.cadastro.endereco.numero,
+            complemento: u.cadastro.endereco.complemento ?? '',
+            bairro: u.cadastro.endereco.bairro,
+            cidade: u.cadastro.endereco.cidade,
+            uf: u.cadastro.endereco.uf,
+            cep: u.cadastro.endereco.cep,
+          },
+          dadosBancarios: {
+            chavePix: u.cadastro.dadosBancarios.chavePix ?? '',
+            tipoChavePix: u.cadastro.dadosBancarios.tipoChavePix,
+            banco: u.cadastro.dadosBancarios.banco ?? '',
+            agencia: u.cadastro.dadosBancarios.agencia ?? '',
+            conta: u.cadastro.dadosBancarios.conta ?? '',
+            tipoConta: u.cadastro.dadosBancarios.tipoConta,
+          },
+          completadoEm: u.cadastro.completadoEm,
+          confirmadoEm: u.cadastro.confirmadoEm,
         }
       : null,
   }

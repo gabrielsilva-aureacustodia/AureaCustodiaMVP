@@ -132,9 +132,10 @@ function suite(alvo: Alvo): void {
       await executar(async (tx) => {
         await tx.query(
           // As três tabelas da migration 002 apontam para `users` e `envios`, e
-          // o Postgres recusa truncar uma tabela referenciada se quem a
-          // referencia ficar de fora da mesma instrução.
-          `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+          // `retiradas` (migration 007) aponta para `coins` e `users`. O Postgres
+          // recusa truncar uma tabela referenciada se quem a referencia ficar de
+          // fora da mesma instrução.
+          `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
@@ -182,6 +183,8 @@ function suite(alvo: Alvo): void {
         'rastreios',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
+        // Migration 009 — retiradas físicas da custódia (frente C).
+        'retiradas',
         'schema_migrations',
         'sell_offers',
         'seq',
@@ -448,6 +451,72 @@ function suite(alvo: Alvo): void {
         settings: { twoFA: true, notifNegociacoes: false },
       })
       expect('prevAccess' in lido.users[email]).toBe(false) // era undefined: fica ausente, não null
+    })
+
+    it('cadastro formal: persiste e recarrega dados cadastrais sem afetar contas sem cadastro', async () => {
+      const semeado = await lerEstado(executar)
+      const [emailSemCadastro, emailComCadastro] = Object.keys(semeado.users)
+      expect(semeado.users[emailSemCadastro].cadastro).toBeUndefined()
+
+      await mutarEstado(executar, (s) => {
+        const u = s.users[emailComCadastro]
+        u.cadastro = {
+          cpf: '52998224725',
+          nomeCompleto: 'Investidor Teste Silva',
+          dataNascimento: '1985-05-15',
+          telefone: '11987654321',
+          endereco: {
+            logradouro: 'Rua das Flores',
+            numero: '123',
+            complemento: 'Apto 45',
+            bairro: 'Jardins',
+            cidade: 'São Paulo',
+            uf: 'SP',
+            cep: '01234000',
+          },
+          dadosBancarios: {
+            chavePix: '52998224725',
+            tipoChavePix: 'cpf',
+            banco: '001',
+            agencia: '1234',
+            conta: '56789-0',
+            tipoConta: 'corrente',
+          },
+          completadoEm: 1_700_000_000_000,
+          confirmadoEm: 1_700_000_000_000,
+        }
+      })
+
+      const lido = await lerEstado(executar)
+      // Conta sem cadastro continua intacta sem campo cadastro
+      expect(lido.users[emailSemCadastro].cadastro).toBeUndefined()
+
+      // Conta com cadastro tem todos os campos preservados
+      expect(lido.users[emailComCadastro].cadastro).toEqual({
+        cpf: '52998224725',
+        nomeCompleto: 'Investidor Teste Silva',
+        dataNascimento: '1985-05-15',
+        telefone: '11987654321',
+        endereco: {
+          logradouro: 'Rua das Flores',
+          numero: '123',
+          complemento: 'Apto 45',
+          bairro: 'Jardins',
+          cidade: 'São Paulo',
+          uf: 'SP',
+          cep: '01234000',
+        },
+        dadosBancarios: {
+          chavePix: '52998224725',
+          tipoChavePix: 'cpf',
+          banco: '001',
+          agencia: '1234',
+          conta: '56789-0',
+          tipoConta: 'corrente',
+        },
+        completadoEm: 1_700_000_000_000,
+        confirmadoEm: 1_700_000_000_000,
+      })
     })
 
     it('apagar histórico é erro, e a transação inteira volta atrás', async () => {
