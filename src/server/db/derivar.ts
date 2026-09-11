@@ -31,6 +31,7 @@ import {
   lancamentoDeCustodia,
   lancamentoDeDeposito,
   lancamentoDeSaldoInicial,
+  lancamentoDeTaxaRetirada,
   lancamentosDeTrade,
   type LancamentoPendente,
   type LedgerEntry,
@@ -87,6 +88,21 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     if (op.tipo !== 'custodyCharge.gravar') continue
     const quando = semeadura ? deDataBR(op.cobranca.dataCobranca, agora) : agora
     pendentes.push(lancamentoDeCustodia(op.email, op.cobranca, quando, null))
+  }
+
+  /* taxas de retirada física (moeda cujo recibo foi extinto nesta mutação com débito em conta) */
+  for (const op of ops) {
+    if (op.tipo !== 'coin.atualizar') continue
+    const moedaAntes = antes.users[op.registro.owner]?.coins.find((c) => c.id === op.registro.coin.id)
+    if (moedaAntes?.recibo.status === 'Ativo' && op.registro.coin.recibo.status === 'Extinto') {
+      const email = op.registro.owner
+      const saldoAntes = antes.users[email]?.balance ?? 0
+      const saldoDepois = depois.users[email]?.balance ?? 0
+      const taxaDebito = saldoAntes - saldoDepois
+      if (taxaDebito > 0) {
+        pendentes.push(lancamentoDeTaxaRetirada(email, taxaDebito, agora, op.registro.coin.id))
+      }
+    }
   }
 
   /* efeito líquido dos lançamentos acima, por conta */
@@ -217,6 +233,7 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   if (semeadura) acao = 'semeadura'
   else if (tem('trade.inserir')) acao = 'negociacao'
   else if (tem('deposit.inserir')) acao = 'deposito'
+  else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Extinto')) acao = 'retirada.solicitar'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

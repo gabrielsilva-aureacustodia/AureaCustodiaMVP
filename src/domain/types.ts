@@ -502,6 +502,8 @@ export interface Retirada {
   codigoRastreio?: string
   /** Trilha de auditoria e transições de estado da retirada. */
   historico: EventoHistoricoRetirada[]
+  createdAt?: Timestamp
+  updatedAt?: Timestamp
 }
 
 /* === Publicação · Agente A === */

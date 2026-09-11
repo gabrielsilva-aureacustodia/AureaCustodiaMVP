@@ -7,6 +7,80 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão C-2 · Fluxo no servidor, ledger de taxa de retirada e auditoria · 10/09/2026
+
+**Branch:** `feat/retirada-logistica`.
+**Base:** `c0ad95f` (Sessão C-1), com typecheck, lint, 228 testes e build verdes antes de qualquer edição.
+
+## 1. O que entrou
+
+### Ledger Contábil e Invariantes do Bloco 13
+- **`src/domain/ledger.ts`**: Adicionado `'taxa_retirada'` ao tipo `TipoLancamentoLedger` e criada a função pura `lancamentoDeTaxaRetirada(...)` com sinal estrito `-1` (débito de BRL no saldo do usuário).
+- **`src/server/db/migrations/010_retiradas_ledger.sql`**: Migration ajustando a constraint `CHECK` de `aurea.ledger_entries.tipo` para incluir `'taxa_retirada'`.
+- **`src/server/db/derivar.ts`**: Atualizado o motor de reconciliação de estado para detectar se a alteração de saldo decorre de solicitação de retirada física com recibo extinto (`'taxa_retirada'`), evitando lançamentos espúrios de `'ajuste'` e vinculando na auditoria a ação `'retirada.solicitar'`.
+
+### Repositório e Camada de Persistência
+- **`src/server/db/repositories/retiradas.ts`**: Funções de repositório contra Postgres/PGlite com transações protegidas:
+  - `inserirRetirada`
+  - `atualizarRetirada`
+  - `buscarRetiradaPorId`
+  - `buscarRetiradasPorUsuario`
+  - `buscarRetiradaPorCoinId`
+  - `listarTodasRetiradas`
+- **`src/server/shipping/retiradas.ts`**: Serviço de persistência no servidor (`IRepositorioRetiradas`) com resolução automática entre banco real (`PostgresRetiradas`) e fallback seguro para ambiente de teste/memória (`RepositorioRetiradasMemoria`).
+
+### Server Actions de Custódia
+- **`src/server/actions/custody.ts`**:
+  - Implementada a Server Action `solicitarRetirada(coinId, modalidade, endereco)`:
+    - Autenticação obrigatória via sessão.
+    - Validação de propriedade da moeda pelo usuário solicitante.
+    - Verificação de oferta de venda ativa no livro de ordens (recusa se a moeda estiver anunciada).
+    - Validação estrita de status do recibo (recusa se já estiver `'Extinto'`).
+    - Validação de endereço completo (Trava 2).
+    - Validação e cálculo de saldo para débito da taxa correspondente (D-1: R$ 50 comum, R$ 180 segura).
+    - Transição atômica e irreversível do recibo da moeda para `'Extinto'`.
+    - Débito do saldo contábil da taxa e registro da retirada com prazo D+30 e histórico inicial.
+  - Implementadas `obterMinhasRetiradas()` e `obterRetiradaPorCoin(coinId)`.
+  - Corrigido o CEP da Central de Custódia para `30315-970` (Belo Horizonte/MG) conforme D-6.
+
+### Relatórios do Painel de Custódia e Auditoria (Bloco 11)
+- **`src/server/relatorios/dados.ts`**: Registrado o relatório `'retiradas'` na lista oficial de relatórios do sistema, acessível via `/api/relatorios/retiradas`, emitindo visão analítica completa de todas as retiradas para os sócios e auditores.
+
+## 2. O que foi testado, e como
+
+### Comandos de Verificação (4 Verdes)
+- `npm run typecheck`: OK (0 erros).
+- `npm run lint`: OK (0 advertências/erros).
+- `npm test`: OK — **32 arquivos de teste, 236 testes passando** (14 testes unitários e de integração novos em `src/server/actions/retirada.test.ts` e testes de banco em `src/server/db/db.test.ts`).
+- `npm run build`: OK — build Next.js bem-sucedido com todas as rotas estáticas e dinâmicas compiladas.
+
+### Cobertura Específica de Testes
+- **`src/server/actions/retirada.test.ts`**:
+  - Solicitação bem-sucedida com débito da taxa e recibo tornando-se `'Extinto'` imediatamente.
+  - Recusa de solicitação para usuário não autenticado.
+  - Recusa se a moeda pertencer a outro usuário.
+  - Recusa se a moeda estiver listada em oferta de venda (`sellOffers`).
+  - Recusa se o recibo já estiver extinto (idempotência/proteção contra gasto duplo).
+  - Recusa com endereço incompleto ou inválido (Trava 2).
+  - Recusa se saldo em BRL for insuficiente para cobrir a taxa.
+  - Testes de consulta (`obterMinhasRetiradas` e `obterRetiradaPorCoin`).
+  - Emissão e estrutura do relatório em `relatorioRetiradas()`.
+- **`src/server/db/db.test.ts`**:
+  - Inserção, busca por id, busca por usuário e atualização de status em tabela Postgres via PGlite.
+
+## 3. O que ficou de manual
+
+- **C-1** 🟡 — Aplicação da migration `009_retiradas.sql` no banco Supabase.
+- **C-2** 🟡 — Aplicação da migration `010_retiradas_ledger.sql` no banco Supabase (atualização da constraint CHECK do ledger para aceitar `taxa_retirada`).
+
+## 4. O que o próximo agente precisa saber
+
+1. **`solicitarRetirada` já é a Server Action pronta para o botão da tela.** Na Sessão C-3, basta ligá-la ao modal/formulário em `Certificate.tsx` / `ReciboModal.tsx` e às telas de listagem em `src/app/(app)/retirada/` ou `src/app/(app)/envios/`.
+2. **O ledger reconhece a taxa sem ajuste espúrio.** Qualquer débito de taxa de retirada feito com recibo extinto gera lançamento com hash encadeado perfeito.
+3. **A migration 010 complementa a 009.** Nenhuma alteração foi feita em arquivos dos Agentes A e B.
+
+---
+
 # Sessão C-1 · Modelo e máquina de estados da retirada · 10/09/2026
 
 **Branch:** `feat/retirada-logistica`.

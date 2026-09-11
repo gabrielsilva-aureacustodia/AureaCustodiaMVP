@@ -24,7 +24,8 @@ import { verificarCadeia, type LedgerEntry } from '@/domain/ledger'
 import { medianSellPrice } from '@/domain/market'
 import { allCoinsFlat, coinStatusDigital, envioDateFor } from '@/domain/selectors'
 import { statementTotals, userStatement } from '@/domain/statement'
-import type { AppState } from '@/domain/types'
+import type { AppState, Retirada } from '@/domain/types'
+import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { listarAuditoria, type EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria'
 import {
@@ -77,6 +78,7 @@ export const NOMES_RELATORIOS = [
   'lancamentos-manuais',
   'parametros',
   'exportacoes',
+  'retiradas',
 ] as const
 
 export type NomeRelatorio = (typeof NOMES_RELATORIOS)[number]
@@ -98,6 +100,7 @@ export const TITULOS: Record<NomeRelatorio, string> = {
   'lancamentos-manuais': 'Lançamentos manuais',
   parametros: 'Parâmetros contábeis',
   exportacoes: 'Registro de exportações',
+  retiradas: 'Retiradas físicas de custódia',
 }
 
 /** Centavos -> reais com duas casas. 28500 -> 285 */
@@ -152,6 +155,7 @@ interface Fontes {
   parametrosLista: ParametroGravado[]
   saldosLedger: Record<string, number>
   exportacoes: Array<{ id: number; createdAt: number; relatorio: string; formato: string; destino: string; ator: string; linhas: number; ok: boolean; detalhe: string | null }>
+  retiradas: Retirada[]
   semBanco: boolean
 }
 
@@ -162,6 +166,7 @@ interface Fontes {
  */
 async function carregarFontes(): Promise<Fontes> {
   const state = await getState()
+  const retiradas = await repositorioRetiradas().listarTodas()
   if (!bancoConfigurado()) {
     return {
       state,
@@ -173,6 +178,7 @@ async function carregarFontes(): Promise<Fontes> {
       parametrosLista: [],
       saldosLedger: {},
       exportacoes: [],
+      retiradas,
       semBanco: true,
     }
   }
@@ -189,7 +195,7 @@ async function carregarFontes(): Promise<Fontes> {
         saldosPeloLedger(tx),
         listarExportacoes(tx, 500),
       ])
-    return { state, ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes, semBanco: false }
+    return { state, ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes, retiradas, semBanco: false }
   })
 }
 
@@ -481,6 +487,48 @@ function relatorioExportacoes(fontes: Fontes): Relatorio {
   return comLinhas(r, linhas, ['Id', 'Data', 'Relatorio', 'Formato', 'Destino', 'Ator', 'Linhas', 'Ok', 'Detalhe'])
 }
 
+function relatorioRetiradas(fontes: Fontes, periodo: Periodo | null): Relatorio {
+  const r = base('retiradas', fontes, periodo)
+  const todas = fontes.retiradas
+  const filtradas = periodo
+    ? todas.filter((x) => x.solicitadoEm >= periodo.inicio && x.solicitadoEm < periodo.fim)
+    : todas
+  const linhas = filtradas.map((ret) => ({
+    Id: ret.id,
+    Coin_Id: ret.coinId,
+    Recibo_Codigo: ret.reciboCodigo,
+    User_Email: ret.userEmail,
+    Modalidade: ret.modalidade,
+    Status: ret.status,
+    Valor_Taxa: reais(ret.valorTaxaCents),
+    Destinatario_Nome: ret.endereco.nome,
+    Destinatario_Cidade: ret.endereco.cidade,
+    Destinatario_UF: ret.endereco.uf,
+    Destinatario_CEP: ret.endereco.cep,
+    Solicitado_Em: dataHora(ret.solicitadoEm),
+    Pago_Em: ret.pagoEm ? dataHora(ret.pagoEm) : '',
+    Data_Limite_D30: dataHora(ret.dataLimiteD30),
+    Codigo_Rastreio: ret.codigoRastreio ?? '',
+  }))
+  return comLinhas(r, linhas, [
+    'Id',
+    'Coin_Id',
+    'Recibo_Codigo',
+    'User_Email',
+    'Modalidade',
+    'Status',
+    'Valor_Taxa',
+    'Destinatario_Nome',
+    'Destinatario_Cidade',
+    'Destinatario_UF',
+    'Destinatario_CEP',
+    'Solicitado_Em',
+    'Pago_Em',
+    'Data_Limite_D30',
+    'Codigo_Rastreio',
+  ])
+}
+
 function nomesDe(state: AppState): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [e, u] of Object.entries(state.users)) out[e] = u.name
@@ -533,6 +581,8 @@ function montarRelatorio(nome: NomeRelatorio, fontes: Fontes, opcoes: OpcoesRela
       return relatorioParametros(fontes)
     case 'exportacoes':
       return relatorioExportacoes(fontes)
+    case 'retiradas':
+      return relatorioRetiradas(fontes, recorte)
   }
 }
 

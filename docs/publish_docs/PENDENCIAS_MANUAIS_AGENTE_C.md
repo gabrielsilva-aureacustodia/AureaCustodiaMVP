@@ -45,6 +45,23 @@ npm run db:migrate
 
 ---
 
+### C-2 · Aplicação da migration 010 no Supabase de produção/staging 🟡
+
+| | |
+|---|---|
+| **O que falta** | Executar a migration `010_retiradas_ledger.sql` no banco Supabase (atualiza constraint CHECK do ledger para incluir `'taxa_retirada'`) |
+| **Quem pode fazer** | **Gabriel** (via terminal ou SQL Editor do Supabase) |
+| **O que está bloqueado** | Inserção de lançamentos contábeis de taxa de retirada em produção/staging |
+| **Como conferir que foi feito** | `npm run db:check` ou conferir constraint `ledger_entries_tipo_check` no Supabase |
+
+**Instruções para rodar no terminal (PowerShell no Windows):**
+```powershell
+cd C:\dev\AureaCustodiaMVP
+npm run db:migrate
+```
+
+---
+
 ## Resolvidas
 
 ### D-6 · Endereço oficial de recebimento dos Correios ✅ FEITO em 10/09

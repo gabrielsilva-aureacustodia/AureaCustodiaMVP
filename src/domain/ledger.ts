@@ -46,6 +46,7 @@ export type LedgerTipo =
   | 'custodia'
   | 'estorno'
   | 'ajuste'
+  | 'taxa_retirada'
 
 export type Sinal = -1 | 0 | 1
 
@@ -217,6 +218,27 @@ export function lancamentoDeAjuste(email: UserEmail, diferenca: Cents, quando: T
     refInterna: null,
     refExterna: null,
     descricao: motivo,
+  }
+}
+
+export function lancamentoDeTaxaRetirada(
+  email: UserEmail,
+  valor: Cents,
+  quando: Timestamp,
+  coinId: string,
+  descricao = `Taxa de retirada física da moeda ${coinId}`,
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'taxa_retirada',
+    valor,
+    sinal: -1,
+    tipoMoeda: null,
+    quantidade: 1,
+    refInterna: coinId,
+    refExterna: null,
+    descricao,
   }
 }
 
