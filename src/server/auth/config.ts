@@ -82,7 +82,7 @@ export function isAuthConfigured(): boolean {
  * /privacidade; o aceite continua sendo gravado com versão e data, mas a
  * ausência da variável não fecha mais o cadastro — ver RA-18.
  */
-const VERSAO_LEGAL_PADRAO = 'rascunho-teste-2026-09-06'
+const VERSAO_LEGAL_PADRAO = '1.0-2026-09-10'
 
 /**
  * O cadastro fica aberto sempre que o Supabase Auth existir no ambiente.

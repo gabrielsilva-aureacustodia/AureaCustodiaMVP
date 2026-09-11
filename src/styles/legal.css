@@ -6,7 +6,10 @@
   display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
 }
 .legal-header nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.legal-header nav>a:not(.btn){color:var(--gold);text-underline-offset:3px}
+.legal-header nav>a:not(.btn){
+  color:var(--gold);text-underline-offset:3px;
+  display:inline-flex;align-items:center;min-height:44px;padding:0 6px;
+}
 .legal-header .btn{min-height:44px;text-decoration:none}
 .legal-document{
   width:min(900px,calc(100% - 32px));margin:34px auto 70px;padding:clamp(24px,5vw,56px);
@@ -30,13 +33,102 @@
   color:var(--text-strong);font-weight:600;
 }
 .legal-content p,.legal-content li{color:var(--text);font-size:16px;line-height:1.7}
-.legal-content p+p{margin-top:12px}
-.legal-content ul{margin:12px 0 0 22px}
+.legal-content ul,.legal-content ol{margin:12px 0 0 22px}
 .legal-content li+li{margin-top:8px}
 .legal-content a{color:var(--gold);overflow-wrap:anywhere;text-underline-offset:3px}
+.legal-quote{
+  margin:18px 0;padding:18px 22px;background:var(--gold-wash);
+  border-left:4px solid var(--gold);border-radius:0 8px 8px 0;
+  color:var(--text-strong);font-size:16px;line-height:1.65;font-style:italic;
+}
 .legal-footer{
   width:min(1060px,calc(100% - 32px));margin:0 auto;padding:28px 0 40px;
   border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;
   gap:18px;flex-wrap:wrap;color:var(--text-muted);font-size:13px;
 }
-.legal-footer a{color:var(--gold);text-underline-offset:3px}
+.legal-footer-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.legal-footer a{
+  color:var(--gold);text-underline-offset:3px;
+  display:inline-flex;align-items:center;min-height:44px;padding:0 6px;
+}
+
+/* Modal de Aceite por Blocos (A-2) */
+.legal-blocks-modal{
+  display:flex;flex-direction:column;gap:14px;max-width:680px;width:100%;
+}
+.legal-blocks-header{display:flex;flex-direction:column;gap:6px}
+.legal-blocks-badge{
+  align-self:flex-start;padding:3px 10px;font-size:12px;font-weight:600;
+  color:var(--gold);background:var(--gold-wash);border:1px solid var(--gold);
+  border-radius:20px;letter-spacing:0.3px;
+}
+.legal-blocks-title{
+  margin:4px 0 0;font-size:22px;color:var(--text-strong);font-weight:600;line-height:1.2;
+}
+.legal-blocks-intro{
+  margin:0;color:var(--text-muted);font-size:14px;line-height:1.5;
+}
+.legal-blocks-actions-top{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding-bottom:6px;border-bottom:1px solid var(--line-soft);
+}
+.legal-btn-select-all{
+  min-height:44px;padding:8px 16px;font-size:13px;width:auto;
+}
+.legal-blocks-counter{
+  font-size:13px;color:var(--text-muted);font-weight:500;
+}
+.legal-blocks-error{
+  padding:10px 14px;background:rgba(239,68,68,0.12);border:1px solid #ef4444;
+  border-radius:8px;color:#fca5a5;font-size:13.5px;line-height:1.4;
+}
+.legal-blocks-list{
+  display:flex;flex-direction:column;gap:10px;max-height:min(52vh,480px);
+  overflow-y:auto;padding-right:4px;
+}
+.legal-block-card{
+  display:flex;align-items:flex-start;gap:14px;padding:14px 16px;
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  cursor:pointer;transition:border-color 0.15s ease,background 0.15s ease;
+  min-height:48px;user-select:none;
+}
+.legal-block-card:hover{
+  border-color:var(--gold);
+}
+.legal-block-card.selected{
+  border-color:var(--gold);background:var(--gold-wash);
+}
+.legal-block-checkbox-wrap{
+  padding-top:2px;display:flex;align-items:center;justify-content:center;
+}
+.legal-block-checkbox{
+  width:20px;height:20px;accent-color:var(--gold);cursor:pointer;
+}
+.legal-block-body{
+  display:flex;flex-direction:column;gap:4px;flex:1;
+}
+.legal-block-header-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.legal-block-index{
+  font-size:11.5px;font-weight:700;color:var(--gold);
+}
+.legal-block-name{
+  font-size:14.5px;font-weight:600;color:var(--text-strong);
+}
+.legal-block-summary{
+  margin:0;font-size:13px;color:var(--text);line-height:1.5;
+}
+.legal-block-ref-row{
+  margin-top:2px;
+}
+.legal-block-link{
+  display:inline-flex;align-items:center;min-height:44px;padding:6px 0;
+  font-size:12.5px;color:var(--gold);text-underline-offset:3px;
+}
+.legal-block-link:hover{
+  text-decoration:underline;
+}
+.legal-blocks-footer{
+  display:flex;justify-content:flex-end;gap:12px;margin-top:8px;padding-top:10px;
+}

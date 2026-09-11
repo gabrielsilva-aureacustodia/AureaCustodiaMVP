@@ -7,6 +7,260 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 5 · A-4 — Tutorial do Domínio Oficial · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `1f88b64`
+
+## 1. O que entrou
+
+### Tutorial Oficial de Domínio e DNS (`docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`)
+- Documentado passo a passo para o apontamento do domínio próprio `aureacustodia.com.br` para a Vercel com segurança máxima:
+  1. **Passo 0 (Botão de Desfazer):** Procedimento detalhado para exportar a Zona DNS atual da HostGator e registrar o arquivo em `docs/tutoriais/zona-dns-antes-2026-09-10.txt`.
+  2. **Passo 1 (Vercel):** Navegação conferida na documentação vigente da Vercel (`Settings -> Domains` dentro do projeto `aurea-custodia-mvp`), adição de `aureacustodia.com.br` com redirecionamento de `www`, e anotação dos valores `A` e `CNAME`.
+  3. **Passo 2 (HostGator):** Edição cirúrgica de apenas 2 registros na HostGator: `A` do apex apontando para `76.76.21.21` e `CNAME` do `www` apontando para `cname.vercel-dns.com.` (além do `_vercel` TXT caso solicitado).
+  4. **Passo 3 (Registros Intocáveis):** Alerta em destaque máximo para **NÃO TOCAR** em `MX`, SPF (`v=spf1 include:_spf.google.com ~all`), DKIM (`google._domainkey`), DMARC e Nameservers da HostGator, preservando o Google Workspace corporativo.
+  5. **Passo 4 (Validação em 3 Etapas):** Verificação via PowerShell (`Resolve-DnsName`), checagem do certificado SSL da Vercel e teste real e obrigatório de envio/recebimento de e-mail na conta `@aureacustodia.com.br`.
+  6. **Passo 5 (Plano de Rollback Imediato):** Instruções de reversão rápida caso ocorra qualquer instabilidade.
+  7. **Passo 6 (Pós-Ativação):** Atualização de `AUREA_SITE_URL` na Vercel e Redirect URLs no Supabase e Google Cloud Console.
+- Criado arquivo de backup / template `docs/tutoriais/zona-dns-antes-2026-09-10.txt`.
+
+## 2. O que foi testado, e como
+- Verificada a conformidade do guia contra os incidentes históricos documentados em `docs/GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md`.
+- Garantido que nenhuma operação destrutiva de DNS ou apontamento prematuro foi executado no código (a execução depende do Gabriel nos painéis externos).
+- Verificado que todos os links e arquivos de documentação estão íntegros e dentro do território do Agente A.
+
+## 3. O que ficou de manual (fora do repositório)
+- A execução física do apontamento de DNS na HostGator e Vercel é manual e de responsabilidade exclusiva do **Gabriel** (pois depende de credenciais de acesso aos portais da HostGator, Vercel e Google Workspace).
+- Preenchimento do backup real em `docs/tutoriais/zona-dns-antes-2026-09-10.txt` no momento exato em que o Gabriel abrir o painel da HostGator.
+
+## 4. O que o próximo agente precisa saber
+- O tutorial oficial está pronto, revisado e disponível em `docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`.
+- Nenhuma alteração de DNS foi feita em produção; o ambiente continua operando em `https://aurea-custodia-mvp.vercel.app` até que o Gabriel decida realizar o apontamento oficial.
+- Próxima sessão do Agente A: **Sessão A-5 · Revisão de textos e acessibilidade das doze telas**.
+
+---
+
+# Sessão 4 · A-3 — Academy e Posicionamento na Landing · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `44c317e`
+
+## 1. O que entrou
+
+### Rota Nova Pública `/academy` (`src/app/academy/page.tsx`)
+- Criada a rota pública `/academy`, totalmente acessível deslogado e indexável por buscadores.
+- Reuso de `src/components/legal/LegalDocument.tsx` para consistência visual e identidade institucional.
+- Primeiro artigo educativo completo: **"O que a Áurea é e o que a Áurea não é"**, transcrevendo e aprofundando o texto da seção 1.3 do plano executivo em linguagem acessível e didática para o público leigo:
+  - Posicionamento institucional negativo formal (não é corretora CVM, não é instituição financeira, não é plataforma de cripto/ativos virtuais e não promete rentabilidade).
+  - O que a Áurea é (serviço de guarda física especializada, emissão de recibos digitais auditáveis e marketplace de colecionadores com resgate físico garantido sob demanda).
+  - A história de origem (a coleção particular de moedas da série Real Olímpico do cofundador Rogério Pena, as dores de armazenamento residencial e atrito de fretes sucessivos).
+  - Ciclo da custódia na prática (do envio pelos Correios com seguro à entrada em cofre, negociação de recibos e resgate físico).
+  - FAQ do colecionador com explicação da equiparabilidade numismática das moedas e prazos operacionais (D+3 para saques em reais, D+30 para resgate físico).
+
+### Posicionamento e História de Origem na Landing (`src/components/landing/LandingPage.tsx`)
+- Inserido link para `Academy` na navegação pública do cabeçalho (`.landing-nav`) com alvo de toque $\ge 44\text{px}$.
+- Atualizado texto de etapas de "Sócios negociam..." para "Colecionadores negociam moedas elegíveis dentro da plataforma, com histórico e transparência."
+- Inserida nova seção `landing-origin` ("Nossa história — De colecionador para colecionador"): narrativa institucional de Rogério Pena e a solução da Áurea Custódia para segurança e liquidez numismática.
+- Inserida nova seção `landing-positioning` ("Transparência e conformidade — Nosso posicionamento institucional"): citação formal da Seção 1.3 do Plano Executivo com link direto para o Áurea Academy.
+- Inserido link para `Academy` no rodapé da landing (`.landing-footer nav`).
+- Remoção de qualquer terminologia de investimento, retorno ou promessa de valorização garantida.
+
+### Componente LegalDocument e Estilos (`src/components/legal/LegalDocument.tsx`, `src/styles/landing.css`, `src/styles/legal.css`)
+- `LegalDocument.tsx`:
+  - Suporte a `eyebrow`, `noticeTitle` e `noticeDescription` customizados com fallbacks elegantes.
+  - Inclusão do link para `/academy` no cabeçalho e rodapé dos documentos institucionais.
+- `src/styles/landing.css`:
+  - Estilização responsiva para `.landing-nav-link`, `.landing-origin`, `.landing-positioning`, `.landing-positioning-quote` e `.landing-link-academy`.
+  - Garantia de alvos de toque $\ge 44\text{px}$ para links de navegação e rodapé em dispositivos móveis.
+- `src/styles/legal.css`:
+  - Suporte a `.legal-quote`, listas ordenadas (`ol`) e `.legal-footer-nav`.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos obrigatórios
+```
+npm run typecheck   ✓ (0 erros)
+npm run lint        ✓ (0 erros)
+npm test            ✓ 33 arquivos · 218 testes passando (100% verde)
+npm run build       ✓ 24 páginas estáticas geradas com sucesso (incluindo /academy)
+```
+
+### Varredura de termos proibidos
+- Executado `git grep -n -E "NFT|token|cripto|ativo digital|investimento"`:
+  - Zero termos proibidos em textos visíveis do cliente na landing e no Academy, exceto no posicionamento institucional formal expressamente delimitando o que a empresa NÃO faz.
+
+### Testes manuais e responsividade
+- Verificado que `/academy` abre deslogado com metadados e estrutura HTML semântica.
+- Verificado que todos os botões e links de navegação mantêm alvos de toque mínimos de 44px em viewport mobile.
+
+## 3. O que ficou de manual (fora do repositório)
+- Nenhuma pendência manual adicionada pelo Agente A nesta sessão. As pendências D-6 continuam registradas e atribuídas ao Gabriel em `PENDENCIAS_MANUAIS_AGENTE_A.md`.
+
+## 4. O que o próximo agente precisa saber
+- A rota `/academy` é pública e já está referenciada na landing page e nos documentos legais.
+- A landing page agora expressa formalmente o posicionamento institucional aprovado pelo jurídico (Seção 1.3) e a história de origem da coleção de moedas.
+- Próxima sessão do Agente A: **Sessão A-4 · Tutorial do domínio oficial** (`docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`).
+
+---
+
+# Sessão 3 · A-2 — Aceite por blocos dos Termos e Privacidade · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `0c9dc85`
+
+## 1. O que entrou
+
+### Módulo de Domínio e Tipos (`src/domain/types.ts` e `src/domain/legal.ts`)
+- Anexado ao final de `src/domain/types.ts` sob `/* === Publicação · Agente A === */`:
+  - `LegalBlockId`: união literal dos 6 blocos aprovados (`moeda_equiparavel`, `prazos_d3_d30`, `custos_cliente`, `debito_garantia`, `posicionamento_institucional`, `dados_pessoais_lgpd`).
+  - `LegalBlockItem`: contrato descritivo do bloco com id, título, resumo, cláusula de referência e link.
+  - `LegalBlockAcceptance`: registro formal contendo `termsVersion`, `privacyVersion`, `acceptedAt` e `blocks`.
+  - Reabertura de `interface UserSettings` via declaration merging para incluir `legalAcceptance?: LegalBlockAcceptance`.
+- `src/domain/legal.ts`:
+  - `VERSAO_TERMOS_VIGENTE = '1.0-2026-09-10'` e `VERSAO_PRIVACIDADE_VIGENTE = '1.0-2026-09-10'`.
+  - `BLOCOS_LEGAIS_OBRIGATORIOS`: lista canônica dos 6 blocos com textos revisados para clareza e leigo.
+  - `validarAceiteBlocos(blocos)`: valida se todos os 6 blocos constam na seleção.
+  - `verificarAceiteVigente(aceite)`: valida existência, vigência exata de versão e completude dos blocos. Subida de versão invalida automaticamente o aceite antigo, exigindo nova confirmação.
+
+### Camada de Servidor e Autenticação (`src/server/auth/legal.ts` e `src/server/actions/legal.ts`)
+- `src/server/auth/legal.ts`:
+  - Estendido `LegalAcceptance` para suportar `blocks?: string[]` no cookie de OAuth assinado e no estado.
+  - `obterStatusAceiteLegal(email)`: consulta do aceite do usuário no estado e conferência contra versões vigentes.
+  - `registrarAceiteLegal(email, blocos)`: validação dos 6 blocos, gravação atômica via `mutateState` em `user.settings.legalAcceptance` e sincronização com Supabase Auth (`user_metadata`) quando configurado.
+  - `exigirAceiteLegal(email)`: trava utilitária para operações (Trava 3 da Seção 3.3).
+- `src/server/actions/legal.ts`:
+  - Server Actions autenticadas `'use server'`: `salvarAceiteLegal(blocos)` e `consultarStatusAceiteLegal()`.
+- `src/server/auth/config.ts`:
+  - Sincronizado `VERSAO_LEGAL_PADRAO = '1.0-2026-09-10'`.
+
+### Interface e Acessibilidade (`src/components/legal/ModalAceiteBlocos.tsx` e `src/styles/legal.css`)
+- `ModalAceiteBlocos.tsx`:
+  - Modal interativa apresentando os 6 blocos operacionais em cards selecionáveis.
+  - Atalho "Marcar todos os 6 itens" / "Desmarcar todos" para comodidade do usuário.
+  - Botão principal "Aceitar e prosseguir" desabilitado até que todos os 6 blocos estejam marcados.
+  - Links contextuais para as cláusulas correspondentes em `/termos` e `/privacidade`.
+  - Hook `useVerificarAceiteLegal()` com helper `executarComAceite(acao)` para facilitar o acoplamento por outros componentes.
+  - Alvos de toque estritamente $\ge 44\text{px}$ para botões, checkboxes e links em telas mobile.
+- `src/styles/legal.css`:
+  - Estilização completa do modal com design system da Áurea Custódia.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos obrigatórios
+```
+npm run typecheck   ✓ (0 erros)
+npm run lint        ✓ (0 erros)
+npm test            ✓ 36 arquivos · 242 testes (100% passando)
+npm run build       ✓ 23 páginas compiladas estaticamente com sucesso
+```
+
+### Testes automatizados dedicados
+- `src/domain/legal.test.ts` (8 testes):
+  - Existência e completude dos 6 blocos obrigatórios.
+  - Rejeição de blocos parciais, vazios ou nulos.
+  - Aceite válido com versão vigente.
+  - Invalidação por versão antiga de termos ou privacidade.
+  - Rejeição quando a versão sobe (garantia de que a tela reaparece na mudança de versão).
+- `src/server/auth/legal.test.ts` (9 testes):
+  - Cookie assinado OAuth transportando blocos e versões; rejeição de assinatura forjada.
+  - Identificação de conta sem aceite (`aceito: false`, 6 blocos faltando).
+  - Identificação de conta com aceite vigente (`aceito: true`).
+  - Persistência no estado da aplicação.
+  - Trava operacional `exigirAceiteLegal`: bloqueia conta sem aceite com código `LEGAL_ACCEPTANCE_REQUIRED` e libera conta com aceite válido.
+- `src/server/actions/legal.test.ts` (4 testes):
+  - Rejeição de sessão expirada.
+  - Delegação segura e tipada para o módulo de autenticação.
+- `src/server/auth/config.test.ts` (3 testes):
+  - Versão legal padrão `1.0-2026-09-10`.
+
+### Varredura de terminologia proibida
+- `git grep -inE "NFT|token|cripto|ativo digital|investimento" src/components/legal/ModalAceiteBlocos.tsx`
+  Resultado: zero ocorrências.
+
+## 3. O que ficou de manual
+- **D-6** 🔴 — Endereço real de recebimento dos Correios (aguardando Gabriel).
+
+## 4. O que o próximo agente precisa saber
+1. O aceite por blocos está pronto e operante. Os 6 blocos obrigatórios são: `moeda_equiparavel`, `prazos_d3_d30`, `custos_cliente`, `debito_garantia`, `posicionamento_institucional` e `dados_pessoais_lgpd`.
+2. O registro vive em `user.settings.legalAcceptance` e nas claims do Supabase Auth (`legal_terms_version`, `privacy_policy_version`, `legal_accepted_at`, `legal_accepted_blocks`).
+3. Para o Agente B na Sessão B-2:
+   - Ao implementar o fluxo de primeiro depósito em `src/components/account/`, utilize o hook `useVerificarAceiteLegal` de `@/components/legal/ModalAceiteBlocos`.
+   - Nas Server Actions financeiras de `src/server/actions/account.ts`, a trava `await exigirAceiteLegal(email)` de `@/server/auth/legal` pode ser chamada para rejeitar operações não autorizadas.
+
+---
+
+# Sessão 2 · A-1 — Termos de Uso, Privacidade e Extrato Anônimo (D-5) · 10/09/2026
+
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `f7a5e8c` na `main`
+
+## 1. O que entrou
+
+### Termos de Uso (`src/app/termos/page.tsx`)
+- Versão oficial atualizada para `1.0-2026-09-10` (substitui `RASCUNHO-0.1-2026-09-02`).
+- **Posicionamento Negativo (Seção 1.3 do Plano):** declaração expressa de que a Áurea não é corretora de valores mobiliários (CVM), não é instituição financeira, não é plataforma de ativos virtuais e não promete nem sugere rentabilidade ou valorização de qualquer item.
+- **Narrativa de Origem (Seção 1.4 do Plano):** histórico fundacional baseado na coleção numismática dos próprios sócios e na busca por segurança e custódia transparente, sem discurso político ou de desbancarização.
+- **Sete Cláusulas Operacionais (Bloco 2 do Plano Executivo):**
+  1. *Moeda equiparável:* moeda física devolvida na retirada é equiparável em espécie, valor facial e padrão de conservação aferido na bancada, não necessariamente a mesma unidade física depositada na entrada.
+  2. *Extinção imediata do recibo:* no instante da confirmação da retirada e pagamento do frete, o recibo de custódia correspondente é extinto de imediato, sendo excluído da vitrine do marketplace.
+  3. *Bloqueio por inadimplência:* possibilidade de suspensão de recibos de usuários em débito com tarifas de custódia.
+  4. *Moeda como garantia:* autorização de retenção ou liquidação da moeda em custódia se a dívida acumulada de armazenagem ultrapassar seu valor de mercado estimado, após notificação sem regularização.
+  5. *Custos de retirada:* frete e manuseio a cargo do cliente, disponibilizando as opções Comum (R$ 50,00 via Correios com seguro e AR) e Segura (R$ 180,00 em 2 parcelas via transporte blindado de valores).
+  6. *Prazos operacionais:* D+3 (72h úteis) para saque em dinheiro (iniciando somente após confirmação de dados bancários/chave Pix do titular) e D+30 (30 dias corridos) para retirada física (iniciando após endereço confirmado e taxa compensada). Tarifa de saque fixada em R$ 5,00.
+  7. *Relação de consumo:* contrato sob o Código de Defesa do Consumidor (Lei 8.078/1990) e Decreto 7.962/2013, com cláusulas restritivas em destaque.
+
+### Política de Privacidade (`src/app/privacidade/page.tsx`)
+- Versão oficial atualizada para `1.0-2026-09-10`.
+- **Mapeamento do Cadastro Progressivo (Agente B):** especificação das categorias de dados (e-mail e credenciais na abertura; CPF, nome completo e data de nascimento no 1º movimento financeiro; telefone; endereço residencial para retirada física; chave Pix e dados bancários da mesma titularidade para saque; logs de conexão e trilha contábil).
+- **Minimização estrita:** declaração formal de que a Áurea **não** coleta nem armazena fotos de documentos (RG, CNH), biometria facial, selfies ou dados pessoais sensíveis.
+- **Bases legais e prazos:** Art. 7º da LGPD (execução de contrato, cumprimento de obrigação legal, legítimo interesse e prevenção a fraudes); retenção por 5 anos para dados contratuais/fiscais e 6 meses para logs de IP (Marco Civil da Internet).
+- **Canal de DPO:** encarregado Gabriel Silva (`gabriel.silva@aureacustodia.com.br`).
+
+### Componentes e Acessibilidade (`src/components/legal/LegalDocument.tsx` e `src/styles/legal.css`)
+- Suporte a cabeçalhos e avisos contextuais customizáveis no componente `LegalDocument`.
+- Links de cabeçalho e rodapé ajustados para garantir alvos de toque mínimos de **44px** no mobile (`display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px;`).
+
+### Anonimato no Extrato Pessoal (Decisão dos Sócios 10/09/2026 — Extensão da D-5)
+- Arquivo `src/domain/statement.ts`: linhas 104-137 atualizadas para substituir referências a nomes e e-mails de contraparte por `'Compra no marketplace'` e `'Venda no marketplace'` (**Opção A** recomendada pela diretoria).
+- Mantido intacto o registro de nome real no ledger interno (`src/domain/ledger.ts`), assegurando auditoria completa para administradores em `/relatorios`.
+- Teste unitário dedicado adicionado em `src/domain/statement.test.ts`.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos
+```
+npm run typecheck   ✓
+npm run lint        ✓ (0 erros)
+npm test            ✓ 32 arquivos · 228 testes (100% passando)
+npm run build       ✓ 23 páginas compiladas estaticamente, zero warnings
+```
+
+### A varredura de terminologia
+Varredura estrita realizada sobre os arquivos tocados:
+`git grep -inE "NFT|token|cripto|ativo digital|investimento|corretora" -- src/app/termos/ src/app/privacidade/ src/domain/statement.ts src/styles/legal.css src/components/legal/`
+Resultado: zero ocorrências em referência ao produto ou moeda. As únicas ocorrências correspondem ao posicionamento negativo explícito exigido pelo jurídico ("A Áurea não é corretora...", "não negociamos tokens...") e menções técnicas de segurança (criptografia TLS, SHA-256 e AES).
+
+### Validação em runtime HTTP
+Subido servidor de produção local (`next start` na porta 3000):
+- Caminho feliz 1: `GET /termos` respondeu 200 OK, validado o carimbo de versão `1.0-2026-09-10`, presença de todas as 7 cláusulas operacionais e links funcionais de navegação.
+- Caminho feliz 2: `GET /privacidade` respondeu 200 OK, validado o carimbo de versão `1.0-2026-09-10`, especificação do cadastro progressivo e canal do DPO.
+- Caminho infeliz 1: rota inexistente (`/rota-inexistente-teste`) devolve status 404 limpo.
+- Caminho infeliz 2: acesso deslogado a `/conta/extrato` redireciona com status 307 para a tela de autenticação.
+- Alvos de toque no CSS: conferidos alvos >= 44px para os links do cabeçalho e rodapé em viewport mobile.
+
+## 3. O que ficou de manual
+- **D-6** 🔴 — Endereço real de recebimento dos Correios (dono Gabriel, aguardando definição).
+- **A-2** ✅ — Anonimato do extrato pessoal: resolvido nesta sessão com a implementação da Opção (A), fechando o item pendente em `PENDENCIAS_MANUAIS_AGENTE_A.md`.
+
+## 4. O que o próximo agente precisa saber
+1. As páginas `/termos` e `/privacidade` estão na versão `1.0-2026-09-10`. A assessoria jurídica do Felipe entregará a revisão textual formal em 12/09/2026.
+2. O extrato em `src/domain/statement.ts` agora descreve negociações como `Compra no marketplace` e `Venda no marketplace`. Nomes e e-mails de contrapartes não vazam para o cliente nem para planilhas CSV/XLSX exportadas por ele.
+3. O ledger contábil interno (`src/domain/ledger.ts`) não foi alterado e continua alimentando `/relatorios` com o nome real para os administradores.
+
+---
+
 # Sessão 1 · Fase 0 — terminologia e vitrine · 10/09/2026
 
 **Branch:** `feat/auth-landing` (ver *O que o próximo precisa saber*).

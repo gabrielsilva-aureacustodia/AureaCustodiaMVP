@@ -47,12 +47,19 @@ describe('userStatement', () => {
     s.buyOrders.push(compra('BID-1', 'outro', 28_500, 1, BAN, 2000))
     matchOrders(s)
 
-    const doVendedor = statementTotals(userStatement(s, 'eu'))
-    const doComprador = statementTotals(userStatement(s, 'outro'))
+    const linhasVendedor = userStatement(s, 'eu')
+    const linhasComprador = userStatement(s, 'outro')
+
+    const doVendedor = statementTotals(linhasVendedor)
+    const doComprador = statementTotals(linhasComprador)
 
     expect(doVendedor.taxasPagas).toBe(tradeFee(28_500))
     expect(doComprador.taxasPagas).toBe(0) // o comprador paga o preço cheio, sem comissão
     expect(doComprador.compradoValor).toBe(28_500)
+
+    // Extensão da D-5: anonimato no extrato — nenhum nome ou e-mail de terceiro é exposto
+    expect(linhasVendedor.find((l) => l.kind === 'Venda')?.descricao).toBe('Venda no marketplace')
+    expect(linhasComprador.find((l) => l.kind === 'Compra')?.descricao).toBe('Compra no marketplace')
   })
 
   it('cobrança de custódia e envio entram com impacto ZERO — não movem saldo', () => {

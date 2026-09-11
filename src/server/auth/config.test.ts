@@ -60,8 +60,8 @@ describe('configuração do Supabase Auth', () => {
     expect(getRegistrationStatus()).toMatchObject({
       enabled: true,
       authConfigured: true,
-      termsVersion: 'rascunho-teste-2026-09-06',
-      privacyVersion: 'rascunho-teste-2026-09-06',
+      termsVersion: '1.0-2026-09-10',
+      privacyVersion: '1.0-2026-09-10',
     })
   })
 })
