@@ -6,6 +6,66 @@ Repositório: `github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP`
 
 ---
 
+## Sessão B-3 — Compra direta pelo gateway (`migration 008`)
+**Data:** 11/09/2026  
+**Status:** Concluída com sucesso
+
+### 1. O que entrou
+- **Migration `008_compra_direta.sql` em `src/server/db/migrations/`:**
+  - Adiciona colunas `tipo_operacao text NOT NULL DEFAULT 'deposito'` e `metadata jsonb` à tabela `aurea.payment_intents`.
+  - Permite distinguir no banco a finalidade de cada intenção de pagamento gerada no gateway.
+- **Tipos e repositórios de pagamentos:**
+  - `src/server/payments/tipos.ts`: exportada a interface `CompraDiretaIniciada` estendendo `DepositoIniciado` com `lotId`, `qty` e `tipoMoeda`.
+  - `src/server/db/repositories/payments.ts`: adicionado `TipoOperacaoPagamento` ('deposito' | 'compra_direta'), atualizada interface `IntencaoDeposito` com `tipoOperacao` e `metadata`, e atualizadas as queries `inserirIntencao`, `buscarIntencao`, `reivindicarIntencao` e `listarTodasIntencoes`.
+  - `src/server/payments/repositorios.ts`: persistência em memória atualizada com suporte a `tipoOperacao` e `metadata`.
+- **Server Action `iniciarCompraDireta` em `src/server/actions/payments.ts`:**
+  - Permite ao comprador gerar cobrança de compra direta de um lote via Pix ou Checkout Pro (sandbox).
+  - Trava de cadastro formal do Bloco 6: exige `temCadastroCompleto(user)` antes de abrir a cobrança.
+  - Validações de segurança: lote ativo no livro, vendedor diferente do comprador, quantidade válida, valor até o limite permitido.
+  - Gera referência externa identificadora com prefixo `CMP-${randomUUID()}`.
+  - Registra a intenção de compra direta com metadata (`lotId`, `qty`, `tipoMoeda`, `sellerEmail`, `unitPrice`).
+- **Conciliação contábil do webhook em `src/server/payments/conciliacao.ts`:**
+  - Identifica compras diretas pelo tipo de operação ou prefixo `CMP-`.
+  - Se o lote estiver disponível:
+    - Transfere a moeda (`transferCoin(seller, buyer, coinId)`).
+    - Credita o vendedor pelo valor líquido (`price - tradeFee(price)`).
+    - Registra a negociação em `state.trades` com comprador, vendedor, preço e quantidade.
+    - Registra a entrada externa da compra em `state.deposits`, garantindo que o saldo livre do comprador permaneça inalterado e o livro contábil feche com 100% de consistência sem desvios (`ajustes`).
+  - Se o lote não estiver mais disponível (corrida em que outro comprador levou o lote enquanto o Pix era pago):
+    - Mecanismo anti-perda: credita o valor integral no saldo da conta do comprador (`buyer.balance += valor`) com lançamento em `state.deposits`, permitindo que o cliente use o dinheiro em outro lote ou solicite saque.
+- **Interface e fluxo de compra em `src/app/(app)/mercado/page.tsx` (`ConfirmarCompraModal`):**
+  - Implementado o modelo pedido pelos sócios ("ou ele pode usar o que está na conta dele ou pode comprar por fora"):
+    - Opção 1 (Saldo interno): exibe saldo disponível e permite pagar com saldo se houver fundos suficientes, ou avisa o déficit caso insuficiente.
+    - Opção 2 (Gateway direto): botões "Pagar com Pix" e "Cartão ou boleto".
+    - Intercepta com `ModalCadastro (motivo="compra")` se o usuário ainda não tiver cadastro formal completo, voltando automaticamente para o modal de confirmação após o salvamento.
+    - Exibe QR Code e Pix Copia e Cola para pagamento imediato, com instruções de liquidação.
+- **`ModalCadastro.tsx` em `src/components/account/`:**
+  - Adicionado suporte ao motivo `'compra'`, apresentando texto contextualizado para a primeira compra na plataforma.
+
+### 2. O que foi testado e como
+- **Testes unitários da Server Action (`src/server/actions/compra-direta.test.ts`):**
+  - 5 testes cobrindo: rejeição sem sessão, trava por ausência de cadastro formal completo, rejeição de anúncio inexistente, rejeição de compra do próprio anúncio, e sucesso na geração de Pix com prefixo `CMP-` e metadados no repositório.
+- **Testes de conciliação contábil (`src/server/payments/conciliacao.test.ts`):**
+  - 8 testes cobrindo: liquidação de compra direta com transferência de moedas e crédito líquido ao vendedor, fallback seguro com crédito em saldo quando o lote expira/some, e idempotência no webhook.
+- **Testes de banco e migrations (`src/server/db/payments.test.ts`):**
+  - 10 testes cobrindo a aplicação da migration 008 e persistência de `tipo_operacao` e `metadata`.
+- **Verificação completa de integridade do projeto:**
+  - `npm run typecheck`: ✅ verde sem erros
+  - `npm run lint`: ✅ verde sem erros e sem warnings
+  - `npm test`: ✅ 34 suítes, 237 testes passando
+  - `npm run build`: ✅ 23 páginas estáticas e rotas compiladas com sucesso em produção
+- **Varredura de terminologia proibida:**
+  - 0 ocorrências de termos proibidos em texto visível ao cliente.
+
+### 3. O que ficou de manual
+- Registrar aplicação da migration `008_compra_direta.sql` no Supabase antes do cutover em produção (`PENDENCIAS_MANUAIS_AGENTE_B.md`).
+
+### 4. O que o próximo agente precisa saber
+- A compra direta pelo gateway está 100% implementada e conciliada com lançamentos contábeis equivalentes.
+- A próxima sessão do Agente B é a **B-4 (Saque)**: taxa fixa de R$ 5,00, trava por dados bancários confirmados, prazo D+3, ledger contábil e auditoria.
+
+---
+
 ## Sessão B-2 — Tela e travas do cadastro formal progressivo e trava do saque
 **Data:** 10/09/2026  
 **Status:** Concluída com sucesso

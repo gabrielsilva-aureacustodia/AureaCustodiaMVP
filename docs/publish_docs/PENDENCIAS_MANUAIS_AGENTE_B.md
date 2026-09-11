@@ -38,3 +38,17 @@ A migration adiciona apenas colunas anuláveis (`NULL`) na tabela `aurea.users`:
 | **Como conferir que foi feito** | Tentativa de retirada por cliente inadimplente exibe recibo bloqueado por débito |
 
 O Agente B gerencia o faturamento e a marcação de inadimplência; por contrato de território, a ação e o componente do recibo pertencem ao Agente C.
+
+---
+
+### B-3 · Aplicar a migration 008 no Supabase de produção 🟡
+
+| | |
+|---|---|
+| **O que falta** | Executar a migration `008_compra_direta.sql` no banco Supabase |
+| **Quem pode fazer** | **Gabriel** via `npm run db:migrate` com a senha do banco, ou colando o SQL no editor do Supabase |
+| **O que está bloqueado** | Persistência do campo `tipo_operacao` e `metadata` de intenções de pagamento para compras diretas em produção com Postgres conectado |
+| **Como conferir que foi feito** | `npm run db:check` reporta `008_compra_direta` aplicada e colunas presentes em `aurea.payment_intents` |
+
+A migration adiciona apenas as colunas `tipo_operacao` (com default `'deposito'`) e `metadata` (jsonb anulável) na tabela `aurea.payment_intents`. Totalmente inócua e retrocompatível com as linhas existentes.
+

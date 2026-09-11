@@ -26,7 +26,7 @@ export interface ModalCadastroProps {
   /** Callback opcional acionado quando o cadastro for salvo com sucesso. */
   onSuccess?: () => void
   /** Motivo da exigência do cadastro para personalizar a mensagem contextual. */
-  motivo?: 'deposito' | 'saque' | 'configuracoes'
+  motivo?: 'deposito' | 'saque' | 'configuracoes' | 'compra'
 }
 
 export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroProps): ReactNode {
@@ -210,6 +210,13 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
         <p style={{ marginBottom: 14 }}>
           Por conformidade legal e fiscal, solicitamos a confirmação dos seus dados no primeiro
           depósito. Essa etapa é necessária uma única vez.
+        </p>
+      )}
+
+      {motivo === 'compra' && !cadExistente && (
+        <p style={{ marginBottom: 14 }}>
+          Por conformidade legal e fiscal, solicitamos a confirmação dos seus dados antes de realizar
+          a compra direta. Essa etapa é necessária uma única vez.
         </p>
       )}
 

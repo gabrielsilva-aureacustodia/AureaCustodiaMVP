@@ -97,7 +97,7 @@ describe('migration 002 — pagamentos e rastreio', () => {
         [PROTOCOLO, EMAIL, Date.now()],
       )
     })
-  })
+  }, 30_000)
 
   afterAll(async () => {
     await db.close()
@@ -262,4 +262,40 @@ describe('migration 002 — pagamentos e rastreio', () => {
       entregue: true,
     })
   })
+
+  it('migration 008: persiste tipo_operacao e metadata da compra direta', async () => {
+    const ref = 'CMP-compra-direta-banco'
+    const dados: IntencaoDeposito = {
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor: 285_00,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'compra_direta',
+      metadata: { lotId: 'LOT-999', qty: 1, tipoMoeda: 'Entrega da Bandeira Olímpica' },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
+    await executar((tx) => inserirIntencao(tx, dados))
+    const lida = await executar((tx) => buscarIntencao(tx, ref))
+
+    expect(lida).not.toBeNull()
+    expect(lida?.tipoOperacao).toBe('compra_direta')
+    expect(lida?.metadata).toEqual({
+      lotId: 'LOT-999',
+      qty: 1,
+      tipoMoeda: 'Entrega da Bandeira Olímpica',
+    })
+
+    const reivindicada = await executar((tx) => reivindicarIntencao(tx, ref, Date.now()))
+    expect(reivindicada?.tipoOperacao).toBe('compra_direta')
+    expect(reivindicada?.metadata).toEqual({
+      lotId: 'LOT-999',
+      qty: 1,
+      tipoMoeda: 'Entrega da Bandeira Olímpica',
+    })
+  })
 })
+

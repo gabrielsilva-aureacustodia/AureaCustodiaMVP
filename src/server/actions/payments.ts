@@ -22,6 +22,7 @@
 
 import { randomUUID } from 'node:crypto'
 
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { DEPOSITO_MAX } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
@@ -29,7 +30,11 @@ import { criarPixDeposito, criarPreferenciaDeposito } from '@/lib/payments'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
-import type { DepositoIniciado, MetodoDeposito } from '@/server/payments/tipos'
+import type {
+  CompraDiretaIniciada,
+  DepositoIniciado,
+  MetodoDeposito,
+} from '@/server/payments/tipos'
 
 const SESSAO_EXPIRADA = 'Sessão expirada.'
 const FALHA_GATEWAY = 'Não foi possível abrir a cobrança agora. Tente novamente.'
@@ -76,6 +81,8 @@ export async function iniciarDeposito(
     valor,
     metodo,
     status: 'pendente',
+    tipoOperacao: 'deposito',
+    metadata: null,
     paymentId: null,
     motivoRecusa: null,
     createdAt: agora,
@@ -117,6 +124,135 @@ export async function iniciarDeposito(
   } catch {
     // A intenção fica gravada como recusada em vez de sumir: sem isso, uma
     // sequência de falhas do gateway não deixaria rastro nenhum para diagnóstico.
+    await intencoes.recusar(externalReference, 'falha ao abrir a cobrança no gateway')
+    return { ok: false, error: FALHA_GATEWAY }
+  }
+}
+
+/**
+ * Abre uma cobrança no gateway para compra direta de um lote do marketplace.
+ *
+ * Gabriel: "ou ele pode usar o que está na conta dele ou pode comprar por fora" —
+ * dinheiro que não fica parado na conta da Áurea reduz fricção e passivo.
+ *
+ * Trava de cadastro (bloco 6): exige cadastro formal completo confirmado no primeiro
+ * movimento financeiro.
+ *
+ * Referência externa gerada com prefixo 'CMP-' para a conciliação distinguir
+ * contabilmente compra direta de depósito comum.
+ */
+export async function iniciarCompraDireta(
+  lotId: string,
+  qtyPedida: number,
+  metodo: MetodoDeposito,
+): Promise<ActionResult<CompraDiretaIniciada>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (metodo !== 'pix' && metodo !== 'checkout_pro') {
+    return { ok: false, error: 'Forma de pagamento desconhecida.' }
+  }
+
+  const state = await getState()
+  const user = state.users[email]
+  if (!user) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!temCadastroCompleto(user)) {
+    return {
+      ok: false,
+      error: 'É necessário completar o cadastro formal antes de realizar uma compra direta.',
+    }
+  }
+
+  const offers = state.sellOffers.filter((o) => o.lotId === lotId)
+  if (!offers.length) return { ok: false, error: 'Este anúncio não está mais disponível.' }
+
+  const sellerId = offers[0].seller
+  if (sellerId === email) {
+    return { ok: false, error: 'Você não pode comprar do seu próprio anúncio.' }
+  }
+
+  const seller = state.users[sellerId]
+  if (!seller) return { ok: false, error: 'Este anúncio não está mais disponível.' }
+
+  const qty = Math.min(
+    Math.max(Number.isFinite(qtyPedida) ? Math.floor(qtyPedida) : 1, 1),
+    offers.length,
+  )
+  const price = offers[0].price
+  const valorTotal = price * qty
+  const tipoMoeda = offers[0].tipoMoeda
+
+  if (valorTotal <= 0) return { ok: false, error: 'Valor da compra inválido.' }
+  if (valorTotal > DEPOSITO_MAX) {
+    return { ok: false, error: `O valor máximo por operação é ${brl(DEPOSITO_MAX)}.` }
+  }
+
+  const externalReference = `CMP-${randomUUID()}`
+  const agora = Date.now()
+
+  const intencoes = repositorioIntencoes()
+  await intencoes.criar({
+    externalReference,
+    userEmail: email,
+    valor: valorTotal,
+    metodo,
+    status: 'pendente',
+    tipoOperacao: 'compra_direta',
+    metadata: {
+      lotId,
+      qty,
+      tipoMoeda,
+      sellerEmail: sellerId,
+      unitPrice: price,
+    },
+    paymentId: null,
+    motivoRecusa: null,
+    createdAt: agora,
+    updatedAt: agora,
+  })
+
+  try {
+    if (metodo === 'pix') {
+      const pix = await criarPixDeposito({
+        userEmail: email,
+        valorCents: valorTotal,
+        externalReference,
+      })
+      await intencoes.anotarPagamento(externalReference, pix.paymentId)
+      return {
+        ok: true,
+        data: {
+          metodo,
+          externalReference,
+          valorCents: valorTotal,
+          lotId,
+          qty,
+          tipoMoeda,
+          qrCode: pix.qrCode,
+          qrCodeBase64: pix.qrCodeBase64,
+        },
+      }
+    }
+
+    const pref = await criarPreferenciaDeposito({
+      userEmail: email,
+      valorCents: valorTotal,
+      externalReference,
+    })
+    return {
+      ok: true,
+      data: {
+        metodo,
+        externalReference,
+        valorCents: valorTotal,
+        lotId,
+        qty,
+        tipoMoeda,
+        initPoint: pref.sandboxInitPoint || pref.initPoint,
+      },
+    }
+  } catch {
     await intencoes.recusar(externalReference, 'falha ao abrir a cobrança no gateway')
     return { ok: false, error: FALHA_GATEWAY }
   }

@@ -28,3 +28,11 @@ export interface DepositoIniciado {
   /** Checkout Pro: para onde mandar o navegador. */
   initPoint?: string
 }
+
+/** O que a tela de mercado precisa mostrar após abrir a cobrança de compra direta no gateway. */
+export interface CompraDiretaIniciada extends DepositoIniciado {
+  lotId: string
+  qty: number
+  tipoMoeda: string
+}
+

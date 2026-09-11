@@ -164,7 +164,7 @@ class MemoriaIntencoes implements RepositorioIntencoes {
   private mapa = new Map<string, IntencaoDeposito>()
 
   async criar(i: IntencaoDeposito): Promise<void> {
-    this.mapa.set(i.externalReference, { ...i })
+    this.mapa.set(i.externalReference, { tipoOperacao: 'deposito', metadata: null, ...i })
   }
 
   async buscar(ref: string): Promise<IntencaoDeposito | null> {
