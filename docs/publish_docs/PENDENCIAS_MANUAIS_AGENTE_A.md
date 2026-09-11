@@ -45,34 +45,17 @@ Nome do responsável pelo recebimento:
 
 ---
 
-### A-2 · O extrato ainda mostra o nome da contraparte 🟡
-
-| | |
-|---|---|
-| **O que falta** | Decidir se `src/domain/statement.ts:113` e `:131` param de escrever "Compra de Rozane" / "Venda para Rogério Pena" |
-| **Quem pode fazer** | **Gabriel e os sócios** — é extensão da decisão D-5, não implementação |
-| **O que está bloqueado** | Nada trava. Mas o anonimato da vitrine fica furado enquanto isso |
-| **Como conferir que foi feito** | `/conta/extrato` deixa de citar nome de terceiro na coluna DESCRIÇÃO |
-
-Descoberto ao percorrer as telas em 10/09/2026. A D-5 falou da **vitrine**, e a vitrine está
-resolvida: quem navega vê `Vendedor #D829`. Só que, ao concluir a compra, o extrato da conta
-escreve o nome real de quem vendeu — e o mesmo vale para a planilha exportada. Na prática,
-basta comprar uma moeda para descobrir quem é o `#D829`.
-
-**Não mexi por conta própria** porque há argumento honesto dos dois lados, e ele é do
-negócio, não do código:
-
-- **A favor de tirar:** sem isso o anonimato da D-5 é decorativo.
-- **A favor de manter:** o extrato é o registro financeiro *da própria pessoa*, e um extrato
-  que não diz com quem você negociou é pior para ela e para a conferência contábil.
-
-Um meio-termo possível é o extrato passar a mostrar o mesmo código (`Compra de #D829`),
-mantendo o nome apenas no ledger contábil (`src/domain/ledger.ts:128`), que é interno e só
-os administradores leem em `/relatorios`.
-
----
-
 ## Resolvidas
+
+### A-2 · O extrato ainda mostra o nome da contraparte ✅ FEITO em 10/09
+
+Decisão dos sócios em 10/09/2026 (extensão da D-5): o nome e o e-mail de um cliente nunca
+aparecem para outro cliente no extrato pessoal nem nos arquivos CSV/XLSX exportados.
+Implementada a **Opção (A)** em `src/domain/statement.ts:104-137`: descrições limpas como
+`Compra no marketplace` e `Venda no marketplace`. As colunas de moeda, quantidade, valor e
+taxa já identificam os dados da operação. O ledger interno (`src/domain/ledger.ts`) continua
+preservando o nome para `/relatorios` administrativos, sem alterações. Testado e validado
+com asserções dedicadas em `src/domain/statement.test.ts`.
 
 ### A-1 · Aplicar as migrations 005 e 006 no Supabase ✅ FEITO em 10/09
 

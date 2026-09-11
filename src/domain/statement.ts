@@ -102,15 +102,15 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
     const bruto = t.price * qty
 
     if (t.buyer === email) {
-      const vendedor = state.users[t.seller]
       rows.push({
         date: t.date,
         dateBR: fdate(t.date),
         kind: 'Compra',
         tipoMoeda: t.tipoMoeda,
-        // Nome da contraparte, com o e-mail como reserva: uma conta pode ter
-        // saído do estado, e o extrato não pode ficar com um campo vazio.
-        descricao: `Compra de ${vendedor ? vendedor.name : t.seller}`,
+        // Decisão dos sócios (10/09/2026, extensão da D-5): o nome de um cliente
+        // NUNCA aparece para outro cliente. O extrato não expõe nome nem e-mail
+        // de contraparte; moeda, quantidade, valor e taxa já têm colunas próprias.
+        descricao: 'Compra no marketplace',
         quantidade: qty,
         valorUnitario: t.price,
         taxa: null,
@@ -119,7 +119,6 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
     }
 
     if (t.seller === email) {
-      const comprador = state.users[t.buyer]
       // A comissão é POR MOEDA, recalculada aqui do mesmo jeito que na execução
       // — ela não é gravada no Trade justamente para não poder divergir.
       const taxa = tradeFee(t.price) * qty
@@ -128,7 +127,8 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
         dateBR: fdate(t.date),
         kind: 'Venda',
         tipoMoeda: t.tipoMoeda,
-        descricao: `Venda para ${comprador ? comprador.name : t.buyer}`,
+        // Decisão dos sócios (10/09/2026, extensão da D-5): anonimato total.
+        descricao: 'Venda no marketplace',
         quantidade: qty,
         valorUnitario: t.price,
         taxa,

@@ -9,6 +9,9 @@ interface LegalDocumentProps {
   version: string
   updatedAt: string
   children: ReactNode
+  eyebrow?: string
+  noticeTitle?: string
+  noticeDescription?: ReactNode
 }
 
 export function LegalDocument({
@@ -16,6 +19,15 @@ export function LegalDocument({
   version,
   updatedAt,
   children,
+  eyebrow = 'Documento institucional oficial',
+  noticeTitle = 'Estrutura operacional acordada — redação jurídica final em 12/09/2026',
+  noticeDescription = (
+    <p>
+      Este documento consolida o posicionamento institucional, a narrativa de origem e as cláusulas
+      operacionais aprovadas pela diretoria e alinhadas na reunião com o jurídico em 09/09/2026.
+      A redação final elaborada pela assessoria jurídica será incorporada em 12/09/2026.
+    </p>
+  ),
 }: LegalDocumentProps): ReactNode {
   return (
     <main className="legal-page">
@@ -37,20 +49,18 @@ export function LegalDocument({
       </header>
 
       <article className="legal-document">
-        <p className="landing-eyebrow">Documento legal provisório</p>
+        <p className="landing-eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
         <p className="legal-meta">
           Versão: <strong>{version}</strong> · Atualizado em {updatedAt}
         </p>
 
-        <aside className="legal-draft-warning" role="note">
-          <strong>Rascunho operacional — revisão jurídica pendente.</strong>
-          <p>
-            Este texto permite testar a plataforma e o registro versionado do aceite. Ele não
-            representa aprovação do advogado e deve ser revisado antes da abertura pública ou
-            da movimentação de dinheiro real.
-          </p>
-        </aside>
+        {noticeTitle && (
+          <aside className="legal-draft-warning" role="note">
+            <strong>{noticeTitle}</strong>
+            {typeof noticeDescription === 'string' ? <p>{noticeDescription}</p> : noticeDescription}
+          </aside>
+        )}
 
         <div className="legal-content">{children}</div>
       </article>

@@ -7,6 +7,76 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 2 · A-1 — Termos de Uso, Privacidade e Extrato Anônimo (D-5) · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `f7a5e8c` na `main`
+
+## 1. O que entrou
+
+### Termos de Uso (`src/app/termos/page.tsx`)
+- Versão oficial atualizada para `1.0-2026-09-10` (substitui `RASCUNHO-0.1-2026-09-02`).
+- **Posicionamento Negativo (Seção 1.3 do Plano):** declaração expressa de que a Áurea não é corretora de valores mobiliários (CVM), não é instituição financeira, não é plataforma de ativos virtuais e não promete nem sugere rentabilidade ou valorização de qualquer item.
+- **Narrativa de Origem (Seção 1.4 do Plano):** histórico fundacional baseado na coleção numismática dos próprios sócios e na busca por segurança e custódia transparente, sem discurso político ou de desbancarização.
+- **Sete Cláusulas Operacionais (Bloco 2 do Plano Executivo):**
+  1. *Moeda equiparável:* moeda física devolvida na retirada é equiparável em espécie, valor facial e padrão de conservação aferido na bancada, não necessariamente a mesma unidade física depositada na entrada.
+  2. *Extinção imediata do recibo:* no instante da confirmação da retirada e pagamento do frete, o recibo de custódia correspondente é extinto de imediato, sendo excluído da vitrine do marketplace.
+  3. *Bloqueio por inadimplência:* possibilidade de suspensão de recibos de usuários em débito com tarifas de custódia.
+  4. *Moeda como garantia:* autorização de retenção ou liquidação da moeda em custódia se a dívida acumulada de armazenagem ultrapassar seu valor de mercado estimado, após notificação sem regularização.
+  5. *Custos de retirada:* frete e manuseio a cargo do cliente, disponibilizando as opções Comum (R$ 50,00 via Correios com seguro e AR) e Segura (R$ 180,00 em 2 parcelas via transporte blindado de valores).
+  6. *Prazos operacionais:* D+3 (72h úteis) para saque em dinheiro (iniciando somente após confirmação de dados bancários/chave Pix do titular) e D+30 (30 dias corridos) para retirada física (iniciando após endereço confirmado e taxa compensada). Tarifa de saque fixada em R$ 5,00.
+  7. *Relação de consumo:* contrato sob o Código de Defesa do Consumidor (Lei 8.078/1990) e Decreto 7.962/2013, com cláusulas restritivas em destaque.
+
+### Política de Privacidade (`src/app/privacidade/page.tsx`)
+- Versão oficial atualizada para `1.0-2026-09-10`.
+- **Mapeamento do Cadastro Progressivo (Agente B):** especificação das categorias de dados (e-mail e credenciais na abertura; CPF, nome completo e data de nascimento no 1º movimento financeiro; telefone; endereço residencial para retirada física; chave Pix e dados bancários da mesma titularidade para saque; logs de conexão e trilha contábil).
+- **Minimização estrita:** declaração formal de que a Áurea **não** coleta nem armazena fotos de documentos (RG, CNH), biometria facial, selfies ou dados pessoais sensíveis.
+- **Bases legais e prazos:** Art. 7º da LGPD (execução de contrato, cumprimento de obrigação legal, legítimo interesse e prevenção a fraudes); retenção por 5 anos para dados contratuais/fiscais e 6 meses para logs de IP (Marco Civil da Internet).
+- **Canal de DPO:** encarregado Gabriel Silva (`gabriel.silva@aureacustodia.com.br`).
+
+### Componentes e Acessibilidade (`src/components/legal/LegalDocument.tsx` e `src/styles/legal.css`)
+- Suporte a cabeçalhos e avisos contextuais customizáveis no componente `LegalDocument`.
+- Links de cabeçalho e rodapé ajustados para garantir alvos de toque mínimos de **44px** no mobile (`display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px;`).
+
+### Anonimato no Extrato Pessoal (Decisão dos Sócios 10/09/2026 — Extensão da D-5)
+- Arquivo `src/domain/statement.ts`: linhas 104-137 atualizadas para substituir referências a nomes e e-mails de contraparte por `'Compra no marketplace'` e `'Venda no marketplace'` (**Opção A** recomendada pela diretoria).
+- Mantido intacto o registro de nome real no ledger interno (`src/domain/ledger.ts`), assegurando auditoria completa para administradores em `/relatorios`.
+- Teste unitário dedicado adicionado em `src/domain/statement.test.ts`.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos
+```
+npm run typecheck   ✓
+npm run lint        ✓ (0 erros)
+npm test            ✓ 32 arquivos · 228 testes (100% passando)
+npm run build       ✓ 23 páginas compiladas estaticamente, zero warnings
+```
+
+### A varredura de terminologia
+Varredura estrita realizada sobre os arquivos tocados:
+`git grep -inE "NFT|token|cripto|ativo digital|investimento|corretora" -- src/app/termos/ src/app/privacidade/ src/domain/statement.ts src/styles/legal.css src/components/legal/`
+Resultado: zero ocorrências em referência ao produto ou moeda. As únicas ocorrências correspondem ao posicionamento negativo explícito exigido pelo jurídico ("A Áurea não é corretora...", "não negociamos tokens...") e menções técnicas de segurança (criptografia TLS, SHA-256 e AES).
+
+### Validação em runtime HTTP
+Subido servidor de produção local (`next start` na porta 3000):
+- Caminho feliz 1: `GET /termos` respondeu 200 OK, validado o carimbo de versão `1.0-2026-09-10`, presença de todas as 7 cláusulas operacionais e links funcionais de navegação.
+- Caminho feliz 2: `GET /privacidade` respondeu 200 OK, validado o carimbo de versão `1.0-2026-09-10`, especificação do cadastro progressivo e canal do DPO.
+- Caminho infeliz 1: rota inexistente (`/rota-inexistente-teste`) devolve status 404 limpo.
+- Caminho infeliz 2: acesso deslogado a `/conta/extrato` redireciona com status 307 para a tela de autenticação.
+- Alvos de toque no CSS: conferidos alvos >= 44px para os links do cabeçalho e rodapé em viewport mobile.
+
+## 3. O que ficou de manual
+- **D-6** 🔴 — Endereço real de recebimento dos Correios (dono Gabriel, aguardando definição).
+- **A-2** ✅ — Anonimato do extrato pessoal: resolvido nesta sessão com a implementação da Opção (A), fechando o item pendente em `PENDENCIAS_MANUAIS_AGENTE_A.md`.
+
+## 4. O que o próximo agente precisa saber
+1. As páginas `/termos` e `/privacidade` estão na versão `1.0-2026-09-10`. A assessoria jurídica do Felipe entregará a revisão textual formal em 12/09/2026.
+2. O extrato em `src/domain/statement.ts` agora descreve negociações como `Compra no marketplace` e `Venda no marketplace`. Nomes e e-mails de contrapartes não vazam para o cliente nem para planilhas CSV/XLSX exportadas por ele.
+3. O ledger contábil interno (`src/domain/ledger.ts`) não foi alterado e continua alimentando `/relatorios` com o nome real para os administradores.
+
+---
+
 # Sessão 1 · Fase 0 — terminologia e vitrine · 10/09/2026
 
 **Branch:** `feat/auth-landing` (ver *O que o próximo precisa saber*).
