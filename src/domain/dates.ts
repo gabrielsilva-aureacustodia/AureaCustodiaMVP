@@ -29,3 +29,24 @@ export function dayStamp(ts: Timestamp): Timestamp {
   d.setHours(0, 0, 0, 0)
   return d.getTime()
 }
+
+/**
+ * Prazo regulamentar de liquidação de saque: D+3 (72 horas úteis/corridas).
+ * Regra da publicação (Seção 3.3 do Plano Executivo):
+ * Sem dados bancários confirmados, o prazo não começa a correr.
+ */
+export const PRAZO_SAQUE_DIAS: number = 3
+
+/**
+ * Calcula a data-limite prevista para liquidação do saque a partir do instante do pedido.
+ */
+export function calcularDataLimiteSaque(
+  solicitadoEm: Timestamp = Date.now(),
+  dias: number = PRAZO_SAQUE_DIAS,
+): { timestamp: Timestamp; formatada: DateBR } {
+  const ts = solicitadoEm + dias * DAY_MS
+  return {
+    timestamp: ts,
+    formatada: fdate(ts),
+  }
+}

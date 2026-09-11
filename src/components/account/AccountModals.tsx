@@ -37,13 +37,17 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { DEPOSITO_MAX } from '@/domain/constants'
+import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
+import { TAXA_SAQUE_FIXA_CENTS } from '@/domain/fees'
+import { calcularDataLimiteSaque } from '@/domain/dates'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
-import { changePassword, deposit, toggleNotif, updatePersonal } from '@/server/actions/account'
+import { changePassword, deposit, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
 import type { DepositoIniciado } from '@/server/payments/tipos'
+import { ModalCadastro } from './ModalCadastro'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -67,13 +71,14 @@ const NOTIF_LABEL: Record<NotifKey, string> = {
 
 export function ModalDadosPessoais(): ReactNode {
   const { me, session, run } = useApp()
-  const { close } = useModal()
+  const { close, open } = useModal()
 
   // O original lia o valor do input só na hora de salvar. Aqui o campo é
   // controlado — é o que permite desabilitar o botão durante o envio sem
   // perder o que foi digitado.
   const [nome, setNome] = useState(me.name)
   const [salvando, setSalvando] = useState(false)
+  const completo = temCadastroCompleto(me)
 
   async function salvar(): Promise<void> {
     setSalvando(true)
@@ -103,6 +108,43 @@ export function ModalDadosPessoais(): ReactNode {
       {/* `disabled` já basta para o React aceitar um campo sem onChange — e é
           exatamente o atributo que o original usava (linha 2740). */}
       <input className="tinput" value={session} disabled style={{ opacity: 0.6 }} />
+
+      {/* Identificação formal progressiva (Agente B) */}
+      <div className="field-lbl" style={{ marginTop: 18 }}>
+        Cadastro formal e bancário
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 14px',
+          background: 'var(--input-bg)',
+          borderRadius: 8,
+          border: '1px solid var(--line-soft)',
+          marginBottom: 10,
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-strong)' }}>
+            {completo ? 'Cadastro completo' : 'Cadastro pendente'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+            {completo
+              ? `${me.cadastro?.cpf ? `CPF ${me.cadastro.cpf} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
+              : 'Necessário para depósitos e saques'}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn btn-outline"
+          style={{ padding: '6px 14px', fontSize: 12, width: 'auto', flexShrink: 0 }}
+          onClick={() => open(<ModalCadastro motivo="configuracoes" />)}
+        >
+          {completo ? 'Editar dados' : 'Completar'}
+        </button>
+      </div>
 
       <div className="m-actions">
         <button className="btn btn-outline" type="button" onClick={close}>
@@ -261,7 +303,7 @@ export function ModalNotificacoes(): ReactNode {
  */
 export function ModalDeposito(): ReactNode {
   const { me, run } = useApp()
-  const { close } = useModal()
+  const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -270,6 +312,46 @@ export function ModalDeposito(): ReactNode {
   // paga no aplicativo do banco.
   const [pix, setPix] = useState<DepositoIniciado | null>(null)
   const [erroMp, setErroMp] = useState('')
+
+  // Defesa em profundidade (Agente B): se a modal de depósito for invocada diretamente
+  // sem cadastro completo, orienta a pessoa a preencher antes de continuar.
+  if (!temCadastroCompleto(me)) {
+    return (
+      <>
+        <h3 className="serif">Cadastro necessário</h3>
+        <p style={{ marginBottom: 14 }}>
+          Por conformidade legal e fiscal, é necessário completar seu cadastro antes de realizar o
+          primeiro depósito em conta.
+        </p>
+
+        <div className="note" style={{ marginBottom: 16 }}>
+          A Áurea Custódia protege o que tem valor para gerações. Seus dados são protegidos sob a LGPD
+          e utilizados exclusivamente para identificação fiscal e transferências bancárias. Não
+          solicitamos fotos de documentos nem biometria facial.
+        </div>
+
+        <div className="m-actions">
+          <button className="btn btn-outline" type="button" onClick={close}>
+            Cancelar
+          </button>
+          <button
+            className="btn btn-gold"
+            type="button"
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="deposito"
+                  onSuccess={() => open(<ModalDeposito />)}
+                />,
+              )
+            }
+          >
+            Completar cadastro
+          </button>
+        </div>
+      </>
+    )
+  }
 
   const cents = parsePrice(valorTexto)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
@@ -430,3 +512,186 @@ export function ModalDeposito(): ReactNode {
     </>
   )
 }
+
+/* -------------------------------------------------------------------------
+ * Saque de recursos (Agente B - Sessão B-4)
+ * ---------------------------------------------------------------------- */
+
+export function ModalSaque(): ReactNode {
+  const { me, run } = useApp()
+  const { close, open } = useModal()
+
+  const [valorTexto, setValorTexto] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  // Defesa em profundidade: sem dados bancários cadastrados, o prazo D+3 não
+  // começa a correr e o saque não pode ser concluído.
+  if (!temDadosBancarios(me)) {
+    return (
+      <>
+        <h3 className="serif">Dados bancários necessários</h3>
+        <p style={{ marginBottom: 14 }}>
+          Para solicitar saque do seu saldo, é necessário cadastrar sua chave Pix ou dados
+          bancários de mesma titularidade (CPF correspondente).
+        </p>
+
+        <div className="note" style={{ marginBottom: 16 }}>
+          O prazo regulamentar de liquidação de <b>D+3 úteis</b> só tem início após a confirmação
+          dos dados de destino da transferência.
+        </div>
+
+        <div className="m-actions">
+          <button className="btn btn-outline" type="button" onClick={close}>
+            Cancelar
+          </button>
+          <button
+            className="btn btn-gold"
+            type="button"
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="saque"
+                  onSuccess={() => open(<ModalSaque />)}
+                />,
+              )
+            }
+          >
+            Cadastrar dados bancários
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  const cents = parsePrice(valorTexto)
+  const { formatada: dataPrevistaBR } = calcularDataLimiteSaque()
+  const podeSacar = cents > TAXA_SAQUE_FIXA_CENTS && cents <= me.balance && !enviando
+
+  async function executarSaque(): Promise<void> {
+    if (!podeSacar) return
+    setEnviando(true)
+    setErro('')
+    try {
+      const res = await run(() => solicitarSaque(cents))
+      if (res.ok) {
+        close()
+      } else {
+        setErro(res.error ?? 'Não foi possível solicitar o saque.')
+        setEnviando(false)
+      }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao processar solicitação.')
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <>
+      <h3 className="serif">Solicitar saque</h3>
+      <p style={{ marginBottom: 10 }}>
+        Transferência do saldo em conta para sua chave Pix ou conta bancária cadastrada.
+      </p>
+
+      <div className="summary-row">
+        <span className="k">Saldo disponível</span>
+        <span className="v">{brl(me.balance)}</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Conta de destino</span>
+        <span className="v" style={{ textAlign: 'right' }}>
+          {descreverDadosBancarios(me.cadastro?.dadosBancarios)}
+          <span
+            className="back-link"
+            style={{ display: 'block', fontSize: 11, marginTop: 2, cursor: 'pointer' }}
+            onClick={() =>
+              open(
+                <ModalCadastro
+                  motivo="saque"
+                  onSuccess={() => open(<ModalSaque />)}
+                />,
+              )
+            }
+          >
+            Alterar dados
+          </span>
+        </span>
+      </div>
+
+      <div className="field-lbl">Valor a sacar</div>
+      <div className="price-input">
+        <span>R$</span>
+        <input
+          inputMode="decimal"
+          placeholder="0,00"
+          aria-label="Valor a sacar em reais"
+          value={valorTexto}
+          onChange={(e) => setValorTexto(e.target.value)}
+        />
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Tarifa de saque (fixa)</span>
+        <span className="v">{brl(TAXA_SAQUE_FIXA_CENTS)}</span>
+      </div>
+
+      <div className="summary-row total">
+        <span className="k">Valor líquido a receber</span>
+        <span className="v" style={{ fontSize: 19 }}>
+          {cents > TAXA_SAQUE_FIXA_CENTS ? brl(cents - TAXA_SAQUE_FIXA_CENTS) : '—'}
+        </span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Prazo de liquidação</span>
+        <span className="v">D+3 úteis (previsão: {dataPrevistaBR})</span>
+      </div>
+
+      {cents > 0 && cents <= TAXA_SAQUE_FIXA_CENTS ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          O valor do saque deve ser superior à tarifa fixa de {brl(TAXA_SAQUE_FIXA_CENTS)}.
+        </div>
+      ) : null}
+
+      {cents > me.balance ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          Saldo insuficiente para este saque. Seu saldo disponível é {brl(me.balance)}.
+        </div>
+      ) : null}
+
+      {erro ? (
+        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+          {erro}
+        </div>
+      ) : null}
+
+      <div className="m-actions">
+        <button className="btn btn-outline" type="button" onClick={close} disabled={enviando}>
+          Cancelar
+        </button>
+        <button
+          className="btn btn-gold"
+          type="button"
+          disabled={!podeSacar}
+          onClick={() => void executarSaque()}
+        >
+          {enviando ? 'Solicitando...' : 'Confirmar saque'}
+        </button>
+      </div>
+
+      <div className="note" style={{ marginTop: 14 }}>
+        A liquidação é realizada via Pix para a conta informada. O débito no saldo é imediato e a
+        transferência ocorre em até 3 dias úteis.
+      </div>
+    </>
+  )
+}
+
+/** Mantido para retrocompatibilidade. */
+export function ModalSaqueInfo(): ReactNode {
+  return <ModalSaque />
+}
+
+export { ModalCadastro }
+

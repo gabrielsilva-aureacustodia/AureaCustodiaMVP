@@ -34,11 +34,14 @@ import type {
   Analise,
   AppState,
   BuyOrder,
+  Cadastro,
   Cents,
   Coin,
   CustodyCharge,
   Deposit,
   Envio,
+  FaturaCustodia,
+  Saque,
   SellOffer,
   Seq,
   Trade,
@@ -57,6 +60,8 @@ export interface UserRegistro {
   lastAccess: number | null
   prevAccess: number | null
   settings: UserSettings | null
+  cadastro: Cadastro | null
+  inadimplente: boolean
 }
 
 /** A linha de `coins` + `recibos`: a moeda, seu dono e sua posição no inventário dele. */
@@ -86,6 +91,34 @@ export function normalizarUser(u: User): UserRegistro {
           notifNovidades: u.settings.notifNovidades,
         }
       : null,
+    cadastro: u.cadastro
+      ? {
+          cpf: u.cadastro.cpf,
+          nomeCompleto: u.cadastro.nomeCompleto,
+          dataNascimento: u.cadastro.dataNascimento,
+          telefone: u.cadastro.telefone,
+          endereco: {
+            logradouro: u.cadastro.endereco.logradouro,
+            numero: u.cadastro.endereco.numero,
+            complemento: u.cadastro.endereco.complemento ?? '',
+            bairro: u.cadastro.endereco.bairro,
+            cidade: u.cadastro.endereco.cidade,
+            uf: u.cadastro.endereco.uf,
+            cep: u.cadastro.endereco.cep,
+          },
+          dadosBancarios: {
+            chavePix: u.cadastro.dadosBancarios.chavePix ?? '',
+            tipoChavePix: u.cadastro.dadosBancarios.tipoChavePix,
+            banco: u.cadastro.dadosBancarios.banco ?? '',
+            agencia: u.cadastro.dadosBancarios.agencia ?? '',
+            conta: u.cadastro.dadosBancarios.conta ?? '',
+            tipoConta: u.cadastro.dadosBancarios.tipoConta,
+          },
+          completadoEm: u.cadastro.completadoEm,
+          confirmadoEm: u.cadastro.confirmadoEm,
+        }
+      : null,
+    inadimplente: Boolean(u.inadimplente),
   }
 }
 
@@ -215,6 +248,48 @@ export function normalizarCustodyCharge(c: CustodyCharge): CustodyCharge {
   }
 }
 
+export function normalizarSaque(s: Saque): Saque {
+  return {
+    id: s.id,
+    userEmail: s.userEmail,
+    valorTotal: s.valorTotal,
+    taxa: s.taxa,
+    valorLiquido: s.valorLiquido,
+    dadosBancarios: {
+      chavePix: s.dadosBancarios.chavePix ?? undefined,
+      tipoChavePix: s.dadosBancarios.tipoChavePix ?? undefined,
+      banco: s.dadosBancarios.banco ?? undefined,
+      agencia: s.dadosBancarios.agencia ?? undefined,
+      conta: s.dadosBancarios.conta ?? undefined,
+      tipoConta: s.dadosBancarios.tipoConta ?? undefined,
+    },
+    status: s.status,
+    motivoFalha: s.motivoFalha ?? null,
+    criadoEm: s.criadoEm,
+    previsaoPagamentoEm: s.previsaoPagamentoEm,
+    pagoEm: s.pagoEm ?? null,
+    comprovanteRef: s.comprovanteRef ?? null,
+    atualizadoEm: s.atualizadoEm,
+  }
+}
+
+export function normalizarFatura(f: FaturaCustodia): FaturaCustodia {
+  return {
+    id: f.id,
+    userEmail: f.userEmail,
+    competencia: f.competencia,
+    quantidadeMoedas: f.quantidadeMoedas,
+    moedaIds: [...f.moedaIds],
+    valorCents: f.valorCents,
+    status: f.status,
+    dataEmissao: f.dataEmissao,
+    dataVencimento: f.dataVencimento,
+    dataPagamento: f.dataPagamento ?? null,
+    formaPagamento: f.formaPagamento ?? null,
+    paymentIntentId: f.paymentIntentId ?? null,
+  }
+}
+
 /**
  * `analise` só entra quando existe. Estado gravado antes da frente E não tem o
  * contador, e materializá-lo como `0` faria o diff enxergar mudança em toda
@@ -254,6 +329,10 @@ export type Operacao =
   | { tipo: 'envio.remover'; protocolo: string }
   | { tipo: 'deposit.inserir'; deposito: Deposit }
   | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
+  | { tipo: 'saque.inserir'; saque: Saque }
+  | { tipo: 'saque.atualizar'; saque: Saque }
+  | { tipo: 'fatura.inserir'; fatura: FaturaCustodia }
+  | { tipo: 'fatura.atualizar'; fatura: FaturaCustodia }
   | { tipo: 'custodyCharge.gravar'; email: UserEmail; cobranca: CustodyCharge }
   | { tipo: 'custodyCharge.remover'; email: UserEmail }
   | { tipo: 'seq.atualizar'; seq: Seq }
@@ -364,6 +443,22 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   const analisesNovas = caudaNova('analises', antes.analises ?? [], depois.analises ?? []).map(
     (a, i) => ({ posicao: analisesAntes + i, analise: normalizarAnalise(a) }),
   )
+  const saquesNovos = caudaNova('saques', antes.saques ?? [], depois.saques ?? []).map(normalizarSaque)
+  const saquesAntes = antes.saques ?? []
+  const saquesDepois = depois.saques ?? []
+  const saquesAtualizados: Saque[] = []
+  for (let i = 0; i < saquesAntes.length; i++) {
+    const a = saquesAntes[i]
+    const d = saquesDepois[i]
+    if (d && JSON.stringify(normalizarSaque(a)) !== JSON.stringify(normalizarSaque(d))) {
+      saquesAtualizados.push(normalizarSaque(d))
+    }
+  }
+
+  const faturas = diffPorChave(
+    indexar((antes.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
+    indexar((depois.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
+  )
 
   // 1. remoções, das folhas para as raízes
   for (const id of sellOffers.removidos) ops.push({ tipo: 'sellOffer.remover', id })
@@ -393,6 +488,10 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   for (const { posicao, analise } of analisesNovas) {
     ops.push({ tipo: 'analise.inserir', posicao, analise })
   }
+  for (const saque of saquesNovos) ops.push({ tipo: 'saque.inserir', saque })
+  for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
+  for (const fatura of faturas.inseridos) ops.push({ tipo: 'fatura.inserir', fatura })
+  for (const fatura of faturas.atualizados) ops.push({ tipo: 'fatura.atualizar', fatura })
   for (const { email, cobranca } of [...cobrancas.inseridos, ...cobrancas.atualizados]) {
     ops.push({ tipo: 'custodyCharge.gravar', email, cobranca })
   }

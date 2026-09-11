@@ -137,6 +137,7 @@ function suite(alvo: Alvo): void {
           `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
+                    ${S}.saques, ${S}.faturas_custodia,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
@@ -173,6 +174,8 @@ function suite(alvo: Alvo): void {
         'deposits',
         'envios',
         'exportacoes',
+        // Migration 010 — faturamento de custódia (Sessão B-5).
+        'faturas_custodia',
         'lancamentos_manuais',
         'ledger_entries',
         'parametros_contabeis',
@@ -182,6 +185,8 @@ function suite(alvo: Alvo): void {
         'rastreios',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
+        // Migration 009 — saques de recursos (Sessão B-4).
+        'saques',
         'schema_migrations',
         'sell_offers',
         'seq',
@@ -448,6 +453,178 @@ function suite(alvo: Alvo): void {
         settings: { twoFA: true, notifNegociacoes: false },
       })
       expect('prevAccess' in lido.users[email]).toBe(false) // era undefined: fica ausente, não null
+    })
+
+    it('cadastro formal: persiste e recarrega dados cadastrais sem afetar contas sem cadastro', async () => {
+      const semeado = await lerEstado(executar)
+      const [emailSemCadastro, emailComCadastro] = Object.keys(semeado.users)
+      expect(semeado.users[emailSemCadastro].cadastro).toBeUndefined()
+
+      await mutarEstado(executar, (s) => {
+        const u = s.users[emailComCadastro]
+        u.cadastro = {
+          cpf: '52998224725',
+          nomeCompleto: 'Investidor Teste Silva',
+          dataNascimento: '1985-05-15',
+          telefone: '11987654321',
+          endereco: {
+            logradouro: 'Rua das Flores',
+            numero: '123',
+            complemento: 'Apto 45',
+            bairro: 'Jardins',
+            cidade: 'São Paulo',
+            uf: 'SP',
+            cep: '01234000',
+          },
+          dadosBancarios: {
+            chavePix: '52998224725',
+            tipoChavePix: 'cpf',
+            banco: '001',
+            agencia: '1234',
+            conta: '56789-0',
+            tipoConta: 'corrente',
+          },
+          completadoEm: 1_700_000_000_000,
+          confirmadoEm: 1_700_000_000_000,
+        }
+      })
+
+      const lido = await lerEstado(executar)
+      // Conta sem cadastro continua intacta sem campo cadastro
+      expect(lido.users[emailSemCadastro].cadastro).toBeUndefined()
+
+      // Conta com cadastro tem todos os campos preservados
+      expect(lido.users[emailComCadastro].cadastro).toEqual({
+        cpf: '52998224725',
+        nomeCompleto: 'Investidor Teste Silva',
+        dataNascimento: '1985-05-15',
+        telefone: '11987654321',
+        endereco: {
+          logradouro: 'Rua das Flores',
+          numero: '123',
+          complemento: 'Apto 45',
+          bairro: 'Jardins',
+          cidade: 'São Paulo',
+          uf: 'SP',
+          cep: '01234000',
+        },
+        dadosBancarios: {
+          chavePix: '52998224725',
+          tipoChavePix: 'cpf',
+          banco: '001',
+          agencia: '1234',
+          conta: '56789-0',
+          tipoConta: 'corrente',
+        },
+        completadoEm: 1_700_000_000_000,
+        confirmadoEm: 1_700_000_000_000,
+      })
+    })
+
+    it('saques: persiste solicitação, atualiza para pago e recarrega do banco fielmente', async () => {
+      await lerEstado(executar)
+      const email = 'gabrielsilva@testeaurea.com.br'
+
+      await mutarEstado(executar, (s) => {
+        s.saques = [
+          {
+            id: 'SAQ-PG-001',
+            userEmail: email,
+            valorTotal: 10_000,
+            taxa: 500,
+            valorLiquido: 9_500,
+            dadosBancarios: {
+              chavePix: '52998224725',
+              tipoChavePix: 'cpf',
+            },
+            status: 'solicitado',
+            criadoEm: 1_700_000_000_000,
+            previsaoPagamentoEm: 1_700_259_200_000,
+            atualizadoEm: 1_700_000_000_000,
+          },
+        ]
+      })
+
+      let lido = await lerEstado(executar)
+      expect(lido.saques).toHaveLength(1)
+      expect(lido.saques?.[0]).toMatchObject({
+        id: 'SAQ-PG-001',
+        userEmail: email,
+        valorTotal: 10_000,
+        taxa: 500,
+        valorLiquido: 9_500,
+        status: 'solicitado',
+      })
+
+      // Atualiza status para pago
+      await mutarEstado(executar, (s) => {
+        const sq = s.saques?.find((item) => item.id === 'SAQ-PG-001')
+        if (sq) {
+          sq.status = 'pago'
+          sq.pagoEm = 1_700_100_000_000
+          sq.comprovanteRef = 'PIX-123456'
+          sq.atualizadoEm = 1_700_100_000_000
+        }
+      })
+
+      lido = await lerEstado(executar)
+      expect(lido.saques?.[0].status).toBe('pago')
+      expect(lido.saques?.[0].comprovanteRef).toBe('PIX-123456')
+      expect(lido.saques?.[0].pagoEm).toBe(1_700_100_000_000)
+    })
+
+    it('faturas: persiste fatura de custódia, liquidação e recarrega fielmente', async () => {
+      await lerEstado(executar)
+      const email = 'gabrielsilva@testeaurea.com.br'
+
+      await mutarEstado(executar, (s) => {
+        s.faturasCustodia = [
+          {
+            id: 'FAT-2026-09-gabriel',
+            userEmail: email,
+            competencia: '2026-09',
+            quantidadeMoedas: 3,
+            moedaIds: ['RO-000001', 'RO-000002', 'RO-000003'],
+            valorCents: 600,
+            status: 'pendente',
+            dataEmissao: 1_700_000_000_000,
+            dataVencimento: 1_700_864_000_000,
+            dataPagamento: null,
+            formaPagamento: null,
+            paymentIntentId: null,
+          },
+        ]
+      })
+
+      let lido = await lerEstado(executar)
+      expect(lido.faturasCustodia).toHaveLength(1)
+      expect(lido.faturasCustodia?.[0]).toMatchObject({
+        id: 'FAT-2026-09-gabriel',
+        userEmail: email,
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        valorCents: 600,
+        status: 'pendente',
+      })
+
+      // Liquida a fatura com saldo
+      await mutarEstado(executar, (s) => {
+        const f = s.faturasCustodia?.find((x) => x.id === 'FAT-2026-09-gabriel')
+        if (f) {
+          f.status = 'paga'
+          f.dataPagamento = 1_700_050_000_000
+          f.formaPagamento = 'saldo'
+          s.users[email].balance -= f.valorCents
+        }
+        s.users[email].inadimplente = false
+      })
+
+      lido = await lerEstado(executar)
+      expect(lido.faturasCustodia?.[0]).toMatchObject({
+        id: 'FAT-2026-09-gabriel',
+        status: 'paga',
+        formaPagamento: 'saldo',
+      })
     })
 
     it('apagar histórico é erro, e a transação inteira volta atrás', async () => {

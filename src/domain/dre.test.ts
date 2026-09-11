@@ -42,6 +42,73 @@ describe('montarDre', () => {
     expect(dre.analise.receitaPorTipo[0]).toEqual({ tipoMoeda: BAN, receita: 1_000, negociacoes: 1 })
   })
 
+  it('segrega as 4 fontes de receita da plataforma (corretagem, custódia, taxa de saque e taxa de retirada)', () => {
+    const pendentes = [
+      lancamentoDeSaldoInicial('a', 100_000, new Date(2026, 7, 1).getTime(), 'abertura'),
+      {
+        createdAt: new Date(2026, 7, 5).getTime(),
+        userEmail: 'a',
+        tipo: 'comissao' as const,
+        valor: 1_200,
+        sinal: -1 as const,
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        quantidade: 1,
+        refInterna: 'T1',
+        refExterna: null,
+        descricao: 'Comissão',
+      },
+      {
+        createdAt: new Date(2026, 7, 10).getTime(),
+        userEmail: 'a',
+        tipo: 'custodia' as const,
+        valor: 200,
+        sinal: 0 as const,
+        tipoMoeda: null,
+        quantidade: 1,
+        refInterna: null,
+        refExterna: null,
+        descricao: 'Custódia mensal',
+      },
+      {
+        createdAt: new Date(2026, 7, 15).getTime(),
+        userEmail: 'a',
+        tipo: 'taxa_saque' as const,
+        valor: 500,
+        sinal: -1 as const,
+        tipoMoeda: null,
+        quantidade: null,
+        refInterna: 'SAQ-001',
+        refExterna: null,
+        descricao: 'Taxa fixa de saque',
+      },
+      {
+        createdAt: new Date(2026, 7, 20).getTime(),
+        userEmail: 'a',
+        tipo: 'taxa_retirada' as const,
+        valor: 3_000,
+        sinal: -1 as const,
+        tipoMoeda: null,
+        quantidade: 1,
+        refInterna: 'RET-001',
+        refExterna: null,
+        descricao: 'Taxa de retirada física',
+      },
+    ]
+    const ledger = encadear(pendentes, {}, GENESIS).lancamentos
+    const dre = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
+
+    expect(dre.totais.receitaComissoes).toBe(1_200)
+    expect(dre.totais.receitaCustodia).toBe(200)
+    expect(dre.totais.receitaTaxaSaque).toBe(500)
+    expect(dre.totais.receitaTaxaRetirada).toBe(3_000)
+    expect(dre.totais.receitaBruta).toBe(1_200 + 200 + 500 + 3_000)
+
+    expect(dre.linhas.find((l) => l.codigo === '3.1.01')?.valor).toBe(1_200)
+    expect(dre.linhas.find((l) => l.codigo === '3.1.02')?.valor).toBe(200)
+    expect(dre.linhas.find((l) => l.codigo === '3.1.03')?.valor).toBe(500)
+    expect(dre.linhas.find((l) => l.codigo === '3.1.04')?.valor).toBe(3_000)
+  })
+
   it('sem alíquota configurada, impostos ficam zerados e a pendência é declarada', () => {
     const dre = montarDre({ ledger: ledgerDeExemplo(), manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
     expect(dre.totais.deducoes).toBe(0)

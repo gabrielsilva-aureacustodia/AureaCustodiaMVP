@@ -176,6 +176,7 @@ export async function exportStatementXlsx(
 
   const resumo = [
     { Indicador: 'Total depositado', Valor: reais(totais.depositado) },
+    { Indicador: 'Total sacado', Valor: reais(totais.sacado) },
     { Indicador: 'Moedas compradas', Valor: totais.compradoQtd },
     { Indicador: 'Valor gasto em compras', Valor: reais(totais.compradoValor) },
     { Indicador: 'Moedas vendidas', Valor: totais.vendidoQtd },

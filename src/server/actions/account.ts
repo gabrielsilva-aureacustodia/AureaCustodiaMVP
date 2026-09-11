@@ -23,13 +23,17 @@
  */
 
 import { ACCOUNTS, DEPOSITO_MAX } from '@/domain/constants'
+import { calcularDataLimiteSaque, PRAZO_SAQUE_DIAS } from '@/domain/dates'
+import { TAXA_SAQUE_FIXA_CENTS } from '@/domain/fees'
+import { temDadosBancarios } from '@/domain/cadastro'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
-import type { ActionResult, Cents } from '@/domain/types'
+import { limparCpf, validarCpf } from '@/domain/cpf'
+import type { ActionResult, Cadastro, Cents, Saque } from '@/domain/types'
 import { createAuthClient } from '@/server/auth/client'
 import { AuthConfigurationError } from '@/server/auth/config'
 import { getSessionEmail } from '@/server/session'
-import { mutateState } from '@/server/state'
+import { getState, mutateState } from '@/server/state'
 
 /** Cookie ausente, expirado ou com assinatura que não bate. */
 const SESSAO_EXPIRADA = 'Sessão expirada.'
@@ -290,3 +294,358 @@ export async function toggleNotif(key: NotifKey): Promise<ActionResult> {
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }
+
+/**
+ * Payload de entrada para preenchimento do cadastro formal progressivo (sessão B-1 / B-2).
+ */
+export interface CadastroInput {
+  cpf: string
+  nomeCompleto: string
+  dataNascimento: string // YYYY-MM-DD
+  telefone: string
+  endereco: {
+    logradouro: string
+    numero: string
+    complemento?: string
+    bairro: string
+    cidade: string
+    uf: string
+    cep: string
+  }
+  dadosBancarios: {
+    chavePix?: string
+    tipoChavePix?: 'cpf' | 'email' | 'telefone' | 'aleatoria'
+    banco?: string
+    agencia?: string
+    conta?: string
+    tipoConta?: 'corrente' | 'poupanca'
+  }
+}
+
+/**
+ * Salva ou atualiza o cadastro formal progressivo do usuário autenticado (sessão B-1).
+ *
+ * Exigido no primeiro movimento de dinheiro (depósito, compra direta, saque).
+ * Não pede upload de documento nem biometria (dispensados pelo jurídico).
+ */
+export async function salvarCadastro(input: CadastroInput): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!input) return { ok: false, error: 'Dados cadastrais não informados.' }
+
+  if (!validarCpf(input.cpf)) {
+    return { ok: false, error: 'CPF inválido.' }
+  }
+
+  const nomeCompleto = (input.nomeCompleto || '').trim()
+  if (nomeCompleto.length < 3) {
+    return { ok: false, error: 'Informe seu nome completo.' }
+  }
+
+  const dataNascimento = (input.dataNascimento || '').trim()
+  if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
+    return { ok: false, error: 'Data de nascimento inválida (use o formato AAAA-MM-DD).' }
+  }
+
+  const telefone = (input.telefone || '').replace(/\D/g, '')
+  if (telefone.length < 10 || telefone.length > 11) {
+    return { ok: false, error: 'Informe um telefone válido com DDD (10 ou 11 dígitos).' }
+  }
+
+  const end = input.endereco
+  if (
+    !end ||
+    !end.logradouro?.trim() ||
+    !end.numero?.trim() ||
+    !end.bairro?.trim() ||
+    !end.cidade?.trim() ||
+    !end.uf?.trim() ||
+    !end.cep?.trim()
+  ) {
+    return { ok: false, error: 'Endereço incompleto. Preencha todos os campos obrigatórios.' }
+  }
+
+  const cep = end.cep.replace(/\D/g, '')
+  if (cep.length !== 8) {
+    return { ok: false, error: 'CEP inválido (deve conter 8 dígitos).' }
+  }
+
+  const db = input.dadosBancarios
+  const temPix = Boolean(db?.chavePix?.trim() && db?.tipoChavePix)
+  const temConta = Boolean(db?.banco?.trim() && db?.agencia?.trim() && db?.conta?.trim() && db?.tipoConta)
+  if (!temPix && !temConta) {
+    return {
+      ok: false,
+      error: 'Informe uma chave Pix válida ou os dados bancários completos para recebimento.',
+    }
+  }
+
+  try {
+    const { result } = await mutateState<ActionResult>((s) => {
+      const u = s.users[email]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+      const cadastroAtualizado: Cadastro = {
+        cpf: limparCpf(input.cpf),
+        nomeCompleto,
+        dataNascimento,
+        telefone,
+        endereco: {
+          logradouro: end.logradouro.trim(),
+          numero: end.numero.trim(),
+          complemento: end.complemento?.trim() || undefined,
+          bairro: end.bairro.trim(),
+          cidade: end.cidade.trim(),
+          uf: end.uf.trim().toUpperCase(),
+          cep,
+        },
+        dadosBancarios: {
+          chavePix: db?.chavePix?.trim() || undefined,
+          tipoChavePix: db?.tipoChavePix,
+          banco: db?.banco?.trim() || undefined,
+          agencia: db?.agencia?.trim() || undefined,
+          conta: db?.conta?.trim() || undefined,
+          tipoConta: db?.tipoConta,
+        },
+        completadoEm: Date.now(),
+        confirmadoEm: Date.now(),
+      }
+
+      u.cadastro = cadastroAtualizado
+      return {
+        ok: true,
+        message: 'Cadastro concluído com sucesso.',
+      }
+    })
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Consulta os dados cadastrais do usuário autenticado.
+ */
+export async function obterCadastro(): Promise<ActionResult<Cadastro | null>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const s = await getState()
+    const u = s.users[email]
+    if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+    return { ok: true, data: u.cadastro ?? null }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/* ============================================================================
+ * SAQUE DE RECURSOS (Sessão B-4, Bloco 7b do Plano Executivo)
+ * ==========================================================================*/
+
+export interface SolicitacaoSaqueResult {
+  saqueId: string
+  valorTotal: Cents
+  taxa: Cents
+  valorLiquido: Cents
+  previsaoPagamento: string
+}
+
+/**
+ * Solicita o saque de saldo disponível para a conta bancária/Pix cadastrada.
+ *
+ * Travas e regras:
+ * 1. Exige dados bancários ou chave Pix confirmados (`temDadosBancarios(u)`).
+ *    Sem eles, o prazo D+3 não começa a contar.
+ * 2. Taxa fixa de R$ 5,00 debitada do valor sacado (`TAXA_SAQUE_FIXA_CENTS = 500`).
+ * 3. Valor mínimo de R$ 5,01 para cobrir a tarifa.
+ * 4. Valida saldo suficiente (`user.balance >= valorCents`).
+ * 5. Debita o saldo imediatamente e registra a solicitação com prazo D+3 (72h).
+ * 6. Lançamento no ledger + auditoria na mesma transação atômica.
+ */
+export async function solicitarSaque(
+  valorCents: number,
+): Promise<ActionResult<SolicitacaoSaqueResult>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!Number.isInteger(valorCents) || valorCents <= TAXA_SAQUE_FIXA_CENTS) {
+    return {
+      ok: false,
+      error: `O valor mínimo para saque é de R$ 5,01 (para cobrir a tarifa fixa de ${brl(TAXA_SAQUE_FIXA_CENTS)}).`,
+    }
+  }
+
+  try {
+    const { result } = await mutateState<ActionResult<SolicitacaoSaqueResult>>((s) => {
+      const u = s.users[email]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+      if (!temDadosBancarios(u)) {
+        return {
+          ok: false,
+          error:
+            'Dados bancários para recebimento não cadastrados ou incompletos. Sem eles, o prazo D+3 não começa a contar.',
+        }
+      }
+
+      if (u.balance < valorCents) {
+        return { ok: false, error: 'Saldo insuficiente para saque.' }
+      }
+
+      const agora = Date.now()
+      const taxa = TAXA_SAQUE_FIXA_CENTS
+      const valorLiquido = valorCents - taxa
+      const prazo = calcularDataLimiteSaque(agora, PRAZO_SAQUE_DIAS)
+      const saqueId = `SAQ-${agora}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+      const saque: Saque = {
+        id: saqueId,
+        userEmail: email,
+        valorTotal: valorCents,
+        taxa,
+        valorLiquido,
+        dadosBancarios: structuredClone(u.cadastro!.dadosBancarios),
+        status: 'solicitado',
+        criadoEm: agora,
+        previsaoPagamentoEm: prazo.timestamp,
+        atualizadoEm: agora,
+      }
+
+      u.balance -= valorCents
+      if (!Array.isArray(s.saques)) s.saques = []
+      s.saques.push(saque)
+
+      return {
+        ok: true,
+        data: {
+          saqueId,
+          valorTotal: valorCents,
+          taxa,
+          valorLiquido,
+          previsaoPagamento: prazo.formatada,
+        },
+        message: `Solicitação de saque registrada com sucesso. Previsão de crédito até ${prazo.formatada} (prazo D+3).`,
+      }
+    })
+
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Lista o histórico de saques do usuário logado, ordenado do mais recente para o mais antigo.
+ */
+export async function listarMeusSaques(): Promise<ActionResult<Saque[]>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const s = await getState()
+    const saques = (s.saques ?? [])
+      .filter((sq) => sq.userEmail === email)
+      .sort((a, b) => b.criadoEm - a.criadoEm)
+    return { ok: true, data: saques }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Marca um saque como liquidado/pago (gesto do sócio na liquidação manual RA-30).
+ */
+export async function confirmarLiquidacaoSaque(
+  saqueId: string,
+  comprovanteRef?: string,
+): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState<ActionResult>((s) => {
+      const saques = s.saques ?? []
+      const saque = saques.find((sq) => sq.id === saqueId)
+      if (!saque) return { ok: false, error: 'Solicitação de saque não encontrada.' }
+
+      if (saque.status === 'pago') {
+        return { ok: false, error: 'Este saque já foi liquidado.' }
+      }
+      if (saque.status === 'falhou') {
+        return { ok: false, error: 'Não é possível liquidar um saque marcado como falho.' }
+      }
+
+      const agora = Date.now()
+      saque.status = 'pago'
+      saque.pagoEm = agora
+      saque.atualizadoEm = agora
+      if (comprovanteRef?.trim()) {
+        saque.comprovanteRef = comprovanteRef.trim()
+      }
+
+      return {
+        ok: true,
+        message: `Saque ${saqueId} marcado como pago com sucesso.`,
+      }
+    })
+
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Rejeita ou marca um saque como falho, estornando o valor total para o saldo do usuário.
+ */
+export async function rejeitarSaque(
+  saqueId: string,
+  motivo: string,
+): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!motivo?.trim()) {
+    return { ok: false, error: 'Informe o motivo da recusa do saque.' }
+  }
+
+  try {
+    const { result } = await mutateState<ActionResult>((s) => {
+      const saques = s.saques ?? []
+      const saque = saques.find((sq) => sq.id === saqueId)
+      if (!saque) return { ok: false, error: 'Solicitação de saque não encontrada.' }
+
+      if (saque.status === 'pago') {
+        return { ok: false, error: 'Não é possível recusar um saque já pago.' }
+      }
+      if (saque.status === 'falhou') {
+        return { ok: false, error: 'Este saque já foi marcado como falho.' }
+      }
+
+      const agora = Date.now()
+      saque.status = 'falhou'
+      saque.motivoFalha = motivo.trim()
+      saque.atualizadoEm = agora
+
+      // Estorna o valor debitado de volta para o saldo da conta do usuário
+      const u = s.users[saque.userEmail]
+      if (u) {
+        u.balance += saque.valorTotal
+      }
+
+      return {
+        ok: true,
+        message: `Saque ${saqueId} cancelado/recusado. O saldo de ${brl(saque.valorTotal)} foi estornado para o cliente.`,
+      }
+    })
+
+    return result
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+

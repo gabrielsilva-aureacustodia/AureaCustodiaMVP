@@ -31,6 +31,8 @@ import {
   lancamentoDeCustodia,
   lancamentoDeDeposito,
   lancamentoDeSaldoInicial,
+  lancamentoDeSaque,
+  lancamentoDeTaxaSaque,
   lancamentosDeTrade,
   type LancamentoPendente,
   type LedgerEntry,
@@ -82,11 +84,41 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     pendentes.push(lancamentoDeDeposito(d, `DEP-${antes.deposits.length + i + 1}`))
   })
 
+  /* saques novos */
+  const saquesNovos = (depois.saques ?? []).slice((antes.saques ?? []).length)
+  saquesNovos.forEach((s) => {
+    pendentes.push(lancamentoDeSaque(s.userEmail, s.valorLiquido, s.criadoEm, s.id, s.comprovanteRef ?? null))
+    pendentes.push(lancamentoDeTaxaSaque(s.userEmail, s.taxa, s.criadoEm, s.id))
+  })
+
   /* cobranças de custódia gravadas nesta mutação (sinal zero) */
   for (const op of ops) {
     if (op.tipo !== 'custodyCharge.gravar') continue
     const quando = semeadura ? deDataBR(op.cobranca.dataCobranca, agora) : agora
     pendentes.push(lancamentoDeCustodia(op.email, op.cobranca, quando, null))
+  }
+
+  /* faturas de custódia liquidadas com débito de saldo (sinal -1) */
+  const faturasAntes = new Map((antes.faturasCustodia ?? []).map((f) => [f.id, f]))
+  for (const op of ops) {
+    if (op.tipo !== 'fatura.inserir' && op.tipo !== 'fatura.atualizar') continue
+    const f = op.fatura
+    const antesFat = faturasAntes.get(f.id)
+    const eraPagaComSaldo = antesFat?.status === 'paga' && antesFat?.formaPagamento === 'saldo'
+    if (f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo) {
+      pendentes.push({
+        createdAt: f.dataPagamento || agora,
+        userEmail: f.userEmail,
+        tipo: 'custodia',
+        valor: f.valorCents,
+        sinal: -1,
+        tipoMoeda: null,
+        quantidade: f.quantidadeMoedas,
+        refInterna: f.id,
+        refExterna: null,
+        descricao: `Custódia mensal ${f.competencia} (${f.quantidadeMoedas} moeda(s))`,
+      })
+    }
   }
 
   /* efeito líquido dos lançamentos acima, por conta */
@@ -202,6 +234,19 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
       case 'deposit.inserir':
         anotar(op, String(op.deposito.valor), op.deposito.userEmail)
         break
+      case 'analise.inserir':
+        anotar(op, op.analise.protocolo, op.analise.operador)
+        break
+      case 'saque.inserir':
+        anotar(op, op.saque.id, op.saque.userEmail)
+        break
+      case 'saque.atualizar':
+        anotar(op, op.saque.id, op.saque.userEmail)
+        break
+      case 'fatura.inserir':
+      case 'fatura.atualizar':
+        anotar(op, op.fatura.id, op.fatura.userEmail)
+        break
       case 'custodyCharge.gravar':
       case 'custodyCharge.remover':
         anotar(op, op.email, op.email)
@@ -217,6 +262,10 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   if (semeadura) acao = 'semeadura'
   else if (tem('trade.inserir')) acao = 'negociacao'
   else if (tem('deposit.inserir')) acao = 'deposito'
+  else if (tem('saque.inserir')) acao = 'saque.solicitar'
+  else if (tem('saque.atualizar')) acao = 'saque.atualizar'
+  else if (tem('fatura.inserir')) acao = 'custodia.faturar'
+  else if (tem('fatura.atualizar')) acao = 'custodia.atualizar_fatura'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

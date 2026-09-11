@@ -28,7 +28,7 @@ vi.mock('@/lib/payments', async (importOriginal) => {
 
 import { conciliarPagamento } from './conciliacao'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
-import { getState } from '@/server/state'
+import { getState, mutateState } from '@/server/state'
 
 const EMAIL = 'gabrielsilva@testeaurea.com.br'
 
@@ -55,6 +55,31 @@ async function criarIntencao(ref: string, valor: number): Promise<void> {
     valor,
     metodo: 'pix',
     status: 'pendente',
+    tipoOperacao: 'deposito',
+    metadata: null,
+    paymentId: null,
+    motivoRecusa: null,
+    createdAt: agora,
+    updatedAt: agora,
+  })
+}
+
+async function criarIntencaoCompraDireta(
+  ref: string,
+  valor: number,
+  lotId: string,
+  qty: number,
+  tipoMoeda: string,
+): Promise<void> {
+  const agora = Date.now()
+  await repositorioIntencoes().criar({
+    externalReference: ref,
+    userEmail: EMAIL,
+    valor,
+    metodo: 'pix',
+    status: 'pendente',
+    tipoOperacao: 'compra_direta',
+    metadata: { lotId, qty, tipoMoeda },
     paymentId: null,
     motivoRecusa: null,
     createdAt: agora,
@@ -153,5 +178,107 @@ describe('conciliarPagamento', () => {
     const intencao = await repositorioIntencoes().buscar(ref)
     expect(intencao?.status).toBe('creditado')
     expect(intencao?.paymentId).toBe('pay-99')
+  })
+
+  it('compra direta via webhook: transfere moeda, credita vendedor menos taxa e mantém saldo líquido do comprador', async () => {
+    const ref = 'CMP-sucesso-1'
+    const sellerEmail = 'alex@testeaurea.com.br'
+    const lotId = 'LOT-compra-direta-1'
+    const coinId = 'RO-999999'
+    const precoUnitario = 20_000 // R$ 200,00
+
+    // Configura o estado com um lote à venda pelo Alex
+    await mutateState((s) => {
+      const seller = s.users[sellerEmail]
+      if (!seller) throw new Error('Seller não encontrado no seed')
+      seller.coins.push({
+        id: coinId,
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        ano: 2016,
+        entrada: '01/01/2026',
+        statusFisico: 'Armazenado',
+        statusDigital: 'Validado',
+        valorEstimado: precoUnitario,
+        protocolo: 'RO-ENV-9999',
+        recibo: {
+          codigo: 'REC-999999',
+          dataEmissao: '01/01/2026',
+          hash: 'def',
+          status: 'Ativo',
+        },
+      })
+      s.sellOffers.push({
+        id: 'OFFER-compra-1',
+        coinId,
+        seller: sellerEmail,
+        price: precoUnitario,
+        obs: 'Lote teste compra direta',
+        lotId,
+        createdAt: Date.now(),
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+      })
+    })
+
+    await criarIntencaoCompraDireta(ref, precoUnitario, lotId, 1, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, precoUnitario))
+
+    const saldoCompradorAntes = await saldo()
+    const stateAntes = await getState()
+    const saldoVendedorAntes = stateAntes.users[sellerEmail].balance
+
+    const res = await conciliarPagamento('pay-compra-1')
+
+    expect(res.creditado).toBe(true)
+    expect(res.tipoOperacao).toBe('compra_direta')
+    expect(res.compraConcluida).toBe(true)
+
+    const stateDepois = await getState()
+    // Saldo do comprador continua inalterado (dinheiro veio de fora e cobriu a compra)
+    expect(stateDepois.users[EMAIL].balance).toBe(saldoCompradorAntes)
+
+    // Moeda transferida para o comprador
+    const moedaNoComprador = stateDepois.users[EMAIL].coins.find((c) => c.id === coinId)
+    expect(moedaNoComprador).toBeDefined()
+
+    // Vendedor recebeu o valor líquido: preço - comissão (R$ 200 - R$ 2 = R$ 198)
+    const taxaEsperada = 100 + Math.round(precoUnitario * 0.005) // tradeFee(20_000) = 200
+    expect(stateDepois.users[sellerEmail].balance).toBe(
+      saldoVendedorAntes + precoUnitario - taxaEsperada,
+    )
+
+    // Oferta removida do livro
+    expect(stateDepois.sellOffers.find((o) => o.lotId === lotId)).toBeUndefined()
+
+    // Trade registrado
+    const trade = stateDepois.trades[stateDepois.trades.length - 1]
+    expect(trade).toMatchObject({
+      buyer: EMAIL,
+      seller: sellerEmail,
+      price: precoUnitario,
+      qty: 1,
+    })
+
+    // Reenvio do webhook não credita novamente (idempotência)
+    const res2 = await conciliarPagamento('pay-compra-1')
+    expect(res2.creditado).toBe(false)
+  })
+
+  it('compra direta quando o lote não está mais disponível: credita o dinheiro no saldo do comprador para evitar perda', async () => {
+    const ref = 'CMP-lote-sumiu'
+    const valor = 15_000
+
+    await criarIntencaoCompraDireta(ref, valor, 'LOT-que-nao-existe', 1, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, valor))
+
+    const saldoAntes = await saldo()
+    const res = await conciliarPagamento('pay-corrida-1')
+
+    expect(res.creditado).toBe(true)
+    expect(res.tipoOperacao).toBe('compra_direta')
+    expect(res.compraConcluida).toBe(false)
+    expect(res.motivo).toBe('lote_indisponivel_creditado_em_saldo')
+
+    // Dinheiro seguro na conta do comprador
+    expect(await saldo()).toBe(saldoAntes + valor)
   })
 })

@@ -32,6 +32,7 @@ export type StatementKind =
   | 'Depósito'
   | 'Compra'
   | 'Venda'
+  | 'Saque'
   | 'Envio para custódia'
   | 'Taxa de custódia'
 
@@ -60,6 +61,7 @@ export interface StatementRow {
 /** Totais do período, para o cabeçalho da tela e a última aba da planilha. */
 export interface StatementTotals {
   depositado: Cents
+  sacado: Cents
   compradoValor: Cents
   compradoQtd: number
   vendidoValor: Cents
@@ -183,6 +185,25 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
     })
   }
 
+  /* ---------- saques de recursos ---------- */
+  if (Array.isArray(state.saques)) {
+    state.saques
+      .filter((s) => s.userEmail === email)
+      .forEach((s) => {
+        rows.push({
+          date: s.criadoEm,
+          dateBR: fdate(s.criadoEm),
+          kind: 'Saque',
+          tipoMoeda: '—',
+          descricao: `Saque de recursos (${s.id}) · ${s.status}`,
+          quantidade: null,
+          valorUnitario: null,
+          taxa: s.taxa,
+          impacto: -s.valorTotal,
+        })
+      })
+  }
+
   return rows.sort((a, b) => a.date - b.date)
 }
 
@@ -206,6 +227,7 @@ function parseDateBR(s: DateBR): Timestamp {
 export function statementTotals(rows: readonly StatementRow[]): StatementTotals {
   const t: StatementTotals = {
     depositado: 0,
+    sacado: 0,
     compradoValor: 0,
     compradoQtd: 0,
     vendidoValor: 0,
@@ -217,6 +239,10 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
   rows.forEach((r) => {
     t.variacaoSaldo += r.impacto
     if (r.kind === 'Depósito') t.depositado += r.impacto
+    if (r.kind === 'Saque') {
+      t.sacado += -r.impacto
+      t.taxasPagas += r.taxa ?? 0
+    }
     if (r.kind === 'Compra') {
       t.compradoValor += -r.impacto
       t.compradoQtd += r.quantidade ?? 0

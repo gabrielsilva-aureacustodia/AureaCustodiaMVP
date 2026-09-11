@@ -324,3 +324,57 @@ describe('normalizarTrade — a comissão congelada', () => {
     expect(t.fee).toBe(7)
   })
 })
+
+describe('planejarDiff — saques', () => {
+  it('gera saque.inserir para saque novo adicionado', () => {
+    const { antes, depois } = cenario()
+    depois.saques = [
+      {
+        id: 'SAQ-TEST-1',
+        userEmail: 'gabrielsilva@testeaurea.com.br',
+        valorTotal: 10_000,
+        taxa: 500,
+        valorLiquido: 9_500,
+        dadosBancarios: { chavePix: '123', tipoChavePix: 'cpf' as const },
+        status: 'solicitado',
+        criadoEm: 1,
+        previsaoPagamentoEm: 2,
+        atualizadoEm: 1,
+      },
+    ]
+
+    const ops = planejarDiff(antes, depois)
+    expect(tipos(ops)).toContain('saque.inserir')
+    const op = ops.find((o) => o.tipo === 'saque.inserir')
+    expect(op).toMatchObject({
+      tipo: 'saque.inserir',
+      saque: { id: 'SAQ-TEST-1', status: 'solicitado' },
+    })
+  })
+
+  it('gera saque.atualizar quando o status de um saque muda para pago', () => {
+    const { antes, depois } = cenario()
+    const sq = {
+      id: 'SAQ-TEST-1',
+      userEmail: 'gabrielsilva@testeaurea.com.br',
+      valorTotal: 10_000,
+      taxa: 500,
+      valorLiquido: 9_500,
+      dadosBancarios: { chavePix: '123', tipoChavePix: 'cpf' as const },
+      status: 'solicitado' as const,
+      criadoEm: 1,
+      previsaoPagamentoEm: 2,
+      atualizadoEm: 1,
+    }
+    antes.saques = [structuredClone(sq)]
+    depois.saques = [{ ...sq, status: 'pago' as const, pagoEm: 3, comprovanteRef: 'COMP-123' }]
+
+    const ops = planejarDiff(antes, depois)
+    expect(tipos(ops)).toEqual(['saque.atualizar'])
+    expect(ops[0]).toMatchObject({
+      tipo: 'saque.atualizar',
+      saque: { id: 'SAQ-TEST-1', status: 'pago', comprovanteRef: 'COMP-123' },
+    })
+  })
+})
+

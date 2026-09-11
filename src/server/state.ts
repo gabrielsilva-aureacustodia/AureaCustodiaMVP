@@ -96,6 +96,7 @@ function garantirFormato(state: AppState): AppState {
   // com qualquer livro). Apagar o acervo de demonstracao aqui seria custo sem
   // ganho nenhum.
   if (!Array.isArray(state.analises)) state.analises = []
+  if (!Array.isArray(state.saques)) state.saques = []
 
   const antes = state.sellOffers.length + state.buyOrders.length
   state.sellOffers = state.sellOffers.filter((o) => typeof o.tipoMoeda === 'string')

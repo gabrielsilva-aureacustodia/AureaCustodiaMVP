@@ -46,6 +46,9 @@ export type LedgerTipo =
   | 'custodia'
   | 'estorno'
   | 'ajuste'
+  | 'saque'
+  | 'taxa_saque'
+  | 'taxa_retirada'
 
 export type Sinal = -1 | 0 | 1
 
@@ -217,6 +220,49 @@ export function lancamentoDeAjuste(email: UserEmail, diferenca: Cents, quando: T
     refInterna: null,
     refExterna: null,
     descricao: motivo,
+  }
+}
+
+export function lancamentoDeSaque(
+  email: UserEmail,
+  valorLiquido: Cents,
+  quando: Timestamp,
+  refInterna: string,
+  refExterna: string | null = null,
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'saque',
+    valor: valorLiquido,
+    sinal: -1,
+    tipoMoeda: null,
+    quantidade: null,
+    refInterna,
+    refExterna,
+    descricao: refExterna
+      ? `Saque de saldo via Pix/transferência (${refExterna})`
+      : 'Saque de saldo via Pix/transferência bancária',
+  }
+}
+
+export function lancamentoDeTaxaSaque(
+  email: UserEmail,
+  taxa: Cents,
+  quando: Timestamp,
+  refInterna: string,
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'taxa_saque',
+    valor: taxa,
+    sinal: -1,
+    tipoMoeda: null,
+    quantidade: null,
+    refInterna,
+    refExterna: null,
+    descricao: 'Tarifa fixa de saque de recursos',
   }
 }
 

@@ -45,12 +45,16 @@ import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { ModalCadastro } from '@/components/account/ModalCadastro'
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import type { BuyOrder, Cents, Lot } from '@/domain/types'
 import { buyLot, cancelBid, editBid, publishBid } from '@/server/actions/market'
+import { iniciarCompraDireta } from '@/server/actions/payments'
+import type { CompraDiretaIniciada, MetodoDeposito } from '@/server/payments/tipos'
 
 /** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
 const NEGOCIAVEIS = tiposNegociaveis()
@@ -496,33 +500,177 @@ function ConfirmarCompraModal({
   qty: number
   aoConcluir(): void
 }): ReactNode {
-  const { run } = useApp()
-  const { close } = useModal()
+  const { me, run } = useApp()
+  const { close, open } = useModal()
+
+  const [enviando, setEnviando] = useState(false)
+  const [pix, setPix] = useState<CompraDiretaIniciada | null>(null)
+  const [erroMp, setErroMp] = useState('')
 
   const total = lot.price * qty
+  const temSaldo = me.balance >= total
 
-  async function confirmar(): Promise<void> {
+  async function confirmarComSaldo(): Promise<void> {
     close()
     const res = await run(() => buyLot(lot.lotId, qty))
     if (res.ok) aoConcluir()
   }
 
+  async function cobrarDireto(metodo: MetodoDeposito): Promise<void> {
+    if (!temCadastroCompleto(me)) {
+      open(
+        <ModalCadastro
+          motivo="compra"
+          onSuccess={() => {
+            open(<ConfirmarCompraModal lot={lot} qty={qty} aoConcluir={aoConcluir} />)
+          }}
+        />,
+      )
+      return
+    }
+
+    setEnviando(true)
+    setErroMp('')
+    try {
+      const res = await iniciarCompraDireta(lot.lotId, qty, metodo)
+      if (!res.ok || !res.data) {
+        setErroMp(res.error ?? 'Não foi possível abrir a cobrança no gateway.')
+        return
+      }
+      if (metodo === 'pix') {
+        setPix(res.data)
+        return
+      }
+      if (res.data.initPoint) {
+        window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
+      }
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <>
       <h3 className="serif">Confirmar compra</h3>
-      <p>
+      <p style={{ marginBottom: 12 }}>
         <b style={{ color: 'var(--gold)' }}>{lot.tipoMoeda}</b> · {qty} unidade(s)
       </p>
-      <p>
-        Preço unitário: <b>{brl(lot.price)}</b> · Total: <b>{brl(total)}</b> — debitado do seu saldo
-        disponível.
-      </p>
-      <div className="m-actions">
-        <button type="button" className="btn btn-outline" onClick={close}>
-          Cancelar
+
+      <div className="summary-row">
+        <span className="k">Preço unitário</span>
+        <span className="v">{brl(lot.price)}</span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Total</span>
+        <span className="v" style={{ fontWeight: 600 }}>
+          {brl(total)}
+        </span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Seu saldo em conta</span>
+        <span className="v">{brl(me.balance)}</span>
+      </div>
+
+      {/* Opção 1: Saldo em conta */}
+      <div
+        style={{
+          marginTop: 14,
+          padding: '12px 14px',
+          background: 'var(--input-bg)',
+          borderRadius: 8,
+          border: '1px solid var(--line-soft)',
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
+          Opção 1 · Usar saldo disponível
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+          {temSaldo
+            ? `O total de ${brl(total)} será debitado do seu saldo interno.`
+            : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - me.balance)}).`}
+        </div>
+        <button
+          type="button"
+          className={temSaldo ? 'btn btn-gold' : 'btn btn-outline'}
+          style={{ width: '100%' }}
+          disabled={!temSaldo || enviando}
+          onClick={() => void confirmarComSaldo()}
+        >
+          {temSaldo ? 'Pagar com saldo em conta' : 'Saldo insuficiente'}
         </button>
-        <button type="button" className="btn btn-gold" onClick={() => void confirmar()}>
-          Confirmar compra
+      </div>
+
+      {/* Opção 2: Compra direta pelo gateway */}
+      <div
+        style={{
+          marginTop: 12,
+          padding: '12px 14px',
+          background: 'var(--input-bg)',
+          borderRadius: 8,
+          border: '1px solid var(--line-soft)',
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
+          Opção 2 · Comprar direto pelo gateway
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+          Pague direto por Pix ou cartão (ambiente de testes). Não consome seu saldo interno; a
+          moeda entra na sua conta assim que o pagamento for aprovado.
+        </div>
+        <div className="m-actions" style={{ marginTop: 0 }}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={enviando}
+            onClick={() => void cobrarDireto('pix')}
+          >
+            Pagar com Pix
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={enviando}
+            onClick={() => void cobrarDireto('checkout_pro')}
+          >
+            Cartão ou boleto
+          </button>
+        </div>
+      </div>
+
+      {erroMp ? (
+        <div className="note" style={{ marginTop: 12 }}>
+          {erroMp}
+        </div>
+      ) : null}
+
+      {pix ? (
+        <div style={{ marginTop: 14 }}>
+          <div className="field-lbl">Pix copia e cola</div>
+          <textarea
+            readOnly
+            rows={3}
+            aria-label="Código Pix copia e cola"
+            value={pix.qrCode ?? ''}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+          />
+          {pix.qrCodeBase64 ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`data:image/png;base64,${pix.qrCodeBase64}`}
+              alt="QR Code do Pix"
+              style={{ display: 'block', width: 180, height: 180, margin: '12px auto' }}
+            />
+          ) : null}
+          <div className="note">
+            Referência {pix.externalReference} · {brl(pix.valorCents)}. Assim que o pagamento for
+            confirmado pelo gateway, o lote é liquidado e as moedas entram na sua conta.
+          </div>
+        </div>
+      ) : null}
+
+      <div className="m-actions" style={{ marginTop: 16 }}>
+        <button type="button" className="btn btn-outline" onClick={close}>
+          Fechar
         </button>
       </div>
     </>

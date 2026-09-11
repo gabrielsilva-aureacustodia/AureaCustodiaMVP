@@ -13,17 +13,35 @@ import { FEE_PCT, FEE_FIXED } from '@/domain/constants'
 import type { Cents } from '@/domain/types'
 
 /**
- * Taxa de custódia anual pela quantidade de moedas guardadas.
+ * Taxa de custódia mensal e anual por moeda (Decisão D-3, 10/09/2026).
  *
- * Faixas fixas vindas da planilha financeira — quanto maior o acervo, menor o
- * custo por moeda, e acima de 30 é preço único de acervo grande.
+ * Substitui as faixas anuais antigas por R$ 2,00 por moeda por mês,
+ * ou plano anual de R$ 24,00 por moeda em até 12x (sem desconto).
+ */
+export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = 200 // R$ 2,00
+export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = 2400 // R$ 24,00
+
+/**
+ * Calcula a taxa mensal de custódia pela quantidade de moedas ativas sob guarda.
+ */
+export function custodiaMensalPorMoeda(qtdMoedas: number): Cents {
+  if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
+  return Math.floor(qtdMoedas) * CUSTODIA_MENSAL_POR_MOEDA_CENTS
+}
+
+/**
+ * Calcula a taxa anual de custódia pela quantidade de moedas ativas sob guarda.
+ */
+export function custodiaAnualPorMoeda(qtdMoedas: number): Cents {
+  if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
+  return Math.floor(qtdMoedas) * CUSTODIA_ANUAL_POR_MOEDA_CENTS
+}
+
+/**
+ * Alias mantido para compatibilidade — aponta diretamente para o novo modelo mensal.
  */
 export function custodyFeeForCount(n: number): Cents {
-  if (n <= 1) return 500
-  if (n <= 10) return 1500
-  if (n <= 20) return 2500
-  if (n <= 30) return 3000
-  return 6000
+  return custodiaMensalPorMoeda(n)
 }
 
 /**
@@ -36,3 +54,9 @@ export function custodyFeeForCount(n: number): Cents {
 export function tradeFee(price: Cents): Cents {
   return Math.round(price * FEE_PCT) + FEE_FIXED
 }
+
+/**
+ * Tarifa fixa de saque de recursos: R$ 5,00 debitados do valor sacado (Sessão B-4).
+ * Cobre os custos operacionais e bancários de liquidação Pix/TED para o cliente.
+ */
+export const TAXA_SAQUE_FIXA_CENTS: Cents = 500

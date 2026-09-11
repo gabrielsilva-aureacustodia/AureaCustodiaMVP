@@ -23,13 +23,16 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { COIN, LOGO_AUREA, tiposNegociaveis } from '@/domain/constants'
+import { temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
 import {
+  ModalCadastro,
   ModalDadosPessoais,
   ModalDeposito,
   ModalNotificacoes,
+  ModalSaque,
 } from '@/components/account/AccountModals'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
@@ -52,6 +55,9 @@ export default function ContaPage(): ReactNode {
 
   const aVenda = state.sellOffers.filter((o) => o.seller === session).length
   const aCompra = state.buyOrders.filter((b) => b.buyer === session).reduce((s, b) => s + b.qty, 0)
+  const saquesPendentes = (state.saques ?? []).filter(
+    (s) => s.userEmail === session && (s.status === 'solicitado' || s.status === 'em_processamento'),
+  )
 
   /**
    * Mediana de mercado de cada tipo negociável, calculada UMA vez por tipo.
@@ -96,17 +102,114 @@ export default function ContaPage(): ReactNode {
             {/* .val.small: o saldo é o único número desta faixa que passa de seis
                 dígitos e precisa da fonte menor para não quebrar o cartão. */}
             <div className="val small">{brl(me.balance)}</div>
-            {/* O depósito mora colado ao saldo porque é a única ação que o
-                altera diretamente. Botão pequeno, dentro do cartão, para não
-                competir com os atalhos da coluna da direita. */}
-            <button
-              className="btn btn-outline"
-              type="button"
-              style={{ marginTop: 8, padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
-              onClick={() => open(<ModalDeposito />)}
+            {/* Ações financeiras: depósito e saque.
+                Regras da publicação (Seção 3.3 do Plano Executivo):
+                1. Cadastro formal progressivo acionado no primeiro movimento de dinheiro.
+                2. Saque de dinheiro exige dados bancários ou Pix cadastrados. Sem eles, o
+                   botão fica desabilitado com o motivo e prazo D+3 explícitos ao lado. */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                marginTop: 8,
+                flexWrap: 'wrap',
+              }}
             >
-              Depositar
-            </button>
+              <button
+                className="btn btn-outline"
+                type="button"
+                style={{ padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
+                onClick={() => {
+                  if (temCadastroCompleto(me)) {
+                    open(<ModalDeposito />)
+                  } else {
+                    open(
+                      <ModalCadastro
+                        motivo="deposito"
+                        onSuccess={() => open(<ModalDeposito />)}
+                      />,
+                    )
+                  }
+                }}
+              >
+                Depositar
+              </button>
+
+              <button
+                className="btn btn-outline"
+                type="button"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '12.5px',
+                  width: 'auto',
+                }}
+                onClick={() => {
+                  if (temDadosBancarios(me)) {
+                    open(<ModalSaque />)
+                  } else {
+                    open(
+                      <ModalCadastro
+                        motivo="saque"
+                        onSuccess={() => open(<ModalSaque />)}
+                      />,
+                    )
+                  }
+                }}
+              >
+                Sacar
+              </button>
+            </div>
+
+            {!temDadosBancarios(me) && (
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: '11.5px',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.4,
+                }}
+              >
+                Cadastre sua chave Pix ou dados bancários para liberar saques (prazo D+3).{' '}
+                <span
+                  className="back-link"
+                  style={{ display: 'inline', fontSize: '11.5px', padding: 0 }}
+                  onClick={() =>
+                    open(
+                      <ModalCadastro
+                        motivo="saque"
+                        onSuccess={() => open(<ModalSaque />)}
+                      />,
+                    )
+                  }
+                >
+                  Cadastrar dados
+                </span>
+              </div>
+            )}
+
+            {saquesPendentes.length > 0 && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '8px 10px',
+                  background: 'var(--input-bg)',
+                  borderRadius: 6,
+                  border: '1px solid var(--line-soft)',
+                  fontSize: '11.5px',
+                }}
+              >
+                <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
+                  Saque em processamento (D+3)
+                </div>
+                {saquesPendentes.map((sq) => (
+                  <div key={sq.id} style={{ marginTop: 2, color: 'var(--text-muted)' }}>
+                    {brl(sq.valorLiquido)} líquido · Previsão até{' '}
+                    {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ({sq.status})
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

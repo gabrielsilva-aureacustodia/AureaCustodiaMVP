@@ -33,6 +33,7 @@ import { useToast } from '@/components/ui/Toast'
 const FILTROS: ReadonlyArray<{ chave: 'Tudo' | StatementKind; rotulo: string }> = [
   { chave: 'Tudo', rotulo: 'Tudo' },
   { chave: 'Depósito', rotulo: 'Depósitos' },
+  { chave: 'Saque', rotulo: 'Saques' },
   { chave: 'Compra', rotulo: 'Compras' },
   { chave: 'Venda', rotulo: 'Vendas' },
   { chave: 'Envio para custódia', rotulo: 'Envios' },
