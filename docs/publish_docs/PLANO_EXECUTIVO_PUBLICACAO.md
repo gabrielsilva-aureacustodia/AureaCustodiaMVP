@@ -496,10 +496,14 @@ painel a recalcular — e duas contas do mesmo número sempre divergem.
 
 ---
 
-# 5. As seis decisões — quatro fechadas, duas abertas
+# 5. As decisões — todas fechadas
 
-Estas não são detalhes de implementação. São decisões de produto e de preço, e três delas
-tocam a superfície protegida. **Nenhum agente deve deduzir as que ainda estão abertas.**
+Estas não são detalhes de implementação. São decisões de produto e de preço, e várias tocam a
+superfície protegida. **Nenhum agente deve deduzir uma decisão: se não estiver escrita aqui,
+pare e pergunte.**
+
+As seis originais (D-1 a D-6) foram fechadas entre 10 e 11/09/2026. As três últimas — D-7,
+D-8 e a conclusão da D-3 — nasceram depois, da auditoria do merge das três frentes.
 
 ## D-1 · Preço da retirada — ✅ DECIDIDO em 10/09/2026
 
@@ -513,15 +517,18 @@ tocam a superfície protegida. **Nenhum agente deve deduzir as que ainda estão 
 Não há soma, não há taxa administrativa separada. **O valor de R$ 60,00 saiu da tabela** —
 era versão anterior do preço. Onde ele aparecer em documento antigo, está desatualizado.
 
-## D-2 · O prazo de postagem é D+30 total ou D+30 mais D+5? 🔴 **ABERTO**
+## D-2 · O prazo de postagem — ✅ DECIDIDO em 11/09/2026
 
-A transcrição diz *"mas da entrega da moeda é mais 5"* logo após falar do endereço, e a
-frase está truncada. Duas leituras: (A) D+30 é o prazo total até a moeda chegar na casa do
-cliente; (B) D+30 para a Áurea preparar e postar, mais D+5 de trânsito dos Correios.
+**D+30 é o prazo OPERACIONAL da Áurea** — o tempo que ela tem para separar, conferir e postar.
+O trânsito dos Correios corre **por fora, sem prazo prometido**.
 
-A diferença aparece nos termos de uso e no contador que a tela mostra. **Enquanto não houver
-resposta, o Agente C deixa o prazo numa constante nomeada e isolada**, para trocar num lugar
-só. Não trava nada.
+O texto passa a dizer, em toda tela e nos termos: *"até 30 dias para a Áurea preparar e
+postar, mais o prazo de entrega dos Correios"*.
+
+**Não prometer número para o trânsito é deliberado.** A Áurea não controla os Correios, e
+prometer prazo de terceiro é assumir obrigação que não se pode cumprir — exatamente o tipo de
+promessa que o jurídico pediu para evitar. A constante isolada que a frente C deixou continua
+sendo o único lugar onde o número operacional muda.
 
 ## D-3 · Custódia mensal — ✅ DECIDIDO em 10/09/2026
 
@@ -551,17 +558,49 @@ rastreabilidade interna intacta.
 **Quando a oferta for do próprio usuário, continua aparecendo "você"** — isso é informação
 dele sobre ele, e some-la só confundiria.
 
-## D-6 · Endereço real de recebimento dos Correios 🔴 **ABERTO**
+## D-6 · Endereço real de recebimento dos Correios — ✅ DECIDIDO em 10/09/2026
 
-Preciso do valor literal e completo, com todos os campos: logradouro, número, complemento,
-bairro, cidade, UF, CEP, telefone e nome do responsável.
+O endereço veio de um Termo de Assinatura de Caixa Postal dos Correios e está em
+`src/lib/shipping/correios.ts`:
 
-Sem isso o bloco 11 não fecha, e **toda etiqueta gerada leva a moeda do cliente para uma
-Avenida Paulista que não é da empresa** — o endereço em
-`src/lib/shipping/correios.ts:29` é fictício desde que o módulo nasceu.
+```
+AUREA CUSTODIA LTDA — Caixa Postal 7990
+AGF Bandeirantes — Av. dos Bandeirantes
+Mangabeiras · Belo Horizonte · MG · CEP 30315-970
+```
 
-**Regra dura para o Agente C: nunca gerar etiqueta de verdade com o endereço fictício. Nem
-para teste.**
+Até 10/09 o módulo levava uma Avenida Paulista fictícia desde que nasceu, e por isso nenhuma
+etiqueta podia ser gerada de verdade, nem para teste. **Esse bloqueio caiu.** O bloco 11
+fecha.
+
+## D-7 · O gatilho de cadastro — ✅ DECIDIDO em 11/09/2026
+
+O cadastro **não é tela que o cliente procura**: é um pop-up que aparece na frente da ação.
+
+Dispara na primeira tentativa de **depositar**, **comprar** ou **enviar moeda**. Pede os
+quatro campos fechados com o jurídico em 09/09 — CPF, nome completo, data de nascimento e CEP
+— com o endereço preenchido sozinho pela API dos Correios que o envio já usa.
+
+**Reabre a cada tentativa** enquanto não estiver completo, de propósito: o cliente não deve ter
+de procurar onde se cadastra. Em **Minha conta** há um aviso a mais, que **some quando o
+cadastro fecha**.
+
+Criar conta e entrar **continuam livres**. O cadastro só é pedido no primeiro movimento de
+dinheiro ou de moeda.
+
+Plano de execução em [`PLANO_PAGAMENTOS_E_CADASTRO.md`](PLANO_PAGAMENTOS_E_CADASTRO.md).
+
+## D-8 · A retirada fica discreta — ✅ DECIDIDO em 11/09/2026
+
+A opção de pedir a moeda de volta fica em **Meus recibos** e em **Minha conta**, **sem chamar
+atenção**. Gabriel: é onerosa para o cliente e ruim para a empresa, então o desenho não deve
+estimulá-la. A funcionalidade existe e é testada; o que não se faz é destacá-la.
+
+## D-3 (conclusão) · O mecanismo antigo de custódia sai — ✅ 11/09/2026
+
+Confirmado depois da auditoria do merge: o `custodyCharges` legado **sai**, e as faturas
+mensais da frente B assumem sozinhas. Fecha o CD-11, que era a plataforma informando um preço
+de custódia que não é o vigente.
 
 ---
 

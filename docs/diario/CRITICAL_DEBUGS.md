@@ -64,14 +64,15 @@ src/domain/seed.ts:248         alimenta custodyCharges com custodyFeeForCount
 src/domain/fees.ts:43          custodyFeeForCount, o apelido que deveria ter saído
 ```
 
-**Correção — mas primeiro a decisão.** Duas perguntas, as duas de negócio:
+**A decisão saiu em 11/09/2026: o `custodyCharges` legado SAI**, e as faturas mensais da
+frente B assumem sozinhas. Está registrada na seção 5 do plano executivo, como conclusão da
+D-3.
 
-1. O `custodyCharges` legado é apagado e substituído pelas faturas mensais da frente B, ou os
-   dois convivem de propósito?
-2. Enquanto convivem, o texto passa a dizer "mensal" e a mostrar o valor mensal?
-
-**Sem a resposta, não mexer.** É preço dito ao cliente, e a superfície protegida
-(`src/domain/fees.ts`) exige decisão registrada.
+**A execução é o bloco 6 de** `docs/publish_docs/PLANO_PAGAMENTOS_E_CADASTRO.md`. Ela mexe em
+`fees.ts` e `types.ts` — superfície protegida, autorizada por essa decisão —, tira
+`custodyCharges` do `AppState`, e por isso **sobe `STORE_KEY` para v8 com a migration 013**.
+Anda sozinha, sem nada em paralelo: foi sobreposição desse tipo que produziu os dois defeitos
+do merge anterior.
 
 **Teste de aceite.** Um sócio abre `/conta/extrato` e lê uma linha de custódia cujo período e
 cujo valor batem com a tabela de preços vigente do plano executivo. A palavra "faixa" não
