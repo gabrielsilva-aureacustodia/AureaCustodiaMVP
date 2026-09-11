@@ -39,6 +39,10 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 - **`src/components/recibo/Certificate.tsx`**: Botões de ação configurados com `minHeight: '44px'`.
 - **`src/app/(app)/retirada/page.tsx`**: Links de visualização do recibo extinto e botão direto de impressão da etiqueta dos Correios com `minHeight: '44px'`.
 
+### Tutoriais e Documentação Operacional
+- **`docs/tutoriais/TUTORIAL_RETIRADA_OPERACIONAL.md`**: Manual detalhado para os operadores e sócios contendo o fluxo completo desde o recebimento do pedido, conferência de endereço congelado, impressão da etiqueta oficial, separação física no cofre de custódia (moeda equiparável), postagem com rastreio e encerramento.
+- **`docs/tutoriais/TUTORIAL_CORREIOS_CONTRATO.md`**: Orientações para os sócios sobre o funcionamento balcão atual (Caixa Postal 7990), o passo a passo para adesão ao Contrato Digital no portal Correios Empresas (PJ) e obtenção de credenciais de webservice CWS para fases futuras.
+
 ### Suíte de Integração Ponta a Ponta (E2E)
 - **`src/server/actions/retirada-ciclo-completo.test.ts`**:
   - Teste de integração ponta a ponta que percorre todo o ciclo:
