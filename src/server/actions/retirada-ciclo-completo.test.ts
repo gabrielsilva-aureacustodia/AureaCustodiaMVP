@@ -24,6 +24,7 @@ import {
   desbloquearRecibo,
   solicitarRetirada,
 } from './custody'
+import { NextRequest } from 'next/server'
 import { publishOffer } from './sell'
 import { GET as etiquetaRoute } from '@/app/api/retiradas/etiqueta/[id]/route'
 
@@ -159,7 +160,7 @@ describe('Ciclo Completo de Retirada Física de Moedas (E2E Integration)', () =>
     // Passo 5: Geração da etiqueta postal oficial (Caixa Postal 7990 BH)
     // -------------------------------------------------------------------------
     // Chamada à rota como cliente
-    const reqCliente = new Request(`http://localhost/api/retiradas/etiqueta/${retiradaId}?format=json`)
+    const reqCliente = new NextRequest(`http://localhost/api/retiradas/etiqueta/${retiradaId}?format=json`)
     const resEtiqueta = await etiquetaRoute(reqCliente, { params: Promise.resolve({ id: retiradaId }) })
     expect(resEtiqueta.status).toBe(200)
     const dadosEtiqueta = await resEtiqueta.json()
