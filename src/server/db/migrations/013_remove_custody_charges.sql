@@ -1,0 +1,29 @@
+-- ---------------------------------------------------------------------------
+-- 013 — `aurea.custody_charges` sai
+--
+-- Conclusão da decisão D-3, confirmada pelo Gabriel em 11/09/2026.
+--
+-- POR QUE ESTA TABELA PRECISAVA MORRER, E NÃO SÓ FICAR PARADA
+-- ----------------------------------------------------------
+-- A D-3 trocou a custódia de faixas anuais (R$ 5/15/25/30/60) por R$ 2,00 por
+-- moeda por mês. A frente B construiu o modelo novo em `aurea.faturas_custodia`,
+-- mas o antigo continuou sendo gravado e continuou sendo o que alimentava o
+-- extrato do cliente, o livro-razão do contador e a auditoria.
+--
+-- O resultado era um preço errado na tela: "Custódia anual de 15 moeda(s) —
+-- R$ 25,00", onde o período estava errado, o valor era de uma tabela aposentada
+-- e a conta por trás já era mensal. Deixar a tabela parada "por segurança"
+-- manteria a fonte do erro viva esperando alguém voltar a lê-la.
+--
+-- O QUE SE PERDE
+-- --------------
+-- As cobranças gravadas no ambiente de teste — sete linhas, uma por conta de
+-- sócio, todas do modelo antigo. Não há o que migrar: elas descrevem um preço
+-- que a empresa não pratica mais. As faturas mensais nascem na primeira
+-- execução do ciclo de faturamento.
+--
+-- `STORE_KEY` sobe para `aurea-market-v8` no mesmo commit, porque `AppState`
+-- deixou de ter o campo `custodyCharges`.
+-- ---------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS aurea.custody_charges;

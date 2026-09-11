@@ -62,14 +62,23 @@ describe('userStatement', () => {
     expect(linhasComprador.find((l) => l.kind === 'Compra')?.descricao).toBe('Compra no marketplace')
   })
 
-  it('cobrança de custódia e envio entram com impacto ZERO — não movem saldo', () => {
+  it('fatura pendente e envio entram com impacto ZERO — não movem saldo', () => {
     const s = estado({ eu: usuario('Eu', 100_000, []) })
-    s.custodyCharges['eu'] = {
-      totalMoedas: 3,
-      valorCobrado: 1_500,
-      dataCobranca: '20/06/2026',
-      statusPagamento: 'Pendente',
-    }
+    // Fatura PENDENTE: registrada, não debitada. Só fatura liquidada com saldo
+    // move a conta — ver a nota em statement.ts.
+    s.faturasCustodia = [
+      {
+        id: 'FAT-eu-2026-06',
+        userEmail: 'eu',
+        competencia: '2026-06',
+        quantidadeMoedas: 3,
+        moedaIds: [],
+        valorCents: 600,
+        status: 'pendente',
+        dataEmissao: new Date(2026, 5, 20).getTime(),
+        dataVencimento: new Date(2026, 5, 30).getTime(),
+      },
+    ]
     s.envios.push({
       protocolo: 'RO-ENV-0001',
       userEmail: 'eu',

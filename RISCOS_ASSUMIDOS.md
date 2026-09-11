@@ -31,7 +31,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 
 | ID | Atalho | Grau | Pasta afetada |
 |---|---|---|---|
-| **RA-01** | Custódia de dinheiro de terceiros sem parecer jurídico | 🔴 | `src/server/actions/`, `src/lib/payments/` |
+| **RA-01** | Custódia de dinheiro de terceiros — **risco assumido em 11/09/2026; gateway liberado para produção** | ✅ | `src/server/actions/`, `src/lib/payments/` |
 | **RA-02** | Senhas em texto puro — **pago no fluxo Supabase; resta a contingência do seed** | 🔴 | `src/domain/`, `src/server/actions/` |
 | **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
 | **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
@@ -57,7 +57,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 
 ---
 
-# RA-01 — Custódia de dinheiro de terceiros sem parecer jurídico 🔴
+# RA-01 — Custódia de dinheiro de terceiros ✅ ASSUMIDO em 11/09/2026
 
 ```
 Decidido em: 02/09/2026 · REVERTE a decisão D9 de 01/09/2026
@@ -93,27 +93,35 @@ segregação de recursos e até autorização.
 Havia uma saída que evitava a pergunta (a liquidação direta), e ela foi conscientemente
 trocada por velocidade de entrega e simplicidade de experiência.
 
-## O que precisa acontecer
+## ✅ ENCERRADO em 11/09/2026 — decisão do Gabriel
 
-1. **Parecer jurídico escrito**, antes de o primeiro real entrar. A pergunta ao advogado:
-   *"Uma plataforma que recebe depósitos de clientes, mantém saldo em nome deles e liquida
-   negociações entre eles usando esse saldo configura arranjo de pagamento ou conta de
-   pagamento sob a regulação vigente? Se sim, quais obrigações decorrem?"*
-2. **Segregação de recursos:** o dinheiro dos clientes não pode ficar misturado ao caixa
-   operacional da empresa. Conta separada, no mínimo.
-3. **Reconciliação diária** entre o extrato bancário e o ledger da plataforma.
+**O risco foi assumido, e o gateway está liberado para produção.** Gabriel, em 11/09/2026:
+*"FECHE O RA-01. JÁ FOI DECIDIDO PERMITIR. Se necessário for vamos colocar mais cláusulas
+nos termos e condições."*
 
-## Enquanto isso não acontece
+O que isso muda em código: `payments.ts` deixou de forçar o endereço de sandbox e voltou a
+respeitar a variável `MP_SANDBOX`, que é quem escolhe entre teste e produção. Sandbox segue
+sendo o **padrão**; `MP_SANDBOX="false"` liga produção. Isso é configuração de ambiente, não
+trava.
 
-O ambiente segue **simulado**: o depósito soma um número, com teto de R$ 100.000, e não há
-dinheiro real em lugar nenhum. **A integração com o Mercado Pago não deve ser ligada em
-produção antes do parecer.** Construir a integração é seguro; ativá-la com dinheiro real é
-o que depende da resposta.
+**Este item não é mais pré-requisito de nada.** Ele fica registrado porque a decisão foi
+tomada com o risco conhecido, e é isso que este arquivo serve para guardar.
 
-> **Para o Rogério:** hoje é ficha de fliperama — não existe dinheiro de verdade. Quando o
-> gateway entrar, a Áurea passa a segurar dinheiro que é dos clientes, e isso é uma
-> atividade que o Banco Central regula. Não é proibido; é que precisa de parecer antes,
-> porque a resposta pode exigir conta separada e uma série de controles.
+## O que continua sendo boa prática, sem travar nada
+
+1. **Segregação de recursos:** o dinheiro dos clientes não deveria ficar misturado ao caixa
+   operacional da empresa. Conta separada, no mínimo. É controle interno, e depende da
+   operação bancária, não do código.
+2. **Reconciliação diária** entre o extrato bancário e o ledger da plataforma. A conciliação
+   já existe em `src/server/payments/conciliacao.ts`; o que falta é a rotina de conferir
+   contra o extrato do banco.
+3. **Cláusulas nos termos** descrevendo a guarda de saldo — o caminho que o próprio Gabriel
+   apontou, e que é trabalho do Felipe, não de engenharia.
+
+> **Para o Rogério:** a partir de agora pode entrar dinheiro de verdade. A Áurea vai segurar
+> saldo que é dos clientes, o que é uma atividade que o Banco Central regula, e os sócios
+> decidiram seguir assim e tratar isso por contrato. A decisão está registrada aqui com a
+> data, que é o que permite explicar depois por que foi feita assim.
 
 ---
 

@@ -24,8 +24,40 @@ function ledgerDeExemplo() {
     ...lancamentosDeTrade(t1, 1_000, 'T1'),
     ...lancamentosDeTrade(t2, 500, 'T2'),
     // duas cobranças de custódia para 'a' no mês: só a última conta
-    lancamentoDeCustodia('a', { totalMoedas: 5, valorCobrado: 1_500, dataCobranca: '05/08/2026', statusPagamento: 'Pendente' }, new Date(2026, 7, 5).getTime(), null),
-    lancamentoDeCustodia('a', { totalMoedas: 12, valorCobrado: 2_500, dataCobranca: '25/08/2026', statusPagamento: 'Pendente' }, new Date(2026, 7, 25).getTime(), null),
+    lancamentoDeCustodia(
+      'a',
+      {
+        id: 'FAT-a-2026-08',
+        userEmail: 'a',
+        competencia: '2026-08',
+        quantidadeMoedas: 5,
+        moedaIds: [],
+        // Valor arbitrário e estável: este teste mede a aritmética da DRE, não
+        // a tabela de preço da custódia. Mexer aqui move os totais congelados.
+        valorCents: 1_500,
+        status: 'pendente',
+        dataEmissao: new Date(2026, 7, 5).getTime(),
+        dataVencimento: new Date(2026, 7, 15).getTime(),
+      },
+      new Date(2026, 7, 5).getTime(),
+      null,
+    ),
+    lancamentoDeCustodia(
+      'a',
+      {
+        id: 'FAT-a-2026-08b',
+        userEmail: 'a',
+        competencia: '2026-08',
+        quantidadeMoedas: 12,
+        moedaIds: [],
+        valorCents: 2_500,
+        status: 'pendente',
+        dataEmissao: new Date(2026, 7, 25).getTime(),
+        dataVencimento: new Date(2026, 8, 4).getTime(),
+      },
+      new Date(2026, 7, 25).getTime(),
+      null,
+    ),
     ...lancamentosDeTrade(fora, 999, 'T3'),
   ]
   return encadear(pendentes, {}, GENESIS).lancamentos

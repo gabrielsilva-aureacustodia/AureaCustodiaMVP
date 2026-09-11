@@ -40,9 +40,13 @@ import type { ReactNode } from 'react'
 
 import { COIN_TYPES, coinTypeInfo } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
+import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { AppState, Envio, UserEmail } from '@/domain/types'
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { useApp } from '@/components/providers/AppProvider'
+import { ModalCadastro } from '@/components/account/ModalCadastro'
+import { useModal } from '@/components/ui/Modal'
 import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import type { Fotos, FotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
@@ -154,7 +158,8 @@ function retomada(state: AppState, session: UserEmail): EstadoWizard {
 }
 
 export default function EnviosPage(): ReactNode {
-  const { state, session, run } = useApp()
+  const { state, session, me, run } = useApp()
+  const modal = useModal()
   const router = useRouter()
 
   // Inicializador preguiçoso: a derivação roda uma vez, no primeiro render (que
@@ -265,6 +270,27 @@ export default function EnviosPage(): ReactNode {
 
   const temFotos = Boolean(fotos.frente) && Boolean(fotos.verso)
   const podeContinuar = quantidade >= 1 && temFotos
+
+  /**
+   * Gatilho de cadastro do envio (D-7, 11/09/2026).
+   *
+   * Enviar moeda é uma das três atividades que exigem cadastro formal, junto
+   * com depositar e comprar. As outras duas já abriam a modal; esta era a que
+   * faltava. A modal REABRE a cada tentativa enquanto o cadastro não fechar —
+   * é proposital, para o cliente não ter de procurar onde se cadastra.
+   */
+  function continuarParaProtocolo(): void {
+    if (!temCadastroCompleto(me)) {
+      modal.open(
+        <ModalCadastro
+          motivo="envio"
+          onSuccess={() => setWizard((w) => ({ ...w, passo: 2 }))}
+        />,
+      )
+      return
+    }
+    setWizard((w) => ({ ...w, passo: 2 }))
+  }
 
   return (
     <>
@@ -406,7 +432,7 @@ export default function EnviosPage(): ReactNode {
               type="button"
               className="btn btn-gold"
               disabled={!podeContinuar}
-              onClick={() => setWizard((w) => ({ ...w, passo: 2 }))}
+              onClick={continuarParaProtocolo}
             >
               Continuar
             </button>
@@ -671,13 +697,14 @@ export default function EnviosPage(): ReactNode {
                     <span className="v">{envio.codigosAtivosGerados.join(', ')}</span>
                   </div>
                   <div className="sr">
-                    <span className="k">Taxa de custódia anual (nova faixa)</span>
-                    {/* A cobrança é a do usuário, recalculada pelo acervo inteiro
-                        no momento da emissão — não é a taxa deste envio. */}
+                    <span className="k">Custódia mensal destas moedas</span>
+                    {/* O texto dizia "Taxa de custódia anual (nova faixa)" e
+                        mostrava a cobrança única do mecanismo antigo — rótulo,
+                        periodicidade e valor, os três de um modelo que a D-3
+                        aposentou. Agora mostra o que estas moedas custam por
+                        mês; a fatura fechada é gerada pelo ciclo mensal. */}
                     <span className="v">
-                      {state.custodyCharges[session]
-                        ? brl(state.custodyCharges[session].valorCobrado)
-                        : '—'}
+                      {brl(custodiaMensalPorMoeda(quantidade))} / mês
                     </span>
                   </div>
                 </div>

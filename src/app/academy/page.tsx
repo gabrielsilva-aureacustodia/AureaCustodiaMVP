@@ -183,9 +183,11 @@ export default function AcademyPage(): ReactNode {
         <p>
           <strong>Quais são os prazos de saque e de resgate físico?</strong><br />
           Para transferências de saldo financeiro em reais para a conta bancária do titular, o prazo é
-          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, o prazo operacional
-          é de até <strong>D+30 dias úteis</strong>, período necessário para conferência pericial,
-          deslocamento seguro de cofre, embalagem de alta segurança e postagem com seguro.
+          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, a Áurea tem até
+          <strong>30 dias corridos para preparar e postar</strong> — período necessário para
+          conferência pericial, deslocamento seguro de cofre, embalagem de alta segurança e despacho.
+          A esse prazo <strong>soma-se o tempo de entrega dos Correios</strong>, que varia conforme o
+          destino e não é controlado pela Áurea.
         </p>
         <p>
           <strong>Quem paga os custos de frete e envio?</strong><br />

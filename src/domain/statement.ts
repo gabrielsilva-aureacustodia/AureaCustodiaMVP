@@ -158,30 +158,34 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
       })
     })
 
-  /* ---------- cobrança de custódia vigente ---------- */
-  const cobranca = state.custodyCharges[email]
-  if (cobranca) {
-    /*
-     * LIMITAÇÃO CONHECIDA, e é honesto registrá-la aqui: o estado guarda UMA
-     * cobrança por usuário, sobrescrita a cada recibo emitido. Não há histórico
-     * de cobranças a listar — o extrato mostra a vigente.
-     *
-     * O impacto é ZERO porque nenhuma ação do sistema debita a taxa de custódia
-     * do saldo: ela nasce 'Pendente' em custody.ts e não existe ação de
-     * pagamento. Lançar o valor como saída aqui faria o extrato não fechar com
-     * o saldo real da conta.
-     */
-    const dt = parseDateBR(cobranca.dataCobranca)
+  /* ---------- faturas mensais de custódia ---------- */
+  /*
+   * Uma linha POR MÊS, e não mais uma cobrança única sobrescrita.
+   *
+   * Até 11/09/2026 este trecho lia `state.custodyCharges`, que guardava uma
+   * cobrança por usuário, rotulada "Custódia anual" e calculada pela tabela de
+   * faixas — três coisas que a decisão D-3 já tinha aposentado. O cliente lia
+   * um preço que não era o vigente. O mecanismo antigo saiu por decisão do
+   * Gabriel em 11/09/2026.
+   *
+   * O impacto no saldo é o valor debitado de verdade: fatura liquidada com
+   * saldo sai da conta, fatura pendente ou paga por fora não move nada. Isso é
+   * o que faz o extrato fechar com o saldo real.
+   */
+  for (const f of state.faturasCustodia ?? []) {
+    if (f.userEmail !== email) continue
+    const debitouSaldo = f.status === 'paga' && f.formaPagamento === 'saldo'
+    const quando = f.dataPagamento || f.dataEmissao
     rows.push({
-      date: dt,
-      dateBR: cobranca.dataCobranca,
+      date: quando,
+      dateBR: fdate(quando),
       kind: 'Taxa de custódia',
       tipoMoeda: '—',
-      descricao: `Custódia anual de ${cobranca.totalMoedas} moeda(s) — ${cobranca.statusPagamento}`,
-      quantidade: cobranca.totalMoedas,
+      descricao: `Custódia mensal ${f.competencia} · ${f.quantidadeMoedas} moeda(s) — ${f.status}`,
+      quantidade: f.quantidadeMoedas,
       valorUnitario: null,
-      taxa: cobranca.valorCobrado,
-      impacto: 0,
+      taxa: f.valorCents,
+      impacto: debitouSaldo ? -f.valorCents : 0,
     })
   }
 
@@ -205,22 +209,6 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
   }
 
   return rows.sort((a, b) => a.date - b.date)
-}
-
-/**
- * 'dd/mm/aaaa' de volta para timestamp, só para ordenar a linha da cobrança
- * junto das demais.
- *
- * Data malformada devolve 0 (a linha vai para o topo) em vez de NaN, que
- * envenenaria o comparador do sort e deixaria a ordem do extrato inteiro
- * indefinida.
- */
-function parseDateBR(s: DateBR): Timestamp {
-  const partes = s.split('/')
-  if (partes.length !== 3) return 0
-  const [d, m, a] = partes.map((x) => parseInt(x, 10))
-  if (!d || !m || !a) return 0
-  return new Date(a, m - 1, d).getTime()
 }
 
 /** Soma as linhas do extrato. Percorre uma vez só — a lista pode ser longa. */

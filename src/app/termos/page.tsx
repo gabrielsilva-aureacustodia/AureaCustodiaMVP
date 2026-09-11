@@ -245,10 +245,13 @@ export default function TermsPage(): ReactNode {
             é de R$ 5,00 fixos por operação.
           </li>
           <li>
-            <strong>Retirada física de moeda: até D+30 (30 dias corridos).</strong> O prazo é
-            destinado à conferência numismática, desengavetamento da sala-forte, embalagem lacrada,
-            emissão de declaração de conteúdo e despacho. O prazo somente tem início após a
+            <strong>Retirada física de moeda: até 30 dias corridos para preparo e postagem,
+            mais o prazo de entrega dos Correios.</strong> Os 30 dias são o prazo OPERACIONAL da
+            Áurea, destinado à conferência numismática, desengavetamento da sala-forte, embalagem
+            lacrada, emissão de declaração de conteúdo e despacho. O prazo somente tem início após a
             confirmação inequívoca do endereço de entrega e a compensação da taxa de retirada.
+            O tempo de trânsito postal corre por fora e varia conforme o destino: a Áurea
+            <strong>não promete prazo de entrega</strong>, por não operar o transporte.
           </li>
         </ul>
         <p>

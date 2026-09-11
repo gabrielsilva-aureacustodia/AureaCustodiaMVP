@@ -37,7 +37,6 @@ import type {
   Cadastro,
   Cents,
   Coin,
-  CustodyCharge,
   Deposit,
   Envio,
   FaturaCustodia,
@@ -239,15 +238,6 @@ export function normalizarAnalise(a: Analise): Analise {
   }
 }
 
-export function normalizarCustodyCharge(c: CustodyCharge): CustodyCharge {
-  return {
-    totalMoedas: c.totalMoedas,
-    valorCobrado: c.valorCobrado,
-    dataCobranca: c.dataCobranca,
-    statusPagamento: c.statusPagamento,
-  }
-}
-
 export function normalizarSaque(s: Saque): Saque {
   return {
     id: s.id,
@@ -333,8 +323,6 @@ export type Operacao =
   | { tipo: 'saque.atualizar'; saque: Saque }
   | { tipo: 'fatura.inserir'; fatura: FaturaCustodia }
   | { tipo: 'fatura.atualizar'; fatura: FaturaCustodia }
-  | { tipo: 'custodyCharge.gravar'; email: UserEmail; cobranca: CustodyCharge }
-  | { tipo: 'custodyCharge.remover'; email: UserEmail }
   | { tipo: 'seq.atualizar'; seq: Seq }
 
 /* ---------- o diff genérico por chave ---------- */
@@ -425,16 +413,6 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
     indexar(antes.envios.map(normalizarEnvio), (e) => e.protocolo),
     indexar(depois.envios.map(normalizarEnvio), (e) => e.protocolo),
   )
-  const cobrancas = diffPorChave(
-    indexar(
-      Object.entries(antes.custodyCharges).map(([email, c]) => ({ email, cobranca: normalizarCustodyCharge(c) })),
-      (x) => x.email,
-    ),
-    indexar(
-      Object.entries(depois.custodyCharges).map(([email, c]) => ({ email, cobranca: normalizarCustodyCharge(c) })),
-      (x) => x.email,
-    ),
-  )
   const tradesNovos = caudaNova('trades', antes.trades, depois.trades).map(normalizarTrade)
   const depositsNovos = caudaNova('deposits', antes.deposits, depois.deposits).map(normalizarDeposit)
   // A posição de cada análise nova é o índice dela no array final — é o que a
@@ -464,7 +442,6 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   for (const id of sellOffers.removidos) ops.push({ tipo: 'sellOffer.remover', id })
   for (const id of buyOrders.removidos) ops.push({ tipo: 'buyOrder.remover', id })
   for (const protocolo of envios.removidos) ops.push({ tipo: 'envio.remover', protocolo })
-  for (const email of cobrancas.removidos) ops.push({ tipo: 'custodyCharge.remover', email })
   for (const id of coins.removidos) ops.push({ tipo: 'coin.remover', id })
   for (const email of users.removidos) ops.push({ tipo: 'user.remover', email })
 
@@ -492,9 +469,6 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
   for (const fatura of faturas.inseridos) ops.push({ tipo: 'fatura.inserir', fatura })
   for (const fatura of faturas.atualizados) ops.push({ tipo: 'fatura.atualizar', fatura })
-  for (const { email, cobranca } of [...cobrancas.inseridos, ...cobrancas.atualizados]) {
-    ops.push({ tipo: 'custodyCharge.gravar', email, cobranca })
-  }
 
   const seqAntes = normalizarSeq(antes.seq)
   const seqDepois = normalizarSeq(depois.seq)

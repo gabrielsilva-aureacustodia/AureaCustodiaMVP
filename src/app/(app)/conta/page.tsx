@@ -89,6 +89,35 @@ export default function ContaPage(): ReactNode {
 
   return (
     <>
+      {/* Aviso de cadastro pendente (D-7, 11/09/2026).
+          Fica no topo, some sozinho quando o cadastro fecha, e existe porque o
+          pop-up que aparece na frente da ação é o caminho principal — este é o
+          lembrete para quem fechou a modal e saiu da tela. */}
+      {!temCadastroCompleto(me) ? (
+        <div
+          className="note"
+          role="status"
+          style={{ marginBottom: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+        >
+          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v5M12 16v.5" />
+          </svg>
+          <span style={{ flex: 1, minWidth: 220 }}>
+            <b>Complete seu cadastro</b> para depositar, comprar ou enviar moedas para custódia.
+            São quatro dados e leva menos de um minuto.
+          </span>
+          <button
+            className="btn btn-gold"
+            type="button"
+            style={{ padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
+            onClick={() => open(<ModalCadastro motivo="configuracoes" />)}
+          >
+            Completar cadastro
+          </button>
+        </div>
+      ) : null}
+
       <div className="stats four" style={{ marginBottom: 18 }}>
         <div className="stat">
           <div className="stat-ico">
@@ -335,6 +364,23 @@ export default function ContaPage(): ReactNode {
               <div className="qk-t">
                 <div className="qk-name">Notificações</div>
                 <div className="qk-sub">Preferências e alertas</div>
+              </div>
+              <span className="arr">›</span>
+            </div>
+
+            {/* Retirada física — D-8, 11/09/2026.
+                Fica DISCRETA de propósito: é a última linha, sem destaque e sem
+                cor de ação. Pedir a moeda de volta é oneroso para o cliente e
+                para a empresa, e o desenho não deve estimular. Mas existe e é
+                encontrável, aqui e em Meus recibos — esconder seria pior. */}
+            <div className="qk-row" onClick={() => router.push('/retirada')}>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 7h16v13H4z" />
+                <path d="M9 7V4h6v3M12 11v5M9.5 13.5L12 11l2.5 2.5" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Retiradas físicas</div>
+                <div className="qk-sub">Acompanhar ou pedir a saída de uma moeda</div>
               </div>
               <span className="arr">›</span>
             </div>

@@ -1,7 +1,8 @@
 /**
  * Taxas: custódia (anual, por faixa de quantidade) e corretagem (por moeda).
  *
- * Port fiel de aurea-mvp-teste.html: `custodyFeeForCount` das linhas 802-805 e
+ * Port de aurea-mvp-teste.html. A custódia por faixas das linhas 802-805 foi
+ * aposentada pela decisão D-3; sobrou daquele trecho a comissão. Ver também
  * a comissão de negociação, que no MVP não era função — a expressão
  * `Math.round(price*FEE_PCT)+FEE_FIXED` aparecia repetida em três lugares
  * (linhas 990, 1423 e 1781). Aqui vira `tradeFee`, com o mesmo resultado
@@ -35,13 +36,6 @@ export function custodiaMensalPorMoeda(qtdMoedas: number): Cents {
 export function custodiaAnualPorMoeda(qtdMoedas: number): Cents {
   if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
   return Math.floor(qtdMoedas) * CUSTODIA_ANUAL_POR_MOEDA_CENTS
-}
-
-/**
- * Alias mantido para compatibilidade — aponta diretamente para o novo modelo mensal.
- */
-export function custodyFeeForCount(n: number): Cents {
-  return custodiaMensalPorMoeda(n)
 }
 
 /**

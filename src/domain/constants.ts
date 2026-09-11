@@ -27,6 +27,12 @@ import type { CoinType, Cents } from '@/domain/types'
  * moeda gravada em v6 chegaria sem `recibo` e derrubaria toda tela que lê o
  * certificado.
  *
+ * v8 (a custódia antiga sai, D-3 concluída em 11/09/2026): `custodyCharges`
+ * deixou de existir em `AppState`. Quem cobra passou a ser só a fatura mensal
+ * (`faturasCustodia`). Um estado gravado em v7 traz um campo que o código não
+ * lê mais e não traz as faturas — e o extrato, o livro-razão e a auditoria
+ * liam dali. Migration 013 derruba a tabela `aurea.custody_charges`.
+ *
  * ATENÇÃO — esta chave só zera o estado no store EM MEMÓRIA e no blob antigo.
  * Com Postgres o estado vive em tabelas e `STORE_KEY` não as apaga; ali quem
  * faz a troca são as migrations 005 (renomeia `aurea.nfts` para
@@ -35,7 +41,7 @@ import type { CoinType, Cents } from '@/domain/types'
  * aplicação lendo o novo — foi exatamente o que aconteceu em 10/09/2026, e o
  * sintoma foi `relation "aurea.recibos" does not exist` no login.
  */
-export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v7'
+export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v8'
 
 /**
  * Chave do banco de cotações BTC/ETH/USDT que alimenta a tela de comparações.

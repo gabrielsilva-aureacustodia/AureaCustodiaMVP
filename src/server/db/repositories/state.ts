@@ -22,13 +22,7 @@ import type { AppState, User, UserEmail } from '@/domain/types'
 
 import { planejarDiff, type Operacao } from '../diff'
 import type { Consulta } from '../sql'
-import {
-  carregarCustodyCharges,
-  carregarDeposits,
-  gravarCustodyCharge,
-  inserirDeposit,
-  removerCustodyCharge,
-} from './account'
+import { carregarDeposits, inserirDeposit } from './account'
 import { carregarAnalises, inserirAnalise } from './analises'
 import { atualizarCoin, carregarCoins, inserirCoin, removerCoin } from './coins'
 import { atualizarEnvio, carregarEnvios, inserirEnvio, removerEnvio } from './envios'
@@ -66,7 +60,7 @@ export interface OpcoesCarregar {
 export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}): Promise<AppState> {
   const seq = await carregarSeq(tx, { travar: opcoes.travar === true })
 
-  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, cobrancas, analises, saques, faturas] =
+  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, analises, saques, faturas] =
     await Promise.all([
       carregarUsers(tx),
       carregarCoins(tx),
@@ -75,7 +69,6 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
       carregarTrades(tx),
       carregarEnvios(tx),
       carregarDeposits(tx),
-      carregarCustodyCharges(tx),
       carregarAnalises(tx),
       carregarSaques(tx),
       carregarFaturas(tx),
@@ -103,10 +96,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
     dono.coins.push(coin)
   }
 
-  const custodyCharges: AppState['custodyCharges'] = {}
-  for (const { email, cobranca } of cobrancas) custodyCharges[email] = cobranca
-
-  return { users, sellOffers, buyOrders, trades, envios, seq, custodyCharges, deposits, analises, saques, faturasCustodia: faturas }
+  return { users, sellOffers, buyOrders, trades, envios, seq, deposits, analises, saques, faturasCustodia: faturas }
 }
 
 /** Banco recém-migrado: nenhuma conta. É o gatilho da semeadura, como o `null` do blob era. */
@@ -177,10 +167,6 @@ export async function executarOperacao(tx: Consulta, op: Operacao): Promise<void
       return inserirFatura(tx, op.fatura)
     case 'fatura.atualizar':
       return atualizarFatura(tx, op.fatura)
-    case 'custodyCharge.gravar':
-      return gravarCustodyCharge(tx, op.email, op.cobranca)
-    case 'custodyCharge.remover':
-      return removerCustodyCharge(tx, op.email)
     case 'seq.atualizar':
       return atualizarSeq(tx, op.seq)
   }

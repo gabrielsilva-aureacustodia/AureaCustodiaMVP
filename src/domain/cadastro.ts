@@ -7,6 +7,40 @@
 import type { Cadastro, DadosBancarios } from './types'
 
 /**
+ * CPF válido pelo dígito verificador — cálculo local, sem rede.
+ *
+ * Não consulta a Receita Federal e não prova que o CPF existe ou é do titular:
+ * prova apenas que o número é internamente consistente. Isso pega erro de
+ * digitação, que é a esmagadora maioria dos casos, e custa zero.
+ *
+ * A consulta oficial é a Serpro Consulta CPF, paga e por contrato, que recebe
+ * CPF + data de nascimento — os dois campos que este cadastro já coleta. Ela
+ * entra quando houver contrato; esta função continua valendo como primeira
+ * barreira, porque nenhuma chamada de rede deve sair para um número que já se
+ * sabe inválido.
+ *
+ * A regra é a do algoritmo oficial: dois dígitos verificadores, cada um obtido
+ * pela soma ponderada dos anteriores, módulo 11, com resto menor que 2 valendo
+ * zero. Sequências de um dígito só ('111.111.111-11') passam na aritmética e
+ * por isso são recusadas à parte.
+ */
+export function cpfValido(cpf: string): boolean {
+  const d = (cpf || '').replace(/\D/g, '')
+  if (d.length !== 11) return false
+  // '111.111.111-11' e companhia passam na aritmetica do modulo 11.
+  if (new Set(d).size === 1) return false
+
+  const digito = (ate: number): number => {
+    let soma = 0
+    for (let i = 0; i < ate; i += 1) soma += Number(d[i]) * (ate + 1 - i)
+    const resto = (soma * 10) % 11
+    return resto === 10 ? 0 : resto
+  }
+
+  return digito(9) === Number(d[9]) && digito(10) === Number(d[10])
+}
+
+/**
  * Verifica se um usuário possui o cadastro formal completo e confirmado,
  * habilitando operações financeiras (depósito, compra e saque).
  */
@@ -14,7 +48,7 @@ export function temCadastroCompleto(user?: { cadastro?: Cadastro } | null): bool
   if (!user || !user.cadastro) return false
   const c = user.cadastro
 
-  if (!c.cpf || c.cpf.trim().length === 0) return false
+  if (!cpfValido(c.cpf)) return false
   if (!c.nomeCompleto || c.nomeCompleto.trim().length < 3) return false
   if (!c.dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(c.dataNascimento.trim())) return false
 

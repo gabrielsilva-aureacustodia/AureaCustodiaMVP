@@ -233,20 +233,23 @@ describe('fecharAnalise', () => {
       operador: OPERADOR,
       moedas: [{ pesoMg: 27000, veredito: 'aprovada' }],
     })
-    const cobranca = state.custodyCharges[CLIENTE]
-    expect(cobranca.totalMoedas).toBe(state.users[CLIENTE].coins.length)
-    expect(cobranca.statusPagamento).toBe('Pendente')
+    // A bancada NÃO cobra custódia desde 11/09/2026: quem cobra é o ciclo
+    // mensal, que conta as moedas sob guarda na virada da competência. Cobrar
+    // nos dois lugares cobraria duas vezes.
+    expect(state.faturasCustodia ?? []).toHaveLength(0)
+    expect(state.users[CLIENTE].coins.length).toBeGreaterThan(0)
   })
 
-  it('envio 100% recusado não gera cobrança nova — não se cobra custódia do que voltou', async () => {
+  it('envio 100% recusado não cria moeda nem fatura — não se guarda o que voltou', async () => {
     state.envios = [envio({ quantidade: 1 })]
-    const antes = { ...state.custodyCharges[CLIENTE] }
+    const moedasAntes = state.users[CLIENTE].coins.length
     await fecharAnalise({
       protocolo: 'RO-ENV-0001',
       operador: OPERADOR,
       moedas: [{ pesoMg: 24000, veredito: 'recusada', motivoRecusa: 'Não é a moeda declarada' }],
     })
-    expect(state.custodyCharges[CLIENTE]).toEqual(antes)
+    expect(state.users[CLIENTE].coins.length).toBe(moedasAntes)
+    expect(state.faturasCustodia ?? []).toHaveLength(0)
     expect(state.envios[0].etapaAtual).toBe('Recibo emitido')
   })
 

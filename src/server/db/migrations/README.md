@@ -18,8 +18,9 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `010_faturamento_custodia.sql` | Frente B: `faturas_custodia`, cobrança mensal e inadimplência |
 | `011_retiradas.sql` | Frente C: `retiradas`, a máquina de estados da saída física da moeda |
 | `012_retiradas_ledger.sql` | Frente C: fecha a restrição de tipos do ledger com a **união** das três frentes. Ver a nota dentro do arquivo |
+| `013_remove_custody_charges.sql` | Derruba `custody_charges`, o mecanismo antigo de custódia (D-3 concluída, 11/09/2026). Sobe `STORE_KEY` para v8 |
 
-A próxima é a **013**. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **014**. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado do merge de 11/09/2026.** As frentes B e C, trabalhando em paralelo, criaram

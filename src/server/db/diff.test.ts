@@ -51,7 +51,6 @@ describe('planejarDiff — nada mudou', () => {
       trades: [],
       envios: [],
       seq: { coin: 0, envio: 0 },
-      custodyCharges: {},
       deposits: [],
       analises: [],
     }
@@ -63,7 +62,9 @@ describe('planejarDiff — nada mudou', () => {
     const totalMoedas = Object.values(seed.users).reduce((s, u) => s + u.coins.length, 0)
     expect(t.filter((x) => x === 'coin.inserir')).toHaveLength(totalMoedas)
     expect(t.filter((x) => x === 'trade.inserir')).toHaveLength(seed.trades.length)
-    expect(t.filter((x) => x === 'custodyCharge.gravar')).toHaveLength(7)
+    // A cobrança de custódia saiu do diff em 11/09/2026 — o seed não grava
+    // mais nenhuma, e quem cobra é o ciclo mensal.
+    expect(t.filter((x) => x.startsWith('custodyCharge'))).toHaveLength(0)
     expect(t.filter((x) => x === 'seq.atualizar')).toHaveLength(1)
     expect(t.some((x) => x.endsWith('.atualizar') && x !== 'seq.atualizar')).toBe(false)
     expect(t.some((x) => x.endsWith('.remover'))).toBe(false)
@@ -283,12 +284,13 @@ describe('planejarDiff — envios e custódia', () => {
     }
     antes.envios.push(structuredClone(envio))
     depois.envios.push({ ...envio, etapaAtual: 'Envio postado', codigoRastreio: 'BR1BR', dataPostagem: Date.now() })
-    depois.custodyCharges[email] = { ...depois.custodyCharges[email], statusPagamento: 'Pendente' }
 
+    // A cobrança de custódia saiu do diff em 11/09/2026 junto com o mecanismo
+    // antigo: postar um envio não gera mais cobrança nenhuma, e a única
+    // operação esperada aqui é a atualização do envio.
     const ops = planejarDiff(antes, depois)
-    expect(tipos(ops)).toEqual(['envio.atualizar', 'custodyCharge.gravar'])
+    expect(tipos(ops)).toEqual(['envio.atualizar'])
     expect(ops[0]).toMatchObject({ envio: { etapaAtual: 'Envio postado', codigoRastreio: 'BR1BR' } })
-    expect(ops[1]).toMatchObject({ email, cobranca: { statusPagamento: 'Pendente' } })
   })
 })
 

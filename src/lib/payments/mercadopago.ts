@@ -35,6 +35,13 @@ export function getMercadoPagoAccessToken(): string | null {
 }
 
 /** Verifica se está operando em modo sandbox. */
+/**
+ * Sandbox é o PADRÃO, não uma trava: `MP_SANDBOX="false"` liga produção.
+ *
+ * Até 11/09/2026 isso era decorativo — `payments.ts` escolhia a URL de sandbox
+ * sempre, ignorando a variável, por causa do RA-01. O RA-01 foi encerrado por
+ * decisão do Gabriel em 11/09/2026 e a variável voltou a mandar de verdade.
+ */
 export function isMercadoPagoSandbox(): boolean {
   // Padrão seguro: a menos que explicitamente configurado como 'false', assume sandbox
   return process.env.MP_SANDBOX !== 'false'
@@ -57,16 +64,23 @@ export async function criarPreferenciaDeposito(
 
   const token = getMercadoPagoAccessToken()
 
-  // Se não houver token configurado no ambiente, opera em modo simulador
+  // Sem credencial no ambiente, opera em modo simulador.
+  //
+  // As URLs vêm VAZIAS de propósito. Antes de 11/09/2026 elas apontavam para o
+  // domínio real do Mercado Pago com um `pref_id` inventado, e o efeito era um
+  // beco sem saída: o gateway não reconhecia o identificador e devolvia a
+  // própria página de erro, que o cliente lê como falha da Áurea. Quem decide o
+  // que mostrar é a tela, pelo campo `simulado`.
   if (!token) {
     const simId = `SIM-PREF-${Date.now()}-${Math.floor(Math.random() * 10000)}`
     return {
       id: simId,
-      initPoint: `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${simId}`,
-      sandboxInitPoint: `https://sandbox.mercadopago.com.br/checkout/v1/redirect?pref_id=${simId}`,
+      initPoint: '',
+      sandboxInitPoint: '',
       externalReference,
       valorCents,
       createdAt: Date.now(),
+      simulado: true,
     }
   }
 
@@ -148,14 +162,19 @@ export async function criarPixDeposito(
 
   const token = getMercadoPagoAccessToken()
 
-  // Modo simulador se não houver credencial
+  // Modo simulador se não houver credencial.
+  //
+  // Sem `qrCode` de propósito: até 11/09/2026 este ramo devolvia um texto com a
+  // estrutura de um payload Pix de verdade e um QR que era um pixel branco de
+  // 1x1. Alguém pode tentar pagar aquilo. Quem avisa que não há gateway é a
+  // tela, pelo campo `simulado`.
   if (!token) {
     const simId = `SIM-PIX-${Date.now()}-${Math.floor(Math.random() * 10000)}`
     return {
+      simulado: true,
       paymentId: simId,
       status: 'pending',
-      qrCode: `00020126580014br.gov.bcb.pix0136${simId}520400005303986540${(valorCents / 100).toFixed(2)}5802BR5914AUREA CUSTODIA6009SAO PAULO62070503***6304E62B`,
-      qrCodeBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      qrCode: '',
       valorCents,
       externalReference,
       createdAt: Date.now(),

@@ -34,14 +34,12 @@ import { coinTypeInfo } from '@/domain/constants'
 import { apelidoVendedor } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
-import type { Cents, Lot } from '@/domain/types'
+import type { Lot } from '@/domain/types'
 
 export interface LotCardProps {
   lot: Lot
   /** true quando o anúncio é da própria sessão — esconde seletor e botão. */
   mine: boolean
-  /** Saldo do comprador, para o teto de quantidade. */
-  balance: Cents
   /** Quantidade guardada no seletor da página. undefined = nunca mexeram neste lote. */
   qtyEscolhida: number | undefined
   onAdjust(lotId: string, delta: number, max: number): void
@@ -51,22 +49,26 @@ export interface LotCardProps {
 export function LotCard({
   lot,
   mine,
-  balance,
   qtyEscolhida,
   onAdjust,
   onBuy,
 }: LotCardProps): ReactNode {
   const qtyAvail = lot.coinIds.length
 
-  // Divisão inteira: quantas unidades o caixa aguenta a este preço.
-  const maxAfford = Math.floor(balance / lot.price)
-  // Anúncio próprio tem teto 0 — o original zerava para não desenhar controle
-  // nenhum, e é isso que também desliga o botão.
-  const maxQty = mine ? 0 : Math.max(0, Math.min(qtyAvail, maxAfford))
+  /**
+   * O TETO É O ESTOQUE, NÃO O SALDO — mudou em 11/09/2026.
+   *
+   * Até essa data o teto era `min(estoque, saldo / preço)`, e quem não tinha
+   * depósito via o botão apagado com "Saldo insuf.". Isso trancava a compra
+   * antes da modal, que é justamente onde existem as outras formas de pagar:
+   * Pix e cartão, sem passar pelo saldo. Gabriel, em 11/09/2026: o usuário
+   * deve poder escolher entre o dinheiro em depósito e o pagamento direto.
+   *
+   * Quem confere saldo de verdade continua sendo `buyLot()`, no servidor, e só
+   * no caminho que usa saldo.
+   */
+  const maxQty = mine ? 0 : qtyAvail
 
-  // `max(maxQty,1)` e não `maxQty`: com teto 0 (saldo curto) o seletor precisa
-  // continuar mostrando 1, e não 0, porque o que informa a recusa é o botão
-  // desabilitado com "Saldo insuf." — igual ao original.
   const chosen = Math.min(Math.max(qtyEscolhida ?? 1, 1), Math.max(maxQty, 1))
   const total = lot.price * chosen
 
@@ -137,14 +139,14 @@ export function LotCard({
             <div style={{ marginTop: '8px', fontWeight: 700, color: 'var(--text-strong)' }}>
               {brl(total)}
             </div>
+            {/* Sempre habilitado: a escolha da forma de pagamento é da modal. */}
             <button
               type="button"
               className="btn btn-gold"
               style={{ marginTop: '8px', padding: '8px 16px', fontSize: '13px' }}
-              disabled={maxQty <= 0}
               onClick={() => onBuy(lot, chosen)}
             >
-              {maxQty <= 0 ? 'Saldo insuf.' : 'Comprar'}
+              Comprar
             </button>
           </>
         )}

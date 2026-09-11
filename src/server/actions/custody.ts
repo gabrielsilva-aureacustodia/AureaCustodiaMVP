@@ -29,7 +29,6 @@
 import { nextEnvioCode } from '@/domain/codes'
 import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
@@ -297,13 +296,10 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
           envio.codigosAtivosGerados.push(coin.id)
         }
 
-        const totalMoedas = u.coins.length
-        state.custodyCharges[session] = {
-          totalMoedas,
-          valorCobrado: custodiaMensalPorMoeda(totalMoedas),
-          dataCobranca: entradaStr,
-          statusPagamento: 'Pendente',
-        }
+        // A custódia NÃO é cobrada aqui desde 11/09/2026. Quem cobra é o ciclo
+        // mensal (`src/server/custodia/faturamento.ts`), que conta as moedas sob
+        // guarda na virada da competência. Cobrar também na emissão do recibo
+        // cobraria duas vezes pela mesma moeda.
       }
 
       return 'ok' as const

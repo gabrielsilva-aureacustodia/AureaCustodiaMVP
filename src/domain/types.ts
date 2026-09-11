@@ -328,13 +328,6 @@ export interface Deposit {
 
 export type StatusPagamento = 'Pago' | 'Pendente'
 
-/** Cobrança de custódia vigente de um usuário (1 registro por usuário). */
-export interface CustodyCharge {
-  totalMoedas: number
-  valorCobrado: Cents
-  dataCobranca: DateBR
-  statusPagamento: StatusPagamento
-}
 
 // ---------------------------------------------------------------------------
 // Estado global
@@ -404,7 +397,6 @@ export interface AppState {
   trades: Trade[]
   envios: Envio[]
   seq: Seq
-  custodyCharges: Record<UserEmail, CustodyCharge>
   /** Histórico de aportes de saldo, na ordem em que aconteceram. */
   deposits: Deposit[]
   /** Análises da bancada, append-only, na ordem em que foram fechadas (frente E). */

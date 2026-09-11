@@ -10,11 +10,22 @@ import {
 } from './mercadopago'
 
 describe('Mercado Pago — Preferências e Depósitos', () => {
-  it('identifica modo sandbox por padrão (RA-01)', () => {
+  it('opera em sandbox por padrão, e só MP_SANDBOX="false" liga produção', () => {
     expect(isMercadoPagoSandbox()).toBe(true)
   })
 
-  it('cria preferência de depósito com valores corretos em centavos (simulador)', async () => {
+  /**
+   * O QUE ESTE TESTE PROTEGE
+   * ------------------------
+   * Que o simulador NÃO produza endereço de site de terceiro. Até 11/09/2026
+   * ele devolvia `https://sandbox.mercadopago.com.br/...?pref_id=SIM-PREF-…`,
+   * a tela abria a aba, o Mercado Pago não reconhecia o identificador e o
+   * cliente caía na página de erro DELE achando que a falha era da Áurea.
+   *
+   * Se alguém "consertar" isto voltando a preencher a URL, o beco sem saída
+   * volta junto. Quem avisa que não há gateway é a tela, pelo campo `simulado`.
+   */
+  it('sem credencial, o simulador se declara e não aponta para fora', async () => {
     const res = await criarPreferenciaDeposito({
       userEmail: 'gabriel.silva@testeaurea.com.br',
       valorCents: 15000, // R$ 150,00
@@ -25,7 +36,9 @@ describe('Mercado Pago — Preferências e Depósitos', () => {
     expect(res.id).toBeDefined()
     expect(res.externalReference).toBe('DEP-TEST-001')
     expect(res.valorCents).toBe(15000)
-    expect(res.sandboxInitPoint).toContain('mercadopago.com.br')
+    expect(res.simulado).toBe(true)
+    expect(res.initPoint).toBe('')
+    expect(res.sandboxInitPoint).toBe('')
   })
 
   it('recusa depósito com valor inválido (zero ou negativo)', async () => {
@@ -46,7 +59,12 @@ describe('Mercado Pago — Preferências e Depósitos', () => {
     ).rejects.toThrow('Valor de depósito inválido.')
   })
 
-  it('cria cobrança Pix com QR Code e Copia e Cola', async () => {
+  /**
+   * Mesma proteção do teste acima, do lado do Pix: o ramo simulador devolvia um
+   * texto com a estrutura de um payload Pix de verdade e um QR que era um pixel
+   * branco de 1x1. Alguém pode tentar pagar aquilo.
+   */
+  it('sem credencial, o Pix simulado não devolve copia-e-cola pagável', async () => {
     const res = await criarPixDeposito({
       userEmail: 'gabriel.silva@testeaurea.com.br',
       valorCents: 28500, // R$ 285,00
@@ -55,7 +73,9 @@ describe('Mercado Pago — Preferências e Depósitos', () => {
 
     expect(res.paymentId).toBeDefined()
     expect(res.status).toBe('pending')
-    expect(res.qrCode).toContain('00020126')
+    expect(res.simulado).toBe(true)
+    expect(res.qrCode).toBe('')
+    expect(res.qrCodeBase64).toBeUndefined()
     expect(res.valorCents).toBe(28500)
   })
 

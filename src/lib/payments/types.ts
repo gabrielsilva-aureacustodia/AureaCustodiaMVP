@@ -45,6 +45,16 @@ export interface PreferenciaDepositoResult {
   externalReference: string
   valorCents: Cents
   createdAt: Timestamp
+  /**
+   * true quando não há credencial no ambiente e a resposta veio do simulador.
+   *
+   * Existe porque a tela PRECISA saber a diferença. Até 11/09/2026 o simulador
+   * devolvia uma URL apontando para o domínio real do Mercado Pago com um
+   * `pref_id` inventado; a tela abria a aba, o gateway não reconhecia o
+   * identificador e o cliente caía numa página de erro que parecia falha da
+   * Áurea. Simular não pode significar mandar a pessoa para fora.
+   */
+  simulado?: boolean
 }
 
 /** Dados de entrada para gerar cobrança Pix direta. */
@@ -57,6 +67,8 @@ export interface CriarPixDepositoInput {
 
 /** Dados do Pix gerado (QR Code e Copia e Cola). */
 export interface PixDepositoResult {
+  /** Ver a nota em `PreferenciaDepositoResult.simulado`. */
+  simulado?: boolean
   paymentId: string
   status: StatusPagamentoGateway
   qrCode: string

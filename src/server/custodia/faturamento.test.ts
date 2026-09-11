@@ -76,7 +76,6 @@ describe('server/custodia/faturamento', () => {
       trades: [],
       envios: [],
       seq: { coin: 3, envio: 1 },
-      custodyCharges: {},
       deposits: [],
       analises: [],
       saques: [],

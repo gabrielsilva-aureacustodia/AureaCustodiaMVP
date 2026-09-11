@@ -27,6 +27,12 @@ export interface DepositoIniciado {
   qrCodeBase64?: string
   /** Checkout Pro: para onde mandar o navegador. */
   initPoint?: string
+  /**
+   * true quando não há credencial do gateway no ambiente e a cobrança veio do
+   * simulador. A tela usa isso para explicar em vez de abrir aba nenhuma —
+   * ver a nota em `src/lib/payments/types.ts`.
+   */
+  simulado?: boolean
 }
 
 /** O que a tela de mercado precisa mostrar após abrir a cobrança de compra direta no gateway. */

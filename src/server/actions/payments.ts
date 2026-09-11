@@ -26,7 +26,7 @@ import { temCadastroCompleto } from '@/domain/cadastro'
 import { DEPOSITO_MAX } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
-import { criarPixDeposito, criarPreferenciaDeposito } from '@/lib/payments'
+import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from '@/lib/payments'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
@@ -38,6 +38,23 @@ import type {
 
 const SESSAO_EXPIRADA = 'Sessão expirada.'
 const FALHA_GATEWAY = 'Não foi possível abrir a cobrança agora. Tente novamente.'
+
+/**
+ * Para onde mandar o navegador no Checkout Pro.
+ *
+ * Em sandbox o Mercado Pago devolve dois endereços e só o de sandbox aceita os
+ * cartões de teste; em produção o `sandbox_init_point` pode vir vazio. O
+ * fallback cobre os dois casos sem a tela precisar saber de nada.
+ *
+ * Até 11/09/2026 as duas ações escolhiam sandbox SEMPRE, ignorando o ambiente,
+ * por causa do RA-01. O RA-01 foi encerrado por decisão do Gabriel na mesma
+ * data, e quem manda voltou a ser `MP_SANDBOX`.
+ */
+function pontoDeCheckout(pref: { initPoint: string; sandboxInitPoint: string }): string {
+  return isMercadoPagoSandbox()
+    ? pref.sandboxInitPoint || pref.initPoint
+    : pref.initPoint || pref.sandboxInitPoint
+}
 
 /**
  * Abre uma cobrança e devolve o que a tela precisa mostrar.
@@ -101,6 +118,7 @@ export async function iniciarDeposito(
           valorCents: valor,
           qrCode: pix.qrCode,
           qrCodeBase64: pix.qrCodeBase64,
+          simulado: pix.simulado === true,
         },
       }
     }
@@ -116,9 +134,8 @@ export async function iniciarDeposito(
         metodo,
         externalReference,
         valorCents: valor,
-        // O ponto de sandbox é o certo enquanto o RA-01 não estiver pago: é
-        // para lá que o token de teste sabe levar.
-        initPoint: pref.sandboxInitPoint || pref.initPoint,
+        initPoint: pontoDeCheckout(pref),
+        simulado: pref.simulado === true,
       },
     }
   } catch {
@@ -231,6 +248,7 @@ export async function iniciarCompraDireta(
           tipoMoeda,
           qrCode: pix.qrCode,
           qrCodeBase64: pix.qrCodeBase64,
+          simulado: pix.simulado === true,
         },
       }
     }
@@ -249,7 +267,8 @@ export async function iniciarCompraDireta(
         lotId,
         qty,
         tipoMoeda,
-        initPoint: pref.sandboxInitPoint || pref.initPoint,
+        initPoint: pontoDeCheckout(pref),
+        simulado: pref.simulado === true,
       },
     }
   } catch {

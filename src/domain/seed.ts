@@ -15,13 +15,11 @@
 
 import { COIN, COIN_TYPES, coinTypeInfo, faixaValor } from '@/domain/constants'
 import { genHash, nextCoinCode, nextEnvioCode, nextCodigoRecibo } from '@/domain/codes'
-import { custodyFeeForCount } from '@/domain/fees'
 import { DAY_MS } from '@/domain/dates'
 import type {
   AppState,
   Cents,
   Coin,
-  CustodyCharge,
   DateBR,
   Seq,
   Trade,
@@ -238,18 +236,11 @@ export function seedState(): AppState {
     users[email] = { name, balance, coins: mkCoinsForUser(seq, n, entrada) }
   }
 
-  // Uma cobrança por usuário, já paga e datada da entrada em custódia — o
-  // seed não simula inadimplência.
-  const custodyCharges: Record<UserEmail, CustodyCharge> = {}
-  for (const [email, , , , entrada] of usersDef) {
-    const n = users[email].coins.length
-    custodyCharges[email] = {
-      totalMoedas: n,
-      valorCobrado: custodyFeeForCount(n),
-      dataCobranca: entrada,
-      statusPagamento: 'Pago',
-    }
-  }
+  // O seed NÃO cria cobrança de custódia. Até 11/09/2026 ele gravava uma
+  // cobrança única por conta, rotulada "anual" e calculada pela tabela de
+  // faixas — as três coisas que a decisão D-3 aposentou. Quem cobra agora é o
+  // ciclo mensal (`src/server/custodia/faturamento.ts`), que gera a fatura da
+  // competência corrente na primeira execução.
 
   return {
     users,
@@ -258,7 +249,6 @@ export function seedState(): AppState {
     trades: genHistoryTrades(usersDef.map((u) => u[0])),
     envios: [],
     seq,
-    custodyCharges,
     // O saldo inicial de cada conta vem de `usersDef` e não é depósito: é
     // dinheiro que a demonstração assume como pré-existente. O extrato começa
     // vazio de propósito — só aporte feito na plataforma entra aqui.

@@ -5,7 +5,6 @@ import {
   CUSTODIA_MENSAL_POR_MOEDA_CENTS,
   custodiaAnualPorMoeda,
   custodiaMensalPorMoeda,
-  custodyFeeForCount,
   TAXA_SAQUE_FIXA_CENTS,
   tradeFee,
 } from './fees'
@@ -31,9 +30,13 @@ describe('Regras de Taxas e Tarifas (fees.ts)', () => {
       expect(custodiaAnualPorMoeda(18)).toBe(43200) // 18 moedas = R$ 432,00
     })
 
-    it('o alias custodyFeeForCount aponta para o novo modelo mensal', () => {
-      expect(custodyFeeForCount(1)).toBe(200)
-      expect(custodyFeeForCount(10)).toBe(2000)
+    it('não existe mais atalho para o modelo de faixas aposentado', () => {
+      // `custodyFeeForCount` foi apagado em 11/09/2026. Ele sobreviveu como
+      // apelido para o cálculo mensal, e foi assim que a tela ficou dizendo
+      // "Custódia anual" com valor mensal por trás. Quem calcula custódia é
+      // `custodiaMensalPorMoeda` ou `custodiaAnualPorMoeda`, pelo nome.
+      expect(custodiaMensalPorMoeda(1)).toBe(200)
+      expect(custodiaAnualPorMoeda(1)).toBe(2400)
     })
   })
 

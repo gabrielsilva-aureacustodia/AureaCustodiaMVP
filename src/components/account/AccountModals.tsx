@@ -44,7 +44,7 @@ import { calcularDataLimiteSaque } from '@/domain/dates'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
-import { changePassword, deposit, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
+import { changePassword, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
 import type { DepositoIniciado } from '@/server/payments/tipos'
 import { ModalCadastro } from './ModalCadastro'
@@ -302,7 +302,7 @@ export function ModalNotificacoes(): ReactNode {
  * desta tela: a pessoa precisa continuar vendo o campo para corrigi-lo.
  */
 export function ModalDeposito(): ReactNode {
-  const { me, run } = useApp()
+  const { me } = useApp()
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
@@ -356,14 +356,6 @@ export function ModalDeposito(): ReactNode {
   const cents = parsePrice(valorTexto)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
 
-  async function depositar(): Promise<void> {
-    if (!podeDepositar) return
-    setEnviando(true)
-    const res = await run(() => deposit(cents))
-    if (res.ok) close()
-    else setEnviando(false)
-  }
-
   /**
    * Abre a cobrança no gateway. NÃO mexe no saldo — quem credita é o webhook,
    * depois de o Mercado Pago confirmar o pagamento. É por isso que a modal
@@ -380,6 +372,17 @@ export function ModalDeposito(): ReactNode {
         setErroMp(res.error ?? 'Não foi possível abrir a cobrança.')
         return
       }
+      // Sem credencial no ambiente, a cobrança veio do simulador. Dizer isso
+      // aqui é o que impede o beco sem saída: antes de 11/09/2026 a tela abria
+      // uma aba no Mercado Pago com um identificador inventado, e o cliente
+      // via a página de erro do gateway achando que a falha era da Áurea.
+      if (res.data.simulado) {
+        setErroMp(
+          'O gateway de pagamento ainda não está configurado neste ambiente. ' +
+            'Nenhuma cobrança foi aberta.',
+        )
+        return
+      }
       if (metodo === 'pix') {
         setPix(res.data)
         return
@@ -388,6 +391,7 @@ export function ModalDeposito(): ReactNode {
       // cartão passa pelo servidor da Áurea. Abre em aba nova para a pessoa não
       // perder a modal.
       if (res.data.initPoint) window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
+      else setErroMp('O gateway não devolveu o endereço do checkout. Tente novamente.')
     } finally {
       setEnviando(false)
     }
@@ -397,8 +401,8 @@ export function ModalDeposito(): ReactNode {
     <>
       <h3 className="serif">Depositar em conta</h3>
       <p style={{ marginBottom: 10 }}>
-        Depósito <b>simulado</b> neste ambiente de teste: nenhum pagamento é processado e nenhum
-        dinheiro real muda de mãos. O valor entra direto no seu saldo para você poder negociar.
+        O saldo entra na sua conta <b>depois</b> que o pagamento for confirmado pelo banco ou pela
+        operadora do cartão, o que pode levar alguns segundos.
       </p>
 
       <div className="summary-row">
@@ -434,35 +438,13 @@ export function ModalDeposito(): ReactNode {
         </div>
       ) : null}
 
-      <div className="m-actions">
-        <button className="btn btn-outline" type="button" onClick={close}>
-          Cancelar
-        </button>
+      {/* Pagar é o caminho principal desde 11/09/2026. O botão dourado era o
+          depósito SIMULADO, que creditava saldo sem ninguém pagar nada — ele
+          saiu da tela do cliente. A Server Action `deposit()` continua no
+          servidor, para o seed e para os testes. */}
+      <div className="m-actions" style={{ marginTop: 4 }}>
         <button
           className="btn btn-gold"
-          type="button"
-          disabled={!podeDepositar}
-          onClick={() => void depositar()}
-        >
-          Confirmar depósito
-        </button>
-      </div>
-
-      {/* ------------------------------------------------------------------
-          Mercado Pago em SANDBOX (RA-01). Nenhum valor real é cobrado, e o
-          saldo só se move quando o webhook confirmar — nunca no retorno da
-          tela. Some quando o parecer jurídico liberar a produção e este bloco
-          virar o caminho principal.
-         ------------------------------------------------------------------ */}
-      <div className="note" style={{ marginTop: 18 }}>
-        <b>Pagar de verdade (ambiente de teste do Mercado Pago).</b> O saldo só entra depois
-        que o pagamento for confirmado pelo gateway, o que pode levar alguns segundos. Nenhum
-        valor real é cobrado.
-      </div>
-
-      <div className="m-actions" style={{ marginTop: 10 }}>
-        <button
-          className="btn btn-outline"
           type="button"
           disabled={!podeDepositar}
           onClick={() => void cobrar('pix')}
@@ -470,12 +452,18 @@ export function ModalDeposito(): ReactNode {
           Pagar com Pix
         </button>
         <button
-          className="btn btn-outline"
+          className="btn btn-gold"
           type="button"
           disabled={!podeDepositar}
           onClick={() => void cobrar('checkout_pro')}
         >
           Cartão ou boleto
+        </button>
+      </div>
+
+      <div className="m-actions" style={{ marginTop: 10 }}>
+        <button className="btn btn-outline" type="button" onClick={close}>
+          Cancelar
         </button>
       </div>
 

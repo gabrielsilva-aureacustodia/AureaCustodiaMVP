@@ -58,13 +58,6 @@ export interface Derivado {
   ajustes: Array<{ email: UserEmail; diferenca: Cents }>
 }
 
-/** 'dd/mm/aaaa' -> ms local, ou `fallback` quando malformada. */
-function deDataBR(s: string, fallback: number): number {
-  const [d, m, a] = s.split('/').map((x) => parseInt(x, 10))
-  if (!d || !m || !a) return fallback
-  return new Date(a, m - 1, d).getTime()
-}
-
 export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
   const { antes, depois, ops, semeadura, agora, hashAnterior } = ctx
   const nomes: Record<UserEmail, string> = {}
@@ -92,33 +85,26 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     pendentes.push(lancamentoDeTaxaSaque(s.userEmail, s.taxa, s.criadoEm, s.id))
   })
 
-  /* cobranças de custódia gravadas nesta mutação (sinal zero) */
-  for (const op of ops) {
-    if (op.tipo !== 'custodyCharge.gravar') continue
-    const quando = semeadura ? deDataBR(op.cobranca.dataCobranca, agora) : agora
-    pendentes.push(lancamentoDeCustodia(op.email, op.cobranca, quando, null))
-  }
-
-  /* faturas de custódia liquidadas com débito de saldo (sinal -1) */
+  /* faturas mensais de custódia
+   *
+   * Um lançamento por fatura NOVA, e um quando ela passa a ser liquidada com
+   * saldo. `lancamentoDeCustodia` decide o sinal: -1 quando o dinheiro saiu da
+   * conta, zero quando é só registro.
+   *
+   * O laço de `custodyCharge.gravar` saiu em 11/09/2026 junto com o mecanismo
+   * antigo de custódia. */
   const faturasAntes = new Map((antes.faturasCustodia ?? []).map((f) => [f.id, f]))
   for (const op of ops) {
     if (op.tipo !== 'fatura.inserir' && op.tipo !== 'fatura.atualizar') continue
     const f = op.fatura
     const antesFat = faturasAntes.get(f.id)
     const eraPagaComSaldo = antesFat?.status === 'paga' && antesFat?.formaPagamento === 'saldo'
-    if (f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo) {
-      pendentes.push({
-        createdAt: f.dataPagamento || agora,
-        userEmail: f.userEmail,
-        tipo: 'custodia',
-        valor: f.valorCents,
-        sinal: -1,
-        tipoMoeda: null,
-        quantidade: f.quantidadeMoedas,
-        refInterna: f.id,
-        refExterna: null,
-        descricao: `Custódia mensal ${f.competencia} (${f.quantidadeMoedas} moeda(s))`,
-      })
+    const virouPagaComSaldo = f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo
+    // Fatura nova entra como registro; fatura que acabou de ser liquidada entra
+    // como saída. As duas passam pela mesma função, que decide o sinal.
+    if (!antesFat || virouPagaComSaldo) {
+      const quando = f.dataPagamento || f.dataEmissao || agora
+      pendentes.push(lancamentoDeCustodia(f.userEmail, f, semeadura ? quando : agora, f.id))
     }
   }
 
@@ -263,10 +249,6 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
       case 'fatura.atualizar':
         anotar(op, op.fatura.id, op.fatura.userEmail)
         break
-      case 'custodyCharge.gravar':
-      case 'custodyCharge.remover':
-        anotar(op, op.email, op.email)
-        break
       case 'seq.atualizar':
         anotar(op, `${op.seq.coin}/${op.seq.envio}`)
         break
@@ -285,7 +267,6 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Extinto')) acao = 'retirada.solicitar'
   else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Bloqueado')) acao = 'recibo.bloquear'
   else if (tem('user.inserir')) acao = 'conta.criar'
-  else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'
   else if (tem('envio.atualizar')) acao = 'envio.atualizar'
   else if (tem('sellOffer.inserir')) acao = 'anuncio.publicar'

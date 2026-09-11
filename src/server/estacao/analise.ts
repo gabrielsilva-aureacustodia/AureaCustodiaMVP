@@ -10,7 +10,6 @@ import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePend
 import { nextCodigoRecibo } from '@/domain/codes'
 import { faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
@@ -282,19 +281,13 @@ export async function fecharAnalise(
 
       envio.etapaAtual = ETAPAS_ENVIO[ETAPAS_ENVIO.length - 1]
 
-      // A taxa é a do ACERVO INTEIRO depois deste envio, não a deste envio —
-      // mesma regra de advanceAnalysis. Sem moeda aprovada, nada muda: cobrar
-      // custódia por um pacote que voltou seria cobrar pelo que não guardamos.
       const aprovadas = registradas.filter((a) => a.codigoMoeda !== null)
-      if (aprovadas.length > 0) {
-        const totalMoedas = dono.coins.length
-        state.custodyCharges[envio.userEmail] = {
-          totalMoedas,
-          valorCobrado: custodiaMensalPorMoeda(totalMoedas),
-          dataCobranca: entradaStr,
-          statusPagamento: 'Pendente',
-        }
-      }
+
+      // A custódia NÃO é cobrada aqui desde 11/09/2026. O mecanismo antigo
+      // gravava uma cobrança por conta a cada envio aprovado; quem cobra agora
+      // é o ciclo mensal (`src/server/custodia/faturamento.ts`), que conta as
+      // moedas sob guarda na virada da competência. Cobrar nos dois lugares
+      // cobraria duas vezes.
 
       return {
         tipo: 'ok' as const,

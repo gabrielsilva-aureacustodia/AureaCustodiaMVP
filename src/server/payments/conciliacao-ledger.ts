@@ -97,8 +97,11 @@ export async function gerarRelatorioConciliacao(): Promise<RelatorioConciliacaoF
   const totalDepositosRegistradosCents = state.deposits.reduce((acc, d) => acc + d.valor, 0)
 
   // 3. Apuração de Receitas da Áurea Custódia
-  const totalTaxasCustodiaCents = Object.values(state.custodyCharges).reduce(
-    (acc, c) => acc + (c.valorCobrado || 0),
+  // Receita de custódia = soma das faturas mensais EMITIDAS. Até 11/09/2026
+  // vinha de `custodyCharges`, o mecanismo antigo, que guardava uma cobrança
+  // única por conta calculada pela tabela de faixas já aposentada.
+  const totalTaxasCustodiaCents = (state.faturasCustodia ?? []).reduce(
+    (acc, f) => acc + (f.status === 'cancelada' ? 0 : f.valorCents),
     0,
   )
 

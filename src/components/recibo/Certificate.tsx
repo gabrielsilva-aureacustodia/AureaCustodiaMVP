@@ -331,7 +331,9 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               {retirada ? (
                 <div className="summary-row">
                   <span className="k">Prazo limite</span>
-                  <span className="v">D+30 ({fdate(retirada.dataLimiteD30)})</span>
+                  <span className="v">
+                    até {fdate(retirada.dataLimiteD30)} + entrega dos Correios
+                  </span>
                 </div>
               ) : null}
               {retirada?.codigoRastreio ? (

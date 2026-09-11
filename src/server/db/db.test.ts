@@ -146,7 +146,7 @@ function suite(alvo: Alvo): void {
           // fora da mesma instrução.
           `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
-                    ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
+                    ${S}.trades, ${S}.deposits, ${S}.envios,
                     ${S}.saques, ${S}.faturas_custodia,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
@@ -180,7 +180,6 @@ function suite(alvo: Alvo): void {
         'buy_orders',
         'coins',
         'contas_contabeis',
-        'custody_charges',
         'deposits',
         'envios',
         'exportacoes',
@@ -400,12 +399,6 @@ function suite(alvo: Alvo): void {
           u.coins.push(coin)
           e.codigosAtivosGerados.push(coin.id)
         }
-        s.custodyCharges[email] = {
-          totalMoedas: u.coins.length,
-          valorCobrado: 1500,
-          dataCobranca: '02/09/2026',
-          statusPagamento: 'Pendente',
-        }
       })
 
       const lido = await lerEstado(executar)
@@ -416,7 +409,6 @@ function suite(alvo: Alvo): void {
       expect(lido.users[email].coins).toHaveLength(moedasAntes + 2)
       expect(lido.users[email].coins.slice(-2).map((c) => c.id)).toEqual(e.codigosAtivosGerados)
       expect(lido.users[email].coins.slice(-2).every((c) => c.statusFisico === 'Recebido')).toBe(true)
-      expect(lido.custodyCharges[email]).toMatchObject({ statusPagamento: 'Pendente', totalMoedas: moedasAntes + 2 })
     })
 
     it('editar e cancelar ordens: atualização e remoção chegam ao banco', async () => {
@@ -675,8 +667,11 @@ function suite(alvo: Alvo): void {
       const semeado = await lerEstado(executar)
       const livro = await executar((tx) => listarLancamentos(tx))
 
-      // 7 aberturas + 3 lançamentos por negociação + 7 cobranças de custódia
-      expect(livro).toHaveLength(7 + semeado.trades.length * 3 + 7)
+      // 7 aberturas + 3 lançamentos por negociação.
+      //
+      // As 7 cobranças de custódia saíram em 11/09/2026: o seed não grava mais
+      // cobrança nenhuma, e quem cobra é o ciclo mensal, que só roda depois.
+      expect(livro).toHaveLength(7 + semeado.trades.length * 3)
       expect(livro.filter((l) => l.tipo === 'saldo_inicial')).toHaveLength(7)
       expect(livro.filter((l) => l.tipo === 'ajuste')).toEqual([])
       expect(livro[0].hashAnterior).toBe(GENESIS)

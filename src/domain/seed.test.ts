@@ -11,7 +11,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { faixaValor } from '@/domain/constants'
-import { custodyFeeForCount } from '@/domain/fees'
 import { seedState } from '@/domain/seed'
 import { BAN, DH } from '@/domain/testing/fixtures'
 
@@ -75,12 +74,14 @@ describe('seedState', () => {
     expect(s.deposits).toEqual([])
   })
 
-  it('a cobrança de custódia de cada conta bate a faixa da contagem final', () => {
-    for (const [email, u] of Object.entries(s.users)) {
-      const cobranca = s.custodyCharges[email]
-      expect(cobranca.totalMoedas).toBe(u.coins.length)
-      expect(cobranca.valorCobrado).toBe(custodyFeeForCount(u.coins.length))
-      expect(cobranca.statusPagamento).toBe('Pago')
+  it('o seed NÃO cria cobrança de custódia — quem cobra é o ciclo mensal', () => {
+    // Mudou em 11/09/2026: o seed gravava uma cobrança por conta, rotulada
+    // "anual" e calculada pela tabela de faixas, e era ela que o cliente lia no
+    // extrato. As faturas nascem vazias e a primeira execução do ciclo mensal
+    // gera a competência corrente.
+    expect(s.faturasCustodia).toEqual([])
+    for (const u of Object.values(s.users)) {
+      expect(u.coins.length).toBeGreaterThan(0)
     }
   })
 

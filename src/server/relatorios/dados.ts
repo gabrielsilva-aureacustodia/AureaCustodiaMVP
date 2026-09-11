@@ -381,16 +381,34 @@ function relatorioNegociacoes(fontes: Fontes, periodo: Periodo | null): Relatori
 
 function relatorioCustodia(fontes: Fontes): Relatorio {
   const r = base('custodia', fontes, null)
-  r.observacoes.push('A cobrança vigente por conta. Registrada, não debitada: o saldo não é afetado neste ambiente.')
-  const linhas = Object.entries(fontes.state.custodyCharges).map(([email, c]) => ({
-    Conta: email,
-    Nome: fontes.state.users[email]?.name ?? '',
-    Moedas: c.totalMoedas,
-    Valor_Anual: reais(c.valorCobrado),
-    Data_Cobranca: c.dataCobranca,
-    Status: c.statusPagamento,
+  r.observacoes.push('Uma linha por fatura mensal de custódia, a R$ 2,00 por moeda por mês (D-3).')
+  // Até 11/09/2026 este relatório lia `custodyCharges` — uma cobrança única por
+  // conta, com a coluna chamada `Valor_Anual` e valor da tabela de faixas. As
+  // três coisas saíram junto com o mecanismo antigo.
+  const linhas = (fontes.state.faturasCustodia ?? []).map((f) => ({
+    Conta: f.userEmail,
+    Nome: fontes.state.users[f.userEmail]?.name ?? '',
+    Competencia: f.competencia,
+    Moedas: f.quantidadeMoedas,
+    Valor_Mensal: reais(f.valorCents),
+    Data_Emissao: dataHora(f.dataEmissao),
+    Data_Vencimento: dataHora(f.dataVencimento),
+    Data_Pagamento: f.dataPagamento ? dataHora(f.dataPagamento) : '',
+    Forma_Pagamento: f.formaPagamento ?? '',
+    Status: f.status,
   }))
-  return comLinhas(r, linhas, ['Conta', 'Nome', 'Moedas', 'Valor_Anual', 'Data_Cobranca', 'Status'])
+  return comLinhas(r, linhas, [
+    'Conta',
+    'Nome',
+    'Competencia',
+    'Moedas',
+    'Valor_Mensal',
+    'Data_Emissao',
+    'Data_Vencimento',
+    'Data_Pagamento',
+    'Forma_Pagamento',
+    'Status',
+  ])
 }
 
 function relatorioEstoque(fontes: Fontes): Relatorio {

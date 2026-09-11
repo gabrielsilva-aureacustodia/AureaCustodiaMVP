@@ -35,7 +35,7 @@
  */
 
 import { hashEncadeado, type CampoDeHash } from '@/domain/hash'
-import type { Cents, CustodyCharge, Deposit, Timestamp, Trade, UserEmail } from '@/domain/types'
+import type { Cents, Deposit, FaturaCustodia, Timestamp, Trade, UserEmail } from '@/domain/types'
 
 export type LedgerTipo =
   | 'saldo_inicial'
@@ -187,24 +187,35 @@ export function lancamentoDeSaldoInicial(email: UserEmail, saldo: Cents, quando:
   }
 }
 
-/** Sinal ZERO: a custódia é registrada, não debitada. Ver o cabeçalho. */
+/**
+ * Fatura mensal de custódia.
+ *
+ * O sinal depende de o dinheiro ter saído: fatura liquidada com saldo é saída
+ * de caixa (-1); fatura pendente, cancelada ou paga por fora é registro, com
+ * sinal ZERO, para o livro não afirmar uma movimentação que não houve.
+ *
+ * Substituiu `lancamentoDeCustodia(CustodyCharge)` em 11/09/2026, quando o
+ * mecanismo antigo — cobrança única por usuário, rotulada "anual" e calculada
+ * pela tabela de faixas — saiu por decisão do Gabriel.
+ */
 export function lancamentoDeCustodia(
   email: UserEmail,
-  c: CustodyCharge,
+  f: FaturaCustodia,
   quando: Timestamp,
   refInterna: string | null,
 ): LancamentoPendente {
+  const debitouSaldo = f.status === 'paga' && f.formaPagamento === 'saldo'
   return {
     createdAt: quando,
     userEmail: email,
     tipo: 'custodia',
-    valor: c.valorCobrado,
-    sinal: 0,
+    valor: f.valorCents,
+    sinal: debitouSaldo ? -1 : 0,
     tipoMoeda: null,
-    quantidade: c.totalMoedas,
-    refInterna,
+    quantidade: f.quantidadeMoedas,
+    refInterna: refInterna ?? f.id,
     refExterna: null,
-    descricao: `Custódia anual de ${c.totalMoedas} moeda(s) — ${c.statusPagamento}`,
+    descricao: `Custódia mensal ${f.competencia} · ${f.quantidadeMoedas} moeda(s) — ${f.status}`,
   }
 }
 

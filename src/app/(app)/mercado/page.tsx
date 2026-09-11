@@ -70,7 +70,7 @@ const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 const BID_INVALIDO_EDITAR = 'Informe quantidade e preço válidos.'
 
 export default function MercadoPage(): ReactNode {
-  const { state, session, me, run } = useApp()
+  const { state, session, run } = useApp()
   const modal = useModal()
   const toast = useToast()
 
@@ -359,7 +359,6 @@ export default function MercadoPage(): ReactNode {
                             key={lot.lotId}
                             lot={lot}
                             mine={lot.seller === session}
-                            balance={me.balance}
                             qtyEscolhida={buyQty[lot.lotId]}
                             onAdjust={ajustarQtd}
                             onBuy={confirmarCompra}
@@ -537,12 +536,24 @@ function ConfirmarCompraModal({
         setErroMp(res.error ?? 'Não foi possível abrir a cobrança no gateway.')
         return
       }
+      // Ver a nota em AccountModals: sem credencial a cobrança vem do
+      // simulador, e abrir aba nenhuma é melhor do que mandar o cliente para a
+      // página de erro do gateway.
+      if (res.data.simulado) {
+        setErroMp(
+          'O gateway de pagamento ainda não está configurado neste ambiente. ' +
+            'Nenhuma cobrança foi aberta.',
+        )
+        return
+      }
       if (metodo === 'pix') {
         setPix(res.data)
         return
       }
       if (res.data.initPoint) {
         window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
+      } else {
+        setErroMp('O gateway não devolveu o endereço do checkout. Tente novamente.')
       }
     } finally {
       setEnviando(false)
@@ -614,8 +625,8 @@ function ConfirmarCompraModal({
           Opção 2 · Comprar direto pelo gateway
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Pague direto por Pix ou cartão (ambiente de testes). Não consome seu saldo interno; a
-          moeda entra na sua conta assim que o pagamento for aprovado.
+          Pague direto por Pix ou cartão, sem usar o saldo em conta. A moeda entra no seu
+          acervo assim que o pagamento for aprovado.
         </div>
         <div className="m-actions" style={{ marginTop: 0 }}>
           <button

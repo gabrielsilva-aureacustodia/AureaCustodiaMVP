@@ -122,7 +122,9 @@ export default function RetiradasPage(): ReactNode {
                     <div style={{ fontWeight: 600 }}>{brl(r.valorTaxaCents)}</div>
                   </div>
                   <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>Data limite D+30</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                      Limite para postar (30 dias)
+                    </div>
                     <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
                       {fdate(r.dataLimiteD30)}
                     </div>
@@ -203,7 +205,8 @@ export default function RetiradasPage(): ReactNode {
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
             Ao solicitar a retirada física, o recibo de custódia é extinto imediatamente e a moeda deixa
-            o acervo negociável. O envio conta com prazo limite de D+30 e rastreamento oficial.
+            o acervo negociável. A Áurea tem até 30 dias corridos para preparar e postar; a
+            entrega depende do prazo dos Correios, que corre por fora e tem rastreamento oficial.
           </div>
         </div>
       </div>

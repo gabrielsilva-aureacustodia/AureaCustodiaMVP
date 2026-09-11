@@ -55,7 +55,12 @@ export default function AuditoriaPage(): ReactNode {
 
   // Métricas financeiras e de esteira de recebimento
   const totalSaldo = Object.values(state.users).reduce((acc, u) => acc + (u.balance || 0), 0)
-  const totalTaxas = Object.values(state.custodyCharges).reduce((acc, c) => acc + (c.valorCobrado || 0), 0)
+  // Receita de custódia = faturas mensais emitidas. Até 11/09/2026 vinha de
+  // `custodyCharges`, o mecanismo antigo.
+  const totalTaxas = (state.faturasCustodia ?? []).reduce(
+    (acc, f) => acc + (f.status === 'cancelada' ? 0 : f.valorCents),
+    0,
+  )
   const totalComissoes = state.trades.reduce((acc, t) => acc + (t.fee || 0), 0)
   const totalReceita = totalTaxas + totalComissoes
   const enviosEmTransito = state.envios.filter((e) => e.etapaAtual === 'Envio postado').length
