@@ -7,6 +7,40 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 5 · A-4 — Tutorial do Domínio Oficial · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `1f88b64`
+
+## 1. O que entrou
+
+### Tutorial Oficial de Domínio e DNS (`docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`)
+- Documentado passo a passo para o apontamento do domínio próprio `aureacustodia.com.br` para a Vercel com segurança máxima:
+  1. **Passo 0 (Botão de Desfazer):** Procedimento detalhado para exportar a Zona DNS atual da HostGator e registrar o arquivo em `docs/tutoriais/zona-dns-antes-2026-09-10.txt`.
+  2. **Passo 1 (Vercel):** Navegação conferida na documentação vigente da Vercel (`Settings -> Domains` dentro do projeto `aurea-custodia-mvp`), adição de `aureacustodia.com.br` com redirecionamento de `www`, e anotação dos valores `A` e `CNAME`.
+  3. **Passo 2 (HostGator):** Edição cirúrgica de apenas 2 registros na HostGator: `A` do apex apontando para `76.76.21.21` e `CNAME` do `www` apontando para `cname.vercel-dns.com.` (além do `_vercel` TXT caso solicitado).
+  4. **Passo 3 (Registros Intocáveis):** Alerta em destaque máximo para **NÃO TOCAR** em `MX`, SPF (`v=spf1 include:_spf.google.com ~all`), DKIM (`google._domainkey`), DMARC e Nameservers da HostGator, preservando o Google Workspace corporativo.
+  5. **Passo 4 (Validação em 3 Etapas):** Verificação via PowerShell (`Resolve-DnsName`), checagem do certificado SSL da Vercel e teste real e obrigatório de envio/recebimento de e-mail na conta `@aureacustodia.com.br`.
+  6. **Passo 5 (Plano de Rollback Imediato):** Instruções de reversão rápida caso ocorra qualquer instabilidade.
+  7. **Passo 6 (Pós-Ativação):** Atualização de `AUREA_SITE_URL` na Vercel e Redirect URLs no Supabase e Google Cloud Console.
+- Criado arquivo de backup / template `docs/tutoriais/zona-dns-antes-2026-09-10.txt`.
+
+## 2. O que foi testado, e como
+- Verificada a conformidade do guia contra os incidentes históricos documentados em `docs/GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md`.
+- Garantido que nenhuma operação destrutiva de DNS ou apontamento prematuro foi executado no código (a execução depende do Gabriel nos painéis externos).
+- Verificado que todos os links e arquivos de documentação estão íntegros e dentro do território do Agente A.
+
+## 3. O que ficou de manual (fora do repositório)
+- A execução física do apontamento de DNS na HostGator e Vercel é manual e de responsabilidade exclusiva do **Gabriel** (pois depende de credenciais de acesso aos portais da HostGator, Vercel e Google Workspace).
+- Preenchimento do backup real em `docs/tutoriais/zona-dns-antes-2026-09-10.txt` no momento exato em que o Gabriel abrir o painel da HostGator.
+
+## 4. O que o próximo agente precisa saber
+- O tutorial oficial está pronto, revisado e disponível em `docs/tutoriais/TUTORIAL_DOMINIO_OFICIAL.md`.
+- Nenhuma alteração de DNS foi feita em produção; o ambiente continua operando em `https://aurea-custodia-mvp.vercel.app` até que o Gabriel decida realizar o apontamento oficial.
+- Próxima sessão do Agente A: **Sessão A-5 · Revisão de textos e acessibilidade das doze telas**.
+
+---
+
 # Sessão 4 · A-3 — Academy e Posicionamento na Landing · 10/09/2026
 
 **Branch:** `feat/juridico-textos-dominio`

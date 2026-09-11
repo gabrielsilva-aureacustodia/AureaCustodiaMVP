@@ -1,0 +1,11 @@
+# Backup da Zona DNS HostGator — aureacustodia.com.br
+# Data: 10/09/2026
+# Este arquivo é o botão de desfazer (rollback) antes de alterar qualquer registro na HostGator.
+# Cole abaixo o conteúdo do arquivo exportado da Zona DNS ou transcreva a tabela completa de registros:
+# Tipo | Nome (Host) | TTL | Prioridade | Destino (Valor)
+#
+# Exemplo de conferência obrigatória dos registros do Google Workspace:
+# MX  @  3600  1  smtp.google.com
+# TXT @  3600  -  v=spf1 include:_spf.google.com ~all
+# TXT google._domainkey 3600 - <chave dkim>
+# TXT @  3600  -  google-site-verification=...
