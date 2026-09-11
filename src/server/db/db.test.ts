@@ -50,8 +50,17 @@ import {
   listarLancamentosVigentes,
 } from './repositories/contabil'
 import { listarLancamentos, saldosPeloLedger } from './repositories/ledger'
+import {
+  atualizarRetirada,
+  buscarRetiradaPorCoinId,
+  buscarRetiradaPorId,
+  buscarRetiradasPorUsuario,
+  inserirRetirada,
+  listarTodasRetiradas,
+} from './repositories/retiradas'
 import { carregarEstado, persistirEstado } from './repositories/state'
 import type { Consulta, Executor } from './sql'
+import type { Retirada } from '@/domain/types'
 
 const BANDEIRA = 'Entrega da Bandeira Olímpica'
 
@@ -132,9 +141,10 @@ function suite(alvo: Alvo): void {
       await executar(async (tx) => {
         await tx.query(
           // As três tabelas da migration 002 apontam para `users` e `envios`, e
-          // o Postgres recusa truncar uma tabela referenciada se quem a
-          // referencia ficar de fora da mesma instrução.
-          `TRUNCATE ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+          // `retiradas` (migration 009) aponta para `coins` e `users`. O Postgres
+          // recusa truncar uma tabela referenciada se quem a referencia ficar de
+          // fora da mesma instrução.
+          `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.custody_charges, ${S}.envios,
                     ${S}.saques, ${S}.faturas_custodia,
@@ -185,6 +195,8 @@ function suite(alvo: Alvo): void {
         'rastreios',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
+        // Migration 011 — retiradas físicas da custódia (frente C).
+        'retiradas',
         // Migration 009 — saques de recursos (Sessão B-4).
         'saques',
         'schema_migrations',
@@ -825,6 +837,69 @@ function suite(alvo: Alvo): void {
       const idsAntes = semeado.users[vendedor].coins.map((c) => c.id).filter((id) => id !== primeiraLivre)
       expect(lido.users[vendedor].coins.map((c) => c.id)).toEqual(idsAntes)
       expect(lido.users[comprador].coins[lido.users[comprador].coins.length - 1].id).toBe(primeiraLivre)
+    })
+
+    it('retiradas: insere, busca por id, usuário, coin_id, atualiza status e lista', async () => {
+      const semeado = await lerEstado(executar)
+      const userEmail = Object.keys(semeado.users)[0]
+      const coinId = semeado.users[userEmail].coins[0].id
+      const agora = Date.now()
+
+      const r: Retirada = {
+        id: 'RET-TEST-001',
+        coinId,
+        reciboCodigo: `REC-${coinId}`,
+        userEmail,
+        modalidade: 'comum',
+        status: 'solicitada',
+        valorTaxaCents: 5000,
+        endereco: {
+          nome: 'Destinatário Teste',
+          cpfOuCnpj: '123.456.789-00',
+          logradouro: 'Rua Teste',
+          numero: '100',
+          complemento: undefined,
+          bairro: 'Centro',
+          cidade: 'Belo Horizonte',
+          uf: 'MG',
+          cep: '30130-000',
+          telefone: '(31) 99999-9999',
+        },
+        solicitadoEm: agora,
+        pagoEm: undefined,
+        dataLimiteD30: agora + 30 * 86400000,
+        codigoRastreio: undefined,
+        historico: [{ data: agora, de: 'solicitada', para: 'solicitada', motivo: 'Criação', autor: userEmail }],
+        createdAt: agora,
+        updatedAt: agora,
+      }
+
+      await executar((tx) => inserirRetirada(tx, r))
+
+      const porId = await executar((tx) => buscarRetiradaPorId(tx, 'RET-TEST-001'))
+      expect(porId).not.toBeNull()
+      expect(porId?.coinId).toBe(coinId)
+      expect(porId?.valorTaxaCents).toBe(5000)
+      expect(porId?.endereco.cidade).toBe('Belo Horizonte')
+
+      const porUser = await executar((tx) => buscarRetiradasPorUsuario(tx, userEmail))
+      expect(porUser).toHaveLength(1)
+      expect(porUser[0].id).toBe('RET-TEST-001')
+
+      const porCoin = await executar((tx) => buscarRetiradaPorCoinId(tx, coinId))
+      expect(porCoin?.id).toBe('RET-TEST-001')
+
+      r.status = 'paga'
+      r.pagoEm = agora + 1000
+      r.updatedAt = agora + 1000
+      await executar((tx) => atualizarRetirada(tx, r))
+
+      const atualizado = await executar((tx) => buscarRetiradaPorId(tx, 'RET-TEST-001'))
+      expect(atualizado?.status).toBe('paga')
+      expect(atualizado?.pagoEm).toBe(agora + 1000)
+
+      const todas = await executar((tx) => listarTodasRetiradas(tx))
+      expect(todas.map((x) => x.id)).toContain('RET-TEST-001')
     })
   })
 }

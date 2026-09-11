@@ -100,6 +100,7 @@ export function medianSellPrice(state: AppState, tipo: string): Cents | null {
 export function availableCoinsForSell(state: AppState, u: User, tipo?: string): Coin[] {
   return u.coins.filter(
     (c) =>
+      c.recibo.status === 'Ativo' &&
       (tipo === undefined ? isNegociavel(c.tipoMoeda) : c.tipoMoeda === tipo && isNegociavel(tipo)) &&
       !state.sellOffers.some((o) => o.coinId === c.id),
   )

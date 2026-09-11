@@ -6,12 +6,12 @@ import { consultarCep } from './cep'
 
 describe('Correios — Consulta de CEP (LGPD Compliant)', () => {
   it('consulta CEP da Central de Custódia com sucesso', async () => {
-    const res = await consultarCep('01310-100')
+    const res = await consultarCep('30315-970')
 
     expect(res.valido).toBe(true)
-    expect(res.logradouro).toContain('Paulista')
-    expect(res.cidade).toBe('São Paulo')
-    expect(res.uf).toBe('SP')
+    expect(res.logradouro).toContain('Caixa Postal')
+    expect(res.cidade).toBe('Belo Horizonte')
+    expect(res.uf).toBe('MG')
   })
 
   it('retorna status inválido para CEPs com formato incorreto', async () => {
@@ -20,8 +20,8 @@ describe('Correios — Consulta de CEP (LGPD Compliant)', () => {
   })
 
   it('resolve CEP com formatação de hífen ou sem pontuação', async () => {
-    const r1 = await consultarCep('01310100')
-    const r2 = await consultarCep('01310-100')
+    const r1 = await consultarCep('30315970')
+    const r2 = await consultarCep('30315-970')
 
     expect(r1.valido).toBe(true)
     expect(r2.valido).toBe(true)

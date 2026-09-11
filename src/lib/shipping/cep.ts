@@ -34,15 +34,15 @@ export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
 
   const cep = normalizarCep(cepInput)
 
-  // Fallback para CEP da Central de Custódia
-  if (cep === '01310100') {
+  // Fallback para CEP da Central de Custódia (Caixa Postal oficial)
+  if (cep === '30315970') {
     return {
-      cep: '01310-100',
-      logradouro: 'Avenida Paulista',
-      complemento: 'Andar 14',
-      bairro: 'Bela Vista',
-      cidade: 'São Paulo',
-      uf: 'SP',
+      cep: '30315-970',
+      logradouro: 'Caixa Postal 7990',
+      complemento: 'AGF Bandeirantes',
+      bairro: 'Mangabeiras',
+      cidade: 'Belo Horizonte',
+      uf: 'MG',
       valido: true,
     }
   }

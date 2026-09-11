@@ -33,7 +33,7 @@ import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { ActionResult, Envio, EtapaEnvio, FaturaCustodia } from '@/domain/types'
+import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -323,8 +323,18 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
  * ------------------------------------------------------------------------- */
 
 import { consultarCep } from '@/lib/shipping/cep'
-import { calcularFreteCorreios } from '@/lib/shipping/correios'
+import { calcularFreteCorreios, ENDERECO_CENTRAL_AUREA } from '@/lib/shipping/correios'
 import type { CotacaoFreteResult, EnderecoCep, ModalidadeEnvio } from '@/lib/shipping/types'
+import {
+  calcularTaxaRetirada,
+  criarSolicitacaoRetirada,
+  transicionarRetirada,
+  validarEnderecoRetirada,
+} from '@/domain/retirada'
+import { brl } from '@/domain/money'
+import type { EnderecoEntrega, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
+import { repositorioRetiradas } from '@/server/shipping/retiradas'
+import { ehAdmin } from '@/server/relatorios/acesso'
 
 /**
  * Consulta CEP para preenchimento de endereço de remetente (zero persistência - LGPD).
@@ -352,7 +362,7 @@ export async function cotarFreteEnvio(
   try {
     const cotacao = await calcularFreteCorreios({
       cepOrigem,
-      cepDestino: '01310-100', // Central de Custódia Áurea (São Paulo)
+      cepDestino: ENDERECO_CENTRAL_AUREA.cep,
       modalidade,
       valorDeclaradoCents,
     })
@@ -380,3 +390,324 @@ export async function pagarFaturaCustodia(
   return pagarFaturaCustodiaComSaldo(faturaId, session)
 }
 
+/* ---------------------------------------------------------------------------
+ * 6. Retirada Física de Moedas da Custódia (Bloco 10 · Agente C · Sessão C-2)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Solicita a saída física de uma moeda da custódia.
+ *
+ * REGRAS INEGOCIÁVEIS:
+ * 1. Sem endereço completo e confirmado, o pedido recusa e o prazo D+30 NÃO COMEÇA.
+ * 2. Valores excludentes conforme D-1: comum R$ 50,00 ou segura R$ 180,00 (tudo incluso).
+ * 3. O recibo é extinto NO MESMO INSTANTE da confirmação (coin.recibo.status = 'Extinto').
+ *    Não pode existir intervalo com recibo ativo e moeda a caminho.
+ * 4. Débito da taxa no saldo do usuário, lançamento contábil no ledger e auditoria
+ *    com o autor real da sessão.
+ */
+export async function solicitarRetirada(
+  coinId: string,
+  modalidade: ModalidadeRetirada,
+  endereco: EnderecoEntrega,
+): Promise<ActionResult<{ retiradaId: string; dataLimiteD30: number; reciboCodigo: string }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // Trava 2: Endereço completo e confirmado obrigatório. Sem isso o prazo nem começa.
+  const validacao = validarEnderecoRetirada(endereco)
+  if (!validacao.valido) {
+    return {
+      ok: false,
+      error: `Endereço de entrega incompleto: ${validacao.erros.join(', ')}. Sem endereço completo e confirmado o prazo D+30 não começa.`,
+    }
+  }
+
+  if (modalidade !== 'comum' && modalidade !== 'segura') {
+    return { ok: false, error: 'Modalidade de retirada inválida. Escolha comum ou segura.' }
+  }
+
+  const taxaCents = calcularTaxaRetirada(modalidade)
+
+  try {
+    const { result } = await mutateState((state) => {
+      const u = state.users[session]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA } as const
+
+      const coin = u.coins.find((c) => c.id === coinId)
+      if (!coin) {
+        return { ok: false, error: 'Moeda não encontrada no seu acervo.' } as const
+      }
+
+      // Rejeita se anunciada no mercado
+      const emOferta = state.sellOffers.some((o) => o.coinId === coinId)
+      if (emOferta) {
+        return {
+          ok: false,
+          error: 'Esta moeda está anunciada no mercado. Cancele o anúncio antes de solicitar a retirada.',
+        } as const
+      }
+
+      // Rejeita se recibo já extinto ou bloqueado
+      if (coin.recibo.status === 'Extinto') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda já está extinto. A retirada já foi solicitada anteriormente.',
+        } as const
+      }
+      if (coin.recibo.status === 'Bloqueado') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda está bloqueado por pendência administrativa ou financeira. Regularize sua situação para solicitar retirada.',
+        } as const
+      }
+      if (coin.recibo.status !== 'Ativo') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda não está ativo.',
+        } as const
+      }
+
+      // Verifica saldo suficiente
+      if (u.balance < taxaCents) {
+        return {
+          ok: false,
+          error: `Saldo insuficiente para a taxa de retirada (${brl(taxaCents)}). Seu saldo atual é ${brl(u.balance)}.`,
+        } as const
+      }
+
+      const agora = Date.now()
+      const solicitacao = criarSolicitacaoRetirada({
+        id: `RET-${coin.id}-${agora}`,
+        coinId: coin.id,
+        reciboCodigo: coin.recibo.codigo,
+        userEmail: session,
+        modalidade,
+        endereco,
+        solicitadoEm: agora,
+      })
+
+      // Como o pagamento é debitado do saldo na confirmação imediata:
+      const retiradaPaga = transicionarRetirada(solicitacao, 'paga', {
+        data: agora,
+        motivo: 'Taxa de retirada debitada do saldo em conta',
+        autor: session,
+      })
+
+      // Debita saldo da conta
+      u.balance -= taxaCents
+
+      // Extinção imediata do recibo (Regra inegociável do Bloco 10)
+      coin.recibo.status = 'Extinto'
+
+      return { ok: true, solicitacao: retiradaPaga } as const
+    })
+
+    if (!result.ok) {
+      return { ok: false, error: result.error }
+    }
+
+    // Persiste na tabela aurea.retiradas (ou memória)
+    await repositorioRetiradas().criar(result.solicitacao)
+
+    return {
+      ok: true,
+      message: `Solicitação de retirada registrada com sucesso. Recibo extinto e taxa debitada. Prazo limite: ${fdate(result.solicitacao.dataLimiteD30)}.`,
+      data: {
+        retiradaId: result.solicitacao.id,
+        dataLimiteD30: result.solicitacao.dataLimiteD30,
+        reciboCodigo: result.solicitacao.reciboCodigo,
+      },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Consulta as solicitações de retirada do usuário logado.
+ */
+export async function obterMinhasRetiradas(): Promise<ActionResult<Retirada[]>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const lista = await repositorioRetiradas().buscarPorUsuario(session)
+    return { ok: true, data: lista }
+  } catch {
+    return { ok: false, error: 'Falha ao consultar retiradas.' }
+  }
+}
+
+/**
+ * Consulta a solicitação de retirada de uma moeda específica (apenas pelo proprietário).
+ */
+export async function obterRetiradaPorCoin(coinId: string): Promise<ActionResult<Retirada | null>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const r = await repositorioRetiradas().buscarPorCoinId(coinId)
+    if (r && r.userEmail !== session) {
+      return { ok: false, error: 'Acesso não autorizado a esta retirada.' }
+    }
+    return { ok: true, data: r }
+  } catch {
+    return { ok: false, error: 'Falha ao consultar retirada.' }
+  }
+}
+
+/**
+ * Avança o status de uma solicitação de retirada física (separação, postagem, entrega ou cancelamento).
+ * Exige permissão de operador/sócio (ehAdmin) para avançar a expedição, ou o próprio dono para cancelamento inicial.
+ */
+export async function avancarStatusRetirada(
+  retiradaId: string,
+  proximoStatus: StatusRetirada,
+  codigoRastreio?: string,
+): Promise<ActionResult<Retirada>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const repo = repositorioRetiradas()
+  const retirada = await repo.buscarPorId(retiradaId)
+  if (!retirada) return { ok: false, error: 'Solicitação de retirada não encontrada.' }
+
+  const admin = ehAdmin(session)
+  if (!admin && retirada.userEmail !== session) {
+    return { ok: false, error: 'Acesso não autorizado a esta retirada.' }
+  }
+
+  if (!admin && proximoStatus !== 'cancelada') {
+    return { ok: false, error: 'Apenas operadores de custódia podem avançar a expedição física.' }
+  }
+
+  try {
+    const agora = Date.now()
+    const atualizada = transicionarRetirada(
+      retirada,
+      proximoStatus,
+      {
+        data: agora,
+        motivo: `Status atualizado para ${proximoStatus}${codigoRastreio ? ` (Rastreio: ${codigoRastreio})` : ''}`,
+        autor: session,
+        codigoRastreio,
+      },
+    )
+
+    await repo.atualizar(atualizada)
+    return {
+      ok: true,
+      message: `Retirada ${retiradaId} atualizada para "${proximoStatus}".`,
+      data: atualizada,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao atualizar status da retirada.',
+    }
+  }
+}
+
+/**
+ * Bloqueia o recibo de uma moeda por inadimplência ou restrição administrativa (C-5 / B-5).
+ * Enquanto bloqueado, o recibo não pode ser negociado no mercado nem retirado fisicamente.
+ */
+export async function bloquearReciboPorDebito(
+  coinId: string,
+): Promise<ActionResult<{ coinId: string; status: StatusRecibo }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((s) => {
+      let donoEncontrado: User | undefined
+      let moedaEncontrada: Coin | undefined
+
+      for (const u of Object.values(s.users)) {
+        const c = u.coins.find((m) => m.id === coinId)
+        if (c) {
+          donoEncontrado = u
+          moedaEncontrada = c
+          break
+        }
+      }
+
+      if (!moedaEncontrada || !donoEncontrado) {
+        return { ok: false, error: `Moeda ${coinId} não encontrada.` } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Extinto') {
+        return { ok: false, error: 'Não é possível bloquear recibo já extinto.' } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Bloqueado') {
+        return { ok: true, data: { coinId, status: 'Bloqueado' as const } } as const
+      }
+
+      // Se houver oferta de venda aberta para essa moeda, cancela e remove do mercado
+      s.sellOffers = s.sellOffers.filter((o) => o.coinId !== coinId)
+
+      moedaEncontrada.recibo.status = 'Bloqueado'
+
+      return {
+        ok: true,
+        data: { coinId, status: 'Bloqueado' as const },
+      } as const
+    })
+
+    return result
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao bloquear recibo.',
+    }
+  }
+}
+
+/**
+ * Desbloqueia o recibo de uma moeda retornando-o ao status 'Ativo' (C-5 / B-5).
+ */
+export async function desbloquearRecibo(
+  coinId: string,
+): Promise<ActionResult<{ coinId: string; status: StatusRecibo }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((s) => {
+      let donoEncontrado: User | undefined
+      let moedaEncontrada: Coin | undefined
+
+      for (const u of Object.values(s.users)) {
+        const c = u.coins.find((m) => m.id === coinId)
+        if (c) {
+          donoEncontrado = u
+          moedaEncontrada = c
+          break
+        }
+      }
+
+      if (!moedaEncontrada || !donoEncontrado) {
+        return { ok: false, error: `Moeda ${coinId} não encontrada.` } as const
+      }
+
+      if (moedaEncontrada.recibo.status === 'Extinto') {
+        return { ok: false, error: 'Não é possível desbloquear recibo já extinto.' } as const
+      }
+
+      moedaEncontrada.recibo.status = 'Ativo'
+
+      return {
+        ok: true,
+        data: { coinId, status: 'Ativo' as const },
+      } as const
+    })
+
+    return result
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao desbloquear recibo.',
+    }
+  }
+}

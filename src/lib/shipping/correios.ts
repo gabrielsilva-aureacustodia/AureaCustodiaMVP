@@ -23,18 +23,22 @@ import {
   PACOTE_PADRAO_MOEDA,
 } from './types'
 
-/** Endereço padrão da Central de Custódia da Áurea (Destinatário para envios). */
+/**
+ * Endereço oficial da Central de Custódia da Áurea (Destinatário para envios).
+ * Oficializado conforme Termo de Assinatura de Caixa Postal dos Correios (Decisão D-6 resolvida):
+ * Caixa Postal 7990, AGF Bandeirantes, Belo Horizonte - MG, CEP 30315-970.
+ */
 export const ENDERECO_CENTRAL_AUREA: EnderecoEnvio = {
-  nome: 'AUREA CUSTODIA LTDA — Central de Recebimento',
+  nome: 'AUREA CUSTODIA LTDA — Caixa Postal 7990',
   cpfOuCnpj: '68.071.452/0001-06',
-  logradouro: 'Avenida Paulista',
-  numero: '1500',
-  complemento: 'Andar 14 — Cofre de Custódia',
-  bairro: 'Bela Vista',
-  cidade: 'São Paulo',
-  uf: 'SP',
-  cep: '01310-100',
-  telefone: '(11) 3100-0000',
+  logradouro: 'Caixa Postal 7990',
+  numero: 'S/N',
+  complemento: 'AGF Bandeirantes — Av. dos Bandeirantes',
+  bairro: 'Mangabeiras',
+  cidade: 'Belo Horizonte',
+  uf: 'MG',
+  cep: '30315-970',
+  telefone: '(31) 3100-0000',
   email: 'custodia@aureacustodia.com.br',
 }
 

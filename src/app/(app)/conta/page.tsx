@@ -384,8 +384,16 @@ function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
   const listed = state.sellOffers.some((o) => o.coinId === coin.id)
   // 'Retirado' vem do recibo extinto (retirada física, bloco 4.3 — ainda não
   // implementado); no MVP nenhuma moeda chega nesse estado, mas o ramo existe.
-  const status = coin.recibo.status === 'Extinto' ? 'Retirado' : listed ? 'À venda' : 'Em custódia'
-  const pill = status === 'Em custódia' ? 'g' : status === 'À venda' ? 'y' : 'n'
+  const status =
+    coin.recibo.status === 'Extinto'
+      ? 'Retirado'
+      : coin.recibo.status === 'Bloqueado'
+      ? 'Bloqueado'
+      : listed
+      ? 'À venda'
+      : 'Em custódia'
+  const pill =
+    status === 'Em custódia' ? 'g' : status === 'À venda' ? 'y' : status === 'Bloqueado' ? 'r' : 'n'
 
   return (
     <div className="acct-row">

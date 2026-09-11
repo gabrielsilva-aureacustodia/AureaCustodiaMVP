@@ -32,6 +32,7 @@ import {
   lancamentoDeDeposito,
   lancamentoDeSaldoInicial,
   lancamentoDeSaque,
+  lancamentoDeTaxaRetirada,
   lancamentoDeTaxaSaque,
   lancamentosDeTrade,
   type LancamentoPendente,
@@ -118,6 +119,21 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
         refExterna: null,
         descricao: `Custódia mensal ${f.competencia} (${f.quantidadeMoedas} moeda(s))`,
       })
+    }
+  }
+
+  /* taxas de retirada física (moeda cujo recibo foi extinto nesta mutação com débito em conta) */
+  for (const op of ops) {
+    if (op.tipo !== 'coin.atualizar') continue
+    const moedaAntes = antes.users[op.registro.owner]?.coins.find((c) => c.id === op.registro.coin.id)
+    if (moedaAntes?.recibo.status === 'Ativo' && op.registro.coin.recibo.status === 'Extinto') {
+      const email = op.registro.owner
+      const saldoAntes = antes.users[email]?.balance ?? 0
+      const saldoDepois = depois.users[email]?.balance ?? 0
+      const taxaDebito = saldoAntes - saldoDepois
+      if (taxaDebito > 0) {
+        pendentes.push(lancamentoDeTaxaRetirada(email, taxaDebito, agora, op.registro.coin.id))
+      }
     }
   }
 
@@ -266,6 +282,8 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
   else if (tem('saque.atualizar')) acao = 'saque.atualizar'
   else if (tem('fatura.inserir')) acao = 'custodia.faturar'
   else if (tem('fatura.atualizar')) acao = 'custodia.atualizar_fatura'
+  else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Extinto')) acao = 'retirada.solicitar'
+  else if (ops.some((op) => op.tipo === 'coin.atualizar' && op.registro.coin.recibo.status === 'Bloqueado')) acao = 'recibo.bloquear'
   else if (tem('user.inserir')) acao = 'conta.criar'
   else if (tem('custodyCharge.gravar')) acao = 'custodia.cobranca'
   else if (tem('envio.inserir')) acao = 'envio.criar'

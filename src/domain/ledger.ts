@@ -266,6 +266,27 @@ export function lancamentoDeTaxaSaque(
   }
 }
 
+export function lancamentoDeTaxaRetirada(
+  email: UserEmail,
+  valor: Cents,
+  quando: Timestamp,
+  coinId: string,
+  descricao = `Taxa de retirada física da moeda ${coinId}`,
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'taxa_retirada',
+    valor,
+    sinal: -1,
+    tipoMoeda: null,
+    quantidade: 1,
+    refInterna: coinId,
+    refExterna: null,
+    descricao,
+  }
+}
+
 /* ---------- encadeamento ---------- */
 
 /**

@@ -116,7 +116,14 @@ export async function baixarReciboPdf(params: {
   // o ano é sempre 2012 e repetir seria ruído.
   const fields: Array<[string, string]> = [
     ['Moeda', coin.tipoMoeda + (coin.tipoMoeda !== COIN.name ? ' ' + coin.ano : '')],
-    ['Status', coin.recibo.status === 'Extinto' ? 'Retirado da custódia' : 'Moeda física recebida e custodiada'],
+    [
+      'Status',
+      coin.recibo.status === 'Extinto'
+        ? 'Retirado da custódia'
+        : coin.recibo.status === 'Bloqueado'
+        ? 'Bloqueado — pendência'
+        : 'Moeda física recebida e custodiada',
+    ],
     ['Data de emissão', coin.recibo.dataEmissao],
     ['Proprietário atual', ownerName],
     ['Hash (curto)', coin.recibo.hash],
@@ -161,6 +168,31 @@ export async function baixarReciboPdf(params: {
   doc.setFontSize(8)
   doc.setTextColor(160, 142, 94)
   doc.text('Ambiente de teste · Pré-MVP · Dados fictícios', 240, y + 156, { align: 'center' })
+
+  // Se o recibo foi extinto (retirada física solicitada), estampa a marca indelével
+  if (coin.recibo.status === 'Extinto') {
+    doc.setDrawColor(185, 28, 28)
+    doc.setTextColor(185, 28, 28)
+    doc.setLineWidth(2)
+    doc.rect(80, 240, 320, 52)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(15)
+    doc.text('RECIBO EXTINTO — RETIRADA FÍSICA', 240, 263, { align: 'center' })
+    doc.setFont('times', 'normal')
+    doc.setFontSize(9)
+    doc.text('A moeda correspondente foi desvinculada da custódia institucional.', 240, 280, { align: 'center' })
+  } else if (coin.recibo.status === 'Bloqueado') {
+    doc.setDrawColor(217, 119, 6)
+    doc.setTextColor(180, 83, 9)
+    doc.setLineWidth(2)
+    doc.rect(80, 240, 320, 52)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(15)
+    doc.text('RECIBO BLOQUEADO — RESTRIÇÃO', 240, 263, { align: 'center' })
+    doc.setFont('times', 'normal')
+    doc.setFontSize(9)
+    doc.text('Recibo temporariamente bloqueado por pendência administrativa ou financeira.', 240, 280, { align: 'center' })
+  }
 
   doc.save(`recibo-${coin.recibo.codigo}.pdf`)
 }
