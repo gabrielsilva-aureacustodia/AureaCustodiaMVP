@@ -5,10 +5,12 @@
 ```
 Projeto:     Áurea Custódia / Real Olímpico
 Repositório: github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP · branch main
-Base:        commit ab3db39 — as três frentes da publicação mergeadas
-Gerado em:   11/09/2026 — reescrito após o merge B -> C -> A
+Base:        commit 2cc7194 — publicado e conferido em produção
+Gerado em:   11/09/2026 — reescrito após o merge e após a execução do plano
+             de pagamentos
 Fonte:       repositório · Supabase (conferido por db:check) · navegador com dev no ar
-Itens:       4 abertos — 1 defeito de produto, 2 decisões, 1 dívida técnica antiga
+Itens:       2 abertos + 1 observação. CD-11 foi RESOLVIDO em 11/09/2026 — a
+             custódia antiga saiu do código e do banco (migration 013)
 ```
 
 > **Como usar.** O agente lê este documento **depois** do Ritual de Sessão. Cada item traz
@@ -23,60 +25,10 @@ Itens:       4 abertos — 1 defeito de produto, 2 decisões, 1 dívida técnica
 
 | ID | Título | Gravidade | Esforço |
 |---|---|---|---|
-| **CD-11** | A custódia informa ao cliente um preço que não é o vigente | 🔴 Alta | Médio — depende de decisão |
 | **CD-12** | `src/domain/types.ts` não tem dono único | 🟠 Média | Baixo — é regra, não código |
+| **CD-13** | Aviso de hidratação do React em produção | 🟡 Baixa | Baixo — só quando tocar em tema |
 | **CD-08** | Migrar a persistência de produção para Postgres | 🟡 Baixa | — |
 | **CD-09** | Comissão do extrato é recalculada, não congelada | 🟡 Baixa | Baixo |
-
----
-
-# CD-11 — A custódia informa ao cliente um preço que não é o vigente 🔴
-
-**Sintoma.** Em `/conta/extrato`, um sócio com 15 moedas lê:
-
-> `10/09/2026 · Taxa de custódia · Custódia anual de 15 moeda(s) — Pago · R$ 25,00`
-
-Três coisas erradas numa linha só. O modelo vigente é **mensal**, não anual. O valor mensal
-de 15 moedas seria R$ 30,00, não R$ 25,00. E R$ 25,00 é valor da **tabela de faixas que a
-decisão D-3 aposentou**.
-
-Em `/envios` o mesmo problema com outra roupa: "Taxa de custódia anual (**nova faixa**)" —
-"faixa" descreve exatamente o modelo que deixou de existir.
-
-**Causa.** A transição da D-3 ficou pela metade. A frente B construiu o modelo novo
-(`faturas_custodia`, faturamento mensal, inadimplência), mas o mecanismo antigo não foi
-removido: `state.custodyCharges` continua sendo preenchido pelo seed e continua sendo a fonte
-de três textos visíveis. Além disso, `custodyFeeForCount` — que a D-3 mandou sair do código —
-sobreviveu como apelido apontando para o cálculo mensal, então o rótulo diz "anual" e a conta
-por trás é mensal. Os R$ 25,00 são linha antiga já gravada no Postgres, do tempo das faixas.
-
-**Consequência.** A plataforma comunica um preço de custódia que não corresponde ao que a
-empresa decidiu cobrar. Para uma empresa que está sendo cuidadosa com o que promete por
-escrito, isso é mais sério do que um defeito de tela.
-
-**Onde está.**
-
-```
-src/domain/statement.ts:180    "Custódia anual de N moeda(s)"
-src/domain/ledger.ts:207       idem, no livro-razão do contador
-src/app/(app)/envios/page.tsx:674  "Taxa de custódia anual (nova faixa)"
-src/domain/seed.ts:248         alimenta custodyCharges com custodyFeeForCount
-src/domain/fees.ts:43          custodyFeeForCount, o apelido que deveria ter saído
-```
-
-**A decisão saiu em 11/09/2026: o `custodyCharges` legado SAI**, e as faturas mensais da
-frente B assumem sozinhas. Está registrada na seção 5 do plano executivo, como conclusão da
-D-3.
-
-**A execução é o bloco 6 de** `docs/publish_docs/PLANO_PAGAMENTOS_E_CADASTRO.md`. Ela mexe em
-`fees.ts` e `types.ts` — superfície protegida, autorizada por essa decisão —, tira
-`custodyCharges` do `AppState`, e por isso **sobe `STORE_KEY` para v8 com a migration 013**.
-Anda sozinha, sem nada em paralelo: foi sobreposição desse tipo que produziu os dois defeitos
-do merge anterior.
-
-**Teste de aceite.** Um sócio abre `/conta/extrato` e lê uma linha de custódia cujo período e
-cujo valor batem com a tabela de preços vigente do plano executivo. A palavra "faixa" não
-aparece em nenhuma tela.
 
 ---
 
@@ -103,6 +55,27 @@ um dos dois, e o sistema compilaria com o modelo errado — sem erro, sem teste 
 
 **Teste de aceite.** Na próxima rodada paralela, `git diff --name-only` de duas branches
 quaisquer não mostra `src/domain/types.ts` nas duas.
+
+---
+
+# CD-13 — Aviso de hidratação do React em produção 🟡
+
+**Sintoma.** O console de produção registra `Minified React error #418` em toda tela.
+
+**Causa.** O script anti-flash de tema, no `<head>` do layout raiz, escreve `data-theme` no
+`<body>` **antes** de o React hidratar — é ele que impede a tela de piscar branco em quem usa
+tema claro. O React percebe que o DOM saiu do que o servidor mandou e registra o aviso.
+
+**Consequência.** Nenhuma, hoje: o erro é **recuperável**, o React re-renderiza e todas as
+telas foram conferidas em produção com o conteúdo certo. No servidor de desenvolvimento o
+aviso nem aparece, o que é o motivo de ele ter passado tanto tempo sem ser notado.
+
+**Idade.** Existe desde `ea0a5f3`, o commit do port original das doze telas. Não é regressão.
+
+**Correção, quando alguém mexer em tema.** O caminho usual é `suppressHydrationWarning` no
+elemento que o script altera, ou mover a decisão de tema para um cookie lido no servidor —
+aí o HTML já nasce certo e o script deixa de ser necessário. **Não vale abrir uma tarefa só
+para isso** enquanto não houver outro motivo para tocar no tema.
 
 ---
 

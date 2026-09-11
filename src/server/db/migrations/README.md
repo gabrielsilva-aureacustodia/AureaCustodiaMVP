@@ -23,6 +23,14 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 A próxima é a **014**. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
+> **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**
+> Aplicar migration **antes** de o código correspondente estar publicado derruba a aplicação
+> inteira. Foi o que aconteceu: a `013` derrubou `custody_charges` enquanto a produção ainda
+> servia um código que a lia, e o site voltou uma exceção de servidor em toda rota.
+> **`git push` e `db:migrate` são um passo só, nessa ordem.** Rodar a migration só para poder
+> testar local é legítimo — o que não pode é o dia terminar com o banco à frente do código
+> publicado.
+
 > **Aprendizado do merge de 11/09/2026.** As frentes B e C, trabalhando em paralelo, criaram
 > uma `009` e uma `010` cada, sem ver a outra. Pior: as duas reescreveram a mesma restrição
 > `ledger_entries_tipo_check`, e a que rodasse por último apagaria os tipos da outra.

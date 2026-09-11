@@ -1208,3 +1208,64 @@ Trabalho paralelo em três frentes exige, antes de escolher número de migration
 restrição de banco, **olhar as branches vivas e não só a `main`**. E restrição de lista se
 reescreve declarando a lista inteira, nunca só o valor da própria frente. Os dois estão
 anotados em `src/server/db/migrations/README.md`.
+
+---
+
+# Entrada 015 — 11/09/2026, noite · O pagamento fica de pé, a custódia antiga cai, e a produção cai junto
+
+```
+Leitura:        local + produção (aurea-custodia-mvp.vercel.app)
+Commit:         2cc7194 "Encerra o RA-01, liga o pagamento de verdade e tira a custodia antiga"
+Commit anterior lido: ab3db39 (Entrada 014)
+Testes:         343 -> 348
+Banco:          13 migrations aplicadas
+```
+
+## O que entrou
+
+**RA-01 encerrado.** O risco de a Áurea guardar dinheiro de terceiro foi assumido por decisão
+dos sócios, e o gateway está liberado para produção. Em código, `payments.ts` deixou de forçar
+o endereço de sandbox e voltou a respeitar `MP_SANDBOX` — que continua com sandbox como
+padrão. É configuração de ambiente, não trava.
+
+**O simulador de pagamento parou de mandar o cliente para fora.** Sem credencial, o ramo
+simulador fabricava uma URL apontando para o domínio real do Mercado Pago com um `pref_id`
+inventado; a tela abria a aba e o cliente caía na página de erro do gateway. O Pix simulado
+tinha o mesmo vício, com um copia-e-cola que parecia um payload válido e um QR de um pixel.
+Agora o resultado carrega `simulado: true`, as URLs vêm vazias e a tela explica na modal.
+
+**Comprar deixou de exigir saldo.** O botão ficava apagado com "Saldo insuf.", o que trancava
+a compra antes da modal — justamente onde existem o Pix e o cartão.
+
+**A custódia antiga saiu**, fechando a D-3: `custodyCharges` deixou de existir em `AppState`,
+no banco, no diff, no ledger, nos relatórios e nas telas. `STORE_KEY` em v8, migration 013.
+
+Mais o gatilho de cadastro no envio de moeda, o aviso em Minha conta, o dígito verificador do
+CPF, o prazo da retirada (D-2) e a retirada discreta em Minha conta (D-8).
+
+## Análise crítica do que entrou
+
+**A produção caiu, e a causa fui eu.** Apliquei as migrations 007 a 013 no Supabase ao longo
+do dia, e a 013 derruba `aurea.custody_charges`. O código que tornava isso correto ficou só na
+minha máquina: `origin/main` continuava em `f7a5e8c`. Resultado — o site servia um código que
+ainda lia `custody_charges` contra um banco de onde a tabela já tinha sido removida, e
+devolvia uma exceção de servidor.
+
+O agravante é que **eu tinha escrito essa exata regra no diário na véspera**: *"código
+primeiro, migration depois"*. Escrever não bastou. Apliquei a migration porque sem ela não
+dava para testar localmente, e tratei o `git push` como um pedido no fim da mensagem em vez de
+parte da mesma operação. A regra que fica é mais estreita e mais executável: **`git push` e
+`db:migrate` são um passo só, nessa ordem.**
+
+**O que a auditoria de produção encontrou de bom:** depois do push, as seis telas conferidas
+no ar trouxeram exatamente o esperado — extrato sem "Custódia anual" e sem nome de
+contraparte, mercado com os três botões habilitados e `Vendedor #XXXX`, retirada com o texto
+novo do prazo. Nada ficou pela metade entre o que foi testado local e o que foi publicado.
+
+**Um achado lateral, sem gravidade:** o console de produção registra `Minified React error
+#418`, falha de hidratação. Investigado até a raiz: vem do script anti-flash de tema, que
+existe desde `ea0a5f3`, o port original. É recuperável, não aparece em desenvolvimento, e
+ficou registrado como CD-13 para ser limpo quando alguém tocar em tema — não como urgência.
+
+**CD-11 saiu do Critical Debugs**, resolvido: era a plataforma informando um preço de custódia
+que não era o vigente.
