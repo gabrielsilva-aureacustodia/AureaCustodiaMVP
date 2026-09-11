@@ -7,6 +7,68 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão C-4 · Correios de saída, etiqueta e rastreio · 11/09/2026
+
+**Branch:** `feat/retirada-logistica`.
+**Base:** `4df919c` (Sessão C-3).
+
+## 1. O que entrou
+
+### Carimbo Indelével no Recibo PDF (Bloco 10 / D-2)
+- **`src/lib/pdf/recibo-pdf.ts`**:
+  - Implementado o carimbo visual indelével `"RECIBO EXTINTO — RETIRADA FÍSICA"` no PDF gerado quando `coin.recibo.status === 'Extinto'`.
+  - Tarja com moldura dupla avermelhada (`#991B1B`), fundo com leve transparência, texto de advertência e menção ao art. 1.205 do Código Civil e desvinculação da posse física.
+  - Alinhado com o carimbo visual de tela do `Certificate.tsx`.
+
+### Ação Operacional de Avanço de Status da Retirada (Bloco 13)
+- **`src/server/actions/custody.ts`**:
+  - Nova Server Action `avancarStatusRetirada(retiradaId, proximoStatus, codigoRastreio)`.
+  - Permite aos operadores da custódia avançar o ciclo de vida da retirada: `paga` -> `separacao` -> `postada` -> `entregue` (ou `cancelada`).
+  - Valida operador autorizado via `assertAuthenticated()`.
+  - Exige obrigatoriamente `codigoRastreio` válido ao realizar a transição para `postada`.
+  - Registra histórico completo com timestamp, autor da ação e metadados.
+
+### Etiqueta Oficial de Expedição Postal (Bloco 11a / D-6)
+- **`src/app/api/retiradas/etiqueta/[id]/route.ts`**:
+  - Endpoint seguro para geração da etiqueta de postagem e declaração de conteúdo dos Correios.
+  - Suporta formato para impressão direta (`text/html`) e formato estruturado (`?format=json`).
+  - Remetente oficial padronizado com a Caixa Postal real da custódia:
+    - **AUREA CUSTODIA LTDA**
+    - **Caixa Postal 7990**
+    - **CEP 30315-970 — Belo Horizonte - MG**
+  - Destinatário extraído dos dados congelados e imutáveis da solicitação de retirada.
+  - Especificação do serviço: Sedex com Aviso de Recebimento (AR) e Declaração de Valor para a modalidade comum; transporte blindado para modalidade segura.
+  - Barcode mockup e chancela postal em conformidade com layout dos Correios.
+- **`src/app/api/retiradas/etiqueta/[id]/route.test.ts`**:
+  - Testes cobrindo autorização, geração de HTML para impressão e JSON estruturado com dados da Caixa Postal oficial.
+
+### Testes da Ação Operacional
+- **`src/server/actions/retirada.test.ts`**:
+  - Testes da função `avancarStatusRetirada`: transição completa de esteira, exigência de código de rastreio para postagem e rejeição de transições inválidas.
+
+## 2. O que foi testado, e como
+
+### Comandos de Verificação (4 Verdes)
+- `npm run typecheck`: OK (0 erros).
+- `npm run lint`: OK (0 advertências/erros).
+- `npm test`: OK — **33 arquivos de teste, 239 testes passando**.
+- `npm run build`: OK — build Next.js com geração de todas as rotas estáticas e dinâmicas (incluindo `/api/retiradas/etiqueta/[id]`).
+
+### Casos de Uso Testados
+- Geração de recibo PDF para moedas com status `Extinto`, verificando a inclusão do carimbo e advertência legal de extinção.
+- Acesso à etiqueta postal: bloqueio de usuários não autorizados e renderização dos dados corretos da Caixa Postal 7990 para o operador/dono.
+- Transição de status da retirada de `paga` para `separacao`, depois para `postada` (com validação de rastreio) e `entregue`.
+
+## 3. O que ficou de manual
+- Nenhuma pendência manual impeditiva de código adicionada nesta sessão. A expedição postal física nos Correios continuará utilizando o gerador de etiquetas implementado na rota `/api/retiradas/etiqueta/[id]`.
+
+## 4. O que o próximo agente precisa saber
+- As rotas e ações da retirada física estão 100% integradas.
+- A rota `/api/retiradas/etiqueta/[id]` pode ser acessada pelo operador ou pelo dono da moeda para impressão da etiqueta padrão Correios.
+- A próxima sessão (C-5) focará nos testes de ponta a ponta e na validação do checklist geral do Agente C.
+
+---
+
 # Sessão C-3 · Fluxo de retirada (tela) e extinção do recibo · 11/09/2026
 
 **Branch:** `feat/retirada-logistica`.

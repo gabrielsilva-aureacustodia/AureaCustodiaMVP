@@ -331,8 +331,9 @@ import {
   validarEnderecoRetirada,
 } from '@/domain/retirada'
 import { brl } from '@/domain/money'
-import type { EnderecoEntrega, ModalidadeRetirada, Retirada } from '@/domain/types'
+import type { EnderecoEntrega, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
+import { ehAdmin } from '@/server/relatorios/acesso'
 
 /**
  * Consulta CEP para preenchimento de endereço de remetente (zero persistência - LGPD).
@@ -526,4 +527,57 @@ export async function obterRetiradaPorCoin(coinId: string): Promise<ActionResult
     return { ok: false, error: 'Falha ao consultar retirada.' }
   }
 }
+
+/**
+ * Avança o status de uma solicitação de retirada física (separação, postagem, entrega ou cancelamento).
+ * Exige permissão de operador/sócio (ehAdmin) para avançar a expedição, ou o próprio dono para cancelamento inicial.
+ */
+export async function avancarStatusRetirada(
+  retiradaId: string,
+  proximoStatus: StatusRetirada,
+  codigoRastreio?: string,
+): Promise<ActionResult<Retirada>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const repo = repositorioRetiradas()
+  const retirada = await repo.buscarPorId(retiradaId)
+  if (!retirada) return { ok: false, error: 'Solicitação de retirada não encontrada.' }
+
+  const admin = ehAdmin(session)
+  if (!admin && retirada.userEmail !== session) {
+    return { ok: false, error: 'Acesso não autorizado a esta retirada.' }
+  }
+
+  if (!admin && proximoStatus !== 'cancelada') {
+    return { ok: false, error: 'Apenas operadores de custódia podem avançar a expedição física.' }
+  }
+
+  try {
+    const agora = Date.now()
+    const atualizada = transicionarRetirada(
+      retirada,
+      proximoStatus,
+      {
+        data: agora,
+        motivo: `Status atualizado para ${proximoStatus}${codigoRastreio ? ` (Rastreio: ${codigoRastreio})` : ''}`,
+        autor: session,
+        codigoRastreio,
+      },
+    )
+
+    await repo.atualizar(atualizada)
+    return {
+      ok: true,
+      message: `Retirada ${retiradaId} atualizada para "${proximoStatus}".`,
+      data: atualizada,
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Falha ao atualizar status da retirada.',
+    }
+  }
+}
+
 

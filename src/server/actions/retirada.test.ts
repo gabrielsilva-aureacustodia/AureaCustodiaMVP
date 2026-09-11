@@ -18,7 +18,12 @@ import { derivarLancamentos, resumirParaAuditoria } from '@/server/db/derivar'
 import { planejarDiff } from '@/server/db/diff'
 import { gerarRelatorio } from '@/server/relatorios/dados'
 import { _limparRetiradasMemoriaParaTestes } from '@/server/shipping/retiradas'
-import { obterMinhasRetiradas, obterRetiradaPorCoin, solicitarRetirada } from './custody'
+import {
+  avancarStatusRetirada,
+  obterMinhasRetiradas,
+  obterRetiradaPorCoin,
+  solicitarRetirada,
+} from './custody'
 
 let state: AppState
 
@@ -262,5 +267,41 @@ describe('Consultas e Relatórios de Retiradas (Bloco 13)', () => {
     const resumo = resumirParaAuditoria(ops, false, ajustes)
     expect(resumo.acao).toBe('retirada.solicitar')
     expect(resumo.usuariosAfetados).toContain(USER_EMAIL)
+  })
+
+  describe('avancarStatusRetirada', () => {
+    it('avança o fluxo operacional: paga -> separacao -> postada -> entregue', async () => {
+      const moeda = state.users[USER_EMAIL].coins[0]
+      const criacao = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+      expect(criacao.ok).toBe(true)
+      const retiradaId = criacao.data!.retiradaId
+
+      // 1. Avançar para separacao
+      const emSeparacao = await avancarStatusRetirada(retiradaId, 'separacao')
+      expect(emSeparacao.ok).toBe(true)
+      expect(emSeparacao.data?.status).toBe('separacao')
+
+      // 2. Rejeita postada sem código de rastreio
+      const postadaSemRastreio = await avancarStatusRetirada(retiradaId, 'postada')
+      expect(postadaSemRastreio.ok).toBe(false)
+      expect(postadaSemRastreio.error).toContain('rastreamento')
+
+      // 3. Avança para postada com código de rastreio
+      const postada = await avancarStatusRetirada(retiradaId, 'postada', 'SL123456789BR')
+      expect(postada.ok).toBe(true)
+      expect(postada.data?.status).toBe('postada')
+      expect(postada.data?.codigoRastreio).toBe('SL123456789BR')
+
+      // 4. Avança para entregue
+      const entregue = await avancarStatusRetirada(retiradaId, 'entregue')
+      expect(entregue.ok).toBe(true)
+      expect(entregue.data?.status).toBe('entregue')
+    })
+
+    it('rejeita avanço se a retirada não existir', async () => {
+      const res = await avancarStatusRetirada('RET-INEXISTENTE', 'separacao')
+      expect(res.ok).toBe(false)
+      expect(res.error).toContain('não encontrada')
+    })
   })
 })
