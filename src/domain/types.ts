@@ -427,3 +427,42 @@ export interface ActionResult<T = unknown> {
   error?: string
   data?: T
 }
+
+/* === Publicação · Agente A === */
+
+/**
+ * Identificadores dos 6 blocos de aceite operacional exigidos pelo jurídico
+ * (reunião com Felipe Moraes, 09/09/2026; alinhamento com Gabriel).
+ */
+export type LegalBlockId =
+  | 'moeda_equiparavel'
+  | 'prazos_d3_d30'
+  | 'custos_cliente'
+  | 'debito_garantia'
+  | 'posicionamento_institucional'
+  | 'dados_pessoais_lgpd'
+
+/** Definição descritiva de um bloco de aceite para exibição e conferência. */
+export interface LegalBlockItem {
+  id: LegalBlockId
+  titulo: string
+  resumo: string
+  clausulaReferencia: string
+  urlDocumento: string
+}
+
+/**
+ * Registro de aceite formal de termos por blocos.
+ * Armazena a versão vigente no instante do aceite, o momento exato e a lista
+ * de identificadores dos blocos expressamente marcados pelo usuário.
+ */
+export interface LegalBlockAcceptance {
+  termsVersion: string
+  privacyVersion: string
+  acceptedAt: string
+  blocks: LegalBlockId[]
+}
+
+export interface UserSettings {
+  legalAcceptance?: LegalBlockAcceptance
+}

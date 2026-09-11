@@ -7,7 +7,94 @@ manual, e o que o próximo agente precisa saber (regra 11 do
 
 ---
 
+# Sessão 3 · A-2 — Aceite por blocos dos Termos e Privacidade · 10/09/2026
+
+**Branch:** `feat/juridico-textos-dominio`
+**Base:** `0c9dc85`
+
+## 1. O que entrou
+
+### Módulo de Domínio e Tipos (`src/domain/types.ts` e `src/domain/legal.ts`)
+- Anexado ao final de `src/domain/types.ts` sob `/* === Publicação · Agente A === */`:
+  - `LegalBlockId`: união literal dos 6 blocos aprovados (`moeda_equiparavel`, `prazos_d3_d30`, `custos_cliente`, `debito_garantia`, `posicionamento_institucional`, `dados_pessoais_lgpd`).
+  - `LegalBlockItem`: contrato descritivo do bloco com id, título, resumo, cláusula de referência e link.
+  - `LegalBlockAcceptance`: registro formal contendo `termsVersion`, `privacyVersion`, `acceptedAt` e `blocks`.
+  - Reabertura de `interface UserSettings` via declaration merging para incluir `legalAcceptance?: LegalBlockAcceptance`.
+- `src/domain/legal.ts`:
+  - `VERSAO_TERMOS_VIGENTE = '1.0-2026-09-10'` e `VERSAO_PRIVACIDADE_VIGENTE = '1.0-2026-09-10'`.
+  - `BLOCOS_LEGAIS_OBRIGATORIOS`: lista canônica dos 6 blocos com textos revisados para clareza e leigo.
+  - `validarAceiteBlocos(blocos)`: valida se todos os 6 blocos constam na seleção.
+  - `verificarAceiteVigente(aceite)`: valida existência, vigência exata de versão e completude dos blocos. Subida de versão invalida automaticamente o aceite antigo, exigindo nova confirmação.
+
+### Camada de Servidor e Autenticação (`src/server/auth/legal.ts` e `src/server/actions/legal.ts`)
+- `src/server/auth/legal.ts`:
+  - Estendido `LegalAcceptance` para suportar `blocks?: string[]` no cookie de OAuth assinado e no estado.
+  - `obterStatusAceiteLegal(email)`: consulta do aceite do usuário no estado e conferência contra versões vigentes.
+  - `registrarAceiteLegal(email, blocos)`: validação dos 6 blocos, gravação atômica via `mutateState` em `user.settings.legalAcceptance` e sincronização com Supabase Auth (`user_metadata`) quando configurado.
+  - `exigirAceiteLegal(email)`: trava utilitária para operações (Trava 3 da Seção 3.3).
+- `src/server/actions/legal.ts`:
+  - Server Actions autenticadas `'use server'`: `salvarAceiteLegal(blocos)` e `consultarStatusAceiteLegal()`.
+- `src/server/auth/config.ts`:
+  - Sincronizado `VERSAO_LEGAL_PADRAO = '1.0-2026-09-10'`.
+
+### Interface e Acessibilidade (`src/components/legal/ModalAceiteBlocos.tsx` e `src/styles/legal.css`)
+- `ModalAceiteBlocos.tsx`:
+  - Modal interativa apresentando os 6 blocos operacionais em cards selecionáveis.
+  - Atalho "Marcar todos os 6 itens" / "Desmarcar todos" para comodidade do usuário.
+  - Botão principal "Aceitar e prosseguir" desabilitado até que todos os 6 blocos estejam marcados.
+  - Links contextuais para as cláusulas correspondentes em `/termos` e `/privacidade`.
+  - Hook `useVerificarAceiteLegal()` com helper `executarComAceite(acao)` para facilitar o acoplamento por outros componentes.
+  - Alvos de toque estritamente $\ge 44\text{px}$ para botões, checkboxes e links em telas mobile.
+- `src/styles/legal.css`:
+  - Estilização completa do modal com design system da Áurea Custódia.
+
+## 2. O que foi testado, e como
+
+### Os quatro comandos obrigatórios
+```
+npm run typecheck   ✓ (0 erros)
+npm run lint        ✓ (0 erros)
+npm test            ✓ 36 arquivos · 242 testes (100% passando)
+npm run build       ✓ 23 páginas compiladas estaticamente com sucesso
+```
+
+### Testes automatizados dedicados
+- `src/domain/legal.test.ts` (8 testes):
+  - Existência e completude dos 6 blocos obrigatórios.
+  - Rejeição de blocos parciais, vazios ou nulos.
+  - Aceite válido com versão vigente.
+  - Invalidação por versão antiga de termos ou privacidade.
+  - Rejeição quando a versão sobe (garantia de que a tela reaparece na mudança de versão).
+- `src/server/auth/legal.test.ts` (9 testes):
+  - Cookie assinado OAuth transportando blocos e versões; rejeição de assinatura forjada.
+  - Identificação de conta sem aceite (`aceito: false`, 6 blocos faltando).
+  - Identificação de conta com aceite vigente (`aceito: true`).
+  - Persistência no estado da aplicação.
+  - Trava operacional `exigirAceiteLegal`: bloqueia conta sem aceite com código `LEGAL_ACCEPTANCE_REQUIRED` e libera conta com aceite válido.
+- `src/server/actions/legal.test.ts` (4 testes):
+  - Rejeição de sessão expirada.
+  - Delegação segura e tipada para o módulo de autenticação.
+- `src/server/auth/config.test.ts` (3 testes):
+  - Versão legal padrão `1.0-2026-09-10`.
+
+### Varredura de terminologia proibida
+- `git grep -inE "NFT|token|cripto|ativo digital|investimento" src/components/legal/ModalAceiteBlocos.tsx`
+  Resultado: zero ocorrências.
+
+## 3. O que ficou de manual
+- **D-6** 🔴 — Endereço real de recebimento dos Correios (aguardando Gabriel).
+
+## 4. O que o próximo agente precisa saber
+1. O aceite por blocos está pronto e operante. Os 6 blocos obrigatórios são: `moeda_equiparavel`, `prazos_d3_d30`, `custos_cliente`, `debito_garantia`, `posicionamento_institucional` e `dados_pessoais_lgpd`.
+2. O registro vive em `user.settings.legalAcceptance` e nas claims do Supabase Auth (`legal_terms_version`, `privacy_policy_version`, `legal_accepted_at`, `legal_accepted_blocks`).
+3. Para o Agente B na Sessão B-2:
+   - Ao implementar o fluxo de primeiro depósito em `src/components/account/`, utilize o hook `useVerificarAceiteLegal` de `@/components/legal/ModalAceiteBlocos`.
+   - Nas Server Actions financeiras de `src/server/actions/account.ts`, a trava `await exigirAceiteLegal(email)` de `@/server/auth/legal` pode ser chamada para rejeitar operações não autorizadas.
+
+---
+
 # Sessão 2 · A-1 — Termos de Uso, Privacidade e Extrato Anônimo (D-5) · 10/09/2026
+
 
 **Branch:** `feat/juridico-textos-dominio`
 **Base:** `f7a5e8c` na `main`

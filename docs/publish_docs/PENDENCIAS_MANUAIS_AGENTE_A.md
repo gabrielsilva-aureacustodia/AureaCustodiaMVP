@@ -47,6 +47,14 @@ Nome do responsável pelo recebimento:
 
 ## Resolvidas
 
+### A-3 · Aceite por blocos dos Termos de Uso e Privacidade ✅ FEITO em 10/09
+
+Implementados os 6 blocos de aceite operacional no domínio (`src/domain/legal.ts`), estendendo `src/server/auth/legal.ts` com validação de versões (`1.0-2026-09-10`), gravação de blocos marcados e trava `exigirAceiteLegal(email)`. Modal `ModalAceiteBlocos` e hook `useVerificarAceiteLegal` criados em `src/components/legal/ModalAceiteBlocos.tsx` com alvos de toque $\ge 44\text{px}$.
+
+**Orientações de integração para o Agente B (Sessão B-2):**
+- Quando o usuário tentar realizar sua primeira operação financeira (depósito ou compra direta), a interface pode utilizar o hook `useVerificarAceiteLegal()` para acionar a `ModalAceiteBlocos` caso `me.settings?.legalAcceptance` não esteja vigente.
+- No servidor, antes de creditar saldo ou autorizar transações, basta invocar `await exigirAceiteLegal(email)` de `@/server/auth/legal`.
+
 ### A-2 · O extrato ainda mostra o nome da contraparte ✅ FEITO em 10/09
 
 Decisão dos sócios em 10/09/2026 (extensão da D-5): o nome e o e-mail de um cliente nunca
