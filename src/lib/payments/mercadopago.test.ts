@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import {
+  ativarDebitoAutomatico,
   consultarPagamentoMercadoPago,
   criarPixDeposito,
   criarPreferenciaDeposito,
@@ -178,6 +179,77 @@ describe('Mercado Pago — Preferências e Depósitos', () => {
       globalThis.fetch = originalFetch
       process.env = { ...originalEnv }
     }
+  })
+
+  describe('B2.8 — ativarDebitoAutomatico (POST /preapproval)', () => {
+    const originalEnv = { ...process.env }
+
+    afterEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    it('sem token configurado, opera em modo simulado', async () => {
+      delete process.env.MP_ACCESS_TOKEN
+      delete process.env.MP_ACCESS_TOKEN_TEST
+
+      const res = await ativarDebitoAutomatico({
+        planoId: 'PLC-000001',
+        userEmail: 'cliente@teste.com',
+        valorCents: 200,
+      })
+
+      expect(res.simulado).toBe(true)
+      expect(res.id).toBe('preapp-mock-PLC-000001')
+      expect(res.initPoint).toContain('mock-PLC-000001')
+      expect(res.status).toBe('pending')
+    })
+
+    it('com token, envia POST para /preapproval com external_reference e periodicidade mensal', async () => {
+      process.env.MP_ACCESS_TOKEN = 'VALID_TOKEN'
+      const originalFetch = globalThis.fetch
+
+      let capturedUrl = ''
+      let capturedBody: unknown = null
+
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        capturedUrl = url
+        capturedBody = init?.body ? JSON.parse(init.body as string) : null
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'preapp-real-12345',
+            init_point: 'https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=12345',
+            status: 'pending',
+          }),
+        } as Response
+      })
+
+      try {
+        const res = await ativarDebitoAutomatico({
+          planoId: 'PLC-000002',
+          userEmail: 'cliente@teste.com',
+          valorCents: 400,
+          descricao: 'Assinatura 2 moedas',
+        })
+
+        expect(capturedUrl).toBe('https://api.mercadopago.com/preapproval')
+        expect(capturedBody).toMatchObject({
+          payer_email: 'cliente@teste.com',
+          external_reference: 'ASS-PLC-000002',
+          reason: 'Assinatura 2 moedas',
+          auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: 4,
+            currency_id: 'BRL',
+          },
+        })
+        expect(res.id).toBe('preapp-real-12345')
+        expect(res.status).toBe('pending')
+      } finally {
+        globalThis.fetch = originalFetch
+      }
+    })
   })
 })
 

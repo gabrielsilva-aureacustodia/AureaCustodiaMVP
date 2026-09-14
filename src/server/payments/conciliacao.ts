@@ -228,7 +228,8 @@ function liquidarFaturaCustodia(
 
 /**
  * Liquidador de assinatura de custódia (passo B2.8).
- * Como salvaguarda, credita o valor ao saldo do cliente.
+ * Atualiza o plano de custódia com a assinaturaId, avança competência paga
+ * e quita a fatura correspondente caso exista.
  */
 function liquidarAssinaturaCustodia(
   s: AppState,
@@ -237,13 +238,47 @@ function liquidarAssinaturaCustodia(
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
-  buyer.balance += reivindicada.valor
+  const agora = Date.now()
+  const planoId = (reivindicada.metadata?.planoId as string) || ''
+  s.planosCustodia = s.planosCustodia ?? []
+  const plano = s.planosCustodia.find((p) => p.id === planoId)
+
   s.deposits.push({
     userEmail: reivindicada.userEmail,
     valor: reivindicada.valor,
-    date: Date.now(),
+    date: agora,
   })
-  return { sucesso: true, motivo: 'assinatura_custodia_creditada_saldo' }
+
+  if (plano) {
+    if (reivindicada.metadata?.assinaturaId) {
+      plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
+    }
+    plano.status = 'vigente'
+    plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
+    plano.formaPagamento = 'cartao'
+    plano.atualizadoEm = agora
+
+    // Se houver fatura pendente para esta competência e este plano, marca como paga
+    s.faturasCustodia = s.faturasCustodia ?? []
+    const fatura = s.faturasCustodia.find(
+      (f) => f.planoId === plano.id && f.status !== 'paga' && f.status !== 'cancelada',
+    )
+    if (fatura) {
+      fatura.status = 'paga'
+      fatura.dataPagamento = agora
+      fatura.formaPagamento = 'cartao'
+      fatura.paymentIntentId = reivindicada.externalReference
+    }
+  } else {
+    // Failsafe: se plano não foi encontrado, credita no saldo
+    buyer.balance += reivindicada.valor
+  }
+
+  // Reavalia status de inadimplência
+  const faturasRestantes = (s.faturasCustodia || []).filter((f) => f.userEmail === reivindicada.userEmail)
+  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
+
+  return { sucesso: true, motivo: 'assinatura_custodia_liquidada' }
 }
 
 /**
