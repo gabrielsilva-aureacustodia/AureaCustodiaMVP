@@ -3,7 +3,7 @@
 ```
 Frente:         B — Cobrança e custódia
 Branch base:    feat/b-cobranca-e-custodia
-Sub-branch:     feat/b1-cobranca-reutilizavel
+Sub-branches:   feat/b1-cobranca-reutilizavel, feat/b2-plano-de-custodia, feat/b3-retirada-e-financeiro (todas concluídas)
 Data:           14/09/2026
 ```
 
@@ -152,10 +152,83 @@ Data:           14/09/2026
 
 ---
 
-## 3. Testes e Verificação
+## 3. Sub-branch B2 — Testes e Verificação
 
 - **Typecheck:** `npm run typecheck` → 0 erros.
 - **Vitest:** `npm test` → 53 arquivos de teste, 414 testes passando, 1 pulado.
 - **Build de produção:** `npm run build` → 27 rotas compiladas e estáticas/dinâmicas geradas com sucesso.
 - **Sub-branch B2 mesclada em `feat/b-cobranca-e-custodia` com commit de merge `--no-ff`.**
+
+---
+
+## 4. Sub-branch B3 — Retirada Física e Financeiro
+
+**Status:** Concluída, testada e integrada com sucesso (`merge --no-ff` em `feat/b-cobranca-e-custodia`).
+
+### 4.1 O que foi implementado
+
+1. **B3.1 — Retirada em duas fases (`solicitarRetirada` e `pagarRetirada`):**
+   - Na **Fase 1 (solicitação)**:
+     - `solicitarRetirada` cria o registro com status `'solicitada'`, congela o endereço e gera o código de retirada.
+     - **Não** exige saldo prévio e **não** extingue o recibo de custódia preventivamente (o cliente pode pagar depois).
+     - Enquanto estiver em `'solicitada'`, a moeda é excluída de `availableCoinsForSell` no marketplace.
+     - O cliente pode cancelar a solicitação antes do pagamento via `cancelarSolicitacaoRetirada`, liberando a moeda de volta ao mercado.
+   - Na **Fase 2 (pagamento)**:
+     - Pagamento disponível por **Saldo em conta**, **Pix** ou **Cartão de crédito** (com até 2x para modalidade segura e 1x para modalidade comum).
+     - Ações dedicadas: `pagarRetiradaComSaldo`, `iniciarPixRetirada`, `iniciarCartaoRetirada` e despachante unificado `pagarRetirada`.
+     - Ao confirmar o pagamento: o recibo de custódia é extinto imediatamente (`coin.recibo.status = 'Extinto'`), o status avança para `'paga'`, e o prazo D+30 é **recalculado a partir da data de confirmação do pagamento (`agora`)**, e não da data da solicitação.
+
+2. **B3.2 — Migration 019 e repositório de retiradas (`aurea.retiradas`):**
+   - Criada migration `src/server/db/migrations/019_retirada_paga.sql`:
+     - Adicionadas colunas `forma_pagamento text`, `payment_intent_ref text` e `parcelas integer NOT NULL DEFAULT 1`.
+   - Atualizado repositório `src/server/db/repositories/retiradas.ts` para persistir e mapear os novos campos e suportar recálculo de `data_limite_d30`.
+
+3. **B3.3 — Conciliação e Ledger contábil de retirada:**
+   - Em `src/server/payments/conciliacao.ts`: implementado `liquidarRetirada`, que extingue o recibo, recalcula D+30, avança status para `'paga'` e registra entrada contábil em `s.deposits`.
+   - Em `src/server/db/derivar.ts`: taxa de retirada (`taxa_retirada`) derivada no momento da transição para `'paga'` com `valorTaxaCents`, garantindo fechamento sem ajustes espúrios.
+
+4. **B3.4 — Tarifas de gateway e DRE automática:**
+   - Em `src/domain/dre.ts`: a conta `4.1.07` (*Despesas com gateway e tarifas financeiras*) foi configurada com `automatica: true`.
+   - Popula automaticamente a partir de `aurea.recebimentos_gateway` (`tarifaGateway`), permitindo segregação total entre receita bruta, tarifas do Mercado Pago e valor líquido.
+
+5. **B3.5 — Regime de competência contábil para custódia (`src/domain/competencia.ts`):**
+   - Implementadas as funções puras de apropriação:
+     - `mesNoPeriodo(mes, inicio, fim)`
+     - `apropriacaoPlanoAnual(plano, inicio, fim)`: apropria 1/12 do plano anual por mês do período coberto, alocando o resíduo no 12º mês para fechar exatamente o valor total em centavos.
+     - `receitaDeCustodiaNoPeriodo`: consolida receita de planos mensais e anuais por competência, evitando dupla contagem com faturas avulsas.
+     - `calcularReceitaDiferida(plano)`: calcula saldo já apropriado, saldo a apropriar e meses restantes.
+   - DRE atualizada para calcular a receita de custódia estritamente por competência contábil.
+   - Cobertura com 9 testes unitários dedicados em `src/domain/competencia.test.ts`.
+
+6. **B3.6 — 4 novos relatórios e documentação:**
+   - Adicionados a `NOMES_RELATORIOS` e documentados em `docs/API_RELATORIOS.md`:
+     1. `recebimentos-gateway`: registro de pagamentos pelo gateway Mercado Pago com bruto, tarifa e líquido.
+     2. `planos-custodia`: lista analítica de planos contratados, vigência e moedas cobertas.
+     3. `receita-diferida`: apropriação e saldos a apropriar de planos anuais.
+     4. `faturas-custodia`: faturas emitidas com competência, origem, vencimento e status.
+   - Implementados em `src/server/relatorios/dados.ts` e cobertos por testes em `src/server/relatorios/relatorios-b3.test.ts`.
+
+7. **B3.7 — Interface do usuário:**
+   - `src/components/recibo/ModalSolicitarRetirada.tsx`:
+     - Modal em duas etapas com `<PainelPagamento />` integrado.
+     - Botão "Pagar depois" para concluir o pedido sem bloquear o cliente sem saldo.
+     - Exportado `ModalPagarRetirada` para pagamento posterior direto da lista de retiradas.
+   - `src/app/(app)/retirada/page.tsx`:
+     - Para retiradas aguardando pagamento (`status === 'solicitada'`), exibe botões "Pagar taxa" e "Cancelar solicitação" com confirmação.
+
+---
+
+## 5. Resumo Geral da Frente B
+
+Todas as três sub-branches da Frente B foram concluídas, testadas e integradas com sucesso na branch base `feat/b-cobranca-e-custodia`:
+- **B1**: Cobrança reutilizável (Mercado Pago, Pix, Cartão, PainelPagamento, migration 017 e separação financeira).
+- **B2**: Planos de custódia mensal e anual (wizard de envio, migration 018, faturamento mensal, débito automático recorrente).
+- **B3**: Retirada física em duas fases, regime de competência contábil, DRE com tarifas de gateway e 4 novos relatórios financeiros.
+
+### Verificação Final Consolidada
+- **Typecheck:** `npm run typecheck` → 0 erros.
+- **Vitest:** `npm test` → 55 arquivos de teste, 433 testes passando, 1 teste pulado (PGlite condicional).
+- **Build de Produção:** `npm run build` → 27 rotas geradas com sucesso sem erros.
+- **Merge:** `feat/b3-retirada-e-financeiro` mesclada em `feat/b-cobranca-e-custodia` com `--no-ff`.
+
 
