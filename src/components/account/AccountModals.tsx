@@ -46,8 +46,8 @@ import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { changePassword, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
-import type { DepositoIniciado } from '@/server/payments/tipos'
 import { ModalCadastro } from './ModalCadastro'
+import { PainelPagamento } from '@/components/pagamento'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -306,12 +306,6 @@ export function ModalDeposito(): ReactNode {
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
-  const [enviando, setEnviando] = useState(false)
-  // Resultado da cobrança Pix aberta no Mercado Pago (sandbox). Fica no estado
-  // porque o QR e o copia-e-cola precisam continuar na tela enquanto a pessoa
-  // paga no aplicativo do banco.
-  const [pix, setPix] = useState<DepositoIniciado | null>(null)
-  const [erroMp, setErroMp] = useState('')
 
   // Defesa em profundidade (Agente B): se a modal de depósito for invocada diretamente
   // sem cadastro completo, orienta a pessoa a preencher antes de continuar.
@@ -354,48 +348,7 @@ export function ModalDeposito(): ReactNode {
   }
 
   const cents = parsePrice(valorTexto)
-  const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX && !enviando
-
-  /**
-   * Abre a cobrança no gateway. NÃO mexe no saldo — quem credita é o webhook,
-   * depois de o Mercado Pago confirmar o pagamento. É por isso que a modal
-   * continua aberta mostrando o código: o saldo aparece sozinho quando o ciclo
-   * de 10 segundos trouxer o estado novo.
-   */
-  async function cobrar(metodo: 'pix' | 'checkout_pro'): Promise<void> {
-    if (!podeDepositar) return
-    setEnviando(true)
-    setErroMp('')
-    try {
-      const res = await iniciarDeposito(cents, metodo)
-      if (!res.ok || !res.data) {
-        setErroMp(res.error ?? 'Não foi possível abrir a cobrança.')
-        return
-      }
-      // Sem credencial no ambiente, a cobrança veio do simulador. Dizer isso
-      // aqui é o que impede o beco sem saída: antes de 11/09/2026 a tela abria
-      // uma aba no Mercado Pago com um identificador inventado, e o cliente
-      // via a página de erro do gateway achando que a falha era da Áurea.
-      if (res.data.simulado) {
-        setErroMp(
-          'O gateway de pagamento ainda não está configurado neste ambiente. ' +
-            'Nenhuma cobrança foi aberta.',
-        )
-        return
-      }
-      if (metodo === 'pix') {
-        setPix(res.data)
-        return
-      }
-      // Checkout Pro é página do Mercado Pago, e é assim que nenhum dado de
-      // cartão passa pelo servidor da Áurea. Abre em aba nova para a pessoa não
-      // perder a modal.
-      if (res.data.initPoint) window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
-      else setErroMp('O gateway não devolveu o endereço do checkout. Tente novamente.')
-    } finally {
-      setEnviando(false)
-    }
-  }
+  const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX
 
   return (
     <>
@@ -429,74 +382,46 @@ export function ModalDeposito(): ReactNode {
         </span>
       </div>
 
-      {/* O teto é anteparo de ambiente de teste: um zero a mais digitado sem
-          querer desfiguraria o livro de ordens para as outras seis contas. O
-          servidor reaplica o limite — este aviso só evita a ida inútil. */}
       {cents > DEPOSITO_MAX ? (
         <div className="note" style={{ marginTop: 10 }}>
           O depósito máximo por operação é {brl(DEPOSITO_MAX)}.
         </div>
       ) : null}
 
-      {/* Pagar é o caminho principal desde 11/09/2026. O botão dourado era o
-          depósito SIMULADO, que creditava saldo sem ninguém pagar nada — ele
-          saiu da tela do cliente. A Server Action `deposit()` continua no
-          servidor, para o seed e para os testes. */}
-      <div className="m-actions" style={{ marginTop: 4 }}>
-        <button
-          className="btn btn-gold"
-          type="button"
-          disabled={!podeDepositar}
-          onClick={() => void cobrar('pix')}
-        >
-          Pagar com Pix
-        </button>
-        <button
-          className="btn btn-gold"
-          type="button"
-          disabled={!podeDepositar}
-          onClick={() => void cobrar('checkout_pro')}
-        >
-          Cartão ou boleto
-        </button>
-      </div>
+      {podeDepositar ? (
+        <div style={{ marginTop: 16 }}>
+          <PainelPagamento
+            valorCents={cents}
+            iniciarPix={async () => {
+              const res = await iniciarDeposito(cents, 'pix')
+              if (!res.ok || !res.data) {
+                throw new Error(res.error ?? 'Não foi possível abrir a cobrança Pix.')
+              }
+              return res.data
+            }}
+            iniciarCartao={async () => {
+              const res = await iniciarDeposito(cents, 'checkout_pro')
+              if (!res.ok || !res.data) {
+                throw new Error(res.error ?? 'Não foi possível abrir o checkout do cartão.')
+              }
+              return res.data
+            }}
+            aoConcluir={close}
+          />
+        </div>
+      ) : (
+        <div className="note" style={{ marginTop: 14 }}>
+          {cents > DEPOSITO_MAX
+            ? `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.`
+            : 'Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.'}
+        </div>
+      )}
 
-      <div className="m-actions" style={{ marginTop: 10 }}>
+      <div className="m-actions" style={{ marginTop: 14 }}>
         <button className="btn btn-outline" type="button" onClick={close}>
           Cancelar
         </button>
       </div>
-
-      {erroMp ? (
-        <div className="note" style={{ marginTop: 10 }}>
-          {erroMp}
-        </div>
-      ) : null}
-
-      {pix ? (
-        <div style={{ marginTop: 14 }}>
-          <div className="field-lbl">Pix copia e cola</div>
-          <textarea
-            readOnly
-            rows={3}
-            aria-label="Código Pix copia e cola"
-            value={pix.qrCode ?? ''}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
-          />
-          {pix.qrCodeBase64 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`data:image/png;base64,${pix.qrCodeBase64}`}
-              alt="QR Code do Pix"
-              style={{ display: 'block', width: 180, height: 180, margin: '12px auto' }}
-            />
-          ) : null}
-          <div className="note">
-            Referência {pix.externalReference} · {brl(pix.valorCents)}. Assim que o pagamento
-            for confirmado, o saldo aparece sozinho nesta tela.
-          </div>
-        </div>
-      ) : null}
     </>
   )
 }

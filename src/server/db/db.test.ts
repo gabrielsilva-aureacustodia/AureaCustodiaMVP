@@ -192,6 +192,8 @@ function suite(alvo: Alvo): void {
         'payment_events',
         'payment_intents',
         'rastreios',
+        // Migration 017 — recebimentos do gateway com tarifa e líquido (Passo B1.3).
+        'recebimentos_gateway',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
         // Migration 011 — retiradas físicas da custódia (frente C).

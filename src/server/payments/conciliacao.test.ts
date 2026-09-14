@@ -27,6 +27,7 @@ vi.mock('@/lib/payments', async (importOriginal) => {
 })
 
 import { conciliarPagamento } from './conciliacao'
+import { _limparRecebimentosEmMemoria, buscarRecebimentoPorPaymentId } from './recebimentos'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
 import { getState, mutateState } from '@/server/state'
 
@@ -34,15 +35,22 @@ const EMAIL = 'gabrielsilva@testeaurea.com.br'
 
 /** Resposta do gateway para um pagamento aprovado de `valor` centavos. */
 function aprovado(ref: string, valor: number) {
+  const agora = Date.now()
   return {
     id: 'pay-1',
     status: 'approved',
     valorCents: valor,
+    valorLiquidoCents: valor,
+    tarifaCents: 0,
+    totalPagoCents: valor,
+    parcelas: 1,
+    valorParcelaCents: valor,
+    dataLiberacao: agora,
     externalReference: ref,
     paymentMethodId: 'pix',
     paymentTypeId: 'bank_transfer',
-    dateApproved: Date.now(),
-    dateCreated: Date.now(),
+    dateApproved: agora,
+    dateCreated: agora,
     payerEmail: 'quem-pagou@exemplo.com',
   }
 }
@@ -95,6 +103,7 @@ async function saldo(): Promise<number> {
 describe('conciliarPagamento', () => {
   beforeEach(() => {
     _limparRepositoriosEmMemoria()
+    _limparRecebimentosEmMemoria()
     consultarPagamentoMercadoPago.mockReset()
   })
 
@@ -281,4 +290,75 @@ describe('conciliarPagamento', () => {
     // Dinheiro seguro na conta do comprador
     expect(await saldo()).toBe(saldoAntes + valor)
   })
+
+  it('grava a separação financeira em recebimentos_gateway com tarifa e líquido', async () => {
+    const ref = 'DEP-com-tarifa'
+    const valor = 50_000
+    const tarifa = 1_500
+    const liquido = valor - tarifa
+
+    await criarIntencao(ref, valor)
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-separacao-1',
+      tarifaCents: tarifa,
+      valorLiquidoCents: liquido,
+      totalPagoCents: valor,
+      parcelas: 1,
+      paymentMethodId: 'pix',
+    })
+
+    const res = await conciliarPagamento('pay-separacao-1')
+    expect(res.creditado).toBe(true)
+
+    const recebimento = await buscarRecebimentoPorPaymentId('pay-separacao-1')
+    expect(recebimento).not.toBeNull()
+    expect(recebimento).toMatchObject({
+      paymentId: 'pay-separacao-1',
+      externalReference: ref,
+      tipoOperacao: 'deposito',
+      userEmail: EMAIL,
+      valorBruto: valor,
+      tarifaGateway: tarifa,
+      valorLiquido: liquido,
+      parcelas: 1,
+    })
+    expect(recebimento?.competencia).toMatch(/^\d{4}-\d{2}$/)
+  })
+
+  it('despachante: operações ainda em construção (ex: plano_custodia, retirada) creditam em saldo como salvaguarda', async () => {
+    const ref = 'PLN-custodia-teste'
+    const valor = 4_000
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'plano_custodia',
+      metadata: null,
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-plano-1',
+    })
+
+    const saldoAntes = await saldo()
+    const res = await conciliarPagamento('pay-plano-1')
+
+    expect(res.creditado).toBe(true)
+    expect(res.tipoOperacao).toBe('plano_custodia')
+    expect(res.motivo).toBe('fatura_custodia_creditada_saldo')
+    expect(await saldo()).toBe(saldoAntes + valor)
+
+    const rec = await buscarRecebimentoPorPaymentId('pay-plano-1')
+    expect(rec?.tipoOperacao).toBe('plano_custodia')
+  })
 })
+

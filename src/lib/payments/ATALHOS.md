@@ -31,3 +31,12 @@ Data:          03/09/2026 (atualizado na conclusão da Frente C)
 ### 6. RA-14.e — Processamento de webhook em segundo plano com `after()` — PAGO em 03/09/2026
 - **Situação:** Resposta imediata antes da conciliação.
 - **Implementação:** O webhook valida a assinatura, confere a idempotência do evento, responde HTTP 200 ao gateway imediatamente e processa a conciliação via `after()`.
+
+### 7. RA-30 — Gravação de recebimentos_gateway fora da transação do estado (Passo B1.3/B1.4)
+- **Situação:** Registro da separação financeira do Mercado Pago (bruto, tarifa, líquido, parcelas).
+- **Implementação:** Executado fora do `mutateState`, com `INSERT INTO aurea.recebimentos_gateway ... ON CONFLICT (payment_id) DO NOTHING`. Em caso de erro na gravação contábil, o crédito do cliente é preservado e a reconciliação pode ser reprocessada.
+
+### 8. RA-32 — Competência contábil de pagamentos calculada em UTC (Passo B1.3/B1.4)
+- **Situação:** Pagamentos aprovados no fim do mês no fuso de Brasília (UTC-3).
+- **Implementação:** `competenciaAtual(aprovadoEm)` usa UTC. Transações entre 21h00 e 23h59 do último dia do mês civil caem na competência do mês seguinte.
+
