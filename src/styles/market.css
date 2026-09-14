@@ -17,12 +17,27 @@
 .avg-box .v{font-size:22px;color:var(--gold);font-weight:700;font-family:var(--ff-display);margin-top:2px}
 .avg-box .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
 .offer{
-  display:flex;align-items:center;gap:16px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   border:1px solid var(--line-soft);border-radius:11px;padding:16px 18px;margin-bottom:12px;
   transition:all .18s;
+  /* O card mede a si mesmo, não a janela: na tela de venda ele vive numa
+     coluna lateral estreita mesmo com o monitor largo, e é essa largura que
+     decide se o preço cabe ao lado do texto. */
+  container-type:inline-size;
 }
 .offer:hover{border-color:var(--gold)}
-.offer .o-info{flex:1}
+/* min-width:0 é o que deixa o texto quebrar linha. Sem ele, um item flex não
+   encolhe abaixo da palavra mais longa, e o bloco de preço é empurrado para
+   fora da borda do card. */
+.offer .o-info{flex:1;min-width:0}
+.offer .o-price{flex-shrink:0}
+/* Card estreito: preço e botão descem para uma linha própria, de largura cheia.
+   Vale para a vitrine de compra, o livro de ofertas e as ofertas recebidas na
+   venda — os três usam esta mesma classe. */
+@container (max-width:440px){
+  .offer .o-price{flex-basis:100%;padding-top:12px;border-top:1px solid var(--line-soft)}
+  .offer .o-price .btn{width:100%}
+}
 .offer .o-name{font-size:16.5px;font-weight:700;color:var(--text-strong)}
 .offer .o-meta{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.5}
 .offer .o-price{text-align:right}
