@@ -104,9 +104,11 @@ const QTD_MAX = 100
  * Cria o registro de envio e devolve o protocolo — `generateProtocol` do
  * original (2114-2127).
  *
- * As FOTOS NÃO CHEGAM AQUI, e é intencional: ficam só na memória da aba, como
+ * A FOTO NÃO CHEGA AQUI, e é intencional: o envio pede uma foto do item (desde
+ * 14/09/2026, uma só, sem frente e verso), e ela fica só na memória da aba, como
  * dataURL (ver o cabeçalho de components/custody/PhotoSlot.tsx e a Seção 4.6).
- * A assinatura desta função é o contrato que garante isso.
+ * A assinatura desta função é o contrato que garante isso — nenhuma validação de
+ * foto existe no servidor, e por isso nenhuma precisou mudar.
  *
  * A quantidade é congelada no protocolo neste instante. É ela que
  * `advanceAnalysis` vai usar para emitir as moedas, e por isso é aqui — não lá —

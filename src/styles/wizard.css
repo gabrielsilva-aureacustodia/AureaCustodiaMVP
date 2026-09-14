@@ -19,6 +19,10 @@
 .wz-line{width:36px;height:1px;background:var(--line-soft);margin:0 4px}
 select.tinput{appearance:none;-webkit-appearance:none;background-image:var(--select-caret);background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:34px}
 .photo-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 4px}
+/* Uma foto só (envio, desde 14/09/2026): coluna única e largura contida, para o
+   espaço não esticar a tela inteira. Duas classes vencem as regras de
+   .photo-row do responsive.css, que continuam valendo para grades de duas. */
+.photo-row.single{grid-template-columns:minmax(0,1fr);max-width:320px}
 .photo-slot{
   border:1.5px dashed var(--line-soft);border-radius:10px;aspect-ratio:4/3;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
