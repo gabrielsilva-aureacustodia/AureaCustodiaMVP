@@ -173,6 +173,11 @@ function suite(alvo: Alvo): void {
         ),
       )
       expect(tabelas.map((t) => t.relname)).toEqual([
+        // Migration 020 — papéis, permissões e membros do painel (frente C, C1).
+        'admin_membros',
+        'admin_papeis',
+        'admin_papel_permissoes',
+        'admin_permissoes',
         // Migration 004 — a estação de validação física (frente E).
         'analises',
         // Migration 003 — ledger, auditoria e DRE (M4/M7).
@@ -182,6 +187,8 @@ function suite(alvo: Alvo): void {
         'contas_contabeis',
         'deposits',
         'envios',
+        // Migration 021 — registro de uso da plataforma (frente C, C1).
+        'eventos_uso',
         'exportacoes',
         // Migration 010 — faturamento de custódia (Sessão B-5).
         'faturas_custodia',

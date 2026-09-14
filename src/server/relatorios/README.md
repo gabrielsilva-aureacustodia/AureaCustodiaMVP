@@ -15,7 +15,7 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 
 | Arquivo | O que faz | `server-only` |
 |---|---|---|
-| `acesso.ts` | `ehAdmin(email)`, `tokenDeIntegracaoValido`, `autorizarRelatorio` — quem pode ver | ✅ |
+| `acesso.ts` | `ehAdmin(email)` (o bootstrap do ambiente), `tokenDeIntegracaoValido`, `autorizarRelatorio` e `autorizarRelatorioNoPainel` — quem pode ver. Desde a C1, as rotas usam a versão que consulta os papéis do painel (`src/server/admin/acesso.ts`) | ✅ |
 | `dados.ts` | Os doze relatórios (`NOMES_RELATORIOS`), o período da consulta e `dreCompleta` | ✅ |
 | `exportar.ts` | `Relatorio` → CSV (regras do Excel pt-BR) e XLSX (SheetJS, no servidor) | — |
 | `sheets.ts` | Push para o Google Sheets pela API REST, com conta de serviço | ✅ |

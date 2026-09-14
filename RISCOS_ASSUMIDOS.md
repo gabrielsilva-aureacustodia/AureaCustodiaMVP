@@ -54,6 +54,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-21** | Papel único na bancada: quem analisa é quem aprova, sem segregação de função | 🟡 | `src/server/estacao/`, `src/domain/analise.ts` |
 | **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
+| **RA-40** | Painel administrativo: quem está no bootstrap do ambiente entra como `dev`, inclusive quando o banco falha | 🟠 | `src/server/admin/` |
 
 ---
 
@@ -577,6 +578,7 @@ controle de acesso de verdade; (f) vira receita não cobrada.
 | `src/app/` | [`ATALHOS.md`](src/app/ATALHOS.md) |
 | `src/lib/payments/` | [`ATALHOS.md`](src/lib/payments/ATALHOS.md) |
 | `src/lib/shipping/` | [`ATALHOS.md`](src/lib/shipping/ATALHOS.md) |
+| `src/server/admin/` | [`ATALHOS.md`](src/server/admin/ATALHOS.md) |
 
 # RA-18 — Cadastro aberto por padrão 🟡
 
@@ -697,3 +699,35 @@ ausência dele precisa aparecer como pendência na tela de quem administra — n
 necessariamente como trava.
 
 Nota em `estacao/ATALHOS.md`.
+
+# RA-40 — Bootstrap do painel administrativo pelo ambiente 🟠
+
+```
+Decidido em: 12/09/2026 (plano do Admin, seções 5.3 e 11) · entregue na C1, 14/09/2026
+Dono:        Gabriel
+Pasta:       src/server/admin/ (ATALHOS.md)
+```
+
+O painel `/admin` tem papéis e membros no banco (migration 020), mas **quem está em
+`AUREA_ADMIN_EMAILS`** — ou, sem a variável, **nas contas de demonstração de `ACCOUNTS`** —
+entra como `dev`, com todas as permissões, sempre que a tabela de membros não conhece o
+e-mail. E se a leitura dos papéis **falhar** (migration ainda não aplicada, instabilidade do
+banco), vale só esse bootstrap, em vez de a tela cair.
+
+**Por quê:** nada pode trancar o Gabriel fora do painel — nem uma tabela vazia no primeiro
+deploy, nem a janela entre publicar o código e rodar `db:migrate`.
+
+**O que isso assume:**
+
+- sem `AUREA_ADMIN_EMAILS`, as contas de demonstração são `dev` no painel. É a mesma regra que
+  já decidia quem lia a DRE (RA-16.a), agora com a tela de equipe junto;
+- durante uma falha do banco, um e-mail do ambiente que a tela tinha rebaixado volta a entrar
+  como `dev` até o banco responder. Só vale para quem está na variável.
+
+**Deixa de valer antes do primeiro cliente real:** `AUREA_ADMIN_EMAILS` com os e-mails reais
+da equipe (o que tira as contas de demonstração do bootstrap), a equipe cadastrada na tela
+`/admin/equipe`, e as contas de demonstração removidas (RA-19).
+
+> **Para o Rogério:** o painel reconhece a equipe por uma lista cadastrada nele mesmo. Para
+> ninguém ficar de fora enquanto essa lista está vazia, quem está na lista da Vercel entra como
+> desenvolvedor. Antes de ter cliente, essa lista da Vercel passa a ter só os e-mails de verdade.
