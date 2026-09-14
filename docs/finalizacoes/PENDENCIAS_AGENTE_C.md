@@ -262,3 +262,17 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
   inadimplência, desativada e uma nota), três conversas de teste, a etiqueta "Retirada". A Evolution
   usada na conferência era um servidor falso local, desligado ao fim.
 - **O que fica esperando:** nada. O `DROP SCHEMA` do P-C1-04 apaga tudo junto.
+
+### P-C2-09 · Aviso ao Agente A — `settings.legalAcceptance` não sobrevive à gravação no Postgres
+
+- **O que achei:** `normalizarUser` em `src/server/db/diff.ts` monta o `settings` gravado só com as quatro
+  preferências (`twoFA`, `notifEnvios`, `notifNegociacoes`, `notifNovidades`). Qualquer outro campo —
+  inclusive `legalAcceptance`, que `registrarAceiteLegal` (`src/server/auth/legal.ts`) grava — some na
+  primeira gravação com banco. Em produção, portanto, esse aceite antigo não fica guardado. A C2 esbarrou
+  nisso ao decidir onde gravar a situação da conta, e por isso usou tabela própria (023).
+- **Por que avisar:** o plano da A3 diz que `settings.legalAcceptance` "continua sendo preenchido"; se
+  alguma tela ou a faixa de termos atualizados contar com ele no Postgres, vai ler vazio. A ficha do
+  usuário da C2 já trata a ausência (mostra "Sem aceite registrado nas preferências da conta") e passa a
+  ler `aceites_documentos` sozinha quando a migration 016 existir.
+- **Quem:** Agente A, se quiser que o campo persista; ou nada, se `aceites_documentos` já substituir o
+  uso. **O que fica esperando no painel:** nada.
