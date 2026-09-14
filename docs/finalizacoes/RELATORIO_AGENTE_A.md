@@ -67,10 +67,10 @@ Worktree isolada: `C:\dev\AureaCustodiaMVP-mercado`
 
 ## A3 — Termos de Uso Oficiais, Tabela de Taxas, SAC e Prova Jurídica de Aceite
 
-- **Status**: Concluída e pronta para merge
-- **Branch de trabalho**: `feat/a3-termos-oficiais`
-- **Merge commit na base**: `feat/a-mercado-e-termos`
-- **Anotação**: A3 pronta para main — encerramento do RA-03 e abertura de RA-25 / RA-26
+- **Status**: Concluída e integrada
+- **Branch de trabalho**: `feat/a3-termos-oficiais` (commit `b032384`)
+- **Merge commit na base**: `16b1b56`
+- **Anotação**: A3 pronta para main — merge 16b1b56 — encerramento do RA-03 e abertura de RA-25 / RA-26
 
 ### Resumo das Entregas de A3
 1. **Domínio Estruturado dos Documentos Legais (`src/domain/documentos-legais/`)**:
