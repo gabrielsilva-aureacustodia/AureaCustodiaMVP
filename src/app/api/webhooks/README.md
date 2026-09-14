@@ -7,6 +7,7 @@ Endpoints HTTP de entrada para webhooks de serviços de pagamento e logística.
 | Rota | Método | Gateway | Finalidade |
 |---|---|---|---|
 | `/api/webhooks/mercadopago` | `POST` | Mercado Pago | Notificação de pagamentos Pix, cartão e boleto com idempotência e verificação de assinatura HMAC |
+| `/api/webhooks/whatsapp` | `POST` | Evolution API (WhatsApp) | Mensagens e estados de entrega do WhatsApp do atendimento (`/admin/cs`), autenticadas por JWT ou segredo no cabeçalho; reentrega não duplica. Ver [README](whatsapp/README.md) |
 
 ## Regras de Segurança
 

@@ -31,10 +31,18 @@ do painel chama `permissaoParaAcao` por conta própria.
 | `contabil.ts` | Lançamento manual, estorno, alíquota e conferência do livro-razão, com a trilha na mesma transação | — |
 | `uso.ts` | `gravarEventosDeUso` e `carregarUsoNoBanco` (eventos + trilha do período, com teto de leitura) | — |
 | `resultados.ts` | Os carregadores das telas: `carregarFinanceiro`, `carregarContabil`, `carregarKpis`, `carregarUso`, `carregarPainelInicial`. Leituras de outra frente que ainda não existem viram `null`, nunca erro | ✅ |
-| `banco.test.ts` | 18 testes contra o Postgres embutido: migrations 020 e 021, catálogo, membros, proteção do último dev, trilha, registro de uso e ações contábeis | — |
+| `cs.ts` | **C2.** O atendimento: `receberEventos` (o que o webhook traduziu — contato, conversa, conta pelo telefone, reentrega sem duplicar, estado de entrega só para a frente), `carregarCaixa`, `abrirConversa`, `responderConversa` (envia fora da transação e grava enviada, registrada ou falhou), `iniciarConversa`, notas, etiquetas, responsável, situação e `atualizarContato` | — |
+| `usuarios.ts` | **C2.** As ações da ficha: criar conta, editar cadastro e dados bancários, ajustar saldo, inadimplência, ativar e desativar, redefinir senha, anotar. As portas `PortaDeEstado` (com `portaDeEstadoNoBanco`: `mutarEstado` e a linha `admin.usuarios.<verbo>` na mesma transação) e `PortaDeIdentidade` | — |
+| `identidade.ts` | **C2.** A porta do Supabase Auth pela chave de serviço: buscar, criar, definir senha, bloquear e enviar o link de redefinição. Sem as variáveis, responde "não configurada" com os nomes do que falta | ✅ |
+| `portas.ts` | **C2.** Liga os serviços ao mundo real: `portaDeEstadoDoServidor` (banco ou memória), `executorOuNulo`, `ehTabelaAusente` (erro 42P01) | ✅ |
+| `ficha.ts` | **C2.** Os carregadores da lista e da ficha do usuário, aba por aba. Dados bancários só saem com `usuarios.dados_bancarios`; leituras que podem faltar viram `null` | ✅ |
+| `atendimento.ts` | **C2.** O carregador da tela de CS (`carregarAtendimento`) e a equipe para atribuir conversa | ✅ |
+| `situacao.ts` | **C2.** `contaDesativada(email)`: a pergunta que o login, o callback e o casco do app vão fazer (frente A). Banco fora ou conta da equipe respondem "ativa" | ✅ |
+| `banco.test.ts` | 34 testes contra o Postgres embutido: migrations 020 a 023, catálogo, membros, proteção do último dev, trilha, registro de uso, ações contábeis, atendimento e ações da ficha do usuário | — |
 | `acesso.test.ts` | 5 testes do caminho sem banco: bootstrap e recusa 401/403 | — |
+| `situacao.test.ts` | 3 testes de `contaDesativada` | — |
 | `testing/` | O executor PGlite dos testes desta pasta. Não é código de produção | — |
-| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40, RA-41) | — |
+| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40, RA-41, RA-43, RA-44) | — |
 
 Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâmetro, como
 `src/server/db/estado.ts`: é o que deixa a suíte rodá-los contra o Postgres embutido.
@@ -45,6 +53,8 @@ Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâme
 |---|---|
 | `AUREA_ADMIN_EMAILS` | Lista (vírgula) de quem entra como `dev` quando a tabela de membros não o conhece. **Sem ela, valem as contas de `ACCOUNTS`** |
 | `POSTGRES_URL` | Sem ela não há tabela de papéis: vale só o bootstrap, e a tela de equipe diz isso |
+| `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` | C2: criar login, redefinir senha e bloquear conta pelo painel. Sem elas, a conta é criada só na plataforma e as ações de senha dizem o que falta |
+| `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`, `WHATSAPP_WEBHOOK_SECRET` | C2: o WhatsApp do atendimento. Ver `src/lib/mensageria/README.md` |
 
 ## Regras que valem aqui
 
@@ -74,5 +84,8 @@ Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâme
 | `src/app/api/admin/conciliacao/` | Pede `resultados.ver` pelo `carregarMembro` |
 | `src/server/session.ts` | O e-mail da sessão — o mesmo cookie do app, sem segundo login |
 | `src/server/relatorios/dados.ts` | `dreCompleta`, `gerarRelatorio` e `ehNomeDeRelatorio` — lidos pelo Financeiro, nunca alterados |
-| `src/server/db/repositories/eventos-uso.ts`, `painel-leituras.ts` | O SQL do registro de uso e as leituras da trilha e do histórico da fila (frente A) |
+| `src/server/db/repositories/eventos-uso.ts`, `painel-leituras.ts` | O SQL do registro de uso e as leituras da trilha, do histórico da fila (A2), dos aceites (A3) e dos recebimentos do gateway (B1) |
+| `src/server/db/repositories/cs.ts`, `admin-usuarios.ts` | O SQL das migrations 022 e 023 |
+| `src/server/db/estado.ts` | `lerEstado` e `mutarEstado`, reaproveitados pela `PortaDeEstado` — o ajuste de saldo vira `ajuste` no ledger pela derivação de sempre |
+| `src/lib/mensageria/` | O provedor de WhatsApp que `cs.ts` recebe por parâmetro |
 | `src/domain/kpis.ts`, `src/domain/admin/` | A regra pura que os carregadores alimentam |
