@@ -118,6 +118,9 @@ export async function mutarEstado<T>(
  */
 function congelarComissoes(state: AppState, aPartirDe: number): void {
   for (const t of state.trades.slice(aPartirDe)) {
-    if (t.fee === undefined) t.fee = normalizarTrade(t).fee
+    const normalizado = normalizarTrade(t)
+    if (t.fee === undefined) t.fee = normalizado.fee
+    if (t.feeComprador === undefined) t.feeComprador = normalizado.feeComprador
+    if (t.feeVendedor === undefined) t.feeVendedor = normalizado.feeVendedor
   }
 }

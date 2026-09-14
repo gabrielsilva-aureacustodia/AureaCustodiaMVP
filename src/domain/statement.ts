@@ -17,10 +17,10 @@
  *    porque o extrato também responde "o que aconteceu com as minhas moedas",
  *    e um envio concluído é o evento que criou os recibos da conta.
  *
- * A COMISSÃO SAI DO LADO DO VENDEDOR. É a mesma regra do motor de casamento e
- * das ações de compra e venda: o comprador paga o preço cheio, e é do vendedor
- * que a plataforma retém 0,5% + R$ 1,00 por moeda. Por isso `taxa` só aparece
- * preenchida nas linhas de venda.
+ * A COMISSÃO É COBRADA DOS DOIS LADOS (A1, RA-06). Tanto comprador quanto
+ * vendedor pagam comissão conforme a tabela de taxas. As comissões congeladas
+ * gravadas no Trade (`feeComprador` e `feeVendedor`) são lidas diretamente,
+ * garantindo que o histórico nunca seja reescrito por mudanças futuras de taxa.
  */
 
 import { fdate } from '@/domain/dates'
@@ -49,7 +49,7 @@ export interface StatementRow {
   quantidade: number | null
   /** Preço por moeda. null quando não se aplica. */
   valorUnitario: Cents | null
-  /** Comissão retida nesta linha. Só vendas têm. */
+  /** Comissão retida nesta linha. */
   taxa: Cents | null
   /**
    * Efeito no saldo, com sinal: positivo entrou, negativo saiu, zero não mexeu.
@@ -104,6 +104,7 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
     const bruto = t.price * qty
 
     if (t.buyer === email) {
+      const feeComprador = t.feeComprador ?? 0
       rows.push({
         date: t.date,
         dateBR: fdate(t.date),
@@ -115,15 +116,15 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
         descricao: 'Compra no marketplace',
         quantidade: qty,
         valorUnitario: t.price,
-        taxa: null,
-        impacto: -bruto,
+        taxa: feeComprador > 0 ? feeComprador : null,
+        impacto: -(bruto + feeComprador),
       })
     }
 
     if (t.seller === email) {
-      // A comissão é POR MOEDA, recalculada aqui do mesmo jeito que na execução
-      // — ela não é gravada no Trade justamente para não poder divergir.
-      const taxa = tradeFee(t.price) * qty
+      // Lê a comissão congelada gravada no Trade (RA-06).
+      // Fallback para tradeFee(t.price) * qty para trades antigos sem fee gravada.
+      const taxa = t.feeVendedor ?? t.fee ?? tradeFee(t.price) * qty
       rows.push({
         date: t.date,
         dateBR: fdate(t.date),
@@ -232,8 +233,12 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
       t.taxasPagas += r.taxa ?? 0
     }
     if (r.kind === 'Compra') {
-      t.compradoValor += -r.impacto
+      // Valor do ATIVO comprado: o total debitado do saldo está em `impacto`
+      // (-bruto - taxa). Subtrair a taxa devolve o valor dos ativos comprados
+      // sem distorcer `compradoValor`.
+      t.compradoValor += -r.impacto - (r.taxa ?? 0)
       t.compradoQtd += r.quantidade ?? 0
+      t.taxasPagas += r.taxa ?? 0
     }
     if (r.kind === 'Venda') {
       // Valor BRUTO da venda: o líquido já está em `impacto`, e mostrar os dois

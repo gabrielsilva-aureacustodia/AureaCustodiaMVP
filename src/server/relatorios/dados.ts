@@ -24,6 +24,7 @@ import { verificarCadeia, type LedgerEntry } from '@/domain/ledger'
 import { medianSellPrice } from '@/domain/market'
 import { allCoinsFlat, coinStatusDigital, envioDateFor } from '@/domain/selectors'
 import { statementTotals, userStatement } from '@/domain/statement'
+import { tradeFee } from '@/domain/fees'
 import { descreverDadosBancarios } from '@/domain/cadastro'
 import type { AppState, Retirada } from '@/domain/types'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
@@ -360,23 +361,29 @@ function relatorioNegociacoes(fontes: Fontes, periodo: Periodo | null): Relatori
   const linhas = fontes.state.trades
     .map((t, i) => ({ t, i }))
     .filter(({ t }) => !periodo || (t.date >= periodo.inicio && t.date < periodo.fim))
-    .map(({ t, i }) => ({
-      Ref: `TRADE-${i + 1}`,
-      Data: dataHora(t.date),
-      Moeda: t.tipoMoeda,
-      Quantidade: t.qty,
-      Preco_Unitario: reais(t.price),
-      Valor_Bruto: reais(t.price * t.qty),
-      Comissao: t.fee === undefined ? '' : reais(t.fee),
-      Comprador: t.buyer,
-      Nome_Comprador: nomes[t.buyer] ?? '',
-      Vendedor: t.seller,
-      Nome_Vendedor: nomes[t.seller] ?? '',
-    }))
+    .map(({ t, i }) => {
+      const feeTotal = t.fee ?? ((t.feeComprador ?? 0) + (t.feeVendedor ?? tradeFee(t.price) * t.qty))
+      return {
+        Ref: `TRADE-${i + 1}`,
+        Data: dataHora(t.date),
+        Moeda: t.tipoMoeda,
+        Quantidade: t.qty,
+        Preco_Unitario: reais(t.price),
+        Valor_Bruto: reais(t.price * t.qty),
+        Comissao: t.fee === undefined ? '' : reais(t.fee),
+        Comissao_Comprador: t.feeComprador === undefined ? '' : reais(t.feeComprador),
+        Comissao_Vendedor: t.feeVendedor === undefined ? '' : reais(t.feeVendedor),
+        Comissao_Total: feeTotal === undefined ? '' : reais(feeTotal),
+        Comprador: t.buyer,
+        Nome_Comprador: nomes[t.buyer] ?? '',
+        Vendedor: t.seller,
+        Nome_Vendedor: nomes[t.seller] ?? '',
+      }
+    })
   if (fontes.state.trades.some((t) => t.fee === undefined)) {
     r.observacoes.push('Negociações sem comissão gravada vêm do blob (sem banco); o valor congelado só existe em aurea.trades.')
   }
-  return comLinhas(r, linhas, ['Ref', 'Data', 'Moeda', 'Quantidade', 'Preco_Unitario', 'Valor_Bruto', 'Comissao', 'Comprador', 'Nome_Comprador', 'Vendedor', 'Nome_Vendedor'])
+  return comLinhas(r, linhas, ['Ref', 'Data', 'Moeda', 'Quantidade', 'Preco_Unitario', 'Valor_Bruto', 'Comissao', 'Comissao_Comprador', 'Comissao_Vendedor', 'Comissao_Total', 'Comprador', 'Nome_Comprador', 'Vendedor', 'Nome_Vendedor'])
 }
 
 function relatorioCustodia(fontes: Fontes): Relatorio {

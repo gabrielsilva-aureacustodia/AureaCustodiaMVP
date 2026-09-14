@@ -68,8 +68,17 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
   /* negociações novas — ref = posição no histórico, que é o id em aurea.trades */
   const tradesNovos = depois.trades.slice(antes.trades.length)
   tradesNovos.forEach((t, i) => {
-    const fee = t.fee ?? tradeFee(t.price) * (t.qty || 1)
-    pendentes.push(...lancamentosDeTrade(t, fee, `TRADE-${antes.trades.length + i + 1}`, nomes))
+    const qty = t.qty || 1
+    const feeComprador = t.feeComprador ?? 0
+    const feeVendedor = t.feeVendedor ?? (t.fee !== undefined ? t.fee - feeComprador : tradeFee(t.price) * qty)
+    pendentes.push(
+      ...lancamentosDeTrade(
+        t,
+        { comprador: feeComprador, vendedor: feeVendedor },
+        `TRADE-${antes.trades.length + i + 1}`,
+        nomes,
+      ),
+    )
   })
 
   /* depósitos novos */

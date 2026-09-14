@@ -6,6 +6,7 @@
  * combinados com o negócio, e mudar qualquer um deles muda o produto.
  */
 
+import { TAXAS_PADRAO } from '@/domain/fees'
 import type { CoinType, Cents } from '@/domain/types'
 
 /**
@@ -54,11 +55,15 @@ export const STORE_KEY: string = process.env.AUREA_STORE_KEY ?? 'aurea-market-v8
  */
 export const CRYPTO_KEY: string = 'aurea-crypto-v1'
 
-/** Comissão percentual da corretagem: 0,5% sobre o preço unitário. */
-export const FEE_PCT: number = 0.005
+/**
+ * Comissão percentual da corretagem: derivada de TAXAS_PADRAO (src/domain/fees.ts).
+ */
+export const FEE_PCT: number = TAXAS_PADRAO.comissaoVendedorBp / 10000
 
-/** Parcela fixa da comissão, somada ao percentual: R$ 1,00 por moeda negociada. */
-export const FEE_FIXED: Cents = 100
+/**
+ * Parcela fixa da comissão, somada ao percentual: derivada de TAXAS_PADRAO (src/domain/fees.ts).
+ */
+export const FEE_FIXED: Cents = TAXAS_PADRAO.comissaoVendedorFixa
 
 /**
  * Ciclo de sincronização entre contas, em ms. As sessões são independentes e

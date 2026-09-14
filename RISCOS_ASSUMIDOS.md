@@ -36,7 +36,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
 | **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
-| **RA-06** | Comissão do extrato recalculada, não congelada — **metade paga em 02/09** (coluna `fee`) | 🟠 | `src/domain/` |
+| **RA-06** | Comissão do extrato congelada nos dois lados — **pago em 13/09/2026** (migration 014 e extrato) | ✅ | `src/domain/`, `src/server/db/` |
 | **RA-07** | Depósito sem idempotência — **pago em 03/09** (`aurea.payment_events`); falta o limite de frequência | 🟡 | `src/server/payments/` |
 | **RA-08** | Persistência em Redis, sem garantia de concorrência — **pago por construção com `POSTGRES_URL`** | 🟡 | `src/server/store/` |
 | **RA-09** | Dois controles não operáveis por teclado | 🟡 | `src/components/` |
@@ -54,6 +54,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-21** | Papel único na bancada: quem analisa é quem aprova, sem segregação de função | 🟡 | `src/server/estacao/`, `src/domain/analise.ts` |
 | **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
+| **RA-24** | Compra direta via gateway cobra comissão apenas do vendedor — temporário até B1.4 unificar | 🟡 | `src/server/payments/` |
 
 ---
 
@@ -212,26 +213,25 @@ com a trilha de auditoria da Fase 3 e com o hash da estação de validação.
 
 ---
 
-# RA-06 — Comissão do extrato recalculada, não congelada 🟠
+# RA-06 — Comissão do extrato recalculada, não congelada ✅ PAGO em 13/09/2026 (A1)
 
 ```
 Pasta: src/domain/statement.ts · era o CD-09
 ```
 
-`statement.ts` chama `tradeFee(t.price)` a cada leitura. O `Trade` não grava a comissão
-efetivamente cobrada.
+`statement.ts` chamava `tradeFee(t.price)` a cada leitura. O `Trade` não gravava a comissão
+efetivamente cobrada nos dois lados.
 
-**Consequência:** no dia em que `FEE_PCT` ou `FEE_FIXED` mudarem, **o extrato muda o
-passado**. Um extrato impresso hoje e o mesmo extrato impresso depois dirão valores
-diferentes para a mesma venda. Numa contestação, os dois são prova e se contradizem.
+**Consequência anterior:** no dia em que as taxas mudassem, o extrato mudaria o passado.
 
-**Como se paga:** o ledger da Fase 3 resolve naturalmente — o lançamento grava o valor
-cobrado no momento e o extrato lê o que foi gravado.
-
-**Atualização de 02/09/2026 (frente B):** a metade que cabe ao banco está paga. `aurea.trades`
-tem a coluna `fee`, toda negociação nova entra com a comissão congelada, e `Trade.fee?` a
-carrega na leitura. **O extrato ainda recalcula** — ligar `statement.ts` ao campo é a decisão
-CD-09, dos sócios. Ver RA-13.c.
+**✅ ENCERRADO em 13/09/2026 pela Frente A (Agente A, A1):**
+- A migration `014_comissao_dois_lados.sql` adicionou as colunas `fee_comprador` e `fee_vendedor`
+  em `aurea.trades`, com restrição `fee = fee_comprador + fee_vendedor`.
+- `Trade` em `src/domain/types.ts` e `TradeRegistro` em `src/server/db/diff.ts` agora mantêm
+  `feeComprador` e `feeVendedor` congeladas.
+- `src/domain/statement.ts` lê diretamente `t.feeComprador` e `t.feeVendedor ?? t.fee`, registrando
+  a comissão de compra e venda sem nenhum recálculo retroativo.
+- CD-09 foi formalmente resolvido.
 
 ---
 
@@ -697,3 +697,23 @@ ausência dele precisa aparecer como pendência na tela de quem administra — n
 necessariamente como trava.
 
 Nota em `estacao/ATALHOS.md`.
+
+---
+
+# RA-24 — Compra direta pelo gateway cobra taxa apenas do vendedor 🟡
+
+```
+Pasta: src/server/payments/ · temporário até B1.4
+```
+
+Na compra direta de lote do mercado via Pix/cartão pelo gateway (`iniciarCompraDireta`), a
+cobrança no gateway repassa o preço anunciado e retém taxa apenas do vendedor ao liquidar. No
+mercado interno com saldo em conta, o comprador paga a comissão de compra (A1).
+
+**Consequência:** temporariamente, enquanto o Agente B não concluir B1.4 e unificar o split de
+pagamentos com `TAXAS_PADRAO`, compras via gateway cobram comissão apenas do vendedor.
+
+**Como se paga:** Agente B implementa B1.4, alinhando a cobrança do gateway com `TAXAS_PADRAO`
+e os 4 lançamentos contábeis.
+
+Nota em `docs/finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`.

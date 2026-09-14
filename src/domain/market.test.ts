@@ -24,7 +24,7 @@ import {
   matchOrders,
   medianSellPrice,
 } from '@/domain/market'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda } from '@/domain/fees'
 import { BAN, DH, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
 
 describe('matchOrders — um livro por tipo', () => {
@@ -45,7 +45,7 @@ describe('matchOrders — um livro por tipo', () => {
     expect(s.users.v.balance).toBe(0)
   })
 
-  it('mesmo tipo casa com a aritmética exata: cheio do comprador, líquido do vendedor', () => {
+  it('mesmo tipo casa com a aritmética exata: comissão dos dois lados (comprador paga cheio + taxa, vendedor recebe líquido)', () => {
     const s = estado({
       v: usuario('Vendedor', 0, [moeda('RO-000001', DH)]),
       c: usuario('Comprador', 10_000_000, []),
@@ -54,15 +54,56 @@ describe('matchOrders — um livro por tipo', () => {
     s.buyOrders.push(compra('BID-1', 'c', 45_000, 1, DH, 1000))
 
     const r = matchOrders(s)
-    const fee = tradeFee(45_000)
+    const feeVendedor = comissaoPorMoeda(45_000, 'vendedor')
+    const feeComprador = comissaoPorMoeda(45_000, 'comprador')
 
     expect(r.matched).toBe(true)
     expect(r.trades).toHaveLength(1)
     expect(r.trades[0].tipoMoeda).toBe(DH)
-    expect(s.users.c.balance).toBe(10_000_000 - 45_000)
-    expect(s.users.v.balance).toBe(45_000 - fee)
+    expect(r.trades[0].feeComprador).toBe(feeComprador)
+    expect(r.trades[0].feeVendedor).toBe(feeVendedor)
+    expect(r.trades[0].fee).toBe(feeComprador + feeVendedor)
+    expect(s.users.c.balance).toBe(10_000_000 - (45_000 + feeComprador))
+    expect(s.users.v.balance).toBe(45_000 - feeVendedor)
     expect(s.users.c.coins).toHaveLength(1)
     expect(s.users.v.coins).toHaveLength(0)
+  })
+
+  it('negociação canônica de R$ 200,00: comprador paga R$ 202, vendedor recebe R$ 198, Áurea retém R$ 4', () => {
+    const s = estado({
+      v: usuario('Vendedor', 0, [moeda('RO-000001', BAN)]),
+      c: usuario('Comprador', 100_000, []),
+    })
+    s.sellOffers.push(venda('OF-1', 'RO-000001', 'v', 20_000, BAN, 1000))
+    s.buyOrders.push(compra('BID-1', 'c', 20_000, 1, BAN, 1000))
+
+    const r = matchOrders(s)
+
+    expect(r.matched).toBe(true)
+    expect(r.trades).toHaveLength(1)
+    const t = r.trades[0]
+    expect(t.feeComprador).toBe(200) // R$ 2,00
+    expect(t.feeVendedor).toBe(200) // R$ 2,00
+    expect(t.fee).toBe(400) // R$ 4,00
+    expect(s.users.c.balance).toBe(100_000 - 20_200) // R$ 202,00 debitado
+    expect(s.users.v.balance).toBe(19_800) // R$ 198,00 creditado
+  })
+
+  it('comprador com saldo para o preço mas sem saldo para a comissão NÃO casa (é pulado)', () => {
+    const s = estado({
+      v: usuario('Vendedor', 0, [moeda('RO-000001', BAN)]),
+      c: usuario('Comprador', 20_000, []), // tem exatamente R$ 200,00, mas precisa de R$ 202,00
+    })
+    s.sellOffers.push(venda('OF-1', 'RO-000001', 'v', 20_000, BAN, 1000))
+    s.buyOrders.push(compra('BID-1', 'c', 20_000, 1, BAN, 1000))
+
+    const r = matchOrders(s)
+
+    expect(r.matched).toBe(false)
+    expect(s.buyOrders).toHaveLength(1) // bid continua no livro
+    expect(s.sellOffers).toHaveLength(1) // oferta continua no livro
+    expect(s.users.c.balance).toBe(20_000)
+    expect(s.users.v.balance).toBe(0)
   })
 
   it('dois livros executam em paralelo sem contaminação cruzada', () => {

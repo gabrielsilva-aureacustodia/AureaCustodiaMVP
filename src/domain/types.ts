@@ -176,16 +176,14 @@ export interface Trade {
   buyer: UserEmail
   seller: UserEmail
   /**
-   * Comissão TOTAL cobrada nesta negociação (por moeda × qty), congelada no
-   * momento da gravação — a coluna `fee` de `aurea.trades`.
-   *
-   * OPCIONAL de propósito: o motor (`matchOrders`) e as ações continuam
-   * criando o Trade sem ela, e a camada de banco a preenche ao gravar com
-   * `tradeFee(price) * qty`. Todo Trade que SAI do banco a carrega. O extrato
-   * ainda recalcula (RA-06) — passar a ler daqui é o passo seguinte, e é
-   * decisão dos sócios (CD-09).
+   * Comissão TOTAL da negociação (comprador + vendedor), congelada no momento
+   * da gravação — a coluna `fee` de `aurea.trades` (Decisão F-1, 13/09/2026).
    */
   fee?: Cents
+  /** Comissão cobrada do comprador nesta negociação, congelada. */
+  feeComprador?: Cents
+  /** Comissão cobrada do vendedor nesta negociação, congelada. */
+  feeVendedor?: Cents
   /**
    * Tipo negociado. Sem ele, média de 7 dias, mediana de 24h e os gráficos
    * misturariam preços de moedas diferentes numa série só — uma Bandeira de
