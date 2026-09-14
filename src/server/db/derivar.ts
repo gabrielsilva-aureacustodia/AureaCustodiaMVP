@@ -30,6 +30,7 @@ import {
   lancamentoDeAjuste,
   lancamentoDeCustodia,
   lancamentoDeDeposito,
+  lancamentoDeEstorno,
   lancamentoDeSaldoInicial,
   lancamentoDeSaque,
   lancamentoDeTaxaRetirada,
@@ -98,13 +99,25 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     if (op.tipo !== 'fatura.inserir' && op.tipo !== 'fatura.atualizar') continue
     const f = op.fatura
     const antesFat = faturasAntes.get(f.id)
-    const eraPagaComSaldo = antesFat?.status === 'paga' && antesFat?.formaPagamento === 'saldo'
-    const virouPagaComSaldo = f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo
+    const eraPaga = antesFat?.status === 'paga'
+    const virouPaga = f.status === 'paga' && !eraPaga
     // Fatura nova entra como registro; fatura que acabou de ser liquidada entra
     // como saída. As duas passam pela mesma função, que decide o sinal.
-    if (!antesFat || virouPagaComSaldo) {
+    if (!antesFat || virouPaga) {
       const quando = f.dataPagamento || f.dataEmissao || agora
       pendentes.push(lancamentoDeCustodia(f.userEmail, f, semeadura ? quando : agora, f.id))
+    }
+  }
+
+  /* estornos de planos de custódia por moedas recusadas na análise */
+  const planosAntes = new Map((antes.planosCustodia ?? []).map((p) => [p.id, p]))
+  for (const p of depois.planosCustodia ?? []) {
+    const pAntes = planosAntes.get(p.id)
+    const estornadoAntes = pAntes?.estornadoCents ?? 0
+    const estornadoDepois = p.estornadoCents ?? 0
+    const diffEstorno = estornadoDepois - estornadoAntes
+    if (diffEstorno > 0) {
+      pendentes.push(lancamentoDeEstorno(p.userEmail, diffEstorno, agora, p.id))
     }
   }
 
