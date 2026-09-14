@@ -319,7 +319,7 @@ describe('server/custodia/faturamento', () => {
 
     const saldoInicial = estadoSimulado.users['com_saldo@teste.com'].balance // 10000 (R$ 100,00)
 
-    const rel = await processarCicloFaturamento('2026-09', 1726000000000)
+    await processarCicloFaturamento('2026-09', 1726000000000)
 
     const faturaRenovacao = estadoSimulado.faturasCustodia?.find(
       (f) => f.userEmail === 'com_saldo@teste.com' && f.origem === 'renovacao_anual',

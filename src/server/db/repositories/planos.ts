@@ -12,7 +12,7 @@ import type {
   StatusPlanoCustodia,
 } from '@/domain/types'
 
-import { nomeDoSchema, num, numOuNulo, type Consulta } from '../sql'
+import { nomeDoSchema, num, type Consulta } from '../sql'
 
 export type LinhaPlano = {
   id: string

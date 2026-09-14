@@ -19,7 +19,6 @@ import {
   iniciarPixFatura,
   listarMeusPlanos,
   listarMinhasFaturas,
-  pagarFatura,
   pagarFaturaComSaldo,
 } from './plano-custodia'
 import { conciliarPagamento } from '@/server/payments/conciliacao'
