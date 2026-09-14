@@ -80,4 +80,45 @@ Operacionalmente, os saques entram no status `solicitado` com prazo D+3 úteis e
 A migration cria a tabela `aurea.faturas_custodia` com restrições e chave de unicidade `(user_email, competencia)`, adiciona a coluna `inadimplente` na tabela `aurea.users` e habilita RLS.
 Totalmente inócua e retrocompatível com as contas existentes.
 
+---
+
+### B-6 · Aplicar migrations da rodada de finalizações (017, 018 e 019) no Supabase de produção 🟡
+
+| | |
+|---|---|
+| **O que falta** | Executar as migrations `017_cobrancas_gateway.sql`, `018_planos_custodia.sql` e `019_retirada_paga.sql` no Supabase |
+| **Quem pode fazer** | **Gabriel** via `npm run db:migrate` com a senha do banco, ou colando os scripts SQL no SQL Editor do Supabase |
+| **O que está bloqueado** | Persistência dos recebimentos detalhados do gateway (`aurea.recebimentos_gateway`), planos de custódia (`aurea.planos_custodia`), vínculo de planos em faturas/envios, e dados de pagamento da retirada física em produção |
+| **Como conferir que foi feito** | `npm run db:check` reporta 017, 018 e 019 aplicadas com sucesso |
+
+Resumo das migrations:
+- **017**: Coluna `parcelas_max` em `aurea.payment_intents`, novos tipos em check constraint, tabela `aurea.recebimentos_gateway` (RLS ativado).
+- **018**: Tabela `aurea.planos_custodia`, colunas `plano_id` e `origem` em `aurea.faturas_custodia`, coluna `modalidade_envio` em `aurea.envios`.
+- **019**: Colunas `forma_pagamento`, `payment_intent_ref` e `parcelas` em `aurea.retiradas`.
+
+---
+
+### B-7 · Configurar credenciais de produção do Mercado Pago na Vercel 🟡
+
+| | |
+|---|---|
+| **O que falta** | Configurar as variáveis de ambiente de produção na Vercel: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e `MP_SANDBOX=false` |
+| **Quem pode fazer** | **Gabriel** via Vercel Dashboard (Settings › Environment Variables) |
+| **O que está bloqueado** | Cobrança real de clientes via Pix e Cartão em produção |
+| **Como conferir que foi feito** | Teste de geração de cobrança em produção retorna credencial do Mercado Pago e não cai no simulador |
+
+Graças à entrega B1.0, o código agora isola estritamente produção (`MP_SANDBOX=false` usa exclusivamente `MP_ACCESS_TOKEN`).
+
+---
+
+### B-8 · Decidir e configurar absorção de juros de parcelamento no Mercado Pago 🟡
+
+| | |
+|---|---|
+| **O que falta** | Decidir se a Áurea absorve os custos de parcelamento (sem acréscimo para o cliente) ou se o cliente paga os juros |
+| **Quem pode fazer** | **Sócios (Gabriel e Rogério)** |
+| **O que está bloqueado** | Experiência de checkout do cliente (exibir "em até 12x sem juros" para o plano anual ou com acréscimo da operadora) |
+| **Como conferir que foi feito** | Se for absorvido pela Áurea: ativar no painel do Mercado Pago em *Seu negócio › Configurações › Tarifas e prazos / Parcelamento sem acréscimo* |
+
+
 
