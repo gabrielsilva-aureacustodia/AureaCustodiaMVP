@@ -24,31 +24,40 @@ type LinhaTrade = {
   seller: string
   tipo_moeda: string
   fee: unknown
+  fee_comprador?: unknown
+  fee_vendedor?: unknown
 }
 
 export async function carregarTrades(tx: Consulta): Promise<TradeRegistro[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaTrade>(
-    `SELECT price, qty, date, buyer, seller, tipo_moeda, fee
+    `SELECT price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor
        FROM ${S}.trades
       ORDER BY id`,
   )
-  return rows.map((r) => ({
-    price: num(r.price),
-    qty: num(r.qty),
-    date: num(r.date),
-    buyer: r.buyer,
-    seller: r.seller,
-    tipoMoeda: r.tipo_moeda,
-    fee: num(r.fee),
-  }))
+  return rows.map((r) => {
+    const fee = num(r.fee)
+    const feeComprador = r.fee_comprador != null ? num(r.fee_comprador) : 0
+    const feeVendedor = r.fee_vendedor != null ? num(r.fee_vendedor) : fee
+    return {
+      price: num(r.price),
+      qty: num(r.qty),
+      date: num(r.date),
+      buyer: r.buyer,
+      seller: r.seller,
+      tipoMoeda: r.tipo_moeda,
+      fee,
+      feeComprador,
+      feeVendedor,
+    }
+  })
 }
 
 export async function inserirTrade(tx: Consulta, t: TradeRegistro): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
-    `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [t.price, t.qty, t.date, t.buyer, t.seller, t.tipoMoeda, t.fee],
+    `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [t.price, t.qty, t.date, t.buyer, t.seller, t.tipoMoeda, t.fee, t.feeComprador, t.feeVendedor],
   )
 }

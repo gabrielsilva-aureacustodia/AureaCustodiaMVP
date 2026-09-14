@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { matchOrders } from '@/domain/market'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda } from '@/domain/fees'
 import { statementTotals, userStatement } from '@/domain/statement'
 import { BAN, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
 
@@ -38,7 +38,7 @@ describe('userStatement', () => {
     expect(saldoInicial + tot.variacaoSaldo).toBe(s.users.eu.balance)
   })
 
-  it('a comissão aparece só na venda, e é a mesma do motor', () => {
+  it('a comissão aparece nos dois lados (comprador e vendedor), e é a mesma do motor', () => {
     const s = estado({
       eu: usuario('Eu', 100_000, [moeda('RO-000001', BAN)]),
       outro: usuario('Outro', 100_000, []),
@@ -53,13 +53,34 @@ describe('userStatement', () => {
     const doVendedor = statementTotals(linhasVendedor)
     const doComprador = statementTotals(linhasComprador)
 
-    expect(doVendedor.taxasPagas).toBe(tradeFee(28_500))
-    expect(doComprador.taxasPagas).toBe(0) // o comprador paga o preço cheio, sem comissão
+    expect(doVendedor.taxasPagas).toBe(comissaoPorMoeda(28_500, 'vendedor'))
+    expect(doComprador.taxasPagas).toBe(comissaoPorMoeda(28_500, 'comprador'))
     expect(doComprador.compradoValor).toBe(28_500)
 
     // Extensão da D-5: anonimato no extrato — nenhum nome ou e-mail de terceiro é exposto
     expect(linhasVendedor.find((l) => l.kind === 'Venda')?.descricao).toBe('Venda no marketplace')
     expect(linhasComprador.find((l) => l.kind === 'Compra')?.descricao).toBe('Compra no marketplace')
+  })
+
+  it('trades legados (sem feeComprador) mostram taxa 0 no comprador e não quebram', () => {
+    const s = estado({
+      eu: usuario('Eu', 100_000, []),
+      outro: usuario('Outro', 100_000, []),
+    })
+    s.trades.push({
+      price: 28_500,
+      qty: 1,
+      date: 1000,
+      buyer: 'eu',
+      seller: 'outro',
+      tipoMoeda: BAN,
+      fee: 243, // legado: apenas fee total (do vendedor)
+    })
+    const linhas = userStatement(s, 'eu')
+    const tot = statementTotals(linhas)
+    expect(tot.taxasPagas).toBe(0)
+    expect(tot.compradoValor).toBe(28_500)
+    expect(linhas[0].taxa).toBeNull()
   })
 
   it('fatura pendente e envio entram com impacto ZERO — não movem saldo', () => {

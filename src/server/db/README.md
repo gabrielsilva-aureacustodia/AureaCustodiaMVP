@@ -88,8 +88,9 @@ das escritas.
 - **Os catálogos contábeis (plano de contas, chaves de alíquota) vêm do domínio**
   (`src/domain/dre.ts`) e são upsertados por `garantirCatalogos`; a migration só cria as
   tabelas. As alíquotas nascem nulas e só o contador as preenche.
-- **`fee` em `trades`** é a comissão congelada na gravação (RA-06). O extrato ainda recalcula —
-  ligar os dois é decisão dos sócios (CD-09).
+- **`fee_comprador` e `fee_vendedor` em `trades`** (migration 014): comissões congeladas na
+  gravação para ambos os lados (A1, RA-06, CD-09). O extrato lê os valores congelados diretamente,
+  preservando o histórico contábil contra mudanças de alíquota.
 - **Toda leitura devolve um `AppState` idêntico ao do blob** — mesmas chaves, mesma ordem dos
   arrays, campo opcional ausente (não `null`) quando o domínio o deixa ausente. É o que mantém
   telas e seletores intocados.

@@ -39,7 +39,7 @@ import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { apelidoComprador } from '@/domain/contraparte'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import type { BuyOrder, Lot } from '@/domain/types'
@@ -168,9 +168,10 @@ export default function VenderPage(): ReactNode {
    * "taxa R$ 1,00" com o campo de preço ainda vazio — a linha 1625 do monolito
    * tem exatamente esta mesma proteção do lado de fora.
    */
-  const feeUnit = cents > 0 ? tradeFee(cents) : 0
+  const feeUnit = cents > 0 ? comissaoPorMoeda(cents, 'vendedor') : 0
   const fee = feeUnit * qty
-  const net = gross - fee
+  const netUnit = cents > 0 ? liquidoDeVendaPorMoeda(cents) : 0
+  const net = netUnit * qty
   const podePublicar = qty > 0 && cents > 0 && termsOk
 
   /* ---------- seleção -------------------------------------------------------- */
@@ -400,15 +401,17 @@ export default function VenderPage(): ReactNode {
           <span className="v">{gross > 0 ? brl(gross) : '—'}</span>
         </div>
         <div className="summary-row">
-          <span className="k">Taxa total (0,5% + R$1,00 por moeda)</span>
-          <span className="v">{fee > 0 ? brl(fee) : '—'}</span>
+          <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+          <span className="v">{fee > 0 ? `- ${brl(fee)}` : '—'}</span>
         </div>
         <div className="summary-row total">
-          <span className="k">Valor líquido estimado</span>
+          <span className="k">Você recebe</span>
           {/* 19px sobrescreve os 21px de .summary-row.total .v — está inline no
               original e continua inline aqui pelo mesmo motivo: precedência. */}
           <span className="v" style={{ fontSize: 19 }}>
-            {net > 0 ? brl(net) : '—'}
+            {net > 0 ? (
+              qty > 1 ? `${brl(net)} (${brl(netUnit)}/moeda)` : brl(net)
+            ) : '—'}
           </span>
         </div>
 
@@ -692,9 +695,22 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>de {maxQ} disponíveis</span>
       </div>
 
-      <p>
-        Total a receber (antes da taxa): <b style={{ color: 'var(--gold)' }}>{brl(total)}</b>
-      </p>
+      <div className="summary-row" style={{ marginTop: 12 }}>
+        <span className="k">Subtotal bruto</span>
+        <span className="v">{brl(total)}</span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+        <span className="v">- {brl(comissaoPorMoeda(bo.price, 'vendedor') * qty)}</span>
+      </div>
+      <div className="summary-row total" style={{ marginBottom: 16 }}>
+        <span className="k">Você recebe</span>
+        <span className="v" style={{ fontSize: 17 }}>
+          {qty > 1
+            ? `${brl(liquidoDeVendaPorMoeda(bo.price) * qty)} (${brl(liquidoDeVendaPorMoeda(bo.price))}/moeda)`
+            : brl(liquidoDeVendaPorMoeda(bo.price) * qty)}
+        </span>
+      </div>
 
       <div className="m-actions">
         <button className="btn btn-outline" type="button" onClick={close}>

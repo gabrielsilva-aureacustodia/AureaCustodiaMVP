@@ -62,8 +62,12 @@ src/domain/market.ts        src/domain/types.ts
 src/server/store/types.ts   src/server/actions/*
 ```
 
-Alterar qualquer um exige decisão registrada do Gabriel. Vários blocos desta publicação
-**precisam** mexer aí (preços novos, cadastro no `User`, custódia mensal). Onde o plano
+Alterar qualquer um exige decisão registrada do Gabriel. As taxas canônicas vivem em
+`TAXAS_PADRAO` (`src/domain/fees.ts`). A comissão de negociação é cobrada dos **dois lados**
+(comprador e vendedor: 0,5% + R$ 1,00 por moeda negociada de cada lado), e a custódia é
+mensal a R$ 2,00 por moeda por mês (decisão D-3). Qualquer alteração nessas tabelas ou regras
+depende de decisão registrada dos sócios. Vários blocos desta publicação **precisam** mexer
+aí (preços novos, cadastro no `User`, custódia mensal, comissão nos dois lados). Onde o plano
 manda mexer, a autorização está escrita no plano, com o número da decisão. Onde não estiver,
 **pare e pergunte** — não deduza.
 

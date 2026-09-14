@@ -70,9 +70,11 @@ export interface CoinRegistro {
   coin: Coin
 }
 
-/** A linha de `trades`: o `Trade` com a comissão congelada (RA-06). */
+/** A linha de `trades`: o `Trade` com as comissões congeladas dos dois lados (A1, RA-06). */
 export interface TradeRegistro extends Trade {
   fee: Cents
+  feeComprador: Cents
+  feeVendedor: Cents
 }
 
 export function normalizarUser(u: User): UserRegistro {
@@ -176,6 +178,10 @@ export function normalizarBuyOrder(b: BuyOrder): BuyOrder {
  * está gravado — é o ponto inteiro do RA-06.
  */
 export function normalizarTrade(t: Trade): TradeRegistro {
+  const qty = t.qty || 1
+  const feeVendedor = t.feeVendedor ?? t.fee ?? tradeFee(t.price) * qty
+  const feeComprador = t.feeComprador ?? 0
+  const fee = t.fee ?? (feeComprador + feeVendedor)
   return {
     price: t.price,
     qty: t.qty,
@@ -183,7 +189,9 @@ export function normalizarTrade(t: Trade): TradeRegistro {
     buyer: t.buyer,
     seller: t.seller,
     tipoMoeda: t.tipoMoeda,
-    fee: t.fee ?? tradeFee(t.price) * (t.qty || 1),
+    fee,
+    feeComprador,
+    feeVendedor,
   }
 }
 

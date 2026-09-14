@@ -235,7 +235,9 @@ describe('planejarDiff — livro de ordens', () => {
         buyer: comprador,
         seller: vendedor,
         tipoMoeda: BANDEIRA,
-        fee: tradeFee(30_000),
+        fee: 500,
+        feeComprador: 250,
+        feeVendedor: 250,
       },
     })
   })
@@ -316,14 +318,35 @@ describe('planejarDiff — histórico é append-only', () => {
 })
 
 describe('normalizarTrade — a comissão congelada', () => {
-  it('sem fee gravada, calcula tradeFee(price) × qty', () => {
+  it('sem fee gravada, calcula tradeFee(price) × qty para vendedor e 0 para comprador', () => {
     const t = normalizarTrade({ price: 28_500, qty: 3, date: 1, buyer: 'a', seller: 'b', tipoMoeda: BANDEIRA })
+    expect(t.feeVendedor).toBe(tradeFee(28_500) * 3)
+    expect(t.feeComprador).toBe(0)
     expect(t.fee).toBe(tradeFee(28_500) * 3)
   })
 
-  it('com fee gravada, preserva o valor — mesmo que a fórmula atual desse outro', () => {
+  it('com fee gravada (legado), preserva feeVendedor = fee e feeComprador = 0', () => {
     const t = normalizarTrade({ price: 28_500, qty: 1, date: 1, buyer: 'a', seller: 'b', tipoMoeda: BANDEIRA, fee: 7 })
     expect(t.fee).toBe(7)
+    expect(t.feeVendedor).toBe(7)
+    expect(t.feeComprador).toBe(0)
+  })
+
+  it('com feeComprador e feeVendedor gravadas, preserva ambos os lados', () => {
+    const t = normalizarTrade({
+      price: 20_000,
+      qty: 1,
+      date: 1,
+      buyer: 'a',
+      seller: 'b',
+      tipoMoeda: BANDEIRA,
+      feeComprador: 200,
+      feeVendedor: 200,
+      fee: 400,
+    })
+    expect(t.feeComprador).toBe(200)
+    expect(t.feeVendedor).toBe(200)
+    expect(t.fee).toBe(400)
   })
 })
 

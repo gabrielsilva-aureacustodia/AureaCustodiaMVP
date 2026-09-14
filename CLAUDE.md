@@ -73,8 +73,12 @@ cold start.
 
 ## Regras de negócio que não podem mudar sem decisão dos sócios
 
-- Comissão: **0,5% + R$ 1,00 por moeda** negociada (`FEE_PCT`, `FEE_FIXED`).
-- Custódia anual por faixas: **R$ 5 / 15 / 25 / 30 / 60**.
+- Comissão de negociação: **0,5% + R$ 1,00 por moeda**, cobrada de **ambos os lados**
+  (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
+  derivados em `constants.ts`). Em uma negociação de R$ 200,00: o comprador paga R$ 202,00, o
+  vendedor recebe R$ 198,00 e a Áurea retém R$ 4,00.
+- Custódia mensal: **R$ 2,00 por moeda por mês** (`custodiaMensalCents: 200` em `TAXAS_PADRAO`,
+  decisão D-3 de 11/09/2026). A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
 - Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
   **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
   nunca casa com oferta de outro).
@@ -87,8 +91,8 @@ cold start.
 - **Depósito em conta é simulado** e limitado a `DEPOSITO_MAX` (R$ 100.000 por
   operação). Não há Pix, cartão nem conciliação — a tela precisa dizer isso.
 
-Esses números vivem em `src/domain/constants.ts` e `src/domain/fees.ts`. Alterar
-qualquer um deles altera o produto — confirmar com o Gabriel antes.
+Esses números vivem em `src/domain/constants.ts` e `src/domain/fees.ts`. A fonte canônica
+é `TAXAS_PADRAO`. Alterar qualquer um deles altera o produto — confirmar com o Gabriel antes.
 
 ## Restrições de marca, jurídico e regulatório
 

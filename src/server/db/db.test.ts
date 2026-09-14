@@ -211,6 +211,34 @@ function suite(alvo: Alvo): void {
       expect(await aplicarMigrations(executar)).toEqual([])
     })
 
+    it('migration 014: trades aceita fee_comprador e fee_vendedor e recusa soma inconsistente', async () => {
+      const S = alvo.schema
+      const semeado = await lerEstado(executar)
+      const [vendedor, comprador] = Object.keys(semeado.users)
+
+      // Soma divergente viola trades_fee_soma_check
+      await expect(
+        executar((tx) =>
+          tx.query(
+            `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor)
+             VALUES (30000, 1, $1, $2, $3, $4, 500, 200, 200)`,
+            [Date.now(), comprador, vendedor, BANDEIRA],
+          ),
+        ),
+      ).rejects.toThrow()
+
+      // Soma correta (250 + 250 = 500) grava normalmente
+      const res = await executar((tx) =>
+        tx.query<{ id: number; fee: number; fee_comprador: number; fee_vendedor: number }>(
+          `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor)
+           VALUES (30000, 1, $1, $2, $3, $4, 500, 250, 250)
+           RETURNING id, fee, fee_comprador, fee_vendedor`,
+          [Date.now(), comprador, vendedor, BANDEIRA],
+        ),
+      )
+      expect(res.rows[0]).toMatchObject({ fee: 500, fee_comprador: 250, fee_vendedor: 250 })
+    })
+
     it('banco vazio semeia na primeira leitura, e a segunda leitura é idêntica à primeira', async () => {
       const primeira = await lerEstado(executar)
       expect(Object.keys(primeira.users)).toHaveLength(7)
@@ -276,10 +304,18 @@ function suite(alvo: Alvo): void {
       expect(lido.buyOrders).toEqual([])
       expect(lido.users[comprador].coins.some((c) => c.id === coinId)).toBe(true)
       expect(lido.users[vendedor].coins.some((c) => c.id === coinId)).toBe(false)
-      expect(lido.users[comprador].balance).toBe(semeado.users[comprador].balance - 30_000)
-      expect(lido.users[vendedor].balance).toBe(semeado.users[vendedor].balance + 30_000 - tradeFee(30_000))
+      expect(lido.users[comprador].balance).toBe(semeado.users[comprador].balance - 30_000 - tradeFee(30_000, 'comprador'))
+      expect(lido.users[vendedor].balance).toBe(semeado.users[vendedor].balance + 30_000 - tradeFee(30_000, 'vendedor'))
       expect(lido.trades).toHaveLength(33)
-      expect(lido.trades[32]).toMatchObject({ price: 30_000, qty: 1, buyer: comprador, seller: vendedor, fee: tradeFee(30_000) })
+      expect(lido.trades[32]).toMatchObject({
+        price: 30_000,
+        qty: 1,
+        buyer: comprador,
+        seller: vendedor,
+        fee: tradeFee(30_000, 'comprador') + tradeFee(30_000, 'vendedor'),
+        feeComprador: tradeFee(30_000, 'comprador'),
+        feeVendedor: tradeFee(30_000, 'vendedor'),
+      })
     })
 
     it('duas compras simultâneas da mesma oferta: uma vence, a outra recebe recusa clara', async () => {
@@ -667,11 +703,11 @@ function suite(alvo: Alvo): void {
       const semeado = await lerEstado(executar)
       const livro = await executar((tx) => listarLancamentos(tx))
 
-      // 7 aberturas + 3 lançamentos por negociação.
+      // 7 aberturas + 4 lançamentos por negociação (compra, comissão comprador, venda, comissão vendedor).
       //
       // As 7 cobranças de custódia saíram em 11/09/2026: o seed não grava mais
       // cobrança nenhuma, e quem cobra é o ciclo mensal, que só roda depois.
-      expect(livro).toHaveLength(7 + semeado.trades.length * 3)
+      expect(livro).toHaveLength(7 + semeado.trades.length * 4)
       expect(livro.filter((l) => l.tipo === 'saldo_inicial')).toHaveLength(7)
       expect(livro.filter((l) => l.tipo === 'ajuste')).toEqual([])
       expect(livro[0].hashAnterior).toBe(GENESIS)
@@ -720,9 +756,12 @@ function suite(alvo: Alvo): void {
 
       const livro = await executar((tx) => listarLancamentos(tx))
       const novos = livro.slice(antes.length)
-      expect(novos.map((l) => l.tipo)).toEqual(['compra', 'venda', 'comissao', 'deposito'])
-      expect(novos[2]).toMatchObject({ userEmail: vendedor, valor: tradeFee(30_000), sinal: -1, refInterna: 'TRADE-33' })
-      expect(novos[3]).toMatchObject({ userEmail: comprador, valor: 5_000, sinal: 1, refInterna: 'DEP-1' })
+      expect(novos.map((l) => l.tipo)).toEqual(['compra', 'comissao', 'venda', 'comissao', 'deposito'])
+      expect(novos[0]).toMatchObject({ userEmail: comprador, valor: 30_000, sinal: -1, refInterna: 'TRADE-33' })
+      expect(novos[1]).toMatchObject({ userEmail: comprador, valor: tradeFee(30_000, 'comprador'), sinal: -1, refInterna: 'TRADE-33' })
+      expect(novos[2]).toMatchObject({ userEmail: vendedor, valor: 30_000, sinal: 1, refInterna: 'TRADE-33' })
+      expect(novos[3]).toMatchObject({ userEmail: vendedor, valor: tradeFee(30_000, 'vendedor'), sinal: -1, refInterna: 'TRADE-33' })
+      expect(novos[4]).toMatchObject({ userEmail: comprador, valor: 5_000, sinal: 1, refInterna: 'DEP-1' })
       expect(verificarCadeia(livro, GENESIS).ok).toBe(true)
 
       const lido = await lerEstado(executar)

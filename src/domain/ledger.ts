@@ -106,10 +106,13 @@ export function hashDeLancamento(e: Omit<LedgerEntry, 'hash'>): string {
 
 /* ---------- derivação a partir dos fatos do domínio ---------- */
 
-/** Comissão total da negociação: a congelada, quando existe, senão a calculada por quem chama. */
+/**
+ * Quatro lançamentos por negociação: compra, comissão de compra, venda e comissão de venda.
+ * Suporta objeto { comprador, vendedor } ou valor numérico (legado/vendedor).
+ */
 export function lancamentosDeTrade(
   t: Trade,
-  feeTotal: Cents,
+  fee: { comprador: Cents; vendedor: Cents } | Cents,
   refInterna: string,
   nomes: Record<UserEmail, string> = {},
 ): LancamentoPendente[] {
@@ -117,6 +120,10 @@ export function lancamentosDeTrade(
   const bruto = t.price * qty
   const nomeVendedor = nomes[t.seller] ?? t.seller
   const nomeComprador = nomes[t.buyer] ?? t.buyer
+
+  const feeComprador = typeof fee === 'number' ? 0 : fee.comprador
+  const feeVendedor = typeof fee === 'number' ? fee : fee.vendedor
+
   return [
     {
       createdAt: t.date,
@@ -129,6 +136,18 @@ export function lancamentosDeTrade(
       refInterna,
       refExterna: null,
       descricao: `Compra de ${qty} ${t.tipoMoeda} de ${nomeVendedor}`,
+    },
+    {
+      createdAt: t.date,
+      userEmail: t.buyer,
+      tipo: 'comissao',
+      valor: feeComprador,
+      sinal: -1,
+      tipoMoeda: t.tipoMoeda,
+      quantidade: qty,
+      refInterna,
+      refExterna: null,
+      descricao: 'Comissão de compra',
     },
     {
       createdAt: t.date,
@@ -146,13 +165,13 @@ export function lancamentosDeTrade(
       createdAt: t.date,
       userEmail: t.seller,
       tipo: 'comissao',
-      valor: feeTotal,
+      valor: feeVendedor,
       sinal: -1,
       tipoMoeda: t.tipoMoeda,
       quantidade: qty,
       refInterna,
       refExterna: null,
-      descricao: `Comissão de corretagem (0,5% + R$ 1,00 por moeda)`,
+      descricao: 'Comissão de venda',
     },
   ]
 }

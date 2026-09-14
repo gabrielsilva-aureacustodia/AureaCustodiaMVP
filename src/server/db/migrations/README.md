@@ -19,8 +19,9 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `011_retiradas.sql` | Frente C: `retiradas`, a máquina de estados da saída física da moeda |
 | `012_retiradas_ledger.sql` | Frente C: fecha a restrição de tipos do ledger com a **união** das três frentes. Ver a nota dentro do arquivo |
 | `013_remove_custody_charges.sql` | Derruba `custody_charges`, o mecanismo antigo de custódia (D-3 concluída, 11/09/2026). Sobe `STORE_KEY` para v8 |
+| `014_comissao_dois_lados.sql` | Frente A: `fee_comprador` e `fee_vendedor` em `aurea.trades` (A1, RA-06) |
 
-A próxima é a **014**. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **015**. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**

@@ -12,7 +12,7 @@
 import type { AppState, Cents, Coin, Lot, MatchResult, Trade, User } from '@/domain/types'
 import { isNegociavel } from '@/domain/constants'
 import { DAY_MS, fdate } from '@/domain/dates'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 
 /* ---------- indicadores derivados das negociações ---------- */
@@ -180,7 +180,7 @@ export function transferCoin(seller: User, buyer: User, coinId: string): Coin | 
  *
  * MUTA `state`: saldos, inventários, ofertas, ordens e histórico.
  */
-export function matchOrders(state: AppState): MatchResult {
+export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO): MatchResult {
   /**
    * Agrupa execuções unitárias por comprador+vendedor+preço+tipo para que N
    * moedas do mesmo lote virem UM registro no histórico, com qty = N.
@@ -190,7 +190,18 @@ export function matchOrders(state: AppState): MatchResult {
    * split passaria a depender de nenhum nome de moeda do catálogo conter uma
    * barra vertical — uma armadilha silenciosa esperando o primeiro ativo novo.
    */
-  const fills = new Map<string, { buyer: string; seller: string; price: Cents; tipoMoeda: string; qty: number }>()
+  const fills = new Map<
+    string,
+    {
+      buyer: string
+      seller: string
+      price: Cents
+      tipoMoeda: string
+      qty: number
+      feeComprador: Cents
+      feeVendedor: Cents
+    }
+  >()
   let progress = true
   while (progress) {
     progress = false
@@ -208,12 +219,13 @@ export function matchOrders(state: AppState): MatchResult {
       const so = state.sellOffers.find(
         (s) => s.tipoMoeda === bo.tipoMoeda && s.price <= bo.price && s.seller !== bo.buyer,
       )
-      // Sem saldo, a ordem é apenas PULADA — não se cancela um bid por falta de
-      // caixa momentânea; ele volta a ser tentado na próxima rodada.
-      if (so && buyer.balance >= so.price) {
+      if (!so) continue
+      const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
+      // Sem saldo suficiente para o preço + comissão de compra, a ordem é apenas PULADA
+      // — não se cancela um bid por falta de caixa momentânea; ele volta a ser tentado na próxima rodada.
+      if (buyer.balance >= so.price + feeComprador) {
         const seller = state.users[so.seller]
         const price = so.price
-        const fee = tradeFee(price)
 
         // A TRANSFERÊNCIA VEM ANTES DO DINHEIRO — divergência deliberada do
         // original (linha 993), autorizada pelos sócios.
@@ -234,21 +246,27 @@ export function matchOrders(state: AppState): MatchResult {
           break
         }
 
-        buyer.balance -= price // o comprador paga o preço cheio
-        seller.balance += price - fee // a comissão sai do lado do vendedor
+        buyer.balance -= price + feeComprador // comprador paga preço + comissão de compra
+        seller.balance += price - feeVendedor // vendedor recebe preço líquido da comissão
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         bo.qty -= 1
         const k = bo.buyer + '|' + so.seller + '|' + price + '|' + so.tipoMoeda
         const atual = fills.get(k)
-        if (atual) atual.qty += 1
-        else
+        if (atual) {
+          atual.qty += 1
+          atual.feeComprador += feeComprador
+          atual.feeVendedor += feeVendedor
+        } else {
           fills.set(k, {
             buyer: bo.buyer,
             seller: so.seller,
             price,
             tipoMoeda: so.tipoMoeda,
             qty: 1,
+            feeComprador,
+            feeVendedor,
           })
+        }
         progress = true
         break
       }
@@ -266,6 +284,9 @@ export function matchOrders(state: AppState): MatchResult {
       date: now,
       buyer: f.buyer,
       seller: f.seller,
+      feeComprador: f.feeComprador,
+      feeVendedor: f.feeVendedor,
+      fee: f.feeComprador + f.feeVendedor,
       tipoMoeda: f.tipoMoeda,
     }
     state.trades.push(trade)

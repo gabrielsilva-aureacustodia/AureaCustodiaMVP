@@ -81,9 +81,9 @@ deles, é desenvolvimento normal e não precisa de autorização especial.
 
 | Superfície | Por que é o esqueleto |
 |---|---|
-| `src/domain/constants.ts`, `fees.ts`, `market.ts` | Os números combinados com os sócios e o motor que os aplica |
+| `src/domain/constants.ts`, `fees.ts`, `market.ts` | Os números combinados com os sócios (`TAXAS_PADRAO`), comissão dos dois lados e o motor que os aplica |
 | `src/domain/types.ts` | O modelo de dados. Mudança aqui obriga rotação de `AUREA_STORE_KEY` |
-| `src/domain/hash.ts`, `ledger.ts`, `dre.ts` | A fórmula do hash gravada em toda linha do ledger; a DRE sem alíquota em código |
+| `src/domain/hash.ts`, `ledger.ts`, `dre.ts` | A fórmula do hash no ledger; estrutura de 4 lançamentos por trade (compra, comissão do comprador, venda, comissão do vendedor); a DRE sem alíquota em código |
 | Contrato de `src/server/store/types.ts` | O que garante que trocar de banco não muda comportamento |
 | As Server Actions | Todo caminho por onde dinheiro e titularidade se movem |
 
@@ -146,7 +146,7 @@ inventar um lugar diferente:
 ```
 src/server/db/          Camada de repositório: consultas ao Supabase
   ├── schema.sql          O schema, versionado
-  ├── migrations/         Migrations numeradas
+  ├── migrations/         Migrations numeradas (001 a 014: comissão dois lados em aurea.trades)
   └── repositories/       Uma por agregado (users, coins, offers, trades, ledger)
 
 src/lib/payments/       Mercado Pago: cobrança, split, webhook

@@ -32,7 +32,7 @@
  */
 
 import { isNegociavel } from '@/domain/constants'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
@@ -332,18 +332,22 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
-      const affordable = Math.floor(buyer.balance / bo.price)
+      const affordable = Math.floor(buyer.balance / custoDeCompraPorMoeda(bo.price))
       const execN = Math.min(n, affordable)
       if (execN <= 0) return { ok: false, error: 'O comprador não possui saldo suficiente no momento.' }
+
+      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price)
 
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]
         const price = bo.price
-        const fee = tradeFee(price)
-        buyer.balance -= price // o comprador paga o preço cheio
-        seller.balance += price - fee // a comissão sai do lado do vendedor
+        buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
+        seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
         transferCoin(seller, buyer, coin.id)
       }
+
+      const feeComprador = feeCompradorUnit * execN
+      const feeVendedor = feeVendedorUnit * execN
 
       // UM registro para as execN unidades, com qty = execN — é assim que o
       // histórico do MVP guarda venda direta (linha 1786) e é o que a média
@@ -354,6 +358,9 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         date: Date.now(),
         buyer: bo.buyer,
         seller: email,
+        feeComprador,
+        feeVendedor,
+        fee: feeComprador + feeVendedor,
         tipoMoeda: bo.tipoMoeda,
       })
       bo.qty -= execN

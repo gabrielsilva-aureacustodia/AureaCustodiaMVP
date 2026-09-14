@@ -28,5 +28,6 @@ ordem:
 1. Nada de `@/server/*` importado por Client Component.
 2. Não sugerir blockchain, tokenização ou NFT on-chain — decisão registrada com base
    regulatória.
-3. Números de negócio (`src/domain/constants.ts`, `fees.ts`, `market.ts`) não se alteram
-   sem decisão dos sócios.
+3. Números de negócio (`TAXAS_PADRAO` em `src/domain/fees.ts`, `constants.ts`, `market.ts`)
+   não se alteram sem decisão dos sócios (comissão de negociação é cobrada dos dois lados:
+   0,5% + R$ 1,00/moeda de cada lado; custódia R$ 2,00/moeda/mês).

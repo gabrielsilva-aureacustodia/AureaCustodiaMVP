@@ -9,8 +9,8 @@ Base:        commit 2cc7194 — publicado e conferido em produção
 Gerado em:   11/09/2026 — reescrito após o merge e após a execução do plano
              de pagamentos
 Fonte:       repositório · Supabase (conferido por db:check) · navegador com dev no ar
-Itens:       2 abertos + 1 observação. CD-11 foi RESOLVIDO em 11/09/2026 — a
-             custódia antiga saiu do código e do banco (migration 013)
+Itens:       2 abertos + 1 observação. CD-11 e CD-09 RESOLVIDOS (custódia antiga
+             saiu na 013 e comissão dois lados congelada entrou na 014)
 ```
 
 > **Como usar.** O agente lê este documento **depois** do Ritual de Sessão. Cada item traz
@@ -28,7 +28,7 @@ Itens:       2 abertos + 1 observação. CD-11 foi RESOLVIDO em 11/09/2026 — a
 | **CD-12** | `src/domain/types.ts` não tem dono único | 🟠 Média | Baixo — é regra, não código |
 | **CD-13** | Aviso de hidratação do React em produção | 🟡 Baixa | Baixo — só quando tocar em tema |
 | **CD-08** | Migrar a persistência de produção para Postgres | 🟡 Baixa | — |
-| **CD-09** | Comissão do extrato é recalculada, não congelada | 🟡 Baixa | Baixo |
+| **CD-09** | Comissão do extrato é recalculada, não congelada | ✅ Resolvido | — |
 
 ---
 
@@ -87,11 +87,10 @@ passo 9 do M1. Ver `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 ---
 
-# CD-09 — Comissão do extrato é recalculada, não congelada 🟡
+# CD-09 — Comissão do extrato é recalculada, não congelada — RESOLVIDO em 13/09/2026 (A1) ✅
 
-Mantido da leitura anterior, e agora com um detalhe novo: o campo `Trade.fee` existe e é
-preenchido pela camada de banco, mas `src/domain/statement.ts` continua recalculando com
-`tradeFee(price) * qty` em vez de ler o valor gravado. Enquanto a fórmula não mudar, os dois
-dão o mesmo número. No dia em que a comissão mudar, o extrato passa a reescrever o passado.
-
-Registrado como RA-06. A troca é decisão dos sócios (CD-09 original).
+**Resolvido pela frente A (Agente A) na sub-branch `feat/a1-comissao-dois-lados`:**
+- A comissão agora é congelada para ambos os lados em `Trade` (`feeComprador` e `feeVendedor`).
+- A migration `014_comissao_dois_lados.sql` adicionou as colunas `fee_comprador` e `fee_vendedor` em `aurea.trades`, com constraint `fee = fee_comprador + fee_vendedor`.
+- `src/domain/statement.ts` lê diretamente as comissões congeladas gravadas no trade (`feeComprador` e `feeVendedor`), evitando qualquer recálculo retroativo no histórico contábil.
+- RA-06 foi fechado.
