@@ -3,7 +3,21 @@
 Cada arquivo aqui é um **prompt pronto para copiar e colar** como primeira mensagem de um
 chat dedicado a uma frente de trabalho.
 
-## Publicação oficial para clientes — a rodada em curso
+## Finalizações — a rodada em curso (13/09/2026)
+
+Três agentes abrem no mesmo dia. Dentro de cada frente, as três sub-branches correm em
+sequência. **A1 entra na `main` primeiro** — B1.4, B2 e C3 dependem dela.
+
+| Arquivo | Frente | Branch da frente | Sub-branches |
+|---|---|---|---|
+| `FINALIZACAO_AGENTE_A.md` | Mercado e termos | `feat/a-mercado-e-termos` | A1 comissão dos dois lados · A2 livro de ordens · A3 termos oficiais |
+| `FINALIZACAO_AGENTE_B.md` | Cobrança e custódia | `feat/b-cobranca-e-custodia` | B1 cobrança reutilizável · B2 plano de custódia · B3 retirada e financeiro |
+| `FINALIZACAO_AGENTE_C.md` | Painel Admin | `feat/c-painel-admin` | C1 fundação e resultados · C2 usuários e CS · C3 bancada e configuração |
+
+O contrato dos três está em
+[`../finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`](../finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md).
+
+## Publicação oficial para clientes — rodada de 10/09/2026, executada
 
 Ordem obrigatória: **a Fase 0 roda sozinha e primeiro.** Ela renomeia terminologia em 25
 arquivos espalhados pela interface, e renomear arquivo enquanto outro agente o edita produz
