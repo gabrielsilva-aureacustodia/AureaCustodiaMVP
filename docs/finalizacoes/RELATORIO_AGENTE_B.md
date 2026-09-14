@@ -92,4 +92,70 @@ Data:           14/09/2026
 
 ---
 
-B1 pronta para main — merge f3444e6
+## 2. Sub-branch B2 — Plano de Custódia e Cobrança Mensal/Anual
+
+**Status:** Concluída, testada e integrada com sucesso (`merge --no-ff` em `feat/b-cobranca-e-custodia`).
+
+### 2.1 O que foi implementado
+
+1. **B2.1 — Correção do defeito de contagem de moedas (`src/domain/custody.ts`):**
+   - Criada função `moedasFaturaveis(user): Coin[]` que filtra estritamente moedas cujo recibo não tenha status `'Extinto'`.
+   - `gerarFaturaParaUsuario` atualizada para faturar apenas moedas ativas sob custódia, impedindo cobrança indevida de moedas já retiradas fisicamente.
+
+2. **B2.2 — Estrutura de tipos, migration 018 e repositório de planos (`src/domain/types.ts` e `src/server/db/`):**
+   - Tipos de domínio: `ModalidadePlanoCustodia` ('mensal' | 'anual'), `StatusPlanoCustodia` ('aguardando_pagamento' | 'vigente' | 'cancelado'), `PlanoCustodia`.
+   - Extensões em `FaturaCustodia` (`planoId`, `origem`: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'), `Envio` (`modalidadeEnvio`: 'PAC' | 'SEDEX'), `Seq` (`planoCustodia`) e `AppState` (`planosCustodia`).
+   - Migration `018_planos_custodia.sql` com tabela `aurea.planos_custodia`, colunas `plano_id` e `origem` em `aurea.faturas_custodia`, e coluna `modalidade_envio` em `aurea.envios`.
+   - Repositório `src/server/db/repositories/planos.ts` com suporte a PGlite/Postgres e fallback em memória.
+
+3. **B2.3 — Regras de negócio e funções puras de domínio (`src/domain/plano-custodia.ts`):**
+   - `valorDoPlano(modalidade, quantidade)`: Mensal R$ 2,00/moeda/mês (1x); Anual R$ 24,00/moeda/ano (até 12x).
+   - `somarMeses`, `calcularPagoAte`, `competenciaCoberta`, `moedasCobertas`.
+   - `gerarFaturaDoCiclo`: deduz moedas cobertas por planos vigentes ou em renovação anual, evitando faturamento duplicado.
+   - `renovacaoAnualDevida`: identifica o 13º mês de planos anuais para cobrança da anuidade seguinte.
+   - Testes unitários puros com 27 casos de teste (`src/domain/plano-custodia.test.ts`).
+
+4. **B2.4 — Server Actions, conciliação e ledger contábil:**
+   - Adicionado `nextPlanoCode` (sequencial `PLC-000001`).
+   - `src/server/actions/plano-custodia.ts`:
+     - `contratarPlanoCustodia(protocolo, modalidade)`: idempotente, gera plano e fatura pendente.
+     - `pagarFatura`, `pagarFaturaComSaldo`, `iniciarPixFatura`, `iniciarCartaoFatura`.
+     - `listarMinhasFaturas` e `listarMeusPlanos`.
+   - `liquidarFaturaCustodia` em `src/server/payments/conciliacao.ts`: quita fatura, ativa/renova o plano, registra depósito contábil e reavalia inadimplência.
+   - `derivar.ts`: quita faturas no banco e deriva lançamentos contábeis de custódia e estorno.
+
+5. **B2.5 — Vinculação do plano na análise física com estorno de recusas:**
+   - `alimentarPlanoNaAnalise`: ao aprovar moedas na análise física dos Correios, preenche `plano.moedaIds`.
+   - Em caso de moedas recusadas com plano já pago, calcula estorno integral (`recusadas * valorPorMoeda`), credita imediatamente no saldo do cliente (`user.balance += estorno`) e registra em `plano.estornadoCents`.
+   - Chamado tanto em `fecharAnalise` quanto em `advanceAnalysis`.
+
+6. **B2.6 — Ciclo de faturamento e renovação anual:**
+   - `processarCicloFaturamento` em `src/server/custodia/faturamento.ts` atualizado para chave composta `${email}#${competencia}#${origem}`.
+   - Executa renovações anuais devidas antes do ciclo mensal, garantindo que moedas cobertas não sofram cobrança avulsa.
+   - Tentativa de débito automático em saldo para ambas as origens.
+
+7. **B2.7 — Frontend do wizard de envio e tela de faturas:**
+   - Wizard de envios (`src/app/(app)/envios/page.tsx` e `WizardSteps.tsx`):
+     - Trilha expandida para 5 passos: Moeda, Protocolo, Plano, Correios, Análise.
+     - Passo 3 exibe cartões interativos de Plano Mensal (R$ 2,00/mês) e Plano Anual (R$ 24,00/ano, badge "Mais escolhido" e "12x sem juros").
+     - `PainelPagamento` integrado inline (Saldo, Pix ou Cartão) e botão secundário "Pagar depois" (avança direto para a postagem mantendo fatura pendente).
+     - Salva `modalidadeEnvio` ('PAC' | 'SEDEX') no protocolo.
+     - Retomada inteligente: envios sem plano abrem no passo 3; com plano, no passo 4; demais etapas, no passo 5.
+   - Tela Minha Conta › Faturas (`src/app/(app)/conta/faturas/page.tsx`):
+     - Componente `FaturasCustodia.tsx` com visualização de faturas (status Paga, Pendente, Em atraso, Cancelada) e botão "Pagar fatura" acionando o `PainelPagamento`.
+     - Aba de planos de custódia ativos, vigência, moedas cobertas e estornos.
+     - Atalho adicionado em Minha Conta (`src/app/(app)/conta/page.tsx`).
+
+8. **B2.8 — Débito automático recorrente no Mercado Pago:**
+   - `ativarDebitoAutomatico` em `src/lib/payments/mercadopago.ts` com integração via `POST /preapproval` (e modo simulado em ambiente de teste).
+   - `liquidarAssinaturaCustodia` em `src/server/payments/conciliacao.ts` atualizando `plano.assinaturaId`, vigência e faturas.
+
+---
+
+## 3. Testes e Verificação
+
+- **Typecheck:** `npm run typecheck` → 0 erros.
+- **Vitest:** `npm test` → 53 arquivos de teste, 414 testes passando, 1 pulado.
+- **Build de produção:** `npm run build` → 27 rotas compiladas e estáticas/dinâmicas geradas com sucesso.
+- **Sub-branch B2 mesclada em `feat/b-cobranca-e-custodia` com commit de merge `--no-ff`.**
+
