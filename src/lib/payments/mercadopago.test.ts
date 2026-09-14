@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
@@ -6,12 +6,49 @@ import {
   consultarPagamentoMercadoPago,
   criarPixDeposito,
   criarPreferenciaDeposito,
+  getMercadoPagoAccessToken,
   isMercadoPagoSandbox,
 } from './mercadopago'
 
 describe('Mercado Pago — Preferências e Depósitos', () => {
   it('opera em sandbox por padrão, e só MP_SANDBOX="false" liga produção', () => {
     expect(isMercadoPagoSandbox()).toBe(true)
+  })
+
+  describe('B1.0 — getMercadoPagoAccessToken conforme o ambiente', () => {
+    const originalEnv = { ...process.env }
+
+    afterEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    it('1. em sandbox, com token de teste presente, devolve o token de teste', () => {
+      process.env.MP_SANDBOX = 'true'
+      process.env.MP_ACCESS_TOKEN_TEST = 'TEST_TOKEN_123'
+      process.env.MP_ACCESS_TOKEN = 'PROD_TOKEN_456'
+      expect(getMercadoPagoAccessToken()).toBe('TEST_TOKEN_123')
+    })
+
+    it('2. em sandbox, sem token de teste mas com token de prod, faz fallback para prod', () => {
+      process.env.MP_SANDBOX = 'true'
+      delete process.env.MP_ACCESS_TOKEN_TEST
+      process.env.MP_ACCESS_TOKEN = 'PROD_TOKEN_456'
+      expect(getMercadoPagoAccessToken()).toBe('PROD_TOKEN_456')
+    })
+
+    it('3. em produção (MP_SANDBOX="false"), com ambos presentes, devolve EXCLUSIVAMENTE o de prod', () => {
+      process.env.MP_SANDBOX = 'false'
+      process.env.MP_ACCESS_TOKEN_TEST = 'TEST_TOKEN_123'
+      process.env.MP_ACCESS_TOKEN = 'PROD_TOKEN_456'
+      expect(getMercadoPagoAccessToken()).toBe('PROD_TOKEN_456')
+    })
+
+    it('4. em produção (MP_SANDBOX="false"), apenas com token de teste, devolve null (não usa teste em prod)', () => {
+      process.env.MP_SANDBOX = 'false'
+      process.env.MP_ACCESS_TOKEN_TEST = 'TEST_TOKEN_123'
+      delete process.env.MP_ACCESS_TOKEN
+      expect(getMercadoPagoAccessToken()).toBeNull()
+    })
   })
 
   /**

@@ -25,13 +25,17 @@ import type {
 
 const MP_API_BASE = 'https://api.mercadopago.com'
 
-/** Obtém o token configurado (sandbox por padrão). */
+/**
+ * Obtém o token configurado conforme o ambiente (decisão B1.0, 13/09/2026).
+ *
+ * Em sandbox (`MP_SANDBOX !== 'false'`), prioriza o token de teste e aceita o de produção como fallback.
+ * Em produção (`MP_SANDBOX === 'false'`), aceita EXCLUSIVAMENTE o token de produção (`MP_ACCESS_TOKEN`).
+ * Sem token no ambiente, devolve null e o sistema opera no modo simulador com `simulado: true`.
+ */
 export function getMercadoPagoAccessToken(): string | null {
-  return (
-    process.env.MP_ACCESS_TOKEN_TEST ||
-    process.env.MP_ACCESS_TOKEN ||
-    null
-  )
+  return isMercadoPagoSandbox()
+    ? process.env.MP_ACCESS_TOKEN_TEST || process.env.MP_ACCESS_TOKEN || null
+    : process.env.MP_ACCESS_TOKEN || null
 }
 
 /** Verifica se está operando em modo sandbox. */
