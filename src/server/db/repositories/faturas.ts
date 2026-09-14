@@ -22,6 +22,8 @@ export type LinhaFatura = {
   data_pagamento: unknown | null
   forma_pagamento: string | null
   payment_intent_id: string | null
+  plano_id: string | null
+  origem: string | null
 }
 
 function linhaParaFatura(r: LinhaFatura): FaturaCustodia {
@@ -50,6 +52,8 @@ function linhaParaFatura(r: LinhaFatura): FaturaCustodia {
     dataPagamento: r.data_pagamento !== null && r.data_pagamento !== undefined ? num(r.data_pagamento) : null,
     formaPagamento: (r.forma_pagamento as FormaPagamentoFatura) ?? null,
     paymentIntentId: r.payment_intent_id ?? null,
+    planoId: r.plano_id ?? null,
+    origem: (r.origem as 'ciclo_mensal' | 'contratacao' | 'renovacao_anual') ?? 'ciclo_mensal',
   }
 }
 
@@ -59,7 +63,7 @@ export async function carregarFaturas(tx: Consulta): Promise<FaturaCustodia[]> {
   const { rows } = await tx.query<LinhaFatura>(
     `SELECT id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
             status, data_emissao, data_vencimento, data_pagamento, forma_pagamento,
-            payment_intent_id
+            payment_intent_id, plano_id, origem
        FROM ${S}.faturas_custodia
       ORDER BY data_emissao ASC`,
   )
@@ -72,7 +76,7 @@ export async function buscarFaturasPorUsuario(tx: Consulta, userEmail: string): 
   const { rows } = await tx.query<LinhaFatura>(
     `SELECT id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
             status, data_emissao, data_vencimento, data_pagamento, forma_pagamento,
-            payment_intent_id
+            payment_intent_id, plano_id, origem
        FROM ${S}.faturas_custodia
       WHERE user_email = $1
       ORDER BY data_emissao DESC`,
@@ -87,7 +91,7 @@ export async function buscarFaturaPorId(tx: Consulta, id: string): Promise<Fatur
   const { rows } = await tx.query<LinhaFatura>(
     `SELECT id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
             status, data_emissao, data_vencimento, data_pagamento, forma_pagamento,
-            payment_intent_id
+            payment_intent_id, plano_id, origem
        FROM ${S}.faturas_custodia
       WHERE id = $1`,
     [id],
@@ -103,8 +107,8 @@ export async function inserirFatura(tx: Consulta, f: FaturaCustodia): Promise<vo
     `INSERT INTO ${S}.faturas_custodia (
        id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
        status, data_emissao, data_vencimento, data_pagamento, forma_pagamento,
-       payment_intent_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+       payment_intent_id, plano_id, origem
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
     [
       f.id,
       f.userEmail,
@@ -118,6 +122,8 @@ export async function inserirFatura(tx: Consulta, f: FaturaCustodia): Promise<vo
       f.dataPagamento ?? null,
       f.formaPagamento ?? null,
       f.paymentIntentId ?? null,
+      f.planoId ?? null,
+      f.origem ?? 'ciclo_mensal',
     ],
   )
 }
@@ -127,12 +133,18 @@ export async function atualizarFatura(tx: Consulta, f: FaturaCustodia): Promise<
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.faturas_custodia SET
-       status = $1,
-       data_pagamento = $2,
-       forma_pagamento = $3,
-       payment_intent_id = $4
-     WHERE id = $5`,
+       quantidade_moedas = $1,
+       moeda_ids = $2,
+       valor_cents = $3,
+       status = $4,
+       data_pagamento = $5,
+       forma_pagamento = $6,
+       payment_intent_id = $7
+     WHERE id = $8`,
     [
+      f.quantidadeMoedas,
+      f.moedaIds,
+      f.valorCents,
       f.status,
       f.dataPagamento ?? null,
       f.formaPagamento ?? null,

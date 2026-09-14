@@ -145,12 +145,13 @@ function suite(alvo: Alvo): void {
           // recusa truncar uma tabela referenciada se quem a referencia ficar de
           // fora da mesma instrução.
           `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+                    ${S}.recebimentos_gateway, ${S}.planos_custodia,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.envios,
                     ${S}.saques, ${S}.faturas_custodia,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
-        await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
+        await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0, plano_custodia = 0 WHERE id = 1`)
       })
     })
 
@@ -166,7 +167,8 @@ function suite(alvo: Alvo): void {
       const { rows: tabelas } = await executar((tx) =>
         tx.query<{ relname: string; relrowsecurity: boolean }>(
           `SELECT c.relname, c.relrowsecurity
-             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             FROM pg_class c
+             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE n.nspname = $1 AND c.relkind = 'r'
             ORDER BY c.relname`,
           [S],
@@ -191,6 +193,8 @@ function suite(alvo: Alvo): void {
         // Migration 002 — pagamentos e rastreio (frente C).
         'payment_events',
         'payment_intents',
+        // Migration 018 — planos de custódia (Passo B2.2).
+        'planos_custodia',
         'rastreios',
         // Migration 017 — recebimentos do gateway com tarifa e líquido (Passo B1.3).
         'recebimentos_gateway',

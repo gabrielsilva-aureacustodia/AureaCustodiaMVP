@@ -41,6 +41,7 @@ import { carregarTrades, inserirTrade } from './trades'
 import { atualizarUser, carregarUsers, inserirUser, removerUser } from './users'
 import { atualizarSaque, carregarSaques, inserirSaque } from './saques'
 import { atualizarFatura, carregarFaturas, inserirFatura } from './faturas'
+import { atualizarPlano, carregarPlanos, inserirPlano } from './planos'
 
 export interface OpcoesCarregar {
   /**
@@ -60,7 +61,7 @@ export interface OpcoesCarregar {
 export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}): Promise<AppState> {
   const seq = await carregarSeq(tx, { travar: opcoes.travar === true })
 
-  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, analises, saques, faturas] =
+  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, analises, saques, faturas, planos] =
     await Promise.all([
       carregarUsers(tx),
       carregarCoins(tx),
@@ -72,6 +73,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
       carregarAnalises(tx),
       carregarSaques(tx),
       carregarFaturas(tx),
+      carregarPlanos(tx),
     ])
 
   const users: Record<UserEmail, User> = {}
@@ -96,7 +98,19 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
     dono.coins.push(coin)
   }
 
-  return { users, sellOffers, buyOrders, trades, envios, seq, deposits, analises, saques, faturasCustodia: faturas }
+  return {
+    users,
+    sellOffers,
+    buyOrders,
+    trades,
+    envios,
+    seq,
+    deposits,
+    analises,
+    saques,
+    faturasCustodia: faturas,
+    planosCustodia: planos,
+  }
 }
 
 /** Banco recém-migrado: nenhuma conta. É o gatilho da semeadura, como o `null` do blob era. */
@@ -163,6 +177,10 @@ export async function executarOperacao(tx: Consulta, op: Operacao): Promise<void
       return inserirSaque(tx, op.saque)
     case 'saque.atualizar':
       return atualizarSaque(tx, op.saque)
+    case 'plano.inserir':
+      return inserirPlano(tx, op.plano)
+    case 'plano.atualizar':
+      return atualizarPlano(tx, op.plano)
     case 'fatura.inserir':
       return inserirFatura(tx, op.fatura)
     case 'fatura.atualizar':
