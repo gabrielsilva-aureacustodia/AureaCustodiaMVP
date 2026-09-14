@@ -13,19 +13,19 @@
 import type { LegalBlockAcceptance, LegalBlockId, LegalBlockItem } from '@/domain/types'
 
 /** Versão oficial vigente dos Termos de Uso. Nunca deve ser reciclada. */
-export const VERSAO_TERMOS_VIGENTE = '1.0-2026-09-10'
+export const VERSAO_TERMOS_VIGENTE = '1.0'
 
 /** Versão oficial vigente da Política de Privacidade. Nunca deve ser reciclada. */
-export const VERSAO_PRIVACIDADE_VIGENTE = '1.0-2026-09-10'
+export const VERSAO_PRIVACIDADE_VIGENTE = '1.0'
 
 /**
  * As 6 caixas de aceite acordadas para a publicação:
- * 1. Moeda equiparável na devolução (não é a mesma moeda física depositada)
- * 2. Prazos D+3 (dinheiro) e D+30 (moeda)
- * 3. Custos de retirada e de saque por conta do cliente
- * 4. Débito pode bloquear recibo e moeda pode servir de garantia
- * 5. Posicionamento institucional (não é corretora, não é financeira, não é cripto)
- * 6. Tratamento de dados pessoais essenciais (LGPD)
+ * 1. Moeda equiparável na devolução (7.2.6 e 7.5.3)
+ * 2. Prazos D+3 e D+30 (7.5.6 e 7.7.2)
+ * 3. Custos de retirada e de saque (7.5.5 e Tabela de Taxas)
+ * 4. Bloqueio por débito (5.1 e 11.1)
+ * 5. Posicionamento institucional (Preâmbulo)
+ * 6. Tratamento de dados pessoais essenciais (Cláusula 13)
  */
 export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
   {
@@ -33,15 +33,15 @@ export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
     titulo: 'Moeda equiparável na devolução',
     resumo:
       'A moeda devolvida na retirada física não é necessariamente o mesmo exemplar depositado, mas moeda equiparável de mesma espécie, valor facial e estado de conservação.',
-    clausulaReferencia: 'Cláusula 1 dos Termos de Uso',
+    clausulaReferencia: 'Cláusulas 7.2.6 e 7.5.3 dos Termos de Uso',
     urlDocumento: '/termos',
   },
   {
     id: 'prazos_d3_d30',
     titulo: 'Prazos operacionais (D+3 e D+30)',
     resumo:
-      'Prazos operacionais: até D+3 (72h úteis) para conclusão de saques bancários e até D+30 para separação, embalagem e postagem da moeda na retirada física.',
-    clausulaReferencia: 'Cláusula 6 dos Termos de Uso',
+      'Prazos operacionais: até D+3 (3 dias úteis) para conclusão de saques bancários e até 30 dias úteis para separação, embalagem e postagem da moeda na retirada física.',
+    clausulaReferencia: 'Cláusulas 7.5.6 e 7.7.2 dos Termos de Uso',
     urlDocumento: '/termos',
   },
   {
@@ -49,15 +49,15 @@ export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
     titulo: 'Custos de frete, seguro e saque',
     resumo:
       'Os custos operacionais de transporte, seguro e embalagem na retirada física, bem como eventuais tarifas de transferência para saque, são de responsabilidade do cliente.',
-    clausulaReferencia: 'Cláusula 5 dos Termos de Uso',
-    urlDocumento: '/termos',
+    clausulaReferencia: 'Cláusula 7.5.5 dos Termos de Uso e Tabela de Taxas',
+    urlDocumento: '/taxas',
   },
   {
     id: 'debito_garantia',
-    titulo: 'Bloqueio por débito e garantia',
+    titulo: 'Bloqueio por débito',
     resumo:
-      'Débitos pendentes de custódia podem bloquear a emissão e transferência de recibos. Saldos e moedas sob custódia podem servir de garantia em caso de inadimplência.',
-    clausulaReferencia: 'Cláusulas 3 e 4 dos Termos de Uso',
+      'Débitos pendentes de custódia podem bloquear a emissão e transferência de recibos e a realização de novas operações.',
+    clausulaReferencia: 'Cláusulas 5.1 e 11.1 dos Termos de Uso',
     urlDocumento: '/termos',
   },
   {
@@ -65,7 +65,7 @@ export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
     titulo: 'Natureza do serviço e posicionamento institucional',
     resumo:
       'A Áurea Custódia presta serviços de guarda de bens físicos e emissão de recibos nominativos. Não é corretora, não é instituição financeira e não intermedia ativos digitais, tokens ou investimentos.',
-    clausulaReferencia: 'Preâmbulo e Cláusula 8 dos Termos de Uso',
+    clausulaReferencia: 'Preâmbulo dos Termos de Uso',
     urlDocumento: '/termos',
   },
   {
@@ -73,7 +73,7 @@ export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
     titulo: 'Tratamento de dados pessoais (LGPD)',
     resumo:
       'Concordo com a coleta e tratamento de dados cadastrais essenciais (CPF, endereço, telefone e dados bancários) estritamente para identificação fiscal, cumprimento contratual e segurança.',
-    clausulaReferencia: 'Seções 3 e 4 da Política de Privacidade',
+    clausulaReferencia: 'Cláusula 13 dos Termos de Uso e Política de Privacidade',
     urlDocumento: '/privacidade',
   },
 ] as const

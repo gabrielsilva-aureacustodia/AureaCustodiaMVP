@@ -33,7 +33,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 |---|---|---|---|
 | **RA-01** | Custódia de dinheiro de terceiros — **risco assumido em 11/09/2026; gateway liberado para produção** | ✅ | `src/server/actions/`, `src/lib/payments/` |
 | **RA-02** | Senhas em texto puro — **pago no fluxo Supabase; resta a contingência do seed** | 🔴 | `src/domain/`, `src/server/actions/` |
-| **RA-03** | Sem termos de uso nem política de privacidade | 🔴 | `src/app/` |
+| **RA-03** | Sem termos de uso nem política de privacidade — **pago em 13/09/2026** (Termos v1.0, hash canônico, cadeia de aceites, migration 016) | ✅ | `src/app/`, `src/domain/`, `src/server/` |
 | **RA-04** | `src/server/` sem cobertura de teste — **parcialmente pago em 02/09** (`db/` tem 31 testes) | 🟠 | `src/server/actions/`, `session.ts` |
 | **RA-05** | Hash do recibo é simulado | 🟠 | `src/domain/` |
 | **RA-06** | Comissão do extrato congelada nos dois lados — **pago em 13/09/2026** (migration 014 e extrato) | ✅ | `src/domain/`, `src/server/db/` |
@@ -55,6 +55,8 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
 | **RA-24** | Compra direta via gateway cobra comissão apenas do vendedor — temporário até B1.4 unificar | 🟡 | `src/server/payments/` |
+| **RA-25** | Prazos operacionais provisórios estipulados nos Termos de Uso v1.0 | 🟡 | `src/domain/documentos-legais/`, `src/app/termos/` |
+| **RA-26** | SAC provisoriamente operado via e-mail único (`suporte@aureacustodia.com.br`) | 🟡 | `src/app/suporte/`, `src/domain/documentos-legais/` |
 
 ---
 
@@ -146,22 +148,23 @@ Auth não entrar, o substituto é Argon2id (`@node-rs/argon2`), nunca bcrypt.
 
 ---
 
-# RA-03 — Sem termos de uso nem política de privacidade 🔴
+# RA-03 — Termos de uso e política de privacidade ✅ PAGO em 13/09/2026
 
 ```
-Herdado · vira bloqueante com a landing page · Pasta: src/app/
+Herdado · Pago em 13/09/2026 pelo Agente A (feat/a3-termos-oficiais)
+Pasta: src/app/termos, src/app/privacidade, src/app/taxas, src/app/suporte, src/domain/documentos-legais, src/server/db/migrations/016_documentos_e_aceites.sql
 ```
 
-O projeto não tem termos de uso com aceite versionado nem política de privacidade.
+O projeto contava com minutas preliminares sem prova formal de aceite e sem a redação jurídica especializada.
 
-Enquanto as contas eram sete e fictícias, dava para adiar. **A landing page com cadastro
-público muda isso:** cadastrar usuário é coletar dado pessoal, e a LGPD exige finalidade
-declarada e base legal.
-
-**Como se paga:** os dois documentos escritos por advogado, mais o registro de **qual versão
-foi aceita e quando**, por usuário. O aceite precisa acontecer no cadastro, não depois.
-
-**A landing pode ser construída antes disso. O cadastro não pode ser aberto ao público.**
+**Como foi pago:**
+1. A minuta jurídica oficial elaborada pelo advogado (`2026-09-13_minuta_termos_de_uso_v1`) foi integralmente codificada no domínio (`src/domain/documentos-legais/termos-de-uso-v1.ts`), contendo 17 capítulos, direitos, obrigações, prazos e regras do marketplace e da custódia física.
+2. A Política de Privacidade (`politica-privacidade-v1.ts`) e a Tabela de Taxas (`tabela-de-taxas-v1.ts`) foram estruturadas no domínio com cálculo dinâmico da operação de R$ 200,00 e menção ao frete dos Correios.
+3. Normalização canônica estrita (`canonico.ts`) com hash SHA-256 congelado (`eeffba3c0218116aedc8b559d82003c0584a1060e12d344ce5d74d72be855421`).
+4. Cláusula compromissória de arbitragem (Lei 9.307/1996, art. 4º, § 2º) destacada em negrito no corpo do texto (Capítulo 14.4), com aceite específico e opcional (não bloqueia cadastro nem negociação).
+5. Prova jurídica formal: tabela imutável `aurea.aceites_documentos` encadeada matematicamente por hash SHA-256 a partir de gênesis com 64 zeros, gravando IP, User-Agent, carimbo temporal ISO-8601 UTC e hash canônico do documento.
+6. Páginas públicas dedicadas: `/termos`, `/privacidade`, `/taxas` e `/suporte` (SAC).
+7. Folha de comprovante formal auditável e imprimível com CSS `@media print` em `/conta/aceites/[id]`.
 
 ---
 
@@ -717,3 +720,41 @@ pagamentos com `TAXAS_PADRAO`, compras via gateway cobram comissão apenas do ve
 e os 4 lançamentos contábeis.
 
 Nota em `docs/finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`.
+
+---
+
+# RA-25 — Prazos operacionais provisórios estipulados nos Termos de Uso v1.0 🟡
+
+```
+Decidido em: 13/09/2026
+Dono:        Gabriel Silva (sócio)
+Pasta:       src/domain/documentos-legais/ · src/app/termos/
+```
+
+Os Termos de Uso oficiais v1.0 fixam prazos operacionais específicos para a prestação do serviço:
+1. Data de vigência: 14/09/2026.
+2. Prazo para validação e autenticação física na bancada de custódia (`estacao`): 2 (dois) dias úteis após o recebimento da encomenda.
+3. Prazo para emissão e disponibilização do recibo de venda autenticado: até 1 (uma) hora após a confirmação da negociação.
+4. Prazo para disponibilização de saldo de depósito em conta de pagamento após compensação bancária: até 2 (dois) dias úteis.
+
+**Consequência:** Esses prazos vinculam contratualmente a sociedade perante os usuários cadastrados. Caso a demanda física na bancada de custódia exceda a capacidade de análise em 2 dias úteis, ou haja atraso operacional na compensação, a plataforma poderá incorrer em descumprimento de SLA contratual.
+
+**Como se paga:** Monitorar a volumetria de recebimentos e análises da bancada de custódia; calibrar os prazos com a equipe jurídica após os primeiros 30 dias de operação comercial real se os prazos precisarem de ajuste de escala.
+
+---
+
+# RA-26 — Canal provisório de SAC exclusivamente por e-mail 🟡
+
+```
+Decidido em: 13/09/2026
+Dono:        Gabriel Silva (sócio)
+Pasta:       src/app/suporte/ · src/domain/documentos-legais/
+```
+
+Os Termos de Uso e a página pública `/suporte` disponibilizam o canal de Serviço de Atendimento ao Consumidor (SAC) exclusivamente através do e-mail `suporte@aureacustodia.com.br`, com prazo de resposta estipulado em até 5 (cinco) dias úteis, conforme disposições gerais de proteção ao consumidor.
+
+Canais corporativos de voz (telefone 0800 ou fixo) e WhatsApp oficial ainda estão em processo de contratação e integração de telefonia pela sociedade.
+
+**Consequência:** O atendimento ao usuário fica restrito à comunicação assíncrona por correio eletrônico, exigindo triagem diária e monitoramento manual da caixa postal até a implantação de uma ferramenta integrada de helpdesk.
+
+**Como se paga:** Contratação de linha telefônica institucional / WhatsApp Business verificado e integração do canal de atendimento diretamente ao painel administrativo (Admin C3) ou plataforma omnichannel dedicada.

@@ -21,8 +21,9 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `013_remove_custody_charges.sql` | Derruba `custody_charges`, o mecanismo antigo de custódia (D-3 concluída, 11/09/2026). Sobe `STORE_KEY` para v8 |
 | `014_comissao_dois_lados.sql` | Frente A: `fee_comprador` e `fee_vendedor` em `aurea.trades` (A1, RA-06) |
 | `015_prioridade_e_historico_ofertas.sql` | Frente A: `prioridade_em` em `sell_offers` e `buy_orders`, tabela append-only `ofertas_historico` (A2, Decisão F-3) |
+| `016_documentos_e_aceites.sql` | Frente A: `documentos_legais` e `aceites_documentos` com hash encadeado e RLS (A3) |
 
-A próxima é a **016**. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **017**. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**
