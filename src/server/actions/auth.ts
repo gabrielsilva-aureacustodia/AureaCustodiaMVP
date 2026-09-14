@@ -9,6 +9,8 @@
  * mockados daquele e-mail antes de criar a sessão interna.
  */
 
+import { headers } from 'next/headers'
+
 import { ACCOUNTS, DEMO_DATA } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { mkCoinsForUser } from '@/domain/seed'
@@ -22,6 +24,7 @@ import {
 import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
+import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { clearSession, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
@@ -128,6 +131,8 @@ export async function registerWithEmail(
   name: string,
   email: string,
   senha: string,
+  arbitragemAssinada?: boolean,
+  nomeAssinaturaArbitragem?: string,
 ): Promise<ActionResult> {
   const status = getRegistrationStatus()
   if (!status.enabled) {
@@ -152,11 +157,35 @@ export async function registerWithEmail(
           legal_terms_version: status.termsVersion,
           privacy_policy_version: status.privacyVersion,
           legal_accepted_at: acceptedAt,
+          arbitragem_assinada: arbitragemAssinada ?? false,
+          nome_assinatura_arbitragem: nomeAssinaturaArbitragem?.trim() ?? null,
         },
       },
     })
 
     if (error) return { ok: false, error: error.message || FALHA_AUTENTICACAO }
+
+    // Registra o aceite formal nos termos e documentos legais
+    try {
+      const h = await headers()
+      const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || null
+      const userAgent = h.get('user-agent') || null
+
+      await registrarAceitesFormais(normalizedEmail, 'cadastro_email', {
+        ip,
+        userAgent,
+        arbitragem:
+          arbitragemAssinada && nomeAssinaturaArbitragem?.trim()
+            ? {
+                assinada: true,
+                nomeDigitado: nomeAssinaturaArbitragem.trim(),
+              }
+            : undefined,
+      })
+    } catch {
+      // O registro formal de prova nunca trava a criação de conta nem o fluxo
+    }
+
     if (data.user?.email && data.user.email_confirmed_at) {
       await provisionAuthenticatedUser(data.user.email, normalizedName)
       await client.auth.signOut({ scope: 'local' })

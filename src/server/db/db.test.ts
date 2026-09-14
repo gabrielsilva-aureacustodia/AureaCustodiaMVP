@@ -58,6 +58,21 @@ import {
   inserirRetirada,
   listarTodasRetiradas,
 } from './repositories/retiradas'
+import { verificarCadeiaAceites } from '@/domain/aceite'
+import {
+  buscarAceitePorId,
+  buscarUltimoAceitePorDocumento,
+  inserirAceites,
+  listarAceitesPorUsuario,
+  listarTodosAceites,
+  ultimoHashAceite,
+} from './repositories/aceites'
+import {
+  buscarDocumentoPorChaveEVersao,
+  buscarDocumentoVigente,
+  garantirDocumentosVigentes,
+  listarHistoricoDocumento,
+} from './repositories/documentos'
 import { carregarEstado, persistirEstado } from './repositories/state'
 import type { Consulta, Executor } from './sql'
 import type { Retirada } from '@/domain/types'
@@ -146,8 +161,8 @@ function suite(alvo: Alvo): void {
           // fora da mesma instrução.
           `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
-                    ${S}.trades, ${S}.deposits, ${S}.envios,
-                    ${S}.saques, ${S}.faturas_custodia,
+                    ${S}.trades, ${S}.deposits, ${S}.envios, ${S}.ofertas_historico,
+                    ${S}.saques, ${S}.faturas_custodia, ${S}.aceites_documentos, ${S}.documentos_legais,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
         await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
@@ -173,6 +188,8 @@ function suite(alvo: Alvo): void {
         ),
       )
       expect(tabelas.map((t) => t.relname)).toEqual([
+        // Migration 016 — documentos legais e aceites formais (A3).
+        'aceites_documentos',
         // Migration 004 — a estação de validação física (frente E).
         'analises',
         // Migration 003 — ledger, auditoria e DRE (M4/M7).
@@ -181,6 +198,8 @@ function suite(alvo: Alvo): void {
         'coins',
         'contas_contabeis',
         'deposits',
+        // Migration 016 — documentos legais e aceites formais (A3).
+        'documentos_legais',
         'envios',
         'exportacoes',
         // Migration 010 — faturamento de custódia (Sessão B-5).
@@ -936,6 +955,118 @@ function suite(alvo: Alvo): void {
 
       const todas = await executar((tx) => listarTodasRetiradas(tx))
       expect(todas.map((x) => x.id)).toContain('RET-TEST-001')
+    })
+
+    it('migration 016: documentos legais vigentes são publicados de forma idempotente', async () => {
+      // Primeira execução publica os 4 documentos vigentes
+      await executar((tx) => garantirDocumentosVigentes(tx))
+
+      const termos = await executar((tx) => buscarDocumentoVigente(tx, 'termos_de_uso'))
+      expect(termos).not.toBeNull()
+      expect(termos?.chave).toBe('termos_de_uso')
+      expect(termos?.versao).toBe('1.0')
+      expect(termos?.hashConteudo).toBe('eeffba3c0218116aedc8b559d82003c0584a1060e12d344ce5d74d72be855421')
+
+      const arbitragem = await executar((tx) => buscarDocumentoPorChaveEVersao(tx, 'clausula_arbitragem', '1.0'))
+      expect(arbitragem).not.toBeNull()
+      expect(arbitragem?.chave).toBe('clausula_arbitragem')
+
+      const historicoTaxas = await executar((tx) => listarHistoricoDocumento(tx, 'tabela_de_taxas'))
+      expect(historicoTaxas).toHaveLength(1)
+
+      // Segunda execução idempotente não duplica linhas nem falha
+      await expect(executar((tx) => garantirDocumentosVigentes(tx))).resolves.not.toThrow()
+      const historicoTaxas2 = await executar((tx) => listarHistoricoDocumento(tx, 'tabela_de_taxas'))
+      expect(historicoTaxas2).toHaveLength(1)
+    })
+
+    it('migration 016: aceites são encadeados com SHA-256 e provam integridade', async () => {
+      const hashInicial = await executar((tx) => ultimoHashAceite(tx))
+      expect(hashInicial).toBe(GENESIS)
+
+      const agora = Date.now()
+      const gravados = await executar((tx) =>
+        inserirAceites(tx, [
+          {
+            createdAt: agora,
+            userEmail: 'cliente1@aurea.test',
+            documentoChave: 'termos_de_uso',
+            documentoVersao: '1.0',
+            hashConteudo: 'hash-termos',
+            canal: 'cadastro_email',
+            metodo: 'clique_no_botao',
+            textoExibido: 'Aceito os Termos',
+            nomeDigitado: null,
+            ip: '127.0.0.1',
+            userAgent: 'Vitest/Test',
+          },
+          {
+            createdAt: agora + 10,
+            userEmail: 'cliente1@aurea.test',
+            documentoChave: 'clausula_arbitragem',
+            documentoVersao: '1.0',
+            hashConteudo: 'hash-arbitragem',
+            canal: 'cadastro_email',
+            metodo: 'caixa_e_nome_digitado',
+            textoExibido: 'Aceito Arbitragem',
+            nomeDigitado: 'Cliente Um',
+            ip: '127.0.0.1',
+            userAgent: 'Vitest/Test',
+          },
+        ]),
+      )
+
+      expect(gravados).toHaveLength(2)
+      expect(gravados[0].hashAnterior).toBe(GENESIS)
+      expect(gravados[1].hashAnterior).toBe(gravados[0].hash)
+
+      // Buscar por ID e por usuário
+      const porId = await executar((tx) => buscarAceitePorId(tx, gravados[0].id))
+      expect(porId).toMatchObject({
+        userEmail: 'cliente1@aurea.test',
+        documentoChave: 'termos_de_uso',
+        hashAnterior: GENESIS,
+      })
+
+      const porUsuario = await executar((tx) => listarAceitesPorUsuario(tx, 'cliente1@aurea.test'))
+      expect(porUsuario).toHaveLength(2)
+
+      const ultimoArbitragem = await executar((tx) =>
+        buscarUltimoAceitePorDocumento(tx, 'cliente1@aurea.test', 'clausula_arbitragem'),
+      )
+      expect(ultimoArbitragem?.nomeDigitado).toBe('Cliente Um')
+
+      // Verificação da cadeia inteira
+      const todos = await executar((tx) => listarTodosAceites(tx))
+      expect(verificarCadeiaAceites(todos)).toBe(true)
+
+      // Encadeamento de um terceiro aceite a partir do último gravado
+      const gravado3 = await executar((tx) =>
+        inserirAceites(tx, [
+          {
+            createdAt: agora + 20,
+            userEmail: 'cliente2@aurea.test',
+            documentoChave: 'politica_privacidade',
+            documentoVersao: '1.0',
+            hashConteudo: 'hash-privacidade',
+            canal: 'cadastro_google',
+            metodo: 'clique_no_botao',
+            textoExibido: 'Aceito Política',
+            nomeDigitado: null,
+            ip: null,
+            userAgent: null,
+          },
+        ]),
+      )
+      expect(gravado3[0].hashAnterior).toBe(gravados[1].hash)
+
+      const todos3 = await executar((tx) => listarTodosAceites(tx))
+      expect(verificarCadeiaAceites(todos3)).toBe(true)
+
+      // Adulteração manual no array quebra a validação
+      const adulterados = [...todos3]
+      adulterados[1] = { ...adulterados[1], userEmail: 'hacker@aurea.test' }
+      expect(verificarCadeiaAceites(adulterados)).toBe(false)
     })
   })
 }

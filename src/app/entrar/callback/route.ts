@@ -25,6 +25,7 @@ import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
 import { consumePendingLegalAcceptance } from '@/server/auth/legal'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
+import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { setSession } from '@/server/session'
 
 function destination(request: Request, path: string): URL {
@@ -119,6 +120,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     if (user.app_metadata.provider === 'google') {
       const acceptance = await consumePendingLegalAcceptance()
       if (acceptance) {
+        const ip =
+          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          request.headers.get('x-real-ip') ||
+          null
+        const userAgent = request.headers.get('user-agent') || null
+
+        await registrarAceitesFormais(user.email, 'cadastro_google', {
+          ip,
+          userAgent,
+        }).catch(() => undefined)
+
         await client.auth
           .updateUser({
             data: {
