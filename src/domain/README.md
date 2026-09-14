@@ -88,3 +88,11 @@ de `@/domain/*`. **Nenhum deles é importado de volta.**
 O motor **não será reescrito em SQL**. Ele passa a rodar dentro de uma transação, sobre um
 `AppState` parcial carregado com `SELECT … FOR UPDATE` — preservando os 38 testes. Ver
 [`docs/DECISOES_D1_D9_E_PLANO.md`](../../docs/DECISOES_D1_D9_E_PLANO.md), seção D1.
+
+## A regra pura do painel administrativo (frente C)
+
+| Arquivo | O que faz |
+|---|---|
+| `kpis.ts` | `montarKpis`: os indicadores da Central de Resultados — mercado (com a comissão por lado da A1), acervo, contas, envios e análise, tempos, faturas, fila de ofertas e planos. Puro e síncrono, como `dre.ts`; lê `custody.ts`, `fees.ts` e `dre.ts` sem alterá-los |
+| `kpis.test.ts` | 12 testes num cenário montado à mão |
+| `admin/` | Permissões e papéis, período, registro de uso, resumo financeiro e validação contábil do painel; desde a C2, telefone canônico, regras do atendimento e da administração de usuários. Ver [README próprio](admin/README.md) |

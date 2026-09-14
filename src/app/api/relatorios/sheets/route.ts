@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-import { autorizarRelatorio } from '@/server/relatorios/acesso'
+import { autorizarRelatorioNoPainel } from '@/server/relatorios/acesso'
 import { sincronizarSheetsComoAtor } from '@/server/relatorios/sincronizar'
 import { getSessionEmail } from '@/server/session'
 
@@ -24,7 +24,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const sessao = await getSessionEmail().catch(() => null)
   const auth = req.headers.get('authorization')
   const token = auth?.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : req.nextUrl.searchParams.get('token')
-  const acesso = autorizarRelatorio(sessao, token)
+  // Escrever na planilha do contador é exportar: pede `resultados.exportar` da sessão.
+  const acesso = await autorizarRelatorioNoPainel(sessao, token, 'resultados.exportar')
   if (!acesso.ok) return NextResponse.json({ ok: false, error: acesso.erro }, { status: acesso.status, headers: SEM_CACHE })
 
   const q = req.nextUrl.searchParams

@@ -31,10 +31,11 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { AppProvider } from '@/components/providers/AppProvider'
+import { RegistroDeUso } from '@/components/providers/RegistroDeUso'
 import { Sidebar, SidebarProvider } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { ModalHost } from '@/components/ui/Modal'
-import { ehAdmin } from '@/server/relatorios/acesso'
+import { podeAbrirPainelAdmin } from '@/server/admin/acesso'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -53,11 +54,15 @@ export default async function AppLayout({
   // quebraria em me.name — um erro de tela cheia onde o certo é pedir login.
   if (!state.users[session]) redirect('/entrar')
 
+  // Desde a C1 a pergunta é "esta conta é membro do painel?" — pelos papéis do
+  // banco, caindo na lista do ambiente se o banco falhar. Uma consulta de uma linha.
+  const admin = await podeAbrirPainelAdmin(session)
+
   return (
-    // `admin` é decidido aqui, no servidor, e só liga o item "Relatórios" do
-    // menu. A tela e as rotas de API conferem de novo — o menu é conveniência,
+    // `admin` é decidido aqui, no servidor, e só liga o item "Administração" do
+    // menu. O painel e as rotas de API conferem de novo — o menu é conveniência,
     // não barreira.
-    <AppProvider initialState={state} session={session} admin={ehAdmin(session)}>
+    <AppProvider initialState={state} session={session} admin={admin}>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa. */}
         <div className="app active">
@@ -72,6 +77,9 @@ export default async function AppLayout({
             run() — ver a nota no topo de components/ui/Modal.tsx. */}
         <ModalHost />
       </SidebarProvider>
+      {/* Registro de uso da plataforma (frente C): anota páginas abertas e manda em
+          lote. Não desenha nada e nunca interrompe a navegação. */}
+      <RegistroDeUso />
     </AppProvider>
   )
 }

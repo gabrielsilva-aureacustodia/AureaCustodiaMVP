@@ -61,3 +61,19 @@ npm run db:migrate
 Usa `POSTGRES_URL_DIRECT` (porta 5432 — o pooler de transação recusa DDL). Lê `.env.local`
 se a variável não estiver no ambiente. Ao final, avisa se encontrar qualquer tabela em
 `public`.
+
+## Migrations da frente C — painel administrativo (020 a 025)
+
+Reserva da seção 3.3 de `docs/finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`. Nenhuma depende de
+tabela de outra frente, então entram na ordem em que as sub-branches chegarem à `main`.
+
+| Arquivo | O que faz |
+|---|---|
+| `020_admin_rbac.sql` | C1: `admin_permissoes`, `admin_papeis`, `admin_papel_permissoes`, `admin_membros`. Só cria as tabelas — o catálogo e os papéis de sistema vêm de `src/domain/admin/permissoes.ts` na primeira leitura |
+| `021_eventos_uso.sql` | C1: `eventos_uso`, o registro de uso da plataforma (append-only, sem IP nem user agent) |
+| `022_cs_mensageria.sql` | C2: `cs_canais`, `cs_contatos`, `cs_conversas`, `cs_mensagens` — o WhatsApp do atendimento. `id_no_provedor` único contra webhook reentregue; telefone em E.164 canônico |
+| `023_notas_e_atribuicoes.sql` | C2: `cs_notas`, `cs_etiquetas`, `cs_conversa_etiquetas`, `admin_notas_usuario` e `admin_situacao_contas` (ativar e desativar conta). Notas e situação são append-only |
+
+Todas só **criam** tabelas: aplicadas antes do deploy, não quebram código nenhum; o código
+publicado antes delas cai no bootstrap do ambiente (RA-40) e não grava registro de uso. Sem a
+022 e a 023, `/admin/cs` e as notas da ficha de usuário mostram o aviso de tabela ausente.

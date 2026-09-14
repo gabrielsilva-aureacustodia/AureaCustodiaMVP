@@ -192,6 +192,14 @@ function suite(alvo: Alvo): void {
       expect(tabelas.map((t) => t.relname)).toEqual([
         // Migration 016 — documentos legais e aceites formais (A3).
         'aceites_documentos',
+        // Migration 020 — papéis, permissões e membros do painel (frente C, C1).
+        'admin_membros',
+        // Migration 023 — notas internas e situação da conta (frente C, C2).
+        'admin_notas_usuario',
+        'admin_papeis',
+        'admin_papel_permissoes',
+        'admin_permissoes',
+        'admin_situacao_contas',
         // Migration 004 — a estação de validação física (frente E).
         'analises',
         // Migration 003 — ledger, auditoria e DRE (M4/M7).
@@ -199,10 +207,20 @@ function suite(alvo: Alvo): void {
         'buy_orders',
         'coins',
         'contas_contabeis',
+        // Migrations 022 e 023 — atendimento por WhatsApp (frente C, C2).
+        'cs_canais',
+        'cs_contatos',
+        'cs_conversa_etiquetas',
+        'cs_conversas',
+        'cs_etiquetas',
+        'cs_mensagens',
+        'cs_notas',
         'deposits',
         // Migration 016 — documentos legais e aceites formais (A3).
         'documentos_legais',
         'envios',
+        // Migration 021 — registro de uso da plataforma (frente C, C1).
+        'eventos_uso',
         'exportacoes',
         // Migration 010 — faturamento de custódia (Sessão B-5).
         'faturas_custodia',

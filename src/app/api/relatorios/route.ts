@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-import { autorizarRelatorio } from '@/server/relatorios/acesso'
+import { autorizarRelatorioNoPainel } from '@/server/relatorios/acesso'
 import { NOMES_RELATORIOS, TITULOS } from '@/server/relatorios/dados'
 import { configuracaoSheets } from '@/server/relatorios/sheets'
 import { getSessionEmail } from '@/server/session'
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const sessao = await getSessionEmail().catch(() => null)
   const auth = req.headers.get('authorization')
   const token = auth?.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : req.nextUrl.searchParams.get('token')
-  const acesso = autorizarRelatorio(sessao, token)
+  const acesso = await autorizarRelatorioNoPainel(sessao, token)
   if (!acesso.ok) return NextResponse.json({ error: acesso.erro }, { status: acesso.status, headers: SEM_CACHE })
 
   const origem = req.nextUrl.origin
