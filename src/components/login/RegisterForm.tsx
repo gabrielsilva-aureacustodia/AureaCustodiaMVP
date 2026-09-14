@@ -30,9 +30,8 @@ export function RegisterForm({
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
-  // Marcado por padrao e sem `required`: o aceite e registrado, nunca trava
-  // o cadastro. Ver RA-18.
-  const [accepted, setAccepted] = useState(true)
+  const [arbitragemAssinada, setArbitragemAssinada] = useState(false)
+  const [nomeArbitragem, setNomeArbitragem] = useState('')
   const [erro, setErro] = useState(initialError)
   const [mensagem, setMensagem] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -44,12 +43,22 @@ export function RegisterForm({
       setErro('As senhas informadas não são iguais.')
       return
     }
+    if (arbitragemAssinada && nomeArbitragem.trim().length < 3) {
+      setErro('Para assinar a cláusula arbitral, digite seu nome completo.')
+      return
+    }
 
     setEnviando(true)
     setErro('')
     setMensagem('')
     try {
-      const result = await registerWithEmail(name, email, senha)
+      const result = await registerWithEmail(
+        name,
+        email,
+        senha,
+        arbitragemAssinada,
+        arbitragemAssinada ? nomeArbitragem.trim() : undefined,
+      )
       if (!result.ok) {
         setErro(result.error ?? 'Não foi possível criar a conta.')
         return
@@ -156,32 +165,66 @@ export function RegisterForm({
               </div>
             </div>
 
-            <label className="legal-check">
-              <input
-                type="checkbox"
-                checked={accepted}
-                onChange={(event) => setAccepted(event.target.checked)}
-              />
-              <span>
-                Li e aceito os{' '}
-                {registration.termsUrl ? (
-                  <a href={registration.termsUrl} target="_blank" rel="noreferrer">
-                    Termos de Uso
-                  </a>
-                ) : (
-                  'Termos de Uso'
-                )}{' '}
-                e a{' '}
-                {registration.privacyUrl ? (
-                  <a href={registration.privacyUrl} target="_blank" rel="noreferrer">
-                    Política de Privacidade
-                  </a>
-                ) : (
-                  'Política de Privacidade'
-                )}
-                .
-              </span>
-            </label>
+            <div className={`register-arbitration-card ${arbitragemAssinada ? 'active' : ''}`}>
+              <label className="register-arbitration-toggle">
+                <input
+                  type="checkbox"
+                  checked={arbitragemAssinada}
+                  onChange={(event) => {
+                    const checked = event.target.checked
+                    setArbitragemAssinada(checked)
+                    if (checked && !nomeArbitragem && name) {
+                      setNomeArbitragem(name)
+                    }
+                  }}
+                />
+                <div>
+                  <span className="register-arbitration-label">
+                    Aceitar Cláusula Compromissória de Arbitragem
+                    <span className="register-arbitration-badge">Opcional</span>
+                  </span>
+                  <p className="register-arbitration-hint">
+                    Institui o juízo arbitral para solução de litígios (Capítulo 14.4 dos{' '}
+                    <Link href="/termos" target="_blank">
+                      Termos de Uso
+                    </Link>
+                    ). A adesão é facultativa (Lei 9.307/1996, art. 4º, §2º) e desmarcar não interfere na criação da conta nem no marketplace.
+                  </p>
+                </div>
+              </label>
+
+              {arbitragemAssinada && (
+                <div className="register-arbitration-field">
+                  <label htmlFor="registerArbitrationName">
+                    Assinatura expressa (digite seu nome completo):
+                  </label>
+                  <input
+                    id="registerArbitrationName"
+                    type="text"
+                    required={arbitragemAssinada}
+                    value={nomeArbitragem}
+                    placeholder="Seu nome completo como assinatura"
+                    onChange={(event) => setNomeArbitragem(event.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <p className="register-signinwrap">
+              Ao criar sua conta, você declara ter lido e concordado com os{' '}
+              <Link href="/termos" target="_blank">
+                Termos de Uso
+              </Link>
+              , a{' '}
+              <Link href="/privacidade" target="_blank">
+                Política de Privacidade
+              </Link>{' '}
+              e a{' '}
+              <Link href="/taxas" target="_blank">
+                Tabela de Taxas
+              </Link>{' '}
+              da Áurea Custódia.
+            </p>
           </fieldset>
 
           <div className="auth-feedback" aria-live="polite">

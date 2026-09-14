@@ -149,6 +149,12 @@ export interface SellOffer {
    * pode trocar de tipo, a cópia nunca diverge do original.
    */
   tipoMoeda: string
+  /**
+   * Momento que define a vez na fila. Nasce igual a `createdAt` e é reescrito
+   * quando o preço muda ou a quantidade aumenta (decisão F-3, 13/09/2026).
+   * `createdAt` nunca muda: é a data do cadastro, para histórico e extrato.
+   */
+  prioridadeEm?: Timestamp
 }
 
 /** Oferta de compra (bid), com preço-limite e quantidade restante. */
@@ -160,6 +166,12 @@ export interface BuyOrder {
   /** Quantidade ainda não preenchida. Chega a 0 e a ordem é removida. */
   qty: number
   createdAt: Timestamp
+  /**
+   * Momento que define a vez na fila. Nasce igual a `createdAt` e é reescrito
+   * quando o preço muda ou a quantidade aumenta (decisão F-3, 13/09/2026).
+   * `createdAt` nunca muda: é a data do cadastro, para histórico e extrato.
+   */
+  prioridadeEm?: Timestamp
   /**
    * Tipo de moeda que este bid quer comprar. É o que separa os livros: uma
    * oferta de compra de "Direitos Humanos" nunca casa com uma venda de
@@ -176,16 +188,14 @@ export interface Trade {
   buyer: UserEmail
   seller: UserEmail
   /**
-   * Comissão TOTAL cobrada nesta negociação (por moeda × qty), congelada no
-   * momento da gravação — a coluna `fee` de `aurea.trades`.
-   *
-   * OPCIONAL de propósito: o motor (`matchOrders`) e as ações continuam
-   * criando o Trade sem ela, e a camada de banco a preenche ao gravar com
-   * `tradeFee(price) * qty`. Todo Trade que SAI do banco a carrega. O extrato
-   * ainda recalcula (RA-06) — passar a ler daqui é o passo seguinte, e é
-   * decisão dos sócios (CD-09).
+   * Comissão TOTAL da negociação (comprador + vendedor), congelada no momento
+   * da gravação — a coluna `fee` de `aurea.trades` (Decisão F-1, 13/09/2026).
    */
   fee?: Cents
+  /** Comissão cobrada do comprador nesta negociação, congelada. */
+  feeComprador?: Cents
+  /** Comissão cobrada do vendedor nesta negociação, congelada. */
+  feeVendedor?: Cents
   /**
    * Tipo negociado. Sem ele, média de 7 dias, mediana de 24h e os gráficos
    * misturariam preços de moedas diferentes numa série só — uma Bandeira de
@@ -205,6 +215,7 @@ export interface Lot {
   price: Cents
   obs: string
   createdAt: Timestamp
+  prioridadeEm?: Timestamp
   coinIds: string[]
   /** Tipo das moedas do lote — todas iguais, garantido na publicação. */
   tipoMoeda: string

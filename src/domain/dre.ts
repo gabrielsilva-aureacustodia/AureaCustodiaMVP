@@ -375,7 +375,8 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
     linhas.push({ codigo, descricao, valor, nivel, observacao })
   }
   linha('3', 'RECEITA BRUTA', receitaBruta, 0)
-  linha('3.1.01', 'Receita de comissões de corretagem', receitaComissoes, 2, `${comissoes.length} negociação(ões)`)
+  const numNegocTotal = new Set(comissoes.map((l) => l.refInterna ?? String(l.createdAt))).size
+  linha('3.1.01', 'Receita de comissões de corretagem', receitaComissoes, 2, `${numNegocTotal} negociação(ões)`)
   linha('3.1.02', 'Receita de custódia', receitaCustodia, 2, 'cobrança de custódia')
   linha('3.1.03', 'Receita de tarifas de saque', receitaTaxaSaque, 2, `${taxasSaque.length} saque(s) tarifado(s)`)
   linha('3.1.04', 'Receita de tarifas de retirada física', receitaTaxaRetirada, 2, `${taxasRetirada.length} retirada(s) física(s)`)
@@ -402,16 +403,16 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   const vendas = noPer.filter((l) => l.tipo === 'venda')
   const volumeNegociado = vendas.reduce((s, l) => s + l.valor, 0)
 
-  const porTipoMap = new Map<string, { receita: Cents; negociacoes: number }>()
+  const porTipoMap = new Map<string, { receita: Cents; refs: Set<string> }>()
   for (const l of comissoes) {
     const k = l.tipoMoeda ?? '—'
-    const atual = porTipoMap.get(k) ?? { receita: 0, negociacoes: 0 }
+    const atual = porTipoMap.get(k) ?? { receita: 0, refs: new Set<string>() }
     atual.receita += l.valor
-    atual.negociacoes += 1
+    atual.refs.add(l.refInterna ?? String(l.createdAt))
     porTipoMap.set(k, atual)
   }
   const receitaPorTipo = [...porTipoMap.entries()]
-    .map(([tipoMoeda, v]) => ({ tipoMoeda, ...v }))
+    .map(([tipoMoeda, { receita, refs }]) => ({ tipoMoeda, receita, negociacoes: refs.size }))
     .sort((a, b) => b.receita - a.receita)
 
   const meses = new Map<string, { comissoes: Cents; custodia: Cents; despesas: Cents }>()

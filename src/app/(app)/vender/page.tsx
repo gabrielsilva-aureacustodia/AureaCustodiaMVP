@@ -39,17 +39,18 @@ import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { apelidoComprador } from '@/domain/contraparte'
-import { tradeFee } from '@/domain/fees'
-import { availableCoinsForSell, avg7, lotsFromOffers } from '@/domain/market'
+import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
+import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
-import type { BuyOrder, Lot } from '@/domain/types'
+import type { BuyOrder } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { TipoSelector } from '@/components/market/TipoSelector'
+import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { CoinPicker } from '@/components/sell/CoinPicker'
 import { SellerBidRow } from '@/components/sell/SellerBidRow'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
-import { cancelLot, editLot, publishOffer, sellToBid } from '@/server/actions/sell'
+import { publishOffer, sellToBid } from '@/server/actions/sell'
 
 /** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
 const NEGOCIAVEIS = tiposNegociaveis()
@@ -96,7 +97,6 @@ export default function VenderPage(): ReactNode {
   const anunciadas = new Set(state.sellOffers.map((o) => o.coinId))
   // Livres DO TIPO ATIVO — é o teto do campo de quantidade e da seleção.
   const avail = availableCoinsForSell(state, me, tipoAtivo)
-  const meusLotes = lotsFromOffers(state).filter((l) => l.seller === session)
   // Ofertas de compra das OUTRAS contas, da mais alta para a mais baixa: quem
   // vende quer ver primeiro quem paga mais. De TODOS os tipos, de propósito —
   // o vendedor pode ter moedas de mais de um ativo, e esconder os bids dos
@@ -168,9 +168,10 @@ export default function VenderPage(): ReactNode {
    * "taxa R$ 1,00" com o campo de preço ainda vazio — a linha 1625 do monolito
    * tem exatamente esta mesma proteção do lado de fora.
    */
-  const feeUnit = cents > 0 ? tradeFee(cents) : 0
+  const feeUnit = cents > 0 ? comissaoPorMoeda(cents, 'vendedor') : 0
   const fee = feeUnit * qty
-  const net = gross - fee
+  const netUnit = cents > 0 ? liquidoDeVendaPorMoeda(cents) : 0
+  const net = netUnit * qty
   const podePublicar = qty > 0 && cents > 0 && termsOk
 
   /* ---------- seleção -------------------------------------------------------- */
@@ -255,10 +256,6 @@ export default function VenderPage(): ReactNode {
   }
 
   /* ---------- modais --------------------------------------------------------- */
-  function abrirEdicaoDeLote(lote: Lot): void {
-    modal.open(<ModalEditarLote lote={lote} />)
-  }
-
   function abrirVendaDireta(bid: BuyOrder): void {
     // Limite calculado ANTES de abrir, como em openSellToBidModal (linha 1735):
     // não faz sentido abrir um stepper que não pode passar de zero.
@@ -277,7 +274,9 @@ export default function VenderPage(): ReactNode {
 
   /* ---------- desenho -------------------------------------------------------- */
   return (
-    <div className="cols sell">
+    <>
+      <MinhasOfertas />
+      <div className="cols sell">
       {/* ================= coluna 1 — escolha dos ativos ================= */}
       <div className="panel">
         <h3>
@@ -317,33 +316,6 @@ export default function VenderPage(): ReactNode {
             onToggle={alternarMoeda}
           />
         </div>
-
-        {meusLotes.length > 0 && (
-          <>
-            <div className="hist-head" style={{ marginTop: 18 }}>
-              Meus anúncios ativos
-            </div>
-            {meusLotes.map((l) => (
-              <div className="hist-row" key={l.lotId}>
-                <span className="d">
-                  {l.coinIds.length}× {l.tipoMoeda} · {brl(l.price)} cada
-                </span>
-                <span>
-                  <span className="edit-link" onClick={() => abrirEdicaoDeLote(l)}>
-                    Editar
-                  </span>
-                  <span
-                    className="p"
-                    style={{ color: 'var(--red)', cursor: 'pointer', fontSize: 12, marginLeft: 12 }}
-                    onClick={() => void run(() => cancelLot(l.lotId))}
-                  >
-                    Remover
-                  </span>
-                </span>
-              </div>
-            ))}
-          </>
-        )}
       </div>
 
       {/* ================= coluna 2 — detalhes do anúncio ================= */}
@@ -400,15 +372,17 @@ export default function VenderPage(): ReactNode {
           <span className="v">{gross > 0 ? brl(gross) : '—'}</span>
         </div>
         <div className="summary-row">
-          <span className="k">Taxa total (0,5% + R$1,00 por moeda)</span>
-          <span className="v">{fee > 0 ? brl(fee) : '—'}</span>
+          <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+          <span className="v">{fee > 0 ? `- ${brl(fee)}` : '—'}</span>
         </div>
         <div className="summary-row total">
-          <span className="k">Valor líquido estimado</span>
+          <span className="k">Você recebe</span>
           {/* 19px sobrescreve os 21px de .summary-row.total .v — está inline no
               original e continua inline aqui pelo mesmo motivo: precedência. */}
           <span className="v" style={{ fontSize: 19 }}>
-            {net > 0 ? brl(net) : '—'}
+            {net > 0 ? (
+              qty > 1 ? `${brl(net)} (${brl(netUnit)}/moeda)` : brl(net)
+            ) : '—'}
           </span>
         </div>
 
@@ -529,96 +503,6 @@ export default function VenderPage(): ReactNode {
         </div>
       </div>
     </div>
-  )
-}
-
-/* ========================================================================== */
-/* Modal — editar anúncio já publicado (renderEditLotModal, linhas 1669-1690)  */
-/* ========================================================================== */
-
-/**
- * O `editLotTemp` do monolito era uma global com {price, qty, maxQty}; aqui é
- * estado local do componente da modal, que nasce e morre com ela.
- *
- * Uma diferença sem efeito prático: no original, clicar no stepper redesenhava
- * a modal inteira e REFORMATAVA o preço digitado ('300' virava '300,00'), porque
- * o value era reescrito a partir de editLotTemp.price. Aqui o texto digitado
- * fica como está e só é interpretado na hora de salvar — o número que vai para o
- * servidor é o mesmo nos dois casos.
- */
-function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
-  const { run } = useApp()
-  const { close } = useModal()
-  const toast = useToast()
-
-  const maxQty = lote.coinIds.length
-  const [precoTexto, setPrecoTexto] = useState(() =>
-    (lote.price / 100).toFixed(2).replace('.', ','),
-  )
-  const [qty, setQty] = useState(maxQty)
-
-  function ajustar(d: number): void {
-    setQty((atual) => Math.min(maxQty, Math.max(1, atual + d)))
-  }
-
-  function salvar(): void {
-    const cents = parsePrice(precoTexto)
-    // A modal NÃO fecha quando o preço é inválido (linha 1692): a pessoa precisa
-    // ver o campo para corrigi-lo.
-    if (!cents || cents <= 0) {
-      toast('Informe um preço válido.')
-      return
-    }
-    close()
-    void run(() => editLot(lote.lotId, cents, qty))
-  }
-
-  return (
-    <>
-      <h3 className="serif">Editar anúncio</h3>
-      <p>
-        {lote.tipoMoeda} — {maxQty} moeda(s) anunciada(s) atualmente.
-      </p>
-
-      <div className="field-lbl">Novo preço unitário</div>
-      <div className="price-input">
-        <span>R$</span>
-        <input
-          inputMode="decimal"
-          aria-label="Novo preço unitário em reais"
-          value={precoTexto}
-          onChange={(e) => setPrecoTexto(e.target.value)}
-        />
-      </div>
-
-      <div className="field-lbl">Quantidade anunciada</div>
-      <div className="stepper">
-        <button type="button" disabled={qty <= 1} onClick={() => ajustar(-1)} aria-label="Diminuir">
-          −
-        </button>
-        <span className="n">{qty}</span>
-        <button
-          type="button"
-          disabled={qty >= maxQty}
-          onClick={() => ajustar(1)}
-          aria-label="Aumentar"
-        >
-          +
-        </button>
-      </div>
-      <p style={{ fontSize: 12, marginTop: 4 }}>
-        Só é possível reduzir a quantidade aqui — moedas removidas voltam para &quot;Escolha as
-        moedas&quot;. Para anunciar mais moedas, publique um novo anúncio.
-      </p>
-
-      <div className="m-actions">
-        <button className="btn btn-outline" type="button" onClick={close}>
-          Cancelar
-        </button>
-        <button className="btn btn-gold" type="button" onClick={salvar}>
-          Salvar alterações
-        </button>
-      </div>
     </>
   )
 }
@@ -692,9 +576,22 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>de {maxQ} disponíveis</span>
       </div>
 
-      <p>
-        Total a receber (antes da taxa): <b style={{ color: 'var(--gold)' }}>{brl(total)}</b>
-      </p>
+      <div className="summary-row" style={{ marginTop: 12 }}>
+        <span className="k">Subtotal bruto</span>
+        <span className="v">{brl(total)}</span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+        <span className="v">- {brl(comissaoPorMoeda(bo.price, 'vendedor') * qty)}</span>
+      </div>
+      <div className="summary-row total" style={{ marginBottom: 16 }}>
+        <span className="k">Você recebe</span>
+        <span className="v" style={{ fontSize: 17 }}>
+          {qty > 1
+            ? `${brl(liquidoDeVendaPorMoeda(bo.price) * qty)} (${brl(liquidoDeVendaPorMoeda(bo.price))}/moeda)`
+            : brl(liquidoDeVendaPorMoeda(bo.price) * qty)}
+        </span>
+      </div>
 
       <div className="m-actions">
         <button className="btn btn-outline" type="button" onClick={close}>

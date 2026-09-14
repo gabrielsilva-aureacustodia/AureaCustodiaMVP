@@ -23,7 +23,9 @@
  * redesenha quando o ciclo de sincronização traz um estado novo.
  */
 
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { initials } from '@/domain/codes'
@@ -32,6 +34,7 @@ import type { User } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useLogout, useSidebar } from '@/components/shell/Sidebar'
+import { aceitarTermosVigentes } from '@/server/actions/legal'
 
 interface Titulo {
   h1: string
@@ -151,54 +154,102 @@ export function Topbar(): ReactNode {
   const pathname = usePathname()
   const sair = useLogout()
 
+  const [dispensado, setDispensado] = useState(false)
+  const [aceitando, setAceitando] = useState(false)
+  const [aceitoAgora, setAceitoAgora] = useState(false)
+
+  const precisaAceite =
+    !aceitoAgora &&
+    !dispensado &&
+    (!me.settings?.legalAcceptance || me.settings.legalAcceptance.termsVersion !== '1.0')
+
   const titulo = tituloDaRota(pathname, me)
 
   return (
-    <div className="topbar">
-      <div className="tb-left">
-        {/* 44x44 fixos (shell.css) — é o alvo de toque mínimo, não uma medida
-            escolhida por estética. Some acima de 1080px, quando a sidebar volta
-            a ser coluna fixa. */}
-        <button
-          className="menu-btn"
-          type="button"
-          onClick={alternarGaveta}
-          aria-label="Abrir menu"
-          aria-expanded={open}
-          aria-controls="sidebar"
-        >
-          <svg viewBox="0 0 24 24">
-            <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-          </svg>
-        </button>
+    <header className="topbar-container">
+      {precisaAceite && (
+        <aside className="topbar-alert-banner" role="status">
+          <span>
+            Atualizamos nossos <strong>Termos de Uso e Condições Operacionais (v1.0 oficial)</strong>.{' '}
+            <Link href="/termos">Ler termos</Link> • <Link href="/taxas">Tabela de Taxas</Link>
+          </span>
+          <div className="topbar-alert-actions">
+            <button
+              type="button"
+              className="btn btn-gold topbar-alert-btn"
+              disabled={aceitando}
+              onClick={async () => {
+                setAceitando(true)
+                try {
+                  const res = await aceitarTermosVigentes()
+                  if (res.ok) {
+                    setAceitoAgora(true)
+                  }
+                } finally {
+                  setAceitando(false)
+                }
+              }}
+            >
+              {aceitando ? 'Registrando…' : 'Aceitar termos'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline topbar-alert-btn"
+              onClick={() => setDispensado(true)}
+              aria-label="Lembrar depois"
+            >
+              Lembrar depois
+            </button>
+          </div>
+        </aside>
+      )}
 
-        <div className="page-title">
-          <h1 className="serif">{titulo.h1}</h1>
-          <p>{titulo.p}</p>
-        </div>
-      </div>
+      <div className="topbar">
+        <div className="tb-left">
+          {/* 44x44 fixos (shell.css) — é o alvo de toque mínimo, não uma medida
+              escolhida por estética. Some acima de 1080px, quando a sidebar volta
+              a ser coluna fixa. */}
+          <button
+            className="menu-btn"
+            type="button"
+            onClick={alternarGaveta}
+            aria-label="Abrir menu"
+            aria-expanded={open}
+            aria-controls="sidebar"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+            </svg>
+          </button>
 
-      <div className="top-right">
-        <div className="user-chip">
-          <div className="avatar">{initials(me.name)}</div>
-          <div>
-            <div className="uname">{me.name}</div>
-            <div className="ubal">{brl(me.balance)}</div>
+          <div className="page-title">
+            <h1 className="serif">{titulo.h1}</h1>
+            <p>{titulo.p}</p>
           </div>
         </div>
 
-        {/* Segundo interruptor de tema (o primeiro está na gaveta). Os dois leem
-            o mesmo `dark`, então não há como saírem de sincronia — era isso que
-            a função syncThemeSwitches do original resolvia na mão. */}
-        <div className="theme-box">
-          <span>Modo escuro</span>
-          <div className={dark ? 'switch on' : 'switch'} onClick={toggle} />
-        </div>
+        <div className="top-right">
+          <div className="user-chip">
+            <div className="avatar">{initials(me.name)}</div>
+            <div>
+              <div className="uname">{me.name}</div>
+              <div className="ubal">{brl(me.balance)}</div>
+            </div>
+          </div>
 
-        <span className="logout" onClick={() => void sair()}>
-          Sair
-        </span>
+          {/* Segundo interruptor de tema (o primeiro está na gaveta). Os dois leem
+              o mesmo `dark`, então não há como saírem de sincronia — era isso que
+              a função syncThemeSwitches do original resolvia na mão. */}
+          <div className="theme-box">
+            <span>Modo escuro</span>
+            <div className={dark ? 'switch on' : 'switch'} onClick={toggle} />
+          </div>
+
+          <span className="logout" onClick={() => void sair()}>
+            Sair
+          </span>
+        </div>
       </div>
-    </div>
+    </header>
   )
 }

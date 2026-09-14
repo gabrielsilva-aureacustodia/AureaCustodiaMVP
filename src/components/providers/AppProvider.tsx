@@ -41,8 +41,59 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 
 import { SYNC_MS } from '@/domain/constants'
-import type { ActionResult, AppState, User, UserEmail } from '@/domain/types'
+import { brl } from '@/domain/money'
+import type { ActionResult, AppState, Trade, User, UserEmail } from '@/domain/types'
 import { useToast } from '@/components/ui/Toast'
+
+/**
+ * Notifica a conta quando uma negociação nova envolvendo ela for concluída
+ * (A2.6, 13/09/2026). O último instante visto é persistido no localStorage por
+ * conta, sempre protegido por try/catch.
+ */
+function verificarTradesNovos(
+  trades: readonly Trade[],
+  session: string,
+  toast: (msg: string) => void,
+): void {
+  try {
+    const key = `aurea_ultimo_trade_visto_${session}`
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null
+    const meusTrades = trades.filter((t) => t.seller === session || t.buyer === session)
+
+    if (raw === null) {
+      const maxTs = meusTrades.reduce((acc, t) => Math.max(acc, t.date ?? 0), 0)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, String(maxTs || Date.now()))
+      }
+      return
+    }
+
+    const ultimoVisto = parseInt(raw, 10) || 0
+    const novos = meusTrades.filter((t) => (t.date ?? 0) > ultimoVisto)
+
+    if (novos.length > 0) {
+      novos.forEach((t) => {
+        if (t.seller === session) {
+          const liq = t.price * t.qty - (t.feeVendedor ?? t.fee ?? 0)
+          toast(
+            `Sua oferta de venda foi executada: ${t.qty} ${t.tipoMoeda} a ${brl(t.price)}. Você recebeu ${brl(liq)}.`,
+          )
+        } else if (t.buyer === session) {
+          const tot = t.price * t.qty + (t.feeComprador ?? 0)
+          toast(
+            `Sua oferta de compra foi executada: ${t.qty} ${t.tipoMoeda} a ${brl(t.price)}. Total pago: ${brl(tot)}.`,
+          )
+        }
+      })
+      const maxNovos = novos.reduce((acc, t) => Math.max(acc, t.date ?? 0), ultimoVisto)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, String(maxNovos))
+      }
+    }
+  } catch {
+    // localStorage indisponível (SSR ou restrição do navegador)
+  }
+}
 
 interface AppCtx {
   /** O estado inteiro, do jeito que o servidor devolveu na última leitura. */
@@ -101,14 +152,31 @@ export function AppProvider({ initialState, session, admin = false, children }: 
    */
   const ultimoJson = useRef<string>(JSON.stringify(initialState))
 
-  const aplicar = useCallback((proximo: AppState) => {
-    const json = JSON.stringify(proximo)
-    // Igual ao anterior: nada a fazer. O original chamava updateHeader() neste
-    // ramo porque o cabeçalho era DOM manual; aqui ele já reflete `state`.
-    if (json === ultimoJson.current) return
-    ultimoJson.current = json
-    setState(proximo)
-  }, [])
+  useEffect(() => {
+    try {
+      const key = `aurea_ultimo_trade_visto_${session}`
+      if (typeof window !== 'undefined' && localStorage.getItem(key) === null) {
+        const meusTrades = initialState.trades.filter(
+          (t) => t.seller === session || t.buyer === session,
+        )
+        const maxTs = meusTrades.reduce((acc, t) => Math.max(acc, t.date ?? 0), 0)
+        localStorage.setItem(key, String(maxTs || Date.now()))
+      }
+    } catch {
+      // Ignora indisponibilidade de localStorage
+    }
+  }, [session, initialState])
+
+  const aplicar = useCallback(
+    (proximo: AppState) => {
+      const json = JSON.stringify(proximo)
+      if (json === ultimoJson.current) return
+      ultimoJson.current = json
+      verificarTradesNovos(proximo.trades, session, toast)
+      setState(proximo)
+    },
+    [session, toast],
+  )
 
   const refresh = useCallback(async () => {
     try {

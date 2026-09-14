@@ -41,6 +41,7 @@ import {
 import type { AppState, Cents, UserEmail } from '@/domain/types'
 
 import type { Operacao } from './diff'
+import type { RegistroHistoricoOferta } from './repositories/ofertas-historico'
 
 export interface ContextoDerivacao {
   antes: AppState
@@ -68,8 +69,17 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
   /* negociações novas — ref = posição no histórico, que é o id em aurea.trades */
   const tradesNovos = depois.trades.slice(antes.trades.length)
   tradesNovos.forEach((t, i) => {
-    const fee = t.fee ?? tradeFee(t.price) * (t.qty || 1)
-    pendentes.push(...lancamentosDeTrade(t, fee, `TRADE-${antes.trades.length + i + 1}`, nomes))
+    const qty = t.qty || 1
+    const feeComprador = t.feeComprador ?? 0
+    const feeVendedor = t.feeVendedor ?? (t.fee !== undefined ? t.fee - feeComprador : tradeFee(t.price) * qty)
+    pendentes.push(
+      ...lancamentosDeTrade(
+        t,
+        { comprador: feeComprador, vendedor: feeVendedor },
+        `TRADE-${antes.trades.length + i + 1}`,
+        nomes,
+      ),
+    )
   })
 
   /* depósitos novos */
@@ -292,3 +302,179 @@ export function resumirParaAuditoria(ops: readonly Operacao[], semeadura: boolea
     },
   }
 }
+
+/**
+ * Deriva, de uma mutação no estado, os eventos append-only para `aurea.ofertas_historico`.
+ *
+ * Módulo PURO (Decisão F-3, 13/09/2026):
+ * Registra 'publicada', 'editada' (com perdeu_a_vez), 'cancelada' e 'executada'.
+ */
+export function derivarHistoricoOfertas(ctx: ContextoDerivacao): RegistroHistoricoOferta[] {
+  const { antes, depois, semeadura, agora } = ctx
+  if (semeadura) return []
+
+  const historico: RegistroHistoricoOferta[] = []
+  const tradesNovos = depois.trades.slice(antes.trades.length)
+
+  /* 1. Ofertas de venda (sell offers) */
+
+  // Publicadas: existem em depois mas não em antes
+  for (const o of depois.sellOffers) {
+    if (!antes.sellOffers.some((x) => x.id === o.id)) {
+      historico.push({
+        createdAt: agora,
+        lado: 'venda',
+        ofertaId: o.id,
+        lotId: o.lotId,
+        conta: o.seller,
+        tipoMoeda: o.tipoMoeda,
+        evento: 'publicada',
+        precoAntes: null,
+        precoDepois: o.price,
+        qtdAntes: null,
+        qtdDepois: 1,
+        prioridadeAntes: null,
+        prioridadeDepois: o.prioridadeEm ?? o.createdAt,
+        perdeuAVez: false,
+      })
+    }
+  }
+
+  // Removidas: existiam em antes mas não em depois (executada vs cancelada)
+  for (const o of antes.sellOffers) {
+    if (!depois.sellOffers.some((x) => x.id === o.id)) {
+      // Se a moeda não está mais com o vendedor, foi vendida (executada); se ainda está, o anúncio foi cancelado
+      const moedaComVendedor = depois.users[o.seller]?.coins.some((c) => c.id === o.coinId)
+      const evento = moedaComVendedor ? 'cancelada' : 'executada'
+      historico.push({
+        createdAt: agora,
+        lado: 'venda',
+        ofertaId: o.id,
+        lotId: o.lotId,
+        conta: o.seller,
+        tipoMoeda: o.tipoMoeda,
+        evento,
+        precoAntes: o.price,
+        precoDepois: null,
+        qtdAntes: 1,
+        qtdDepois: null,
+        prioridadeAntes: o.prioridadeEm ?? o.createdAt,
+        prioridadeDepois: null,
+        perdeuAVez: false,
+      })
+    }
+  }
+
+  // Editadas: existem em antes e depois com preço ou prioridade alterados
+  for (const depoisO of depois.sellOffers) {
+    const antesO = antes.sellOffers.find((x) => x.id === depoisO.id)
+    if (antesO) {
+      const prioridadeAntes = antesO.prioridadeEm ?? antesO.createdAt
+      const prioridadeDepois = depoisO.prioridadeEm ?? depoisO.createdAt
+      if (antesO.price !== depoisO.price || prioridadeAntes !== prioridadeDepois) {
+        historico.push({
+          createdAt: agora,
+          lado: 'venda',
+          ofertaId: depoisO.id,
+          lotId: depoisO.lotId,
+          conta: depoisO.seller,
+          tipoMoeda: depoisO.tipoMoeda,
+          evento: 'editada',
+          precoAntes: antesO.price,
+          precoDepois: depoisO.price,
+          qtdAntes: 1,
+          qtdDepois: 1,
+          prioridadeAntes,
+          prioridadeDepois,
+          perdeuAVez: prioridadeDepois > prioridadeAntes,
+        })
+      }
+    }
+  }
+
+  /* 2. Ofertas de compra (buy orders) */
+
+  // Publicadas: existem em depois mas não em antes
+  for (const b of depois.buyOrders) {
+    if (!antes.buyOrders.some((x) => x.id === b.id)) {
+      historico.push({
+        createdAt: agora,
+        lado: 'compra',
+        ofertaId: b.id,
+        lotId: null,
+        conta: b.buyer,
+        tipoMoeda: b.tipoMoeda,
+        evento: 'publicada',
+        precoAntes: null,
+        precoDepois: b.price,
+        qtdAntes: null,
+        qtdDepois: b.qty,
+        prioridadeAntes: null,
+        prioridadeDepois: b.prioridadeEm ?? b.createdAt,
+        perdeuAVez: false,
+      })
+    }
+  }
+
+  // Removidas: existiam em antes mas não em depois (executada vs cancelada)
+  for (const b of antes.buyOrders) {
+    if (!depois.buyOrders.some((x) => x.id === b.id)) {
+      const executouTrade = tradesNovos.some((t) => t.buyer === b.buyer && t.tipoMoeda === b.tipoMoeda)
+      const evento = executouTrade ? 'executada' : 'cancelada'
+      historico.push({
+        createdAt: agora,
+        lado: 'compra',
+        ofertaId: b.id,
+        lotId: null,
+        conta: b.buyer,
+        tipoMoeda: b.tipoMoeda,
+        evento,
+        precoAntes: b.price,
+        precoDepois: null,
+        qtdAntes: b.qty,
+        qtdDepois: null,
+        prioridadeAntes: b.prioridadeEm ?? b.createdAt,
+        prioridadeDepois: null,
+        perdeuAVez: false,
+      })
+    }
+  }
+
+  // Editadas: existem em ambos e sofreram alteração manual de preço, prioridade ou quantidade
+  for (const depoisB of depois.buyOrders) {
+    const antesB = antes.buyOrders.find((x) => x.id === depoisB.id)
+    if (antesB) {
+      const prioridadeAntes = antesB.prioridadeEm ?? antesB.createdAt
+      const prioridadeDepois = depoisB.prioridadeEm ?? depoisB.createdAt
+      const precoMudou = antesB.price !== depoisB.price
+      const prioridadeMudou = prioridadeAntes !== prioridadeDepois
+
+      const qtdExecutadaEmTrades = tradesNovos
+        .filter((t) => t.buyer === depoisB.buyer && t.tipoMoeda === depoisB.tipoMoeda)
+        .reduce((acc, t) => acc + (t.qty || 1), 0)
+      const qtdMudouPorEdicao = antesB.qty !== depoisB.qty && antesB.qty - depoisB.qty !== qtdExecutadaEmTrades
+
+      if (precoMudou || prioridadeMudou || qtdMudouPorEdicao) {
+        historico.push({
+          createdAt: agora,
+          lado: 'compra',
+          ofertaId: depoisB.id,
+          lotId: null,
+          conta: depoisB.buyer,
+          tipoMoeda: depoisB.tipoMoeda,
+          evento: 'editada',
+          precoAntes: antesB.price,
+          precoDepois: depoisB.price,
+          qtdAntes: antesB.qty,
+          qtdDepois: depoisB.qty,
+          prioridadeAntes,
+          prioridadeDepois,
+          perdeuAVez: prioridadeDepois > prioridadeAntes,
+        })
+      }
+    }
+  }
+
+  return historico
+}
+

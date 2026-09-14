@@ -6,7 +6,6 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { tradeFee } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import {
   encadear,
@@ -20,7 +19,7 @@ import { matchOrders } from '@/domain/market'
 import { BAN, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
 
 describe('ledger', () => {
-  it('negociação: três lançamentos, e a soma de cada lado bate com o saldo do motor', () => {
+  it('negociação: quatro lançamentos (compra, comissão comprador, venda, comissão vendedor), e a soma de cada lado bate com o saldo do motor', () => {
     const s = estado({
       eu: usuario('Eu', 100_000, [moeda('RO-000001', BAN)]),
       outro: usuario('Outro', 100_000, []),
@@ -32,16 +31,21 @@ describe('ledger', () => {
     const pendentes = [
       lancamentoDeSaldoInicial('eu', 100_000, 1000, 'abertura'),
       lancamentoDeSaldoInicial('outro', 100_000, 1000, 'abertura'),
-      ...lancamentosDeTrade(trades[0], tradeFee(28_500), 'TRADE-1'),
+      ...lancamentosDeTrade(trades[0], { comprador: trades[0].feeComprador!, vendedor: trades[0].feeVendedor! }, 'TRADE-1'),
     ]
     const { lancamentos, saldos } = encadear(pendentes, {}, GENESIS)
 
-    expect(lancamentos.map((l) => l.tipo)).toEqual(['saldo_inicial', 'saldo_inicial', 'compra', 'venda', 'comissao'])
+    expect(lancamentos.map((l) => l.tipo)).toEqual(['saldo_inicial', 'saldo_inicial', 'compra', 'comissao', 'venda', 'comissao'])
     expect(saldos.eu).toBe(s.users.eu.balance)
     expect(saldos.outro).toBe(s.users.outro.balance)
     expect(saldoPorSoma(lancamentos, 'eu')).toBe(s.users.eu.balance)
-    // a receita da Áurea é o lançamento de comissão, com o valor cobrado congelado
-    expect(lancamentos[4]).toMatchObject({ tipo: 'comissao', valor: tradeFee(28_500), sinal: -1, userEmail: 'eu' })
+    expect(saldoPorSoma(lancamentos, 'outro')).toBe(s.users.outro.balance)
+    // Comprador: compra (-28500) e comissão de compra (-feeComprador)
+    expect(lancamentos[2]).toMatchObject({ tipo: 'compra', valor: 28_500, sinal: -1, userEmail: 'outro' })
+    expect(lancamentos[3]).toMatchObject({ tipo: 'comissao', valor: trades[0].feeComprador, sinal: -1, userEmail: 'outro' })
+    // Vendedor: venda (+28500) e comissão de venda (-feeVendedor)
+    expect(lancamentos[4]).toMatchObject({ tipo: 'venda', valor: 28_500, sinal: 1, userEmail: 'eu' })
+    expect(lancamentos[5]).toMatchObject({ tipo: 'comissao', valor: trades[0].feeVendedor, sinal: -1, userEmail: 'eu' })
   })
 
   it('a cadeia confere, e adulterar uma linha do meio quebra a verificação', () => {

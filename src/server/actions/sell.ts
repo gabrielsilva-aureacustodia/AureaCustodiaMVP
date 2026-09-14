@@ -32,7 +32,7 @@
  */
 
 import { isNegociavel } from '@/domain/constants'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
@@ -88,7 +88,7 @@ function novoOfferId(): string {
 export async function publishOffer(
   coinIds: string[],
   priceCents: Cents,
-  obs: string,
+  obs: string = '',
 ): Promise<ActionResult<{ limparSelecao: boolean }>> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA, data: { limparSelecao: false } }
@@ -162,6 +162,7 @@ export async function publishOffer(
         }
 
         const lotId = novoLotId()
+        const agora = Date.now()
         validas.forEach((c) => {
           const oferta: SellOffer = {
             id: novoOfferId(),
@@ -170,7 +171,8 @@ export async function publishOffer(
             price: priceCents,
             obs: observacao,
             lotId,
-            createdAt: Date.now(),
+            createdAt: agora,
+            prioridadeEm: agora,
             tipoMoeda,
           }
           s.sellOffers.push(oferta)
@@ -239,7 +241,12 @@ export async function cancelLot(lotId: string): Promise<ActionResult> {
  * As ofertas que ficam são as PRIMEIRAS da lista, como no original (slice), e o
  * casamento roda depois porque o preço novo pode cruzar com um bid aberto.
  */
-export async function editLot(lotId: string, priceCents: Cents, qty: number): Promise<ActionResult> {
+export async function editLot(
+  lotId: string,
+  priceCents: Cents,
+  qty: number,
+  obs?: string,
+): Promise<ActionResult> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
@@ -247,33 +254,94 @@ export async function editLot(lotId: string, priceCents: Cents, qty: number): Pr
   // preço é o dado que menos pode chegar torto ao livro de ordens.
   if (!priceCents || priceCents <= 0) return { ok: false, error: 'Informe um preço válido.' }
 
+  const qtyDesejada = Math.max(1, Math.floor(qty))
+  const observacao = obs !== undefined ? String(obs).trim().slice(0, OBS_MAX) : undefined
+
   try {
     const { result } = await mutateState((s: AppState): ActionResult => {
+      const u = s.users[email]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
       const offers = s.sellOffers.filter((o) => o.lotId === lotId && o.seller === email)
       if (!offers.length) return { ok: false, error: LOTE_SUMIU }
 
-      // O stepper da modal já limita entre 1 e o total anunciado; o servidor
-      // reaplica o limite porque a quantidade chega como número livre.
-      const manter = Math.min(offers.length, Math.max(1, Math.floor(qty)))
-      const keep = offers.slice(0, manter)
-      const drop = offers.slice(manter)
+      const tipoMoeda = offers[0].tipoMoeda
+      const precoAntigo = offers[0].price
+      const precoMudou = precoAntigo !== priceCents
+      const agora = Date.now()
+      const obsFinal = observacao !== undefined ? observacao : offers[0].obs
 
-      // `keep` guarda as MESMAS referências que estão em s.sellOffers, então
-      // atribuir o preço aqui já altera o livro.
-      keep.forEach((o) => {
-        o.price = priceCents
-      })
+      let perdeuVez = precoMudou
 
-      if (drop.length) {
+      if (qtyDesejada > offers.length) {
+        // Aumentar quantidade passa a ser possível (Decisão F-3)
+        const necessarias = qtyDesejada - offers.length
+        const livres = availableCoinsForSell(s, u, tipoMoeda)
+        if (livres.length < necessarias) {
+          return {
+            ok: false,
+            error: `Você tem ${livres.length} moeda(s) livre(s) desse tipo para acrescentar.`,
+          }
+        }
+        perdeuVez = true
+
+        // Ofertas existentes recebem novo preço, obs e nova prioridade
+        offers.forEach((o) => {
+          o.price = priceCents
+          o.obs = obsFinal
+          o.prioridadeEm = agora
+        })
+
+        // Acrescenta moedas livres do mesmo tipo, na ordem do inventário
+        for (let i = 0; i < necessarias; i++) {
+          const coin = livres[i]
+          s.sellOffers.push({
+            id: novoOfferId(),
+            coinId: coin.id,
+            seller: email,
+            price: priceCents,
+            obs: obsFinal,
+            lotId,
+            createdAt: agora,
+            prioridadeEm: agora,
+            tipoMoeda,
+          })
+        }
+      } else if (qtyDesejada < offers.length) {
+        // Reduzir: saem as de prioridadeEm mais recente; as que ficam mantêm a vez
+        offers.sort((a, b) => (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt))
+        const keep = offers.slice(0, qtyDesejada)
+        const drop = offers.slice(qtyDesejada)
+
+        keep.forEach((o) => {
+          o.price = priceCents
+          o.obs = obsFinal
+          if (precoMudou) {
+            o.prioridadeEm = agora
+          }
+        })
+
         const dropIds = new Set(drop.map((o) => o.id))
         s.sellOffers = s.sellOffers.filter((o) => !dropIds.has(o.id))
+      } else {
+        // Mesma quantidade: altera preço e/ou observação
+        offers.forEach((o) => {
+          o.price = priceCents
+          o.obs = obsFinal
+          if (precoMudou) {
+            o.prioridadeEm = agora
+          }
+        })
       }
 
       const { matched } = matchOrders(s)
+      const msgFila = perdeuVez
+        ? ' Como o preço mudou, ela foi para o fim da fila desse preço.'
+        : ''
       return {
         ok: true,
         message:
-          'Anúncio atualizado.' +
+          `Oferta atualizada.${msgFila}` +
           (matched ? ' Parte foi vendida automaticamente com o novo preço.' : ''),
       }
     })
@@ -332,18 +400,22 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
-      const affordable = Math.floor(buyer.balance / bo.price)
+      const affordable = Math.floor(buyer.balance / custoDeCompraPorMoeda(bo.price))
       const execN = Math.min(n, affordable)
       if (execN <= 0) return { ok: false, error: 'O comprador não possui saldo suficiente no momento.' }
+
+      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price)
 
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]
         const price = bo.price
-        const fee = tradeFee(price)
-        buyer.balance -= price // o comprador paga o preço cheio
-        seller.balance += price - fee // a comissão sai do lado do vendedor
+        buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
+        seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
         transferCoin(seller, buyer, coin.id)
       }
+
+      const feeComprador = feeCompradorUnit * execN
+      const feeVendedor = feeVendedorUnit * execN
 
       // UM registro para as execN unidades, com qty = execN — é assim que o
       // histórico do MVP guarda venda direta (linha 1786) e é o que a média
@@ -354,6 +426,9 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         date: Date.now(),
         buyer: bo.buyer,
         seller: email,
+        feeComprador,
+        feeVendedor,
+        fee: feeComprador + feeVendedor,
         tipoMoeda: bo.tipoMoeda,
       })
       bo.qty -= execN

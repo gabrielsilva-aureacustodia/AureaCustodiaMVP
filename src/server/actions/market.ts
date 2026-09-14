@@ -29,7 +29,7 @@
  */
 
 import { isNegociavel } from '@/domain/constants'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, UserEmail } from '@/domain/types'
@@ -54,8 +54,8 @@ const ANUNCIO_INDISPONIVEL = 'Este anúncio não está mais disponível.'
 /** Linha 1470: o bid sumiu entre abrir a modal de edição e salvar. */
 const OFERTA_INDISPONIVEL = 'Esta oferta não está mais disponível.'
 
-/** Linha 1419. */
-const SALDO_INSUFICIENTE_QTD = 'Saldo insuficiente para esta quantidade.'
+/** Linha 1419, com informação explícita sobre a comissão de compra (A1). */
+const SALDO_INSUFICIENTE_QTD = 'Saldo insuficiente para esta quantidade (o total inclui a comissão de compra).'
 
 /** Linha 1714. */
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
@@ -177,7 +177,8 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
-    if (buyer.balance < price * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
+    const custoUnit = custoDeCompraPorMoeda(price)
+    if (buyer.balance < custoUnit * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
 
     /*
      * A TRANSFERÊNCIA VEM ANTES DO DINHEIRO.
@@ -197,15 +198,13 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     const toBuy = offers.slice(0, qty)
     const idsConsumidos = new Set<string>()
     let compradas = 0
+    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price)
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      // A comissão é por MOEDA, não por negociação — por isso é recalculada a
-      // cada unidade, dentro do laço, exatamente como na linha 1423.
-      const fee = tradeFee(price)
       if (!transferCoin(seller, buyer, o.coinId)) continue
-      buyer.balance -= price // o comprador paga o preço cheio
-      seller.balance += price - fee // a comissão sai do lado do vendedor
+      buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
+      seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1
     }
 
@@ -217,6 +216,8 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     if (compradas === 0) return { ok: false, error: ANUNCIO_INDISPONIVEL }
 
     const total = price * compradas
+    const feeComprador = feeCompradorUnit * compradas
+    const feeVendedor = feeVendedorUnit * compradas
 
     // Uma linha no histórico para a compra inteira, com qty = N — e não N linhas
     // de uma moeda. É o que a tela de gráficos e a média de 7 dias esperam.
@@ -226,6 +227,9 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
       date: Date.now(),
       buyer: session,
       seller: sellerId,
+      feeComprador,
+      feeVendedor,
+      fee: feeComprador + feeVendedor,
       tipoMoeda,
     })
 
@@ -266,17 +270,19 @@ export async function publishBid(
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-    // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite.
-    const maxAfford = Math.floor(u.balance / cents)
+    // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite (inclui comissão de compra).
+    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
 
     const qty = Math.min(qtyRaw, maxAfford)
+    const agora = Date.now()
     state.buyOrders.push({
       id: novoBidId(),
       buyer: session,
       price: cents,
       qty,
-      createdAt: Date.now(),
+      createdAt: agora,
+      prioridadeEm: agora,
       tipoMoeda,
     })
 
@@ -342,21 +348,32 @@ export async function editBid(
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-    const maxAfford = Math.floor(u.balance / cents)
+    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
+    const precoMudou = bo.price !== cents
+    const novaQty = Math.min(qtyRaw, maxAfford)
+    const qtyAumentou = novaQty > bo.qty
+    const perdeuVez = precoMudou || qtyAumentou
+
+    if (perdeuVez) {
+      bo.prioridadeEm = Date.now()
+    }
     // `bo.tipoMoeda` NÃO é editável: trocar o ativo de uma ordem já publicada
     // preservaria a posição dela na fila de um livro em que ela nunca esteve,
     // furando a prioridade de quem chegou antes naquele mercado. Para comprar
     // outro tipo, cancela-se este bid e publica-se outro.
     bo.price = cents
-    bo.qty = Math.min(qtyRaw, maxAfford)
+    bo.qty = novaQty
 
     const { matched } = matchOrders(state)
+    const msgFila = perdeuVez
+      ? ' Como o preço mudou ou a quantidade aumentou, ela foi para o fim da fila desse preço.'
+      : ''
     return {
       ok: true,
       message:
-        'Oferta de compra atualizada.' +
+        `Oferta de compra atualizada.${msgFila}` +
         (matched ? ' Parte foi executada automaticamente com o novo preço.' : ''),
     }
   })

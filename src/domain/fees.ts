@@ -1,56 +1,112 @@
 /**
- * Taxas: custódia (anual, por faixa de quantidade) e corretagem (por moeda).
+ * Taxas: custódia (mensal e anual por moeda), corretagem dos dois lados e saque.
  *
- * Port de aurea-mvp-teste.html. A custódia por faixas das linhas 802-805 foi
- * aposentada pela decisão D-3; sobrou daquele trecho a comissão. Ver também
- * a comissão de negociação, que no MVP não era função — a expressão
- * `Math.round(price*FEE_PCT)+FEE_FIXED` aparecia repetida em três lugares
- * (linhas 990, 1423 e 1781). Aqui vira `tradeFee`, com o mesmo resultado
- * numérico, para que compra por lote, venda a bid e a prévia da interface não
- * possam divergir entre si.
+ * Tabela única de taxas da Áurea Custódia (Decisão F-1, 13/09/2026).
+ *
+ * Substitui os valores dispersos pelo objeto `TAXAS_PADRAO`.
+ * Valores monetários em centavos (Cents), percentuais em pontos-base (bp).
  */
 
-import { FEE_PCT, FEE_FIXED } from '@/domain/constants'
 import type { Cents } from '@/domain/types'
+
+/** Pontos-base: 50 bp = 0,5%. Inteiro, como em aurea.parametros_contabeis. */
+export interface TabelaDeTaxas {
+  comissaoCompradorBp: number
+  comissaoCompradorFixa: Cents
+  comissaoVendedorBp: number
+  comissaoVendedorFixa: Cents
+  custodiaMensalPorMoeda: Cents
+  custodiaAnualPorMoeda: Cents
+  custodiaAnualParcelasMax: number
+  taxaSaqueFixa: Cents
+  taxaRetiradaComum: Cents
+  taxaRetiradaSegura: Cents
+  retiradaSeguraParcelasMax: number
+}
+
+export const TAXAS_PADRAO: TabelaDeTaxas = {
+  comissaoCompradorBp: 50,
+  comissaoCompradorFixa: 100,
+  comissaoVendedorBp: 50,
+  comissaoVendedorFixa: 100,
+  custodiaMensalPorMoeda: 200,
+  custodiaAnualPorMoeda: 2400,
+  custodiaAnualParcelasMax: 12,
+  taxaSaqueFixa: 500,
+  taxaRetiradaComum: 5000,
+  taxaRetiradaSegura: 18000,
+  retiradaSeguraParcelasMax: 2,
+}
+
+export interface ComissaoPorMoeda {
+  comprador: Cents
+  vendedor: Cents
+}
+
+/**
+ * Calcula a comissão de uma negociação por moeda para comprador e vendedor.
+ * Cada lado: Math.round(price * bp / 10000) + fixa.
+ */
+export function comissaoPorMoeda(price: Cents, t?: TabelaDeTaxas): ComissaoPorMoeda
+export function comissaoPorMoeda(price: Cents, lado: 'comprador' | 'vendedor', t?: TabelaDeTaxas): Cents
+export function comissaoPorMoeda(
+  price: Cents,
+  ladoOuTaxas?: 'comprador' | 'vendedor' | TabelaDeTaxas,
+  taxasSeLado?: TabelaDeTaxas,
+): ComissaoPorMoeda | Cents {
+  const t =
+    typeof ladoOuTaxas === 'object' && ladoOuTaxas !== null
+      ? ladoOuTaxas
+      : (taxasSeLado ?? TAXAS_PADRAO)
+  const comprador = Math.round((price * t.comissaoCompradorBp) / 10000) + t.comissaoCompradorFixa
+  const vendedor = Math.round((price * t.comissaoVendedorBp) / 10000) + t.comissaoVendedorFixa
+  if (ladoOuTaxas === 'comprador') return comprador
+  if (ladoOuTaxas === 'vendedor') return vendedor
+  return { comprador, vendedor }
+}
+
+/** Preço unitário + comissão do comprador. */
+export function custoDeCompraPorMoeda(price: Cents, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
+  return price + comissaoPorMoeda(price, t).comprador
+}
+
+/** Preço unitário − comissão do vendedor. */
+export function liquidoDeVendaPorMoeda(price: Cents, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
+  return price - comissaoPorMoeda(price, t).vendedor
+}
+
+/**
+ * Comissão histórica (lado do vendedor): 0,5% do preço + R$ 1,00 fixo.
+ * Mantida para retrocompatibilidade com chamadores que ainda não foram atualizados.
+ */
+export function tradeFee(price: Cents, lado: 'comprador' | 'vendedor' = 'vendedor'): Cents {
+  return comissaoPorMoeda(price, lado)
+}
 
 /**
  * Taxa de custódia mensal e anual por moeda (Decisão D-3, 10/09/2026).
- *
- * Substitui as faixas anuais antigas por R$ 2,00 por moeda por mês,
- * ou plano anual de R$ 24,00 por moeda em até 12x (sem desconto).
+ * Apelidos para TAXAS_PADRAO.
  */
-export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = 200 // R$ 2,00
-export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = 2400 // R$ 24,00
+export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaMensalPorMoeda
+export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaAnualPorMoeda
 
 /**
  * Calcula a taxa mensal de custódia pela quantidade de moedas ativas sob guarda.
  */
-export function custodiaMensalPorMoeda(qtdMoedas: number): Cents {
+export function custodiaMensalPorMoeda(qtdMoedas: number, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
   if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
-  return Math.floor(qtdMoedas) * CUSTODIA_MENSAL_POR_MOEDA_CENTS
+  return Math.floor(qtdMoedas) * t.custodiaMensalPorMoeda
 }
 
 /**
  * Calcula a taxa anual de custódia pela quantidade de moedas ativas sob guarda.
  */
-export function custodiaAnualPorMoeda(qtdMoedas: number): Cents {
+export function custodiaAnualPorMoeda(qtdMoedas: number, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
   if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
-  return Math.floor(qtdMoedas) * CUSTODIA_ANUAL_POR_MOEDA_CENTS
-}
-
-/**
- * Comissão de uma negociação, por moeda: 0,5% do preço + R$ 1,00 fixo.
- *
- * O arredondamento é do percentual antes de somar o fixo — inverter a ordem ou
- * arredondar no fim mudaria o centavo em alguns preços, então a expressão fica
- * exatamente como estava no original.
- */
-export function tradeFee(price: Cents): Cents {
-  return Math.round(price * FEE_PCT) + FEE_FIXED
+  return Math.floor(qtdMoedas) * t.custodiaAnualPorMoeda
 }
 
 /**
  * Tarifa fixa de saque de recursos: R$ 5,00 debitados do valor sacado (Sessão B-4).
- * Cobre os custos operacionais e bancários de liquidação Pix/TED para o cliente.
  */
-export const TAXA_SAQUE_FIXA_CENTS: Cents = 500
+export const TAXA_SAQUE_FIXA_CENTS: Cents = TAXAS_PADRAO.taxaSaqueFixa

@@ -18,6 +18,14 @@ export function fdate(ts: Timestamp): DateBR {
   return new Date(ts).toLocaleDateString('pt-BR')
 }
 
+/** Timestamp -> 'DD/MM/AAAA às HH:MM:SS'. Usado na fila de ofertas e histórico recente. */
+export function fdatetime(ts: Timestamp): string {
+  const d = new Date(ts)
+  const data = d.toLocaleDateString('pt-BR')
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return `${data} às ${hora}`
+}
+
 /**
  * Zera o horário e devolve o início do dia LOCAL em ms.
  *

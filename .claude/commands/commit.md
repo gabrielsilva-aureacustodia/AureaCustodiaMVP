@@ -54,9 +54,9 @@ Mudou comportamento de alguma **superfície protegida** — `src/domain/constant
 Server Action?
 
 - **Sim** → pare, explique a mudança e confirme a decisão antes de commitar. São os
-  números combinados com os sócios (comissão de 0,5% + R$ 1,00, faixas de custódia de
-  R$ 5/15/25/30/60, mediana de 24h por tipo, casamento preço-tempo), o modelo de dados
-  (mudança em `types.ts` obriga rotação de `AUREA_STORE_KEY` — ver o `/publicar`) e todo
+  números combinados com os sócios (comissão de 0,5% + R$ 1,00 dos dois lados em `TAXAS_PADRAO`,
+  custódia mensal de R$ 2,00 por moeda por mês da D-3, mediana de 24h por tipo, casamento preço-tempo),
+  o modelo de dados (mudança em `types.ts` obriga rotação de `AUREA_STORE_KEY` — ver o `/publicar`) e todo
   caminho por onde dinheiro e titularidade se movem. Se autorizada, a mudança será
   registrada na próxima entrada do `docs/diario/VERSION_COMPARISON_DAILY.md`.
 - **Não** → siga. Mudança fora dessas superfícies é desenvolvimento normal.

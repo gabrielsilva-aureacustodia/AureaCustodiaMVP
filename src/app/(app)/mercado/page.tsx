@@ -41,6 +41,8 @@ import type { ReactNode } from 'react'
 import { BidRow } from '@/components/market/BidRow'
 import { Folder } from '@/components/market/Folder'
 import { LotCard } from '@/components/market/LotCard'
+import { MinhasOfertas } from '@/components/market/MinhasOfertas'
+import { ModalEditarBid } from '@/components/market/ModalEditarBid'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -49,10 +51,11 @@ import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
+import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
-import type { BuyOrder, Cents, Lot } from '@/domain/types'
-import { buyLot, cancelBid, editBid, publishBid } from '@/server/actions/market'
+import type { Cents, Lot } from '@/domain/types'
+import { buyLot, cancelBid, publishBid } from '@/server/actions/market'
 import { iniciarCompraDireta } from '@/server/actions/payments'
 import type { CompraDiretaIniciada, MetodoDeposito } from '@/server/payments/tipos'
 
@@ -66,11 +69,8 @@ const NEGOCIAVEIS = tiposNegociaveis()
  */
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
-/** Linha 1466 — a edição usa um texto ligeiramente diferente, e é assim mesmo. */
-const BID_INVALIDO_EDITAR = 'Informe quantidade e preço válidos.'
-
 export default function MercadoPage(): ReactNode {
-  const { state, session, run } = useApp()
+  const { state, session, me, run } = useApp()
   const modal = useModal()
   const toast = useToast()
 
@@ -174,10 +174,15 @@ export default function MercadoPage(): ReactNode {
     setAbertas(new Set([coinTypeInfo(tipo).categoria]))
   }
 
-  // Prévia do total da oferta de compra (linha 1390).
+  // Prévia do total da oferta de compra com comissão (A1.6).
   const bidQtyNum = parseInt(bidQty, 10) || 0
   const bidPriceCents = parsePrice(bidPrice)
-  const bidTotal = bidQtyNum > 0 && bidPriceCents > 0 ? brl(bidQtyNum * bidPriceCents) : '—'
+  const bidCustoUnit = bidPriceCents > 0 ? custoDeCompraPorMoeda(bidPriceCents) : 0
+  const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador') : 0
+  const bidSubtotal = bidPriceCents > 0 && bidQtyNum > 0 ? bidPriceCents * bidQtyNum : 0
+  const bidComissaoTotal = bidComissaoUnit * bidQtyNum
+  const bidTotalComComissao = bidCustoUnit * bidQtyNum
+  const bidMaxMoedasSaldo = bidCustoUnit > 0 ? Math.floor(me.balance / bidCustoUnit) : 0
 
   /* ---------- ações ---------- */
 
@@ -224,6 +229,7 @@ export default function MercadoPage(): ReactNode {
 
   return (
     <>
+      <MinhasOfertas />
       <div className="cols">
         <div>
           <div className="panel">
@@ -390,7 +396,7 @@ export default function MercadoPage(): ReactNode {
                   key={bid.id}
                   bid={bid}
                   mine={bid.buyer === session}
-                  onEdit={(b) => modal.open(<EditarBidModal bid={b} />)}
+                  onEdit={(b) => modal.open(<ModalEditarBid bid={b} />)}
                   onCancel={(b) => void run(() => cancelBid(b.id))}
                 />
               ))
@@ -441,12 +447,25 @@ export default function MercadoPage(): ReactNode {
               />
             </div>
 
+            <div className="summary-row">
+              <span className="k">Subtotal das moedas</span>
+              <span className="v">{bidSubtotal > 0 ? brl(bidSubtotal) : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span className="k">Comissão de compra (estimada no seu preço máximo)</span>
+              <span className="v">{bidComissaoTotal > 0 ? `+ ${brl(bidComissaoTotal)}` : '—'}</span>
+            </div>
             <div className="summary-row total">
-              <span className="k">Total estimado</span>
+              <span className="k">Total com comissão</span>
               <span className="v" style={{ fontSize: '19px' }}>
-                {bidTotal}
+                {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
               </span>
             </div>
+            {bidPriceCents > 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 12px' }}>
+                Seu saldo permite até {bidMaxMoedasSaldo} moeda(s) neste preço.
+              </div>
+            )}
 
             <button type="button" className="btn btn-gold" onClick={() => void publicarBid()}>
               Publicar oferta de compra
@@ -506,7 +525,9 @@ function ConfirmarCompraModal({
   const [pix, setPix] = useState<CompraDiretaIniciada | null>(null)
   const [erroMp, setErroMp] = useState('')
 
-  const total = lot.price * qty
+  const subtotal = lot.price * qty
+  const comissaoComprador = comissaoPorMoeda(lot.price, 'comprador') * qty
+  const total = subtotal + comissaoComprador
   const temSaldo = me.balance >= total
 
   async function confirmarComSaldo(): Promise<void> {
@@ -572,7 +593,19 @@ function ConfirmarCompraModal({
         <span className="v">{brl(lot.price)}</span>
       </div>
       <div className="summary-row">
-        <span className="k">Total</span>
+        <span className="k">Quantidade</span>
+        <span className="v">{qty} unidade(s)</span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Subtotal das moedas</span>
+        <span className="v">{brl(subtotal)}</span>
+      </div>
+      <div className="summary-row">
+        <span className="k">Comissão de compra da Áurea</span>
+        <span className="v">+ {brl(comissaoComprador)}</span>
+      </div>
+      <div className="summary-row total">
+        <span className="k">Total a pagar (debitado da conta)</span>
         <span className="v" style={{ fontWeight: 600 }}>
           {brl(total)}
         </span>
@@ -597,8 +630,8 @@ function ConfirmarCompraModal({
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
           {temSaldo
-            ? `O total de ${brl(total)} será debitado do seu saldo interno.`
-            : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - me.balance)}).`}
+            ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de comissão de compra) será debitado do seu saldo interno.`
+            : `Saldo insuficiente para comprar esta quantidade com comissão (faltam ${brl(total - me.balance)}).`}
         </div>
         <button
           type="button"
@@ -688,79 +721,3 @@ function ConfirmarCompraModal({
   )
 }
 
-/**
- * Edição de uma oferta de compra já publicada — port de renderEditBidModal
- * (1453-1464) e da validação de saveEditBid (1466).
- *
- * O par quantidade/preço fica em TEXTO e é convertido na leitura, reproduzindo o
- * `editBidTemp` do original: lá o campo era não-controlado e o valor guardado
- * caía para 1 quando a caixa ficava vazia (`parseInt(...)||1`), sem que o campo
- * mostrasse esse 1. Guardar o número puro faria o campo saltar para "1" no meio
- * da digitação.
- *
- * A recusa por dados inválidos NÃO fecha a modal (linha 1466 retorna antes do
- * closeModal), para que dê para corrigir o que foi digitado.
- */
-function EditarBidModal({ bid }: { bid: BuyOrder }): ReactNode {
-  const { run } = useApp()
-  const { close } = useModal()
-  const toast = useToast()
-
-  const [qtyTexto, setQtyTexto] = useState(String(bid.qty))
-  // Preço inicial no formato brasileiro, como na linha 1459.
-  const [precoTexto, setPrecoTexto] = useState((bid.price / 100).toFixed(2).replace('.', ','))
-
-  const qty = parseInt(qtyTexto, 10) || 1
-  const preco = parsePrice(precoTexto)
-
-  async function salvar(): Promise<void> {
-    if (!preco || preco <= 0 || !qty || qty <= 0) {
-      toast(BID_INVALIDO_EDITAR)
-      return
-    }
-    close()
-    await run(() => editBid(bid.id, qty, preco))
-  }
-
-  return (
-    <>
-      <h3 className="serif">Editar oferta de compra</h3>
-      {/* O tipo é exibido, não editável: trocar o ativo de uma ordem publicada
-          preservaria a posição dela na fila de um livro em que ela nunca esteve.
-          Ver a nota em server/actions/market.ts, editBid. */}
-      <p>
-        Moeda: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
-      </p>
-
-      <div className="field-lbl">Quantidade desejada</div>
-      <input
-        id="editBidQty"
-        type="number"
-        min="1"
-        className="tinput"
-        value={qtyTexto}
-        onChange={(e) => setQtyTexto(e.target.value)}
-      />
-
-      <div className="field-lbl">Preço unitário máximo</div>
-      <div className="price-input">
-        <span>R$</span>
-        <input
-          id="editBidPrice"
-          inputMode="decimal"
-          value={precoTexto}
-          onChange={(e) => setPrecoTexto(e.target.value)}
-        />
-      </div>
-
-      <div className="m-actions">
-        <button type="button" className="btn btn-outline" onClick={close}>
-          Cancelar
-        </button>
-        <button type="button" className="btn btn-gold" onClick={() => void salvar()}>
-          Salvar alterações
-        </button>
-      </div>
-    </>
-  )
-}

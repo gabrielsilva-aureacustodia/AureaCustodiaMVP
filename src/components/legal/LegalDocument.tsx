@@ -3,11 +3,13 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { LOGO_AUREA } from '@/domain/constants'
+import { PrintButton } from './PrintButton'
 
 interface LegalDocumentProps {
   title: string
   version: string
   updatedAt: string
+  hash?: string
   children: ReactNode
   eyebrow?: string
   noticeTitle?: string
@@ -18,16 +20,11 @@ export function LegalDocument({
   title,
   version,
   updatedAt,
+  hash,
   children,
   eyebrow = 'Documento institucional oficial',
-  noticeTitle = 'Estrutura operacional acordada — redação jurídica final em 12/09/2026',
-  noticeDescription = (
-    <p>
-      Este documento consolida o posicionamento institucional, a narrativa de origem e as cláusulas
-      operacionais aprovadas pela diretoria e alinhadas na reunião com o jurídico em 09/09/2026.
-      A redação final elaborada pela assessoria jurídica será incorporada em 12/09/2026.
-    </p>
-  ),
+  noticeTitle,
+  noticeDescription,
 }: LegalDocumentProps): ReactNode {
   return (
     <main className="legal-page">
@@ -43,6 +40,8 @@ export function LegalDocument({
           <Link href="/academy">Academy</Link>
           <Link href="/termos">Termos</Link>
           <Link href="/privacidade">Privacidade</Link>
+          <Link href="/taxas">Taxas</Link>
+          <Link href="/suporte">SAC</Link>
           <Link className="btn btn-outline" href="/entrar">
             Entrar
           </Link>
@@ -53,8 +52,20 @@ export function LegalDocument({
         <p className="landing-eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
         <p className="legal-meta">
-          Versão: <strong>{version}</strong> · Atualizado em {updatedAt}
+          Versão: <strong>{version}</strong> · Vigente desde {updatedAt}
         </p>
+
+        <div className="legal-actions-bar">
+          {hash ? (
+            <div className="legal-hash-pill" title={`Hash SHA-256 canônico integral: ${hash}`}>
+              <strong>SHA-256:</strong>
+              <span className="legal-hash-code">{hash.slice(0, 16)}…{hash.slice(-8)}</span>
+            </div>
+          ) : (
+            <span />
+          )}
+          <PrintButton />
+        </div>
 
         {noticeTitle && (
           <aside className="legal-draft-warning" role="note">
@@ -70,7 +81,11 @@ export function LegalDocument({
         <p>AUREA CUSTODIA LTDA · CNPJ 68.071.452/0001-06</p>
         <div className="legal-footer-nav">
           <Link href="/academy">Academy</Link>
-          <Link href="/">Voltar à página inicial</Link>
+          <Link href="/termos">Termos</Link>
+          <Link href="/privacidade">Privacidade</Link>
+          <Link href="/taxas">Taxas</Link>
+          <Link href="/suporte">SAC</Link>
+          <Link href="/">Página inicial</Link>
         </div>
       </footer>
     </main>

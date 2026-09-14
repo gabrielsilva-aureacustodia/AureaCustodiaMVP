@@ -24,6 +24,16 @@
    o .nav-item{display:flex}, que vem depois e tem a mesma especificidade. */
 .sb-only,.nav-item.sb-only{display:none}
 .nav-item .switch{margin-left:auto;flex-shrink:0}
+.topbar-alert-banner{
+  width:100%;margin-bottom:18px;padding:12px 16px;background:var(--gold-wash);
+  border:1px solid var(--gold);border-radius:10px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13.5px;color:var(--text-strong);
+}
+.topbar-alert-banner a{color:var(--gold);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.topbar-alert-actions{display:flex;align-items:center;gap:10px}
+.topbar-alert-btn{
+  min-height:36px;padding:4px 12px;font-size:12.5px;border-radius:6px;cursor:pointer;
+}
 .sb-brand .brand-mark{width:56px;height:56px;font-size:26px;margin-bottom:8px}
 .sb-brand .brand-name{font-size:20px}
 .sb-brand .brand-sub{font-size:8.5px}

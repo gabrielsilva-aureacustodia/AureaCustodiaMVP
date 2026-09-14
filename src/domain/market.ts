@@ -12,7 +12,7 @@
 import type { AppState, Cents, Coin, Lot, MatchResult, Trade, User } from '@/domain/types'
 import { isNegociavel } from '@/domain/constants'
 import { DAY_MS, fdate } from '@/domain/dates'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 
 /* ---------- indicadores derivados das negociações ---------- */
@@ -122,9 +122,13 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
   state.sellOffers
     .filter((o) => tipo === undefined || o.tipoMoeda === tipo)
     .forEach((o) => {
+      const prioridade = o.prioridadeEm ?? o.createdAt
       const lot = map.get(o.lotId)
       if (lot) {
         lot.coinIds.push(o.coinId)
+        if (lot.prioridadeEm !== undefined && prioridade < lot.prioridadeEm) {
+          lot.prioridadeEm = prioridade
+        }
         return
       }
       map.set(o.lotId, {
@@ -133,11 +137,17 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
         price: o.price,
         obs: o.obs,
         createdAt: o.createdAt,
+        prioridadeEm: prioridade,
         coinIds: [o.coinId],
         tipoMoeda: o.tipoMoeda,
       })
     })
-  return [...map.values()].sort((a, b) => a.price - b.price || a.createdAt - b.createdAt)
+  return [...map.values()].sort(
+    (a, b) =>
+      a.price - b.price ||
+      (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+      a.createdAt - b.createdAt,
+  )
 }
 
 /**
@@ -180,7 +190,7 @@ export function transferCoin(seller: User, buyer: User, coinId: string): Coin | 
  *
  * MUTA `state`: saldos, inventários, ofertas, ordens e histórico.
  */
-export function matchOrders(state: AppState): MatchResult {
+export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO): MatchResult {
   /**
    * Agrupa execuções unitárias por comprador+vendedor+preço+tipo para que N
    * moedas do mesmo lote virem UM registro no histórico, com qty = N.
@@ -190,13 +200,34 @@ export function matchOrders(state: AppState): MatchResult {
    * split passaria a depender de nenhum nome de moeda do catálogo conter uma
    * barra vertical — uma armadilha silenciosa esperando o primeiro ativo novo.
    */
-  const fills = new Map<string, { buyer: string; seller: string; price: Cents; tipoMoeda: string; qty: number }>()
+  const fills = new Map<
+    string,
+    {
+      buyer: string
+      seller: string
+      price: Cents
+      tipoMoeda: string
+      qty: number
+      feeComprador: Cents
+      feeVendedor: Cents
+    }
+  >()
   let progress = true
   while (progress) {
     progress = false
     if (!state.buyOrders.length || !state.sellOffers.length) break
-    state.buyOrders.sort((a, b) => b.price - a.price || a.createdAt - b.createdAt)
-    state.sellOffers.sort((a, b) => a.price - b.price || a.createdAt - b.createdAt)
+    state.buyOrders.sort(
+      (a, b) =>
+        b.price - a.price ||
+        (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+        a.createdAt - b.createdAt,
+    )
+    state.sellOffers.sort(
+      (a, b) =>
+        a.price - b.price ||
+        (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+        a.createdAt - b.createdAt,
+    )
     for (const bo of state.buyOrders) {
       if (bo.qty <= 0) continue
       const buyer = state.users[bo.buyer]
@@ -208,12 +239,13 @@ export function matchOrders(state: AppState): MatchResult {
       const so = state.sellOffers.find(
         (s) => s.tipoMoeda === bo.tipoMoeda && s.price <= bo.price && s.seller !== bo.buyer,
       )
-      // Sem saldo, a ordem é apenas PULADA — não se cancela um bid por falta de
-      // caixa momentânea; ele volta a ser tentado na próxima rodada.
-      if (so && buyer.balance >= so.price) {
+      if (!so) continue
+      const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
+      // Sem saldo suficiente para o preço + comissão de compra, a ordem é apenas PULADA
+      // — não se cancela um bid por falta de caixa momentânea; ele volta a ser tentado na próxima rodada.
+      if (buyer.balance >= so.price + feeComprador) {
         const seller = state.users[so.seller]
         const price = so.price
-        const fee = tradeFee(price)
 
         // A TRANSFERÊNCIA VEM ANTES DO DINHEIRO — divergência deliberada do
         // original (linha 993), autorizada pelos sócios.
@@ -234,21 +266,27 @@ export function matchOrders(state: AppState): MatchResult {
           break
         }
 
-        buyer.balance -= price // o comprador paga o preço cheio
-        seller.balance += price - fee // a comissão sai do lado do vendedor
+        buyer.balance -= price + feeComprador // comprador paga preço + comissão de compra
+        seller.balance += price - feeVendedor // vendedor recebe preço líquido da comissão
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         bo.qty -= 1
         const k = bo.buyer + '|' + so.seller + '|' + price + '|' + so.tipoMoeda
         const atual = fills.get(k)
-        if (atual) atual.qty += 1
-        else
+        if (atual) {
+          atual.qty += 1
+          atual.feeComprador += feeComprador
+          atual.feeVendedor += feeVendedor
+        } else {
           fills.set(k, {
             buyer: bo.buyer,
             seller: so.seller,
             price,
             tipoMoeda: so.tipoMoeda,
             qty: 1,
+            feeComprador,
+            feeVendedor,
           })
+        }
         progress = true
         break
       }
@@ -266,10 +304,103 @@ export function matchOrders(state: AppState): MatchResult {
       date: now,
       buyer: f.buyer,
       seller: f.seller,
+      feeComprador: f.feeComprador,
+      feeVendedor: f.feeVendedor,
+      fee: f.feeComprador + f.feeVendedor,
       tipoMoeda: f.tipoMoeda,
     }
     state.trades.push(trade)
     trades.push(trade)
   })
   return { matched: fills.size > 0, trades }
+}
+
+export interface InfoPosicaoFila {
+  posicao: number
+  aFrente: number
+  mesmoPreco: number
+}
+
+/**
+ * Calcula a posição de uma oferta na fila do livro de ordens (Decisão F-3, 13/09/2026).
+ *
+ * Conta, dentro do mesmo tipo de moeda:
+ * - `aFrente`: ofertas com preço melhor ou mesmo preço com prioridade anterior.
+ * - `posicao`: posição da oferta na fila daquele preço (1ª, 2ª...).
+ * - `mesmoPreco`: total de ofertas existentes naquele mesmo preço.
+ *
+ * Retorna null caso a oferta não seja encontrada no estado.
+ */
+export function posicaoNaFila(
+  state: AppState,
+  lado: 'venda' | 'compra',
+  id: string,
+): InfoPosicaoFila | null {
+  if (lado === 'venda') {
+    const target = state.sellOffers.find((o) => o.id === id || o.lotId === id)
+    if (!target) return null
+
+    const doTipo = state.sellOffers.filter((o) => o.tipoMoeda === target.tipoMoeda)
+    const targetPrioridade = target.prioridadeEm ?? target.createdAt
+
+    let melhorPreco = 0
+    let aFrenteMesmoPreco = 0
+    let mesmoPreco = 0
+
+    for (const o of doTipo) {
+      if (o.price < target.price) {
+        melhorPreco++
+      } else if (o.price === target.price) {
+        mesmoPreco++
+        if (o.id !== target.id && (!target.lotId || o.lotId !== target.lotId)) {
+          const oPrioridade = o.prioridadeEm ?? o.createdAt
+          if (
+            oPrioridade < targetPrioridade ||
+            (oPrioridade === targetPrioridade && o.createdAt < target.createdAt)
+          ) {
+            aFrenteMesmoPreco++
+          }
+        }
+      }
+    }
+
+    return {
+      posicao: aFrenteMesmoPreco + 1,
+      aFrente: melhorPreco + aFrenteMesmoPreco,
+      mesmoPreco,
+    }
+  } else {
+    const target = state.buyOrders.find((b) => b.id === id)
+    if (!target) return null
+
+    const doTipo = state.buyOrders.filter((b) => b.tipoMoeda === target.tipoMoeda)
+    const targetPrioridade = target.prioridadeEm ?? target.createdAt
+
+    let melhorPreco = 0
+    let aFrenteMesmoPreco = 0
+    let mesmoPreco = 0
+
+    for (const b of doTipo) {
+      if (b.price > target.price) {
+        melhorPreco++
+      } else if (b.price === target.price) {
+        mesmoPreco++
+        if (b.id !== target.id) {
+          const bPrioridade = b.prioridadeEm ?? b.createdAt
+          if (
+            bPrioridade < targetPrioridade ||
+            (bPrioridade === targetPrioridade && b.createdAt < target.createdAt)
+          ) {
+            aFrenteMesmoPreco++
+          }
+        }
+      }
+    }
+
+    return {
+      posicao: aFrenteMesmoPreco + 1,
+      aFrente: melhorPreco + aFrenteMesmoPreco,
+      mesmoPreco,
+    }
+  }
 }

@@ -132,3 +132,107 @@
 .legal-blocks-footer{
   display:flex;justify-content:flex-end;gap:12px;margin-top:8px;padding-top:10px;
 }
+
+/* Hash canônico e ações no cabeçalho legal */
+.legal-actions-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin:18px 0 24px;padding:12px 16px;background:var(--card-subtle, rgba(255,255,255,0.03));
+  border:1px solid var(--line-soft);border-radius:10px;
+}
+.legal-hash-pill{
+  display:inline-flex;align-items:center;gap:8px;font-family:monospace;font-size:12px;
+  color:var(--text-muted);word-break:break-all;
+}
+.legal-hash-pill strong{color:var(--gold);font-weight:600}
+.legal-hash-code{
+  background:rgba(0,0,0,0.25);padding:3px 8px;border-radius:4px;border:1px solid var(--line-soft);
+  color:var(--text-strong);
+}
+.legal-print-btn{
+  display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:6px 14px;
+  font-size:13px;border-radius:6px;cursor:pointer;background:transparent;
+  border:1px solid var(--line);color:var(--text-strong);transition:border-color 0.15s;
+}
+.legal-print-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Destaque do Capítulo 14.4 — Cláusula de Arbitragem (Lei 9.307/1996, art. 4º, §2º) */
+.legal-arbitration-highlight{
+  margin:24px 0;padding:20px 24px;background:var(--gold-wash);
+  border:2px solid var(--gold);border-radius:10px;
+}
+.legal-arbitration-highlight h2{
+  color:var(--gold-bright, #d4af37);margin-top:0;
+}
+.legal-arbitration-highlight p,
+.legal-arbitration-highlight li,
+.legal-bold-text{
+  font-weight:700 !important;color:var(--text-strong) !important;line-height:1.75;
+}
+
+/* Box de Resumo de Pontos Obrigatórios */
+.legal-summary-box{
+  margin:24px 0 32px;padding:20px 24px;background:rgba(212,175,55,0.06);
+  border:1px solid var(--gold);border-radius:12px;
+}
+.legal-summary-box h3{
+  margin:0 0 12px;font-size:17px;color:var(--gold);font-weight:600;
+}
+.legal-summary-box ol{
+  margin:0 0 0 20px;padding:0;display:flex;flex-direction:column;gap:10px;
+}
+.legal-summary-box li{
+  font-size:14.5px;color:var(--text);line-height:1.55;
+}
+.legal-summary-box li strong{
+  color:var(--text-strong);
+}
+
+/* Tabela de Taxas e Cards de Exemplo */
+.legal-fee-table{
+  width:100%;border-collapse:collapse;margin:20px 0 28px;
+}
+.legal-fee-table th,.legal-fee-table td{
+  padding:14px 16px;text-align:left;border-bottom:1px solid var(--line-soft);
+  font-size:15px;line-height:1.5;
+}
+.legal-fee-table th{
+  color:var(--gold);font-weight:600;background:rgba(0,0,0,0.15);
+}
+.legal-fee-table tr:hover td{
+  background:rgba(255,255,255,0.02);
+}
+.legal-example-card{
+  margin:20px 0 28px;padding:20px;background:var(--gold-wash);
+  border:1px solid var(--gold);border-radius:10px;
+}
+.legal-example-card h4{
+  margin:0 0 10px;font-size:16px;color:var(--gold);font-weight:600;
+}
+.legal-example-card p{margin:6px 0;font-size:14.5px;color:var(--text)}
+
+/* Comprovante de Aceite Imprimível */
+.legal-proof-sheet{
+  max-width:800px;margin:32px auto;padding:40px;background:#fff;color:#111;
+  border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-family:system-ui,-apple-system,sans-serif;
+}
+.legal-proof-sheet h1{font-size:24px;margin:0 0 8px;color:#111}
+.legal-proof-sheet h2{font-size:18px;margin:24px 0 10px;border-bottom:1px solid #ddd;padding-bottom:6px;color:#222}
+.legal-proof-grid{display:grid;grid-template-columns:160px 1fr;gap:10px 16px;font-size:14px;line-height:1.5}
+.legal-proof-label{font-weight:600;color:#555}
+.legal-proof-val{word-break:break-all;color:#111}
+.legal-proof-val.code{font-family:monospace;background:#f5f5f5;padding:2px 6px;border-radius:4px}
+.legal-proof-text{margin:16px 0;padding:16px;background:#fafafa;border-left:4px solid #111;font-size:13.5px;line-height:1.6}
+
+/* Regras de Impressão */
+@media print{
+  body{background:#fff !important;color:#000 !important}
+  .legal-header, .legal-footer, .legal-print-btn, .legal-actions-bar, nav, button{display:none !important}
+  .legal-document, .legal-proof-sheet{
+    width:100% !important;margin:0 !important;padding:0 !important;border:none !important;
+    box-shadow:none !important;background:#fff !important;color:#000 !important;
+  }
+  .legal-document>h1, .legal-content h2, .legal-arbitration-highlight h2{color:#000 !important}
+  .legal-content p, .legal-content li{color:#111 !important}
+  .legal-arbitration-highlight{background:transparent !important;border:2px solid #000 !important}
+  .legal-bold-text{font-weight:bold !important;color:#000 !important}
+}

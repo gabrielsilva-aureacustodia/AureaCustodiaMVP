@@ -79,15 +79,18 @@ export function BidRow({ bid, mine, onEdit, onCancel }: BidRowProps): ReactNode 
               justifyContent: 'flex-end',
             }}
           >
-            {/* .edit-link já nasce com margin-left:12px para o uso dela em outras
-                telas; aqui o espaçamento é do flex, então o original zera. */}
-            <span className="edit-link" style={{ marginLeft: 0 }} onClick={() => onEdit(bid)}>
-              Editar
-            </span>
             <button
               type="button"
               className="btn btn-outline"
-              style={{ padding: '6px 14px', fontSize: '12.5px' }}
+              style={{ minHeight: '44px', minWidth: '44px', padding: '6px 14px', fontSize: '12.5px' }}
+              onClick={() => onEdit(bid)}
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ minHeight: '44px', minWidth: '44px', padding: '6px 14px', fontSize: '12.5px' }}
               onClick={() => onCancel(bid)}
             >
               Cancelar

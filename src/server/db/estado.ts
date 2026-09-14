@@ -29,10 +29,11 @@
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
-import { derivarLancamentos, resumirParaAuditoria } from './derivar'
+import { derivarHistoricoOfertas, derivarLancamentos, resumirParaAuditoria } from './derivar'
 import { normalizarTrade } from './diff'
 import { registrarAuditoria } from './repositories/auditoria'
 import { inserirLancamentos, ultimoHash } from './repositories/ledger'
+import { inserirHistoricoOfertas } from './repositories/ofertas-historico'
 import { carregarEstado, estaVazio, persistirEstado } from './repositories/state'
 import type { Executor } from './sql'
 
@@ -83,7 +84,8 @@ export async function mutarEstado<T>(
     if (ops.length > 0) {
       const agora = Date.now()
       const hashAnterior = await ultimoHash(tx)
-      const { lancamentos, ajustes } = derivarLancamentos({ antes, depois: state, ops, semeadura, agora, hashAnterior })
+      const ctxDerivacao = { antes, depois: state, ops, semeadura, agora, hashAnterior }
+      const { lancamentos, ajustes } = derivarLancamentos(ctxDerivacao)
       await inserirLancamentos(tx, lancamentos)
       if (ajustes.length) {
         console.warn(
@@ -91,6 +93,12 @@ export async function mutarEstado<T>(
             ajustes.map((a) => `${a.email} (${a.diferenca})`).join(', '),
         )
       }
+
+      const historicoOfertas = derivarHistoricoOfertas(ctxDerivacao)
+      if (historicoOfertas.length > 0) {
+        await inserirHistoricoOfertas(tx, historicoOfertas)
+      }
+
       const resumo = resumirParaAuditoria(ops, semeadura, ajustes)
       await registrarAuditoria(tx, {
         createdAt: agora,
@@ -118,6 +126,9 @@ export async function mutarEstado<T>(
  */
 function congelarComissoes(state: AppState, aPartirDe: number): void {
   for (const t of state.trades.slice(aPartirDe)) {
-    if (t.fee === undefined) t.fee = normalizarTrade(t).fee
+    const normalizado = normalizarTrade(t)
+    if (t.fee === undefined) t.fee = normalizado.fee
+    if (t.feeComprador === undefined) t.feeComprador = normalizado.feeComprador
+    if (t.feeVendedor === undefined) t.feeVendedor = normalizado.feeVendedor
   }
 }
