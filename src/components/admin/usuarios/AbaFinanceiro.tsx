@@ -10,8 +10,10 @@
 
 import type { ReactNode } from 'react'
 
+import { quitarFaturaComSaldoNoPainel } from '@/server/actions/admin/usuarios'
 import type { AbaFinanceiro as DadosAbaFinanceiro } from '@/server/admin/ficha'
 
+import { BotaoAcao } from '../BotaoAcao'
 import { Cartao, Indisponivel } from '../Blocos'
 import { data, dataHora, dinheiro, nomeDoMes, numero } from '../formatos'
 
@@ -35,7 +37,7 @@ const TIPO_LEDGER: Record<string, string> = {
   ajuste: 'Ajuste',
 }
 
-export function AbaFinanceiro({ dados, semBanco }: { dados: DadosAbaFinanceiro; semBanco: boolean }): ReactNode {
+export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: DadosAbaFinanceiro; semBanco: boolean; email: string; podeEditar: boolean }): ReactNode {
   const t = dados.totais
   return (
     <>
@@ -190,6 +192,7 @@ export function AbaFinanceiro({ dados, semBanco }: { dados: DadosAbaFinanceiro; 
                     <th className="adm-num">Valor</th>
                     <th>Vencimento</th>
                     <th>Pagamento</th>
+                    {podeEditar ? <th /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -206,6 +209,16 @@ export function AbaFinanceiro({ dados, semBanco }: { dados: DadosAbaFinanceiro; 
                       <td className="adm-num">{dinheiro(f.valorCents)}</td>
                       <td>{data(f.dataVencimento)}</td>
                       <td>{f.dataPagamento ? `${data(f.dataPagamento)}${f.formaPagamento ? ` · ${f.formaPagamento}` : ''}` : '—'}</td>
+                      {podeEditar ? (
+                        <td>
+                          {f.situacao === 'pendente' || f.situacao === 'atrasada' ? (
+                            // A liquidação é a da frente B; o botão só a chama, com a permissão conferida de novo.
+                            <BotaoAcao acao={quitarFaturaComSaldoNoPainel.bind(null, email, f.id)} usoNome="usuarios.quitar_fatura">
+                              Quitar com o saldo
+                            </BotaoAcao>
+                          ) : null}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
@@ -214,7 +227,12 @@ export function AbaFinanceiro({ dados, semBanco }: { dados: DadosAbaFinanceiro; 
           ) : (
             <p className="adm-fraco">Nenhuma fatura.</p>
           )}
-          <Indisponivel titulo="Pagamento manual de fatura" quando="Disponível depois da B2: o painel vai chamar a mesma ação de liquidação da frente B." />
+          {podeEditar ? (
+            <p className="adm-fraco">
+              “Quitar com o saldo” debita a fatura do saldo da conta, pela mesma liquidação que o cliente usa. Pagamento por Pix ou cartão
+              continua sendo pelo próprio cliente.
+            </p>
+          ) : null}
         </div>
       </details>
 

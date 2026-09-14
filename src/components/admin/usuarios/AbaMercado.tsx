@@ -3,17 +3,31 @@
  * histórico da fila de ofertas.
  *
  * A POSIÇÃO NA FILA É DA FRENTE A. `posicaoNaFila` e `aurea.ofertas_historico` nascem na A2
- * (fila por ordem de cadastro), e o painel não recalcula a fila por conta própria: enquanto a
- * A2 não está na `main`, a coluna diz "disponível depois da A2". O histórico da fila aparece
- * sozinho quando a tabela existir neste banco. Sem 'use client'.
+ * (fila por ordem de cadastro), e o painel não recalcula a fila por conta própria: a posição vem
+ * pronta de `posicaoNaFila` (src/domain/market.ts), a mesma que o cliente vê em "Minhas ofertas"
+ * (ligada na C3, depois de a A2 entrar na `main`). O histórico da fila aparece quando a tabela existe
+ * neste banco. Sem 'use client'.
  */
 
 import type { ReactNode } from 'react'
 
 import type { AbaMercado as DadosAbaMercado } from '@/server/admin/ficha'
 
+import type { InfoPosicaoFila } from '@/domain/market'
+
 import { Indisponivel } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
+
+/** "1º no preço · 2 à frente" — o mesmo resumo de "Minhas ofertas". */
+function Posicao({ p }: { p: InfoPosicaoFila | null }): ReactNode {
+  if (!p) return <span className="adm-fraco">fora da fila</span>
+  return (
+    <>
+      {p.posicao}º no preço
+      <div className="adm-fraco">{p.aFrente > 0 ? `${p.aFrente} à frente` : 'primeira da fila'} · {p.mesmoPreco} no mesmo preço</div>
+    </>
+  )
+}
 
 const EVENTO_DA_FILA: Record<string, string> = { publicada: 'Publicada', editada: 'Editada', cancelada: 'Cancelada', executada: 'Executada' }
 
@@ -42,7 +56,9 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td className="adm-num">{numero(l.quantidade)}</td>
                   <td className="adm-num">{dinheiro(l.preco)}</td>
                   <td>{dataHora(l.createdAt)}</td>
-                  <td className="adm-fraco">disponível depois da A2</td>
+                  <td>
+                    <Posicao p={l.posicao} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -74,7 +90,9 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td className="adm-num">{numero(b.qty)}</td>
                   <td className="adm-num">{dinheiro(b.price)}</td>
                   <td>{dataHora(b.createdAt)}</td>
-                  <td className="adm-fraco">disponível depois da A2</td>
+                  <td>
+                    <Posicao p={b.posicao} />
+                  </td>
                 </tr>
               ))}
             </tbody>

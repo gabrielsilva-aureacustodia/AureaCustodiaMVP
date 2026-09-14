@@ -88,7 +88,7 @@ export default async function FichaDoUsuarioPage({
 
       <div className="panel">
         {conteudo.aba === 'cadastro' ? <AbaCadastro email={email} nome={cabecalho.resumo.nome} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
-        {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
+        {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={temPermissao(membro, 'usuarios.editar')} /> : null}
         {conteudo.aba === 'acervo' ? <AbaAcervo dados={conteudo} /> : null}
         {conteudo.aba === 'logistica' ? <AbaLogistica dados={conteudo} /> : null}
         {conteudo.aba === 'mercado' ? <AbaMercado dados={conteudo} semBanco={cabecalho.semBanco} /> : null}

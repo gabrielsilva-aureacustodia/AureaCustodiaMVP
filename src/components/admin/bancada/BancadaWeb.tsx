@@ -1,0 +1,257 @@
+'use client'
+
+/**
+ * A bancada de análise no navegador (plano do Admin, 3.4): a fila à esquerda, o procedimento à
+ * direita — câmera, uma ficha por moeda e o fechamento.
+ *
+ * O FECHAMENTO É O MESMO DA ESTAÇÃO. O botão chama `fecharAnaliseNoPainel`, que valida com as
+ * regras da rota e passa para `fecharAnalise()` de src/server/estacao/analise.ts. A moeda nasce lá,
+ * com o hash encadeado pela fórmula congelada, e o operador é o membro da sessão.
+ *
+ * A validação da tela é a mesma do servidor (src/domain/admin/bancada.ts) — roda aqui antes do
+ * clique só para o operador saber na hora, com a moeda ainda na mesa. Quem recusa de verdade é o
+ * servidor.
+ */
+
+import { useState } from 'react'
+import type { ReactNode } from 'react'
+
+import { validarMoedasDaBancada, type ItemDaFilaBancada, type MoedaDigitada } from '@/domain/admin/bancada'
+import type { OcupacaoDaCaixa } from '@/domain/admin/caixas'
+import type { ActionResult } from '@/domain/types'
+import { abrirAnaliseNoPainel, atualizarBancadaNoPainel, fecharAnaliseNoPainel } from '@/server/actions/admin/bancada'
+import type { SaidaFechamento } from '@/server/estacao/analise'
+import { useToast } from '@/components/ui/Toast'
+
+import { dataHora, numero } from '../formatos'
+import { GravadorDeVideo } from './GravadorDeVideo'
+import { QuadroDeCaixas } from './QuadroDeCaixas'
+
+function vazia(): MoedaDigitada {
+  return { veredito: 'aprovada', gramas: '', caixa: '', posicao: '', motivoRecusa: '' }
+}
+
+export function BancadaWeb({
+  filaInicial,
+  caixasIniciais,
+  caixasCadastradas,
+  podeAnalisar,
+  operador,
+  videoConfigurado,
+  videoFaltando,
+}: {
+  filaInicial: ItemDaFilaBancada[]
+  caixasIniciais: OcupacaoDaCaixa[]
+  caixasCadastradas: boolean
+  podeAnalisar: boolean
+  operador: string
+  videoConfigurado: boolean
+  videoFaltando: string[]
+}): ReactNode {
+  const toast = useToast()
+  const [fila, setFila] = useState(filaInicial)
+  const [caixas, setCaixas] = useState(caixasIniciais)
+  const [atualizando, setAtualizando] = useState(false)
+  const [envio, setEnvio] = useState<ItemDaFilaBancada | null>(null)
+  const [moedas, setMoedas] = useState<MoedaDigitada[]>([])
+  const [video, setVideo] = useState<{ caminho: string | null; gravando: boolean }>({ caminho: null, gravando: false })
+  const [erros, setErros] = useState<string[]>([])
+  const [fechando, setFechando] = useState(false)
+  const [resultado, setResultado] = useState<{ protocolo: string; saida: SaidaFechamento } | null>(null)
+
+  async function atualizar(): Promise<void> {
+    setAtualizando(true)
+    const r = await atualizarBancadaNoPainel().catch((): ActionResult<never> => ({ ok: false, error: 'Sem resposta do servidor.' }))
+    setAtualizando(false)
+    if (r.ok && r.data) {
+      setFila(r.data.fila)
+      setCaixas(r.data.caixas)
+    } else if (r.error) {
+      toast(r.error)
+    }
+  }
+
+  async function escolher(item: ItemDaFilaBancada): Promise<void> {
+    if (video.gravando) {
+      toast('Pare a gravação antes de trocar de envio.')
+      return
+    }
+    setEnvio(item)
+    setMoedas(Array.from({ length: item.quantidade }, vazia))
+    setErros([])
+    setResultado(null)
+    if (!podeAnalisar) return
+    // Abrir a fase é informação para o cliente; falhar aqui não impede o procedimento físico.
+    const r = await abrirAnaliseNoPainel(item.protocolo).catch(() => null)
+    if (r && !r.ok && r.error) toast(`A fase não avançou no site: ${r.error}`)
+    if (r?.ok) setFila((f) => f.map((x) => (x.protocolo === item.protocolo ? { ...x, etapaAtual: 'Em análise física' } : x)))
+  }
+
+  function mudar(i: number, campo: keyof MoedaDigitada, valor: string): void {
+    setMoedas((ms) => ms.map((m, j) => (j === i ? { ...m, [campo]: valor } : m)))
+  }
+
+  async function fechar(): Promise<void> {
+    if (!envio) return
+    if (video.gravando) {
+      setErros(['Pare a gravação antes de fechar.'])
+      return
+    }
+    const local = validarMoedasDaBancada(moedas, envio.quantidade, video.caminho)
+    if (!local.ok) {
+      setErros(local.erros)
+      return
+    }
+    setErros([])
+    setFechando(true)
+    const r = await fecharAnaliseNoPainel(envio.protocolo, moedas, video.caminho).catch((): ActionResult<never> => ({ ok: false, error: 'Sem resposta do servidor. Confira a fila antes de repetir.' }))
+    setFechando(false)
+    if (!r.ok || !r.data) {
+      setErros([r.error ?? 'Falha ao gravar a análise.'])
+      return
+    }
+    toast(r.message ?? 'Análise gravada.')
+    setResultado({ protocolo: envio.protocolo, saida: r.data })
+    setEnvio(null)
+    setMoedas([])
+    void atualizar()
+  }
+
+  return (
+    <div className="adm-bancada">
+      <section className="panel adm-bancada-fila" aria-label="Fila da bancada">
+        <div className="adm-cs-cabecalho">
+          <h3>Fila</h3>
+          <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => void atualizar()} disabled={atualizando}>
+            {atualizando ? 'Atualizando…' : 'Atualizar fila'}
+          </button>
+        </div>
+        {fila.length === 0 ? (
+          <p className="empty">Nenhum envio recebido esperando análise.</p>
+        ) : (
+          <div className="adm-cs-itens">
+            {fila.map((item) => (
+              <button key={item.protocolo} type="button" className={`adm-cs-item${envio?.protocolo === item.protocolo ? ' on' : ''}`} onClick={() => void escolher(item)}>
+                <span className="adm-cs-item-topo">
+                  <span className="adm-cs-nome">{item.protocolo}</span>
+                  <span className="adm-cs-hora">{item.recebidoEm ? dataHora(item.recebidoEm) : ''}</span>
+                </span>
+                <span className="adm-cs-previa">
+                  {item.cliente} · {numero(item.quantidade)} × {item.tipoMoeda} ({item.ano})
+                </span>
+                <span className="adm-fraco">{item.etapaAtual}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="panel adm-bancada-procedimento" aria-label="Procedimento">
+        {resultado ? (
+          <div className="note adm-secao" role="status">
+            <span>
+              <b>{resultado.protocolo}</b>: {resultado.saida.aprovadas} aprovada(s), {resultado.saida.recusadas} recusada(s).
+              <ul className="adm-lista" style={{ margin: '6px 0 0 18px' }}>
+                {resultado.saida.analises.map((a) => (
+                  <li key={a.protocolo}>
+                    {a.protocolo} · {a.codigoMoeda ?? 'recusada'} · <span className="adm-mono">{a.hash}</span>
+                  </li>
+                ))}
+              </ul>
+            </span>
+          </div>
+        ) : null}
+
+        {!envio ? (
+          <p className="empty">Escolha um envio da fila para começar o procedimento.</p>
+        ) : (
+          <>
+            <div className="adm-cs-cabecalho">
+              <div>
+                <h3>{envio.protocolo}</h3>
+                <p className="adm-fraco">
+                  {envio.cliente} · {numero(envio.quantidade)} {envio.quantidade === 1 ? 'moeda' : 'moedas'} · {envio.tipoMoeda} {envio.ano}
+                  {envio.codigoRastreio ? ` · rastreio ${envio.codigoRastreio}` : ''}
+                </p>
+              </div>
+              <span className="adm-fraco">Operador: {operador}</span>
+            </div>
+
+            {!podeAnalisar ? (
+              <p className="note">Seu papel vê a fila, mas não grava análise (permissão “Analisar moedas”).</p>
+            ) : (
+              <>
+                <GravadorDeVideo protocolo={envio.protocolo} habilitado={podeAnalisar} videoConfigurado={videoConfigurado} videoFaltando={videoFaltando} aoMudar={setVideo} />
+
+                {moedas.map((m, i) => (
+                  <fieldset key={i} className="adm-bancada-moeda">
+                    <legend>
+                      Moeda {i + 1} de {moedas.length}
+                    </legend>
+                    <div className="adm-etiquetas" role="group" aria-label={`Veredito da moeda ${i + 1}`}>
+                      {(['aprovada', 'recusada'] as const).map((v) => (
+                        <button key={v} type="button" className="adm-etiqueta adm-etiqueta-botao" aria-pressed={m.veredito === v} onClick={() => mudar(i, 'veredito', v)}>
+                          {v === 'aprovada' ? 'Aprovar' : 'Recusar'}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="adm-form" style={{ marginTop: 10, marginBottom: 0 }}>
+                      {/* Texto e não number: o Chromium descarta "27,05" num input numérico (estacao/renderer/app.js). */}
+                      <label className="field">
+                        <span>Peso (g)</span>
+                        <input className="tinput" type="text" inputMode="decimal" autoComplete="off" placeholder="27,05" value={m.gramas} onChange={(e) => mudar(i, 'gramas', e.target.value)} />
+                      </label>
+                      {m.veredito === 'aprovada' ? (
+                        <>
+                          <label className="field">
+                            <span>Caixa</span>
+                            <input className="tinput" type="text" list="adm-bancada-caixas" placeholder="EB-001" value={m.caixa} onChange={(e) => mudar(i, 'caixa', e.target.value)} />
+                          </label>
+                          <label className="field">
+                            <span>Posição</span>
+                            <input className="tinput" type="text" inputMode="numeric" placeholder="7" value={m.posicao} onChange={(e) => mudar(i, 'posicao', e.target.value)} />
+                          </label>
+                        </>
+                      ) : (
+                        <label className="field adm-campo-largo">
+                          <span>Motivo da recusa</span>
+                          <input className="tinput" type="text" placeholder="Peso fora da tolerância" value={m.motivoRecusa} onChange={(e) => mudar(i, 'motivoRecusa', e.target.value)} />
+                        </label>
+                      )}
+                    </div>
+                  </fieldset>
+                ))}
+                <datalist id="adm-bancada-caixas">
+                  {caixas.filter((c) => c.cadastrada && c.ativa).map((c) => (
+                    <option key={c.codigo} value={c.codigo}>
+                      {c.rotulo || c.codigo}
+                    </option>
+                  ))}
+                </datalist>
+
+                {erros.length > 0 ? (
+                  <div className="note adm-secao" role="alert">
+                    <ul className="adm-lista" style={{ margin: 0 }}>
+                      {erros.map((e) => (
+                        <li key={e}>{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="adm-acoes">
+                  <button type="button" className="btn btn-gold" onClick={() => void fechar()} disabled={fechando || video.gravando}>
+                    {fechando ? 'Gravando a análise…' : 'Fechar análise'}
+                  </button>
+                  <span className="adm-fraco">{video.caminho ? 'Com vídeo.' : 'Sem vídeo — a análise registra a ausência no hash.'}</span>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </section>
+
+      <QuadroDeCaixas caixas={caixas} cadastradas={caixasCadastradas} podeEditar={podeAnalisar} aoSalvar={() => void atualizar()} />
+    </div>
+  )
+}

@@ -28,13 +28,13 @@ import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { useApp } from '@/components/providers/AppProvider'
 
 export default function RecibosPage(): ReactNode {
-  const { state, me } = useApp()
+  const { state, me, catalogo } = useApp()
 
   // Mediana das ofertas abertas nas últimas 24h (domain/market.ts), uma por
   // tipo negociável. É a referência de mercado de cada ativo; as moedas de
   // tipos sem mercado continuam valendo o `valorEstimado` da própria ficha.
   const medPorTipo: Record<string, Cents | null> = {}
-  tiposNegociaveis().forEach((t) => {
+  tiposNegociaveis(catalogo).forEach((t) => {
     medPorTipo[t.key] = medianSellPrice(state, t.key)
   })
   const coins = me.coins

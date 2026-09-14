@@ -32,6 +32,7 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import { coinTypeInfo } from '@/domain/constants'
 import type { Coin } from '@/domain/types'
 import { Folder } from '@/components/market/Folder'
+import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 
 export interface CoinPickerProps {
@@ -58,6 +59,8 @@ export function CoinPicker({
   onToggleFolder,
   onToggle,
 }: CoinPickerProps): ReactNode {
+  // A pasta de cada tipo vem do catálogo vigente, editado no painel (C3).
+  const { catalogo } = useApp()
   // Texto herdado da linha 1486, generalizado: o original nomeava a única moeda
   // negociável que existia ("Entrega da Bandeira Olímpica"); agora são duas, e
   // citar só uma delas mandaria o usuário procurar a moeda errada.
@@ -80,7 +83,7 @@ export function CoinPicker({
    */
   const porCategoria = new Map<string, Map<string, Coin[]>>()
   moedas.forEach((c) => {
-    const cat = coinTypeInfo(c.tipoMoeda).categoria
+    const cat = coinTypeInfo(c.tipoMoeda, catalogo).categoria
     const tipos = porCategoria.get(cat) ?? new Map<string, Coin[]>()
     const lista = tipos.get(c.tipoMoeda) ?? []
     lista.push(c)

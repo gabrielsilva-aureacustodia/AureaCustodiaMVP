@@ -52,7 +52,7 @@ export interface CertificateProps {
 }
 
 export function Certificate({ coinId }: CertificateProps): ReactNode {
-  const { state, me } = useApp()
+  const { state, me, catalogo } = useApp()
   const modal = useModal()
   const toast = useToast()
   const router = useRouter()
@@ -99,7 +99,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   // existia um ativo negociável só. Com a Direitos Humanos no mercado, esse
   // atalho apagaria o botão "Colocar à venda" de uma moeda perfeitamente
   // negociável e ainda mostraria a nota dizendo que ela não tem mercado.
-  const sellable = isNegociavel(coin.tipoMoeda)
+  const sellable = isNegociavel(coin.tipoMoeda, catalogo)
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
     : bloqueado

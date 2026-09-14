@@ -36,6 +36,8 @@ import { Sidebar, SidebarProvider } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { ModalHost } from '@/components/ui/Modal'
 import { podeAbrirPainelAdmin } from '@/server/admin/acesso'
+import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/carregar'
+import { documentosPendentesDeAceite } from '@/server/config/documentos'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -58,11 +60,16 @@ export default async function AppLayout({
   // banco, caindo na lista do ambiente se o banco falhar. Uma consulta de uma linha.
   const admin = await podeAbrirPainelAdmin(session)
 
+  // Taxas, catálogo e limites vigentes (C3) e o que a conta ainda não aceitou na versão
+  // vigente dos documentos. Os dois voltam a ser lidos a cada ciclo por /api/state.
+  const config = await carregarConfiguracaoDoSite()
+  const aceitesPendentes = await documentosPendentesDeAceite(session, config)
+
   return (
     // `admin` é decidido aqui, no servidor, e só liga o item "Administração" do
     // menu. O painel e as rotas de API conferem de novo — o menu é conveniência,
     // não barreira.
-    <AppProvider initialState={state} session={session} admin={admin}>
+    <AppProvider initialState={state} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa. */}
         <div className="app active">
