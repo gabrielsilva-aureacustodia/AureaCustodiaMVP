@@ -34,5 +34,9 @@
 @import '../styles/reports.css';
 @import '../styles/account.css';
 
+/* Painel administrativo (/admin). Sem media query própria: a gaveta mobile vem das
+   classes do casco, que responsive.css ajusta logo abaixo. */
+@import '../styles/admin.css';
+
 /* SEMPRE POR ÚLTIMO — ver a explicação no topo deste arquivo. */
 @import '../styles/responsive.css';

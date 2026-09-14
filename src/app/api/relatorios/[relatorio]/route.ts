@@ -7,10 +7,13 @@
  *
  * QUEM PODE
  * ---------
- * Sessão de administrador (a tela `/relatorios`) OU o token de integração
+ * Sessão de membro do painel (desde a C1: `resultados.ver` para ler em JSON,
+ * `resultados.exportar` para CSV e XLSX) OU o token de integração
  * `AUREA_RELATORIOS_TOKEN`, no cabeçalho `Authorization: Bearer …` ou em
  * `?token=` — o `IMPORTDATA` do Sheets não manda cabeçalho. Sem a variável
- * definida, o caminho por token está desligado. Ver src/server/relatorios/acesso.ts.
+ * definida, o caminho por token está desligado. Quem está em AUREA_ADMIN_EMAILS
+ * (ou, sem ela, nas contas do seed) continua entrando como antes. Ver
+ * src/server/relatorios/acesso.ts.
  *
  * O NOME ESPECIAL `tudo.xlsx` devolve a pasta de trabalho com todos os
  * relatórios, uma aba cada — é o "exportar tudo" da tela e o arquivo que se
@@ -28,7 +31,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { registrarExportacao } from '@/server/db/repositories/contabil'
-import { autorizarRelatorio } from '@/server/relatorios/acesso'
+import { autorizarRelatorioNoPainel } from '@/server/relatorios/acesso'
 import {
   ehNomeDeRelatorio,
   gerarRelatorio,
@@ -83,12 +86,20 @@ async function registrar(relatorio: string, formato: Formato, ator: string, via:
 export async function GET(req: NextRequest, { params }: { params: Promise<{ relatorio: string }> }): Promise<NextResponse> {
   const { relatorio: bruto } = await params
   const sessao = await getSessionEmail().catch(() => null)
-  const auth = autorizarRelatorio(sessao, tokenDe(req))
+  const token = tokenDe(req)
+  let auth = await autorizarRelatorioNoPainel(sessao, token)
   if (!auth.ok) return NextResponse.json({ error: auth.erro }, { status: auth.status, headers: SEM_CACHE })
 
   const q = req.nextUrl.searchParams
   const alvo = separarNomeEFormato(bruto, q.get('formato'))
   if (!alvo) return NextResponse.json({ error: 'Relatório desconhecido.' }, { status: 404, headers: SEM_CACHE })
+
+  // Arquivo que sai da plataforma pede a permissão de exportar. Só a sessão é
+  // conferida de novo: o token de integração existe justamente para exportar.
+  if (alvo.formato !== 'json' && auth.via === 'sessao') {
+    auth = await autorizarRelatorioNoPainel(sessao, token, 'resultados.exportar')
+    if (!auth.ok) return NextResponse.json({ error: auth.erro }, { status: auth.status, headers: SEM_CACHE })
+  }
 
   const opcoes: OpcoesRelatorio = {
     ano: q.get('ano'),

@@ -14,15 +14,25 @@ Montagem:   src/server/relatorios/dados.ts
 
 | Como | Quando |
 |---|---|
-| Cookie de sessão de um **administrador** | A tela `/relatorios` e quem estiver logado como sócio |
+| Cookie de sessão de um **membro do painel** com a permissão | As telas de `/admin/resultados/*` e quem estiver logado com o papel certo |
 | `Authorization: Bearer <AUREA_RELATORIOS_TOKEN>` | Scripts, Power Query, cron |
 | `?token=<AUREA_RELATORIOS_TOKEN>` | `IMPORTDATA` do Google Sheets, que não manda cabeçalho |
 
-Sem `AUREA_RELATORIOS_TOKEN` no ambiente, o caminho por token está **desligado**. Quem é
-administrador: `AUREA_ADMIN_EMAILS` (lista por vírgula) ou, sem ela, as sete contas do seed.
+Sem `AUREA_RELATORIOS_TOKEN` no ambiente, o caminho por token está **desligado**.
 
-Respostas de recusa: `401` (sem sessão e sem token válido), `403` (logado, mas não é
-administrador).
+**Desde a C1 (14/09/2026) a sessão é conferida pelos papéis do painel administrativo**
+(`autorizarRelatorioNoPainel`, em `src/server/relatorios/acesso.ts`):
+
+| Pedido | Permissão da sessão |
+|---|---|
+| JSON (`/api/relatorios`, `/api/relatorios/<nome>`) e `/api/admin/conciliacao` | `resultados.ver` |
+| CSV, XLSX e `POST /api/relatorios/sheets` | `resultados.exportar` |
+
+Quem está em `AUREA_ADMIN_EMAILS` (lista por vírgula) — ou, sem ela, nas contas do seed — e não foi
+cadastrado com outro papel em `/admin/equipe` entra como `dev`, com todas as permissões: para os
+sócios, nada mudou. O token de integração continua abrindo leitura e exportação como antes.
+
+Respostas de recusa: `401` (sem sessão e sem token válido), `403` (logado, mas sem a permissão).
 
 ## Índice
 

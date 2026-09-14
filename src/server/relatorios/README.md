@@ -15,7 +15,7 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 
 | Arquivo | O que faz | `server-only` |
 |---|---|---|
-| `acesso.ts` | `ehAdmin(email)`, `tokenDeIntegracaoValido`, `autorizarRelatorio` — quem pode ver | ✅ |
+| `acesso.ts` | `ehAdmin(email)` (o bootstrap do ambiente), `tokenDeIntegracaoValido`, `autorizarRelatorio` e `autorizarRelatorioNoPainel` — quem pode ver. Desde a C1, as rotas usam a versão que consulta os papéis do painel (`src/server/admin/acesso.ts`) | ✅ |
 | `dados.ts` | Os doze relatórios (`NOMES_RELATORIOS`), o período da consulta e `dreCompleta` | ✅ |
 | `exportar.ts` | `Relatorio` → CSV (regras do Excel pt-BR) e XLSX (SheetJS, no servidor) | — |
 | `sheets.ts` | Push para o Google Sheets pela API REST, com conta de serviço | ✅ |
@@ -30,9 +30,10 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 |---|---|
 | `src/app/api/relatorios/[relatorio]/route.ts` | `gerarRelatorio`, `gerarTodosRelatorios`, `relatorioParaCsv`, `relatoriosParaXlsx` |
 | `src/app/api/relatorios/sheets/route.ts` | `sincronizarSheetsComoAtor` (para cron/Apps Script) |
-| `src/server/actions/contabil.ts` | `ehAdmin`, `sincronizarSheetsComoAtor` |
-| `src/app/(app)/layout.tsx` | `ehAdmin` — liga o item "Relatórios" do menu |
-| `src/app/(app)/relatorios/page.tsx` | `ehAdmin`, `configuracaoSheets` |
+| `src/server/actions/contabil.ts` | `ehAdmin`, `sincronizarSheetsComoAtor` (ações da tela antiga; sem tela que as use desde a C1) |
+| `src/server/admin/resultados.ts` | `dreCompleta`, `gerarRelatorio`, `ehNomeDeRelatorio`, `configuracaoSheets` — a Central de Resultados do painel |
+| `src/server/actions/admin/contabil.ts` | `sincronizarSheetsComoAtor` — o envio ao Sheets pelo painel |
+| `src/app/(app)/relatorios/page.tsx` | Nada: desde a C1 só redireciona para `/admin/resultados/financeiro` |
 
 ## Regras que valem aqui
 

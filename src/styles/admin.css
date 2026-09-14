@@ -1,0 +1,89 @@
+/* ============================================================================
+   PAINEL ADMINISTRATIVO (/admin) — frente C.
+
+   O casco do painel usa as MESMAS classes do casco do app (.app, .sidebar, .main,
+   .topbar, .nav-item, .menu-btn, .sb-backdrop). É isso que dá ao painel a gaveta
+   mobile e o layout de celular sem uma media query nova: elas vivem em
+   responsive.css, que continua sendo o último import de globals.css.
+
+   Por isso ESTE ARQUIVO NÃO TEM MEDIA QUERY. O que precisa se adaptar à largura usa
+   grade com auto-fit e minmax(min(100%, X), 1fr) e linhas com flex-wrap: encolhe
+   sozinho, sem depender da ordem da cascata.
+
+   Cor só pelas variáveis de tokens.css. Toda classe nova começa com .adm- para não
+   colidir com as do monolito. Alvo de toque de 44px em tudo que se clica.
+   ========================================================================= */
+
+/* ---- Casco -------------------------------------------------------------- */
+.adm-marca{margin-bottom:18px}
+.adm-marca-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.adm-nav-grupo{margin-bottom:10px}
+.adm-nav-titulo{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin:12px 14px 6px}
+.adm-sidebar .nav-item{min-height:44px}
+.adm-papel-chip{font-size:13px}
+
+/* ---- Blocos de conteúdo -------------------------------------------------- */
+.adm-secao{margin-bottom:18px}
+.adm-titulo-secao{font-size:18px;color:var(--text-strong);font-weight:600;margin:6px 0 12px}
+.adm-subtitulo{font-size:14px;color:var(--text-strong);font-weight:700;margin:16px 0 8px}
+
+/* Atalho do painel inicial: um cartão inteiro clicável, com ícone e descrição. */
+.adm-atalho{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-height:44px;transition:background .18s,border-color .18s}
+.adm-atalho:hover{background:var(--card-hover);border-color:var(--line)}
+.adm-atalho-titulo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-strong);font-size:15px}
+.adm-atalho-titulo svg{width:19px;height:19px;stroke:var(--gold);fill:none;stroke-width:1.6;flex-shrink:0}
+.adm-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px;margin-bottom:18px}
+.adm-grade-larga{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px;margin-bottom:18px}
+.adm-grade-larga > *{min-width:0}
+
+.adm-cartao{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0}
+.adm-cartao-rotulo{font-size:12.5px;color:var(--text-muted);font-weight:600}
+.adm-cartao-valor{font-size:21px;color:var(--gold);font-weight:700;font-family:var(--ff-display);overflow-wrap:anywhere;margin-top:2px}
+.adm-cartao-detalhe{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.4}
+.adm-tom-alerta{border-color:var(--red-line-soft)}
+.adm-tom-alerta .adm-cartao-valor{color:var(--red)}
+.adm-tom-positivo{border-color:var(--green-line)}
+
+.adm-indisponivel{border:1px dashed var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0}
+.adm-indisponivel-texto{font-size:13px;color:var(--text-muted);margin-top:6px;line-height:1.45}
+
+.adm-aviso p{font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:8px}
+.adm-lista{margin:0 0 10px 20px;font-size:14px;color:var(--text);line-height:1.6}
+.adm-nota-tecnica{font-size:12px;color:var(--text-muted)}
+
+.adm-acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.adm-acoes .btn{width:auto;min-height:44px}
+.adm-btn-compacto{padding:8px 14px;font-size:13.5px;min-height:44px;width:auto}
+
+/* ---- Filtros e formulários ---------------------------------------------- */
+.adm-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.adm-filtros .field{margin-bottom:0;min-width:min(100%,150px)}
+.adm-filtros .tinput{min-height:44px;margin-bottom:0}
+.adm-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
+.adm-form .field{margin-bottom:0;flex:1 1 min(100%,180px)}
+.adm-form .field.adm-campo-largo{flex:3 1 min(100%,260px)}
+.adm-form .tinput{min-height:44px;margin-bottom:0}
+.adm-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:13.5px;cursor:pointer}
+.adm-check input{width:18px;height:18px;flex-shrink:0;accent-color:var(--gold)}
+
+/* ---- Abas ----------------------------------------------------------------- */
+.adm-abas{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.adm-abas .chart-tab{min-height:44px;display:inline-flex;align-items:center;background:transparent;font-family:inherit}
+.adm-abas .chart-tab.on{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
+
+/* ---- Tabelas e números ---------------------------------------------------- */
+.adm-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.adm-negativo{color:var(--red)}
+.adm-fraco{color:var(--text-muted);font-size:12px}
+.adm-linha-total td{font-weight:700;color:var(--text-strong)}
+.adm-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+
+/* Barra proporcional numa célula de tabela (horário de pico, páginas mais abertas). */
+.adm-trilho{background:var(--line-soft);border-radius:4px;height:8px;overflow:hidden;min-width:60px}
+.adm-barra{background:var(--gold);height:100%;border-radius:4px}
+
+/* ---- Matriz de permissões (Equipe e papéis) ------------------------------- */
+.adm-matriz{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:4px 16px;margin:8px 0 14px}
+.adm-matriz-modulo{grid-column:1 / -1;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-top:10px}
+.adm-cartao-papel{border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.adm-cartao-papel h4{font-size:16px;color:var(--text-strong);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}

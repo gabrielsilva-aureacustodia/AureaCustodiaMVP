@@ -17,6 +17,13 @@ vê a DRE; conta criada por `/criar-conta` não vê.
 **Como se paga:** o M2 (Supabase Auth) traz identidade com metadados; `ehAdmin` passa a ler
 o papel do banco. Uma função, um lugar.
 
+> **Atualização de 14/09/2026 (frente C, C1).** Pago em parte pelo painel administrativo: as
+> rotas de `/api/relatorios/*` e `/api/admin/conciliacao` passaram a perguntar pelos papéis do
+> banco (`autorizarRelatorioNoPainel`, que pede `resultados.ver` para ler e
+> `resultados.exportar` para CSV, XLSX e Sheets). `ehAdmin` continua síncrona e com a mesma
+> regra — agora em `src/domain/admin/permissoes.ts` — e virou o bootstrap do painel, registrado
+> como **RA-40** em `src/server/admin/ATALHOS.md`.
+
 ---
 
 ## RA-16.b 🟠 — o token de integração viaja na URL

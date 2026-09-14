@@ -217,16 +217,20 @@ const NAV: NavLink[] = [
 ]
 
 /**
- * O oitavo item, só para administradores (M4/M7). Fora do array NAV porque a
- * lista dos sete é o port fiel do monolito, e este é acréscimo: ledger, DRE,
- * auditoria e exportação da EMPRESA, não da conta.
+ * O oitavo item, só para a equipe. Fora do array NAV porque a lista dos sete é o
+ * port fiel do monolito, e este é acréscimo: o que é da EMPRESA, não da conta.
+ *
+ * Até a C1 (frente C, 14/09/2026) apontava para `/relatorios`; agora abre o painel
+ * administrativo, onde a Central de Resultados é uma das áreas — e `/relatorios`
+ * redireciona para ela. Quem liga o item é o (app)/layout, pelos papéis do painel.
  */
 const NAV_ADMIN: NavLink = {
-  href: '/relatorios',
-  label: 'Relatórios',
+  href: '/admin',
+  label: 'Administração',
   icon: (
     <>
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      <path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" />
+      <path d="M9 12l2 2 4-4" />
     </>
   ),
 }
