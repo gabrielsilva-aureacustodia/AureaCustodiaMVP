@@ -60,6 +60,11 @@ GET /api/relatorios/tudo.xlsx           → todos, uma aba cada
 | `parametros` | As alíquotas (nulas até o contador preencher) | — |
 | `exportacoes` | Quem exportou o quê, quando, por onde | — |
 | `saques` | Todas as solicitações de saque com status, dados bancários, taxa e data-limite | com `recortar=1` |
+| `retiradas` | Retiradas físicas de custódia com status, endereço, taxa e rastreio | com `recortar=1` |
+| `recebimentos-gateway` | Recebimentos do Mercado Pago com segregação de bruto, tarifa e líquido | com `recortar=1` |
+| `planos-custodia` | Contratos de custódia mensais e anuais vigentes, encerrados ou aguardando pagamento | — |
+| `receita-diferida` | Demonstrativo de apropriação futura de planos anuais (mês a mês) | — |
+| `faturas-custodia` | Faturas de custódia emitidas (ciclo mensal, contratação e renovação) com status e forma | com `recortar=1` |
 
 ### Parâmetros de consulta
 

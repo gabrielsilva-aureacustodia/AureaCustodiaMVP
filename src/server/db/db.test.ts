@@ -892,12 +892,18 @@ function suite(alvo: Alvo): void {
 
       r.status = 'paga'
       r.pagoEm = agora + 1000
+      r.formaPagamento = 'pix'
+      r.paymentIntentRef = 'RET-INT-001'
+      r.parcelas = 1
       r.updatedAt = agora + 1000
       await executar((tx) => atualizarRetirada(tx, r))
 
       const atualizado = await executar((tx) => buscarRetiradaPorId(tx, 'RET-TEST-001'))
       expect(atualizado?.status).toBe('paga')
       expect(atualizado?.pagoEm).toBe(agora + 1000)
+      expect(atualizado?.formaPagamento).toBe('pix')
+      expect(atualizado?.paymentIntentRef).toBe('RET-INT-001')
+      expect(atualizado?.parcelas).toBe(1)
 
       const todas = await executar((tx) => listarTodasRetiradas(tx))
       expect(todas.map((x) => x.id)).toContain('RET-TEST-001')

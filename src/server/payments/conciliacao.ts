@@ -13,9 +13,11 @@ import { tradeFee } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { calcularPagoAte, somarMeses } from '@/domain/plano-custodia'
+import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
 import type { AppState, FormaPagamentoFatura } from '@/domain/types'
 import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
+import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { mutateState } from '@/server/state'
 
 import { gravarRecebimento } from './recebimentos'
@@ -283,22 +285,70 @@ function liquidarAssinaturaCustodia(
 
 /**
  * Liquidador de retirada física (passo B3).
- * Como salvaguarda, credita o valor ao saldo do cliente.
+ * Transiciona status para 'paga', extingue recibo, recalcula D+30 a partir
+ * da data de confirmação do pagamento e registra entrada externa no ledger.
  */
 function liquidarRetirada(
   s: AppState,
   reivindicada: IntencaoDeposito,
+  detalhes: DetalhesPagamento,
 ): ResultadoLiquidacao {
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
-  buyer.balance += reivindicada.valor
+  const agora = Date.now()
+  s.retiradas = s.retiradas ?? []
+
+  const retiradaId = (reivindicada.metadata?.retiradaId as string) || ''
+  const ret = s.retiradas.find(
+    (r) => r.id === retiradaId || r.paymentIntentRef === reivindicada.externalReference,
+  )
+
+  if (!ret) {
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: agora,
+    })
+    return { sucesso: true, motivo: 'retirada_nao_localizada_creditada_saldo' }
+  }
+
+  if (ret.status === 'paga') {
+    return { sucesso: true, motivo: 'retirada_ja_paga' }
+  }
+
+  // 1. Atualiza status da retirada
+  ret.status = 'paga'
+  ret.pagoEm = agora
+  ret.formaPagamento = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+  ret.paymentIntentRef = reivindicada.externalReference
+  ret.parcelas = detalhes.parcelas || (reivindicada.metadata?.parcelas as number) || 1
+  ret.dataLimiteD30 = calcularPrazoLimiteRetirada(agora)
+  ret.historico.push({
+    de: 'solicitada',
+    para: 'paga',
+    data: agora,
+    motivo: `Taxa de retirada paga via ${reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'}`,
+    autor: 'gateway',
+  })
+  ret.updatedAt = agora
+
+  // 2. Extinção do recibo da moeda (Regra inegociável do Bloco 10)
+  const coin = buyer.coins.find((c) => c.id === ret?.coinId)
+  if (coin) {
+    coin.recibo.status = 'Extinto'
+  }
+
+  // 3. Registra entrada externa (depósito) para o valor da taxa
+  // Fecha o livro-razão sem ajuste com o lançamento de taxa_retirada
   s.deposits.push({
     userEmail: reivindicada.userEmail,
-    valor: reivindicada.valor,
-    date: Date.now(),
+    valor: ret.valorTaxaCents,
+    date: agora,
   })
-  return { sucesso: true, motivo: 'retirada_creditada_saldo' }
+
+  return { sucesso: true, motivo: 'retirada_liquidada' }
 }
 
 export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
@@ -410,6 +460,35 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
     })
   } catch (errRecebimento) {
     console.error('[conciliarPagamento] Erro ao gravar recebimento_gateway:', errRecebimento)
+  }
+
+  // Atualização da retirada no repositório persistente quando liquidada via gateway
+  if (tipo === 'retirada') {
+    try {
+      const repo = repositorioRetiradas()
+      const retId = (reivindicada.metadata?.retiradaId as string) || ''
+      const ret = await repo.buscarPorId(retId)
+      if (ret && ret.status !== 'paga') {
+        const agora = Date.now()
+        ret.status = 'paga'
+        ret.pagoEm = agora
+        ret.formaPagamento = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+        ret.paymentIntentRef = reivindicada.externalReference
+        ret.parcelas = detalhes.parcelas || (reivindicada.metadata?.parcelas as number) || 1
+        ret.dataLimiteD30 = calcularPrazoLimiteRetirada(agora)
+        ret.historico.push({
+          de: 'solicitada',
+          para: 'paga',
+          data: agora,
+          motivo: `Taxa de retirada paga via ${reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'}`,
+          autor: 'gateway',
+        })
+        ret.updatedAt = agora
+        await repo.atualizar(ret)
+      }
+    } catch (errRet) {
+      console.error('[conciliarPagamento] Erro ao atualizar retirada no banco:', errRet)
+    }
   }
 
   await intencoes.concluir(ref, paymentId)

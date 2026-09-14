@@ -121,17 +121,34 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     }
   }
 
-  /* taxas de retirada física (moeda cujo recibo foi extinto nesta mutação com débito em conta) */
+  /* taxas de retirada física (lançada pela transição para 'paga' com valorTaxaCents) */
+  const retiradasAntes = new Map((antes.retiradas ?? []).map((r) => [r.id, r]))
+  const moedasComTaxaLancada = new Set<string>()
+
+  for (const r of depois.retiradas ?? []) {
+    const rAntes = retiradasAntes.get(r.id)
+    const eraPaga = rAntes?.status === 'paga'
+    const virouPaga = r.status === 'paga' && !eraPaga
+    if (virouPaga) {
+      moedasComTaxaLancada.add(r.coinId)
+      const quando = r.pagoEm || agora
+      pendentes.push(
+        lancamentoDeTaxaRetirada(r.userEmail, r.valorTaxaCents, semeadura ? quando : agora, r.coinId),
+      )
+    }
+  }
+
+  // Retrocompatibilidade: se a retirada não estava no array state.retiradas mas o recibo foi extinto nesta mutação
   for (const op of ops) {
     if (op.tipo !== 'coin.atualizar') continue
+    if (moedasComTaxaLancada.has(op.registro.coin.id)) continue
     const moedaAntes = antes.users[op.registro.owner]?.coins.find((c) => c.id === op.registro.coin.id)
     if (moedaAntes?.recibo.status === 'Ativo' && op.registro.coin.recibo.status === 'Extinto') {
       const email = op.registro.owner
-      const saldoAntes = antes.users[email]?.balance ?? 0
-      const saldoDepois = depois.users[email]?.balance ?? 0
-      const taxaDebito = saldoAntes - saldoDepois
-      if (taxaDebito > 0) {
-        pendentes.push(lancamentoDeTaxaRetirada(email, taxaDebito, agora, op.registro.coin.id))
+      const ret = (depois.retiradas ?? []).find((r) => r.coinId === op.registro.coin.id)
+      const taxa = ret ? ret.valorTaxaCents : (antes.users[email]?.balance ?? 0) - (depois.users[email]?.balance ?? 0)
+      if (taxa > 0) {
+        pendentes.push(lancamentoDeTaxaRetirada(email, taxa, agora, op.registro.coin.id))
       }
     }
   }

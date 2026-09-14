@@ -6,8 +6,6 @@ import {
   criarSolicitacaoRetirada,
   podeTransicionarRetirada,
   PRAZO_RETIRADA_DIAS,
-  TAXA_RETIRADA_COMUM_CENTS,
-  TAXA_RETIRADA_SEGURA_CENTS,
   transicionarRetirada,
   validarEnderecoRetirada,
 } from './retirada'
@@ -29,12 +27,10 @@ const ENDERECO_VALIDO_EXEMPLO: EnderecoEntrega = {
 describe('Regras de Negócio e Máquina de Estados de Retirada (Frente C)', () => {
   describe('Tabela de Preços (D-1)', () => {
     it('retorna R$ 50,00 (5000 cents) para a modalidade comum', () => {
-      expect(TAXA_RETIRADA_COMUM_CENTS).toBe(5000)
       expect(calcularTaxaRetirada('comum')).toBe(5000)
     })
 
     it('retorna R$ 180,00 (18000 cents) para a modalidade segura', () => {
-      expect(TAXA_RETIRADA_SEGURA_CENTS).toBe(18000)
       expect(calcularTaxaRetirada('segura')).toBe(18000)
     })
 

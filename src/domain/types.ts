@@ -547,6 +547,12 @@ export interface Retirada {
   codigoRastreio?: string
   /** Trilha de auditoria e transições de estado da retirada. */
   historico: EventoHistoricoRetirada[]
+  /** Forma de pagamento escolhida para a taxa da retirada (B3). */
+  formaPagamento?: 'saldo' | 'pix' | 'cartao' | null
+  /** Referência externa da intenção de pagamento no gateway (B3). */
+  paymentIntentRef?: string | null
+  /** Quantidade de parcelas no cartão de crédito (B3). */
+  parcelas?: number
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -671,5 +677,6 @@ export interface Seq {
 
 export interface AppState {
   planosCustodia?: PlanoCustodia[]
+  retiradas?: Retirada[]
 }
 

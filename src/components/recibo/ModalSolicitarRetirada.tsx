@@ -5,11 +5,18 @@ import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
 import { calcularTaxaRetirada, PRAZO_RETIRADA_DIAS, validarEnderecoRetirada } from '@/domain/retirada'
-import type { Coin, EnderecoEntrega, ModalidadeRetirada } from '@/domain/types'
+import type { Coin, EnderecoEntrega, ModalidadeRetirada, Retirada } from '@/domain/types'
+import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
-import { consultarCepEnvio, solicitarRetirada } from '@/server/actions/custody'
+import {
+  consultarCepEnvio,
+  iniciarCartaoRetirada,
+  iniciarPixRetirada,
+  pagarRetiradaComSaldo,
+  solicitarRetirada,
+} from '@/server/actions/custody'
 
 export interface ModalSolicitarRetiradaProps {
   coin: Coin
@@ -20,6 +27,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   const { me, run } = useApp()
   const { close } = useModal()
   const toast = useToast()
+
+  const [etapa, setEtapa] = useState<'formulario' | 'pagamento'>('formulario')
+  const [retiradaIdCriada, setRetiradaIdCriada] = useState<string | null>(null)
 
   const [modalidade, setModalidade] = useState<ModalidadeRetirada>('comum')
   const [nome, setNome] = useState(me.name || '')
@@ -39,8 +49,6 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   const [erro, setErro] = useState<string | null>(null)
 
   const taxaCents = calcularTaxaRetirada(modalidade)
-  const saldoSuficiente = me.balance >= taxaCents
-  const saldoApos = me.balance - taxaCents
 
   /**
    * Consulta o CEP automaticamente ao digitar 8 números.
@@ -65,16 +73,11 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
     }
   }
 
-  async function confirmar(): Promise<void> {
+  async function avancarParaPagamento(): Promise<void> {
     setErro(null)
 
     if (!cienteEquiparacao) {
       setErro('É obrigatório confirmar a ciência sobre a devolução de moeda equiparável.')
-      return
-    }
-
-    if (!saldoSuficiente) {
-      setErro(`Saldo insuficiente. Você possui ${brl(me.balance)}, mas a taxa é de ${brl(taxaCents)}.`)
       return
     }
 
@@ -100,16 +103,68 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
     setSubmetendo(true)
     try {
       const res = await run(() => solicitarRetirada(coin.id, modalidade, endereco))
-      if (res.ok) {
-        toast(`Retirada física da moeda ${coin.id} solicitada com sucesso! Recibo extinto.`)
-        close()
-        onSuccess?.()
+      if (res.ok && res.data) {
+        setRetiradaIdCriada(res.data.retiradaId)
+        setEtapa('pagamento')
       } else {
         setErro(res.error || 'Falha ao solicitar retirada física.')
       }
     } finally {
       setSubmetendo(false)
     }
+  }
+
+  if (etapa === 'pagamento' && retiradaIdCriada) {
+    return (
+      <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+        <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+          Pagamento da taxa de retirada
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+          Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Retirada: <strong>{retiradaIdCriada}</strong>
+        </p>
+
+        <PainelPagamento
+          valorCents={taxaCents}
+          parcelasMax={modalidade === 'segura' ? 2 : 1}
+          saldoDisponivel={me.balance}
+          pagarComSaldo={async () => {
+            const res = await run(() => pagarRetiradaComSaldo(retiradaIdCriada))
+            if (!res.ok) throw new Error(res.error || 'Falha ao processar pagamento.')
+          }}
+          iniciarPix={async () => {
+            const res = await iniciarPixRetirada(retiradaIdCriada)
+            if (!res.ok) throw new Error(res.error || 'Falha ao gerar cobrança Pix.')
+            return res.data ?? null
+          }}
+          iniciarCartao={async () => {
+            const res = await iniciarCartaoRetirada(retiradaIdCriada, modalidade === 'segura' ? 2 : 1)
+            if (!res.ok) throw new Error(res.error || 'Falha ao gerar cobrança de cartão.')
+            return res.data ?? null
+          }}
+          aoConcluir={() => {
+            toast(`Retirada física da moeda ${coin.id} confirmada com sucesso! Recibo extinto.`)
+            close()
+            onSuccess?.()
+          }}
+        />
+
+        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              toast('Solicitação de retirada registrada! Você pode pagar a taxa a qualquer momento em Minhas Retiradas.')
+              close()
+              onSuccess?.()
+            }}
+            style={{ minHeight: '44px', width: '100%' }}
+          >
+            Pagar depois (manter solicitação e pagar mais tarde)
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -141,7 +196,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <span className="modalidade-preco">{brl(5000)}</span>
         </div>
         <div className="modalidade-desc">
-          Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS}.
+          Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
         </div>
       </div>
 
@@ -163,7 +218,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <span className="modalidade-preco">{brl(18000)} (em até 2x)</span>
         </div>
         <div className="modalidade-desc">
-          Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS}.
+          Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
         </div>
       </div>
 
@@ -308,36 +363,17 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      {/* 4. Resumo Financeiro e Débito */}
+      {/* 4. Resumo Financeiro */}
       <div className="summary-box" style={{ marginTop: '14px' }}>
         <div className="sr">
-          <span className="k">Saldo disponível em conta</span>
-          <span className="v">{brl(me.balance)}</span>
+          <span className="k">Taxa da retirada ({modalidade === 'comum' ? 'Comum' : 'Segura'})</span>
+          <span className="v" style={{ color: 'var(--gold)' }}>{brl(taxaCents)}</span>
         </div>
         <div className="sr">
-          <span className="k">Taxa da retirada ({modalidade === 'comum' ? 'Comum' : 'Segura'})</span>
-          <span className="v" style={{ color: 'var(--gold)' }}>- {brl(taxaCents)}</span>
-        </div>
-        <div className="sr" style={{ fontWeight: 700 }}>
-          <span className="k">Saldo restante após débito</span>
-          <span className="v" style={{ color: saldoSuficiente ? 'inherit' : 'var(--red)' }}>
-            {brl(saldoApos)}
-          </span>
+          <span className="k">Formas de pagamento</span>
+          <span className="v">Saldo em conta · Pix · Cartão{modalidade === 'segura' ? ' (em até 2x)' : ''}</span>
         </div>
       </div>
-
-      {!saldoSuficiente ? (
-        <div className="warn-box" style={{ marginTop: '8px' }}>
-          <svg viewBox="0 0 24 24">
-            <path d="M12 3l9 16H3z" />
-            <path d="M12 10v4M12 17v.5" />
-          </svg>
-          <div>
-            <strong>Saldo insuficiente:</strong> Você precisa de {brl(taxaCents)} para cobrir a taxa de retirada.
-            Seu saldo atual é {brl(me.balance)}. Por favor, realize um depósito em sua conta antes de continuar.
-          </div>
-        </div>
-      ) : null}
 
       {erro ? (
         <div className="warn-box" style={{ marginTop: '8px' }}>
@@ -362,11 +398,73 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         <button
           className="btn btn-gold"
           type="button"
-          disabled={!saldoSuficiente || !cienteEquiparacao || submetendo}
-          onClick={() => void confirmar()}
+          disabled={!cienteEquiparacao || submetendo}
+          onClick={() => void avancarParaPagamento()}
           style={{ minHeight: '44px' }}
         >
-          {submetendo ? 'Processando...' : 'Confirmar e extinguir recibo'}
+          {submetendo ? 'Processando...' : 'Avançar para pagamento'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Modal direto para efetuar o pagamento de uma solicitação de retirada já existente.
+ */
+export function ModalPagarRetirada({
+  retirada,
+  onSuccess,
+}: {
+  retirada: Retirada
+  onSuccess?: () => void
+}): ReactNode {
+  const { me, run } = useApp()
+  const { close } = useModal()
+  const toast = useToast()
+
+  return (
+    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+      <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+        Pagar taxa de retirada
+      </h3>
+      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+        Retirada: <strong>{retirada.id}</strong> · Moeda: <strong>{retirada.coinId}</strong> ({retirada.modalidade === 'segura' ? 'Transporte Seguro' : 'Comum'})
+      </p>
+
+      <PainelPagamento
+        valorCents={retirada.valorTaxaCents}
+        parcelasMax={retirada.modalidade === 'segura' ? 2 : 1}
+        saldoDisponivel={me.balance}
+        pagarComSaldo={async () => {
+          const res = await run(() => pagarRetiradaComSaldo(retirada.id))
+          if (!res.ok) throw new Error(res.error || 'Falha ao processar pagamento.')
+        }}
+        iniciarPix={async () => {
+          const res = await iniciarPixRetirada(retirada.id)
+          if (!res.ok) throw new Error(res.error || 'Falha ao gerar cobrança Pix.')
+          return res.data ?? null
+        }}
+        iniciarCartao={async () => {
+          const res = await iniciarCartaoRetirada(retirada.id, retirada.modalidade === 'segura' ? 2 : 1)
+          if (!res.ok) throw new Error(res.error || 'Falha ao gerar cobrança de cartão.')
+          return res.data ?? null
+        }}
+        aoConcluir={() => {
+          toast(`Taxa de retirada paga com sucesso! Recibo extinto.`)
+          close()
+          onSuccess?.()
+        }}
+      />
+
+      <div style={{ marginTop: '16px', textAlign: 'center' }}>
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={close}
+          style={{ minHeight: '44px', width: '100%' }}
+        >
+          Fechar
         </button>
       </div>
     </div>

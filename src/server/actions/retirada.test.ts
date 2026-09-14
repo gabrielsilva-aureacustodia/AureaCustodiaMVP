@@ -17,13 +17,16 @@ import { verificarCadeia } from '@/domain/ledger'
 import { derivarLancamentos, resumirParaAuditoria } from '@/server/db/derivar'
 import { planejarDiff } from '@/server/db/diff'
 import { gerarRelatorio } from '@/server/relatorios/dados'
+import { availableCoinsForSell } from '@/domain/market'
 import { _limparRetiradasMemoriaParaTestes } from '@/server/shipping/retiradas'
 import {
   avancarStatusRetirada,
   bloquearReciboPorDebito,
+  cancelarSolicitacaoRetirada,
   desbloquearRecibo,
   obterMinhasRetiradas,
   obterRetiradaPorCoin,
+  pagarRetiradaComSaldo,
   solicitarRetirada,
 } from './custody'
 
@@ -119,26 +122,40 @@ describe('solicitarRetirada — Regras de Negócio e Máquina de Estados (Bloco 
     expect(res.error).toContain('O recibo desta moeda já está extinto')
   })
 
-  it('recusa se o saldo for insuficiente para a taxa', async () => {
+  it('permite solicitar retirada mesmo com saldo insuficiente (duas fases, F-6)', async () => {
     const moeda = state.users[USER_EMAIL].coins[0]
     state.users[USER_EMAIL].balance = 4000 // R$ 40,00 (menor que R$ 50,00 da comum)
 
+    // Fase 1: Solicitar sem travas
     const res = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
-    expect(res.ok).toBe(false)
-    expect(res.error).toContain('Saldo insuficiente para a taxa de retirada')
+    expect(res.ok).toBe(true)
+    expect(res.data?.retiradaId).toBeDefined()
+    expect(moeda.recibo.status).toBe('Ativo') // Recibo NÃO é extinto na solicitação
+    expect(state.users[USER_EMAIL].balance).toBe(4000) // Saldo NÃO é debitado na solicitação
+
+    // Fase 2: Pagar com saldo insuficiente recusa
+    const resPag = await pagarRetiradaComSaldo(res.data!.retiradaId)
+    expect(resPag.ok).toBe(false)
+    expect(resPag.error).toContain('Saldo insuficiente para a taxa de retirada')
   })
 
-  it('sucesso modalidade comum (D-1 R$ 50,00): debita saldo, extingue recibo e cria retirada com D+30', async () => {
+  it('sucesso modalidade comum (D-1 R$ 50,00): solicitar cria solicitada, pagar debita saldo, extingue recibo e recalcula D+30', async () => {
     const moeda = state.users[USER_EMAIL].coins[0]
     const saldoAntes = state.users[USER_EMAIL].balance
     expect(moeda.recibo.status).toBe('Ativo')
 
+    // Fase 1: Solicitação
     const res = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
     expect(res.ok).toBe(true)
     expect(res.data?.retiradaId).toBeDefined()
     expect(res.data?.reciboCodigo).toBe(moeda.recibo.codigo)
+    expect(moeda.recibo.status).toBe('Ativo')
 
-    // Extinção imediata do recibo (Regra inegociável)
+    // Fase 2: Pagamento com saldo
+    const resPag = await pagarRetiradaComSaldo(res.data!.retiradaId)
+    expect(resPag.ok).toBe(true)
+
+    // Extinção imediata do recibo na confirmação do pagamento
     expect(moeda.recibo.status).toBe('Extinto')
 
     // Saldo debitado em exatamente 5000 centavos (R$ 50,00)
@@ -151,6 +168,7 @@ describe('solicitarRetirada — Regras de Negócio e Máquina de Estados (Bloco 
     expect(consulta.data?.modalidade).toBe('comum')
     expect(consulta.data?.valorTaxaCents).toBe(5000)
     expect(consulta.data?.status).toBe('paga')
+    expect(consulta.data?.formaPagamento).toBe('saldo')
     expect(consulta.data?.pagoEm).toBeTypeOf('number')
   })
 
@@ -162,6 +180,9 @@ describe('solicitarRetirada — Regras de Negócio e Máquina de Estados (Bloco 
     const res = await solicitarRetirada(moeda.id, 'segura', ENDERECO_VALIDO)
     expect(res.ok).toBe(true)
 
+    const resPag = await pagarRetiradaComSaldo(res.data!.retiradaId)
+    expect(resPag.ok).toBe(true)
+
     // Extinção imediata
     expect(moeda.recibo.status).toBe('Extinto')
 
@@ -172,16 +193,51 @@ describe('solicitarRetirada — Regras de Negócio e Máquina de Estados (Bloco 
     expect(consulta.ok).toBe(true)
     expect(consulta.data?.modalidade).toBe('segura')
     expect(consulta.data?.valorTaxaCents).toBe(18000)
+    expect(consulta.data?.status).toBe('paga')
   })
 
-  it('dois pedidos seguidos para a mesma moeda: o segundo é bloqueado por recibo extinto', async () => {
+  it('dois pedidos seguidos para a mesma moeda: o segundo é bloqueado por retirada já ativa', async () => {
     const moeda = state.users[USER_EMAIL].coins[0]
     const p1 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
     expect(p1.ok).toBe(true)
 
     const p2 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
     expect(p2.ok).toBe(false)
-    expect(p2.error).toContain('O recibo desta moeda já está extinto')
+    expect(p2.error).toContain('já possui uma retirada')
+  })
+
+  it('cancelarSolicitacaoRetirada permite cancelar e libera moeda para nova solicitação', async () => {
+    const moeda = state.users[USER_EMAIL].coins[0]
+    const p1 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+    expect(p1.ok).toBe(true)
+    const retiradaId = p1.data!.retiradaId
+
+    const resCancel = await cancelarSolicitacaoRetirada(retiradaId)
+    expect(resCancel.ok).toBe(true)
+
+    const consulta = await obterRetiradaPorCoin(moeda.id)
+    expect(consulta.data?.status).toBe('cancelada')
+
+    // Agora pode solicitar novamente
+    const p2 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+    expect(p2.ok).toBe(true)
+  })
+
+  it('moeda com retirada solicitada não aparece em availableCoinsForSell e volta ao cancelar', async () => {
+    const moeda = state.users[USER_EMAIL].coins[0]
+    const tipo = moeda.tipoMoeda
+
+    expect(availableCoinsForSell(state, state.users[USER_EMAIL], tipo).some((c) => c.id === moeda.id)).toBe(true)
+
+    const p1 = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+    expect(p1.ok).toBe(true)
+
+    // Oculta enquanto solicitada
+    expect(availableCoinsForSell(state, state.users[USER_EMAIL], tipo).some((c) => c.id === moeda.id)).toBe(false)
+
+    // Cancelar devolve ao mercado
+    await cancelarSolicitacaoRetirada(p1.data!.retiradaId)
+    expect(availableCoinsForSell(state, state.users[USER_EMAIL], tipo).some((c) => c.id === moeda.id)).toBe(true)
   })
 })
 
@@ -210,7 +266,8 @@ describe('Consultas e Relatórios de Retiradas (Bloco 13)', () => {
 
   it('gerarRelatorio(retiradas) devolve tabela pronta para o Painel de Custódia e Auditoria', async () => {
     const moeda = state.users[USER_EMAIL].coins[0]
-    await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+    const resSol = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+    await pagarRetiradaComSaldo(resSol.data!.retiradaId)
 
     const relatorio = await gerarRelatorio('retiradas')
     expect(relatorio.nome).toBe('retiradas')
@@ -277,6 +334,7 @@ describe('Consultas e Relatórios de Retiradas (Bloco 13)', () => {
       const criacao = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
       expect(criacao.ok).toBe(true)
       const retiradaId = criacao.data!.retiradaId
+      await pagarRetiradaComSaldo(retiradaId)
 
       // 1. Avançar para separacao
       const emSeparacao = await avancarStatusRetirada(retiradaId, 'separacao')

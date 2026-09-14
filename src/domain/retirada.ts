@@ -25,11 +25,19 @@ import type {
   Timestamp,
 } from './types'
 
-/** Taxa da modalidade comum: R$ 50,00 com frete incluso (D-1). */
-export const TAXA_RETIRADA_COMUM_CENTS: Cents = 5000
+/** Interface da tabela de taxas para retiradas físicas (compatível com TabelaDeTaxas da Frente A). */
+export interface TabelaDeTaxasRetirada {
+  taxaRetiradaComum?: Cents
+  taxaRetiradaSegura?: Cents
+  retiradaSeguraParcelasMax?: number
+}
 
-/** Taxa da modalidade segura: R$ 180,00 com transporte de valores incluso (D-1). */
-export const TAXA_RETIRADA_SEGURA_CENTS: Cents = 18000
+/** Tabela padrão de taxas de retirada (D-1). */
+export const TAXAS_RETIRADA_PADRAO: Required<TabelaDeTaxasRetirada> = {
+  taxaRetiradaComum: 5000,
+  taxaRetiradaSegura: 18000,
+  retiradaSeguraParcelasMax: 2,
+}
 
 /**
  * Prazo padrão para a retirada física da moeda em dias corridos (D+30).
@@ -43,14 +51,18 @@ export const PRAZO_RETIRADA_DIAS = 30
 const MS_POR_DIA = 24 * 60 * 60 * 1000
 
 /**
- * Retorna o valor exato da taxa de retirada em centavos de acordo com a modalidade escolhida.
+ * Retorna o valor exato da taxa de retirada em centavos de acordo com a modalidade escolhida
+ * e a tabela de taxas vigente.
  */
-export function calcularTaxaRetirada(modalidade: ModalidadeRetirada): Cents {
+export function calcularTaxaRetirada(
+  modalidade: ModalidadeRetirada,
+  taxas: TabelaDeTaxasRetirada = TAXAS_RETIRADA_PADRAO,
+): Cents {
   switch (modalidade) {
     case 'comum':
-      return TAXA_RETIRADA_COMUM_CENTS
+      return taxas.taxaRetiradaComum ?? TAXAS_RETIRADA_PADRAO.taxaRetiradaComum
     case 'segura':
-      return TAXA_RETIRADA_SEGURA_CENTS
+      return taxas.taxaRetiradaSegura ?? TAXAS_RETIRADA_PADRAO.taxaRetiradaSegura
     default: {
       const _invalido: never = modalidade
       throw new Error(`Modalidade de retirada desconhecida: "${String(_invalido)}"`)
@@ -226,6 +238,7 @@ export function criarSolicitacaoRetirada(params: {
   solicitadoEm: Timestamp
   motivo?: string
   autor?: string
+  taxas?: TabelaDeTaxasRetirada
 }): Retirada {
   const validacao = validarEnderecoRetirada(params.endereco)
   if (!validacao.valido) {
@@ -234,7 +247,7 @@ export function criarSolicitacaoRetirada(params: {
     )
   }
 
-  const valorTaxaCents = calcularTaxaRetirada(params.modalidade)
+  const valorTaxaCents = calcularTaxaRetirada(params.modalidade, params.taxas)
   const dataLimiteD30 = calcularPrazoLimiteRetirada(params.solicitadoEm)
 
   const eventoInicial: EventoHistoricoRetirada = {

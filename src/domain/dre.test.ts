@@ -214,4 +214,90 @@ describe('montarDre', () => {
     expect(fmtBp(65)).toBe('0,65%')
     expect(fmtBp(150)).toBe('1,5%')
   })
+
+  it('alimenta a conta 4.1.07 automaticamente com tarifas de gateway do período', () => {
+    const dre = montarDre({
+      ledger: [],
+      manuais: [],
+      parametros: PARAMETROS_VAZIOS,
+      periodo: periodoMensal(2026, 8),
+      recebimentosGateway: [
+        { aprovadoEm: new Date(2026, 7, 5).getTime(), tarifaGateway: 150 },
+        { aprovadoEm: new Date(2026, 7, 20).getTime(), tarifaGateway: 350 },
+        { aprovadoEm: new Date(2026, 8, 1).getTime(), tarifaGateway: 999 }, // fora de agosto
+      ],
+    })
+
+    const linhaGateway = dre.linhas.find((l) => l.codigo === '4.1.07')
+    expect(linhaGateway).toBeDefined()
+    expect(linhaGateway?.valor).toBe(-500) // despesa negativa na linha
+    expect(dre.totais.despesasOperacionais).toBe(500)
+  })
+
+  it('apropria plano anual de custódia na DRE mês a mês (1/12) sem contagem dupla', () => {
+    const dre = montarDre({
+      ledger: [],
+      manuais: [],
+      parametros: PARAMETROS_VAZIOS,
+      periodo: periodoMensal(2026, 8),
+      planosCustodia: [
+        {
+          id: 'PLC-001',
+          userEmail: 'user@teste.com',
+          protocoloEnvio: 'ENV-001',
+          modalidade: 'anual',
+          quantidadeContratada: 3,
+          moedaIds: [],
+          valorPorMoedaCents: 2400,
+          valorTotalCents: 7200,
+          parcelasMax: 12,
+          inicioCompetencia: '2026-08',
+          pagoAteCompetencia: '2027-07',
+          status: 'vigente',
+          formaPagamento: 'cartao',
+          paymentIntentRef: null,
+          assinaturaId: null,
+          estornadoCents: 0,
+          criadoEm: new Date(2026, 7, 5).getTime(),
+          atualizadoEm: new Date(2026, 7, 5).getTime(),
+        },
+      ],
+      faturasCustodia: [
+        // Fatura mensal normal: R$ 2,00
+        {
+          id: 'FAT-001',
+          userEmail: 'outro@teste.com',
+          competencia: '2026-08',
+          quantidadeMoedas: 1,
+          moedaIds: [],
+          valorCents: 200,
+          status: 'paga',
+          dataEmissao: new Date(2026, 7, 1).getTime(),
+          dataVencimento: new Date(2026, 7, 10).getTime(),
+          dataPagamento: new Date(2026, 7, 2).getTime(),
+          origem: 'ciclo_mensal',
+        },
+        // Fatura de contratação do plano anual: R$ 72,00 (não deve somar duplicado)
+        {
+          id: 'FAT-002',
+          userEmail: 'user@teste.com',
+          competencia: '2026-08',
+          quantidadeMoedas: 3,
+          moedaIds: [],
+          valorCents: 7200,
+          status: 'paga',
+          dataEmissao: new Date(2026, 7, 5).getTime(),
+          dataVencimento: new Date(2026, 7, 15).getTime(),
+          dataPagamento: new Date(2026, 7, 5).getTime(),
+          origem: 'contratacao',
+          planoId: 'PLC-001',
+        },
+      ],
+    })
+
+    // Receita de custódia deve ser: R$ 2,00 (fatura mensal) + R$ 6,00 (1/12 de R$ 72,00) = R$ 8,00 (800 cents)
+    expect(dre.totais.receitaCustodia).toBe(800)
+    const linhaCustodia = dre.linhas.find((l) => l.codigo === '3.1.02')
+    expect(linhaCustodia?.valor).toBe(800)
+  })
 })
