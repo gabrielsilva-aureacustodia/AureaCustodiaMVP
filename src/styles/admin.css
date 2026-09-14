@@ -87,3 +87,68 @@
 .adm-matriz-modulo{grid-column:1 / -1;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-top:10px}
 .adm-cartao-papel{border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;margin-bottom:14px}
 .adm-cartao-papel h4{font-size:16px;color:var(--text-strong);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* ============================================================================
+   C2 — Atendimento (/admin/cs) e administração de usuários (/admin/usuarios).
+   Mesma regra do arquivo: sem media query. As três colunas do CS são flex com
+   flex-wrap e base mínima — lado a lado no computador, empilhadas no celular.
+   ========================================================================= */
+
+/* ---- Selos ---------------------------------------------------------------- */
+.adm-pill-vermelho{color:var(--chip-down-ink);background:var(--red-wash-22);border:1px solid var(--red-line)}
+body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
+.adm-etiqueta{display:inline-flex;align-items:center;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;border:1px solid var(--line-soft);color:var(--text-muted);white-space:nowrap}
+.adm-etiqueta-ouro{border-color:var(--gold);color:var(--gold)}
+.adm-etiqueta-verde{border-color:var(--green-line);color:var(--green)}
+.adm-etiqueta-vermelho{border-color:var(--red-line);color:var(--red)}
+.adm-etiqueta-cinza{border-color:var(--line-soft);color:var(--text-muted)}
+.adm-etiquetas{display:flex;flex-wrap:wrap;gap:6px}
+/* Etiqueta clicável (aplicar e retirar): alvo de toque inteiro. */
+.adm-etiqueta-botao{min-height:44px;padding:6px 12px;background:transparent;cursor:pointer;font-family:inherit}
+.adm-etiqueta-botao[aria-pressed="true"]{background:var(--gold-tint-14)}
+
+/* ---- CS: as três colunas --------------------------------------------------- */
+.adm-cs{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.adm-cs > *{min-width:0}
+.adm-cs-lista{flex:1 1 280px;max-width:100%}
+.adm-cs-thread{flex:3 1 420px}
+.adm-cs-cliente{flex:1 1 260px}
+.adm-cs .panel{padding:16px}
+.adm-cs-contagem{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:12.5px;color:var(--text-muted)}
+.adm-cs-itens{display:flex;flex-direction:column;max-height:70vh;overflow-y:auto;margin:0 -16px}
+.adm-cs-item{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;min-height:44px;padding:10px 16px;background:transparent;border:0;border-top:1px solid var(--line-soft);color:inherit;font-family:inherit;cursor:pointer}
+.adm-cs-item:hover{background:var(--card-hover)}
+.adm-cs-item.on{background:var(--gold-tint-14)}
+.adm-cs-item-topo{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.adm-cs-nome{font-weight:700;color:var(--text-strong);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-cs-hora{font-size:11.5px;color:var(--text-muted);white-space:nowrap}
+.adm-cs-previa{font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-cs-naolidas{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--gold);color:var(--on-gold);font-size:11px;font-weight:700}
+
+/* ---- CS: a conversa -------------------------------------------------------- */
+.adm-cs-cabecalho{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.adm-cs-cabecalho h3{margin-bottom:2px}
+.adm-cs-mensagens{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding:4px 2px 8px}
+.adm-cs-msg{max-width:min(85%,560px);border:1px solid var(--line-soft);border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.adm-cs-msg.entrada{align-self:flex-start;background:var(--bg-panel)}
+.adm-cs-msg.saida{align-self:flex-end;background:var(--gold-tint-10);border-color:var(--line)}
+.adm-cs-msg.falhou{border-color:var(--red-line)}
+.adm-cs-msg.registrada{border-style:dashed}
+.adm-cs-msg-rodape{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;font-size:11px;color:var(--text-muted);margin-top:4px;white-space:normal}
+.adm-cs-msg.falhou .adm-cs-msg-rodape{color:var(--red)}
+.adm-cs-midia{font-size:12.5px;color:var(--gold);display:block;margin-bottom:2px}
+.adm-cs-nota{border-left:3px solid var(--gold);background:var(--gold-tint-10);border-radius:8px;padding:8px 12px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.adm-cs-nota + .adm-cs-nota{margin-top:8px}
+.adm-cs-resposta{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.adm-cs-resposta textarea.obs{min-height:88px;font-size:14.5px}
+
+/* ---- Ficha: pares rótulo/valor e blocos recolhíveis ----------------------------- */
+.adm-pares{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px 18px;margin:0 0 12px}
+.adm-pares > div{min-width:0}
+.adm-pares dt{font-size:12px;color:var(--text-muted);font-weight:600}
+.adm-pares dd{margin:2px 0 0;font-size:14px;color:var(--text-strong);overflow-wrap:anywhere}
+.adm-detalhes{border:1px solid var(--line-soft);border-radius:10px;margin-bottom:10px}
+.adm-detalhes > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 14px;font-weight:700;color:var(--text-strong);font-size:14px}
+.adm-detalhes > .adm-detalhes-corpo{padding:0 14px 14px}
+.adm-topo-ficha{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.adm-topo-ficha h2{font-size:22px;color:var(--text-strong);margin:0}

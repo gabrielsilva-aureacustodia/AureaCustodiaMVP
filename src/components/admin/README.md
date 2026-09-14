@@ -14,10 +14,12 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
 | `Blocos.tsx` | `Cartao`, `SemPermissao`, `AreaEmConstrucao`, `Indisponivel`, `AvisoSemBanco` | não |
 | `SeletorPeriodo.tsx` | Ano, mês ou trimestre — navega trocando `?ano=&mes=&trimestre=` | sim |
 | `BotaoAcao.tsx` | Botão que dispara uma Server Action pelo `run()`; deixa as páginas serem Server Components | sim |
-| `formatos.ts` | `dinheiro`, `dataHora` (sempre no fuso de Brasília), `percentual`, `duracao`, `numero` | não |
+| `formatos.ts` | `dinheiro`, `dataHora` e `horaOuData` (sempre no fuso de Brasília), `percentual`, `duracao`, `numero` | não |
 | `resultados/` | Financeiro, Contábil, Indicadores e Uso. Ver [README](resultados/README.md) | misto |
 | `equipe/` | Membros e papéis. Ver [README](equipe/README.md) | sim |
 | `inicio/` | Painel inicial por variante do papel. Ver [README](inicio/README.md) | não |
+| `cs/` | **C2.** A caixa de conversas do WhatsApp em três colunas, com polling de 5 s. Ver [README](cs/README.md) | sim |
+| `usuarios/` | **C2.** Lista de contas, criação de conta e a ficha em sete abas com as ações. Ver [README](usuarios/README.md) | misto |
 
 ## Regras desta pasta
 
@@ -26,7 +28,9 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
 2. **Nenhuma importação de valor de `@/server/*`** além das Server Actions (`@/server/actions/admin/*`).
    Tipos (`import type`) de `@/server/admin/*` são permitidos: somem na compilação.
 3. **Nada do `AppProvider`.** O painel não usa o `AppState` do cliente; os dados vêm dos Server
-   Components de cada página, e `run()` refaz a página depois de uma escrita.
+   Components de cada página, e `run()` refaz a página depois de uma escrita. A exceção é a tela
+   de CS, que se atualiza sozinha por polling e usa o próprio `executar()` para não refazer a
+   página inteira a cada mensagem.
 4. **Data e hora sempre por `formatos.ts`**, com fuso explícito — senão o HTML do servidor (UTC)
    diverge do navegador.
 5. **CSS em `src/styles/admin.css`, classes `.adm-*`, sem media query** — a gaveta e o layout de

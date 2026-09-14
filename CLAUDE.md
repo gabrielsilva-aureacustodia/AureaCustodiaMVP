@@ -73,8 +73,13 @@ Server Action de `src/server/actions/admin/` conferem a permissão por conta pr�
 do painel grava `admin.<area>.<verbo>` em `audit_log`. Quem está em `AUREA_ADMIN_EMAILS` (ou, sem
 ela, nas contas do seed) e a tabela de membros não conhece entra como `dev` — nada tranca a equipe
 para fora (RA-40). `/relatorios` redireciona para a Central de Resultados
-(`/admin/resultados/*`), e as rotas `/api/relatorios/*` continuam no mesmo endereço. O mapa das
-rotas e permissões está em `src/app/(admin)/README.md`; o desenho, em `docs/PLANO_EXECUCAO_ADMIN.md`.
+(`/admin/resultados/*`), e as rotas `/api/relatorios/*` continuam no mesmo endereço. O atendimento
+por WhatsApp (`/admin/cs`) fala com o provedor pela interface de `src/lib/mensageria/` — sem as
+variáveis da Evolution, as respostas ficam registradas só no painel —, e as ações da ficha do
+usuário (`/admin/usuarios/[email]`) não fazem conta própria: ajuste de saldo é o lançamento `ajuste`
+que o ledger já deriva, e login, senha e bloqueio passam pelo Supabase Auth com a chave de serviço,
+só no servidor. O mapa das rotas e permissões está em `src/app/(admin)/README.md`; o desenho, em
+`docs/PLANO_EXECUCAO_ADMIN.md`.
 
 **Persistência é plugável** (`src/server/store/`) e escolhida por variável de ambiente,
 nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*` ou

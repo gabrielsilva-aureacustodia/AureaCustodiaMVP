@@ -1,29 +1,45 @@
 /**
- * /admin/usuarios — administração de usuários. ENTRA NA C2.
+ * /admin/usuarios — a lista de contas, com busca e filtros, e a criação de conta pelo painel
+ * (plano do Admin, seção 2.6).
  *
- * Provisória desde a C1, para o menu nascer completo; a C2 substitui este arquivo.
- * Mesmo provisória, confere a permissão no servidor.
+ * O filtro mora na URL e é um formulário GET: o link filtrado ("inadimplentes com saldo")
+ * se manda para alguém, e a página refaz a consulta no servidor. Ver a lista pede
+ * `usuarios.ver`; o formulário de criação só aparece com `usuarios.criar` — e a Server
+ * Action confere de novo.
  */
 
 import type { ReactNode } from 'react'
 
-import { AreaEmConstrucao, SemPermissao } from '@/components/admin/Blocos'
+import { AvisoSemBanco, SemPermissao } from '@/components/admin/Blocos'
+import { CriarUsuario } from '@/components/admin/usuarios/CriarUsuario'
+import { FiltroDeUsuarios } from '@/components/admin/usuarios/FiltroDeUsuarios'
+import { TabelaDeUsuarios } from '@/components/admin/usuarios/TabelaDeUsuarios'
+import type { ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
+import { lerFiltroUsuarios } from '@/domain/admin/usuarios'
 import { membroDaPagina } from '@/server/admin/acesso'
+import { carregarListaDeUsuarios } from '@/server/admin/ficha'
 
 export const dynamic = 'force-dynamic'
 
-export default async function UsuariosPage(): Promise<ReactNode> {
+export default async function UsuariosPage({ searchParams }: { searchParams: Promise<ParametrosDaUrl> }): Promise<ReactNode> {
   const membro = await membroDaPagina()
   if (!temPermissao(membro, 'usuarios.ver')) return <SemPermissao permissoes={['usuarios.ver']} />
+
+  const filtro = lerFiltroUsuarios(await searchParams)
+  const dados = await carregarListaDeUsuarios(filtro)
+
   return (
-    <AreaEmConstrucao
-      etapa="C2"
-      oQueVem={[
-        'Lista de contas com busca por nome, e-mail ou CPF, e filtros por cadastro, inadimplência, saldo e moeda.',
-        'A ficha completa de cada conta: cadastro, financeiro, acervo, logística, mercado, atividade e notas.',
-        'Criar conta, editar cadastro, ajustar saldo, marcar inadimplência, redefinir senha, ativar e desativar.',
-      ]}
-    />
+    <>
+      {dados.semBanco ? (
+        <AvisoSemBanco>A data de criação das contas vem do ledger: sem banco, o filtro de período não esconde ninguém.</AvisoSemBanco>
+      ) : null}
+      {temPermissao(membro, 'usuarios.criar') ? <CriarUsuario /> : null}
+      <div className="panel">
+        <h3>Contas</h3>
+        <FiltroDeUsuarios filtro={filtro} />
+        <TabelaDeUsuarios linhas={dados.linhas} total={dados.total} />
+      </div>
+    </>
   )
 }

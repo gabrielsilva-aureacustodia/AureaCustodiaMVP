@@ -32,6 +32,7 @@ app/
     ├── rastreios/            O rastreio gravado pelo cron (frente C)
     ├── cron/shipping/        O job diário dos Correios (frente C)
     ├── webhooks/mercadopago/ O webhook do gateway (frente C)
+    ├── webhooks/whatsapp/  O webhook do WhatsApp do atendimento do painel (finalizações, C2)
     └── relatorios/           Os relatórios financeiros por URL: JSON, CSV, XLSX e push ao Sheets. Ver README próprio
 ```
 

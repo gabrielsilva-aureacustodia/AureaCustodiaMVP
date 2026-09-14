@@ -33,6 +33,17 @@ export function data(ts: number | null | undefined): string {
   return typeof ts === 'number' ? DATA.format(new Date(ts)) : '—'
 }
 
+const HORA = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/**
+ * A hora, se foi hoje; a data, se foi antes — como a lista de conversas de qualquer
+ * mensageiro. "Hoje" é o dia de Brasília, pelo mesmo motivo do resto do arquivo.
+ */
+export function horaOuData(ts: number | null | undefined, agora: number = Date.now()): string {
+  if (typeof ts !== 'number') return ''
+  return DATA.format(new Date(ts)) === DATA.format(new Date(agora)) ? HORA.format(new Date(ts)) : DATA.format(new Date(ts)).slice(0, 5)
+}
+
 export function dinheiro(c: Cents | null | undefined): string {
   if (typeof c !== 'number') return '—'
   // A DRE escreve dedução como `-valor`; com valor zero isso é -0, que o Intl mostra
