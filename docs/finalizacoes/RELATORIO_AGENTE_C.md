@@ -373,3 +373,79 @@ Em `RISCOS_ASSUMIDOS.md` e nos `ATALHOS.md` de `src/lib/mensageria/` e `src/serv
 - P-C2-07: com A2 e B2 na `main`, trocar "disponível depois da A2" por `posicaoNaFila` na aba Mercado e
   ligar o pagamento manual de fatura da B2 na aba Financeiro.
 - Os canais de SAC (P-C2-06) podem virar configuração na aba Operacional.
+
+---
+
+## Merge das três frentes na `main` — 14/09/2026
+
+> **Para o Rogério.** As três equipes de trabalho tinham terminado as suas partes, mas cada uma estava
+> guardada numa pasta separada. A pedido do Gabriel, juntei as três na versão oficial do site, conferi
+> que tudo continua passando nos testes, atualizei o banco de dados e publiquei.
+
+**Pedido:** Gabriel, 14/09, depois de eu apontar que a `main` ainda não tinha A1, A3 e B2: *"REALIZE O
+MERGE QUE FALTA DE TODAS AS BRANCHES e depois continue"*. O plano dizia que o agente da frente não leva
+nada à `main`; o pedido direto do Gabriel substitui essa regra para este merge.
+
+### Como foi feito
+
+A `main` está em uso na pasta principal, então a integração foi montada numa branch temporária
+(`integracao/finalizacoes-main`) neste worktree, a partir de `origin/main` @ `3358845`, e enviada com
+`git push origin HEAD:main` — avanço simples, sem forçar. A pasta principal não foi tocada (P-M-02). A
+ordem segue a seção 7.1 do plano, com a A primeiro:
+
+| Merge | Commit | Conferência depois do merge |
+|---|---|---|
+| Frente A (A1, A2, A3 · migrations 014–016) | `87b4bfb` | typecheck ✓ · 52 arquivos, 385 testes ✓ · build ✓ |
+| Frente B (B1, B2, B3 · migrations 017–019) | `f5961ad` | typecheck ✓ · 59 arquivos, 471 testes ✓ · lint ✓ · build ✓ |
+| Frente C (C1, C2 · migrations 020–023) | `4d35ee7` | typecheck ✓ · 76 arquivos, 654 testes (1 pulado) ✓ · lint ✓ · build ✓ |
+
+Antes, conferi que cada branch de frente contém todas as suas sub-branches e que nenhuma mexe no
+`package.json`.
+
+### Conflitos, e como ficou cada um
+
+- **`src/domain/dre.ts` (A × B):** a A1 passou a contar negociações distintas (a comissão agora gera dois
+  lançamentos por negociação); a B trocou a observação da receita de custódia para "competência". Ficaram
+  as duas.
+- **`RISCOS_ASSUMIDOS.md` (A × B, depois × C):** ficaram todos os blocos, na ordem das faixas — RA-24 a
+  RA-26 da A, RA-30 e RA-32 da B, RA-40 a RA-44 da C. A B não tinha posto RA-30 e RA-32 no índice; pus.
+- **`src/server/db/db.test.ts` (A × C):** a lista de tabelas ficou com as das três frentes, em ordem
+  alfabética.
+
+### Ajustes que o merge exigiu sem conflito de texto
+
+Os dois primeiros ficam em arquivo de outra frente — são o mínimo para a `main` compilar e passar, e estão
+descritos na mensagem do commit `f5961ad`:
+
+- **`src/domain/fees.test.ts` (A1):** importava `TAXA_RETIRADA_COMUM_CENTS` e `TAXA_RETIRADA_SEGURA_CENTS`,
+  que a B3 substituiu por `TAXAS_RETIRADA_PADRAO`. O teste continua conferindo a mesma coisa — a tabela de
+  taxas da A1 e a de retirada da B3 concordam —, agora também nas parcelas.
+- **`src/server/db/livro-de-ordens.test.ts` (A2):** o `TRUNCATE` do teste passou a incluir
+  `planos_custodia` e `recebimentos_gateway`, porque `planos_custodia` (018) aponta para `users`.
+- **`src/server/admin/banco.test.ts` (C):** dois testes afirmavam que as leituras de aceites, fila e
+  recebimentos voltavam `null` porque as tabelas não existiam. Agora voltam lista vazia; o caminho sem
+  tabela continua testado, apagando a tabela dentro de uma transação que é desfeita.
+
+### Banco de produção e publicação
+
+1. `npm run db:check` antes: 001 a 013 aplicadas.
+2. `npm run db:migrate` **antes** do push: aplicou 014 a 023. A ordem é de propósito — o código novo lê
+   colunas que só existem depois das migrations (`fee_comprador`, `prioridade_em`), e publicar antes
+   derrubaria todas as telas logadas. As migrations são aditivas, então o código antigo seguiu funcionando
+   no minuto entre um passo e outro.
+3. `git push origin HEAD:main`: `3358845..4d35ee7`.
+4. `npm run db:check` depois: 001 a 023 aplicadas, RLS em todas as tabelas, nada em `public`.
+5. Publicação conferida sem login: `/taxas` e `/suporte`, que só existem no código novo, responderam 200
+   às 19:34 (o código de `3358845` não tinha essas páginas); `/`, `/entrar` e `/termos` 200; `/admin` 307 para o login;
+   `/api/estacao` 401.
+
+**O que não conferi:** as telas logadas em produção. A leitura do estado pelo código novo contra o banco
+de produção foi barrada pela permissão do modo automático, e não digito senha em tela de login. Roteiro
+para o Gabriel no P-M-01.
+
+### Depois do merge
+
+- `feat/c-painel-admin` avançou para `4d35ee7` e foi enviada; `feat/c3-bancada-e-configuracao` reabriu em
+  cima dela, sem commit perdido (ainda não tinha nenhum).
+- A branch temporária de integração foi apagada — o conteúdo dela é a `main`.
+- Os itens P-C1-01 e P-C2-01 (migrations da C em produção) estão feitos.

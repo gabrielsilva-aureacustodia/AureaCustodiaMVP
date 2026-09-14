@@ -14,6 +14,10 @@ Cada item diz **o que falta**, **quem pode fazer**, **o que fica esperando** e *
 
 ### P-C1-01 · Aplicar as migrations 020 e 021 no Supabase de produção
 
+> ✅ **FEITO em 14/09**, pelo Agente C, junto com o merge das três frentes na `main` (pedido do
+> Gabriel). O `db:migrate` aplicou 014 a 023 de uma vez, e o `db:check` lista 001 a 023. Detalhes em
+> `RELATORIO_AGENTE_C.md`, seção "Merge das três frentes na main".
+
 - **Quando:** logo depois de a C1 entrar na `main` e o deploy da Vercel terminar — publicar e migrar
   são um passo só, nessa ordem (aprendizado de 11/09 no README das migrations).
 - **Quem:** Gabriel, ou o agente de auditoria que levar a C1 para a `main`.
@@ -87,6 +91,8 @@ DROP SCHEMA aurea_local_admin CASCADE;
 ## C2 — Usuários e CS
 
 ### P-C2-01 · Aplicar as migrations 022 e 023 no Supabase de produção
+
+> ✅ **FEITO em 14/09**, no mesmo passo do P-C1-01.
 
 - **Quando:** logo depois de a C2 entrar na `main` e o deploy da Vercel terminar.
 - **Quem:** Gabriel, ou o agente de auditoria que levar a C2 para a `main`.
@@ -276,3 +282,43 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
   ler `aceites_documentos` sozinha quando a migration 016 existir.
 - **Quem:** Agente A, se quiser que o campo persista; ou nada, se `aceites_documentos` já substituir o
   uso. **O que fica esperando no painel:** nada.
+
+---
+
+## Merge das três frentes na `main` — 14/09
+
+### P-M-01 · Conferir logado em produção, depois do merge
+
+- **O que falta:** abrir o site com uma conta e ver as telas que leem o banco. Eu conferi o que dá para
+  conferir sem login — `/`, `/entrar`, `/taxas`, `/suporte` e `/termos` respondem 200, `/admin` manda
+  para o login —, e o `db:check` lista as migrations 001 a 023. A leitura do estado de produção pelo
+  código novo, que eu ia rodar como prova, foi barrada pela permissão do modo automático, e senha em
+  tela de login eu não digito.
+- **Quem:** Gabriel.
+- **Roteiro:**
+  1. Entrar em `https://aurea-custodia-mvp.vercel.app/entrar`.
+  2. Abrir `https://aurea-custodia-mvp.vercel.app/inicio` e `https://aurea-custodia-mvp.vercel.app/mercado` —
+     saldo, moedas e livro de ofertas aparecem (é a leitura que as migrations 014 e 015 mudaram).
+  3. Abrir `https://aurea-custodia-mvp.vercel.app/admin/resultados/financeiro` e
+     `https://aurea-custodia-mvp.vercel.app/admin/usuarios` — carregam.
+- **Se alguma tela der erro:** me passe o texto do erro que aparece no log do deploy do commit `4d35ee7`
+  na Vercel.
+
+### P-M-02 · Atualizar a pasta principal
+
+- **O que falta:** a `main` da pasta `C:\dev\AureaCustodiaMVP` continua em `3358845` no disco. O merge foi
+  montado no worktree da frente C e enviado direto ao GitHub, sem mexer na pasta principal (que pode ter
+  trabalho seu aberto).
+- **Quem:** Gabriel, quando for usar a pasta principal. O comando só avança se não houver conflito:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP pull --ff-only
+```
+
+### P-M-03 · Aviso aos Agentes A e B (informativo)
+
+- As migrations 014 a 019 já estão aplicadas em produção — o item B-6 de
+  `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md` está feito, e não editei o arquivo da B.
+- Quem voltar a trabalhar numa branch de frente traz a `main` antes (`git merge origin/main`). Os ajustes
+  que o merge exigiu em arquivo de outra frente estão descritos no relatório da C e nas mensagens dos
+  commits `f5961ad` e `4d35ee7`.
