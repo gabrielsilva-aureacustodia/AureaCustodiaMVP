@@ -2,12 +2,13 @@
  * Testes de integração do painel contra um Postgres DE VERDADE (PGlite).
  *
  * Um arquivo só, com uma instância, de propósito — ver `testing/pglite.ts`. Cobre as
- * migrations 020 a 023 e o que o painel grava: catálogo e papéis, membros, a
+ * migrations 020 a 025 e o que o painel grava: catálogo e papéis, membros, a
  * proteção contra ficar sem dev, a trilha `admin.<area>.<verbo>`, o registro de uso,
- * as ações contábeis (C1), o atendimento por WhatsApp e a administração de usuários (C2).
+ * as ações contábeis (C1), o atendimento por WhatsApp e a administração de usuários (C2),
+ * a configuração do site, o catálogo de moedas, as caixas e a bancada web (C3).
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FILTRO_PADRAO } from '@/domain/admin/cs'
 import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
@@ -23,7 +24,20 @@ import { listarLancamentos } from '@/server/db/repositories/ledger'
 import { aceitesDaConta, historicoDaFilaDaConta, lerHistoricoDaFila, recebimentosDaConta } from '@/server/db/repositories/painel-leituras'
 import type { Executor } from '@/server/db/sql'
 
+import { dataDeBrasilia, tabelaDeTaxasDe, valoresVigentes } from '@/domain/admin/configuracao'
+import { documentoTabelaDeTaxas } from '@/domain/admin/documentos'
+import { encadearAnalise } from '@/domain/analise'
+import { hashDoDocumento } from '@/domain/documentos-legais'
+import { GENESIS, sha256Hex } from '@/domain/hash'
+import { BAN, estado as estadoDeTeste, moeda as moedaDeTeste, usuario as usuarioDeTeste } from '@/domain/testing/fixtures'
+import type { AppState } from '@/domain/types'
+import { listarCaixas } from '@/server/db/repositories/caixas'
+import { lerConfiguracao, listarHistoricoConfig, listarTiposMoeda } from '@/server/db/repositories/config'
+import { buscarDocumentoVigente, garantirDocumentosVigentes, inserirDocumentoLegal } from '@/server/db/repositories/documentos'
+
 import { registrarAcaoAdmin } from './auditar'
+import { abrirPelaBancadaWeb, fecharPelaBancadaWeb, salvarCaixa, type PortaDaBancada } from './bancada'
+import { publicarDocumentoVigente, salvarGrupoDeConfiguracao, salvarTipoDeMoeda, type PortaDePublicacao } from './configuracao'
 import { definirAliquota, estornarManual, lancarManual, verificarLedger } from './contabil'
 import {
   abrirConversa,
@@ -78,7 +92,8 @@ let executar: Executor
 beforeAll(async () => {
   banco = await bancoDeTeste()
   executar = banco.executar
-})
+  // Subir o PGlite e aplicar as 25 migrations passa de 10 s com a suíte inteira em paralelo.
+}, 60_000)
 
 afterAll(async () => {
   await banco.fechar()
@@ -718,5 +733,217 @@ describe('administração de usuários', () => {
       await recebimentosDaConta(tx, email, 10),
     ])
     expect(semElas).toEqual([null, null, null])
+  })
+})
+
+
+/* ========================================================================== */
+/* C3 — configuração do site, catálogo, caixas e bancada web                  */
+/* ========================================================================== */
+
+const GESTOR = 'gabriel.silva@aureacustodia.com.br'
+// 1º/10/2026: um dia diferente da vigência da versão 1.0 (14/09/2026), para a data da Tabela mudar junto.
+const AGORA_C3 = Date.UTC(2026, 9, 1, 18, 0, 0)
+
+/** Publicação de mentira: guarda o que recebeu e, se pedido, falha. */
+function publicacaoDeTeste(falhar = false): PortaDePublicacao & { chamadas: Array<{ chave: string; conteudo: string; ator: string }>; garantias: number } {
+  const porta = {
+    chamadas: [] as Array<{ chave: string; conteudo: string; ator: string }>,
+    garantias: 0,
+    garantirVersoesDoCodigo: async () => {
+      porta.garantias += 1
+    },
+    publicar: async (chave: string, conteudo: string, ator: string) => {
+      if (falhar) throw new Error('Storage fora do ar')
+      porta.chamadas.push({ chave, conteudo, ator })
+      return { versao: '1.1', hash: sha256Hex(conteudo) }
+    },
+  }
+  return porta as PortaDePublicacao & typeof porta
+}
+
+/** A publicação com os repositórios de verdade da A3 — a mesma regra de versão de publicar.ts. */
+function publicacaoNoBanco(): PortaDePublicacao {
+  return {
+    garantirVersoesDoCodigo: () => executar((tx) => garantirDocumentosVigentes(tx)),
+    publicar: (chave, conteudo, ator) =>
+      executar(async (tx) => {
+        const atual = await buscarDocumentoVigente(tx, chave)
+        const versao = atual ? (parseFloat(atual.versao) + 0.1).toFixed(1) : '1.0'
+        const agora = Date.now()
+        const reg = await inserirDocumentoLegal(tx, { chave, versao, vigenteDesde: agora, hashConteudo: sha256Hex(conteudo), conteudo, publicadoPor: ator, createdAt: agora })
+        return { versao: reg.versao, hash: reg.hashConteudo }
+      }),
+  }
+}
+
+describe('configuração do site (C3)', () => {
+  beforeEach(async () => {
+    await banco.db.exec(`TRUNCATE aurea.config_plataforma, aurea.config_historico, aurea.tipos_moeda, aurea.caixas, aurea.documentos_legais RESTART IDENTITY;`)
+  })
+
+  it('mudar taxa grava valor, histórico e trilha juntos, e publica a Tabela de Taxas com o texto novo', async () => {
+    const pub = publicacaoDeTeste()
+    const r = await salvarGrupoDeConfiguracao(executar, pub, GESTOR, 'taxas', { comissaoCompradorBp: '1', taxaSaqueFixa: '7,50', comissaoVendedorBp: '0,5' }, AGORA_C3)
+    expect(r).toMatchObject({ ok: true, dados: { documento: { chave: 'tabela_de_taxas', versao: '1.1' } } })
+    if (r.ok) expect(r.mensagem).toContain('publicada na versão 1.1')
+
+    const gravados = await executar((tx) => lerConfiguracao(tx))
+    expect(Object.fromEntries(Object.entries(gravados).map(([k, g]) => [k, g.valor]))).toEqual({
+      comissaoCompradorBp: 100,
+      taxaSaqueFixa: 750,
+      tabelaDeTaxasVigencia: dataDeBrasilia(AGORA_C3),
+    })
+    expect(gravados.comissaoCompradorBp.atualizadoPor).toBe(GESTOR)
+
+    const historico = await executar((tx) => listarHistoricoConfig(tx, 10))
+    expect(historico.map((h) => [h.chave, h.valorAntigo, h.valorNovo]).sort()).toEqual(
+      [
+        ['comissaoCompradorBp', 50, 100],
+        ['taxaSaqueFixa', 500, 750],
+        ['tabelaDeTaxasVigencia', '14/09/2026', dataDeBrasilia(AGORA_C3)],
+      ].sort(),
+    )
+    expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.'))).toEqual(['admin.config.taxas', 'admin.config.publicar_documento'])
+
+    // O texto publicado é o que a configuração gravada produz — e a garantia das versões do código veio antes.
+    const vigentes = valoresVigentes({ comissaoCompradorBp: 100, taxaSaqueFixa: 750, tabelaDeTaxasVigencia: dataDeBrasilia(AGORA_C3) })
+    const esperado = documentoTabelaDeTaxas(tabelaDeTaxasDe(vigentes), dataDeBrasilia(AGORA_C3))
+    expect(pub.garantias).toBe(1)
+    expect(pub.chamadas).toHaveLength(1)
+    expect(sha256Hex(pub.chamadas[0].conteudo)).toBe(hashDoDocumento(esperado))
+    expect(pub.chamadas[0].conteudo).toContain('1% sobre o valor da negociação + R$ 1,00 fixo por moeda comprada.')
+  })
+
+  it('nada mudou, valor inválido e grupo operacional: nenhuma publicação, e o inválido não grava nada', async () => {
+    const pub = publicacaoDeTeste()
+    expect(await salvarGrupoDeConfiguracao(executar, pub, GESTOR, 'taxas', { comissaoCompradorBp: '0,5' }, AGORA_C3)).toMatchObject({ ok: true, mensagem: 'Nada mudou.' })
+    const invalido = await salvarGrupoDeConfiguracao(executar, pub, GESTOR, 'taxas', { comissaoCompradorBp: '0,5', taxaSaqueFixa: 'caro' }, AGORA_C3)
+    expect(invalido.ok).toBe(false)
+    expect(await salvarGrupoDeConfiguracao(executar, pub, GESTOR, 'operacional', { depositoMaxCents: '50000,00', prazoTransitoEnvioDias: '20' }, AGORA_C3)).toMatchObject({ ok: true, dados: { documento: null } })
+    expect(pub.chamadas).toHaveLength(0)
+    const gravados = await executar((tx) => lerConfiguracao(tx))
+    expect(Object.keys(gravados).sort()).toEqual(['depositoMaxCents', 'prazoTransitoEnvioDias'])
+    expect(await salvarGrupoDeConfiguracao(null, pub, GESTOR, 'taxas', {}, AGORA_C3)).toMatchObject({ ok: false })
+  })
+
+  it('publicação que falha não desfaz a taxa: o valor já vale, e a mensagem manda publicar a versão vigente', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const r = await salvarGrupoDeConfiguracao(executar, publicacaoDeTeste(true), GESTOR, 'taxas', { custodiaMensalPorMoeda: '2,50' }, AGORA_C3)
+    erro.mockRestore()
+    expect(r).toMatchObject({ ok: true, dados: { documento: { chave: 'tabela_de_taxas', versao: null } } })
+    if (r.ok) expect(r.mensagem).toContain('Publicar a versão vigente')
+    expect((await executar((tx) => lerConfiguracao(tx))).custodiaMensalPorMoeda.valor).toBe(250)
+    expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.'))).toEqual(['admin.config.taxas'])
+
+    const recuperada = await publicarDocumentoVigente(executar, publicacaoDeTeste(), GESTOR, 'tabela_de_taxas', AGORA_C3)
+    expect(recuperada).toMatchObject({ ok: true, dados: { versao: '1.1' } })
+  })
+
+  it('com os repositórios da A3: a versão do código entra antes, e a primeira mudança nasce 1.1', async () => {
+    const r = await salvarGrupoDeConfiguracao(executar, publicacaoNoBanco(), GESTOR, 'termos', { termosPrazoRecebimentoVenda: 'até 2 (duas) horas' }, AGORA_C3)
+    expect(r).toMatchObject({ ok: true, dados: { documento: { chave: 'termos_de_uso', versao: '1.1' } } })
+    const vigente = await executar((tx) => buscarDocumentoVigente(tx, 'termos_de_uso'))
+    expect(vigente?.versao).toBe('1.1')
+    expect(vigente?.conteudo).toContain('O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de até 2 (duas) horas após a conclusão da venda.')
+    expect(vigente?.publicadoPor).toBe(GESTOR)
+  })
+})
+
+describe('catálogo de tipos de moeda (C3)', () => {
+  beforeEach(async () => {
+    await banco.db.exec(`TRUNCATE aurea.config_historico, aurea.tipos_moeda RESTART IDENTITY;`)
+  })
+
+  it('nasce semeado com COIN_TYPES, cria tipo novo, recusa nome repetido e edita com histórico e trilha', async () => {
+    const criar = await salvarTipoDeMoeda(executar, GESTOR, { chave: 'Paralímpicos 2016', anoPadrao: '2016', tiragem: '20.000', categoria: 'Moedas Olímpicas', negociavel: false, detail: 'Rio 2016', ord: '15', ativo: true }, true, AGORA_C3)
+    expect(criar.ok).toBe(true)
+    const tipos = await executar((tx) => listarTiposMoeda(tx))
+    expect(tipos).toHaveLength(11)
+    expect(tipos.find((t) => t.chave === 'Paralímpicos 2016')).toMatchObject({ ord: 15, negociavel: false, criadoPor: GESTOR })
+
+    expect((await salvarTipoDeMoeda(executar, GESTOR, { chave: 'paralímpicos 2016', anoPadrao: '2016', tiragem: '', categoria: 'X', negociavel: false, detail: '', ord: '1', ativo: true }, true)).ok).toBe(false)
+
+    const editar = await salvarTipoDeMoeda(executar, GESTOR, { chave: 'Vôlei', anoPadrao: '2016', tiragem: '17.200', categoria: 'Moedas Olímpicas', negociavel: true, detail: 'Rio 2016 · Tiragem 17.200 · Bimetálica 27mm', ord: '50', ativo: true }, false, AGORA_C3)
+    expect(editar).toMatchObject({ ok: true })
+    if (editar.ok) expect(editar.mensagem).toContain('negociavel')
+    expect((await executar((tx) => listarTiposMoeda(tx))).find((t) => t.chave === 'Vôlei')?.negociavel).toBe(true)
+    expect(await salvarTipoDeMoeda(executar, GESTOR, { chave: 'Vôlei', anoPadrao: '2016', tiragem: '17.200', categoria: 'Moedas Olímpicas', negociavel: true, detail: 'Rio 2016 · Tiragem 17.200 · Bimetálica 27mm', ord: '50', ativo: true }, false)).toMatchObject({ ok: true, mensagem: 'Nada mudou.' })
+
+    const historico = await executar((tx) => listarHistoricoConfig(tx, 10))
+    expect(historico.map((h) => h.chave)).toEqual(['catalogo:Vôlei', 'catalogo:Paralímpicos 2016'])
+    expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.'))).toEqual(['admin.config.catalogo', 'admin.config.catalogo'])
+  })
+})
+
+describe('caixas do cofre (C3)', () => {
+  beforeEach(async () => {
+    await banco.db.exec(`TRUNCATE aurea.caixas;`)
+  })
+
+  it('cadastra, recusa o mesmo código escrito de outro jeito e edita sem trocar o código', async () => {
+    expect((await salvarCaixa(executar, GESTOR, { codigo: 'EB-001', rotulo: 'Bandeira 1', local: 'Cofre A', capacidade: '40', ativa: true }, true, AGORA_C3)).ok).toBe(true)
+    expect(await salvarCaixa(executar, GESTOR, { codigo: 'eb 001', rotulo: '', local: '', capacidade: '', ativa: true }, true)).toMatchObject({ ok: false, erro: 'A caixa EB-001 já está cadastrada.' })
+    expect((await salvarCaixa(executar, GESTOR, { codigo: 'eb 001', rotulo: 'Bandeira 1', local: 'Cofre B', capacidade: '', ativa: false }, false, AGORA_C3)).ok).toBe(true)
+    expect(await executar((tx) => listarCaixas(tx))).toEqual([{ codigo: 'EB-001', rotulo: 'Bandeira 1', local: 'Cofre B', capacidade: null, ativa: false, criadoEm: AGORA_C3 }])
+    expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.'))).toEqual(['admin.bancada.caixa', 'admin.bancada.caixa'])
+    expect(await salvarCaixa(null, GESTOR, { codigo: 'X', rotulo: '', local: '', capacidade: '', ativa: true }, true)).toMatchObject({ ok: false })
+  })
+})
+
+describe('bancada web (C3) — o serviço da estação é chamado, não reimplementado', () => {
+  function portaDeTeste(state: AppState): PortaDaBancada & { fechamentos: unknown[]; linhas: unknown[] } {
+    const porta = {
+      fechamentos: [] as unknown[],
+      linhas: [] as unknown[],
+      abrir: async () => ({ ok: true as const }),
+      fechar: async (e: { protocolo: string; operador: string; moedas: unknown[] }) => {
+        porta.fechamentos.push(e)
+        return { ok: true as const, dados: { protocolo: e.protocolo, aprovadas: 1, recusadas: 0, analises: [{ protocolo: 'RO-ANL-0002', codigoMoeda: 'RO-000010', hash: 'h' }] } }
+      },
+      estado: async () => state,
+      retiradas: async () => [],
+      caixas: async () => [{ codigo: 'EB-001', rotulo: '', local: '', capacidade: null, ativa: true, criadoEm: 1 }],
+      auditar: async (linha: unknown) => {
+        porta.linhas.push(linha)
+      },
+    }
+    return porta as unknown as PortaDaBancada & typeof porta
+  }
+
+  function estadoComEnvio(): AppState {
+    const s = estadoDeTeste({ 'a@x.com': usuarioDeTeste('A', 0, [moedaDeTeste('RO-000001', BAN)]) })
+    s.envios = [{ protocolo: 'RO-ENV-0002', userEmail: 'a@x.com', tipoMoeda: BAN, ano: 2012, quantidade: 1, codigoRastreio: null, dataPostagem: null, dataRecebimento: 1, etapaAtual: 'Em análise física', createdAt: 1, codigosAtivosGerados: [] }]
+    s.analises = [
+      encadearAnalise(
+        { protocolo: 'RO-ANL-0001', protocoloEnvio: 'RO-ENV-0001', codigoMoeda: 'RO-000001', codigoRecibo: 'REC-000001', tipoMoeda: BAN, ano: 2012, pesoMg: 7000, veredito: 'aprovada', motivoRecusa: null, operador: 'op', aprovador: 'op', caixa: 'EB-001', posicao: 7, validadoEm: 1, caminhoVideo: null },
+        GENESIS,
+      ),
+    ]
+    return s
+  }
+
+  it('valida antes de chamar: peso fora da faixa e posição já ocupada não chegam ao serviço', async () => {
+    const porta = portaDeTeste(estadoComEnvio())
+    const pesoErrado = await fecharPelaBancadaWeb(porta, GESTOR, { protocolo: 'RO-ENV-0002', moedas: [{ veredito: 'aprovada', gramas: '7000', caixa: '', posicao: '', motivoRecusa: '' }], caminhoVideo: null })
+    expect(pesoErrado.ok).toBe(false)
+    const ocupada = await fecharPelaBancadaWeb(porta, GESTOR, { protocolo: 'RO-ENV-0002', moedas: [{ veredito: 'aprovada', gramas: '7', caixa: 'eb 001', posicao: '7', motivoRecusa: '' }], caminhoVideo: null })
+    expect(ocupada).toEqual({ ok: false, erro: 'Moeda 1: a posição 7 da caixa EB-001 já está ocupada pela moeda RO-000001.' })
+    expect(porta.fechamentos).toHaveLength(0)
+    expect((await fecharPelaBancadaWeb(porta, GESTOR, { protocolo: 'RO-ENV-9999', moedas: [], caminhoVideo: null })).ok).toBe(false)
+  })
+
+  it('fecha com o membro como operador, o código de caixa cadastrado e a linha admin.bancada.analisar', async () => {
+    const porta = portaDeTeste(estadoComEnvio())
+    const r = await fecharPelaBancadaWeb(porta, GESTOR, { protocolo: 'RO-ENV-0002', moedas: [{ veredito: 'aprovada', gramas: '7,02', caixa: 'eb 001', posicao: '8', motivoRecusa: '' }], caminhoVideo: 'RO-ENV-0002/RO-ENV-0002-1.webm' })
+    expect(r).toMatchObject({ ok: true, mensagem: 'Pronto. 1 aprovada(s), 0 recusada(s). Recibos emitidos.' })
+    expect(porta.fechamentos).toEqual([
+      { protocolo: 'RO-ENV-0002', operador: GESTOR, moedas: [{ pesoMg: 7020, veredito: 'aprovada', motivoRecusa: null, caixa: 'EB-001', posicao: 8, caminhoVideo: 'RO-ENV-0002/RO-ENV-0002-1.webm' }] },
+    ])
+    expect(porta.linhas).toEqual([
+      expect.objectContaining({ ator: GESTOR, area: 'bancada', verbo: 'analisar', entidadeId: 'RO-ENV-0002', usuariosAfetados: ['a@x.com'], detalhes: expect.objectContaining({ origem: 'bancada_web', aprovadas: 1 }) }),
+    ])
+    expect(await abrirPelaBancadaWeb(porta, GESTOR, 'RO-ENV-0002')).toMatchObject({ ok: true })
+    expect(porta.linhas).toHaveLength(2)
   })
 })

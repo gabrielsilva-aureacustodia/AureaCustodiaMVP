@@ -143,7 +143,8 @@ function suite(alvo: Alvo): void {
       process.env.AUREA_DB_SCHEMA = alvo.schema
       executar = await alvo.preparar()
       await aplicarMigrations(executar)
-    })
+      // Subir o PGlite e aplicar as 25 migrations passa de 10 s com a suíte inteira em paralelo.
+    }, 60_000)
 
     afterAll(async () => {
       await alvo.encerrar()
@@ -205,7 +206,12 @@ function suite(alvo: Alvo): void {
         // Migration 003 — ledger, auditoria e DRE (M4/M7).
         'audit_log',
         'buy_orders',
+        // Migration 025 — caixas físicas do cofre (frente C, C3).
+        'caixas',
         'coins',
+        // Migration 024 — configuração do site e catálogo editáveis (frente C, C3).
+        'config_historico',
+        'config_plataforma',
         'contas_contabeis',
         // Migrations 022 e 023 — atendimento por WhatsApp (frente C, C2).
         'cs_canais',
@@ -246,6 +252,7 @@ function suite(alvo: Alvo): void {
         'schema_migrations',
         'sell_offers',
         'seq',
+        'tipos_moeda',
         'trades',
         'users',
       ])

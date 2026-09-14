@@ -73,6 +73,38 @@ segundo fator, antes de cliente real.
 
 ---
 
+## RA-45 🟡 — bancada web: sem retomada, sem cópia em disco, trilha fora da transação da análise
+
+**Arquivos:** `bancada.ts` (`fecharPelaBancadaWeb`, `assinarVideoPelaBancadaWeb`), `portas.ts`
+(`portaDaBancadaDoServidor`), `src/components/admin/bancada/`
+
+- A análise é gravada por `fecharAnalise()` (src/server/estacao/analise.ts, da frente B), que abre a
+  própria transação. A linha `admin.bancada.analisar` vai depois, noutra — se ela falhar, o erro vai
+  para o log e o operador vê a análise gravada.
+- A validação de peso, motivo e quantidade é cópia da rota da estação (`src/domain/admin/bancada.ts`),
+  congelada pelo teste. A recusa de posição ocupada existe só aqui.
+- O vídeo sobe direto do navegador para o Storage por URL assinada; se não subir, a cópia é um link
+  que dura enquanto a página estiver aberta.
+
+**Como se paga:** a estação e o painel chamando a mesma validação exportada, e retomada de
+procedimento no navegador (armazenamento local do rascunho), se a bancada de verdade passar a usar a
+web.
+
+---
+
+## RA-46 🟠 — taxa e prazo publicados na hora; publicação do documento em transação separada
+
+**Arquivos:** `configuracao.ts` (`salvarGrupoDeConfiguracao`, `publicarDocumentoVigente`)
+
+- Valor, histórico e `admin.config.<grupo>` gravam juntos. Depois do commit, a Tabela de Taxas ou os
+  Termos são publicados pela função da A3, que abre a própria transação.
+- Publicação que falha não desfaz a taxa: a mensagem manda usar "Publicar a versão vigente", e a
+  aba mostra a diferença entre o texto que a configuração produz e o último publicado.
+- A faixa de versão nova pede o aceite e não bloqueia operação nenhuma.
+
+**Como se paga:** regra de antecedência para mudança de taxa, se os sócios decidirem por uma.
+
+---
 ## O que NÃO é atalho nesta pasta
 
 - **O papel `dev` tem todas as permissões, e o painel não deixa ficar sem um `dev` ativo**

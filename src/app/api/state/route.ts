@@ -24,6 +24,8 @@
 
 import { NextResponse } from 'next/server'
 
+import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/carregar'
+import { documentosPendentesDeAceite } from '@/server/config/documentos'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -43,7 +45,12 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const state = await getState()
-    return NextResponse.json({ state, session }, { headers: SEM_CACHE })
+    // Taxas, catálogo e limites vigentes (C3) e a pendência de aceite vão junto: uma mudança
+    // feita no painel chega à tela do cliente no ciclo seguinte. As duas leituras nunca
+    // derrubam a resposta — sem banco, voltam o padrão do código e `null`.
+    const config = await carregarConfiguracaoDoSite()
+    const aceitesPendentes = await documentosPendentesDeAceite(session, config)
+    return NextResponse.json({ state, session, config: configDoCliente(config), aceitesPendentes }, { headers: SEM_CACHE })
   } catch {
     // getState propaga exceção (banco fora do ar, variável de ambiente errada).
     // O AppProvider ignora respostas não-ok e mantém o último estado conhecido

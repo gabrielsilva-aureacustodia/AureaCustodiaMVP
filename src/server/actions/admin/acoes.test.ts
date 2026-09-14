@@ -47,6 +47,18 @@ const m = vi.hoisted(() => ({
   anotarUsuario: vi.fn(),
   executorOuNulo: vi.fn(),
   podeAbrirPainelAdmin: vi.fn(),
+  // C3 — bancada, moedas e configuração
+  filaDeAnalise: vi.fn(),
+  abrirPelaBancadaWeb: vi.fn(),
+  fecharPelaBancadaWeb: vi.fn(),
+  assinarVideoPelaBancadaWeb: vi.fn(),
+  salvarCaixa: vi.fn(),
+  verificarCorrenteDoAcervo: vi.fn(),
+  urlDeLeituraDoVideo: vi.fn(),
+  salvarGrupoDeConfiguracao: vi.fn(),
+  publicarDocumentoVigente: vi.fn(),
+  salvarTipoDeMoeda: vi.fn(),
+  pagarFaturaCustodiaComSaldo: vi.fn(),
 }))
 
 vi.mock('@/server/admin/acesso', () => ({
@@ -72,6 +84,28 @@ vi.mock('@/server/admin/portas', () => ({
   executorOuNulo: m.executorOuNulo,
   ehTabelaAusente: (err: unknown) => (err as { code?: string } | null)?.code === '42P01',
   TABELA_AUSENTE: 'Rode npm run db:migrate.',
+  caixasCadastradas: async () => null,
+  portaDaBancadaDoServidor: () => ({}),
+  portaDeVideoDoServidor: () => ({}),
+  portaDePublicacaoDoServidor: () => ({}),
+}))
+vi.mock('@/server/admin/bancada', () => ({
+  abrirPelaBancadaWeb: m.abrirPelaBancadaWeb,
+  fecharPelaBancadaWeb: m.fecharPelaBancadaWeb,
+  assinarVideoPelaBancadaWeb: m.assinarVideoPelaBancadaWeb,
+  salvarCaixa: m.salvarCaixa,
+}))
+vi.mock('@/server/admin/moedas', () => ({ verificarCorrenteDoAcervo: m.verificarCorrenteDoAcervo }))
+vi.mock('@/server/custodia/faturamento', () => ({ pagarFaturaCustodiaComSaldo: m.pagarFaturaCustodiaComSaldo }))
+vi.mock('@/server/admin/video', () => ({ urlDeLeituraDoVideo: m.urlDeLeituraDoVideo, VideoNaoConfigurado: class extends Error {} }))
+vi.mock('@/server/estacao/analise', () => ({ filaDeAnalise: m.filaDeAnalise }))
+vi.mock('@/server/shipping/retiradas', () => ({ repositorioRetiradas: () => ({ listarTodas: async () => [] }) }))
+vi.mock('@/server/state', () => ({ getState: async () => ({ users: {}, analises: [] }) }))
+vi.mock('@/server/admin/configuracao', () => ({
+  SEM_TABELA_CONFIG: 'Rode npm run db:migrate (024).',
+  salvarGrupoDeConfiguracao: m.salvarGrupoDeConfiguracao,
+  publicarDocumentoVigente: m.publicarDocumentoVigente,
+  salvarTipoDeMoeda: m.salvarTipoDeMoeda,
 }))
 vi.mock('@/server/admin/usuarios', () => ({
   SEM_BANCO: 'Sem banco.',
@@ -103,6 +137,16 @@ vi.mock('@/server/admin/rbac', () => ({
   excluirPapel: m.excluirPapel,
 }))
 
+import {
+  abrirAnaliseNoPainel,
+  assinarVideoNoPainel,
+  atualizarBancadaNoPainel,
+  fecharAnaliseNoPainel,
+  salvarCaixaNoPainel,
+  urlDoVideoNoPainel,
+  verificarCorrenteNoPainel,
+} from './bancada'
+import { publicarDocumentoNoPainel, salvarConfiguracaoNoPainel, salvarTipoDeMoedaNoPainel } from './config'
 import { definirAliquotaNoPainel, enviarAoSheetsNoPainel, estornarManualNoPainel, lancarManualNoPainel, verificarLedgerNoPainel } from './contabil'
 import {
   anotarConversaNoPainel,
@@ -126,6 +170,7 @@ import {
   editarDadosBancariosNoPainel,
   marcarInadimplenciaNoPainel,
   mudarSituacaoDaContaNoPainel,
+  quitarFaturaComSaldoNoPainel,
   redefinirSenhaNoPainel,
 } from './usuarios'
 
@@ -170,6 +215,23 @@ const casos: Array<[string, string, () => Promise<{ ok: boolean }>, ReturnType<t
   ['desativar conta', 'usuarios.editar', () => mudarSituacaoDaContaNoPainel('x@exemplo.com.br', false, ''), m.mudarSituacaoDaConta],
   ['redefinir senha', 'usuarios.editar', () => redefinirSenhaNoPainel('x@exemplo.com.br', 'link', ''), m.redefinirSenha],
   ['anotar usuário', 'usuarios.editar', () => anotarUsuarioNoPainel('x@exemplo.com.br', 'nota'), m.anotarUsuario],
+  ['quitar fatura com o saldo', 'usuarios.editar', () => quitarFaturaComSaldoNoPainel('x@exemplo.com.br', 'FAT-1'), m.pagarFaturaCustodiaComSaldo],
+  // C3 — bancada, moedas e configuração
+  ['atualizar a bancada', 'bancada.ver', () => atualizarBancadaNoPainel(), m.filaDeAnalise],
+  ['abrir análise', 'bancada.analisar', () => abrirAnaliseNoPainel('RO-ENV-0001'), m.abrirPelaBancadaWeb],
+  ['assinar o vídeo', 'bancada.analisar', () => assinarVideoNoPainel('RO-ENV-0001', 'webm'), m.assinarVideoPelaBancadaWeb],
+  ['fechar análise', 'bancada.analisar', () => fecharAnaliseNoPainel('RO-ENV-0001', [], null), m.fecharPelaBancadaWeb],
+  ['cadastrar caixa', 'bancada.analisar', () => salvarCaixaNoPainel({ codigo: 'EB-001', rotulo: '', local: '', capacidade: null, ativa: true }, true), m.salvarCaixa],
+  ['verificar corrente', 'bancada.auditoria', () => verificarCorrenteNoPainel(), m.verificarCorrenteDoAcervo],
+  ['assistir ao vídeo', 'bancada.auditoria', () => urlDoVideoNoPainel('RO-ENV-0001/RO-ENV-0001-1.webm'), m.urlDeLeituraDoVideo],
+  ['salvar taxas', 'config.taxas', () => salvarConfiguracaoNoPainel('taxas', { comissaoCompradorBp: '1' }), m.salvarGrupoDeConfiguracao],
+  ['publicar documento', 'config.taxas', () => publicarDocumentoNoPainel('tabela_de_taxas'), m.publicarDocumentoVigente],
+  [
+    'salvar tipo de moeda',
+    'config.catalogo',
+    () => salvarTipoDeMoedaNoPainel({ chave: 'X', anoPadrao: '2016', tiragem: '', categoria: 'Y', negociavel: false, detail: '', ord: '1', ativo: true }, true),
+    m.salvarTipoDeMoeda,
+  ],
 ]
 
 describe('toda ação do painel pede a própria permissão, antes de tudo', () => {
@@ -241,6 +303,51 @@ describe('permitido', () => {
     await mudarSituacaoDaContaNoPainel(' Rogerio@Aureacustodia.com.br ', false, '')
     expect(m.podeAbrirPainelAdmin).toHaveBeenCalledWith('rogerio@aureacustodia.com.br')
     expect(m.mudarSituacaoDaConta.mock.calls[0][4]).toMatchObject({ email: 'rogerio@aureacustodia.com.br', ativa: false, ehDaEquipe: true })
+  })
+
+  it('a bancada web passa o e-mail do membro como operador — na web não há campo para outro', async () => {
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    m.fecharPelaBancadaWeb.mockResolvedValue({ ok: true, mensagem: 'Pronto.', dados: { protocolo: 'RO-ENV-0001', aprovadas: 1, recusadas: 0, analises: [] } })
+    const moedas = [{ veredito: 'aprovada' as const, gramas: '7', caixa: '', posicao: '', motivoRecusa: '' }]
+    await fecharAnaliseNoPainel('RO-ENV-0001', moedas, 'RO-ENV-0001/RO-ENV-0001-1.webm')
+    expect(m.fecharPelaBancadaWeb.mock.calls[0][1]).toBe(MEMBRO.email)
+    expect(m.fecharPelaBancadaWeb.mock.calls[0][2]).toEqual({ protocolo: 'RO-ENV-0001', moedas, caminhoVideo: 'RO-ENV-0001/RO-ENV-0001-1.webm' })
+  })
+
+  it('quitar fatura chama a liquidação da frente B com o dono da ficha e grava admin.usuarios.quitar_fatura', async () => {
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    m.executorOuNulo.mockReturnValue((fn: (tx: unknown) => unknown) => fn({ query: vi.fn() }))
+    m.pagarFaturaCustodiaComSaldo.mockResolvedValue({ ok: true, data: { fatura: { valorCents: 400, competencia: '2026-09' } } })
+    const r = await quitarFaturaComSaldoNoPainel(' Alex@Testeaurea.com.br ', 'FAT-2026-09-alex')
+    expect(r).toMatchObject({ ok: true })
+    expect(m.pagarFaturaCustodiaComSaldo).toHaveBeenCalledWith('FAT-2026-09-alex', 'alex@testeaurea.com.br')
+    expect(m.registrarAcaoAdmin.mock.calls[0][1]).toMatchObject({ ator: MEMBRO.email, area: 'usuarios', verbo: 'quitar_fatura', usuariosAfetados: ['alex@testeaurea.com.br'] })
+
+    m.registrarAcaoAdmin.mockReset()
+    m.pagarFaturaCustodiaComSaldo.mockResolvedValue({ ok: false, error: 'Saldo insuficiente para quitar a fatura.' })
+    expect(await quitarFaturaComSaldoNoPainel('alex@testeaurea.com.br', 'FAT-2')).toEqual({ ok: false, error: 'Saldo insuficiente para quitar a fatura.' })
+    expect(m.registrarAcaoAdmin).not.toHaveBeenCalled()
+  })
+
+  it('grupo de configuração desconhecido e caminho de vídeo com ".." são recusados antes do serviço', async () => {
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    expect((await salvarConfiguracaoNoPainel('sistema', { tabelaDeTaxasVigencia: '01/01/2030' })).ok).toBe(false)
+    expect(m.salvarGrupoDeConfiguracao).not.toHaveBeenCalled()
+    expect((await urlDoVideoNoPainel('../segredo')).ok).toBe(false)
+    expect(m.urlDeLeituraDoVideo).not.toHaveBeenCalled()
+  })
+
+  it('a verificação da corrente fica na trilha com o resultado', async () => {
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    m.verificarCorrenteDoAcervo.mockResolvedValue({
+      analises: { total: 2, integra: false, primeiraQuebra: 1, protocolo: 'RO-ANL-0002' },
+      ledger: { total: 10, integra: true, primeiraQuebra: null, motivo: null, id: null },
+      recibos: { conferidos: 2, divergentes: [] },
+    })
+    const r = await verificarCorrenteNoPainel()
+    expect(r.ok).toBe(true)
+    expect(r.message).toContain('divergência')
+    expect(m.registrarAcaoAdmin.mock.calls[0][1]).toMatchObject({ ator: MEMBRO.email, area: 'moedas', verbo: 'verificar', detalhes: { integro: false } })
   })
 
   it('o envio ao Sheets fica na trilha como gesto do painel, com o resultado', async () => {

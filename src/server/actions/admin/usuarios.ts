@@ -7,7 +7,7 @@
  * outra coisa.
  *  - criar conta: `usuarios.criar`;
  *  - editar cadastro, ajustar saldo, marcar inadimplência, redefinir senha, ativar e
- *    desativar, anotar: `usuarios.editar`;
+ *    desativar, anotar, quitar fatura com o saldo: `usuarios.editar`;
  *  - dados bancários: `usuarios.dados_bancarios` E `usuarios.editar`.
  *
  * O resto é delegado: a validação mora em src/domain/admin/usuarios.ts, a escrita e a linha
@@ -21,6 +21,7 @@ import type { EntradaCadastro } from '@/domain/admin/usuarios'
 import { ACCOUNTS } from '@/domain/constants'
 import type { ActionResult } from '@/domain/types'
 import { permissaoParaAcao, podeAbrirPainelAdmin } from '@/server/admin/acesso'
+import { registrarAcaoAdmin } from '@/server/admin/auditar'
 import type { ResultadoAdmin } from '@/server/admin/contabil'
 import { TABELA_AUSENTE, ehTabelaAusente, executorOuNulo, portaDeEstadoDoServidor, portaDeIdentidadeDoAmbiente } from '@/server/admin/portas'
 import {
@@ -36,6 +37,7 @@ import {
 } from '@/server/admin/usuarios'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { MOEDAS_MOCK_INICIAIS, SALDO_MOCK_INICIAL } from '@/server/auth/provisioning'
+import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 
 const FALHA_GRAVACAO = 'Falha ao salvar dados. Tente novamente.'
 
@@ -127,6 +129,38 @@ export async function redefinirSenhaNoPainel(email: string, modo: string, senha:
       redirecionarPara: modo === 'link' ? await authCallbackUrl() : '',
       ehDoCatalogo: alvo in ACCOUNTS,
     })
+  })
+}
+
+/**
+ * Quita uma fatura de custódia com o saldo da conta — o pagamento manual da ficha (P-C2-07).
+ *
+ * A liquidação é a da frente B, `pagarFaturaCustodiaComSaldo` (src/server/custodia/faturamento.ts):
+ * ela confere dono, situação e saldo, debita, marca o plano como vigente e recalcula a
+ * inadimplência. O painel não faz conta nenhuma; só grava `admin.usuarios.quitar_fatura` depois.
+ */
+export async function quitarFaturaComSaldoNoPainel(email: string, faturaId: string): Promise<ActionResult> {
+  return comPermissoes(['usuarios.editar'], async (membro) => {
+    const alvo = conta(email)
+    const id = typeof faturaId === 'string' ? faturaId.trim() : ''
+    if (!alvo || !id) return { ok: false, erro: 'Fatura não encontrada.' }
+    const r = await pagarFaturaCustodiaComSaldo(id, alvo)
+    if (!r.ok) return { ok: false, erro: r.error ?? 'Não foi possível quitar a fatura.' }
+    const executar = executorOuNulo()
+    if (executar) {
+      await executar((tx) =>
+        registrarAcaoAdmin(tx, {
+          ator: membro.email,
+          area: 'usuarios',
+          verbo: 'quitar_fatura',
+          entidade: 'fatura',
+          entidadeId: id,
+          usuariosAfetados: [alvo],
+          detalhes: { valorCents: r.data?.fatura.valorCents ?? null, competencia: r.data?.fatura.competencia ?? null, forma: 'saldo' },
+        }),
+      )
+    }
+    return { ok: true, mensagem: `Fatura ${id} quitada com o saldo da conta.` }
   })
 }
 
