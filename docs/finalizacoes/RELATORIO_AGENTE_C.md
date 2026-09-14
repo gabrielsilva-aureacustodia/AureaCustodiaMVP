@@ -11,8 +11,10 @@ Pendências:  docs/finalizacoes/PENDENCIAS_AGENTE_C.md
 > **Para o Rogério.** O painel de administração existe: quem é da equipe entra em `/admin` com o
 > mesmo login do site. A primeira parte pronta é a Central de Resultados — o financeiro com a DRE,
 > a parte contábil, os indicadores do negócio e o uso da plataforma — e a tela de equipe, onde se
-> escolhe quem acessa e o que cada um pode fazer. Atendimento, usuários, bancada, moedas, logística e
-> configuração já aparecem no menu e chegam nas duas próximas entregas.
+> escolhe quem acessa e o que cada um pode fazer. A segunda entrega trouxe o **atendimento** (o
+> WhatsApp da empresa dentro do painel, com a ficha do cliente ao lado) e a **administração de
+> usuários** (a lista de contas e a ficha completa de cada uma, com as ações de ajuste). Bancada,
+> moedas, logística e configuração já aparecem no menu e chegam na próxima entrega.
 
 ---
 
@@ -177,3 +179,191 @@ Tudo acréscimo, de resolução direta:
   estão prontos para reuso. Elemento que vale contar no registro de uso ganha `data-uso`.
 - A A2 e a B1 já estão publicadas nas branches delas (`feat/a2-livro-de-ordens`,
   `feat/b1-cobranca-reutilizavel`); a C2 começa trazendo a `main` do momento.
+
+---
+
+## C2 · Usuários e CS — `feat/c2-usuarios-e-cs`
+
+**Base:** `feat/c-painel-admin` @ `1145c1a`, depois de trazer `origin/main` (ainda em `3358845`; nada
+novo). As frentes A (A1 e A2) e B (B1 e B2) estavam publicadas nas branches delas, não na `main` — por
+isso tudo o que a ficha lê delas é leitura defensiva, que acende sozinha quando chegarem. Depois de levar
+para a `main`: P-C2-01 (migrations 022 e 023). O provedor de WhatsApp é o P-C2-02.
+
+### O que entrou, pela seção do plano do Admin
+
+| Seção | Entrega |
+|---|---|
+| 2.1 | `022_cs_mensageria.sql`: `cs_canais`, `cs_contatos` (`telefone_e164` único), `cs_conversas` (única por canal e contato), `cs_mensagens` (`id_no_provedor` único). RLS em todas |
+| 2.2 | `023_notas_e_atribuicoes.sql`: `cs_notas`, `cs_etiquetas`, `cs_conversa_etiquetas`, `admin_notas_usuario` — e `admin_situacao_contas`, que o "ativar e desativar" da 2.6 precisava para ter onde morar. Notas e situação são append-only |
+| 2.3 | `src/lib/mensageria/`: `tipos.ts` (`ProvedorMensageria` com a assinatura do plano), `evolution.ts` (Evolution API v2, conferida no código-fonte dela), `registro-local.ts` (sem provedor, a tela funciona), `index.ts` (escolha pelo ambiente). `cloud-api.ts` fica "para depois", como o plano diz |
+| 2.4 | `POST /api/webhooks/whatsapp`: autenticação antes do JSON, tradução, gravação e resposta; reentrega não duplica |
+| 2.5 | `/admin/cs` em três colunas: conversas (situação, responsável, etiqueta, busca por nome ou telefone, não lidas, nova conversa), conversa (estado de entrega, resposta, arquivo por endereço, notas, etiquetas, situação, responsável) e cartão do cliente (saldo, moedas, envios com etapa, faturas em aberto, retiradas, acessos, link para a ficha). Polling de 5 s |
+| 2.6 | `/admin/usuarios` (busca por nome, e-mail ou CPF; filtros com e sem cadastro, inadimplente, com saldo, com moeda, criada no período) e `/admin/usuarios/[email]` com as sete abas. As seis ações — criar, editar cadastro, ajustar saldo, inadimplência, redefinir senha, ativar e desativar — e as notas, todas com `admin.usuarios.<verbo>` na trilha |
+| 6 (finalizações) | Cadastro lê `aceites_documentos` (A3) e, sem ela, `settings.legalAcceptance`; Financeiro lê planos (B2) e recebimentos do gateway (B1); Mercado lê o histórico da fila (A2). Ajuste de saldo é o lançamento `ajuste` do ledger. Pedido do número de SAC ao Agente A em `PENDENCIAS_AGENTE_C.md` |
+
+### Decisões tomadas dentro do plano — e como explicar cada uma
+
+1. **Sem provedor, a resposta fica "registrada", e não "enviada".** Estado novo em `cs_mensagens`, fora
+   do desenho original. *Para o Rogério:* quando o WhatsApp não está ligado, o painel guarda o que o
+   atendente escreveu e diz, na própria mensagem, que ela não chegou ao cliente.
+2. **Uma conversa por pessoa, que reabre quando ela escreve de novo.** O histórico inteiro fica num lugar
+   — é o que faz a caixa funcionar como CRM.
+3. **Telefone sempre na forma canônica, com o nono dígito.** O WhatsApp entrega números antigos sem o 9, e
+   o cadastro guarda só DDD e número; sem a forma canônica, a conversa nunca acharia a ficha. Número que
+   casa com duas contas **não** vincula: o atendente vincula à mão, em vez de ver o saldo de outra pessoa.
+4. **O envio acontece fora da transação do banco.** A chamada ao WhatsApp pode demorar; transação aberta
+   esperando a internet travaria o banco para todo mundo. O eco da própria resposta, que a Evolution
+   manda de volta pelo webhook, vira a mesma linha — chegue antes ou depois.
+5. **O webhook grava antes de responder**, diferente do Mercado Pago (que concilia depois): são poucas
+   linhas, e a Evolution não reenvia o que recebeu 200. Sem segredo configurado, todo webhook é recusado;
+   o segredo curto (menos de 16 caracteres) também.
+6. **Mídia vai por endereço, como a interface do plano** (`enviarMidia(para, url, tipo, legenda)`). Não
+   há upload nem armazenamento novo — etiqueta com endereço não pode ir para armazenamento público, e um
+   balde privado para o CS seria escopo novo.
+7. **Ajuste de saldo e trilha na mesma transação**, sem reimplementar o ledger: o serviço roda o
+   `mutarEstado` de sempre dentro de uma transação aberta por ele (um `Executor` que reusa a transação),
+   e a linha `admin.usuarios.ajustar_saldo` entra antes do commit. O lançamento `ajuste` é o que o ledger
+   já deriva de toda variação de saldo sem explicação. O ajuste pede motivo: é o dado que explica o
+   lançamento, não uma confirmação.
+8. **A situação da conta mora numa tabela própria**, e não em `users.settings`: o planejador de diff só
+   persiste as quatro preferências conhecidas, e um campo a mais ali sumiria na primeira gravação.
+   Desativar bloqueia a identidade no Supabase (comportamento padrão da ferramenta) e registra quem, quando
+   e por quê. Conta da equipe do painel é recusada — tirar alguém da equipe é gesto de Equipe e papéis,
+   que protege o último dev. As portas que não passam pelo Supabase ficaram pedidas ao Agente A, com a
+   função pronta (`contaDesativada`) — RA-44.
+9. **Senha por dois caminhos**: o link do Supabase por e-mail, e a senha provisória, que também cria o
+   login que faltava para quem foi cadastrado sem chave de serviço. O link sozinho ainda não fecha o
+   ciclo (o site não tem tela de nova senha sem a atual) — pedido ao Agente A, RA-43. Conta do catálogo de
+   demonstração é recusada: ela entra sem Supabase (RA-19).
+10. **Sem chave de serviço, "Criar conta" cria a conta só na plataforma**, e a pessoa define a senha em
+    `/cadastrar` com o mesmo e-mail — o login acha a conta pronta. Nenhuma ação quebra por falta de
+    credencial; a mensagem diz o que aconteceu.
+11. **O cadastro é gravado inteiro.** A leitura do banco descarta o cadastro se faltar CPF, nome completo,
+    nascimento ou telefone, então esses quatro são exigidos; o resto é livre, e um CPF que não confere
+    com os dígitos verificadores é gravado com aviso ("qualquer campo, inclusive CPF").
+12. **Dados bancários não saem do servidor sem `usuarios.dados_bancarios`**, e editar pede essa permissão
+    e `usuarios.editar`. A trilha de dado pessoal guarda os **nomes** dos campos que mudaram, nunca os
+    valores; senha nunca entra.
+13. **O que é código de outra frente ainda fora da `main` não foi reimplementado.** A posição na fila
+    (`posicaoNaFila`, A2) e o pagamento manual de fatura (ação da B2) aparecem como "disponível depois da
+    X" e entram num commit pequeno quando o código chegar (P-C2-07). As tabelas dessas frentes são lidas
+    com `to_regclass` e acendem sozinhas.
+14. **A paleta das etiquetas tem ouro, verde, vermelho e cinza.** O azul do rascunho saiu: não há variável de
+    azul em `tokens.css`, e cor fora dessas variáveis quebra o tema claro.
+
+### Arquivos fora da lista de território, editados porque o plano pede
+
+| Arquivo | Por quê |
+|---|---|
+| `src/server/db/repositories/cs.ts`, `admin-usuarios.ts` (novos) e `painel-leituras.ts` | "Tabelas próprias, fora do `AppState`" — o SQL mora em `repositories/`, como na C1; `painel-leituras.ts` ganhou as leituras por conta de A2, A3 e B1 |
+| `src/server/db/db.test.ts` | A lista exata de tabelas ganhou as nove da C2 |
+| `.env.example` | Bloco no fim com as quatro variáveis do WhatsApp (só nomes) |
+| `src/app/api/webhooks/README.md`, `src/lib/README.md`, `src/app/README.md`, `src/domain/README.md`, `src/server/db/migrations/README.md`, `src/server/db/repositories/README.md` | Documentação que a rota, a pasta e as migrations novas tornaram incompleta — só linhas acrescentadas |
+| `CLAUDE.md` | O parágrafo do Admin (da própria frente C) ganhou três frases sobre o CS e a ficha |
+
+### Testes novos — 80, em 8 arquivos
+
+A suíte foi de **59 arquivos e 450 testes** para **65 arquivos e 530 testes** (1 pulado, o de banco
+real). `npm run typecheck`, `npm run lint` e `npm run build` limpos.
+
+| Arquivo | Testes | O que protege |
+|---|---|---|
+| `src/server/actions/admin/acoes.test.ts` | +22 (36) | Cada uma das 19 ações novas pede a sua permissão e, recusada, não chama o serviço; dados bancários pedem as duas; tabela ausente vira a instrução do `db:migrate`; o autor é o membro; a equipe é conferida no servidor |
+| `src/server/admin/banco.test.ts` | +16 (34) | Postgres embutido: migrations 022 e 023 com RLS; mensagem nova, conta pelo telefone, reentrega, não lidas; conversa que reabre; entrega que não anda para trás; eco da resposta como uma linha; registrada e falhou na trilha; notas, etiquetas, responsável e filtros; nova conversa e vínculo; criar conta com abertura no ledger; ajuste vira `ajuste` com motivo; **trilha que falha desfaz o ajuste**; cadastro inteiro sem dado pessoal na trilha; inadimplência; desativar com bloqueio e recusa da equipe; senha sem vazar para a trilha; notas; leituras de A2, A3 e B1 nulas sem as tabelas |
+| `src/lib/mensageria/evolution.test.ts` | 10 | Envio com `apikey` e só dígitos, mídia com nome do arquivo, recusa e rede fora; JWT de `jwt_key`, Bearer, sem segredo e segredo curto; tradução de `messages.upsert` (entrada, saída, imagem, grupo, reação, sem id) e `messages.update`; escolha pelo ambiente |
+| `src/domain/admin/usuarios.test.ts` | 9 | Filtro da URL, busca por nome, e-mail e CPF, filtros, período no dia de Brasília, criar, cadastro inteiro com aviso, dados bancários, ajuste |
+| `src/domain/admin/telefone.test.ts` | 7 | Cadastro × WhatsApp × WhatsApp sem o nono dígito, grupo e status, formatação, conta pelo telefone e ambiguidade |
+| `src/domain/admin/cs.test.ts` | 7 | Estado de entrega só para a frente, texto e endereço de mídia, slug de etiqueta, filtro da caixa |
+| `src/app/api/webhooks/whatsapp/route.test.ts` | 6 | 503 sem provedor, 401 antes do JSON, 400, 200 sem banco para evento que não é mensagem, grava e responde, 503 e 500 que fazem reenviar |
+| `src/server/admin/situacao.test.ts` | 3 | `contaDesativada` responde "ativa" sem banco, com banco falhando e para a equipe |
+
+### O que cliquei para conferir, e o que apareceu
+
+Servidor do worktree (`next dev`, porta 3107), com o painel do navegador oculto — leitura da página,
+estilos computados e cliques pelo DOM. Três rodadas.
+
+**1. Banco na gaveta `aurea_local_admin` + uma Evolution API falsa local** (servidor Node que responde
+`sendText`, `sendMedia` e `connectionState`, com a mesma autenticação por `apikey`):
+- `db:migrate` na gaveta: `+ 022_cs_mensageria`, `+ 023_notas_e_atribuicoes`; o schema `aurea` não foi
+  tocado.
+- A sessão que estava aberta era a da Rozane (papel Contador, da C1): `/admin/usuarios` → "Seu papel no
+  painel não inclui esta área — Ver usuários". Entrei como `gabrielsilva@testeaurea.com.br`.
+- `/admin/usuarios`: 7 contas, criada em 17/08/2026 (abertura do seed no ledger). `?busca=ro&saldo=1&cadastro=sem`
+  → "2 de 7 contas" (Rogério Pena e Rozane), com os campos do filtro preenchidos.
+- **Criar conta** `Teste.Painel@Exemplo.com.br`, sem senha, com demonstração → toast "Conta criada. Sem
+  chave de serviço do Supabase: a pessoa cria a senha em /cadastrar com este e-mail." e a ficha abriu
+  com R$ 5.000,00, 6 moedas e "conta criada em 14/09/2026".
+- **Editar cadastro** com CPF 123.456.789-00 e telefone (11) 98765-4321 → "Cadastro salvo. Atenção: o CPF
+  não confere com os dígitos verificadores; com estes dados o cadastro não libera depósito, compra e
+  saque." **Dados bancários** Pix por e-mail → "Pix (E-mail): painel@exemplo.com.br".
+- **Ajustar saldo** R$ 150,25 com motivo → "Saldo ajustado de R$ 5.000,00 para R$ 5.150,25."; aba
+  Financeiro, livro-razão: linha 105 "Ajuste · R$ 150,25 · saldo após R$ 5.150,25", linha 104 "Saldo
+  inicial". **Inadimplência** → selo "Inadimplente (marca manual)". **Enviar link de redefinição** → "Falta
+  SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente…".
+- **Desativar** com motivo → "Conta desativada. Sem chave de serviço do Supabase, o login não foi
+  bloqueado lá — só a situação foi registrada."; selo "Desativada", aviso com autor, data e motivo.
+- **Nota interna** registrada; aba **Atividade** com a trilha da conta: `admin.usuarios.criar`,
+  `editar_cadastro`, `editar_dados_bancarios`, `ajustar_saldo`, `marcar_inadimplente`, `desativar`,
+  `anotar`, cada uma logo acima da linha `conta.atualizar` da mesma transação.
+- Ficha do Gabriel: selos "Equipe do painel" e "Catálogo de demonstração"; "Desativar conta" diz para
+  tirar da equipe antes; "Redefinir senha" diz que a conta entra sem Supabase (RA-19). Aba Mercado com
+  "Histórico da fila — Disponível depois da A2"; Acervo com 13 moedas e "sem laudo na corrente (moeda de
+  demonstração)".
+- **Webhook** com um corpo no formato da Evolution: autenticação errada → `401`; mensagem do número
+  `551187654321` (sem o nono dígito) → `200 {"mensagens":1}`; o mesmo id de novo → `{"repetidas":1}`;
+  outro número → nova conversa.
+- `/admin/cs`: "2 abertas · 2 não lidas"; a conversa do número sem o 9 veio **vinculada à conta de teste**
+  (selo "Cliente", telefone +55 (11) 98765-4321, cartão com R$ 5.150,25 e "Inadimplente"). Abrir levou a
+  URL a `?conversa=1` e zerou a não lida.
+- **Responder** → "Mensagem enviada."; a Evolution falsa recebeu `number: 5511987654321` e a `apikey`
+  certa. Webhook `DELIVERY_ACK` → `status: 1`, `READ` → `status: 1`, `DELIVERY_ACK` atrasado → `status: 0`;
+  a mensagem ficou "Lida" na volta seguinte do polling.
+- **Nota**, **etiqueta nova "Retirada" (verde) aplicada**, **responsável Rozane** e **situação Pendente** →
+  um toast cada; o item da lista mostrou "Pendente · Cliente · Retirada". **Arquivo por endereço** (PDF)
+  → "Arquivo enviado.". Filtros: etiqueta Retirada → só a conversa da conta de teste; sem responsável → só
+  a do visitante; busca "21 99999" → só a do visitante — cada um gravado na URL.
+- **Conferir conexão** → "WhatsApp conectado.". **Nova conversa** para (31) 97777-6666 → abriu a conversa
+  4 com a mensagem "Enviada" e "não casou com nenhuma conta"; **vincular** `Pegge@testeaurea.com.br` →
+  "Contato atualizado." e o cartão da Pegge.
+- Desliguei a Evolution falsa e respondi → "A mensagem não saiu e ficou marcada como falha na conversa.
+  Sem resposta da Evolution API (fetch failed).", mensagem com borda vermelha "Falhou" e o texto mantido
+  na caixa.
+- Celular (375 px): as três colunas empilhadas na largura inteira, abas da ficha com 44 px, sem rolagem
+  horizontal no CS nem na ficha.
+
+**2. Mesmo banco, sem as variáveis da Evolution:** a conversa mostrou "Sem WhatsApp conectado… Falta
+configurar: EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE, WHATSAPP_WEBHOOK_SECRET."; a resposta
+ficou "Só no painel — sem WhatsApp conectado", borda tracejada, toast "Resposta registrada no painel…"; o
+webhook respondeu `503` com a mesma lista.
+
+**3. Sem banco (memória):** `/admin/cs` → "Este ambiente está sem POSTGRES_URL…"; aba Notas → "As notas
+existem só com banco configurado."; **ajuste de saldo** do Alex funcionou pela memória (R$ 38.000,00 →
+R$ 38.010,00) e "Desativar conta" explicou que a situação é gravada em tabela do painel.
+
+Nenhum erro no log do servidor nas três rodadas. Ajustei um detalhe achado aqui: a contagem de não lidas
+vinha de antes de a conversa aberta ser marcada como lida — a caixa agora é lida depois.
+
+### Riscos registrados
+
+- **RA-42** — WhatsApp por QR code (não oficial), webhook sem assinatura do corpo, conversas sem retenção.
+- **RA-43** — senha provisória sem segundo fator nem troca obrigatória; link sem tela de nova senha.
+- **RA-44** — desativar fecha o Supabase; catálogo e sessão aberta esperam a frente A.
+
+Em `RISCOS_ASSUMIDOS.md` e nos `ATALHOS.md` de `src/lib/mensageria/` e `src/server/admin/`.
+
+### O que pode dar conflito no merge com A e B
+
+- `src/server/db/db.test.ts`: a lista de tabelas ganhou `admin_notas_usuario`, `admin_situacao_contas` e
+  os sete `cs_*`; A (`ofertas_historico`, `documentos_legais`, `aceites_documentos`) e B
+  (`recebimentos_gateway`, `planos_custodia`) mexem na mesma lista. Manter todas, em ordem alfabética.
+- `RISCOS_ASSUMIDOS.md`: linhas de índice, seções no fim e uma linha na tabela de pastas.
+- `.env.example` (bloco no fim), `src/app/api/webhooks/README.md` (uma linha): acréscimo.
+
+### O que a C3 precisa saber
+
+- `src/server/admin/portas.ts` tem `portaDeEstadoDoServidor` (mutação do AppState + linha do painel na
+  mesma transação) e `ehTabelaAusente` — servem para as ações de configuração e bancada.
+- `painel-leituras.ts` concentra leitura de tabela de outra frente com `to_regclass`.
+- P-C2-07: com A2 e B2 na `main`, trocar "disponível depois da A2" por `posicaoNaFila` na aba Mercado e
+  ligar o pagamento manual de fatura da B2 na aba Financeiro.
+- Os canais de SAC (P-C2-06) podem virar configuração na aba Operacional.
