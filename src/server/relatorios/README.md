@@ -30,9 +30,10 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 |---|---|
 | `src/app/api/relatorios/[relatorio]/route.ts` | `gerarRelatorio`, `gerarTodosRelatorios`, `relatorioParaCsv`, `relatoriosParaXlsx` |
 | `src/app/api/relatorios/sheets/route.ts` | `sincronizarSheetsComoAtor` (para cron/Apps Script) |
-| `src/server/actions/contabil.ts` | `ehAdmin`, `sincronizarSheetsComoAtor` |
-| `src/app/(app)/layout.tsx` | `ehAdmin` — liga o item "Relatórios" do menu |
-| `src/app/(app)/relatorios/page.tsx` | `ehAdmin`, `configuracaoSheets` |
+| `src/server/actions/contabil.ts` | `ehAdmin`, `sincronizarSheetsComoAtor` (ações da tela antiga; sem tela que as use desde a C1) |
+| `src/server/admin/resultados.ts` | `dreCompleta`, `gerarRelatorio`, `ehNomeDeRelatorio`, `configuracaoSheets` — a Central de Resultados do painel |
+| `src/server/actions/admin/contabil.ts` | `sincronizarSheetsComoAtor` — o envio ao Sheets pelo painel |
+| `src/app/(app)/relatorios/page.tsx` | Nada: desde a C1 só redireciona para `/admin/resultados/financeiro` |
 
 ## Regras que valem aqui
 

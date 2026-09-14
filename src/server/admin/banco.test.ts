@@ -10,10 +10,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
+import { validarLoteDeEventos } from '@/domain/admin/uso'
 import { listarAuditoria } from '@/server/db/repositories/auditoria'
 import { listarPapeis, substituirPermissoes } from '@/server/db/repositories/admin-rbac'
+import { lerHistoricoDaFila } from '@/server/db/repositories/painel-leituras'
 import type { Executor } from '@/server/db/sql'
 
+import { registrarAcaoAdmin } from './auditar'
+import { definirAliquota, estornarManual, lancarManual, verificarLedger } from './contabil'
 import {
   abrePainelNoBanco,
   adicionarMembro,
@@ -27,6 +31,7 @@ import {
   type Ambiente,
 } from './rbac'
 import { bancoDeTeste, type BancoDeTeste } from './testing/pglite'
+import { carregarUsoNoBanco, gravarEventosDeUso } from './uso'
 
 const SEED: Ambiente['contasDoSeed'] = {
   'gabrielsilva@testeaurea.com.br': { name: 'Gabriel Silva' },
@@ -187,5 +192,93 @@ describe('papéis', () => {
     await alterarMembro(executar, 'g@exemplo.com.br', { email: 't@exemplo.com.br', papelSlug: 'operacao' }, SEM_LISTA)
     expect((await excluirPapel(executar, 'g@exemplo.com.br', 'temporario')).ok).toBe(true)
     expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.papeis.'))).toEqual(['admin.papeis.criar', 'admin.papeis.excluir'])
+  })
+})
+
+describe('registro de uso', () => {
+  const T0 = Date.UTC(2026, 8, 14, 13, 0, 0)
+
+  it('grava o lote limpo e a tela de Uso lê eventos e trilha do período', async () => {
+    const lote = validarLoteDeEventos(
+      { sessao: 'aba-00000001', eventos: [{ tipo: 'pagina', rota: '/mercado', em: T0 }, { tipo: 'pagina', rota: '/vender', em: T0 + 60000 }] },
+      T0 + 60000,
+    )
+    expect(lote).not.toBeNull()
+    expect(await gravarEventosDeUso(executar, 'Rogeriopena@testeaurea.com.br', lote!, 'android')).toBe(2)
+    await executar((tx) => registrarAcaoAdmin(tx, { ator: 'rogeriopena@testeaurea.com.br', area: 'contabil', verbo: 'lancar', agora: T0 + 120000 }))
+
+    const { rows } = await banco.db.query<{ user_email: string; plataforma: string; detalhes: unknown }>(
+      `SELECT user_email, plataforma, detalhes FROM aurea.eventos_uso ORDER BY id`,
+    )
+    expect(rows.map((r) => [r.user_email, r.plataforma])).toEqual([
+      ['rogeriopena@testeaurea.com.br', 'android'],
+      ['rogeriopena@testeaurea.com.br', 'android'],
+    ])
+
+    const dados = await carregarUsoNoBanco(executar, {
+      de: T0 - 1,
+      ate: T0 + 3600000,
+      primeirasVendas: { 'rogeriopena@testeaurea.com.br': T0 + 90000 },
+      filtroTrilha: { acaoComeca: 'admin.' },
+    })
+    expect(dados.resumo).toMatchObject({ paginasVistas: 2, sessoes: 1, contas: 1 })
+    expect(dados.resumo.jornadas).toMatchObject({ contasComJornada: 1, medianaMinutos: 2 })
+    expect(dados.trilha?.map((t) => t.acao)).toEqual(['admin.contabil.lancar'])
+    expect(dados.eventosNoLimite).toBe(false)
+  })
+
+  it('sem permissão de auditoria a trilha nem é lida; filtro por ator ignora maiúsculas e trata % como texto', async () => {
+    await executar(async (tx) => {
+      await registrarAcaoAdmin(tx, { ator: 'gabrielsilva@testeaurea.com.br', area: 'membros', verbo: 'adicionar', agora: T0 })
+      await registrarAcaoAdmin(tx, { ator: 'alex@testeaurea.com.br', area: 'membros', verbo: 'adicionar', agora: T0 })
+    })
+    const semTrilha = await carregarUsoNoBanco(executar, { de: 0, ate: T0 + 1, primeirasVendas: {}, filtroTrilha: null })
+    expect(semTrilha.trilha).toBeNull()
+
+    const porAtor = await carregarUsoNoBanco(executar, { de: 0, ate: T0 + 1, primeirasVendas: {}, filtroTrilha: { atorContem: 'GABRIEL' } })
+    expect(porAtor.trilha?.map((t) => t.ator)).toEqual(['gabrielsilva@testeaurea.com.br'])
+    const curinga = await carregarUsoNoBanco(executar, { de: 0, ate: T0 + 1, primeirasVendas: {}, filtroTrilha: { atorContem: '%' } })
+    expect(curinga.trilha).toEqual([])
+  })
+
+  it('histórico da fila de ofertas é null enquanto a tabela da frente A não existir', async () => {
+    expect(await executar((tx) => lerHistoricoDaFila(tx, 0, T0, 100))).toBeNull()
+  })
+})
+
+describe('ações contábeis do painel', () => {
+  beforeEach(async () => {
+    await banco.db.exec(`TRUNCATE aurea.lancamentos_manuais RESTART IDENTITY CASCADE; UPDATE aurea.parametros_contabeis SET valor = NULL;`)
+  })
+
+  it('lança, estorna uma vez só, e cada gesto fica na trilha com o ator', async () => {
+    const ator = 'contador@exemplo.com.br'
+    const lancado = await lancarManual(executar, ator, { dataISO: '2026-09-01', contaCodigo: '4.1.03', descricao: 'Aluguel do cofre', valorCents: 150000 })
+    expect(lancado).toMatchObject({ ok: true, dados: { id: 1 } })
+    expect((await lancarManual(executar, ator, { dataISO: '2026-09-01', contaCodigo: '3.1.01', descricao: 'Comissão à mão', valorCents: 1 })).ok).toBe(false)
+
+    expect((await estornarManual(executar, ator, 1, 'lançado em duplicidade')).ok).toBe(true)
+    expect(await estornarManual(executar, ator, 1, 'de novo')).toMatchObject({ ok: false })
+    expect(await estornarManual(executar, ator, 2, 'estorno do estorno')).toMatchObject({ ok: false })
+
+    const trilha = await executar((tx) => listarAuditoria(tx, { ator }))
+    expect(trilha.map((t) => t.acao).reverse()).toEqual(['admin.contabil.lancar', 'admin.contabil.estornar'])
+    expect(trilha[1].detalhes).toMatchObject({ contaCodigo: '4.1.03', valor: 150000 })
+  })
+
+  it('alíquota grava com quem mudou; limpar volta a nulo', async () => {
+    expect(await definirAliquota(executar, 'contador@exemplo.com.br', 'issBp', 500)).toMatchObject({ ok: true, mensagem: 'ISS: 5%.' })
+    const { rows } = await banco.db.query<{ valor: unknown; atualizado_por: string }>(`SELECT valor, atualizado_por FROM aurea.parametros_contabeis WHERE chave = 'issBp'`)
+    expect(Number(rows[0].valor)).toBe(500)
+    expect(rows[0].atualizado_por).toBe('contador@exemplo.com.br')
+    expect(await definirAliquota(executar, 'contador@exemplo.com.br', 'issBp', null)).toMatchObject({ ok: true, mensagem: 'ISS: não configurado.' })
+    expect((await definirAliquota(executar, 'contador@exemplo.com.br', 'issBp', 10001)).ok).toBe(false)
+  })
+
+  it('conferência do livro-razão responde e fica registrada', async () => {
+    const r = await verificarLedger(executar, 'gabrielsilva@testeaurea.com.br')
+    expect(r.ok).toBe(true)
+    const [linha] = await executar((tx) => listarAuditoria(tx, { acao: 'admin.resultados.verificar_ledger' }))
+    expect(linha.detalhes).toMatchObject({ ok: true })
   })
 })

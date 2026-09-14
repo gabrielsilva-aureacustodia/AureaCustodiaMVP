@@ -46,3 +46,13 @@ operação por operação, **em sequência** — a ordem é a das chaves estrang
   migration **e** no repositório, no mesmo commit.
 - `../derivar.ts` é quem decide o que `ledger.ts` e `auditoria.ts` gravam a cada mutação;
   `../estado.ts` é quem chama, dentro da transação.
+
+## Repositórios do painel administrativo (frente C)
+
+Nenhum deles entra no `AppState`; quem chama é `src/server/admin/`.
+
+| Arquivo | Tabela(s) | Escrita |
+|---|---|---|
+| `admin-rbac.ts` | `admin_permissoes`, `admin_papeis`, `admin_papel_permissoes`, `admin_membros` (migration 020) | upsert do catálogo (set-based) · inserir e atualizar membro · criar, atualizar e excluir papel · substituir concessões. Lê `users.name` para o nome no cabeçalho |
+| `eventos-uso.ts` | `eventos_uso` (migration 021) | **só inserir**, um `unnest` por lote; `listarEventos`, `contarEventosDesde` |
+| `painel-leituras.ts` | `audit_log` (003) e `ofertas_historico` (frente A, 015) | **nenhuma** — só leitura. A trilha filtrada por trecho do ator e começo da ação; o histórico da fila devolve `null` enquanto a tabela da A2 não existir (`to_regclass`) |

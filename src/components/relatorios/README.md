@@ -1,7 +1,12 @@
 # `src/components/relatorios/` — o painel de relatórios (M4/M7)
 
+> **Sem rota que o use desde a C1 (14/09/2026).** `/relatorios` redireciona para a Central de
+> Resultados do painel administrativo, que reorganizou este conteúdo em
+> `src/components/admin/resultados/` com as permissões dos papéis. A remoção desta pasta está
+> pedida em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
+
 A única área da interface que fala de dinheiro da **empresa**, não da conta de quem está
-logado. Usada por `src/app/(app)/relatorios/page.tsx`, que só a renderiza para
+logado. Era usada por `src/app/(app)/relatorios/page.tsx`, que só a renderizava para
 administradores (`ehAdmin`, em `src/server/relatorios/acesso.ts`).
 
 | Arquivo | O que faz |

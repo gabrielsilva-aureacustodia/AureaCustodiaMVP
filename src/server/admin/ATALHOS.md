@@ -26,6 +26,22 @@ e um e-mail do ambiente rebaixado pela tela volta a ser `dev` durante uma falha 
 
 ---
 
+## RA-41 🟡 — registro de uso sem consentimento, sem retenção, agregado em memória
+
+**Arquivos:** `uso.ts` (`gravarEventosDeUso`, `carregarUsoNoBanco`), `resultados.ts` (`carregarUso`),
+`src/domain/admin/uso.ts`; a rota é `src/app/api/eventos/` e o anotador no navegador é
+`src/components/providers/RegistroDeUso.tsx`.
+
+- Grava páginas e cliques de quem está logado sem aviso nem consentimento (ambiente de sócios).
+- `aurea.eventos_uso` não tem prazo de retenção nem rotina de expurgo.
+- A tela agrega em memória: `LIMITE_EVENTOS` (50 mil) e `LIMITE_ACOES_TRILHA` (20 mil) por
+  período. Passou do teto, a tela diz que os números cobrem só o começo do período.
+
+**Como se paga:** aviso na política de privacidade e prazo de retenção com expurgo (jurídico)
+antes de cliente real; agregação em SQL quando o volume pedir.
+
+---
+
 ## O que NÃO é atalho nesta pasta
 
 - **O papel `dev` tem todas as permissões, e o painel não deixa ficar sem um `dev` ativo**
@@ -34,4 +50,4 @@ e um e-mail do ambiente rebaixado pela tela volta a ser `dev` durante uma falha 
 - **`rank` não recusa nada.** Ordena a tela de papéis; não existe regra de "só atribui papel de
   rank menor". Decisão do Gabriel: papéis e permissões são a funcionalidade, não barreira.
 - **Desativar um membro vale na requisição seguinte.** O papel é relido do banco a cada tela e
-  a cada Server Action; não existe token de papel guardado no navegador para expirar.
+  a cada Server Action; não existe credencial de papel guardada no navegador para expirar.

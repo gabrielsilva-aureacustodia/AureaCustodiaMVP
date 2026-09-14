@@ -8,6 +8,8 @@
 
 import 'server-only'
 
+import { redirect } from 'next/navigation'
+
 import {
   PERMISSOES,
   ehEmailDeBootstrap,
@@ -105,6 +107,20 @@ export async function carregarMembro(email: string | null | undefined): Promise<
 export async function membroDaSessao(): Promise<MembroAdmin | null> {
   const email = await getSessionEmail().catch(() => null)
   return carregarMembro(email)
+}
+
+/**
+ * O guarda de toda página do painel: sem sessão, login; logado sem ser da equipe, o
+ * app do cliente. A página confere por conta própria mesmo com o layout fazendo o
+ * mesmo — no App Router layout e página renderizam em paralelo, e dado carregado pela
+ * página antes de o layout redirecionar seria dado entregue.
+ */
+export async function membroDaPagina(): Promise<MembroAdmin> {
+  const email = await getSessionEmail().catch(() => null)
+  if (!email) redirect('/entrar')
+  const membro = await carregarMembro(email)
+  if (!membro) redirect('/inicio')
+  return membro
 }
 
 /**

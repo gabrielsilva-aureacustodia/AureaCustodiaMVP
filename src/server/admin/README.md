@@ -25,12 +25,16 @@ do painel chama `permissaoParaAcao` por conta própria.
 
 | Arquivo | O que faz | `server-only` |
 |---|---|---|
-| `acesso.ts` | `carregarMembro`, `membroDaSessao`, `podeAbrirPainelAdmin`, `permissaoParaAcao`, `exigirPermissao`. Lê o ambiente e a sessão; cai no bootstrap se o banco falhar; registra recusas na trilha | ✅ |
+| `acesso.ts` | `carregarMembro`, `membroDaSessao`, `membroDaPagina` (o guarda das páginas), `podeAbrirPainelAdmin`, `permissaoParaAcao`, `exigirPermissao`. Lê o ambiente e a sessão; cai no bootstrap se o banco falhar; registra recusas na trilha | ✅ |
 | `rbac.ts` | Catálogo (`garantirCatalogosAdmin`), resolução do membro no banco e a administração da equipe — adicionar e alterar membro, criar, alterar e excluir papel —, cada escrita com a linha de auditoria na mesma transação | — |
 | `auditar.ts` | `registrarAcaoAdmin`: grava `admin.<area>.<verbo>` em `aurea.audit_log` dentro da transação de quem chama | — |
-| `banco.test.ts` | Testes contra o Postgres embutido: migrations 020 e 021, catálogo, membros, proteção do último dev, trilha | — |
+| `contabil.ts` | Lançamento manual, estorno, alíquota e conferência do livro-razão, com a trilha na mesma transação | — |
+| `uso.ts` | `gravarEventosDeUso` e `carregarUsoNoBanco` (eventos + trilha do período, com teto de leitura) | — |
+| `resultados.ts` | Os carregadores das telas: `carregarFinanceiro`, `carregarContabil`, `carregarKpis`, `carregarUso`, `carregarPainelInicial`. Leituras de outra frente que ainda não existem viram `null`, nunca erro | ✅ |
+| `banco.test.ts` | 18 testes contra o Postgres embutido: migrations 020 e 021, catálogo, membros, proteção do último dev, trilha, registro de uso e ações contábeis | — |
+| `acesso.test.ts` | 5 testes do caminho sem banco: bootstrap e recusa 401/403 | — |
 | `testing/` | O executor PGlite dos testes desta pasta. Não é código de produção | — |
-| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40) | — |
+| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40, RA-41) | — |
 
 Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâmetro, como
 `src/server/db/estado.ts`: é o que deixa a suíte rodá-los contra o Postgres embutido.
@@ -69,3 +73,6 @@ Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâme
 | `src/server/relatorios/acesso.ts` | `autorizarRelatorioNoPainel` chama `carregarMembro`: as rotas de `/api/relatorios/*` respeitam os papéis |
 | `src/app/api/admin/conciliacao/` | Pede `resultados.ver` pelo `carregarMembro` |
 | `src/server/session.ts` | O e-mail da sessão — o mesmo cookie do app, sem segundo login |
+| `src/server/relatorios/dados.ts` | `dreCompleta`, `gerarRelatorio` e `ehNomeDeRelatorio` — lidos pelo Financeiro, nunca alterados |
+| `src/server/db/repositories/eventos-uso.ts`, `painel-leituras.ts` | O SQL do registro de uso e as leituras da trilha e do histórico da fila (frente A) |
+| `src/domain/kpis.ts`, `src/domain/admin/` | A regra pura que os carregadores alimentam |

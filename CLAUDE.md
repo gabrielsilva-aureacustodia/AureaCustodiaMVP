@@ -65,6 +65,17 @@ relatórios saem por `/relatorios` (só administradores) e por `/api/relatorios/
 contrato em `docs/API_RELATORIOS.md`, integração com Sheets/Excel em
 `docs/INTEGRACAO_GOOGLE_SHEETS.md`.
 
+**O painel administrativo vive em `/admin`** (route group `src/app/(admin)/`, frente C), com
+layout, provider e CSS próprios — não carrega o `AppState` do cliente — e a mesma sessão do app,
+sem segundo login. Quem pode o quê são papéis e permissões no banco (migration 020; catálogo em
+`src/domain/admin/permissoes.ts`, upsertado pelo código): o menu esconde, mas **a página e cada
+Server Action de `src/server/actions/admin/` conferem a permissão por conta própria**, e toda ação
+do painel grava `admin.<area>.<verbo>` em `audit_log`. Quem está em `AUREA_ADMIN_EMAILS` (ou, sem
+ela, nas contas do seed) e a tabela de membros não conhece entra como `dev` — nada tranca a equipe
+para fora (RA-40). `/relatorios` redireciona para a Central de Resultados
+(`/admin/resultados/*`), e as rotas `/api/relatorios/*` continuam no mesmo endereço. O mapa das
+rotas e permissões está em `src/app/(admin)/README.md`; o desenho, em `docs/PLANO_EXECUCAO_ADMIN.md`.
+
 **Persistência é plugável** (`src/server/store/`) e escolhida por variável de ambiente,
 nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*` ou
 `UPSTASH_REDIS_REST_*`) → memória. Só o Postgres resolve concorrência de verdade
