@@ -50,9 +50,12 @@ describe('planejarDiff — nada mudou', () => {
       buyOrders: [],
       trades: [],
       envios: [],
-      seq: { coin: 0, envio: 0 },
+      seq: { coin: 0, envio: 0, analise: 0, planoCustodia: 0 },
       deposits: [],
       analises: [],
+      saques: [],
+      faturasCustodia: [],
+      planosCustodia: [],
     }
     const seed = seedState()
     const ops = planejarDiff(vazio, seed)

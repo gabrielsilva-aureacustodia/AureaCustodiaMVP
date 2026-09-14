@@ -360,5 +360,88 @@ describe('conciliarPagamento', () => {
     const rec = await buscarRecebimentoPorPaymentId('pay-plano-1')
     expect(rec?.tipoOperacao).toBe('plano_custodia')
   })
+
+  it('despachante: assinatura_custodia atualiza plano.assinaturaId e avanca pagoAteCompetencia', async () => {
+    // Cria plano no estado
+    await mutateState((s) => {
+      s.planosCustodia = [
+        {
+          id: 'PLC-ASS-01',
+          userEmail: EMAIL,
+          protocoloEnvio: 'RO-ENV-ASS',
+          modalidade: 'mensal',
+          quantidadeContratada: 1,
+          moedaIds: ['RO-000001'],
+          valorPorMoedaCents: 200,
+          valorTotalCents: 200,
+          parcelasMax: 1,
+          inicioCompetencia: '2026-09',
+          pagoAteCompetencia: '2026-09',
+          status: 'vigente',
+          formaPagamento: 'cartao',
+          paymentIntentRef: null,
+          assinaturaId: null,
+          estornadoCents: 0,
+          criadoEm: Date.now(),
+          atualizadoEm: Date.now(),
+        },
+      ]
+      s.faturasCustodia = [
+        {
+          id: 'FAT-2026-10-ASS',
+          userEmail: EMAIL,
+          competencia: '2026-10',
+          quantidadeMoedas: 1,
+          moedaIds: ['RO-000001'],
+          valorCents: 200,
+          status: 'pendente',
+          dataEmissao: Date.now(),
+          dataVencimento: Date.now() + 10 * 86400000,
+          dataPagamento: null,
+          formaPagamento: null,
+          paymentIntentId: null,
+          planoId: 'PLC-ASS-01',
+          origem: 'ciclo_mensal',
+        },
+      ]
+    })
+
+    const ref = 'ASS-PLC-ASS-01'
+    const valor = 200
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'assinatura_custodia',
+      metadata: { planoId: 'PLC-ASS-01', assinaturaId: 'preapp-rec-999' },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-assinatura-1',
+      paymentMethodId: 'credit_card',
+      paymentTypeId: 'credit_card',
+    })
+
+    const res = await conciliarPagamento('pay-assinatura-1')
+    expect(res.creditado).toBe(true)
+    expect(res.motivo).toBe('assinatura_custodia_liquidada')
+
+    const st = await getState()
+    const plano = st.planosCustodia?.find((p) => p.id === 'PLC-ASS-01')
+    expect(plano?.assinaturaId).toBe('preapp-rec-999')
+    expect(plano?.pagoAteCompetencia).toBe('2026-10')
+
+    const fatura = st.faturasCustodia?.find((f) => f.id === 'FAT-2026-10-ASS')
+    expect(fatura?.status).toBe('paga')
+    expect(fatura?.formaPagamento).toBe('cartao')
+  })
 })
 

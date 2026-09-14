@@ -211,3 +211,73 @@ export async function consultarPagamentoMercadoPago(
     raw: data,
   }
 }
+
+export interface AtivarDebitoAutomaticoInput {
+  planoId: string
+  userEmail: string
+  valorCents: number
+  descricao?: string
+  backUrl?: string
+}
+
+export interface DebitoAutomaticoResult {
+  id: string
+  initPoint: string
+  status: string
+  simulado?: boolean
+}
+
+/**
+ * Ativa assinatura recorrente mensal via endpoint POST /preapproval do Mercado Pago (B2.8).
+ * Opera em modo simulado caso não haja token do gateway configurado.
+ */
+export async function ativarDebitoAutomatico(
+  input: AtivarDebitoAutomaticoInput,
+): Promise<DebitoAutomaticoResult> {
+  const token = getMercadoPagoAccessToken()
+  const externalReference = `ASS-${input.planoId}`
+
+  if (!token) {
+    return {
+      id: `preapp-mock-${input.planoId}`,
+      initPoint: `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=mock-${input.planoId}`,
+      status: 'pending',
+      simulado: true,
+    }
+  }
+
+  const payload = {
+    payer_email: input.userEmail,
+    back_url: input.backUrl || 'https://aureacustodia.com.br/conta/faturas',
+    reason: input.descricao || `Plano Mensal de Custódia — Áurea Custódia (${input.planoId})`,
+    external_reference: externalReference,
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: input.valorCents / 100,
+      currency_id: 'BRL',
+    },
+  }
+
+  const res = await fetch(`${MP_API_BASE}/preapproval`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`Erro ao ativar débito automático no Mercado Pago: ${res.status} ${errBody}`)
+  }
+
+  const data = (await res.json()) as { id: string; init_point: string; status: string }
+  return {
+    id: data.id,
+    initPoint: data.init_point,
+    status: data.status,
+  }
+}
+

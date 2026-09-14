@@ -8,11 +8,12 @@
 
 import 'server-only'
 
-import { competenciaAtual } from '@/domain/custody'
+import { competenciaAtual, isInadimplente } from '@/domain/custody'
 import { tradeFee } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
-import type { AppState } from '@/domain/types'
+import { calcularPagoAte, somarMeses } from '@/domain/plano-custodia'
+import type { AppState, FormaPagamentoFatura } from '@/domain/types'
 import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
 import { mutateState } from '@/server/state'
@@ -151,8 +152,10 @@ function liquidarCompraDireta(
 }
 
 /**
- * Liquidador de fatura de custódia (passo B2).
- * Como salvaguarda para tipos não finalizados, credita o valor ao saldo do cliente.
+ * Liquidador de fatura de custódia (passo B2.4).
+ * Marca a fatura como paga, ativa o plano correspondente (se origem 'contratacao')
+ * ou renova (se origem 'renovacao_anual'), registra a entrada externa em deposits
+ * e reavalia a inadimplência do usuário.
  */
 function liquidarFaturaCustodia(
   s: AppState,
@@ -161,18 +164,72 @@ function liquidarFaturaCustodia(
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
-  buyer.balance += reivindicada.valor
+  const faturaId = (reivindicada.metadata?.faturaId as string) || ''
+  s.faturasCustodia = s.faturasCustodia ?? []
+  const fatura = s.faturasCustodia.find((f) => f.id === faturaId)
+
+  if (!fatura) {
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: Date.now(),
+    })
+    return { sucesso: true, motivo: 'fatura_custodia_creditada_saldo' }
+  }
+
+  if (fatura.status === 'paga') {
+    return { sucesso: true, motivo: 'fatura_ja_paga' }
+  }
+
+  const agora = Date.now()
+  const metodoPagamento: FormaPagamentoFatura =
+    reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+
+  fatura.status = 'paga'
+  fatura.dataPagamento = agora
+  fatura.formaPagamento = metodoPagamento
+  fatura.paymentIntentId = reivindicada.externalReference
+
+  // Para a contabilidade: entrada externa que cobriu a fatura de custódia
   s.deposits.push({
     userEmail: reivindicada.userEmail,
-    valor: reivindicada.valor,
-    date: Date.now(),
+    valor: fatura.valorCents,
+    date: agora,
   })
-  return { sucesso: true, motivo: 'fatura_custodia_creditada_saldo' }
+
+  // Se a fatura é de contratação de plano, ativa o plano correspondente
+  if (fatura.origem === 'contratacao' && fatura.planoId) {
+    s.planosCustodia = s.planosCustodia ?? []
+    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+    if (plano) {
+      plano.status = 'vigente'
+      plano.pagoAteCompetencia = calcularPagoAte(plano.inicioCompetencia, plano.modalidade)
+      plano.formaPagamento = metodoPagamento
+      plano.paymentIntentRef = reivindicada.externalReference
+      plano.atualizadoEm = agora
+    }
+  } else if (fatura.origem === 'renovacao_anual' && fatura.planoId) {
+    s.planosCustodia = s.planosCustodia ?? []
+    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+    if (plano) {
+      plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+      plano.formaPagamento = metodoPagamento
+      plano.atualizadoEm = agora
+    }
+  }
+
+  // Reavalia status de inadimplência do usuário
+  const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === reivindicada.userEmail)
+  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
+
+  return { sucesso: true, motivo: 'fatura_custodia_liquidada' }
 }
 
 /**
  * Liquidador de assinatura de custódia (passo B2.8).
- * Como salvaguarda, credita o valor ao saldo do cliente.
+ * Atualiza o plano de custódia com a assinaturaId, avança competência paga
+ * e quita a fatura correspondente caso exista.
  */
 function liquidarAssinaturaCustodia(
   s: AppState,
@@ -181,13 +238,47 @@ function liquidarAssinaturaCustodia(
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
-  buyer.balance += reivindicada.valor
+  const agora = Date.now()
+  const planoId = (reivindicada.metadata?.planoId as string) || ''
+  s.planosCustodia = s.planosCustodia ?? []
+  const plano = s.planosCustodia.find((p) => p.id === planoId)
+
   s.deposits.push({
     userEmail: reivindicada.userEmail,
     valor: reivindicada.valor,
-    date: Date.now(),
+    date: agora,
   })
-  return { sucesso: true, motivo: 'assinatura_custodia_creditada_saldo' }
+
+  if (plano) {
+    if (reivindicada.metadata?.assinaturaId) {
+      plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
+    }
+    plano.status = 'vigente'
+    plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
+    plano.formaPagamento = 'cartao'
+    plano.atualizadoEm = agora
+
+    // Se houver fatura pendente para esta competência e este plano, marca como paga
+    s.faturasCustodia = s.faturasCustodia ?? []
+    const fatura = s.faturasCustodia.find(
+      (f) => f.planoId === plano.id && f.status !== 'paga' && f.status !== 'cancelada',
+    )
+    if (fatura) {
+      fatura.status = 'paga'
+      fatura.dataPagamento = agora
+      fatura.formaPagamento = 'cartao'
+      fatura.paymentIntentId = reivindicada.externalReference
+    }
+  } else {
+    // Failsafe: se plano não foi encontrado, credita no saldo
+    buyer.balance += reivindicada.valor
+  }
+
+  // Reavalia status de inadimplência
+  const faturasRestantes = (s.faturasCustodia || []).filter((f) => f.userEmail === reivindicada.userEmail)
+  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
+
+  return { sucesso: true, motivo: 'assinatura_custodia_liquidada' }
 }
 
 /**

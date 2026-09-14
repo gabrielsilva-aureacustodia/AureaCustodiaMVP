@@ -219,7 +219,7 @@ export function genHistoryTrades(emails: UserEmail[]): Trade[] {
  * de modo que os códigos criados em produção continuem da sequência do seed.
  */
 export function seedState(): AppState {
-  const seq: Seq = { coin: 0, envio: 0, analise: 0 }
+  const seq: Seq = { coin: 0, envio: 0, analise: 0, planoCustodia: 0 }
   const usersDef: readonly SeedUserDef[] = [
     ['rogeriopena@testeaurea.com.br', 'Rogério Pena', 6200000, 15, '18/06/2026'],
     ['gabrielsilva@testeaurea.com.br', 'Gabriel Silva', 5400000, 13, '20/06/2026'],
@@ -260,5 +260,6 @@ export function seedState(): AppState {
     analises: [],
     saques: [],
     faturasCustodia: [],
+    planosCustodia: [],
   }
 }

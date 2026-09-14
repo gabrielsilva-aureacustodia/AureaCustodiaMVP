@@ -33,6 +33,7 @@ import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
+import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -116,6 +117,7 @@ export async function createProtocol(
   tipoMoeda: string,
   ano: number,
   quantidade: number,
+  modalidadeEnvio?: 'PAC' | 'SEDEX',
 ): Promise<ActionResult<{ protocolo: string }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
@@ -146,6 +148,7 @@ export async function createProtocol(
         tipoMoeda,
         ano,
         quantidade,
+        modalidadeEnvio: modalidadeEnvio ?? 'SEDEX',
         codigoRastreio: null,
         dataPostagem: null,
         dataRecebimento: null,
@@ -295,6 +298,19 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
           u.coins.push(coin)
           envio.codigosAtivosGerados.push(coin.id)
         }
+
+        // B2.5: A emissão dos recibos alimenta o plano de custódia e faturas
+        const plano = (state.planosCustodia ?? []).find(
+          (p) => p.protocoloEnvio === envio.protocolo && p.status !== 'cancelado',
+        )
+        alimentarPlanoNaAnalise({
+          plano,
+          faturas: state.faturasCustodia ?? [],
+          user: u,
+          moedaIdsAprovadas: envio.codigosAtivosGerados,
+          quantidadeRecusadas: 0,
+          agora: Date.now(),
+        })
 
         // A custódia NÃO é cobrada aqui desde 11/09/2026. Quem cobra é o ciclo
         // mensal (`src/server/custodia/faturamento.ts`), que conta as moedas sob

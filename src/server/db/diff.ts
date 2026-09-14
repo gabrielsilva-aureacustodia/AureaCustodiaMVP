@@ -40,6 +40,7 @@ import type {
   Deposit,
   Envio,
   FaturaCustodia,
+  PlanoCustodia,
   Saque,
   SellOffer,
   Seq,
@@ -200,6 +201,7 @@ export function normalizarEnvio(e: Envio): Envio {
     etapaAtual: e.etapaAtual,
     createdAt: e.createdAt,
     codigosAtivosGerados: [...e.codigosAtivosGerados],
+    ...(e.modalidadeEnvio ? { modalidadeEnvio: e.modalidadeEnvio } : {}),
   }
 }
 
@@ -277,16 +279,44 @@ export function normalizarFatura(f: FaturaCustodia): FaturaCustodia {
     dataPagamento: f.dataPagamento ?? null,
     formaPagamento: f.formaPagamento ?? null,
     paymentIntentId: f.paymentIntentId ?? null,
+    planoId: f.planoId ?? null,
+    origem: f.origem ?? 'ciclo_mensal',
+  }
+}
+
+export function normalizarPlano(p: PlanoCustodia): PlanoCustodia {
+  return {
+    id: p.id,
+    userEmail: p.userEmail,
+    protocoloEnvio: p.protocoloEnvio,
+    modalidade: p.modalidade,
+    quantidadeContratada: p.quantidadeContratada,
+    moedaIds: [...p.moedaIds],
+    valorPorMoedaCents: p.valorPorMoedaCents,
+    valorTotalCents: p.valorTotalCents,
+    parcelasMax: p.parcelasMax || 1,
+    inicioCompetencia: p.inicioCompetencia,
+    pagoAteCompetencia: p.pagoAteCompetencia ?? null,
+    status: p.status,
+    formaPagamento: p.formaPagamento ?? null,
+    paymentIntentRef: p.paymentIntentRef ?? null,
+    assinaturaId: p.assinaturaId ?? null,
+    estornadoCents: p.estornadoCents || 0,
+    criadoEm: p.criadoEm,
+    atualizadoEm: p.atualizadoEm,
   }
 }
 
 /**
- * `analise` só entra quando existe. Estado gravado antes da frente E não tem o
- * contador, e materializá-lo como `0` faria o diff enxergar mudança em toda
- * leitura de um banco antigo — um UPDATE por requisição, sem nada ter mudado.
+ * `analise` e `planoCustodia` só entram quando existem.
  */
 export function normalizarSeq(s: Seq): Seq {
-  return { coin: s.coin, envio: s.envio, ...(s.analise === undefined ? {} : { analise: s.analise }) }
+  return {
+    coin: s.coin,
+    envio: s.envio,
+    ...(s.analise === undefined ? {} : { analise: s.analise }),
+    ...(s.planoCustodia === undefined ? {} : { planoCustodia: s.planoCustodia }),
+  }
 }
 
 /** Achata os inventários: uma entrada por moeda, com dono e posição. */
@@ -321,6 +351,8 @@ export type Operacao =
   | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
   | { tipo: 'saque.inserir'; saque: Saque }
   | { tipo: 'saque.atualizar'; saque: Saque }
+  | { tipo: 'plano.inserir'; plano: PlanoCustodia }
+  | { tipo: 'plano.atualizar'; plano: PlanoCustodia }
   | { tipo: 'fatura.inserir'; fatura: FaturaCustodia }
   | { tipo: 'fatura.atualizar'; fatura: FaturaCustodia }
   | { tipo: 'seq.atualizar'; seq: Seq }
@@ -433,6 +465,11 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
     }
   }
 
+  const planos = diffPorChave(
+    indexar((antes.planosCustodia ?? []).map(normalizarPlano), (p) => p.id),
+    indexar((depois.planosCustodia ?? []).map(normalizarPlano), (p) => p.id),
+  )
+
   const faturas = diffPorChave(
     indexar((antes.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
     indexar((depois.faturasCustodia ?? []).map(normalizarFatura), (f) => f.id),
@@ -467,6 +504,8 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   }
   for (const saque of saquesNovos) ops.push({ tipo: 'saque.inserir', saque })
   for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
+  for (const plano of planos.inseridos) ops.push({ tipo: 'plano.inserir', plano })
+  for (const plano of planos.atualizados) ops.push({ tipo: 'plano.atualizar', plano })
   for (const fatura of faturas.inseridos) ops.push({ tipo: 'fatura.inserir', fatura })
   for (const fatura of faturas.atualizados) ops.push({ tipo: 'fatura.atualizar', fatura })
 
@@ -475,7 +514,8 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   if (
     seqAntes.coin !== seqDepois.coin ||
     seqAntes.envio !== seqDepois.envio ||
-    seqAntes.analise !== seqDepois.analise
+    seqAntes.analise !== seqDepois.analise ||
+    seqAntes.planoCustodia !== seqDepois.planoCustodia
   ) {
     ops.push({ tipo: 'seq.atualizar', seq: seqDepois })
   }

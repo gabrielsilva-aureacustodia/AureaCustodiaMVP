@@ -8,7 +8,7 @@
  */
 
 import { custodiaMensalPorMoeda } from '@/domain/fees'
-import type { FaturaCustodia, StatusFatura, Timestamp, User, UserEmail } from '@/domain/types'
+import type { Coin, FaturaCustodia, StatusFatura, Timestamp, User, UserEmail } from '@/domain/types'
 
 /** Dias padrão de tolerância para vencimento da fatura mensal. */
 export const DIAS_TOLERANCIA_FATURA = 10
@@ -34,6 +34,15 @@ export function calcularVencimentoFatura(
 }
 
 /**
+ * Moedas que pagam custódia: todas sob guarda com recibo que não foi extinto.
+ * (Passo B2.1 — moedas adquiridas no marketplace continuam sob guarda e são faturadas;
+ * moedas retiradas fisicamente com recibo Extinto deixam de ser faturadas).
+ */
+export function moedasFaturaveis(user: User): Coin[] {
+  return (user.coins || []).filter((c) => c.recibo?.status !== 'Extinto')
+}
+
+/**
  * Gera uma fatura mensal de custódia para um usuário com base no seu acervo de moedas.
  * Retorna null caso o usuário não possua moedas ativas sob guarda.
  */
@@ -43,7 +52,7 @@ export function gerarFaturaParaUsuario(
   competencia: string,
   agora: Timestamp = Date.now()
 ): FaturaCustodia | null {
-  const moedasAtivas = (user.coins || []).filter((c) => !c.transferido)
+  const moedasAtivas = moedasFaturaveis(user)
   const quantidade = moedasAtivas.length
 
   if (quantidade <= 0) {
