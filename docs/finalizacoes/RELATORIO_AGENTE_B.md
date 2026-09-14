@@ -92,4 +92,4 @@ Data:           14/09/2026
 
 ---
 
-B1 pronta para main
+B1 pronta para main — merge f3444e6
