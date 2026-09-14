@@ -5,11 +5,80 @@ import {
   DIAS_TOLERANCIA_FATURA,
   gerarFaturaParaUsuario,
   isInadimplente,
+  moedasFaturaveis,
   verificarStatusFatura,
 } from './custody'
 import type { FaturaCustodia, User } from './types'
 
 describe('domain/custody', () => {
+  describe('moedasFaturaveis (Passo B2.1)', () => {
+    it('moeda comprada no marketplace (transferido: true) continua sob guarda e é faturável', () => {
+      const user: User = {
+        name: 'Comprador',
+        balance: 1000,
+        coins: [
+          {
+            id: 'RO-000001',
+            tipoMoeda: 'Entrega da Bandeira Olímpica',
+            ano: 2024,
+            entrada: '10/01/2026',
+            statusFisico: 'Armazenado',
+            statusDigital: 'Validado',
+            valorEstimado: 250000,
+            protocolo: 'RO-ENV-0001',
+            transferido: true,
+            recibo: { codigo: 'REC-000001', hash: 'h1', dataEmissao: '10/01/2026', status: 'Ativo' },
+          },
+        ],
+      }
+      const faturaveis = moedasFaturaveis(user)
+      expect(faturaveis).toHaveLength(1)
+      expect(faturaveis[0].id).toBe('RO-000001')
+    })
+
+    it('moeda com recibo Bloqueado continua pagando custódia', () => {
+      const user: User = {
+        name: 'Cliente',
+        balance: 1000,
+        coins: [
+          {
+            id: 'RO-000002',
+            tipoMoeda: 'Entrega da Bandeira Olímpica',
+            ano: 2024,
+            entrada: '10/01/2026',
+            statusFisico: 'Armazenado',
+            statusDigital: 'Validado',
+            valorEstimado: 250000,
+            protocolo: 'RO-ENV-0001',
+            recibo: { codigo: 'REC-000002', hash: 'h2', dataEmissao: '10/01/2026', status: 'Bloqueado' },
+          },
+        ],
+      }
+      expect(moedasFaturaveis(user)).toHaveLength(1)
+    })
+
+    it('moeda com recibo Extinto (retirada física) não é faturável', () => {
+      const user: User = {
+        name: 'Cliente',
+        balance: 1000,
+        coins: [
+          {
+            id: 'RO-000003',
+            tipoMoeda: 'Entrega da Bandeira Olímpica',
+            ano: 2024,
+            entrada: '10/01/2026',
+            statusFisico: 'Armazenado',
+            statusDigital: 'Validado',
+            valorEstimado: 250000,
+            protocolo: 'RO-ENV-0001',
+            recibo: { codigo: 'REC-000003', hash: 'h3', dataEmissao: '10/01/2026', status: 'Extinto' },
+          },
+        ],
+      }
+      expect(moedasFaturaveis(user)).toHaveLength(0)
+    })
+  })
+
   describe('competenciaAtual', () => {
     it('formata ano e mês corretamente', () => {
       const data = new Date(Date.UTC(2026, 8, 11)) // 2026-09-11
@@ -35,7 +104,7 @@ describe('domain/custody', () => {
       expect(fatura).toBeNull()
     })
 
-    it('ignora moedas transferidas/alienadas no cálculo', () => {
+    it('fatura moeda comprada no marketplace e ignora moeda com recibo extinto', () => {
       const user: User = {
         name: 'Cliente',
         balance: 1000,
@@ -61,15 +130,15 @@ describe('domain/custody', () => {
             statusDigital: 'Validado',
             valorEstimado: 250000,
             protocolo: 'RO-ENV-0001',
-            recibo: { codigo: 'REC-000002', hash: 'h2', dataEmissao: '10/01/2026', status: 'Ativo' },
+            recibo: { codigo: 'REC-000002', hash: 'h2', dataEmissao: '10/01/2026', status: 'Extinto' },
           },
         ],
       }
       const fatura = gerarFaturaParaUsuario(user, 'cli@teste.com', '2026-09', 1000)
       expect(fatura).not.toBeNull()
       expect(fatura?.quantidadeMoedas).toBe(1)
-      expect(fatura?.valorCents).toBe(200) // R$ 2,00 para 1 moeda
-      expect(fatura?.moedaIds).toEqual(['RO-000002'])
+      expect(fatura?.valorCents).toBe(200) // R$ 2,00 para a moeda ativa
+      expect(fatura?.moedaIds).toEqual(['RO-000001'])
       expect(fatura?.status).toBe('pendente')
       expect(fatura?.dataVencimento).toBe(1000 + DIAS_TOLERANCIA_FATURA * 86400000)
     })
