@@ -126,7 +126,7 @@ export function moedasCobertas(
 ): Set<string> {
   const cobertas = new Set<string>()
   for (const plano of planos) {
-    if (competenciaCoberta(plano, competencia)) {
+    if (competenciaCoberta(plano, competencia) || renovacaoAnualDevida(plano, competencia)) {
       for (const id of plano.moedaIds) {
         cobertas.add(id)
       }

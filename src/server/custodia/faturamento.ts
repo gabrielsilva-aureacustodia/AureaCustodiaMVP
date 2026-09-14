@@ -12,7 +12,20 @@ import 'server-only'
  *   o que bloqueia retiradas físicas e transferências.
  */
 
-import { competenciaAtual, gerarFaturaParaUsuario, isInadimplente, verificarStatusFatura } from '@/domain/custody'
+import {
+  calcularVencimentoFatura,
+  competenciaAtual,
+  DIAS_TOLERANCIA_FATURA,
+  isInadimplente,
+  verificarStatusFatura,
+} from '@/domain/custody'
+import {
+  calcularPagoAte,
+  gerarFaturaDoCiclo,
+  renovacaoAnualDevida,
+  somarMeses,
+  valorDoPlano,
+} from '@/domain/plano-custodia'
 import type { ActionResult, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 import { mutateState } from '@/server/state'
 
@@ -38,9 +51,10 @@ export async function processarCicloFaturamento(
 
   const { result } = await mutateState<RelatorioCicloFaturamento>((s) => {
     s.faturasCustodia = s.faturasCustodia ?? []
+    s.planosCustodia = s.planosCustodia ?? []
     const faturasExistentes = new Map<string, FaturaCustodia>()
     for (const f of s.faturasCustodia) {
-      faturasExistentes.set(`${f.userEmail}#${f.competencia}`, f)
+      faturasExistentes.set(`${f.userEmail}#${f.competencia}#${f.origem || 'ciclo_mensal'}`, f)
     }
 
     let faturasGeradas = 0
@@ -52,11 +66,72 @@ export async function processarCicloFaturamento(
     // 1. Geração de faturas e tentativa de débito automático em saldo
     for (const [email, user] of Object.entries(s.users)) {
       totalProcessados++
-      const chave = `${email}#${competencia}`
-      const fatura = faturasExistentes.get(chave)
+      const planosDoUsuario = s.planosCustodia.filter((p) => p.userEmail === email)
 
-      if (!fatura) {
-        const novaFatura = gerarFaturaParaUsuario(user, email, competencia, agora)
+      // A) Renovação anual para planos anuais que atingiram o 13º mês
+      for (const plano of planosDoUsuario) {
+        if (plano.modalidade === 'anual' && renovacaoAnualDevida(plano, competencia)) {
+          const chaveRenovacao = `${email}#${competencia}#renovacao_anual#${plano.id}`
+          const jaTemRenovacao = s.faturasCustodia.some(
+            (f) => f.planoId === plano.id && f.competencia === competencia && f.origem === 'renovacao_anual',
+          )
+
+          if (!jaTemRenovacao) {
+            const moedasAtivasDoPlano = user.coins.filter(
+              (c) => plano.moedaIds.includes(c.id) && c.recibo?.status !== 'Extinto',
+            )
+            const qtdRenovacao =
+              moedasAtivasDoPlano.length > 0
+                ? moedasAtivasDoPlano.length
+                : (plano.moedaIds.length > 0 ? plano.moedaIds.length : plano.quantidadeContratada)
+
+            const { total } = valorDoPlano('anual', qtdRenovacao)
+            const sanitizeEmail = email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
+            const idRenovacao = `FAT-${competencia}-${sanitizeEmail}-REN-${agora}`
+
+            const faturaRenovacao: FaturaCustodia = {
+              id: idRenovacao,
+              userEmail: email,
+              competencia,
+              quantidadeMoedas: qtdRenovacao,
+              moedaIds: moedasAtivasDoPlano.map((c) => c.id),
+              valorCents: total,
+              status: 'pendente',
+              dataEmissao: agora,
+              dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
+              dataPagamento: null,
+              formaPagamento: null,
+              paymentIntentId: null,
+              planoId: plano.id,
+              origem: 'renovacao_anual',
+            }
+
+            faturasGeradas++
+            if (user.balance >= faturaRenovacao.valorCents) {
+              user.balance -= faturaRenovacao.valorCents
+              faturaRenovacao.status = 'paga'
+              faturaRenovacao.dataPagamento = agora
+              faturaRenovacao.formaPagamento = 'saldo'
+              faturasLiquidadasComSaldo++
+              plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+              plano.atualizadoEm = agora
+            } else {
+              faturaRenovacao.status = 'pendente'
+              faturasPendentes++
+            }
+
+            s.faturasCustodia.push(faturaRenovacao)
+            faturasExistentes.set(chaveRenovacao, faturaRenovacao)
+          }
+        }
+      }
+
+      // B) Ciclo mensal para moedas não cobertas
+      const chaveCiclo = `${email}#${competencia}#ciclo_mensal`
+      const faturaCicloExistente = faturasExistentes.get(chaveCiclo)
+
+      if (!faturaCicloExistente) {
+        const novaFatura = gerarFaturaDoCiclo(user, email, competencia, planosDoUsuario, undefined, agora)
         if (novaFatura) {
           faturasGeradas++
           // Débito automático se houver saldo suficiente
@@ -71,7 +146,7 @@ export async function processarCicloFaturamento(
             faturasPendentes++
           }
           s.faturasCustodia.push(novaFatura)
-          faturasExistentes.set(chave, novaFatura)
+          faturasExistentes.set(chaveCiclo, novaFatura)
         }
       }
 
@@ -145,6 +220,25 @@ export async function pagarFaturaCustodiaComSaldo(
       fatura.status = 'paga'
       fatura.dataPagamento = agora
       fatura.formaPagamento = 'saldo'
+
+      if (fatura.origem === 'contratacao' && fatura.planoId) {
+        s.planosCustodia = s.planosCustodia ?? []
+        const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+        if (plano) {
+          plano.status = 'vigente'
+          plano.pagoAteCompetencia = calcularPagoAte(plano.inicioCompetencia, plano.modalidade)
+          plano.formaPagamento = 'saldo'
+          plano.atualizadoEm = agora
+        }
+      } else if (fatura.origem === 'renovacao_anual' && fatura.planoId) {
+        s.planosCustodia = s.planosCustodia ?? []
+        const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+        if (plano) {
+          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+          plano.formaPagamento = 'saldo'
+          plano.atualizadoEm = agora
+        }
+      }
 
       // Reavalia status de inadimplência do usuário
       const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === userEmail)

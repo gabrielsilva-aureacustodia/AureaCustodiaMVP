@@ -80,6 +80,7 @@ describe('server/custodia/faturamento', () => {
       analises: [],
       saques: [],
       faturasCustodia: [],
+      planosCustodia: [],
     }
   })
 
@@ -196,5 +197,142 @@ describe('server/custodia/faturamento', () => {
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/Saldo insuficiente/)
     expect(faturaPendente.status).toBe('pendente')
+  })
+
+  it('coexiste fatura de contratacao e ciclo_mensal na mesma competencia deduzindo moedas cobertas', async () => {
+    // com_saldo@teste.com tem 2 moedas: RO-000001 e RO-000002.
+    // Simula um plano cobrindo RO-000001 com fatura de contratacao paga na mesma competencia
+    estadoSimulado.planosCustodia = [
+      {
+        id: 'PLC-000001',
+        userEmail: 'com_saldo@teste.com',
+        protocoloEnvio: 'RO-ENV-0001',
+        modalidade: 'mensal',
+        quantidadeContratada: 1,
+        moedaIds: ['RO-000001'],
+        valorPorMoedaCents: 200,
+        valorTotalCents: 200,
+        parcelasMax: 1,
+        inicioCompetencia: '2026-09',
+        pagoAteCompetencia: '2026-09',
+        status: 'vigente',
+        formaPagamento: 'saldo',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: 1726000000000,
+        atualizadoEm: 1726000000000,
+      },
+    ]
+    estadoSimulado.faturasCustodia = [
+      {
+        id: 'FAT-2026-09-com_saldo-CONTRATACAO',
+        userEmail: 'com_saldo@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 1,
+        moedaIds: ['RO-000001'],
+        valorCents: 200,
+        status: 'paga',
+        dataEmissao: 1726000000000,
+        dataVencimento: 1726000000000 + 10 * 86400000,
+        dataPagamento: 1726000000000,
+        formaPagamento: 'saldo',
+        paymentIntentId: null,
+        planoId: 'PLC-000001',
+        origem: 'contratacao',
+      },
+    ]
+
+    // Roda o faturamento do ciclo para 2026-09
+    await processarCicloFaturamento('2026-09', 1726000000000)
+
+    // Deve ter a fatura de contratacao (200) E uma nova fatura de ciclo_mensal cobrindo apenas RO-000002 (200 cents)
+    const faturasComSaldo = estadoSimulado.faturasCustodia.filter((f) => f.userEmail === 'com_saldo@teste.com')
+    expect(faturasComSaldo).toHaveLength(2)
+
+    const faturaCiclo = faturasComSaldo.find((f) => f.origem === 'ciclo_mensal')
+    expect(faturaCiclo).toBeDefined()
+    expect(faturaCiclo?.quantidadeMoedas).toBe(1)
+    expect(faturaCiclo?.moedaIds).toEqual(['RO-000002'])
+    expect(faturaCiclo?.valorCents).toBe(200)
+    expect(faturaCiclo?.status).toBe('paga') // debitada com saldo
+  })
+
+  it('plano anual pago nao gera fatura de ciclo_mensal durante os 12 meses', async () => {
+    // Usuário tem 2 moedas, ambas cobertas por plano anual até 2027-08
+    estadoSimulado.planosCustodia = [
+      {
+        id: 'PLC-000002',
+        userEmail: 'com_saldo@teste.com',
+        protocoloEnvio: 'RO-ENV-0001',
+        modalidade: 'anual',
+        quantidadeContratada: 2,
+        moedaIds: ['RO-000001', 'RO-000002'],
+        valorPorMoedaCents: 2400,
+        valorTotalCents: 4800,
+        parcelasMax: 12,
+        inicioCompetencia: '2026-09',
+        pagoAteCompetencia: '2027-08',
+        status: 'vigente',
+        formaPagamento: 'cartao',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: 1726000000000,
+        atualizadoEm: 1726000000000,
+      },
+    ]
+
+    await processarCicloFaturamento('2026-10', 1726000000000)
+
+    const faturaComSaldo = estadoSimulado.faturasCustodia?.find(
+      (f) => f.userEmail === 'com_saldo@teste.com' && f.competencia === '2026-10',
+    )
+    expect(faturaComSaldo).toBeUndefined()
+  })
+
+  it('gera renovacao anual no 13º mes e liquida com saldo caso disponivel', async () => {
+    // Plano anual cobriu de 2025-09 até 2026-08 (12 meses).
+    // Na competência 2026-09 (13º mês), renovação anual é devida.
+    estadoSimulado.planosCustodia = [
+      {
+        id: 'PLC-000003',
+        userEmail: 'com_saldo@teste.com',
+        protocoloEnvio: 'RO-ENV-0001',
+        modalidade: 'anual',
+        quantidadeContratada: 2,
+        moedaIds: ['RO-000001', 'RO-000002'],
+        valorPorMoedaCents: 2400,
+        valorTotalCents: 4800,
+        parcelasMax: 12,
+        inicioCompetencia: '2025-09',
+        pagoAteCompetencia: '2026-08',
+        status: 'vigente',
+        formaPagamento: 'saldo',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: 1725000000000,
+        atualizadoEm: 1725000000000,
+      },
+    ]
+
+    const saldoInicial = estadoSimulado.users['com_saldo@teste.com'].balance // 10000 (R$ 100,00)
+
+    const rel = await processarCicloFaturamento('2026-09', 1726000000000)
+
+    const faturaRenovacao = estadoSimulado.faturasCustodia?.find(
+      (f) => f.userEmail === 'com_saldo@teste.com' && f.origem === 'renovacao_anual',
+    )
+    expect(faturaRenovacao).toBeDefined()
+    expect(faturaRenovacao?.valorCents).toBe(4800) // 2 moedas * 2400
+    expect(faturaRenovacao?.status).toBe('paga')
+
+    // Saldo debitado
+    expect(estadoSimulado.users['com_saldo@teste.com'].balance).toBe(saldoInicial - 4800)
+
+    // Plano atualizado para mais 12 meses: de 2026-08 para 2027-08
+    const plano = estadoSimulado.planosCustodia[0]
+    expect(plano.pagoAteCompetencia).toBe('2027-08')
   })
 })
