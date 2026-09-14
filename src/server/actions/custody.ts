@@ -117,6 +117,7 @@ export async function createProtocol(
   tipoMoeda: string,
   ano: number,
   quantidade: number,
+  modalidadeEnvio?: 'PAC' | 'SEDEX',
 ): Promise<ActionResult<{ protocolo: string }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
@@ -147,6 +148,7 @@ export async function createProtocol(
         tipoMoeda,
         ano,
         quantidade,
+        modalidadeEnvio: modalidadeEnvio ?? 'SEDEX',
         codigoRastreio: null,
         dataPostagem: null,
         dataRecebimento: null,

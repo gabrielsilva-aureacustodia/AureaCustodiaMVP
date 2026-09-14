@@ -51,11 +51,14 @@ import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import type { Fotos, FotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
+import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { advanceAnalysis, consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '@/server/actions/custody'
+import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
+import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
 
-/** Os quatro passos da tela. */
-type Passo = 1 | 2 | 3 | 4
+/** Os cinco passos da tela. */
+type Passo = 1 | 2 | 3 | 4 | 5
 
 /** O que `/api/rastreios` devolve por protocolo. */
 interface RastreioNaTela {
@@ -138,12 +141,12 @@ const ANOS: number[] = (() => {
 const FOTOS_VAZIAS: Fotos = { frente: null, verso: null }
 
 /**
- * A retomada do `go('send')` original (linhas 1113-1117).
- *
- * Pendente = envio do usuário que ainda não chegou em 'Recibo emitido'. Havendo
- * mais de um, vale o mais recente (createdAt decrescente). 'Protocolo gerado'
- * ainda espera a postagem, então abre no passo 3; qualquer etapa posterior já é
- * acompanhamento, passo 4.
+ * A retomada do wizard de envio com 5 passos:
+ * - Se não há envio pendente -> Passo 1 (Dados do envio).
+ * - Se 'Protocolo gerado':
+ *   - Se ainda não tem plano de custódia contratado -> Passo 3 (Plano de custódia).
+ *   - Se já tem plano contratado (pago ou pagar depois) -> Passo 4 (Postagem Correios).
+ * - Qualquer etapa posterior ('Objeto postado' etc.) -> Passo 5 (Acompanhamento / Análise).
  */
 function retomada(state: AppState, session: UserEmail): EstadoWizard {
   const pendente = state.envios
@@ -151,8 +154,17 @@ function retomada(state: AppState, session: UserEmail): EstadoWizard {
     .sort((a, b) => b.createdAt - a.createdAt)[0]
 
   if (!pendente) return { passo: 1, protocolo: null }
+
+  if (pendente.etapaAtual === 'Protocolo gerado') {
+    const temPlano = (state.planosCustodia || []).some((p) => p.protocoloEnvio === pendente.protocolo)
+    return {
+      passo: temPlano ? 4 : 3,
+      protocolo: pendente.protocolo,
+    }
+  }
+
   return {
-    passo: pendente.etapaAtual === 'Protocolo gerado' ? 3 : 4,
+    passo: 5,
     protocolo: pendente.protocolo,
   }
 }
@@ -213,6 +225,26 @@ export default function EnviosPage(): ReactNode {
     }
   }, [cepOrigem, modalidade, quantidade])
 
+  /* ---------- plano de custódia (passo 3) ---------- */
+  const [modalidadePlano, setModalidadePlano] = useState<ModalidadePlanoCustodia>('anual')
+  const [faturaId, setFaturaId] = useState<string | null>(null)
+
+  // Quando o usuário entra no passo 3 ou troca a modalidade, garante que o plano/fatura está inicializado
+  useEffect(() => {
+    if (wizard.passo === 3 && wizard.protocolo) {
+      let ativo = true
+      void (async () => {
+        const res = await contratarPlanoCustodia(wizard.protocolo!, modalidadePlano)
+        if (ativo && res.ok && res.data) {
+          setFaturaId(res.data.faturaId)
+        }
+      })()
+      return () => {
+        ativo = false
+      }
+    }
+  }, [wizard.passo, wizard.protocolo, modalidadePlano])
+
   /* ---------- ações ---------- */
 
   const escolherFoto = useCallback((slot: FotoSlot, dataUrl: string) => {
@@ -223,13 +255,22 @@ export default function EnviosPage(): ReactNode {
     setFotos((f) => ({ ...f, [slot]: null }))
   }, [])
 
-  /** `generateProtocol` (2114-2127): gera, guarda o protocolo e vai ao passo 3. */
+  /** `generateProtocol` (2114-2127): gera, guarda o protocolo e vai ao passo 3 (escolha de plano). */
   const gerarProtocolo = useCallback(async () => {
-    const res = await run(() => createProtocol(tipoMoeda, ano, quantidade))
+    const res = await run(() => createProtocol(tipoMoeda, ano, quantidade, modalidade))
     // Só avança se o servidor confirmou. Recusa (dados inválidos, sessão caída)
     // mantém o usuário no passo 2 com o toast explicando.
     if (res.ok && res.data) setWizard({ passo: 3, protocolo: res.data.protocolo })
-  }, [run, tipoMoeda, ano, quantidade])
+  }, [run, tipoMoeda, ano, quantidade, modalidade])
+
+  /** Avança para o passo 4 sem pagar agora (deixa fatura pendente). */
+  const handlePagarDepois = useCallback(async () => {
+    if (!wizard.protocolo) return
+    const res = await run(() => contratarPlanoCustodia(wizard.protocolo!, modalidadePlano))
+    if (res.ok) {
+      setWizard({ passo: 4, protocolo: wizard.protocolo })
+    }
+  }, [wizard.protocolo, modalidadePlano, run])
 
   /**
    * `markPostado` (2153-2163). Note que NÃO troca de passo: o usuário fica no 3
@@ -571,6 +612,227 @@ export default function EnviosPage(): ReactNode {
         (!envio ? (
           <div className="empty">Protocolo não encontrado.</div>
         ) : (
+          <div className="panel" style={{ maxWidth: 680, margin: '0 auto' }}>
+            <h3>
+              <svg viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              Escolha seu plano de custódia
+            </h3>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
+              Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
+              Selecione como prefere pagar a custódia das suas moedas.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 20 }}>
+              {/* Opção Mensal */}
+              <div
+                role="button"
+                tabIndex={0}
+                className="plan-card"
+                onClick={() => setModalidadePlano('mensal')}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault()
+                    setModalidadePlano('mensal')
+                  }
+                }}
+                style={{
+                  padding: 16,
+                  borderRadius: 8,
+                  border: modalidadePlano === 'mensal' ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
+                  background: modalidadePlano === 'mensal' ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  minHeight: 180,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 700, fontSize: '15px' }}>Plano Mensal</span>
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        border: '2px solid var(--gold)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        color: 'var(--gold)',
+                      }}
+                    >
+                      {modalidadePlano === 'mensal' ? '●' : ''}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
+                    {brl(envio.quantidade * 200)}
+                    <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / mês</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
+                    R$ 2,00 por moeda / mês
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
+                  ✓ Cobrança mensal no dia 1º<br />
+                  ✓ Sem fidelidade nem carência<br />
+                  ✓ Débito automático em saldo ou Pix
+                </div>
+              </div>
+
+              {/* Opção Anual */}
+              <div
+                role="button"
+                tabIndex={0}
+                className="plan-card"
+                onClick={() => setModalidadePlano('anual')}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault()
+                    setModalidadePlano('anual')
+                  }
+                }}
+                style={{
+                  padding: 16,
+                  borderRadius: 8,
+                  border: modalidadePlano === 'anual' ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
+                  background: modalidadePlano === 'anual' ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  minHeight: 180,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ position: 'absolute', top: -10, right: 12, display: 'flex', gap: 6 }}>
+                    <span
+                      style={{
+                        background: 'var(--gold)',
+                        color: '#000',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Mais escolhido
+                    </span>
+                    <span
+                      style={{
+                        background: '#1a7f37',
+                        color: '#fff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                      }}
+                    >
+                      12x sem juros
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
+                    <span style={{ fontWeight: 700, fontSize: '15px' }}>Plano Anual</span>
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        border: '2px solid var(--gold)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        color: 'var(--gold)',
+                      }}
+                    >
+                      {modalidadePlano === 'anual' ? '●' : ''}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
+                    {brl(envio.quantidade * 2400)}
+                    <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / ano</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
+                    ou 12x de {brl(Math.round((envio.quantidade * 2400) / 12))} no cartão
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
+                  ✓ 12 meses de guarda garantida<br />
+                  ✓ Parcelamento em até 12x no cartão<br />
+                  ✓ Proteção contra reajustes no período
+                </div>
+              </div>
+            </div>
+
+            <div className="note" style={{ marginBottom: 16 }}>
+              🛡️ <b>Garantia Áurea:</b> Caso alguma moeda seja recusada na análise física, o valor da custódia pago correspondente é <b>estornado integralmente</b> para o seu saldo.
+            </div>
+
+            {/* Painel de Pagamento Inline */}
+            <div style={{ marginTop: 20, marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: 10 }}>
+                Pagar custódia agora
+              </div>
+              {faturaId ? (
+                <PainelPagamento
+                  valorCents={modalidadePlano === 'anual' ? envio.quantidade * 2400 : envio.quantidade * 200}
+                  parcelasMax={modalidadePlano === 'anual' ? 12 : 1}
+                  saldoDisponivel={me?.balance ?? 0}
+                  pagarComSaldo={async () => {
+                    const res = await pagarFaturaComSaldo(faturaId)
+                    if (!res.ok) throw new Error(res.error)
+                  }}
+                  iniciarPix={async () => {
+                    const res = await iniciarPixFatura(faturaId)
+                    return res.ok && res.data ? res.data : null
+                  }}
+                  iniciarCartao={async () => {
+                    const res = await iniciarCartaoFatura(faturaId)
+                    return res.ok && res.data ? res.data : null
+                  }}
+                  aoConcluir={() => {
+                    setWizard({ passo: 4, protocolo: envio.protocolo })
+                  }}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                  Carregando opções de pagamento...
+                </div>
+              )}
+            </div>
+
+            {/* Ação secundária: Pagar depois */}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--line-soft)', textAlign: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ width: '100%', minHeight: 44 }}
+                onClick={() => void handlePagarDepois()}
+              >
+                Pagar depois (avançar para postagem nos Correios) →
+              </button>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 8 }}>
+                Você pode enviar a moeda agora e quitar a fatura a qualquer momento em <b>Minha conta › Faturas</b>.
+              </div>
+            </div>
+          </div>
+        ))}
+
+      {/* ============================ PASSO 4 ============================ */}
+      {wizard.passo === 4 &&
+        (!envio ? (
+          <div className="empty">Protocolo não encontrado.</div>
+        ) : (
           <div className="panel" style={{ maxWidth: 640, margin: '0 auto' }}>
             <h3>
               <svg viewBox="0 0 24 24">
@@ -654,7 +916,7 @@ export default function EnviosPage(): ReactNode {
                   type="button"
                   className="btn btn-gold"
                   style={{ width: '100%', marginTop: 10 }}
-                  onClick={() => setWizard((w) => ({ ...w, passo: 4 }))}
+                  onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}
                 >
                   Continuar para acompanhamento
                 </button>
@@ -672,8 +934,8 @@ export default function EnviosPage(): ReactNode {
           </div>
         ))}
 
-      {/* ============================ PASSO 4 ============================ */}
-      {wizard.passo === 4 &&
+      {/* ============================ PASSO 5 ============================ */}
+      {wizard.passo === 5 &&
         (!envio ? (
           <div className="empty">Protocolo não encontrado.</div>
         ) : (

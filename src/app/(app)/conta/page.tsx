@@ -356,6 +356,19 @@ export default function ContaPage(): ReactNode {
               <span className="arr">›</span>
             </div>
 
+            {/* Faturas de custódia e planos de assinatura */}
+            <div className="qk-row" onClick={() => router.push('/conta/faturas')}>
+              <svg viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Faturas e planos</div>
+                <div className="qk-sub">Planos de custódia, faturas e pagamentos</div>
+              </div>
+              <span className="arr">›</span>
+            </div>
+
             <div className="qk-row" onClick={() => open(<ModalNotificacoes />)}>
               <svg viewBox="0 0 24 24">
                 <path d="M6 9a6 6 0 0112 0v5l2 3H4l2-3z" />

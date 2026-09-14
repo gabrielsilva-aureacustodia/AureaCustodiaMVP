@@ -18,11 +18,11 @@
 import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 
-/** Os quatro rótulos do `stepsDef` original (linha 2032), na ordem. */
-const PASSOS: readonly string[] = ['Moeda', 'Protocolo', 'Correios', 'Análise']
+/** Os cinco rótulos da trilha de envio, na ordem. */
+const PASSOS: readonly string[] = ['Moeda', 'Protocolo', 'Plano', 'Correios', 'Análise']
 
 export interface WizardStepsProps {
-  /** Passo atual, de 1 a 4. */
+  /** Passo atual, de 1 a 5. */
   step: number
 }
 
