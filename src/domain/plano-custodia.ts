@@ -192,3 +192,67 @@ export function renovacaoAnualDevida(
   const mesAnterior = somarMeses(competencia, -1)
   return plano.pagoAteCompetencia === mesAnterior
 }
+
+/**
+ * Atualiza o plano de custódia e faturas após a análise física (emissão de recibos).
+ * Passo B2.5:
+ * - moedas aprovadas entram em `plano.moedaIds`;
+ * - plano já pago e moedas recusadas -> `estornadoCents += recusadas * valorPorMoeda`, creditado ao saldo;
+ * - plano não pago e moedas recusadas -> fatura de contratação passa a valer só as aprovadas;
+ * - todas recusadas -> plano cancelado; fatura cancelada se não paga, ou estorno integral se paga.
+ */
+export function alimentarPlanoNaAnalise({
+  plano,
+  faturas,
+  user,
+  moedaIdsAprovadas,
+  quantidadeRecusadas,
+  agora = Date.now(),
+}: {
+  plano?: PlanoCustodia
+  faturas: FaturaCustodia[]
+  user: User
+  moedaIdsAprovadas: string[]
+  quantidadeRecusadas: number
+  agora?: Timestamp
+}): void {
+  if (!plano) return
+
+  const aprovadas = moedaIdsAprovadas.length
+  const recusadas = Math.max(0, quantidadeRecusadas)
+  const fatura = faturas.find((f) => f.planoId === plano.id && f.origem === 'contratacao')
+  const jaPago = plano.status === 'vigente' || fatura?.status === 'paga'
+
+  if (aprovadas === 0) {
+    plano.status = 'cancelado'
+    plano.moedaIds = []
+    plano.atualizadoEm = agora
+
+    if (jaPago) {
+      const estorno = plano.valorTotalCents
+      plano.estornadoCents = (plano.estornadoCents || 0) + estorno
+      user.balance += estorno
+    } else if (fatura && fatura.status !== 'paga') {
+      fatura.status = 'cancelada'
+    }
+    return
+  }
+
+  plano.moedaIds = [...moedaIdsAprovadas]
+  plano.atualizadoEm = agora
+
+  if (recusadas > 0) {
+    if (jaPago) {
+      const estorno = recusadas * plano.valorPorMoedaCents
+      plano.estornadoCents = (plano.estornadoCents || 0) + estorno
+      user.balance += estorno
+    } else if (fatura && fatura.status !== 'paga') {
+      const novoValor = aprovadas * plano.valorPorMoedaCents
+      plano.valorTotalCents = novoValor
+      fatura.valorCents = novoValor
+      fatura.quantidadeMoedas = aprovadas
+      fatura.moedaIds = [...moedaIdsAprovadas]
+    }
+  }
+}
+

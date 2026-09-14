@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  alimentarPlanoNaAnalise,
   calcularPagoAte,
   competenciaCoberta,
   gerarFaturaDoCiclo,
@@ -13,7 +14,7 @@ import {
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
-import type { Coin, PlanoCustodia, User } from '@/domain/types'
+import type { Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 function criarMoeda(id: string, statusRecibo: 'Ativo' | 'Bloqueado' | 'Extinto' = 'Ativo'): Coin {
   return {
@@ -293,6 +294,222 @@ describe('plano-custodia (B2.3)', () => {
 
       // Mês 14: posterior
       expect(renovacaoAnualDevida(planoAnual, '2027-10')).toBe(false)
+    })
+  })
+
+  describe('alimentarPlanoNaAnalise (B2.5)', () => {
+    it('3 moedas contratadas e pagas no plano anual, 1 recusada: plano com 2 moedas e R$ 24,00 estornados ao saldo', () => {
+      const user: User = { name: 'Cliente', balance: 10000, coins: [] }
+      const plano = criarPlano({
+        id: 'PLC-ANUAL-1',
+        modalidade: 'anual',
+        quantidadeContratada: 3,
+        valorPorMoedaCents: 2400,
+        valorTotalCents: 7200,
+        status: 'vigente',
+        pagoAteCompetencia: '2027-08',
+        moedaIds: [],
+        estornadoCents: 0,
+      })
+      const fatura: FaturaCustodia = {
+        id: 'FAT-1',
+        userEmail: 'cliente@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        moedaIds: [],
+        valorCents: 7200,
+        status: 'paga',
+        dataEmissao: 1000,
+        dataVencimento: 2000,
+        dataPagamento: 1500,
+        formaPagamento: 'cartao',
+        paymentIntentId: 'PAY-1',
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: [fatura],
+        user,
+        moedaIdsAprovadas: ['RO-001', 'RO-002'],
+        quantidadeRecusadas: 1,
+      })
+
+      expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
+      expect(plano.estornadoCents).toBe(2400) // R$ 24,00 de estorno
+      expect(user.balance).toBe(10000 + 2400) // Saldo sobe R$ 24,00
+      expect(plano.status).toBe('vigente')
+    })
+
+    it('3 moedas contratadas e pagas no plano mensal, 1 recusada: plano com 2 moedas e R$ 2,00 estornados ao saldo', () => {
+      const user: User = { name: 'Cliente', balance: 5000, coins: [] }
+      const plano = criarPlano({
+        id: 'PLC-MENSAL-1',
+        modalidade: 'mensal',
+        quantidadeContratada: 3,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
+        status: 'vigente',
+        pagoAteCompetencia: '2026-09',
+        moedaIds: [],
+        estornadoCents: 0,
+      })
+      const fatura: FaturaCustodia = {
+        id: 'FAT-2',
+        userEmail: 'cliente@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        moedaIds: [],
+        valorCents: 600,
+        status: 'paga',
+        dataEmissao: 1000,
+        dataVencimento: 2000,
+        dataPagamento: 1500,
+        formaPagamento: 'saldo',
+        paymentIntentId: null,
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: [fatura],
+        user,
+        moedaIdsAprovadas: ['RO-001', 'RO-002'],
+        quantidadeRecusadas: 1,
+      })
+
+      expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
+      expect(plano.estornadoCents).toBe(200) // R$ 2,00 de estorno
+      expect(user.balance).toBe(5000 + 200) // Saldo sobe R$ 2,00
+    })
+
+    it('3 moedas contratadas e NÃO pagas, 1 recusada: fatura de contratação passa a valer só as aprovadas', () => {
+      const user: User = { name: 'Cliente', balance: 5000, coins: [] }
+      const plano = criarPlano({
+        id: 'PLC-PEND-1',
+        modalidade: 'mensal',
+        quantidadeContratada: 3,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
+        status: 'aguardando_pagamento',
+        pagoAteCompetencia: null,
+        moedaIds: [],
+      })
+      const fatura: FaturaCustodia = {
+        id: 'FAT-3',
+        userEmail: 'cliente@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        moedaIds: [],
+        valorCents: 600,
+        status: 'pendente',
+        dataEmissao: 1000,
+        dataVencimento: 2000,
+        dataPagamento: null,
+        formaPagamento: null,
+        paymentIntentId: null,
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: [fatura],
+        user,
+        moedaIdsAprovadas: ['RO-001', 'RO-002'],
+        quantidadeRecusadas: 1,
+      })
+
+      expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
+      expect(plano.valorTotalCents).toBe(400)
+      expect(fatura.valorCents).toBe(400)
+      expect(fatura.quantidadeMoedas).toBe(2)
+      expect(fatura.moedaIds).toEqual(['RO-001', 'RO-002'])
+      expect(user.balance).toBe(5000) // Sem alteração de saldo
+    })
+
+    it('todas as moedas recusadas com plano pago: cancela plano e estorno integral', () => {
+      const user: User = { name: 'Cliente', balance: 1000, coins: [] }
+      const plano = criarPlano({
+        id: 'PLC-CANCEL-1',
+        modalidade: 'mensal',
+        quantidadeContratada: 2,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 400,
+        status: 'vigente',
+        pagoAteCompetencia: '2026-09',
+      })
+      const fatura: FaturaCustodia = {
+        id: 'FAT-4',
+        userEmail: 'cliente@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 2,
+        moedaIds: [],
+        valorCents: 400,
+        status: 'paga',
+        dataEmissao: 1000,
+        dataVencimento: 2000,
+        dataPagamento: 1500,
+        formaPagamento: 'pix',
+        paymentIntentId: 'PAY-4',
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: [fatura],
+        user,
+        moedaIdsAprovadas: [],
+        quantidadeRecusadas: 2,
+      })
+
+      expect(plano.status).toBe('cancelado')
+      expect(plano.moedaIds).toEqual([])
+      expect(plano.estornadoCents).toBe(400)
+      expect(user.balance).toBe(1000 + 400)
+    })
+
+    it('todas as moedas recusadas com plano não pago: cancela plano e cancela fatura pendente', () => {
+      const user: User = { name: 'Cliente', balance: 1000, coins: [] }
+      const plano = criarPlano({
+        id: 'PLC-CANCEL-2',
+        modalidade: 'anual',
+        quantidadeContratada: 2,
+        valorPorMoedaCents: 2400,
+        valorTotalCents: 4800,
+        status: 'aguardando_pagamento',
+      })
+      const fatura: FaturaCustodia = {
+        id: 'FAT-5',
+        userEmail: 'cliente@teste.com',
+        competencia: '2026-09',
+        quantidadeMoedas: 2,
+        moedaIds: [],
+        valorCents: 4800,
+        status: 'pendente',
+        dataEmissao: 1000,
+        dataVencimento: 2000,
+        dataPagamento: null,
+        formaPagamento: null,
+        paymentIntentId: null,
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: [fatura],
+        user,
+        moedaIdsAprovadas: [],
+        quantidadeRecusadas: 2,
+      })
+
+      expect(plano.status).toBe('cancelado')
+      expect(fatura.status).toBe('cancelada')
+      expect(user.balance).toBe(1000)
     })
   })
 })

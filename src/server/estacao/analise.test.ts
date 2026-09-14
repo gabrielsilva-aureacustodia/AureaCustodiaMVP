@@ -276,4 +276,65 @@ describe('fecharAnalise', () => {
     expect(state.analises[0].validadoEm).toBeGreaterThanOrEqual(antes)
     expect(state.analises[0].validadoEm).toBeLessThanOrEqual(Date.now())
   })
+
+  it('B2.5: 3 moedas contratadas e pagas no plano anual, 1 recusada: plano fica com 2 moedas e R$ 24,00 voltam ao saldo', async () => {
+    const saldoAntes = state.users[CLIENTE].balance
+    state.envios = [envio({ quantidade: 3 })]
+    state.planosCustodia = [
+      {
+        id: 'PLC-000001',
+        userEmail: CLIENTE,
+        protocoloEnvio: 'RO-ENV-0001',
+        modalidade: 'anual',
+        quantidadeContratada: 3,
+        moedaIds: [],
+        valorPorMoedaCents: 2400,
+        valorTotalCents: 7200,
+        parcelasMax: 12,
+        inicioCompetencia: '2026-09',
+        pagoAteCompetencia: '2027-08',
+        status: 'vigente',
+        formaPagamento: 'saldo',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: Date.now(),
+        atualizadoEm: Date.now(),
+      },
+    ]
+    state.faturasCustodia = [
+      {
+        id: 'FAT-2026-09-ROGERIO-1',
+        userEmail: CLIENTE,
+        competencia: '2026-09',
+        quantidadeMoedas: 3,
+        moedaIds: [],
+        valorCents: 7200,
+        status: 'paga',
+        dataEmissao: Date.now(),
+        dataVencimento: Date.now() + 864000000,
+        dataPagamento: Date.now(),
+        formaPagamento: 'saldo',
+        paymentIntentId: null,
+        planoId: 'PLC-000001',
+        origem: 'contratacao',
+      },
+    ]
+
+    const r = await fecharAnalise({
+      protocolo: 'RO-ENV-0001',
+      operador: OPERADOR,
+      moedas: [
+        { pesoMg: 27000, veredito: 'aprovada' },
+        { pesoMg: 27000, veredito: 'aprovada' },
+        { pesoMg: 24000, veredito: 'recusada', motivoRecusa: 'Defeito físico' },
+      ],
+    })
+
+    expect(r.ok).toBe(true)
+    const plano = state.planosCustodia[0]
+    expect(plano.moedaIds).toHaveLength(2)
+    expect(plano.estornadoCents).toBe(2400) // R$ 24,00
+    expect(state.users[CLIENTE].balance).toBe(saldoAntes + 2400) // Saldo sobe R$ 24,00
+  })
 })
