@@ -22,6 +22,7 @@ import {
   avancarStatusRetirada,
   bloquearReciboPorDebito,
   desbloquearRecibo,
+  pagarRetiradaComSaldo,
   solicitarRetirada,
 } from './custody'
 import { NextRequest } from 'next/server'
@@ -92,23 +93,32 @@ describe('Ciclo Completo de Retirada Física de Moedas (E2E Integration)', () =>
     expect(moeda.recibo.status).toBe('Ativo')
 
     // -------------------------------------------------------------------------
-    // Passo 2: Solicitação confirmada e extinção imediata do recibo
+    // Passo 2: Solicitação e confirmação de pagamento (duas fases) com extinção
     // -------------------------------------------------------------------------
     const resSolicitacao = await solicitarRetirada(moeda.id, 'comum', ENDERECO_COMPLETO)
     expect(resSolicitacao.ok).toBe(true)
     expect(resSolicitacao.data).toBeDefined()
-    const { retiradaId, dataLimiteD30, reciboCodigo } = resSolicitacao.data!
+    const { retiradaId, reciboCodigo } = resSolicitacao.data!
 
     expect(retiradaId).toBeDefined()
     expect(reciboCodigo).toBe(moeda.recibo.codigo)
-    // Prazo calculado em D+30
+    // Na fase 1 (solicitação), o recibo ainda está Ativo e saldo não foi debitado
+    expect(moeda.recibo.status).toBe('Ativo')
+    expect(usuario.balance).toBe(saldoInicial)
+
+    // Na fase 2 (pagamento), o saldo é debitado e o recibo extinto
+    const resPagamento = await pagarRetiradaComSaldo(retiradaId)
+    expect(resPagamento.ok).toBe(true)
+    const dataLimiteD30 = resPagamento.data!.dataLimiteD30
+
+    // Prazo calculado em D+30 a partir da confirmação do pagamento
     const trintaDiasMs = 30 * 24 * 60 * 60 * 1000
     expect(dataLimiteD30).toBeGreaterThanOrEqual(Date.now() + trintaDiasMs - 5000)
 
     // Saldo debitado em exatamente R$ 50,00 (5000 centavos)
     expect(usuario.balance).toBe(saldoInicial - 5000)
 
-    // O recibo foi extinto NO MESMO INSTANTE da confirmação
+    // O recibo foi extinto NO MESMO INSTANTE da confirmação do pagamento
     expect(moeda.recibo.status).toBe('Extinto')
 
     // -------------------------------------------------------------------------

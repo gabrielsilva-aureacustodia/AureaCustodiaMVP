@@ -443,5 +443,111 @@ describe('conciliarPagamento', () => {
     expect(fatura?.status).toBe('paga')
     expect(fatura?.formaPagamento).toBe('cartao')
   })
+
+  it('liquida taxa de retirada paga via Pix com extinção de recibo e recálculo D+30', async () => {
+    let moedaId = ''
+    await mutateState((s) => {
+      const u = s.users[EMAIL]
+      const moeda = u.coins[0]
+      moedaId = moeda.id
+      moeda.recibo.status = 'Ativo'
+
+      s.retiradas = [
+        {
+          id: 'RET-TESTE-PIX',
+          coinId: moeda.id,
+          userEmail: EMAIL,
+          modalidade: 'comum',
+          status: 'solicitada',
+          valorTaxaCents: 5000,
+          formaPagamento: 'pix',
+          paymentIntentRef: 'RET-INTENT-PIX-1',
+          reciboCodigo: moeda.recibo.codigo,
+          dataLimiteD30: Date.now() + 30 * 86400000,
+          solicitadoEm: Date.now() - 10000,
+          endereco: {
+            nome: 'Gabriel Silva',
+            cpfOuCnpj: '111.222.333-44',
+            logradouro: 'Rua Rio de Janeiro',
+            numero: '1000',
+            complemento: 'Apto 1201',
+            bairro: 'Centro',
+            cidade: 'Belo Horizonte',
+            uf: 'MG',
+            cep: '30160-041',
+            telefone: '(31) 99999-8888',
+          },
+          historico: [
+            {
+              de: null,
+              para: 'solicitada',
+              data: Date.now() - 10000,
+              motivo: 'Solicitação criada',
+              autor: EMAIL,
+            },
+          ],
+          createdAt: Date.now() - 10000,
+          updatedAt: Date.now() - 10000,
+        },
+      ]
+    })
+
+    const ref = 'RET-INTENT-PIX-1'
+    const valor = 5000
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'retirada',
+      metadata: { retiradaId: 'RET-TESTE-PIX', coinId: moedaId },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-retirada-pix-1',
+      tarifaCents: 150,
+      valorLiquidoCents: 4850,
+      paymentMethodId: 'pix',
+      paymentTypeId: 'bank_transfer',
+    })
+
+    const res = await conciliarPagamento('pay-retirada-pix-1')
+    expect(res.creditado).toBe(true)
+    expect(res.motivo).toBe('retirada_liquidada')
+
+    const st = await getState()
+    const ret = st.retiradas?.find((r) => r.id === 'RET-TESTE-PIX')
+    expect(ret?.status).toBe('paga')
+    expect(ret?.formaPagamento).toBe('pix')
+    expect(ret?.pagoEm).toBeDefined()
+
+    // Recibo foi extinto
+    const coin = st.users[EMAIL].coins.find((c) => c.id === moedaId)
+    expect(coin?.recibo.status).toBe('Extinto')
+
+    // D+30 recalculado da data de pagamento
+    const trintaDiasMs = 30 * 24 * 60 * 60 * 1000
+    expect(ret?.dataLimiteD30).toBeGreaterThanOrEqual(Date.now() + trintaDiasMs - 5000)
+
+    // Recebimento gateway gravado
+    const rec = await buscarRecebimentoPorPaymentId('pay-retirada-pix-1')
+    expect(rec).toBeDefined()
+    expect(rec?.valorBruto).toBe(5000)
+    expect(rec?.tarifaGateway).toBe(150)
+    expect(rec?.valorLiquido).toBe(4850)
+
+    // Idempotência: reenvio não altera status ou recria recebimento
+    const resRepetido = await conciliarPagamento('pay-retirada-pix-1')
+    expect(resRepetido.creditado).toBe(false)
+    expect(resRepetido.motivo).toContain('já estava com status')
+  })
 })
+
 

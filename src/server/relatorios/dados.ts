@@ -40,6 +40,12 @@ import {
   type ParametroGravado,
 } from '@/server/db/repositories/contabil'
 import { listarLancamentos, saldosPeloLedger, type LedgerEntryGravado } from '@/server/db/repositories/ledger'
+import { calcularReceitaDiferida } from '@/domain/competencia'
+import {
+  listarTodosRecebimentos,
+  listarTodosRecebimentosBanco,
+  type RecebimentoGateway,
+} from '@/server/payments/recebimentos'
 import { getState } from '@/server/state'
 
 /* ---------- o formato comum de todo relatório ---------- */
@@ -81,6 +87,10 @@ export const NOMES_RELATORIOS = [
   'exportacoes',
   'saques',
   'retiradas',
+  'recebimentos-gateway',
+  'planos-custodia',
+  'receita-diferida',
+  'faturas-custodia',
 ] as const
 
 export type NomeRelatorio = (typeof NOMES_RELATORIOS)[number]
@@ -104,6 +114,10 @@ export const TITULOS: Record<NomeRelatorio, string> = {
   exportacoes: 'Registro de exportações',
   saques: 'Solicitações de saque',
   retiradas: 'Retiradas físicas de custódia',
+  'recebimentos-gateway': 'Recebimentos pelo gateway',
+  'planos-custodia': 'Planos de custódia',
+  'receita-diferida': 'Receita diferida de custódia',
+  'faturas-custodia': 'Faturas de custódia',
 }
 
 /** Centavos -> reais com duas casas. 28500 -> 285 */
@@ -159,6 +173,7 @@ export interface Fontes {
   saldosLedger: Record<string, number>
   exportacoes: Array<{ id: number; createdAt: number; relatorio: string; formato: string; destino: string; ator: string; linhas: number; ok: boolean; detalhe: string | null }>
   retiradas: Retirada[]
+  recebimentos: RecebimentoGateway[]
   semBanco: boolean
 }
 
@@ -171,6 +186,7 @@ async function carregarFontes(): Promise<Fontes> {
   const state = await getState()
   const retiradas = await repositorioRetiradas().listarTodas()
   if (!bancoConfigurado()) {
+    const recebimentos = await listarTodosRecebimentos()
     return {
       state,
       ledger: [],
@@ -182,12 +198,13 @@ async function carregarFontes(): Promise<Fontes> {
       saldosLedger: {},
       exportacoes: [],
       retiradas,
+      recebimentos,
       semBanco: true,
     }
   }
   return executarNoBanco(async (tx) => {
     await garantirCatalogos(tx)
-    const [ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes] =
+    const [ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes, recebimentos] =
       await Promise.all([
         listarLancamentos(tx),
         listarAuditoria(tx, { limite: 2000 }),
@@ -197,8 +214,9 @@ async function carregarFontes(): Promise<Fontes> {
         listarParametros(tx),
         saldosPeloLedger(tx),
         listarExportacoes(tx, 500),
+        listarTodosRecebimentosBanco(tx),
       ])
-    return { state, ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes, retiradas, semBanco: false }
+    return { state, ledger, auditoria, manuaisTodos, manuaisVigentes, parametros, parametrosLista, saldosLedger, exportacoes, retiradas, recebimentos, semBanco: false }
   })
 }
 
@@ -233,7 +251,15 @@ export function montarDreDasFontes(fontes: Fontes, periodo: Periodo): Dre {
     valor: m.valor,
     criadoPor: m.criadoPor,
   }))
-  return montarDre({ ledger: fontes.ledger, manuais, parametros: fontes.parametros, periodo })
+  return montarDre({
+    ledger: fontes.ledger,
+    manuais,
+    parametros: fontes.parametros,
+    periodo,
+    recebimentosGateway: fontes.recebimentos,
+    faturasCustodia: fontes.state.faturasCustodia,
+    planosCustodia: fontes.state.planosCustodia,
+  })
 }
 
 function relatorioDre(fontes: Fontes, periodo: Periodo): Relatorio {
@@ -592,6 +618,126 @@ function relatorioRetiradas(fontes: Fontes, periodo: Periodo | null): Relatorio 
   ])
 }
 
+function relatorioRecebimentosGateway(fontes: Fontes, periodo: Periodo | null): Relatorio {
+  const r = base('recebimentos-gateway', fontes, periodo)
+  r.observacoes.push('Registro individual de cada pagamento recebido pelo Mercado Pago, com segregação de tarifa e valor líquido.')
+  const todos = fontes.recebimentos
+  const filtrados = periodo
+    ? todos.filter((rec) => rec.aprovadoEm >= periodo.inicio && rec.aprovadoEm < periodo.fim)
+    : todos
+  const agora = Date.now()
+  const linhas = filtrados.map((rec) => ({
+    Data: dataHora(rec.aprovadoEm),
+    Tipo: rec.tipoOperacao,
+    Conta: rec.userEmail,
+    Metodo: rec.metodo,
+    Parcelas: rec.parcelas,
+    Bruto: reais(rec.valorBruto),
+    Tarifa: reais(rec.tarifaGateway),
+    Liquido: reais(rec.valorLiquido),
+    Liberacao_Prevista: rec.liberacaoPrevista ? dataHora(rec.liberacaoPrevista) : '',
+    Situacao: !rec.liberacaoPrevista || agora >= rec.liberacaoPrevista ? 'liberado' : 'a receber',
+    Competencia: rec.competencia,
+  }))
+  return comLinhas(r, linhas, [
+    'Data',
+    'Tipo',
+    'Conta',
+    'Metodo',
+    'Parcelas',
+    'Bruto',
+    'Tarifa',
+    'Liquido',
+    'Liberacao_Prevista',
+    'Situacao',
+    'Competencia',
+  ])
+}
+
+function relatorioPlanosCustodia(fontes: Fontes): Relatorio {
+  const r = base('planos-custodia', fontes, null)
+  r.observacoes.push('Planos de custódia contratados (mensais e anuais).')
+  const planos = fontes.state.planosCustodia ?? []
+  const linhas = planos.map((p) => ({
+    Plano: p.id,
+    Conta: p.userEmail,
+    Modalidade: p.modalidade,
+    Moedas: p.quantidadeContratada,
+    Valor: reais(p.valorTotalCents),
+    Inicio: p.inicioCompetencia,
+    Pago_Ate: p.pagoAteCompetencia ?? '',
+    Situacao: p.status,
+    Forma: p.formaPagamento ?? '',
+  }))
+  return comLinhas(r, linhas, [
+    'Plano',
+    'Conta',
+    'Modalidade',
+    'Moedas',
+    'Valor',
+    'Inicio',
+    'Pago_Ate',
+    'Situacao',
+    'Forma',
+  ])
+}
+
+function relatorioReceitaDiferida(fontes: Fontes): Relatorio {
+  const r = base('receita-diferida', fontes, null)
+  r.observacoes.push('Demonstrativo de apropriação futura de planos de custódia anuais (receita diferida).')
+  const anuais = (fontes.state.planosCustodia ?? []).filter((p) => p.modalidade === 'anual')
+  const linhas = anuais.map((p) => {
+    const dif = calcularReceitaDiferida(p)
+    return {
+      Plano_Anual: p.id,
+      Valor_Pago: reais(dif.valorPago),
+      Ja_Apropriado: reais(dif.jaApropriado),
+      A_Apropriar: reais(dif.aApropriar),
+      Meses_Restantes: dif.mesesRestantes,
+    }
+  })
+  return comLinhas(r, linhas, [
+    'Plano_Anual',
+    'Valor_Pago',
+    'Ja_Apropriado',
+    'A_Apropriar',
+    'Meses_Restantes',
+  ])
+}
+
+function relatorioFaturasCustodia(fontes: Fontes, periodo: Periodo | null): Relatorio {
+  const r = base('faturas-custodia', fontes, periodo)
+  r.observacoes.push('Registro de faturas de custódia emitidas (ciclo mensal, contratação e renovação).')
+  const todas = fontes.state.faturasCustodia ?? []
+  const filtradas = periodo
+    ? todas.filter((f) => f.dataEmissao >= periodo.inicio && f.dataEmissao < periodo.fim)
+    : todas
+  const linhas = filtradas.map((f) => ({
+    Fatura: f.id,
+    Conta: f.userEmail,
+    Competencia: f.competencia,
+    Origem: f.origem ?? 'ciclo_mensal',
+    Moedas: f.quantidadeMoedas,
+    Valor: reais(f.valorCents),
+    Vencimento: dataHora(f.dataVencimento),
+    Situacao: f.status,
+    Forma: f.formaPagamento ?? '',
+    Pagamento: f.dataPagamento ? dataHora(f.dataPagamento) : '',
+  }))
+  return comLinhas(r, linhas, [
+    'Fatura',
+    'Conta',
+    'Competencia',
+    'Origem',
+    'Moedas',
+    'Valor',
+    'Vencimento',
+    'Situacao',
+    'Forma',
+    'Pagamento',
+  ])
+}
+
 function nomesDe(state: AppState): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [e, u] of Object.entries(state.users)) out[e] = u.name
@@ -648,6 +794,14 @@ export function montarRelatorio(nome: NomeRelatorio, fontes: Fontes, opcoes: Opc
       return relatorioSaques(fontes, recorte)
     case 'retiradas':
       return relatorioRetiradas(fontes, recorte)
+    case 'recebimentos-gateway':
+      return relatorioRecebimentosGateway(fontes, recorte)
+    case 'planos-custodia':
+      return relatorioPlanosCustodia(fontes)
+    case 'receita-diferida':
+      return relatorioReceitaDiferida(fontes)
+    case 'faturas-custodia':
+      return relatorioFaturasCustodia(fontes, recorte)
   }
 }
 
