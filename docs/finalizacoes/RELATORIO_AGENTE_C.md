@@ -18,8 +18,12 @@ Pendências:  docs/finalizacoes/PENDENCIAS_AGENTE_C.md
 
 ## C1 · Fundação e Central de Resultados — `feat/c1-fundacao-e-resultados`
 
-**Base:** `origin/main` @ `3358845`. **Commits:** `c22ae15` (papéis, permissões e acesso) e
-`c57fb30` (casco, Central de Resultados, equipe e registro de uso), mais o desta documentação.
+**C1 pronta para main — merge d00096b**
+
+**Base:** `origin/main` @ `3358845`. **Commits:** `c22ae15` (papéis, permissões e acesso),
+`c57fb30` (casco, Central de Resultados, equipe e registro de uso) e `42f2a83` (relatório e
+pendências), trazidos para `feat/c-painel-admin` pelo merge `--no-ff` `d00096b`. Depois de levar
+para a `main`: P-C1-01 (migrations 020 e 021) e P-C1-02 (conferência em produção).
 
 ### O que entrou, pela seção do plano do Admin
 
