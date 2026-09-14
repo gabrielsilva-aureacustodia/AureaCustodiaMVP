@@ -149,6 +149,12 @@ export interface SellOffer {
    * pode trocar de tipo, a cópia nunca diverge do original.
    */
   tipoMoeda: string
+  /**
+   * Momento que define a vez na fila. Nasce igual a `createdAt` e é reescrito
+   * quando o preço muda ou a quantidade aumenta (decisão F-3, 13/09/2026).
+   * `createdAt` nunca muda: é a data do cadastro, para histórico e extrato.
+   */
+  prioridadeEm?: Timestamp
 }
 
 /** Oferta de compra (bid), com preço-limite e quantidade restante. */
@@ -160,6 +166,12 @@ export interface BuyOrder {
   /** Quantidade ainda não preenchida. Chega a 0 e a ordem é removida. */
   qty: number
   createdAt: Timestamp
+  /**
+   * Momento que define a vez na fila. Nasce igual a `createdAt` e é reescrito
+   * quando o preço muda ou a quantidade aumenta (decisão F-3, 13/09/2026).
+   * `createdAt` nunca muda: é a data do cadastro, para histórico e extrato.
+   */
+  prioridadeEm?: Timestamp
   /**
    * Tipo de moeda que este bid quer comprar. É o que separa os livros: uma
    * oferta de compra de "Direitos Humanos" nunca casa com uma venda de
@@ -203,6 +215,7 @@ export interface Lot {
   price: Cents
   obs: string
   createdAt: Timestamp
+  prioridadeEm?: Timestamp
   coinIds: string[]
   /** Tipo das moedas do lote — todas iguais, garantido na publicação. */
   tipoMoeda: string

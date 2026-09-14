@@ -122,9 +122,13 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
   state.sellOffers
     .filter((o) => tipo === undefined || o.tipoMoeda === tipo)
     .forEach((o) => {
+      const prioridade = o.prioridadeEm ?? o.createdAt
       const lot = map.get(o.lotId)
       if (lot) {
         lot.coinIds.push(o.coinId)
+        if (lot.prioridadeEm !== undefined && prioridade < lot.prioridadeEm) {
+          lot.prioridadeEm = prioridade
+        }
         return
       }
       map.set(o.lotId, {
@@ -133,11 +137,17 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
         price: o.price,
         obs: o.obs,
         createdAt: o.createdAt,
+        prioridadeEm: prioridade,
         coinIds: [o.coinId],
         tipoMoeda: o.tipoMoeda,
       })
     })
-  return [...map.values()].sort((a, b) => a.price - b.price || a.createdAt - b.createdAt)
+  return [...map.values()].sort(
+    (a, b) =>
+      a.price - b.price ||
+      (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+      a.createdAt - b.createdAt,
+  )
 }
 
 /**
@@ -206,8 +216,18 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
   while (progress) {
     progress = false
     if (!state.buyOrders.length || !state.sellOffers.length) break
-    state.buyOrders.sort((a, b) => b.price - a.price || a.createdAt - b.createdAt)
-    state.sellOffers.sort((a, b) => a.price - b.price || a.createdAt - b.createdAt)
+    state.buyOrders.sort(
+      (a, b) =>
+        b.price - a.price ||
+        (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+        a.createdAt - b.createdAt,
+    )
+    state.sellOffers.sort(
+      (a, b) =>
+        a.price - b.price ||
+        (a.prioridadeEm ?? a.createdAt) - (b.prioridadeEm ?? b.createdAt) ||
+        a.createdAt - b.createdAt,
+    )
     for (const bo of state.buyOrders) {
       if (bo.qty <= 0) continue
       const buyer = state.users[bo.buyer]
@@ -293,4 +313,94 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
     trades.push(trade)
   })
   return { matched: fills.size > 0, trades }
+}
+
+export interface InfoPosicaoFila {
+  posicao: number
+  aFrente: number
+  mesmoPreco: number
+}
+
+/**
+ * Calcula a posição de uma oferta na fila do livro de ordens (Decisão F-3, 13/09/2026).
+ *
+ * Conta, dentro do mesmo tipo de moeda:
+ * - `aFrente`: ofertas com preço melhor ou mesmo preço com prioridade anterior.
+ * - `posicao`: posição da oferta na fila daquele preço (1ª, 2ª...).
+ * - `mesmoPreco`: total de ofertas existentes naquele mesmo preço.
+ *
+ * Retorna null caso a oferta não seja encontrada no estado.
+ */
+export function posicaoNaFila(
+  state: AppState,
+  lado: 'venda' | 'compra',
+  id: string,
+): InfoPosicaoFila | null {
+  if (lado === 'venda') {
+    const target = state.sellOffers.find((o) => o.id === id || o.lotId === id)
+    if (!target) return null
+
+    const doTipo = state.sellOffers.filter((o) => o.tipoMoeda === target.tipoMoeda)
+    const targetPrioridade = target.prioridadeEm ?? target.createdAt
+
+    let melhorPreco = 0
+    let aFrenteMesmoPreco = 0
+    let mesmoPreco = 0
+
+    for (const o of doTipo) {
+      if (o.price < target.price) {
+        melhorPreco++
+      } else if (o.price === target.price) {
+        mesmoPreco++
+        if (o.id !== target.id && (!target.lotId || o.lotId !== target.lotId)) {
+          const oPrioridade = o.prioridadeEm ?? o.createdAt
+          if (
+            oPrioridade < targetPrioridade ||
+            (oPrioridade === targetPrioridade && o.createdAt < target.createdAt)
+          ) {
+            aFrenteMesmoPreco++
+          }
+        }
+      }
+    }
+
+    return {
+      posicao: aFrenteMesmoPreco + 1,
+      aFrente: melhorPreco + aFrenteMesmoPreco,
+      mesmoPreco,
+    }
+  } else {
+    const target = state.buyOrders.find((b) => b.id === id)
+    if (!target) return null
+
+    const doTipo = state.buyOrders.filter((b) => b.tipoMoeda === target.tipoMoeda)
+    const targetPrioridade = target.prioridadeEm ?? target.createdAt
+
+    let melhorPreco = 0
+    let aFrenteMesmoPreco = 0
+    let mesmoPreco = 0
+
+    for (const b of doTipo) {
+      if (b.price > target.price) {
+        melhorPreco++
+      } else if (b.price === target.price) {
+        mesmoPreco++
+        if (b.id !== target.id) {
+          const bPrioridade = b.prioridadeEm ?? b.createdAt
+          if (
+            bPrioridade < targetPrioridade ||
+            (bPrioridade === targetPrioridade && b.createdAt < target.createdAt)
+          ) {
+            aFrenteMesmoPreco++
+          }
+        }
+      }
+    }
+
+    return {
+      posicao: aFrenteMesmoPreco + 1,
+      aFrente: melhorPreco + aFrenteMesmoPreco,
+      mesmoPreco,
+    }
+  }
 }

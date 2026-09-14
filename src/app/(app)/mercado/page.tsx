@@ -41,6 +41,8 @@ import type { ReactNode } from 'react'
 import { BidRow } from '@/components/market/BidRow'
 import { Folder } from '@/components/market/Folder'
 import { LotCard } from '@/components/market/LotCard'
+import { MinhasOfertas } from '@/components/market/MinhasOfertas'
+import { ModalEditarBid } from '@/components/market/ModalEditarBid'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -52,8 +54,8 @@ import { fdate } from '@/domain/dates'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
-import type { BuyOrder, Cents, Lot } from '@/domain/types'
-import { buyLot, cancelBid, editBid, publishBid } from '@/server/actions/market'
+import type { Cents, Lot } from '@/domain/types'
+import { buyLot, cancelBid, publishBid } from '@/server/actions/market'
 import { iniciarCompraDireta } from '@/server/actions/payments'
 import type { CompraDiretaIniciada, MetodoDeposito } from '@/server/payments/tipos'
 
@@ -66,9 +68,6 @@ const NEGOCIAVEIS = tiposNegociaveis()
  * a tela já enxerga. Quem manda é o servidor — a conferência lá continua.
  */
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
-
-/** Linha 1466 — a edição usa um texto ligeiramente diferente, e é assim mesmo. */
-const BID_INVALIDO_EDITAR = 'Informe quantidade e preço válidos.'
 
 export default function MercadoPage(): ReactNode {
   const { state, session, me, run } = useApp()
@@ -230,6 +229,7 @@ export default function MercadoPage(): ReactNode {
 
   return (
     <>
+      <MinhasOfertas />
       <div className="cols">
         <div>
           <div className="panel">
@@ -396,7 +396,7 @@ export default function MercadoPage(): ReactNode {
                   key={bid.id}
                   bid={bid}
                   mine={bid.buyer === session}
-                  onEdit={(b) => modal.open(<EditarBidModal bid={b} />)}
+                  onEdit={(b) => modal.open(<ModalEditarBid bid={b} />)}
                   onCancel={(b) => void run(() => cancelBid(b.id))}
                 />
               ))
@@ -721,79 +721,3 @@ function ConfirmarCompraModal({
   )
 }
 
-/**
- * Edição de uma oferta de compra já publicada — port de renderEditBidModal
- * (1453-1464) e da validação de saveEditBid (1466).
- *
- * O par quantidade/preço fica em TEXTO e é convertido na leitura, reproduzindo o
- * `editBidTemp` do original: lá o campo era não-controlado e o valor guardado
- * caía para 1 quando a caixa ficava vazia (`parseInt(...)||1`), sem que o campo
- * mostrasse esse 1. Guardar o número puro faria o campo saltar para "1" no meio
- * da digitação.
- *
- * A recusa por dados inválidos NÃO fecha a modal (linha 1466 retorna antes do
- * closeModal), para que dê para corrigir o que foi digitado.
- */
-function EditarBidModal({ bid }: { bid: BuyOrder }): ReactNode {
-  const { run } = useApp()
-  const { close } = useModal()
-  const toast = useToast()
-
-  const [qtyTexto, setQtyTexto] = useState(String(bid.qty))
-  // Preço inicial no formato brasileiro, como na linha 1459.
-  const [precoTexto, setPrecoTexto] = useState((bid.price / 100).toFixed(2).replace('.', ','))
-
-  const qty = parseInt(qtyTexto, 10) || 1
-  const preco = parsePrice(precoTexto)
-
-  async function salvar(): Promise<void> {
-    if (!preco || preco <= 0 || !qty || qty <= 0) {
-      toast(BID_INVALIDO_EDITAR)
-      return
-    }
-    close()
-    await run(() => editBid(bid.id, qty, preco))
-  }
-
-  return (
-    <>
-      <h3 className="serif">Editar oferta de compra</h3>
-      {/* O tipo é exibido, não editável: trocar o ativo de uma ordem publicada
-          preservaria a posição dela na fila de um livro em que ela nunca esteve.
-          Ver a nota em server/actions/market.ts, editBid. */}
-      <p>
-        Moeda: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
-      </p>
-
-      <div className="field-lbl">Quantidade desejada</div>
-      <input
-        id="editBidQty"
-        type="number"
-        min="1"
-        className="tinput"
-        value={qtyTexto}
-        onChange={(e) => setQtyTexto(e.target.value)}
-      />
-
-      <div className="field-lbl">Preço unitário máximo</div>
-      <div className="price-input">
-        <span>R$</span>
-        <input
-          id="editBidPrice"
-          inputMode="decimal"
-          value={precoTexto}
-          onChange={(e) => setPrecoTexto(e.target.value)}
-        />
-      </div>
-
-      <div className="m-actions">
-        <button type="button" className="btn btn-outline" onClick={close}>
-          Cancelar
-        </button>
-        <button type="button" className="btn btn-gold" onClick={() => void salvar()}>
-          Salvar alterações
-        </button>
-      </div>
-    </>
-  )
-}

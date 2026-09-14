@@ -158,6 +158,7 @@ export function normalizarSellOffer(o: SellOffer): SellOffer {
     lotId: o.lotId,
     createdAt: o.createdAt,
     tipoMoeda: o.tipoMoeda,
+    prioridadeEm: o.prioridadeEm ?? o.createdAt,
   }
 }
 
@@ -169,6 +170,7 @@ export function normalizarBuyOrder(b: BuyOrder): BuyOrder {
     qty: b.qty,
     createdAt: b.createdAt,
     tipoMoeda: b.tipoMoeda,
+    prioridadeEm: b.prioridadeEm ?? b.createdAt,
   }
 }
 

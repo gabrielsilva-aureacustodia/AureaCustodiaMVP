@@ -187,6 +187,8 @@ function suite(alvo: Alvo): void {
         'faturas_custodia',
         'lancamentos_manuais',
         'ledger_entries',
+        // Migration 015 — histórico append-only da fila de ofertas (A2).
+        'ofertas_historico',
         'parametros_contabeis',
         // Migration 002 — pagamentos e rastreio (frente C).
         'payment_events',
