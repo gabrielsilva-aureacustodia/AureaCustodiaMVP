@@ -12,7 +12,9 @@
  */
 
 import { PGlite } from '@electric-sql/pglite'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('server-only', () => ({}))
 
 import { aplicarMigrations } from './migrar'
 import {
@@ -30,6 +32,11 @@ import {
   type IntencaoDeposito,
 } from './repositories/payments'
 import { carregarRastreios, salvarRastreio } from './repositories/rastreios'
+import {
+  buscarRecebimentoPorPaymentIdBanco,
+  inserirRecebimentoBanco,
+  listarRecebimentosPorCompetenciaBanco,
+} from '../payments/recebimentos'
 import type { Consulta, Executor } from './sql'
 
 const SCHEMA = 'aurea'
@@ -297,5 +304,68 @@ describe('migration 002 — pagamentos e rastreio', () => {
       tipoMoeda: 'Entrega da Bandeira Olímpica',
     })
   })
+
+  it('migration 017: persiste parcelas_max em payment_intents e suporta novos tipos', async () => {
+    const ref = 'PLC-intencao-plano'
+    const dados: IntencaoDeposito = {
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor: 24_00,
+      metodo: 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'plano_custodia',
+      parcelasMax: 12,
+      metadata: { protocolo: 'RO-ENV-123', modalidade: 'anual' },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
+    await executar((tx) => inserirIntencao(tx, dados))
+    const lida = await executar((tx) => buscarIntencao(tx, ref))
+
+    expect(lida).not.toBeNull()
+    expect(lida?.tipoOperacao).toBe('plano_custodia')
+    expect(lida?.parcelasMax).toBe(12)
+
+    const reivindicada = await executar((tx) => reivindicarIntencao(tx, ref, Date.now()))
+    expect(reivindicada?.parcelasMax).toBe(12)
+  })
+
+  it('migration 017: persiste recebimentos_gateway com ON CONFLICT (payment_id) DO NOTHING', async () => {
+    const rec = {
+      paymentId: 'MP-PAY-777',
+      externalReference: 'FAT-777',
+      tipoOperacao: 'fatura_custodia',
+      userEmail: EMAIL,
+      metodo: 'credit_card',
+      parcelas: 12,
+      valorBruto: 2400,
+      valorPagoCliente: 2400,
+      tarifaGateway: 120,
+      valorLiquido: 2280,
+      aprovadoEm: new Date('2026-09-14T10:00:00.000Z').getTime(),
+      liberacaoPrevista: new Date('2026-10-14T10:00:00.000Z').getTime(),
+      competencia: '2026-09',
+    }
+
+    await executar((tx) => inserirRecebimentoBanco(tx, rec))
+
+    // Reenvio com o mesmo payment_id não altera a linha
+    await executar((tx) => inserirRecebimentoBanco(tx, { ...rec, valorBruto: 99999 }))
+
+    const gravado = await executar((tx) => buscarRecebimentoPorPaymentIdBanco(tx, 'MP-PAY-777'))
+    expect(gravado).not.toBeNull()
+    expect(gravado?.paymentId).toBe('MP-PAY-777')
+    expect(gravado?.valorBruto).toBe(2400)
+    expect(gravado?.tarifaGateway).toBe(120)
+    expect(gravado?.valorLiquido).toBe(2280)
+    expect(gravado?.parcelas).toBe(12)
+    expect(gravado?.competencia).toBe('2026-09')
+
+    const lista = await executar((tx) => listarRecebimentosPorCompetenciaBanco(tx, '2026-09'))
+    expect(lista.some((r) => r.paymentId === 'MP-PAY-777')).toBe(true)
+  })
 })
+
 

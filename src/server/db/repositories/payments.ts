@@ -36,8 +36,14 @@ export interface RegistroEvento {
 /** Forma de pagamento escolhida na tela. */
 export type MetodoDeposito = 'pix' | 'checkout_pro'
 
-/** Tipo da intenção de pagamento: aporte de saldo ('deposito') ou liquidação de lote ('compra_direta'). */
-export type TipoOperacaoPagamento = 'deposito' | 'compra_direta'
+/** Tipo da intenção de pagamento: aporte, compra, custódia ou retirada (B1.3). */
+export type TipoOperacaoPagamento =
+  | 'deposito'
+  | 'compra_direta'
+  | 'plano_custodia'
+  | 'fatura_custodia'
+  | 'assinatura_custodia'
+  | 'retirada'
 
 /** Ciclo de vida da intenção: nasce pendente e termina creditada ou recusada. */
 export type StatusIntencao = 'pendente' | 'creditando' | 'creditado' | 'recusado'
@@ -49,6 +55,7 @@ export interface IntencaoDeposito {
   metodo: MetodoDeposito
   status: StatusIntencao
   tipoOperacao?: TipoOperacaoPagamento
+  parcelasMax?: number
   metadata?: Record<string, unknown> | null
   paymentId: string | null
   motivoRecusa: string | null
@@ -181,6 +188,7 @@ type LinhaIntencao = {
   payment_id: string | null
   motivo_recusa: string | null
   tipo_operacao?: string | null
+  parcelas_max?: unknown
   metadata?: unknown
   created_at: unknown
   updated_at: unknown
@@ -194,6 +202,7 @@ function paraIntencao(r: LinhaIntencao): IntencaoDeposito {
     metodo: r.metodo as MetodoDeposito,
     status: r.status as StatusIntencao,
     tipoOperacao: (r.tipo_operacao as TipoOperacaoPagamento) || 'deposito',
+    parcelasMax: r.parcelas_max !== null && r.parcelas_max !== undefined ? num(r.parcelas_max) : 1,
     metadata: (r.metadata ? json<Record<string, unknown>>(r.metadata) : null) ?? null,
     paymentId: r.payment_id,
     motivoRecusa: r.motivo_recusa,
@@ -207,8 +216,8 @@ export async function inserirIntencao(tx: Consulta, i: IntencaoDeposito): Promis
   await tx.query(
     `INSERT INTO ${S}.payment_intents
        (external_reference, user_email, valor, metodo, status, payment_id, motivo_recusa,
-        tipo_operacao, metadata, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        tipo_operacao, parcelas_max, metadata, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       i.externalReference,
       i.userEmail,
@@ -218,6 +227,7 @@ export async function inserirIntencao(tx: Consulta, i: IntencaoDeposito): Promis
       i.paymentId,
       i.motivoRecusa,
       i.tipoOperacao ?? 'deposito',
+      i.parcelasMax ?? 1,
       i.metadata ? JSON.stringify(i.metadata) : null,
       i.createdAt,
       i.updatedAt,
@@ -232,7 +242,7 @@ export async function buscarIntencao(
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaIntencao>(
     `SELECT external_reference, user_email, valor, metodo, status, payment_id, motivo_recusa,
-            tipo_operacao, metadata, created_at, updated_at
+            tipo_operacao, parcelas_max, metadata, created_at, updated_at
        FROM ${S}.payment_intents WHERE external_reference = $1`,
     [externalReference],
   )
@@ -274,7 +284,7 @@ export async function reivindicarIntencao(
         SET status = 'creditando', updated_at = $2
       WHERE external_reference = $1 AND status = 'pendente'
       RETURNING external_reference, user_email, valor, metodo, status, payment_id,
-                motivo_recusa, tipo_operacao, metadata, created_at, updated_at`,
+                motivo_recusa, tipo_operacao, parcelas_max, metadata, created_at, updated_at`,
     [externalReference, agora],
   )
   const linha = rows[0]
@@ -333,7 +343,7 @@ export async function listarTodasIntencoes(tx: Consulta): Promise<IntencaoDeposi
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaIntencao>(
     `SELECT external_reference, user_email, valor, metodo, status, payment_id, motivo_recusa,
-            tipo_operacao, metadata, created_at, updated_at
+            tipo_operacao, parcelas_max, metadata, created_at, updated_at
        FROM ${S}.payment_intents ORDER BY created_at DESC`,
   )
   return rows.map(paraIntencao)

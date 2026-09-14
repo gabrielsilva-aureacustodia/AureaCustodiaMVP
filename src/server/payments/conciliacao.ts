@@ -1,19 +1,39 @@
 /* ============================================================================
  * ATENÇÃO — MÓDULO EXCLUSIVO DE SERVIDOR.
  *
- * Aqui o dinheiro entra no saldo. É o passo 7 do fluxo do M5, e o único lugar
- * da plataforma em que um pagamento externo vira crédito interno.
+ * Aqui o dinheiro entra no saldo ou liquida serviços (depósito, compra direta,
+ * fatura de custódia, retirada física). É o passo 7 do fluxo do M5, e o único
+ * lugar da plataforma em que um pagamento externo vira crédito interno.
  * ==========================================================================*/
 
 import 'server-only'
 
+import { competenciaAtual, isInadimplente } from '@/domain/custody'
 import { tradeFee } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
-import { consultarPagamentoMercadoPago } from '@/lib/payments'
+import { calcularPagoAte, somarMeses } from '@/domain/plano-custodia'
+import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
+import type { AppState, FormaPagamentoFatura } from '@/domain/types'
+import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
+import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
+import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { mutateState } from '@/server/state'
 
+import { gravarRecebimento } from './recebimentos'
 import { repositorioIntencoes } from './repositorios'
+
+export interface ResultadoLiquidacao {
+  sucesso: boolean
+  motivo: string
+  compraConcluida?: boolean
+}
+
+export type Liquidador = (
+  s: AppState,
+  intencao: IntencaoDeposito,
+  detalhes: DetalhesPagamento,
+) => ResultadoLiquidacao
 
 export interface ResultadoConciliacao {
   creditado: boolean
@@ -21,12 +41,327 @@ export interface ResultadoConciliacao {
   externalReference?: string
   valorCents?: number
   userEmail?: string
-  tipoOperacao?: 'deposito' | 'compra_direta'
+  tipoOperacao?: TipoOperacaoPagamento
   compraConcluida?: boolean
 }
 
+/* ------------------------------------------------------------------ *
+ * Liquidadores por tipo de operação (Passo B1.4)                     *
+ * ------------------------------------------------------------------ */
+
+function liquidarDeposito(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+): ResultadoLiquidacao {
+  const buyer = s.users[reivindicada.userEmail]
+  if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  buyer.balance += reivindicada.valor
+  s.deposits.push({
+    userEmail: reivindicada.userEmail,
+    valor: reivindicada.valor,
+    date: Date.now(),
+  })
+  return { sucesso: true, motivo: 'creditado' }
+}
+
+function liquidarCompraDireta(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+): ResultadoLiquidacao {
+  const buyer = s.users[reivindicada.userEmail]
+  if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  // Compra direta de lote via gateway
+  const lotId = (reivindicada.metadata?.lotId as string) || ''
+  const qtyPedida = Number(reivindicada.metadata?.qty) || 1
+
+  const offers = lotId ? s.sellOffers.filter((o) => o.lotId === lotId) : []
+  const sellerId = offers[0]?.seller
+  const seller = sellerId ? s.users[sellerId] : undefined
+
+  const podeComprar =
+    offers.length >= qtyPedida &&
+    Boolean(seller) &&
+    sellerId !== reivindicada.userEmail
+
+  if (podeComprar && seller) {
+    const toBuy = offers.slice(0, qtyPedida)
+    const price = offers[0].price
+    const idsConsumidos = new Set<string>()
+    let compradas = 0
+
+    for (const o of toBuy) {
+      idsConsumidos.add(o.id)
+      const fee = tradeFee(price)
+      if (!transferCoin(seller, buyer, o.coinId)) continue
+      seller.balance += price - fee
+      compradas += 1
+    }
+
+    s.sellOffers = s.sellOffers.filter((o) => !idsConsumidos.has(o.id))
+
+    if (compradas > 0) {
+      s.trades.push({
+        price,
+        qty: compradas,
+        date: Date.now(),
+        buyer: reivindicada.userEmail,
+        seller: sellerId,
+        tipoMoeda: offers[0].tipoMoeda,
+      })
+
+      // Para a contabilidade: entrada externa que cobriu a compra
+      s.deposits.push({
+        userEmail: reivindicada.userEmail,
+        valor: price * compradas,
+        date: Date.now(),
+      })
+
+      // Se apenas parte das moedas do lote pôde ser transferida, o troco fica no saldo
+      const troco = reivindicada.valor - price * compradas
+      if (troco > 0) {
+        buyer.balance += troco
+        s.deposits.push({
+          userEmail: reivindicada.userEmail,
+          valor: troco,
+          date: Date.now(),
+        })
+      }
+
+      return { sucesso: true, motivo: 'compra_direta_concluida', compraConcluida: true }
+    } else {
+      // Transferência falhou em todas as moedas: credita integralmente ao comprador
+      buyer.balance += reivindicada.valor
+      s.deposits.push({
+        userEmail: reivindicada.userEmail,
+        valor: reivindicada.valor,
+        date: Date.now(),
+      })
+      return { sucesso: true, motivo: 'lote_indisponivel_creditado_em_saldo', compraConcluida: false }
+    }
+  } else {
+    // Lote indisponível (corrida de compra ou lote cancelado):
+    // O dinheiro não se perde: vira saldo em conta para o cliente
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: Date.now(),
+    })
+    return { sucesso: true, motivo: 'lote_indisponivel_creditado_em_saldo', compraConcluida: false }
+  }
+}
+
 /**
- * Confere um pagamento no gateway e credita o saldo ou liquida a compra direta.
+ * Liquidador de fatura de custódia (passo B2.4).
+ * Marca a fatura como paga, ativa o plano correspondente (se origem 'contratacao')
+ * ou renova (se origem 'renovacao_anual'), registra a entrada externa em deposits
+ * e reavalia a inadimplência do usuário.
+ */
+function liquidarFaturaCustodia(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+): ResultadoLiquidacao {
+  const buyer = s.users[reivindicada.userEmail]
+  if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  const faturaId = (reivindicada.metadata?.faturaId as string) || ''
+  s.faturasCustodia = s.faturasCustodia ?? []
+  const fatura = s.faturasCustodia.find((f) => f.id === faturaId)
+
+  if (!fatura) {
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: Date.now(),
+    })
+    return { sucesso: true, motivo: 'fatura_custodia_creditada_saldo' }
+  }
+
+  if (fatura.status === 'paga') {
+    return { sucesso: true, motivo: 'fatura_ja_paga' }
+  }
+
+  const agora = Date.now()
+  const metodoPagamento: FormaPagamentoFatura =
+    reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+
+  fatura.status = 'paga'
+  fatura.dataPagamento = agora
+  fatura.formaPagamento = metodoPagamento
+  fatura.paymentIntentId = reivindicada.externalReference
+
+  // Para a contabilidade: entrada externa que cobriu a fatura de custódia
+  s.deposits.push({
+    userEmail: reivindicada.userEmail,
+    valor: fatura.valorCents,
+    date: agora,
+  })
+
+  // Se a fatura é de contratação de plano, ativa o plano correspondente
+  if (fatura.origem === 'contratacao' && fatura.planoId) {
+    s.planosCustodia = s.planosCustodia ?? []
+    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+    if (plano) {
+      plano.status = 'vigente'
+      plano.pagoAteCompetencia = calcularPagoAte(plano.inicioCompetencia, plano.modalidade)
+      plano.formaPagamento = metodoPagamento
+      plano.paymentIntentRef = reivindicada.externalReference
+      plano.atualizadoEm = agora
+    }
+  } else if (fatura.origem === 'renovacao_anual' && fatura.planoId) {
+    s.planosCustodia = s.planosCustodia ?? []
+    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
+    if (plano) {
+      plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+      plano.formaPagamento = metodoPagamento
+      plano.atualizadoEm = agora
+    }
+  }
+
+  // Reavalia status de inadimplência do usuário
+  const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === reivindicada.userEmail)
+  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
+
+  return { sucesso: true, motivo: 'fatura_custodia_liquidada' }
+}
+
+/**
+ * Liquidador de assinatura de custódia (passo B2.8).
+ * Atualiza o plano de custódia com a assinaturaId, avança competência paga
+ * e quita a fatura correspondente caso exista.
+ */
+function liquidarAssinaturaCustodia(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+): ResultadoLiquidacao {
+  const buyer = s.users[reivindicada.userEmail]
+  if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  const agora = Date.now()
+  const planoId = (reivindicada.metadata?.planoId as string) || ''
+  s.planosCustodia = s.planosCustodia ?? []
+  const plano = s.planosCustodia.find((p) => p.id === planoId)
+
+  s.deposits.push({
+    userEmail: reivindicada.userEmail,
+    valor: reivindicada.valor,
+    date: agora,
+  })
+
+  if (plano) {
+    if (reivindicada.metadata?.assinaturaId) {
+      plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
+    }
+    plano.status = 'vigente'
+    plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
+    plano.formaPagamento = 'cartao'
+    plano.atualizadoEm = agora
+
+    // Se houver fatura pendente para esta competência e este plano, marca como paga
+    s.faturasCustodia = s.faturasCustodia ?? []
+    const fatura = s.faturasCustodia.find(
+      (f) => f.planoId === plano.id && f.status !== 'paga' && f.status !== 'cancelada',
+    )
+    if (fatura) {
+      fatura.status = 'paga'
+      fatura.dataPagamento = agora
+      fatura.formaPagamento = 'cartao'
+      fatura.paymentIntentId = reivindicada.externalReference
+    }
+  } else {
+    // Failsafe: se plano não foi encontrado, credita no saldo
+    buyer.balance += reivindicada.valor
+  }
+
+  // Reavalia status de inadimplência
+  const faturasRestantes = (s.faturasCustodia || []).filter((f) => f.userEmail === reivindicada.userEmail)
+  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
+
+  return { sucesso: true, motivo: 'assinatura_custodia_liquidada' }
+}
+
+/**
+ * Liquidador de retirada física (passo B3).
+ * Transiciona status para 'paga', extingue recibo, recalcula D+30 a partir
+ * da data de confirmação do pagamento e registra entrada externa no ledger.
+ */
+function liquidarRetirada(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+  detalhes: DetalhesPagamento,
+): ResultadoLiquidacao {
+  const buyer = s.users[reivindicada.userEmail]
+  if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  const agora = Date.now()
+  s.retiradas = s.retiradas ?? []
+
+  const retiradaId = (reivindicada.metadata?.retiradaId as string) || ''
+  const ret = s.retiradas.find(
+    (r) => r.id === retiradaId || r.paymentIntentRef === reivindicada.externalReference,
+  )
+
+  if (!ret) {
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: agora,
+    })
+    return { sucesso: true, motivo: 'retirada_nao_localizada_creditada_saldo' }
+  }
+
+  if (ret.status === 'paga') {
+    return { sucesso: true, motivo: 'retirada_ja_paga' }
+  }
+
+  // 1. Atualiza status da retirada
+  ret.status = 'paga'
+  ret.pagoEm = agora
+  ret.formaPagamento = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+  ret.paymentIntentRef = reivindicada.externalReference
+  ret.parcelas = detalhes.parcelas || (reivindicada.metadata?.parcelas as number) || 1
+  ret.dataLimiteD30 = calcularPrazoLimiteRetirada(agora)
+  ret.historico.push({
+    de: 'solicitada',
+    para: 'paga',
+    data: agora,
+    motivo: `Taxa de retirada paga via ${reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'}`,
+    autor: 'gateway',
+  })
+  ret.updatedAt = agora
+
+  // 2. Extinção do recibo da moeda (Regra inegociável do Bloco 10)
+  const coin = buyer.coins.find((c) => c.id === ret?.coinId)
+  if (coin) {
+    coin.recibo.status = 'Extinto'
+  }
+
+  // 3. Registra entrada externa (depósito) para o valor da taxa
+  // Fecha o livro-razão sem ajuste com o lançamento de taxa_retirada
+  s.deposits.push({
+    userEmail: reivindicada.userEmail,
+    valor: ret.valorTaxaCents,
+    date: agora,
+  })
+
+  return { sucesso: true, motivo: 'retirada_liquidada' }
+}
+
+export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
+  deposito: liquidarDeposito,
+  compra_direta: liquidarCompraDireta,
+  fatura_custodia: liquidarFaturaCustodia,
+  plano_custodia: liquidarFaturaCustodia,
+  assinatura_custodia: liquidarAssinaturaCustodia,
+  retirada: liquidarRetirada,
+}
+
+/**
+ * Confere um pagamento no gateway e despacha a liquidação pelo tipo de operação.
  *
  * A ORDEM DAS TRAVAS É A REGRA, NÃO O ESTILO
  * ------------------------------------------
@@ -42,13 +377,14 @@ export interface ResultadoConciliacao {
  *     encontra `pendente` uma vez. É o que impede duas entregas simultâneas do
  *     mesmo evento de creditarem duas vezes — a idempotência do evento protege
  *     o caso comum, esta trava protege o caso simultâneo.
- *  4. **Distinção contábil**:
- *     - Depósito simples (`DEP-*`): credita `u.balance` e registra em `deposits`.
- *     - Compra direta (`CMP-*`): liquida o lote imediatamente transferindo a
- *       moeda para o comprador, creditando o vendedor líquido da comissão da
- *       Áurea e registrando a negociação no histórico/ledger. Se o anúncio tiver
- *       sido consumido por outro usuário durante o pagamento, o valor não é
- *       perdido e é creditado no saldo do comprador para uso livre ou saque.
+ *  4. **Despachante por tipo de operação (Passo B1.4)**:
+ *     - `deposito`: credita `u.balance` e registra em `deposits`.
+ *     - `compra_direta`: transfere as moedas e credita vendedor líquido de taxa.
+ *     - `fatura_custodia` / `plano_custodia` / `assinatura_custodia`: B2.
+ *     - `retirada`: B3.
+ *  5. **Separação contábil do gateway (Passo B1.3 / B1.4, F-5, RA-30, RA-32)**:
+ *     Após a mutação de estado, grava o recebimento em `aurea.recebimentos_gateway`
+ *     com valor bruto, taxa do gateway, valor líquido e competência contábil.
  *
  * Se o crédito falhar depois da reivindicação, a intenção volta para `pendente`:
  * caso contrário ela ficaria travada em `creditando` para sempre, e o cliente
@@ -87,123 +423,82 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
     }
   }
 
-  const ehCompraDireta =
-    reivindicada.tipoOperacao === 'compra_direta' || ref.startsWith('CMP-')
+  const tipo: TipoOperacaoPagamento =
+    reivindicada.tipoOperacao || (ref.startsWith('CMP-') ? 'compra_direta' : 'deposito')
+  const liquidador = LIQUIDADORES[tipo] ?? liquidarDeposito
 
-  let compraConcluida = false
+  let resLiquidacao: ResultadoLiquidacao = { sucesso: true, motivo: 'creditado' }
 
   try {
     await mutateState((s) => {
-      const buyer = s.users[reivindicada.userEmail]
-      // A conta some do estado quando o ambiente recomeça do seed. Sem esta
-      // guarda, o crédito estouraria um TypeError no meio da transação.
-      if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
-
-      if (!ehCompraDireta) {
-        buyer.balance += reivindicada.valor
-        s.deposits.push({
-          userEmail: reivindicada.userEmail,
-          valor: reivindicada.valor,
-          date: Date.now(),
-        })
-        return
-      }
-
-      // Compra direta de lote via gateway
-      const lotId = (reivindicada.metadata?.lotId as string) || ''
-      const qtyPedida = Number(reivindicada.metadata?.qty) || 1
-
-      const offers = lotId ? s.sellOffers.filter((o) => o.lotId === lotId) : []
-      const sellerId = offers[0]?.seller
-      const seller = sellerId ? s.users[sellerId] : undefined
-
-      const podeComprar =
-        offers.length >= qtyPedida &&
-        Boolean(seller) &&
-        sellerId !== reivindicada.userEmail
-
-      if (podeComprar && seller) {
-        const toBuy = offers.slice(0, qtyPedida)
-        const price = offers[0].price
-        const idsConsumidos = new Set<string>()
-        let compradas = 0
-
-        for (const o of toBuy) {
-          idsConsumidos.add(o.id)
-          const fee = tradeFee(price)
-          if (!transferCoin(seller, buyer, o.coinId)) continue
-          seller.balance += price - fee
-          compradas += 1
-        }
-
-        s.sellOffers = s.sellOffers.filter((o) => !idsConsumidos.has(o.id))
-
-        if (compradas > 0) {
-          s.trades.push({
-            price,
-            qty: compradas,
-            date: Date.now(),
-            buyer: reivindicada.userEmail,
-            seller: sellerId,
-            tipoMoeda: offers[0].tipoMoeda,
-          })
-
-          // Para a contabilidade: entrada externa que cobriu a compra
-          s.deposits.push({
-            userEmail: reivindicada.userEmail,
-            valor: price * compradas,
-            date: Date.now(),
-          })
-
-          // Se apenas parte das moedas do lote pôde ser transferida, o troco fica no saldo
-          const troco = reivindicada.valor - price * compradas
-          if (troco > 0) {
-            buyer.balance += troco
-            s.deposits.push({
-              userEmail: reivindicada.userEmail,
-              valor: troco,
-              date: Date.now(),
-            })
-          }
-
-          compraConcluida = true
-        } else {
-          // Transferência falhou em todas as moedas: credita integralmente ao comprador
-          buyer.balance += reivindicada.valor
-          s.deposits.push({
-            userEmail: reivindicada.userEmail,
-            valor: reivindicada.valor,
-            date: Date.now(),
-          })
-        }
-      } else {
-        // Lote indisponível (corrida de compra ou lote cancelado):
-        // O dinheiro não se perde: vira saldo em conta para o cliente
-        buyer.balance += reivindicada.valor
-        s.deposits.push({
-          userEmail: reivindicada.userEmail,
-          valor: reivindicada.valor,
-          date: Date.now(),
-        })
-      }
+      resLiquidacao = liquidador(s, reivindicada, detalhes)
     })
   } catch (erro) {
     await intencoes.devolverParaPendente(ref)
     throw erro
   }
 
+  // Gravação idempotente em aurea.recebimentos_gateway (Passo B1.3/B1.4, F-5, RA-30, RA-32).
+  // Fica fora da transação do estado.
+  try {
+    const aprovadoEm = detalhes.dateApproved ?? Date.now()
+    await gravarRecebimento({
+      paymentId,
+      externalReference: ref,
+      tipoOperacao: tipo,
+      userEmail: reivindicada.userEmail,
+      metodo: detalhes.paymentMethodId || detalhes.paymentTypeId || 'desconhecido',
+      parcelas: detalhes.parcelas || 1,
+      valorBruto: detalhes.valorCents,
+      valorPagoCliente: detalhes.totalPagoCents || detalhes.valorCents,
+      tarifaGateway: detalhes.tarifaCents || 0,
+      valorLiquido:
+        detalhes.valorLiquidoCents || (detalhes.valorCents - (detalhes.tarifaCents || 0)),
+      aprovadoEm,
+      liberacaoPrevista: detalhes.dataLiberacao,
+      competencia: competenciaAtual(aprovadoEm),
+    })
+  } catch (errRecebimento) {
+    console.error('[conciliarPagamento] Erro ao gravar recebimento_gateway:', errRecebimento)
+  }
+
+  // Atualização da retirada no repositório persistente quando liquidada via gateway
+  if (tipo === 'retirada') {
+    try {
+      const repo = repositorioRetiradas()
+      const retId = (reivindicada.metadata?.retiradaId as string) || ''
+      const ret = await repo.buscarPorId(retId)
+      if (ret && ret.status !== 'paga') {
+        const agora = Date.now()
+        ret.status = 'paga'
+        ret.pagoEm = agora
+        ret.formaPagamento = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+        ret.paymentIntentRef = reivindicada.externalReference
+        ret.parcelas = detalhes.parcelas || (reivindicada.metadata?.parcelas as number) || 1
+        ret.dataLimiteD30 = calcularPrazoLimiteRetirada(agora)
+        ret.historico.push({
+          de: 'solicitada',
+          para: 'paga',
+          data: agora,
+          motivo: `Taxa de retirada paga via ${reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'}`,
+          autor: 'gateway',
+        })
+        ret.updatedAt = agora
+        await repo.atualizar(ret)
+      }
+    } catch (errRet) {
+      console.error('[conciliarPagamento] Erro ao atualizar retirada no banco:', errRet)
+    }
+  }
+
   await intencoes.concluir(ref, paymentId)
   return {
     creditado: true,
-    motivo: ehCompraDireta
-      ? compraConcluida
-        ? 'compra_direta_concluida'
-        : 'lote_indisponivel_creditado_em_saldo'
-      : 'creditado',
+    motivo: resLiquidacao.motivo,
     externalReference: ref,
     valorCents: reivindicada.valor,
     userEmail: reivindicada.userEmail,
-    tipoOperacao: ehCompraDireta ? 'compra_direta' : 'deposito',
-    compraConcluida: ehCompraDireta ? compraConcluida : undefined,
+    tipoOperacao: tipo,
+    compraConcluida: resLiquidacao.compraConcluida,
   }
 }

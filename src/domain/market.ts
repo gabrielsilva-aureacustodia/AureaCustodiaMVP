@@ -102,7 +102,15 @@ export function availableCoinsForSell(state: AppState, u: User, tipo?: string): 
     (c) =>
       c.recibo.status === 'Ativo' &&
       (tipo === undefined ? isNegociavel(c.tipoMoeda) : c.tipoMoeda === tipo && isNegociavel(tipo)) &&
-      !state.sellOffers.some((o) => o.coinId === c.id),
+      !state.sellOffers.some((o) => o.coinId === c.id) &&
+      !(state.retiradas ?? []).some(
+        (r) =>
+          r.coinId === c.id &&
+          (r.status === 'solicitada' ||
+            r.status === 'paga' ||
+            r.status === 'separacao' ||
+            r.status === 'postada'),
+      ),
   )
 }
 

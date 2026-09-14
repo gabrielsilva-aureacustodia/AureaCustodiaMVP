@@ -27,6 +27,7 @@ vi.mock('@/lib/payments', async (importOriginal) => {
 })
 
 import { conciliarPagamento } from './conciliacao'
+import { _limparRecebimentosEmMemoria, buscarRecebimentoPorPaymentId } from './recebimentos'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
 import { getState, mutateState } from '@/server/state'
 
@@ -34,15 +35,22 @@ const EMAIL = 'gabrielsilva@testeaurea.com.br'
 
 /** Resposta do gateway para um pagamento aprovado de `valor` centavos. */
 function aprovado(ref: string, valor: number) {
+  const agora = Date.now()
   return {
     id: 'pay-1',
     status: 'approved',
     valorCents: valor,
+    valorLiquidoCents: valor,
+    tarifaCents: 0,
+    totalPagoCents: valor,
+    parcelas: 1,
+    valorParcelaCents: valor,
+    dataLiberacao: agora,
     externalReference: ref,
     paymentMethodId: 'pix',
     paymentTypeId: 'bank_transfer',
-    dateApproved: Date.now(),
-    dateCreated: Date.now(),
+    dateApproved: agora,
+    dateCreated: agora,
     payerEmail: 'quem-pagou@exemplo.com',
   }
 }
@@ -95,6 +103,7 @@ async function saldo(): Promise<number> {
 describe('conciliarPagamento', () => {
   beforeEach(() => {
     _limparRepositoriosEmMemoria()
+    _limparRecebimentosEmMemoria()
     consultarPagamentoMercadoPago.mockReset()
   })
 
@@ -281,4 +290,264 @@ describe('conciliarPagamento', () => {
     // Dinheiro seguro na conta do comprador
     expect(await saldo()).toBe(saldoAntes + valor)
   })
+
+  it('grava a separação financeira em recebimentos_gateway com tarifa e líquido', async () => {
+    const ref = 'DEP-com-tarifa'
+    const valor = 50_000
+    const tarifa = 1_500
+    const liquido = valor - tarifa
+
+    await criarIntencao(ref, valor)
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-separacao-1',
+      tarifaCents: tarifa,
+      valorLiquidoCents: liquido,
+      totalPagoCents: valor,
+      parcelas: 1,
+      paymentMethodId: 'pix',
+    })
+
+    const res = await conciliarPagamento('pay-separacao-1')
+    expect(res.creditado).toBe(true)
+
+    const recebimento = await buscarRecebimentoPorPaymentId('pay-separacao-1')
+    expect(recebimento).not.toBeNull()
+    expect(recebimento).toMatchObject({
+      paymentId: 'pay-separacao-1',
+      externalReference: ref,
+      tipoOperacao: 'deposito',
+      userEmail: EMAIL,
+      valorBruto: valor,
+      tarifaGateway: tarifa,
+      valorLiquido: liquido,
+      parcelas: 1,
+    })
+    expect(recebimento?.competencia).toMatch(/^\d{4}-\d{2}$/)
+  })
+
+  it('despachante: operações ainda em construção (ex: plano_custodia, retirada) creditam em saldo como salvaguarda', async () => {
+    const ref = 'PLN-custodia-teste'
+    const valor = 4_000
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'plano_custodia',
+      metadata: null,
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-plano-1',
+    })
+
+    const saldoAntes = await saldo()
+    const res = await conciliarPagamento('pay-plano-1')
+
+    expect(res.creditado).toBe(true)
+    expect(res.tipoOperacao).toBe('plano_custodia')
+    expect(res.motivo).toBe('fatura_custodia_creditada_saldo')
+    expect(await saldo()).toBe(saldoAntes + valor)
+
+    const rec = await buscarRecebimentoPorPaymentId('pay-plano-1')
+    expect(rec?.tipoOperacao).toBe('plano_custodia')
+  })
+
+  it('despachante: assinatura_custodia atualiza plano.assinaturaId e avanca pagoAteCompetencia', async () => {
+    // Cria plano no estado
+    await mutateState((s) => {
+      s.planosCustodia = [
+        {
+          id: 'PLC-ASS-01',
+          userEmail: EMAIL,
+          protocoloEnvio: 'RO-ENV-ASS',
+          modalidade: 'mensal',
+          quantidadeContratada: 1,
+          moedaIds: ['RO-000001'],
+          valorPorMoedaCents: 200,
+          valorTotalCents: 200,
+          parcelasMax: 1,
+          inicioCompetencia: '2026-09',
+          pagoAteCompetencia: '2026-09',
+          status: 'vigente',
+          formaPagamento: 'cartao',
+          paymentIntentRef: null,
+          assinaturaId: null,
+          estornadoCents: 0,
+          criadoEm: Date.now(),
+          atualizadoEm: Date.now(),
+        },
+      ]
+      s.faturasCustodia = [
+        {
+          id: 'FAT-2026-10-ASS',
+          userEmail: EMAIL,
+          competencia: '2026-10',
+          quantidadeMoedas: 1,
+          moedaIds: ['RO-000001'],
+          valorCents: 200,
+          status: 'pendente',
+          dataEmissao: Date.now(),
+          dataVencimento: Date.now() + 10 * 86400000,
+          dataPagamento: null,
+          formaPagamento: null,
+          paymentIntentId: null,
+          planoId: 'PLC-ASS-01',
+          origem: 'ciclo_mensal',
+        },
+      ]
+    })
+
+    const ref = 'ASS-PLC-ASS-01'
+    const valor = 200
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'assinatura_custodia',
+      metadata: { planoId: 'PLC-ASS-01', assinaturaId: 'preapp-rec-999' },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-assinatura-1',
+      paymentMethodId: 'credit_card',
+      paymentTypeId: 'credit_card',
+    })
+
+    const res = await conciliarPagamento('pay-assinatura-1')
+    expect(res.creditado).toBe(true)
+    expect(res.motivo).toBe('assinatura_custodia_liquidada')
+
+    const st = await getState()
+    const plano = st.planosCustodia?.find((p) => p.id === 'PLC-ASS-01')
+    expect(plano?.assinaturaId).toBe('preapp-rec-999')
+    expect(plano?.pagoAteCompetencia).toBe('2026-10')
+
+    const fatura = st.faturasCustodia?.find((f) => f.id === 'FAT-2026-10-ASS')
+    expect(fatura?.status).toBe('paga')
+    expect(fatura?.formaPagamento).toBe('cartao')
+  })
+
+  it('liquida taxa de retirada paga via Pix com extinção de recibo e recálculo D+30', async () => {
+    let moedaId = ''
+    await mutateState((s) => {
+      const u = s.users[EMAIL]
+      const moeda = u.coins[0]
+      moedaId = moeda.id
+      moeda.recibo.status = 'Ativo'
+
+      s.retiradas = [
+        {
+          id: 'RET-TESTE-PIX',
+          coinId: moeda.id,
+          userEmail: EMAIL,
+          modalidade: 'comum',
+          status: 'solicitada',
+          valorTaxaCents: 5000,
+          formaPagamento: 'pix',
+          paymentIntentRef: 'RET-INTENT-PIX-1',
+          reciboCodigo: moeda.recibo.codigo,
+          dataLimiteD30: Date.now() + 30 * 86400000,
+          solicitadoEm: Date.now() - 10000,
+          endereco: {
+            nome: 'Gabriel Silva',
+            cpfOuCnpj: '111.222.333-44',
+            logradouro: 'Rua Rio de Janeiro',
+            numero: '1000',
+            complemento: 'Apto 1201',
+            bairro: 'Centro',
+            cidade: 'Belo Horizonte',
+            uf: 'MG',
+            cep: '30160-041',
+            telefone: '(31) 99999-8888',
+          },
+          historico: [
+            {
+              de: null,
+              para: 'solicitada',
+              data: Date.now() - 10000,
+              motivo: 'Solicitação criada',
+              autor: EMAIL,
+            },
+          ],
+          createdAt: Date.now() - 10000,
+          updatedAt: Date.now() - 10000,
+        },
+      ]
+    })
+
+    const ref = 'RET-INTENT-PIX-1'
+    const valor = 5000
+
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'retirada',
+      metadata: { retiradaId: 'RET-TESTE-PIX', coinId: moedaId },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    consultarPagamentoMercadoPago.mockResolvedValue({
+      ...aprovado(ref, valor),
+      id: 'pay-retirada-pix-1',
+      tarifaCents: 150,
+      valorLiquidoCents: 4850,
+      paymentMethodId: 'pix',
+      paymentTypeId: 'bank_transfer',
+    })
+
+    const res = await conciliarPagamento('pay-retirada-pix-1')
+    expect(res.creditado).toBe(true)
+    expect(res.motivo).toBe('retirada_liquidada')
+
+    const st = await getState()
+    const ret = st.retiradas?.find((r) => r.id === 'RET-TESTE-PIX')
+    expect(ret?.status).toBe('paga')
+    expect(ret?.formaPagamento).toBe('pix')
+    expect(ret?.pagoEm).toBeDefined()
+
+    // Recibo foi extinto
+    const coin = st.users[EMAIL].coins.find((c) => c.id === moedaId)
+    expect(coin?.recibo.status).toBe('Extinto')
+
+    // D+30 recalculado da data de pagamento
+    const trintaDiasMs = 30 * 24 * 60 * 60 * 1000
+    expect(ret?.dataLimiteD30).toBeGreaterThanOrEqual(Date.now() + trintaDiasMs - 5000)
+
+    // Recebimento gateway gravado
+    const rec = await buscarRecebimentoPorPaymentId('pay-retirada-pix-1')
+    expect(rec).toBeDefined()
+    expect(rec?.valorBruto).toBe(5000)
+    expect(rec?.tarifaGateway).toBe(150)
+    expect(rec?.valorLiquido).toBe(4850)
+
+    // Idempotência: reenvio não altera status ou recria recebimento
+    const resRepetido = await conciliarPagamento('pay-retirada-pix-1')
+    expect(resRepetido.creditado).toBe(false)
+    expect(resRepetido.motivo).toContain('já estava com status')
+  })
 })
+
+

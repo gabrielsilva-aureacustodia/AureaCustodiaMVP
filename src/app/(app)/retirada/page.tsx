@@ -7,13 +7,26 @@ import type { ReactNode } from 'react'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { Retirada } from '@/domain/types'
+import { ModalPagarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
 import { useApp } from '@/components/providers/AppProvider'
-import { obterMinhasRetiradas } from '@/server/actions/custody'
+import { useModal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
+import { cancelarSolicitacaoRetirada, obterMinhasRetiradas } from '@/server/actions/custody'
 
 export default function RetiradasPage(): ReactNode {
-  const { session } = useApp()
+  const { session, run } = useApp()
+  const modal = useModal()
+  const toast = useToast()
   const [retiradas, setRetiradas] = useState<Retirada[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [cancelandoId, setCancelandoId] = useState<string | null>(null)
+
+  async function recarregar(): Promise<void> {
+    const res = await obterMinhasRetiradas()
+    if (res.ok && res.data) {
+      setRetiradas(res.data)
+    }
+  }
 
   useEffect(() => {
     let ativo = true
@@ -29,6 +42,28 @@ export default function RetiradasPage(): ReactNode {
       ativo = false
     }
   }, [session])
+
+  async function handleCancelar(retiradaId: string): Promise<void> {
+    if (!confirm('Deseja cancelar esta solicitação de retirada? A moeda voltará a ficar disponível para negociação.')) {
+      return
+    }
+    setCancelandoId(retiradaId)
+    try {
+      const res = await run(() => cancelarSolicitacaoRetirada(retiradaId))
+      if (res.ok) {
+        toast('Solicitação de retirada cancelada com sucesso.')
+        await recarregar()
+      } else {
+        toast(res.error || 'Falha ao cancelar solicitação.')
+      }
+    } finally {
+      setCancelandoId(null)
+    }
+  }
+
+  function abrirPagamento(r: Retirada): void {
+    modal.open(<ModalPagarRetirada retirada={r} onSuccess={() => void recarregar()} />)
+  }
 
   const total = retiradas.length
   const emAndamento = retiradas.filter((r) => r.status !== 'entregue' && r.status !== 'cancelada').length
@@ -85,13 +120,22 @@ export default function RetiradasPage(): ReactNode {
                       Retirada {r.id}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Solicitada em {fdate(r.solicitadoEm)} · Recibo extinto:{' '}
-                      <Link
-                        href={`/recibos/${r.coinId}`}
-                        style={{ color: 'var(--gold)', fontWeight: 600 }}
-                      >
-                        {r.reciboCodigo}
-                      </Link>
+                      Solicitada em {fdate(r.solicitadoEm)}
+                      {r.status === 'solicitada' ? (
+                        ' · Aguardando pagamento da taxa'
+                      ) : r.status === 'cancelada' ? (
+                        ' · Cancelada'
+                      ) : (
+                        <>
+                          {' · Recibo extinto: '}
+                          <Link
+                            href={`/recibos/${r.coinId}`}
+                            style={{ color: 'var(--gold)', fontWeight: 600 }}
+                          >
+                            {r.reciboCodigo}
+                          </Link>
+                        </>
+                      )}
                     </div>
                   </div>
                   <span className={`badge-retirada badge-${r.status}`}>
@@ -118,15 +162,19 @@ export default function RetiradasPage(): ReactNode {
                     </div>
                   </div>
                   <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>Taxa Paga</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                      {r.status === 'solicitada' ? 'Taxa a Pagar' : 'Taxa Paga'}
+                    </div>
                     <div style={{ fontWeight: 600 }}>{brl(r.valorTaxaCents)}</div>
                   </div>
                   <div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
-                      Limite para postar (30 dias)
+                      {r.status === 'solicitada' ? 'Prazo D+30' : 'Limite para postar (30 dias)'}
                     </div>
                     <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
-                      {fdate(r.dataLimiteD30)}
+                      {r.status === 'solicitada'
+                        ? 'Inicia após pagamento'
+                        : fdate(r.dataLimiteD30)}
                     </div>
                   </div>
                   {r.codigoRastreio ? (
@@ -146,35 +194,87 @@ export default function RetiradasPage(): ReactNode {
                   {r.endereco.cidade}/{r.endereco.uf} - CEP {r.endereco.cep}
                 </div>
 
-                <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <Link
-                    href={`/recibos/${r.coinId}`}
-                    className="btn btn-outline"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      minHeight: '44px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    Ver recibo extinto
-                  </Link>
-                  <a
-                    href={`/api/retiradas/etiqueta/${r.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-outline"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      minHeight: '44px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    🏷️ Imprimir etiqueta Correios
-                  </a>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {r.status === 'solicitada' ? (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-gold"
+                        onClick={() => abrirPagamento(r)}
+                        style={{
+                          padding: '6px 16px',
+                          fontSize: '13px',
+                          minHeight: '44px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        💳 Pagar taxa ({brl(r.valorTaxaCents)})
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={cancelandoId === r.id}
+                        onClick={() => void handleCancelar(r.id)}
+                        style={{
+                          padding: '6px 14px',
+                          fontSize: '13px',
+                          minHeight: '44px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          color: 'var(--red)',
+                        }}
+                      >
+                        {cancelandoId === r.id ? 'Cancelando...' : 'Cancelar solicitação'}
+                      </button>
+                      <Link
+                        href={`/recibos/${r.coinId}`}
+                        className="btn btn-outline"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          minHeight: '44px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Ver recibo
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href={`/recibos/${r.coinId}`}
+                        className="btn btn-outline"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          minHeight: '44px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Ver recibo extinto
+                      </Link>
+                      {r.status !== 'cancelada' ? (
+                        <a
+                          href={`/api/retiradas/etiqueta/${r.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-outline"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            minHeight: '44px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          🏷️ Imprimir etiqueta Correios
+                        </a>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </div>
             ))}

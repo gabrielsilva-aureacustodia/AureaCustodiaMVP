@@ -34,6 +34,7 @@ import type {
   CompraDiretaIniciada,
   DepositoIniciado,
   MetodoDeposito,
+  StatusCobrancaInfo,
 } from '@/server/payments/tipos'
 
 const SESSAO_EXPIRADA = 'Sessão expirada.'
@@ -276,3 +277,61 @@ export async function iniciarCompraDireta(
     return { ok: false, error: FALHA_GATEWAY }
   }
 }
+
+/**
+ * Consulta o status de uma cobrança pelo externalReference (B1.6).
+ *
+ * Utilizado pelo PainelPagamento para polling a cada 5s até a confirmação
+ * via webhook ou recusa do gateway.
+ *
+ * Exige sessão autenticada e garante que apenas o dono da intenção pode consultá-la.
+ */
+export async function consultarStatusCobranca(
+  externalReference: string,
+): Promise<ActionResult<StatusCobrancaInfo>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (!externalReference || typeof externalReference !== 'string') {
+    return { ok: false, error: 'Referência de cobrança inválida.' }
+  }
+
+  const intencoes = repositorioIntencoes()
+  const intencao = await intencoes.buscar(externalReference)
+
+  if (!intencao) {
+    return { ok: false, error: 'Cobrança não encontrada.' }
+  }
+
+  // Segurança: apenas o dono da intenção pode consultar seu status
+  if (intencao.userEmail !== email) {
+    return { ok: false, error: 'Acesso não autorizado a esta cobrança.' }
+  }
+
+  if (intencao.status === 'creditado') {
+    return {
+      ok: true,
+      data: {
+        status: 'creditado',
+      },
+    }
+  }
+
+  if (intencao.status === 'recusado') {
+    return {
+      ok: true,
+      data: {
+        status: 'recusado',
+        motivo: intencao.motivoRecusa || 'Cobrança recusada.',
+      },
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      status: 'pendente',
+    },
+  }
+}
+

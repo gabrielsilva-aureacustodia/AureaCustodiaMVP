@@ -558,6 +558,12 @@ export interface Retirada {
   codigoRastreio?: string
   /** Trilha de auditoria e transições de estado da retirada. */
   historico: EventoHistoricoRetirada[]
+  /** Forma de pagamento escolhida para a taxa da retirada (B3). */
+  formaPagamento?: 'saldo' | 'pix' | 'cartao' | null
+  /** Referência externa da intenção de pagamento no gateway (B3). */
+  paymentIntentRef?: string | null
+  /** Quantidade de parcelas no cartão de crédito (B3). */
+  parcelas?: number
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -640,3 +646,48 @@ export interface LegalBlockAcceptance {
 export interface UserSettings {
   legalAcceptance?: LegalBlockAcceptance
 }
+
+/* === Finalizações · Frente B === */
+
+export type ModalidadePlanoCustodia = 'mensal' | 'anual'
+export type StatusPlanoCustodia = 'aguardando_pagamento' | 'vigente' | 'encerrado' | 'cancelado'
+
+export interface PlanoCustodia {
+  id: string                          // 'PLC-000001'
+  userEmail: UserEmail
+  protocoloEnvio: string
+  modalidade: ModalidadePlanoCustodia
+  quantidadeContratada: number
+  moedaIds: string[]                  // preenchido na emissão dos recibos
+  valorPorMoedaCents: Cents           // congelado na contratação
+  valorTotalCents: Cents
+  parcelasMax: number
+  inicioCompetencia: string           // 'AAAA-MM'
+  pagoAteCompetencia: string | null
+  status: StatusPlanoCustodia
+  formaPagamento: FormaPagamentoFatura | null
+  paymentIntentRef: string | null
+  assinaturaId: string | null         // B2.8
+  estornadoCents: Cents
+  criadoEm: Timestamp
+  atualizadoEm: Timestamp
+}
+
+export interface FaturaCustodia {
+  planoId?: string | null
+  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'
+}
+
+export interface Envio {
+  modalidadeEnvio?: 'PAC' | 'SEDEX'
+}
+
+export interface Seq {
+  planoCustodia?: number
+}
+
+export interface AppState {
+  planosCustodia?: PlanoCustodia[]
+  retiradas?: Retirada[]
+}
+

@@ -33,6 +33,7 @@
 @import '../styles/recibo.css';
 @import '../styles/reports.css';
 @import '../styles/account.css';
+@import '../styles/pagamento.css';
 
 /* SEMPRE POR ÚLTIMO — ver a explicação no topo deste arquivo. */
 @import '../styles/responsive.css';

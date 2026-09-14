@@ -160,12 +160,13 @@ function suite(alvo: Alvo): void {
           // recusa truncar uma tabela referenciada se quem a referencia ficar de
           // fora da mesma instrução.
           `TRUNCATE ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
+                    ${S}.recebimentos_gateway, ${S}.planos_custodia,
                     ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                     ${S}.trades, ${S}.deposits, ${S}.envios, ${S}.ofertas_historico,
                     ${S}.saques, ${S}.faturas_custodia, ${S}.aceites_documentos, ${S}.documentos_legais,
                     ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
         )
-        await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0 WHERE id = 1`)
+        await tx.query(`UPDATE ${S}.seq SET coin = 0, envio = 0, plano_custodia = 0 WHERE id = 1`)
       })
     })
 
@@ -181,7 +182,8 @@ function suite(alvo: Alvo): void {
       const { rows: tabelas } = await executar((tx) =>
         tx.query<{ relname: string; relrowsecurity: boolean }>(
           `SELECT c.relname, c.relrowsecurity
-             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             FROM pg_class c
+             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE n.nspname = $1 AND c.relkind = 'r'
             ORDER BY c.relname`,
           [S],
@@ -212,7 +214,11 @@ function suite(alvo: Alvo): void {
         // Migration 002 — pagamentos e rastreio (frente C).
         'payment_events',
         'payment_intents',
+        // Migration 018 — planos de custódia (Passo B2.2).
+        'planos_custodia',
         'rastreios',
+        // Migration 017 — recebimentos do gateway com tarifa e líquido (Passo B1.3).
+        'recebimentos_gateway',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
         // Migration 011 — retiradas físicas da custódia (frente C).
@@ -946,12 +952,18 @@ function suite(alvo: Alvo): void {
 
       r.status = 'paga'
       r.pagoEm = agora + 1000
+      r.formaPagamento = 'pix'
+      r.paymentIntentRef = 'RET-INT-001'
+      r.parcelas = 1
       r.updatedAt = agora + 1000
       await executar((tx) => atualizarRetirada(tx, r))
 
       const atualizado = await executar((tx) => buscarRetiradaPorId(tx, 'RET-TEST-001'))
       expect(atualizado?.status).toBe('paga')
       expect(atualizado?.pagoEm).toBe(agora + 1000)
+      expect(atualizado?.formaPagamento).toBe('pix')
+      expect(atualizado?.paymentIntentRef).toBe('RET-INT-001')
+      expect(atualizado?.parcelas).toBe(1)
 
       const todas = await executar((tx) => listarTodasRetiradas(tx))
       expect(todas.map((x) => x.id)).toContain('RET-TEST-001')

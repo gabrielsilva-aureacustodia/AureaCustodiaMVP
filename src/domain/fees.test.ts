@@ -12,7 +12,7 @@ import {
   liquidoDeVendaPorMoeda,
   tradeFee,
 } from './fees'
-import { TAXA_RETIRADA_COMUM_CENTS, TAXA_RETIRADA_SEGURA_CENTS } from './retirada'
+import { TAXAS_RETIRADA_PADRAO } from './retirada'
 
 describe('Regras de Taxas e Tarifas (fees.ts)', () => {
   describe('Custódia Mensal e Anual (Decisão D-3)', () => {
@@ -72,8 +72,11 @@ describe('Regras de Taxas e Tarifas (fees.ts)', () => {
     })
 
     it('valores de retirada em TAXAS_PADRAO são iguais aos de retirada.ts', () => {
-      expect(TAXAS_PADRAO.taxaRetiradaComum).toBe(TAXA_RETIRADA_COMUM_CENTS)
-      expect(TAXAS_PADRAO.taxaRetiradaSegura).toBe(TAXA_RETIRADA_SEGURA_CENTS)
+      // B3 trocou as duas constantes de retirada.ts por TAXAS_RETIRADA_PADRAO; a conferência
+      // continua a mesma — as duas tabelas precisam concordar.
+      expect(TAXAS_PADRAO.taxaRetiradaComum).toBe(TAXAS_RETIRADA_PADRAO.taxaRetiradaComum)
+      expect(TAXAS_PADRAO.taxaRetiradaSegura).toBe(TAXAS_RETIRADA_PADRAO.taxaRetiradaSegura)
+      expect(TAXAS_PADRAO.retiradaSeguraParcelasMax).toBe(TAXAS_RETIRADA_PADRAO.retiradaSeguraParcelasMax)
     })
   })
 })

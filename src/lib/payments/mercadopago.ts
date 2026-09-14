@@ -14,6 +14,7 @@ import 'server-only'
  */
 
 import { brl } from '@/domain/money'
+import { criarCobrancaCartao, criarCobrancaPix } from './cobranca'
 import type {
   CriarPixDepositoInput,
   CriarPreferenciaDepositoInput,
@@ -25,13 +26,17 @@ import type {
 
 const MP_API_BASE = 'https://api.mercadopago.com'
 
-/** Obtém o token configurado (sandbox por padrão). */
+/**
+ * Obtém o token configurado conforme o ambiente (decisão B1.0, 13/09/2026).
+ *
+ * Em sandbox (`MP_SANDBOX !== 'false'`), prioriza o token de teste e aceita o de produção como fallback.
+ * Em produção (`MP_SANDBOX === 'false'`), aceita EXCLUSIVAMENTE o token de produção (`MP_ACCESS_TOKEN`).
+ * Sem token no ambiente, devolve null e o sistema opera no modo simulador com `simulado: true`.
+ */
 export function getMercadoPagoAccessToken(): string | null {
-  return (
-    process.env.MP_ACCESS_TOKEN_TEST ||
-    process.env.MP_ACCESS_TOKEN ||
-    null
-  )
+  return isMercadoPagoSandbox()
+    ? process.env.MP_ACCESS_TOKEN_TEST || process.env.MP_ACCESS_TOKEN || null
+    : process.env.MP_ACCESS_TOKEN || null
 }
 
 /** Verifica se está operando em modo sandbox. */
@@ -50,193 +55,59 @@ export function isMercadoPagoSandbox(): boolean {
 /**
  * Cria uma preferência de pagamento no Mercado Pago (Checkout Pro).
  *
- * Utilizado para depósitos onde o usuário escolhe a forma de pagamento
- * em página segura hospedada pelo Mercado Pago.
+ * Reutiliza criarCobrancaCartao (B1.1) mantendo a assinatura e retrocompatibilidade.
  */
 export async function criarPreferenciaDeposito(
   input: CriarPreferenciaDepositoInput,
 ): Promise<PreferenciaDepositoResult> {
-  const { userEmail, valorCents, externalReference, descricao, backUrls } = input
-
-  if (!Number.isInteger(valorCents) || valorCents <= 0) {
+  if (!Number.isInteger(input.valorCents) || input.valorCents <= 0) {
     throw new Error('Valor de depósito inválido.')
   }
 
-  const token = getMercadoPagoAccessToken()
+  const backUrls = input.backUrls
+    ? {
+        sucesso: input.backUrls.success,
+        pendente: input.backUrls.pending,
+        falha: input.backUrls.failure,
+      }
+    : undefined
 
-  // Sem credencial no ambiente, opera em modo simulador.
-  //
-  // As URLs vêm VAZIAS de propósito. Antes de 11/09/2026 elas apontavam para o
-  // domínio real do Mercado Pago com um `pref_id` inventado, e o efeito era um
-  // beco sem saída: o gateway não reconhecia o identificador e devolvia a
-  // própria página de erro, que o cliente lê como falha da Áurea. Quem decide o
-  // que mostrar é a tela, pelo campo `simulado`.
-  if (!token) {
-    const simId = `SIM-PREF-${Date.now()}-${Math.floor(Math.random() * 10000)}`
-    return {
-      id: simId,
-      initPoint: '',
-      sandboxInitPoint: '',
-      externalReference,
-      valorCents,
-      createdAt: Date.now(),
-      simulado: true,
-    }
-  }
-
-  const unitPrice = valorCents / 100
-  const title = descricao || `Depósito de saldo — Áurea Custódia (${brl(valorCents)})`
-
-  const payload = {
-    items: [
-      {
-        id: externalReference,
-        title,
-        description: 'Aporte de recursos na plataforma Áurea Custódia',
-        quantity: 1,
-        unit_price: unitPrice,
-        currency_id: 'BRL',
-      },
-    ],
-    payer: {
-      email: userEmail,
-    },
-    external_reference: externalReference,
-    statement_descriptor: 'AUREA CUSTODIA',
-    payment_methods: {
-      excluded_payment_types: [],
-      installments: 1,
-    },
-    back_urls: backUrls || {
-      success: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/conta?status=success`,
-      pending: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/conta?status=pending`,
-      failure: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/conta?status=failure`,
-    },
-    auto_return: 'approved',
-  }
-
-  const res = await fetch(`${MP_API_BASE}/checkout/preferences`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
+  return criarCobrancaCartao({
+    externalReference: input.externalReference,
+    userEmail: input.userEmail,
+    valorCents: input.valorCents,
+    titulo: input.descricao || `Depósito de saldo — Áurea Custódia (${brl(input.valorCents)})`,
+    descricao: input.descricao || 'Aporte de recursos na plataforma Áurea Custódia',
+    parcelasMax: 1,
+    voltarPara: backUrls,
   })
-
-  if (!res.ok) {
-    const errBody = await res.text()
-    throw new Error(`Erro ao criar preferência no Mercado Pago: ${res.status} ${errBody}`)
-  }
-
-  const data = (await res.json()) as {
-    id: string
-    init_point: string
-    sandbox_init_point: string
-    external_reference: string
-    date_created?: string
-  }
-
-  return {
-    id: data.id,
-    initPoint: data.init_point,
-    sandboxInitPoint: data.sandbox_init_point || data.init_point,
-    externalReference: data.external_reference,
-    valorCents,
-    createdAt: data.date_created ? new Date(data.date_created).getTime() : Date.now(),
-  }
 }
 
 /**
  * Cria uma cobrança Pix direta via API do Mercado Pago.
- * Devolve o código "Copia e Cola" e o QR Code em base64 para exibição na tela.
+ *
+ * Reutiliza criarCobrancaPix (B1.1) mantendo a assinatura e retrocompatibilidade.
  */
 export async function criarPixDeposito(
   input: CriarPixDepositoInput,
 ): Promise<PixDepositoResult> {
-  const { userEmail, valorCents, externalReference, descricao } = input
-
-  if (!Number.isInteger(valorCents) || valorCents <= 0) {
+  if (!Number.isInteger(input.valorCents) || input.valorCents <= 0) {
     throw new Error('Valor de depósito inválido.')
   }
 
-  const token = getMercadoPagoAccessToken()
-
-  // Modo simulador se não houver credencial.
-  //
-  // Sem `qrCode` de propósito: até 11/09/2026 este ramo devolvia um texto com a
-  // estrutura de um payload Pix de verdade e um QR que era um pixel branco de
-  // 1x1. Alguém pode tentar pagar aquilo. Quem avisa que não há gateway é a
-  // tela, pelo campo `simulado`.
-  if (!token) {
-    const simId = `SIM-PIX-${Date.now()}-${Math.floor(Math.random() * 10000)}`
-    return {
-      simulado: true,
-      paymentId: simId,
-      status: 'pending',
-      qrCode: '',
-      valorCents,
-      externalReference,
-      createdAt: Date.now(),
-    }
-  }
-
-  const payload = {
-    transaction_amount: valorCents / 100,
-    description: descricao || `Depósito de saldo Áurea Custódia - ${externalReference}`,
-    payment_method_id: 'pix',
-    payer: {
-      email: userEmail,
-    },
-    external_reference: externalReference,
-  }
-
-  const res = await fetch(`${MP_API_BASE}/v1/payments`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      'X-Idempotency-Key': externalReference,
-    },
-    body: JSON.stringify(payload),
+  return criarCobrancaPix({
+    externalReference: input.externalReference,
+    userEmail: input.userEmail,
+    valorCents: input.valorCents,
+    titulo: `Depósito de saldo Áurea Custódia - ${input.externalReference}`,
+    descricao: input.descricao || `Depósito de saldo Áurea Custódia - ${input.externalReference}`,
+    parcelasMax: 1,
   })
-
-  if (!res.ok) {
-    const errBody = await res.text()
-    throw new Error(`Erro ao gerar Pix no Mercado Pago: ${res.status} ${errBody}`)
-  }
-
-  const data = (await res.json()) as {
-    id: number | string
-    status: StatusPagamentoGateway
-    point_of_interaction?: {
-      transaction_data?: {
-        qr_code?: string
-        qr_code_base64?: string
-        ticket_url?: string
-      }
-    }
-    date_of_expiration?: string
-    date_created?: string
-  }
-
-  const transactionData = data.point_of_interaction?.transaction_data
-
-  return {
-    paymentId: String(data.id),
-    status: data.status,
-    qrCode: transactionData?.qr_code || '',
-    qrCodeBase64: transactionData?.qr_code_base64,
-    ticketUrl: transactionData?.ticket_url,
-    valorCents,
-    externalReference,
-    expirationDate: data.date_of_expiration,
-    createdAt: data.date_created ? new Date(data.date_created).getTime() : Date.now(),
-  }
 }
 
 /**
  * Consulta os detalhes de um pagamento no Mercado Pago pelo ID da transação.
+ * Lê o que o financeiro precisa: bruto, tarifa, líquido, parcelas e data de liberação (B1.2).
  */
 export async function consultarPagamentoMercadoPago(
   paymentId: string,
@@ -244,16 +115,24 @@ export async function consultarPagamentoMercadoPago(
   const token = getMercadoPagoAccessToken()
 
   if (!token) {
-    // Simulação determinística para pagamentos mock
+    // Simulação determinística para pagamentos mock (B1.2: tarifa zero e líquido = bruto)
+    const valor = 10000
+    const agora = Date.now()
     return {
       id: paymentId,
       status: 'approved',
-      valorCents: 10000,
+      valorCents: valor,
+      valorLiquidoCents: valor,
+      tarifaCents: 0,
+      totalPagoCents: valor,
+      parcelas: 1,
+      valorParcelaCents: valor,
+      dataLiberacao: agora,
       externalReference: `DEP-${paymentId}`,
       paymentMethodId: 'pix',
       paymentTypeId: 'bank_transfer',
-      dateApproved: Date.now(),
-      dateCreated: Date.now() - 60000,
+      dateApproved: agora,
+      dateCreated: agora - 60000,
       payerEmail: 'simulado@testeaurea.com.br',
     }
   }
@@ -280,18 +159,49 @@ export async function consultarPagamentoMercadoPago(
     payment_type_id?: string
     date_approved?: string | null
     date_created?: string
+    money_release_date?: string | null
+    installments?: number
+    transaction_details?: {
+      net_received_amount?: number
+      total_paid_amount?: number
+      installment_amount?: number
+    }
     payer?: {
       email?: string
     }
   }
 
   const valorCents = Math.round(data.transaction_amount * 100)
+  const valorLiquidoCents =
+    data.transaction_details?.net_received_amount != null
+      ? Math.round(data.transaction_details.net_received_amount * 100)
+      : valorCents
+  // Regra F-5 / B1.2: tarifa = transaction_amount - net_received_amount
+  const tarifaCents = Math.max(0, valorCents - valorLiquidoCents)
+  const totalPagoCents =
+    data.transaction_details?.total_paid_amount != null
+      ? Math.round(data.transaction_details.total_paid_amount * 100)
+      : valorCents
+  const parcelas = data.installments && data.installments > 0 ? data.installments : 1
+  const valorParcelaCents =
+    data.transaction_details?.installment_amount != null
+      ? Math.round(data.transaction_details.installment_amount * 100)
+      : Math.round(valorCents / parcelas)
+  const dataLiberacao = data.money_release_date
+    ? new Date(data.money_release_date).getTime()
+    : null
 
   return {
     id: String(data.id),
     status: data.status,
     statusDetail: data.status_detail,
     valorCents,
+    valorLiquidoCents,
+    tarifaCents,
+    totalPagoCents,
+    parcelas,
+    valorParcelaCents,
+    dataLiberacao,
     externalReference: data.external_reference || '',
     paymentMethodId: data.payment_method_id || '',
     paymentTypeId: data.payment_type_id || '',
@@ -301,3 +211,73 @@ export async function consultarPagamentoMercadoPago(
     raw: data,
   }
 }
+
+export interface AtivarDebitoAutomaticoInput {
+  planoId: string
+  userEmail: string
+  valorCents: number
+  descricao?: string
+  backUrl?: string
+}
+
+export interface DebitoAutomaticoResult {
+  id: string
+  initPoint: string
+  status: string
+  simulado?: boolean
+}
+
+/**
+ * Ativa assinatura recorrente mensal via endpoint POST /preapproval do Mercado Pago (B2.8).
+ * Opera em modo simulado caso não haja token do gateway configurado.
+ */
+export async function ativarDebitoAutomatico(
+  input: AtivarDebitoAutomaticoInput,
+): Promise<DebitoAutomaticoResult> {
+  const token = getMercadoPagoAccessToken()
+  const externalReference = `ASS-${input.planoId}`
+
+  if (!token) {
+    return {
+      id: `preapp-mock-${input.planoId}`,
+      initPoint: `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=mock-${input.planoId}`,
+      status: 'pending',
+      simulado: true,
+    }
+  }
+
+  const payload = {
+    payer_email: input.userEmail,
+    back_url: input.backUrl || 'https://aureacustodia.com.br/conta/faturas',
+    reason: input.descricao || `Plano Mensal de Custódia — Áurea Custódia (${input.planoId})`,
+    external_reference: externalReference,
+    auto_recurring: {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: input.valorCents / 100,
+      currency_id: 'BRL',
+    },
+  }
+
+  const res = await fetch(`${MP_API_BASE}/preapproval`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`Erro ao ativar débito automático no Mercado Pago: ${res.status} ${errBody}`)
+  }
+
+  const data = (await res.json()) as { id: string; init_point: string; status: string }
+  return {
+    id: data.id,
+    initPoint: data.init_point,
+    status: data.status,
+  }
+}
+

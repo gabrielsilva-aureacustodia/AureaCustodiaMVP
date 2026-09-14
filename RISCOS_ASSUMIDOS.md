@@ -57,6 +57,8 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-24** | Compra direta via gateway cobra comissão apenas do vendedor — temporário até B1.4 unificar | 🟡 | `src/server/payments/` |
 | **RA-25** | Prazos operacionais provisórios estipulados nos Termos de Uso v1.0 | 🟡 | `src/domain/documentos-legais/`, `src/app/termos/` |
 | **RA-26** | SAC provisoriamente operado via e-mail único (`suporte@aureacustodia.com.br`) | 🟡 | `src/app/suporte/`, `src/domain/documentos-legais/` |
+| **RA-30** | Gravação de `recebimentos_gateway` fora da transação do estado | 🟡 | `src/server/payments/` |
+| **RA-32** | Competência contábil de pagamentos calculada em UTC | 🟡 | `src/domain/custody.ts`, `src/server/payments/` |
 
 ---
 
@@ -758,3 +760,45 @@ Canais corporativos de voz (telefone 0800 ou fixo) e WhatsApp oficial ainda est�
 **Consequência:** O atendimento ao usuário fica restrito à comunicação assíncrona por correio eletrônico, exigindo triagem diária e monitoramento manual da caixa postal até a implantação de uma ferramenta integrada de helpdesk.
 
 **Como se paga:** Contratação de linha telefônica institucional / WhatsApp Business verificado e integração do canal de atendimento diretamente ao painel administrativo (Admin C3) ou plataforma omnichannel dedicada.
+
+---
+
+# RA-30 — Gravação de recebimentos_gateway fora da transação do estado 🟡
+
+```
+Módulo:     src/server/payments/conciliacao.ts · src/server/payments/recebimentos.ts
+Criado em:  14/09/2026 (Finalizações · Frente B · B1)
+Dono:       Agente B
+```
+
+A gravação detalhada de `aurea.recebimentos_gateway` (valor bruto, valor pago, tarifa do gateway,
+valor líquido, parcelas, competência) é executada logo após `mutateState`, fora da trava de
+mutação do estado da plataforma.
+
+A inserção é estritamente idempotente (`INSERT INTO aurea.recebimentos_gateway ... ON CONFLICT (payment_id) DO NOTHING`).
+Se houver falha de infraestrutura no exato milissegundo entre a conclusão do crédito no estado e
+a inserção contábil do gateway, o cliente recebe o crédito mas o lançamento contábil do recebimento
+não é gravado.
+
+**Mitigação:** A operação é logada e reprocessável a qualquer momento via evento do gateway
+(`paymentId`), sem risco de duplicar o crédito do cliente ou estornar estado já validado.
+
+---
+
+# RA-32 — Competência contábil de pagamentos calculada em UTC 🟡
+
+```
+Módulo:     src/domain/custody.ts · src/server/payments/conciliacao.ts
+Criado em:  14/09/2026 (Finalizações · Frente B · B1)
+Dono:       Agente B
+```
+
+A função pura de domínio `competenciaAtual(aprovadoEm)` opera estritamente em tempo universal (UTC).
+
+Como o fuso oficial de Brasília é UTC-3, pagamentos aprovados no gateway entre 21h00 e 23h59 do
+último dia de um mês no horário local (ex.: 31 de janeiro às 22h00 em São Paulo) viram 01h00 do dia
+1º de fevereiro em UTC, recebendo a competência contábil do mês seguinte (`2026-02`).
+
+**Mitigação:** A plataforma adota UTC unificado para carimbos de tempo, fechamento de faturas e
+livro-razão, garantindo consistência matemática e eliminando anomalias de horário de verão ou
+fusos regionais brasileiros na auditoria contábil.

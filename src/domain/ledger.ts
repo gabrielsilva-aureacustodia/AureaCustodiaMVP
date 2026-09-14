@@ -223,18 +223,39 @@ export function lancamentoDeCustodia(
   quando: Timestamp,
   refInterna: string | null,
 ): LancamentoPendente {
-  const debitouSaldo = f.status === 'paga' && f.formaPagamento === 'saldo'
+  const debitou = f.status === 'paga'
   return {
     createdAt: quando,
     userEmail: email,
     tipo: 'custodia',
     valor: f.valorCents,
-    sinal: debitouSaldo ? -1 : 0,
+    sinal: debitou ? -1 : 0,
     tipoMoeda: null,
     quantidade: f.quantidadeMoedas,
     refInterna: refInterna ?? f.id,
     refExterna: null,
     descricao: `Custódia mensal ${f.competencia} · ${f.quantidadeMoedas} moeda(s) — ${f.status}`,
+  }
+}
+
+export function lancamentoDeEstorno(
+  email: UserEmail,
+  valor: Cents,
+  quando: Timestamp,
+  refInterna: string,
+  descricao = 'Estorno de custódia por moedas recusadas na análise',
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'estorno',
+    valor,
+    sinal: 1,
+    tipoMoeda: null,
+    quantidade: null,
+    refInterna,
+    refExterna: null,
+    descricao,
   }
 }
 

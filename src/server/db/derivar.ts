@@ -30,6 +30,7 @@ import {
   lancamentoDeAjuste,
   lancamentoDeCustodia,
   lancamentoDeDeposito,
+  lancamentoDeEstorno,
   lancamentoDeSaldoInicial,
   lancamentoDeSaque,
   lancamentoDeTaxaRetirada,
@@ -108,27 +109,56 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     if (op.tipo !== 'fatura.inserir' && op.tipo !== 'fatura.atualizar') continue
     const f = op.fatura
     const antesFat = faturasAntes.get(f.id)
-    const eraPagaComSaldo = antesFat?.status === 'paga' && antesFat?.formaPagamento === 'saldo'
-    const virouPagaComSaldo = f.status === 'paga' && f.formaPagamento === 'saldo' && !eraPagaComSaldo
+    const eraPaga = antesFat?.status === 'paga'
+    const virouPaga = f.status === 'paga' && !eraPaga
     // Fatura nova entra como registro; fatura que acabou de ser liquidada entra
     // como saída. As duas passam pela mesma função, que decide o sinal.
-    if (!antesFat || virouPagaComSaldo) {
+    if (!antesFat || virouPaga) {
       const quando = f.dataPagamento || f.dataEmissao || agora
       pendentes.push(lancamentoDeCustodia(f.userEmail, f, semeadura ? quando : agora, f.id))
     }
   }
 
-  /* taxas de retirada física (moeda cujo recibo foi extinto nesta mutação com débito em conta) */
+  /* estornos de planos de custódia por moedas recusadas na análise */
+  const planosAntes = new Map((antes.planosCustodia ?? []).map((p) => [p.id, p]))
+  for (const p of depois.planosCustodia ?? []) {
+    const pAntes = planosAntes.get(p.id)
+    const estornadoAntes = pAntes?.estornadoCents ?? 0
+    const estornadoDepois = p.estornadoCents ?? 0
+    const diffEstorno = estornadoDepois - estornadoAntes
+    if (diffEstorno > 0) {
+      pendentes.push(lancamentoDeEstorno(p.userEmail, diffEstorno, agora, p.id))
+    }
+  }
+
+  /* taxas de retirada física (lançada pela transição para 'paga' com valorTaxaCents) */
+  const retiradasAntes = new Map((antes.retiradas ?? []).map((r) => [r.id, r]))
+  const moedasComTaxaLancada = new Set<string>()
+
+  for (const r of depois.retiradas ?? []) {
+    const rAntes = retiradasAntes.get(r.id)
+    const eraPaga = rAntes?.status === 'paga'
+    const virouPaga = r.status === 'paga' && !eraPaga
+    if (virouPaga) {
+      moedasComTaxaLancada.add(r.coinId)
+      const quando = r.pagoEm || agora
+      pendentes.push(
+        lancamentoDeTaxaRetirada(r.userEmail, r.valorTaxaCents, semeadura ? quando : agora, r.coinId),
+      )
+    }
+  }
+
+  // Retrocompatibilidade: se a retirada não estava no array state.retiradas mas o recibo foi extinto nesta mutação
   for (const op of ops) {
     if (op.tipo !== 'coin.atualizar') continue
+    if (moedasComTaxaLancada.has(op.registro.coin.id)) continue
     const moedaAntes = antes.users[op.registro.owner]?.coins.find((c) => c.id === op.registro.coin.id)
     if (moedaAntes?.recibo.status === 'Ativo' && op.registro.coin.recibo.status === 'Extinto') {
       const email = op.registro.owner
-      const saldoAntes = antes.users[email]?.balance ?? 0
-      const saldoDepois = depois.users[email]?.balance ?? 0
-      const taxaDebito = saldoAntes - saldoDepois
-      if (taxaDebito > 0) {
-        pendentes.push(lancamentoDeTaxaRetirada(email, taxaDebito, agora, op.registro.coin.id))
+      const ret = (depois.retiradas ?? []).find((r) => r.coinId === op.registro.coin.id)
+      const taxa = ret ? ret.valorTaxaCents : (antes.users[email]?.balance ?? 0) - (depois.users[email]?.balance ?? 0)
+      if (taxa > 0) {
+        pendentes.push(lancamentoDeTaxaRetirada(email, taxa, agora, op.registro.coin.id))
       }
     }
   }

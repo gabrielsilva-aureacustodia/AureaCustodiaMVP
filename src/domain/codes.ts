@@ -55,6 +55,12 @@ export function nextEnvioCode(seq: Seq): string {
   return 'RO-ENV-' + String(seq.envio).padStart(4, '0')
 }
 
+/** Próximo código de plano de custódia: 'PLC-000001'. Incrementa `seq.planoCustodia`. */
+export function nextPlanoCode(seq: Seq): string {
+  seq.planoCustodia = (seq.planoCustodia || 0) + 1
+  return 'PLC-' + String(seq.planoCustodia).padStart(6, '0')
+}
+
 /**
  * Iniciais do nome para o avatar: 'Rogério Pena' -> 'RP'.
  * No máximo duas letras, porque é o que cabe no círculo.

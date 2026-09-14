@@ -42,3 +42,11 @@ export interface CompraDiretaIniciada extends DepositoIniciado {
   tipoMoeda: string
 }
 
+/** Status de uma cobrança consultada pelo frontend (B1.6). */
+export type StatusCobranca = 'pendente' | 'creditado' | 'recusado'
+
+export interface StatusCobrancaInfo {
+  status: StatusCobranca
+  motivo?: string | null
+}
+

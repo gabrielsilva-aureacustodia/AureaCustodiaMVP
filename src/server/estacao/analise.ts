@@ -15,6 +15,7 @@ import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { Analise, AppState, Cents, Coin, Envio, VereditoAnalise } from '@/domain/types'
+import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { getState, mutateState } from '@/server/state'
 
 /**
@@ -282,6 +283,20 @@ export async function fecharAnalise(
       envio.etapaAtual = ETAPAS_ENVIO[ETAPAS_ENVIO.length - 1]
 
       const aprovadas = registradas.filter((a) => a.codigoMoeda !== null)
+      const recusadas = registradas.length - aprovadas.length
+
+      // B2.5: A emissão dos recibos alimenta o plano de custódia e faturas
+      const plano = (state.planosCustodia ?? []).find(
+        (p) => p.protocoloEnvio === envio.protocolo && p.status !== 'cancelado',
+      )
+      alimentarPlanoNaAnalise({
+        plano,
+        faturas: state.faturasCustodia ?? [],
+        user: dono,
+        moedaIdsAprovadas: aprovadas.map((a) => a.codigoMoeda!).filter(Boolean),
+        quantidadeRecusadas: recusadas,
+        agora,
+      })
 
       // A custódia NÃO é cobrada aqui desde 11/09/2026. O mecanismo antigo
       // gravava uma cobrança por conta a cada envio aprovado; quem cobra agora

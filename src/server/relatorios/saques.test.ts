@@ -21,6 +21,7 @@ function criarFontes(state: AppState): Fontes {
     // A frente C tornou este campo obrigatório em `Fontes`; o relatório de
     // saques não o usa, mas o tipo exige.
     retiradas: [],
+    recebimentos: [],
     semBanco: true,
   }
 }

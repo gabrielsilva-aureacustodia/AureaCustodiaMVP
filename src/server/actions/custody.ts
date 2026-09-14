@@ -33,6 +33,7 @@ import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
+import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -116,6 +117,7 @@ export async function createProtocol(
   tipoMoeda: string,
   ano: number,
   quantidade: number,
+  modalidadeEnvio?: 'PAC' | 'SEDEX',
 ): Promise<ActionResult<{ protocolo: string }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
@@ -146,6 +148,7 @@ export async function createProtocol(
         tipoMoeda,
         ano,
         quantidade,
+        modalidadeEnvio: modalidadeEnvio ?? 'SEDEX',
         codigoRastreio: null,
         dataPostagem: null,
         dataRecebimento: null,
@@ -296,6 +299,19 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
           envio.codigosAtivosGerados.push(coin.id)
         }
 
+        // B2.5: A emissão dos recibos alimenta o plano de custódia e faturas
+        const plano = (state.planosCustodia ?? []).find(
+          (p) => p.protocoloEnvio === envio.protocolo && p.status !== 'cancelado',
+        )
+        alimentarPlanoNaAnalise({
+          plano,
+          faturas: state.faturasCustodia ?? [],
+          user: u,
+          moedaIdsAprovadas: envio.codigosAtivosGerados,
+          quantidadeRecusadas: 0,
+          agora: Date.now(),
+        })
+
         // A custódia NÃO é cobrada aqui desde 11/09/2026. Quem cobra é o ciclo
         // mensal (`src/server/custodia/faturamento.ts`), que conta as moedas sob
         // guarda na virada da competência. Cobrar também na emissão do recibo
@@ -321,14 +337,18 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
 import { consultarCep } from '@/lib/shipping/cep'
 import { calcularFreteCorreios, ENDERECO_CENTRAL_AUREA } from '@/lib/shipping/correios'
 import type { CotacaoFreteResult, EnderecoCep, ModalidadeEnvio } from '@/lib/shipping/types'
+import { randomUUID } from 'crypto'
 import {
-  calcularTaxaRetirada,
+  calcularPrazoLimiteRetirada,
   criarSolicitacaoRetirada,
   transicionarRetirada,
   validarEnderecoRetirada,
 } from '@/domain/retirada'
 import { brl } from '@/domain/money'
 import type { EnderecoEntrega, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
+import { criarCobrancaCartao, criarCobrancaPix } from '@/lib/payments/cobranca'
+import type { CobrancaCartao, CobrancaPix } from '@/lib/payments/types'
+import { repositorioIntencoes } from '@/server/payments/repositorios'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { ehAdmin } from '@/server/relatorios/acesso'
 
@@ -405,7 +425,7 @@ export async function solicitarRetirada(
   coinId: string,
   modalidade: ModalidadeRetirada,
   endereco: EnderecoEntrega,
-): Promise<ActionResult<{ retiradaId: string; dataLimiteD30: number; reciboCodigo: string }>> {
+): Promise<ActionResult<{ retiradaId: string; dataLimiteD30: number; reciboCodigo: string; valorTaxaCents: number }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
@@ -421,8 +441,6 @@ export async function solicitarRetirada(
   if (modalidade !== 'comum' && modalidade !== 'segura') {
     return { ok: false, error: 'Modalidade de retirada inválida. Escolha comum ou segura.' }
   }
-
-  const taxaCents = calcularTaxaRetirada(modalidade)
 
   try {
     const { result } = await mutateState((state) => {
@@ -463,11 +481,14 @@ export async function solicitarRetirada(
         } as const
       }
 
-      // Verifica saldo suficiente
-      if (u.balance < taxaCents) {
+      state.retiradas = state.retiradas ?? []
+      const retiradaAtiva = state.retiradas.find(
+        (r) => r.coinId === coinId && r.status !== 'cancelada',
+      )
+      if (retiradaAtiva) {
         return {
           ok: false,
-          error: `Saldo insuficiente para a taxa de retirada (${brl(taxaCents)}). Seu saldo atual é ${brl(u.balance)}.`,
+          error: `Esta moeda já possui uma retirada (${retiradaAtiva.id}) com status "${retiradaAtiva.status}".`,
         } as const
       }
 
@@ -482,20 +503,9 @@ export async function solicitarRetirada(
         solicitadoEm: agora,
       })
 
-      // Como o pagamento é debitado do saldo na confirmação imediata:
-      const retiradaPaga = transicionarRetirada(solicitacao, 'paga', {
-        data: agora,
-        motivo: 'Taxa de retirada debitada do saldo em conta',
-        autor: session,
-      })
+      state.retiradas.push(solicitacao)
 
-      // Debita saldo da conta
-      u.balance -= taxaCents
-
-      // Extinção imediata do recibo (Regra inegociável do Bloco 10)
-      coin.recibo.status = 'Extinto'
-
-      return { ok: true, solicitacao: retiradaPaga } as const
+      return { ok: true, solicitacao } as const
     })
 
     if (!result.ok) {
@@ -507,12 +517,325 @@ export async function solicitarRetirada(
 
     return {
       ok: true,
-      message: `Solicitação de retirada registrada com sucesso. Recibo extinto e taxa debitada. Prazo limite: ${fdate(result.solicitacao.dataLimiteD30)}.`,
+      message: `Solicitação de retirada registrada com sucesso. Aguardando pagamento da taxa (${brl(result.solicitacao.valorTaxaCents)}).`,
       data: {
         retiradaId: result.solicitacao.id,
         dataLimiteD30: result.solicitacao.dataLimiteD30,
         reciboCodigo: result.solicitacao.reciboCodigo,
+        valorTaxaCents: result.solicitacao.valorTaxaCents,
       },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Realiza o pagamento da taxa de retirada utilizando o saldo disponível em conta.
+ */
+export async function pagarRetiradaComSaldo(
+  retiradaId: string,
+): Promise<ActionResult<{ retiradaId: string; dataLimiteD30: number }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((state) => {
+      const u = state.users[session]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA } as const
+
+      state.retiradas = state.retiradas ?? []
+      const ret = state.retiradas.find((r) => r.id === retiradaId)
+      if (!ret) {
+        return { ok: false, error: 'Solicitação de retirada não encontrada.' } as const
+      }
+
+      if (ret.userEmail !== session) {
+        return { ok: false, error: 'Acesso não autorizado a esta solicitação de retirada.' } as const
+      }
+
+      if (ret.status !== 'solicitada') {
+        return {
+          ok: false,
+          error: `Esta retirada já está com status "${ret.status}" e não pode ser paga novamente.`,
+        } as const
+      }
+
+      if (u.balance < ret.valorTaxaCents) {
+        return {
+          ok: false,
+          error: `Saldo insuficiente para a taxa de retirada (${brl(ret.valorTaxaCents)}). Seu saldo atual é ${brl(u.balance)}.`,
+        } as const
+      }
+
+      const coin = u.coins.find((c) => c.id === ret.coinId)
+      if (!coin) {
+        return { ok: false, error: 'Moeda correspondente não encontrada no acervo.' } as const
+      }
+
+      // Debita saldo da conta
+      u.balance -= ret.valorTaxaCents
+
+      // Extinção imediata do recibo (Regra inegociável do Bloco 10)
+      coin.recibo.status = 'Extinto'
+
+      const agora = Date.now()
+      // D+30 recalculado a partir da data de confirmação do pagamento
+      const novoLimiteD30 = calcularPrazoLimiteRetirada(agora)
+
+      const retPaga = transicionarRetirada(ret, 'paga', {
+        data: agora,
+        motivo: 'Taxa de retirada debitada do saldo em conta',
+        autor: session,
+      })
+
+      retPaga.dataLimiteD30 = novoLimiteD30
+      retPaga.formaPagamento = 'saldo'
+      retPaga.parcelas = 1
+      retPaga.updatedAt = agora
+
+      const idx = state.retiradas.findIndex((r) => r.id === retiradaId)
+      if (idx >= 0) state.retiradas[idx] = retPaga
+
+      return { ok: true, retirada: retPaga } as const
+    })
+
+    if (!result.ok) {
+      return { ok: false, error: result.error }
+    }
+
+    await repositorioRetiradas().atualizar(result.retirada)
+
+    return {
+      ok: true,
+      message: `Taxa de retirada paga com saldo com sucesso. Recibo extinto. Prazo limite: ${fdate(result.retirada.dataLimiteD30)}.`,
+      data: { retiradaId: result.retirada.id, dataLimiteD30: result.retirada.dataLimiteD30 },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * Inicia cobrança Pix para pagamento da taxa de retirada física.
+ */
+export async function iniciarPixRetirada(
+  retiradaId: string,
+): Promise<ActionResult<CobrancaPix & { forma: 'pix' }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const repo = repositorioRetiradas()
+  const ret = await repo.buscarPorId(retiradaId)
+  if (!ret) return { ok: false, error: 'Solicitação de retirada não encontrada.' }
+  if (ret.userEmail !== session) return { ok: false, error: 'Acesso não autorizado.' }
+  if (ret.status !== 'solicitada') {
+    return { ok: false, error: `Esta retirada já está com status "${ret.status}".` }
+  }
+
+  const externalReference = `RET-${randomUUID()}`
+  const agora = Date.now()
+  const intencoes = repositorioIntencoes()
+
+  await intencoes.criar({
+    externalReference,
+    userEmail: session,
+    valor: ret.valorTaxaCents,
+    metodo: 'pix',
+    status: 'pendente',
+    tipoOperacao: 'retirada',
+    parcelasMax: 1,
+    metadata: { retiradaId: ret.id, coinId: ret.coinId },
+    paymentId: null,
+    motivoRecusa: null,
+    createdAt: agora,
+    updatedAt: agora,
+  })
+
+  try {
+    const pix = await criarCobrancaPix({
+      externalReference,
+      userEmail: session,
+      valorCents: ret.valorTaxaCents,
+      titulo: `Retirada Física — Áurea (Moeda ${ret.coinId})`,
+      descricao: `Taxa de retirada ${ret.modalidade} - Moeda ${ret.coinId}`,
+      parcelasMax: 1,
+    })
+
+    await intencoes.anotarPagamento(externalReference, pix.paymentId)
+
+    ret.paymentIntentRef = externalReference
+    ret.formaPagamento = 'pix'
+    ret.updatedAt = agora
+    await repo.atualizar(ret)
+
+    await mutateState((state) => {
+      state.retiradas = state.retiradas ?? []
+      const rMem = state.retiradas.find((r) => r.id === retiradaId)
+      if (rMem) {
+        rMem.paymentIntentRef = externalReference
+        rMem.formaPagamento = 'pix'
+        rMem.updatedAt = agora
+      }
+    })
+
+    return { ok: true, data: { ...pix, forma: 'pix' } }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Falha ao gerar Pix para retirada.'
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Inicia preferência de Cartão (Checkout Pro) para pagamento da taxa de retirada.
+ * Modalidade segura permite até 2x; modalidade comum apenas 1x.
+ */
+export async function iniciarCartaoRetirada(
+  retiradaId: string,
+  parcelas: number = 1,
+): Promise<ActionResult<CobrancaCartao & { forma: 'cartao' }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const repo = repositorioRetiradas()
+  const ret = await repo.buscarPorId(retiradaId)
+  if (!ret) return { ok: false, error: 'Solicitação de retirada não encontrada.' }
+  if (ret.userEmail !== session) return { ok: false, error: 'Acesso não autorizado.' }
+  if (ret.status !== 'solicitada') {
+    return { ok: false, error: `Esta retirada já está com status "${ret.status}".` }
+  }
+
+  const parcelasMax = ret.modalidade === 'segura' ? 2 : 1
+  const parcelasFinal = Math.min(Math.max(1, parcelas), parcelasMax)
+
+  const externalReference = `RET-${randomUUID()}`
+  const agora = Date.now()
+  const intencoes = repositorioIntencoes()
+
+  await intencoes.criar({
+    externalReference,
+    userEmail: session,
+    valor: ret.valorTaxaCents,
+    metodo: 'checkout_pro',
+    status: 'pendente',
+    tipoOperacao: 'retirada',
+    parcelasMax,
+    metadata: { retiradaId: ret.id, coinId: ret.coinId, parcelas: parcelasFinal },
+    paymentId: null,
+    motivoRecusa: null,
+    createdAt: agora,
+    updatedAt: agora,
+  })
+
+  try {
+    const cartao = await criarCobrancaCartao({
+      externalReference,
+      userEmail: session,
+      valorCents: ret.valorTaxaCents,
+      titulo: `Retirada Física — Áurea (Moeda ${ret.coinId})`,
+      descricao: `Taxa de retirada ${ret.modalidade} - Moeda ${ret.coinId}`,
+      parcelasMax,
+      voltarPara: {
+        sucesso: '/retirada',
+        pendente: '/retirada',
+        falha: '/retirada',
+      },
+    })
+
+    ret.paymentIntentRef = externalReference
+    ret.formaPagamento = 'cartao'
+    ret.parcelas = parcelasFinal
+    ret.updatedAt = agora
+    await repo.atualizar(ret)
+
+    await mutateState((state) => {
+      state.retiradas = state.retiradas ?? []
+      const rMem = state.retiradas.find((r) => r.id === retiradaId)
+      if (rMem) {
+        rMem.paymentIntentRef = externalReference
+        rMem.formaPagamento = 'cartao'
+        rMem.parcelas = parcelasFinal
+        rMem.updatedAt = agora
+      }
+    })
+
+    return { ok: true, data: { ...cartao, forma: 'cartao' } }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Falha ao gerar cobrança de cartão para retirada.'
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Ação unificada para pagamento da taxa de retirada física (saldo, pix ou cartao).
+ */
+export async function pagarRetirada(
+  retiradaId: string,
+  forma: 'saldo' | 'pix' | 'cartao',
+  parcelas: number = 1,
+): Promise<ActionResult<unknown>> {
+  if (forma === 'saldo') {
+    return pagarRetiradaComSaldo(retiradaId)
+  }
+  if (forma === 'pix') {
+    return iniciarPixRetirada(retiradaId)
+  }
+  if (forma === 'cartao') {
+    return iniciarCartaoRetirada(retiradaId, parcelas)
+  }
+  return { ok: false, error: 'Forma de pagamento inválida. Escolha saldo, pix ou cartao.' }
+}
+
+/**
+ * Cancela uma solicitação de retirada pendente de pagamento, liberando a moeda no mercado.
+ */
+export async function cancelarSolicitacaoRetirada(
+  retiradaId: string,
+): Promise<ActionResult<{ retiradaId: string }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const { result } = await mutateState((state) => {
+      state.retiradas = state.retiradas ?? []
+      const ret = state.retiradas.find((r) => r.id === retiradaId)
+      if (!ret) {
+        return { ok: false, error: 'Solicitação de retirada não encontrada.' } as const
+      }
+      if (ret.userEmail !== session) {
+        return { ok: false, error: 'Acesso não autorizado a esta solicitação de retirada.' } as const
+      }
+      if (ret.status !== 'solicitada') {
+        return {
+          ok: false,
+          error: `Apenas retiradas aguardando pagamento podem ser canceladas. Status atual: "${ret.status}".`,
+        } as const
+      }
+
+      const agora = Date.now()
+      const retCancelada = transicionarRetirada(ret, 'cancelada', {
+        data: agora,
+        motivo: 'Solicitação cancelada pelo cliente antes do pagamento',
+        autor: session,
+      })
+      retCancelada.updatedAt = agora
+
+      const idx = state.retiradas.findIndex((r) => r.id === retiradaId)
+      if (idx >= 0) state.retiradas[idx] = retCancelada
+
+      return { ok: true, retirada: retCancelada } as const
+    })
+
+    if (!result.ok) {
+      return { ok: false, error: result.error }
+    }
+
+    await repositorioRetiradas().atualizar(result.retirada)
+
+    return {
+      ok: true,
+      message: 'Solicitação de retirada cancelada com sucesso. A moeda está disponível novamente para negociação.',
+      data: { retiradaId: result.retirada.id },
     }
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }

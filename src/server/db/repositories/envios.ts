@@ -26,13 +26,15 @@ type LinhaEnvio = {
   etapa_atual: string
   created_at: unknown
   codigos_ativos_gerados: unknown
+  modalidade_envio: string | null
 }
 
 export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaEnvio>(
     `SELECT protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
-            data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados
+            data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
+            modalidade_envio
        FROM ${S}.envios
       ORDER BY ord`,
   )
@@ -48,6 +50,7 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     etapaAtual: r.etapa_atual as EtapaEnvio,
     createdAt: num(r.created_at),
     codigosAtivosGerados: json<string[]>(r.codigos_ativos_gerados) ?? [],
+    ...(r.modalidade_envio ? { modalidadeEnvio: r.modalidade_envio as 'PAC' | 'SEDEX' } : {}),
   }))
 }
 
@@ -56,8 +59,9 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
   await tx.query(
     `INSERT INTO ${S}.envios
        (protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
-        data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)`,
+        data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
+        modalidade_envio)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12)`,
     [
       e.protocolo,
       e.userEmail,
@@ -70,6 +74,7 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.etapaAtual,
       e.createdAt,
       JSON.stringify(e.codigosAtivosGerados),
+      e.modalidadeEnvio ?? null,
     ],
   )
 }
@@ -80,7 +85,7 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
     `UPDATE ${S}.envios
         SET user_email = $2, tipo_moeda = $3, ano = $4, quantidade = $5, codigo_rastreio = $6,
             data_postagem = $7, data_recebimento = $8, etapa_atual = $9, created_at = $10,
-            codigos_ativos_gerados = $11::jsonb
+            codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12
       WHERE protocolo = $1`,
     [
       e.protocolo,
@@ -94,6 +99,7 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.etapaAtual,
       e.createdAt,
       JSON.stringify(e.codigosAtivosGerados),
+      e.modalidadeEnvio ?? null,
     ],
   )
 }

@@ -80,12 +80,55 @@ export interface PixDepositoResult {
   createdAt: Timestamp
 }
 
+/** Pedido genérico de cobrança (Pix ou Cartão Checkout Pro) com suporte a parcelas. */
+export interface PedidoDeCobranca {
+  externalReference: string
+  userEmail: UserEmail
+  valorCents: Cents
+  titulo: string
+  descricao: string
+  parcelasMax: number
+  voltarPara?: { sucesso: string; pendente: string; falha: string }
+}
+
+/** Cobrança Pix gerada pelo gateway. */
+export interface CobrancaPix {
+  paymentId: string
+  status: StatusPagamentoGateway
+  qrCode: string
+  qrCodeBase64?: string
+  ticketUrl?: string
+  valorCents: Cents
+  externalReference: string
+  expirationDate?: string
+  createdAt: Timestamp
+  simulado?: boolean
+}
+
+/** Cobrança por Checkout Pro (cartão e outros meios) gerada pelo gateway. */
+export interface CobrancaCartao {
+  id: string
+  initPoint: string
+  sandboxInitPoint: string
+  externalReference: string
+  valorCents: Cents
+  parcelasMax: number
+  createdAt: Timestamp
+  simulado?: boolean
+}
+
 /** Consulta de dados de um pagamento concluído ou pendente no gateway. */
 export interface DetalhesPagamento {
   id: string
   status: StatusPagamentoGateway
   statusDetail?: string
   valorCents: Cents
+  valorLiquidoCents: Cents
+  tarifaCents: Cents
+  totalPagoCents: Cents
+  parcelas: number
+  valorParcelaCents: Cents
+  dataLiberacao: Timestamp | null
   externalReference: string
   paymentMethodId: string
   paymentTypeId: string

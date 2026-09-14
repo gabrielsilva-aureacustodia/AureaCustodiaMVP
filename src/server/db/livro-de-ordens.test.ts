@@ -60,7 +60,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         `TRUNCATE ${S}.ofertas_historico, ${S}.retiradas, ${S}.payment_events, ${S}.payment_intents, ${S}.rastreios,
                   ${S}.ledger_entries, ${S}.audit_log, ${S}.lancamentos_manuais, ${S}.exportacoes,
                   ${S}.trades, ${S}.deposits, ${S}.envios,
-                  ${S}.saques, ${S}.faturas_custodia,
+                  ${S}.saques, ${S}.faturas_custodia, ${S}.planos_custodia, ${S}.recebimentos_gateway,
                   ${S}.sell_offers, ${S}.buy_orders, ${S}.recibos, ${S}.coins, ${S}.users`,
       )
     })

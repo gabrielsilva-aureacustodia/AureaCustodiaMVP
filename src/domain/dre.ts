@@ -33,8 +33,9 @@
  */
 
 import { dayStamp } from '@/domain/dates'
+import { receitaDeCustodiaNoPeriodo } from '@/domain/competencia'
 import type { LedgerEntry } from '@/domain/ledger'
-import type { Cents, Timestamp } from '@/domain/types'
+import type { Cents, FaturaCustodia, PlanoCustodia, Timestamp } from '@/domain/types'
 
 /* ---------- parâmetros (alíquotas) ---------- */
 
@@ -129,7 +130,7 @@ export const PLANO_DE_CONTAS: readonly ContaContabil[] = [
   { codigo: '4.1.04', nome: 'Software e infraestrutura', natureza: 'despesa', automatica: false },
   { codigo: '4.1.05', nome: 'Seguro do acervo', natureza: 'despesa', automatica: false },
   { codigo: '4.1.06', nome: 'Frete e logística', natureza: 'despesa', automatica: false },
-  { codigo: '4.1.07', nome: 'Tarifas de gateway de pagamento', natureza: 'despesa', automatica: false },
+  { codigo: '4.1.07', nome: 'Tarifas de gateway de pagamento', natureza: 'despesa', automatica: true },
   { codigo: '4.1.08', nome: 'Marketing e comercial', natureza: 'despesa', automatica: false },
   { codigo: '4.1.99', nome: 'Outras despesas administrativas', natureza: 'despesa', automatica: false },
   { codigo: '4.2.01', nome: 'Despesas financeiras', natureza: 'despesa', automatica: false },
@@ -266,9 +267,20 @@ export interface EntradasDre {
   manuais: readonly LancamentoManual[]
   parametros: ParametrosContabeis
   periodo: Periodo
+  recebimentosGateway?: readonly { aprovadoEm: Timestamp; tarifaGateway: Cents }[]
+  faturasCustodia?: readonly FaturaCustodia[]
+  planosCustodia?: readonly PlanoCustodia[]
 }
 
-export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre): Dre {
+export function montarDre({
+  ledger,
+  manuais,
+  parametros,
+  periodo,
+  recebimentosGateway,
+  faturasCustodia,
+  planosCustodia,
+}: EntradasDre): Dre {
   const pendencias: string[] = []
 
   const noPer = ledger.filter((l) => noPeriodo(l.createdAt, periodo))
@@ -281,10 +293,17 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   /* receita de comissões: o valor retido, congelado no ledger */
   const receitaComissoes = comissoes.reduce((s, l) => s + l.valor, 0)
 
-  /* receita de custódia: a ÚLTIMA cobrança registrada por usuário no período */
+  /* receita de custódia: apurada por competência contábil (mensal na competência, anual 1/12 por mês) */
   const vigentePorUsuario = new Map<string, LedgerEntry>()
   for (const l of custodias) vigentePorUsuario.set(l.userEmail, l) // o ledger vem em ordem de id
-  const receitaCustodia = [...vigentePorUsuario.values()].reduce((s, l) => s + l.valor, 0)
+  const receitaCustodia =
+    faturasCustodia || planosCustodia
+      ? receitaDeCustodiaNoPeriodo(
+          (faturasCustodia ?? []) as FaturaCustodia[],
+          (planosCustodia ?? []) as PlanoCustodia[],
+          periodo,
+        )
+      : [...vigentePorUsuario.values()].reduce((s, l) => s + l.valor, 0)
 
   /* receita de tarifas de saque: taxa fixa retida no saque de recursos */
   const receitaTaxaSaque = taxasSaque.reduce((s, l) => s + l.valor, 0)
@@ -307,7 +326,13 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
       0,
     )
   const outrasReceitas = somaNatureza('receita')
-  const despesasOperacionais = somaNatureza('despesa')
+
+  /* tarifas automáticas de gateway de pagamento (conta 4.1.07) */
+  const recebimentosNoPer = (recebimentosGateway ?? []).filter((r) => noPeriodo(r.aprovadoEm, periodo))
+  const despesaGateway = recebimentosNoPer.reduce((s, r) => s + r.tarifaGateway, 0)
+
+  const despesasManuais = somaNatureza('despesa')
+  const despesasOperacionais = despesasManuais + despesaGateway
 
   const receitaBruta = receitaComissoes + receitaCustodia + receitaTaxaSaque + receitaTaxaRetirada + outrasReceitas
 
@@ -377,7 +402,7 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   linha('3', 'RECEITA BRUTA', receitaBruta, 0)
   const numNegocTotal = new Set(comissoes.map((l) => l.refInterna ?? String(l.createdAt))).size
   linha('3.1.01', 'Receita de comissões de corretagem', receitaComissoes, 2, `${numNegocTotal} negociação(ões)`)
-  linha('3.1.02', 'Receita de custódia', receitaCustodia, 2, 'cobrança de custódia')
+  linha('3.1.02', 'Receita de custódia', receitaCustodia, 2, faturasCustodia || planosCustodia ? 'competência de custódia' : 'cobrança de custódia')
   linha('3.1.03', 'Receita de tarifas de saque', receitaTaxaSaque, 2, `${taxasSaque.length} saque(s) tarifado(s)`)
   linha('3.1.04', 'Receita de tarifas de retirada física', receitaTaxaRetirada, 2, `${taxasRetirada.length} retirada(s) física(s)`)
   linha('3.1.99', 'Outras receitas operacionais', outrasReceitas, 2, outrasReceitas ? 'lançamento manual' : null)
@@ -388,8 +413,12 @@ export function montarDre({ ledger, manuais, parametros, periodo }: EntradasDre)
   linha('3.9', '= RECEITA LÍQUIDA', receitaLiquida, 0)
   linha('4', '(−) Despesas operacionais', -despesasOperacionais, 1)
   for (const c of PLANO_DE_CONTAS.filter((x) => x.natureza === 'despesa')) {
-    const v = porConta.get(c.codigo) ?? 0
-    if (v !== 0) linha(c.codigo, c.nome, -v, 2, 'lançamento manual')
+    if (c.codigo === '4.1.07') {
+      linha('4.1.07', c.nome, -despesaGateway, 2, `${recebimentosNoPer.length} recebimento(s) no gateway`)
+    } else {
+      const v = porConta.get(c.codigo) ?? 0
+      if (v !== 0) linha(c.codigo, c.nome, -v, 2, 'lançamento manual')
+    }
   }
   linha('4.9', '= RESULTADO OPERACIONAL', resultadoOperacional, 0)
   linha('5.0', 'Base de cálculo (lucro presumido)', basePresumida, 1, parametros.presuncaoLucroBp === null ? 'não configurado' : `${fmtBp(parametros.presuncaoLucroBp)} da receita bruta`)
