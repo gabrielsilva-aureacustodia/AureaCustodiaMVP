@@ -64,6 +64,7 @@ Registrado para ninguém inventar um lugar diferente:
 ```
 lib/payments/    Mercado Pago: cobrança, split, verificação de webhook
 lib/shipping/    Correios: etiqueta, rastreio, modalidade PAC/SEDEX
+lib/mensageria/  WhatsApp do atendimento: provedor plugável (Evolution API ou registro local)
 lib/storage/     Supabase Storage: URLs assinadas para upload direto
 ```
 

@@ -27,16 +27,17 @@ grupo não aparecer na URL: as rotas são `/admin/...`.
     │   ├── kpis/               indicadores do negócio                                resultados.ver
     │   └── uso/                uso da plataforma e trilha de auditoria               resultados.ver | admin.auditoria
     ├── equipe/                 membros do painel e papéis                            admin.membros | admin.papeis
-    ├── cs/                     (C2) atendimento com WhatsApp                         cs.ver
-    ├── usuarios/               (C2) administração de usuários                        usuarios.ver
+    ├── cs/                     atendimento com WhatsApp e ficha do cliente           cs.ver
+    ├── usuarios/               lista de contas e criação de conta                    usuarios.ver
+    │   └── [email]/            ficha completa em sete abas, com as ações da conta    usuarios.ver
     ├── bancada/                (C3) bancada de análise no navegador                  bancada.ver
     ├── moedas/                 (C3) auditoria do acervo                              bancada.auditoria
     ├── logistica/              (C3) envios, retiradas e etiquetas                    logistica.ver
     └── configuracao/           (C3) taxas, catálogo e parâmetros                     config.ver
 ```
 
-As páginas marcadas com (C2) e (C3) são provisórias desde a C1: o menu nasceu completo, e a
-etapa seguinte substitui o `page.tsx` sem tocar na navegação.
+As páginas marcadas com (C3) são provisórias desde a C1: o menu nasceu completo, e a etapa
+seguinte substitui o `page.tsx` sem tocar na navegação. As de CS e usuários entraram na C2.
 
 ## A regra de toda página daqui
 
@@ -63,7 +64,8 @@ tabela de membros entra como `dev` (RA-40).
 | Pasta | Relação |
 |---|---|
 | `src/components/admin/` | Toda a interface do painel |
-| `src/server/admin/` | `membroDaPagina`, e os carregadores das telas (`resultados.ts`, `rbac.ts`) |
+| `src/server/admin/` | `membroDaPagina`, e os carregadores das telas (`resultados.ts`, `rbac.ts`, `atendimento.ts`, `ficha.ts`) |
+| `src/app/api/webhooks/whatsapp/` | Por onde as mensagens do WhatsApp chegam à tela de CS |
 | `src/server/actions/admin/` | As escritas, cada uma conferindo a permissão de novo |
 | `src/app/(app)/relatorios/` | Redireciona para `/admin/resultados/financeiro` desde a C1 |
 | `src/components/shell/Sidebar.tsx` | O item "Administração" do menu do app aponta para cá |

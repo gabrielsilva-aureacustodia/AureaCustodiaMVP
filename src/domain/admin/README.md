@@ -18,6 +18,12 @@ passa o que leu do banco e do ambiente por parâmetro; estes arquivos só decide
 | `financeiro.test.ts` | 3 testes |
 | `contabil.ts` | Validação das ações contábeis do painel: `validarLancamento`, `validarEstorno`, `validarAliquota`, `dataDeInput` (meio-dia local, para não mudar de mês em UTC) |
 | `contabil.test.ts` | 6 testes |
+| `telefone.ts` | **C2.** O telefone do atendimento em E.164 canônico: `normalizarTelefone` (cadastro, WhatsApp e WhatsApp antigo sem o nono dígito viram o mesmo número), `telefoneDoJid`, `contaDoTelefone` (a conta pelo cadastro; ambíguo não vincula) e a formatação |
+| `telefone.test.ts` | 7 testes |
+| `cs.ts` | **C2.** A regra do atendimento: `statusAvanca` (entrega só anda para a frente), validação de texto e de endereço de mídia, etiquetas (`slugDeEtiqueta`, paleta) e o filtro da caixa pela URL |
+| `cs.test.ts` | 7 testes |
+| `usuarios.ts` | **C2.** A lista (`lerFiltroUsuarios`, `linhasDeUsuarios`, `filtrarUsuarios`, dia de Brasília), a validação das ações (`validarNovoUsuario`, `montarCadastroDoPainel`, `montarDadosBancarios`, `validarAjusteDeSaldo`), o `resumirConta` do cartão do CS e o `acervoDaConta` |
+| `usuarios.test.ts` | 9 testes |
 
 Os indicadores do negócio (KPIs) moram em `src/domain/kpis.ts`, um nível acima, como pede o plano
 do Admin — mesmo desenho de `dre.ts`, e testados em `kpis.test.ts`.
@@ -41,3 +47,5 @@ do Admin — mesmo desenho de `dre.ts`, e testados em `kpis.test.ts`.
 | `src/domain/constants.ts` | `ACCOUNTS` é a lista do bootstrap quando `AUREA_ADMIN_EMAILS` não existe — passada por parâmetro, não importada aqui |
 | `src/domain/dre.ts` | `periodoMensal`/`Trimestral`/`Anual`, `chaveMes`, `CATALOGO_PARAMETROS` e `contaPorCodigo` — lidos, nunca alterados |
 | `src/app/api/eventos/` | Chama `validarLoteDeEventos` e `plataformaResumida` antes de gravar |
+| `src/domain/cadastro.ts`, `custody.ts` | `temCadastroCompleto`, `cpfValido`, `isInadimplente` e `verificarStatusFatura` (frente B) — lidos pela lista e pela ficha, nunca reimplementados |
+| `src/lib/mensageria/` | Usa `telefoneDoJid` e `digitosParaEnvio` para falar com o provedor |

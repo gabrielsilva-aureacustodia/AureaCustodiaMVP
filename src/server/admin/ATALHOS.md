@@ -42,6 +42,37 @@ antes de cliente real; agregação em SQL quando o volume pedir.
 
 ---
 
+## RA-43 🟡 — senha provisória definida pelo painel, sem segundo fator nem troca obrigatória
+
+**Arquivos:** `usuarios.ts` (`criarUsuario`, `redefinirSenha`), `identidade.ts` (`criar`,
+`definirSenha`, `enviarLinkDeSenha`)
+
+- O atendente digita a senha; ela vai ao Supabase Auth pela chave de serviço e não fica na
+  plataforma nem na trilha (a trilha guarda só o modo: `link`, `provisoria`, `identidade_criada`).
+- Não há troca obrigatória no primeiro acesso nem segundo fator.
+- O link de redefinição autentica pelo callback do login, mas o site ainda não tem a tela de nova
+  senha sem a senha atual (pedido à frente A em `PENDENCIAS_AGENTE_C.md`).
+
+**Como se paga:** troca obrigatória no primeiro acesso, tela de nova senha na recuperação e
+segundo fator, antes de cliente real.
+
+---
+
+## RA-44 🟡 — desativar conta fecha o Supabase; catálogo e sessão aberta esperam a frente A
+
+**Arquivos:** `usuarios.ts` (`mudarSituacaoDaConta`), `situacao.ts` (`contaDesativada`),
+`src/server/db/repositories/admin-usuarios.ts`
+
+- A identidade é bloqueada no Supabase (`ban_duration`) e a situação é registrada em
+  `aurea.admin_situacao_contas`.
+- A entrada pelo catálogo de demonstração e o cookie de sessão já emitido não consultam nada disso
+  até a frente A chamar `contaDesativada` no login, no callback e no casco do app.
+- Sem `SUPABASE_SERVICE_ROLE_KEY`, só o registro acontece, e a mensagem da ação diz isso.
+
+**Como se paga:** a checagem da frente A (pedido em `PENDENCIAS_AGENTE_C.md`).
+
+---
+
 ## O que NÃO é atalho nesta pasta
 
 - **O papel `dev` tem todas as permissões, e o painel não deixa ficar sem um `dev` ativo**
@@ -51,3 +82,8 @@ antes de cliente real; agregação em SQL quando o volume pedir.
   rank menor". Decisão do Gabriel: papéis e permissões são a funcionalidade, não barreira.
 - **Desativar um membro vale na requisição seguinte.** O papel é relido do banco a cada tela e
   a cada Server Action; não existe credencial de papel guardada no navegador para expirar.
+- **Conta da equipe não é desativada pela ficha do usuário** (`mudarSituacaoDaConta`), e
+  `contaDesativada` nunca responde "desativada" para quem abre o painel. É a mesma proteção de
+  sempre — ninguém tranca a equipe fora por uma tela que não é a de Equipe e papéis.
+- **O ajuste de saldo pede motivo.** Não é confirmação: é o dado que explica o lançamento
+  `ajuste` no livro-razão, gravado na mesma transação.

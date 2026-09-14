@@ -56,6 +56,9 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
 | **RA-40** | Painel administrativo: quem está no bootstrap do ambiente entra como `dev`, inclusive quando o banco falha | 🟠 | `src/server/admin/` |
 | **RA-41** | Registro de uso sem consentimento de rastreamento, sem prazo de retenção e agregado em memória com teto | 🟡 | `src/server/admin/`, `src/app/api/eventos/` |
+| **RA-42** | WhatsApp do atendimento por QR code (Evolution API, não oficial): risco de banimento do número, webhook sem assinatura do corpo, conversas sem prazo de retenção | 🟠 | `src/lib/mensageria/`, `src/app/api/webhooks/whatsapp/` |
+| **RA-43** | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | 🟡 | `src/server/admin/` |
+| **RA-44** | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | 🟡 | `src/server/admin/` |
 
 ---
 
@@ -581,6 +584,7 @@ controle de acesso de verdade; (f) vira receita não cobrada.
 | `src/lib/shipping/` | [`ATALHOS.md`](src/lib/shipping/ATALHOS.md) |
 | `src/server/admin/` | [`ATALHOS.md`](src/server/admin/ATALHOS.md) |
 | `src/app/api/eventos/` | [`ATALHOS.md`](src/app/api/eventos/ATALHOS.md) |
+| `src/lib/mensageria/` | [`ATALHOS.md`](src/lib/mensageria/ATALHOS.md) |
 
 # RA-18 — Cadastro aberto por padrão 🟡
 
@@ -761,3 +765,82 @@ trocados por `[id]`, e o registro nunca interrompe a navegação.
 > **Para o Rogério:** o painel passou a contar quais telas os sócios abrem, para entender como a
 > plataforma é usada. Não guarda endereço de internet nem o que a pessoa digitou. Antes de ter
 > cliente, isso precisa aparecer na política de privacidade, com um prazo para apagar.
+
+# RA-42 — WhatsApp do atendimento por QR code, sem a API oficial 🟠
+
+```
+Decidido em: 12/09/2026 (plano do Admin, seções 3 e 11) · entregue na C2, 14/09/2026
+Dono:        Gabriel
+Pastas:      src/lib/mensageria/ (ATALHOS.md) · src/app/api/webhooks/whatsapp/
+```
+
+A caixa de conversas `/admin/cs` fala com o WhatsApp pela **Evolution API**, que conecta o número
+lendo um QR code — sem aprovação da Meta, em minutos. Quatro atalhos juntos:
+
+| | Atalho | Como se paga |
+|---|---|---|
+| **a** | **Integração não oficial.** O WhatsApp não autoriza esse uso; o número pode ser banido se o volume de mensagens disparar ou se muitos contatos denunciarem | Adaptador da API oficial (Meta Cloud API) atrás da mesma interface, `ProvedorMensageria`, sem tocar na tela |
+| **b** | **O webhook não tem assinatura do corpo.** A Evolution só manda um cabeçalho: um JWT de 10 minutos assinado com o segredo (`jwt_key`) ou o próprio segredo como Bearer. Quem capturar um cabeçalho válido injeta mensagem falsa dentro da validade (ou para sempre, no modo Bearer) | A API oficial assina cada corpo com HMAC (`X-Hub-Signature-256`); usar o modo `jwt_key` enquanto isso |
+| **c** | **Conversas, telefones e notas sem prazo de retenção** nem rotina de expurgo (LGPD) | Prazo decidido pelo jurídico e expurgo, antes de cliente real |
+| **d** | **Mídia recebida não é guardada.** O arquivo que o cliente manda só abre no aparelho, a não ser que a Evolution tenha armazenamento próprio ligado | Armazenamento privado (nunca público — regra das etiquetas com endereço) quando o atendimento precisar |
+
+**O que não é atalho:** sem provedor configurado, nada quebra — o adaptador de registro local
+mantém a tela e diz, na própria mensagem, que ela ficou só no painel; mensagem reentregue pelo
+webhook não duplica (`id_no_provedor` único); estado de entrega nunca anda para trás.
+
+> **Para o Rogério:** o WhatsApp da empresa passa a ser atendido dentro do painel, ao lado da
+> ficha do cliente. A ligação é feita por um programa que lê o QR code, como o WhatsApp Web — é
+> rápido e barato, mas não é o caminho oficial, e o WhatsApp pode bloquear o número se ele for
+> usado para disparo em massa. O caminho oficial entra depois sem refazer a tela.
+
+# RA-43 — Conta criada pelo painel com senha provisória 🟡
+
+```
+Decidido em: 12/09/2026 (plano do Admin, seção 11) · entregue na C2, 14/09/2026
+Dono:        Gabriel
+Pasta:       src/server/admin/ (ATALHOS.md)
+```
+
+"Criar conta" e "Redefinir senha" na ficha do usuário podem **definir uma senha provisória**, que o
+atendente digita e passa à pessoa. A senha vai direto ao Supabase Auth pela chave de serviço e não
+fica gravada na plataforma nem na trilha. O que isso assume:
+
+- **não há segundo fator** nem **troca obrigatória** no primeiro acesso — a senha provisória vale até
+  a pessoa trocá-la em Minha conta;
+- quem digitou a senha a conhece, e o canal por onde ela é passada fica por conta da equipe;
+- o **link de redefinição por e-mail** leva ao callback de login, que autentica a pessoa, mas o site
+  ainda não tem a tela "defina sua nova senha" sem pedir a senha atual — o pedido está com a frente A
+  (`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`). Até lá, a senha provisória é o caminho que funciona
+  inteiro.
+
+**Deixa de valer antes do primeiro cliente real:** troca obrigatória no primeiro acesso, tela de nova
+senha no fluxo de recuperação e segundo fator para a equipe.
+
+> **Para o Rogério:** a equipe consegue criar a conta de alguém e dar uma senha inicial, para quem
+> não quer se cadastrar sozinho. Antes de ter cliente, o site vai obrigar a pessoa a trocar essa
+> senha no primeiro acesso.
+
+# RA-44 — Desativar conta fecha o login pelo Supabase; o resto espera a frente A 🟡
+
+```
+Decidido em: 14/09/2026 (C2, na falta de desenho no plano do Admin) · entregue na C2
+Dono:        Gabriel
+Pasta:       src/server/admin/ (ATALHOS.md)
+```
+
+"Desativar conta" na ficha faz duas coisas: **bloqueia a identidade no Supabase Auth** (quem entra
+por senha ou Google não entra mais) e **registra quem desativou, quando e por quê** em
+`aurea.admin_situacao_contas`. O que ainda passa:
+
+- **as contas do catálogo de demonstração** (RA-19), que entram sem Supabase;
+- **a sessão já aberta**: o cookie do app vale até 7 dias e não pergunta de novo;
+- **sem `SUPABASE_SERVICE_ROLE_KEY`** no ambiente, só o registro é feito — a tela diz isso.
+
+O dono das portas de entrada (login, callback e casco do app) é a frente A. A função que elas
+chamam já existe — `contaDesativada(email)` em `src/server/admin/situacao.ts`, que responde "ativa"
+quando o banco falha e para qualquer conta da equipe do painel — e o pedido está em
+`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
+
+> **Para o Rogério:** desativar uma conta já impede a pessoa de entrar de novo. Quem estiver com o
+> site aberto no momento continua dentro até sair; a outra frente de trabalho vai fechar essa porta
+> também.
