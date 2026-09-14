@@ -275,12 +275,14 @@ export async function publishBid(
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
 
     const qty = Math.min(qtyRaw, maxAfford)
+    const agora = Date.now()
     state.buyOrders.push({
       id: novoBidId(),
       buyer: session,
       price: cents,
       qty,
-      createdAt: Date.now(),
+      createdAt: agora,
+      prioridadeEm: agora,
       tipoMoeda,
     })
 
@@ -349,18 +351,29 @@ export async function editBid(
     const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
+    const precoMudou = bo.price !== cents
+    const novaQty = Math.min(qtyRaw, maxAfford)
+    const qtyAumentou = novaQty > bo.qty
+    const perdeuVez = precoMudou || qtyAumentou
+
+    if (perdeuVez) {
+      bo.prioridadeEm = Date.now()
+    }
     // `bo.tipoMoeda` NÃO é editável: trocar o ativo de uma ordem já publicada
     // preservaria a posição dela na fila de um livro em que ela nunca esteve,
     // furando a prioridade de quem chegou antes naquele mercado. Para comprar
     // outro tipo, cancela-se este bid e publica-se outro.
     bo.price = cents
-    bo.qty = Math.min(qtyRaw, maxAfford)
+    bo.qty = novaQty
 
     const { matched } = matchOrders(state)
+    const msgFila = perdeuVez
+      ? ' Como o preço mudou ou a quantidade aumentou, ela foi para o fim da fila desse preço.'
+      : ''
     return {
       ok: true,
       message:
-        'Oferta de compra atualizada.' +
+        `Oferta de compra atualizada.${msgFila}` +
         (matched ? ' Parte foi executada automaticamente com o novo preço.' : ''),
     }
   })

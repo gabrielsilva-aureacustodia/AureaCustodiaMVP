@@ -28,12 +28,13 @@ type LinhaSellOffer = {
   lot_id: string
   created_at: unknown
   tipo_moeda: string
+  prioridade_em?: unknown
 }
 
 export async function carregarSellOffers(tx: Consulta): Promise<SellOffer[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaSellOffer>(
-    `SELECT id, coin_id, seller, price, obs, lot_id, created_at, tipo_moeda
+    `SELECT id, coin_id, seller, price, obs, lot_id, created_at, tipo_moeda, prioridade_em
        FROM ${S}.sell_offers
       ORDER BY created_at, ord`,
   )
@@ -46,26 +47,27 @@ export async function carregarSellOffers(tx: Consulta): Promise<SellOffer[]> {
     lotId: r.lot_id,
     createdAt: num(r.created_at),
     tipoMoeda: r.tipo_moeda,
+    prioridadeEm: r.prioridade_em !== null && r.prioridade_em !== undefined ? num(r.prioridade_em) : num(r.created_at),
   }))
 }
 
 export async function inserirSellOffer(tx: Consulta, o: SellOffer): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
-    `INSERT INTO ${S}.sell_offers (id, coin_id, seller, price, obs, lot_id, created_at, tipo_moeda)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [o.id, o.coinId, o.seller, o.price, o.obs, o.lotId, o.createdAt, o.tipoMoeda],
+    `INSERT INTO ${S}.sell_offers (id, coin_id, seller, price, obs, lot_id, created_at, tipo_moeda, prioridade_em)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [o.id, o.coinId, o.seller, o.price, o.obs, o.lotId, o.createdAt, o.tipoMoeda, o.prioridadeEm ?? o.createdAt],
   )
 }
 
-/** Só `price` muda na prática (editLot); os demais campos vão junto por simetria com o diff. */
+/** Preço e/ou prioridadeEm mudam na prática (editLot). */
 export async function atualizarSellOffer(tx: Consulta, o: SellOffer): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.sell_offers
-        SET coin_id = $2, seller = $3, price = $4, obs = $5, lot_id = $6, created_at = $7, tipo_moeda = $8
+        SET coin_id = $2, seller = $3, price = $4, obs = $5, lot_id = $6, created_at = $7, tipo_moeda = $8, prioridade_em = $9
       WHERE id = $1`,
-    [o.id, o.coinId, o.seller, o.price, o.obs, o.lotId, o.createdAt, o.tipoMoeda],
+    [o.id, o.coinId, o.seller, o.price, o.obs, o.lotId, o.createdAt, o.tipoMoeda, o.prioridadeEm ?? o.createdAt],
   )
 }
 
@@ -83,12 +85,13 @@ type LinhaBuyOrder = {
   qty: unknown
   created_at: unknown
   tipo_moeda: string
+  prioridade_em?: unknown
 }
 
 export async function carregarBuyOrders(tx: Consulta): Promise<BuyOrder[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaBuyOrder>(
-    `SELECT id, buyer, price, qty, created_at, tipo_moeda
+    `SELECT id, buyer, price, qty, created_at, tipo_moeda, prioridade_em
        FROM ${S}.buy_orders
       ORDER BY created_at, ord`,
   )
@@ -99,15 +102,16 @@ export async function carregarBuyOrders(tx: Consulta): Promise<BuyOrder[]> {
     qty: num(r.qty),
     createdAt: num(r.created_at),
     tipoMoeda: r.tipo_moeda,
+    prioridadeEm: r.prioridade_em !== null && r.prioridade_em !== undefined ? num(r.prioridade_em) : num(r.created_at),
   }))
 }
 
 export async function inserirBuyOrder(tx: Consulta, b: BuyOrder): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
-    `INSERT INTO ${S}.buy_orders (id, buyer, price, qty, created_at, tipo_moeda)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda],
+    `INSERT INTO ${S}.buy_orders (id, buyer, price, qty, created_at, tipo_moeda, prioridade_em)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda, b.prioridadeEm ?? b.createdAt],
   )
 }
 
@@ -115,9 +119,9 @@ export async function atualizarBuyOrder(tx: Consulta, b: BuyOrder): Promise<void
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.buy_orders
-        SET buyer = $2, price = $3, qty = $4, created_at = $5, tipo_moeda = $6
+        SET buyer = $2, price = $3, qty = $4, created_at = $5, tipo_moeda = $6, prioridade_em = $7
       WHERE id = $1`,
-    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda],
+    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda, b.prioridadeEm ?? b.createdAt],
   )
 }
 

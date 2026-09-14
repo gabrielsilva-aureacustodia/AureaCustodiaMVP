@@ -63,8 +63,19 @@ export function venda(
   price: number,
   tipo: string,
   t: number,
+  prioridade?: number,
 ): SellOffer {
-  return { id, coinId, seller, price, obs: '', lotId: 'LOT-' + id, createdAt: t, tipoMoeda: tipo }
+  return {
+    id,
+    coinId,
+    seller,
+    price,
+    obs: '',
+    lotId: 'LOT-' + id,
+    createdAt: t,
+    tipoMoeda: tipo,
+    prioridadeEm: prioridade ?? t,
+  }
 }
 
 export function compra(
@@ -74,6 +85,15 @@ export function compra(
   qty: number,
   tipo: string,
   t: number,
+  prioridade?: number,
 ): BuyOrder {
-  return { id, buyer, price, qty, createdAt: t, tipoMoeda: tipo }
+  return {
+    id,
+    buyer,
+    price,
+    qty,
+    createdAt: t,
+    tipoMoeda: tipo,
+    prioridadeEm: prioridade ?? t,
+  }
 }
