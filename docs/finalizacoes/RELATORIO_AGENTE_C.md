@@ -184,6 +184,12 @@ Tudo acréscimo, de resolução direta:
 
 ## C2 · Usuários e CS — `feat/c2-usuarios-e-cs`
 
+**C2 pronta para main — merge f40ae2c**
+
+**Commits:** `203d650` (servidor: migrations, mensageria, webhook, serviços, ações e riscos), `1d9b01b`
+(telas de atendimento e de usuários) e `6360d9e` (relatório e pendências), trazidos para
+`feat/c-painel-admin` pelo merge `--no-ff` `f40ae2c`.
+
 **Base:** `feat/c-painel-admin` @ `1145c1a`, depois de trazer `origin/main` (ainda em `3358845`; nada
 novo). As frentes A (A1 e A2) e B (B1 e B2) estavam publicadas nas branches delas, não na `main` — por
 isso tudo o que a ficha lê delas é leitura defensiva, que acende sozinha quando chegarem. Depois de levar
