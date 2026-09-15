@@ -19,13 +19,15 @@ Java acontecer.
 |---|---|---|
 | `types.ts` | **A fonte da verdade do modelo de dados.** Todo tipo do domínio | ⚠️ |
 | `constants.ts` | Catálogo de moedas, contas de teste, taxas, faixas de valor, `STORE_KEY`. Desde a C3, `COIN_TYPES` e `TAXAS_PADRAO` são o **padrão**: a configuração editada em `/admin/configuracao` sobrepõe, e `coinTypeInfo`, `isNegociavel`, `tiposNegociaveis` e `tiposAtivos` recebem o catálogo vigente por parâmetro (sem ele, valem os do código) | ⚠️ |
-| `fees.ts` | Comissão de negociação e faixas de custódia anual | ⚠️ |
+| `fees.ts` | Comissão de negociação dos dois lados e custódia mensal e anual por moeda | ⚠️ |
 | `market.ts` | **O motor de casamento de ordens**, lotes e indicadores | ⚠️ |
 | `money.ts` | Centavos ↔ exibição em BRL. `parsePrice` e `brl` | |
 | `dates.ts` | `Timestamp` ↔ `dd/mm/aaaa`, e o início do dia local | |
 | `codes.ts` | Geradores de `RO-000001`, `REC-000001`, `RO-ENV-0001` e do hash | |
 | `selectors.ts` | Leituras derivadas: auditoria, séries de gráfico, preferências | |
 | `statement.ts` | O extrato de UMA conta (não confundir com a auditoria pública) | |
+| `custodia-texto.ts` | Textos e valores da custódia para extrato e envio pelo plano e protocolo | |
+| `bloqueio-por-debito.ts` | Regras de bloqueio por pendência de custódia e casamento com ofertas pausadas | |
 | `seed.ts` | As 7 contas fictícias, o acervo e ~1 mês de negociações | |
 | `hash.ts` | SHA-256 puro e a fórmula **congelada** do hash encadeado do ledger (M4) | ⚠️ |
 | `ledger.ts` | Os lançamentos do livro-razão: derivação, encadeamento, verificação da cadeia (M4) | ⚠️ |

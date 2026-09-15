@@ -238,21 +238,23 @@ export default function ExtratoPage(): ReactNode {
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16.5v.5" />
           </svg>
-          O arquivo exportado traz sempre o extrato completo, independentemente do filtro
-          selecionado acima. A comissão de 0,5% + R$ 1,00 por moeda é retida do vendedor, por isso
-          só aparece nas linhas de venda.
+          O arquivo exportado traz sempre o extrato completo, independentemente do filtro selecionado
+          acima. A comissão de negociação é cobrada de quem compra e de quem vende, pelos valores da{' '}
+          <Link href="/taxas">Tabela de Taxas</Link> vigente, e aparece na coluna Taxa das linhas de
+          compra e de venda.
         </div>
 
-        {/* Duas limitações reais do MVP, escritas onde importam. Sem elas, o
-            extrato parece incompleto ou errado a quem for conferir. */}
+        {/* Notas informativas sobre faturas de custódia e comissões vigentes. */}
         <div className="note" style={{ marginTop: 8 }}>
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16.5v.5" />
           </svg>
-          Neste ambiente de teste, a taxa de custódia é registrada mas não é debitada do saldo, e a
-          plataforma guarda apenas a cobrança vigente — não há histórico de cobranças anteriores. O
-          saldo inicial da conta de demonstração também não aparece como depósito.
+          Cada fatura de custódia é uma linha, com o mês de referência, a quantidade de moedas e o
+          valor. A fatura paga com o saldo da conta aparece como saída; a fatura em aberto, ou paga
+          por Pix ou cartão, não mexe no saldo. Faturas e planos ficam em{' '}
+          <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link>. O saldo inicial da
+          conta de demonstração não aparece como depósito.
         </div>
       </div>
     </>

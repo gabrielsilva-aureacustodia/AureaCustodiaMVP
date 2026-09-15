@@ -25,6 +25,7 @@
 
 import { fdate } from '@/domain/dates'
 import { tradeFee } from '@/domain/fees'
+import { descricaoDaFaturaDeCustodia } from '@/domain/custodia-texto'
 import type { AppState, Cents, DateBR, Timestamp, UserEmail } from '@/domain/types'
 
 /** As categorias de linha do extrato. O texto é o que vai para a planilha. */
@@ -153,21 +154,23 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
         quantidade: e.quantidade,
         valorUnitario: null,
         taxa: null,
-        // Envio não move saldo: a custódia é cobrada à parte, e no MVP essa
-        // cobrança nunca chega a ser debitada (ver abaixo).
+        // Envio não move saldo: a custódia é cobrada à parte pela fatura.
         impacto: 0,
       })
     })
 
-  /* ---------- faturas mensais de custódia ---------- */
+  /* ---------- faturas de custódia ---------- */
   /*
-   * Uma linha POR MÊS, e não mais uma cobrança única sobrescrita.
+   * Uma linha POR MÊS/FATURA, com descrição própria para planos anuais ou mensais.
    *
    * Até 11/09/2026 este trecho lia `state.custodyCharges`, que guardava uma
    * cobrança por usuário, rotulada "Custódia anual" e calculada pela tabela de
    * faixas — três coisas que a decisão D-3 já tinha aposentado. O cliente lia
    * um preço que não era o vigente. O mecanismo antigo saiu por decisão do
    * Gabriel em 11/09/2026.
+   *
+   * Faturas de contratação e renovação de plano anual exibem descrição própria
+   * via `descricaoDaFaturaDeCustodia`, sem confundir com a custódia mensal.
    *
    * O impacto no saldo é o valor debitado de verdade: fatura liquidada com
    * saldo sai da conta, fatura pendente ou paga por fora não move nada. Isso é
@@ -182,7 +185,10 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
       dateBR: fdate(quando),
       kind: 'Taxa de custódia',
       tipoMoeda: '—',
-      descricao: `Custódia mensal ${f.competencia} · ${f.quantidadeMoedas} moeda(s) — ${f.status}`,
+      descricao: descricaoDaFaturaDeCustodia(
+        f,
+        (state.planosCustodia ?? []).find((p) => p.id === f.planoId),
+      ),
       quantidade: f.quantidadeMoedas,
       valorUnitario: null,
       taxa: f.valorCents,
@@ -233,8 +239,8 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
       t.taxasPagas += r.taxa ?? 0
     }
     if (r.kind === 'Compra') {
-      // Valor do ATIVO comprado: o total debitado do saldo está em `impacto`
-      // (-bruto - taxa). Subtrair a taxa devolve o valor dos ativos comprados
+      // Valor das moedas compradas: o total debitado do saldo está em `impacto`
+      // (-bruto - taxa). Subtrair a taxa devolve o valor das moedas compradas
       // sem distorcer `compradoValor`.
       t.compradoValor += -r.impacto - (r.taxa ?? 0)
       t.compradoQtd += r.quantidade ?? 0
