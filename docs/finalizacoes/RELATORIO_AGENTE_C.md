@@ -457,10 +457,13 @@ para o Gabriel no P-M-01.
 
 ## C3 · Bancada e configuração — `feat/c3-bancada-e-configuracao`
 
+**C3 pronta para main — merge 1ed2eac**
+
 **Base:** `feat/c-painel-admin` @ `4d35ee7`, igual à `main` depois do merge das três frentes — A1, A2,
 A3, B1, B2 e B3 já estavam lá, então nada nesta etapa é leitura defensiva de código ausente.
 **Commits:** `8c146d3` (servidor: migrations, domínio, serviços, ações, ligação do site à configuração e
-riscos), `dad4351` (telas) e o de documentação e relatório. Depois de levar para a `main`: P-C3-01
+riscos), `dad4351` (telas) e `c966675` (documentação, relatório e pendências), trazidos para
+`feat/c-painel-admin` pelo merge `--no-ff` `1ed2eac`. Depois de levar para a `main`: P-C3-01
 (migrations 024 e 025) e P-C3-02 (conferência logada).
 
 ### O que entrou, pela seção do plano do Admin
