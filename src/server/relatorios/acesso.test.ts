@@ -1,21 +1,37 @@
 /**
  * Testes da regra de acesso aos relatórios financeiros — quem é administrador
- * e quando o token de integração vale.
+ * pela lista do ambiente, a chave de integração e o que o módulo exporta.
  *
- * Paga parte do RA-16.c ("rotas de relatório sem teste"): a decisão de acesso
- * é a mesma função nas três rotas de `/api/relatorios`, em `/relatorios` e em
- * `/api/admin/conciliacao`, então testá-la aqui cobre a barreira de todas.
+ * A decisão com papéis do painel está testada em acesso-painel.test.ts.
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { autorizarRelatorio, ehAdmin, tokenDeIntegracaoValido } from './acesso'
+const { carregarMembro } = vi.hoisted(() => ({ carregarMembro: vi.fn() }))
+vi.mock('@/server/admin/acesso', () => ({ carregarMembro }))
+
+import { autorizarRelatorioNoPainel, ehAdmin, tokenDeIntegracaoValido } from './acesso'
 
 const SOCIO = 'gabrielsilva@testeaurea.com.br'
 const VISITANTE = 'visitante@exemplo.com.br'
 const TOKEN = 'token-de-integracao-com-mais-de-16-chars'
+const EMAIL = 'contador@exemplo.com.br'
+
+function membroCom(...permissoes: string[]) {
+  return {
+    email: EMAIL,
+    nome: 'Contador',
+    papel: { slug: 'contador', nome: 'Contador', rank: 30, variantePainel: 'gestao' },
+    permissoes,
+    origem: 'tabela',
+  }
+}
+
+beforeEach(() => {
+  carregarMembro.mockReset()
+})
 
 afterEach(() => {
   delete process.env.AUREA_ADMIN_EMAILS
@@ -54,25 +70,24 @@ describe('tokenDeIntegracaoValido', () => {
   })
 })
 
-describe('autorizarRelatorio', () => {
-  it('sessão de administrador entra, com ou sem token', () => {
-    expect(autorizarRelatorio(SOCIO, null)).toEqual({ ok: true, ator: SOCIO, via: 'sessao' })
-    expect(autorizarRelatorio(SOCIO, 'token-errado')).toMatchObject({ ok: true, via: 'sessao' })
+describe('o que sobrou do acesso aos relatórios', () => {
+  it('o módulo exporta só a lista do ambiente, a chave de integração e a decisão do painel', async () => {
+    const modulo = await import('./acesso')
+    expect(Object.keys(modulo).filter((k) => !k.startsWith('__')).sort()).toEqual([
+      'autorizarRelatorioNoPainel',
+      'ehAdmin',
+      'tokenDeIntegracaoValido',
+    ])
+    expect(['autorizar', 'Relatorio'].join('') in modulo).toBe(false)
   })
 
-  it('sessão comum sem token recebe 403, não 401', () => {
-    expect(autorizarRelatorio(VISITANTE, null)).toMatchObject({ ok: false, status: 403 })
-  })
-
-  it('sem sessão, só o token de integração abre — e como ator de integração', () => {
-    expect(autorizarRelatorio(null, null)).toMatchObject({ ok: false, status: 401 })
+  it('quem entra pela sessão com a permissão continua entrando mesmo com chave errada na URL', async () => {
+    carregarMembro.mockResolvedValue(membroCom('resultados.ver'))
     process.env.AUREA_RELATORIOS_TOKEN = TOKEN
-    expect(autorizarRelatorio(null, TOKEN)).toEqual({ ok: true, ator: 'integracao:token', via: 'token' })
-    expect(autorizarRelatorio(null, 'errado')).toMatchObject({ ok: false, status: 401 })
-  })
-
-  it('sessão comum COM token válido entra pelo token', () => {
-    process.env.AUREA_RELATORIOS_TOKEN = TOKEN
-    expect(autorizarRelatorio(VISITANTE, TOKEN)).toMatchObject({ ok: true, via: 'token' })
+    expect(await autorizarRelatorioNoPainel(EMAIL, 'errado')).toEqual({
+      ok: true,
+      ator: EMAIL,
+      via: 'sessao',
+    })
   })
 })

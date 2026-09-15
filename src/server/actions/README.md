@@ -67,7 +67,6 @@ TypeScript aponta. O que ele **não** aponta:
 | `market.ts` | `app/(app)/mercado/page.tsx` |
 | `sell.ts` | `app/(app)/vender/page.tsx` |
 | `custody.ts` | `app/(app)/envios/page.tsx` |
-| `contabil.ts` | `components/relatorios/RelatoriosPainel.tsx` |
 
 ## Antes de editar
 

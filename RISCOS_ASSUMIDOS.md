@@ -46,7 +46,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
 | **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; restam b e c, que dependem de credencial | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
 | **RA-15** | Cadastro simulado e entrada sem senha — **pago em 06/09/2026** | ✅ | arquivos removidos |
-| **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/server/actions/contabil.ts`, `src/app/api/relatorios/` |
+| **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/app/api/relatorios/` |
 | **RA-17** | Contingência temporária do login do seed quando o Supabase não está configurado | 🟡 | `src/server/actions/auth.ts`, `src/server/auth/` |
 | **RA-18** | Cadastro aberto sem exigir `AUREA_SIGNUP_ENABLED` nem versões legais em variável | 🟡 | `src/server/auth/config.ts` |
 | **RA-19** | Contas de demonstração entram pelo catálogo local, sem passar pelo Supabase | 🟠 | `src/domain/constants.ts`, `src/server/actions/auth.ts` |
@@ -549,7 +549,7 @@ isso, sete atalhos:
 |---|---|---|---|
 | **a** | **Administrador é quem está em `AUREA_ADMIN_EMAILS`**, ou, sem a variável, as 7 contas do seed. Não há papel de usuário no modelo | 🟠 | O M2 (Supabase Auth) traz identidade com papel; `ehAdmin` passa a ler o banco |
 | **b** | **O token de integração viaja na URL** (`?token=`), porque o `IMPORTDATA` do Sheets não manda cabeçalho. Fica visível na fórmula e no log; lê todos os relatórios, inclusive extratos de todas as contas. Só leitura; desligado sem a variável | 🟠 | Rotacionar ao trocar de contador; preferir o push por conta de serviço; ou um token por relatório |
-| **c** | **Rotas de `/api/relatorios` e `actions/contabil.ts` sem teste.** Testados: serialização, JWT, regra pura e a gravação do ledger no PGlite | 🟡 | Parametrizar `dados.ts` pelo `Executor` e testar rotas com sessão/token/recusa |
+| **c** | **Rotas de `/api/relatorios` sem teste.** Testados: serialização, JWT, regra pura e a gravação do ledger no PGlite | 🟡 | Parametrizar `dados.ts` pelo `Executor` e testar rotas com sessão/token/recusa |
 | **d** | **O push para o Google Sheets nunca foi executado contra o Google** (sem conta de serviço no ambiente). JWT provado localmente | 🟡 | Passos 1–5 de `docs/INTEGRACAO_GOOGLE_SHEETS.md` e um clique |
 | **e** | **O ledger começa na semeadura**; nada do blob antigo é migrado. `saldo_apos` de linhas do histórico fictício pode ficar negativo no meio | 🟡 | Aceito: a produção recomeça do seed no cutover (RA-08) |
 | **f** | **Custódia entra no ledger com sinal zero** — registrada, não debitada, como o extrato já diz | 🟡 | Decisão de negócio: debitar a custódia do saldo |
@@ -560,6 +560,11 @@ isso, sete atalhos:
 > sessão × token) e `/api/admin/conciliacao` — que exigia só sessão — passou a exigir
 > administrador, com 4 testes. Continuam sem teste as rotas de `/api/relatorios/*` em si e
 > `dados.ts`. Ver `docs/CHECKUP_GERAL_03_09.md`.
+
+> **Atualização de 15/09/2026 (E3).** O arquivo de ações contábeis sem papel foi
+> removido (`src/server/actions/contabil.ts`). `acesso.test.ts` deixou de testar a
+> versão síncrona antiga e passou a conferir as exportações do módulo e a prioridade
+> da sessão. A matriz sessão × chave de integração está em `acesso-painel.test.ts`.
 
 **O que NÃO é atalho:** nenhuma alíquota em código (é requisito do M7); catálogos contábeis
 upsertados do domínio (uma fonte só); lançamento manual corrigido por estorno (append-only).
