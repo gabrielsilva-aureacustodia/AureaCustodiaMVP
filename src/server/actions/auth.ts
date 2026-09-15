@@ -286,6 +286,12 @@ export async function logout(): Promise<ActionResult> {
   return { ok: true }
 }
 
+/**
+ * Tela de nova senha do link de redefinição (P-C2-05, RA-50). Não pede a senha atual porque quem
+ * chega pelo link a esqueceu; a autorização é a sessão de recuperação que o callback deixou nos
+ * cookies do Supabase, e a conferência de e-mail impede trocar a senha de outra identidade. Tamanho
+ * da senha fica com o Supabase, como no cadastro (RA-18).
+ */
 export async function definirNovaSenha(
   nova: string,
   confirmacao: string,

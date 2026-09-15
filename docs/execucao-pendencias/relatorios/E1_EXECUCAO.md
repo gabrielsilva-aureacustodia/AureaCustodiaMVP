@@ -9,4 +9,4 @@ Uma linha por tarefa fechada.
 - **T5 (sessão aberta)** — `/entrar/sair`, casco, `/api/state`, 401 do `AppProvider`, aviso em `/entrar`. Commit 437b85b. Falta: nada.
 - **T6 (P-C2-05)** — `definirNovaSenha`, `src/app/entrar/nova-senha/`, `src/components/login/NovaSenhaForm.tsx`, casos em `auth.test.ts`. Falta: nada.
 - **T7** — RA-43/44/49/50 em `RISCOS_ASSUMIDOS.md` e nos `ATALHOS.md` de `auth/`, `actions/`, `admin/`; READMEs. Falta: nada.
-- **T8** — ciclo completo e relatório `E1.md`. Conferência por `curl.exe` com servidor local não rodada (ver relatório).
+- **T8** — ciclo completo verde (92 arquivos, 777 testes + 1 pulado), quatro `curl.exe` conferidos na 3101, relatório `E1.md`. Falta: roteiro logado do Gabriel.
