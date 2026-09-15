@@ -33,6 +33,7 @@ import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, UserEmail } from '@/domain/types'
+import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -104,15 +105,21 @@ const COMPRA_DO_PROPRIO_ANUNCIO = 'Você não pode comprar do seu próprio anún
  * Recusa (ok:false) também passa pela gravação, porque mutateState escreve o
  * estado que recebeu de volta. É inofensivo: nesse caminho nada foi alterado, e
  * o que vai para o banco é byte a byte o que de lá veio.
+ *
+ * TAXAS E CATÁLOGO VÊM DA CONFIGURAÇÃO (C3, 14/09/2026). A tabela de taxas e o
+ * catálogo de tipos são lidos uma vez, antes da transação, e entregues à regra:
+ * mudança feita no painel vale a partir da próxima operação. Sem banco, é o
+ * padrão do código — o mesmo que valia antes.
  */
 async function executar(
-  regra: (state: AppState, session: UserEmail) => ActionResult,
+  regra: (state: AppState, session: UserEmail, regras: RegrasDoMercado) => ActionResult,
 ): Promise<ActionResult> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
   try {
-    const { result } = await mutateState<ActionResult>((state) => regra(state, session))
+    const regras = await carregarRegrasDoMercado()
+    const { result } = await mutateState<ActionResult>((state) => regra(state, session, regras))
     return result
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -154,7 +161,7 @@ function novoBidId(): string {
  * uma oferta escolhida a dedo, fora do livro. O original também não chamava.
  */
 export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionResult> {
-  return executar((state, session) => {
+  return executar((state, session, { taxas }) => {
     // Ordem natural do array, como na linha 1413 — as ofertas de um lote têm
     // todas o mesmo preço e o mesmo vendedor, então qual vem primeiro só decide
     // QUAIS moedas saem, não por quanto.
@@ -177,7 +184,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
-    const custoUnit = custoDeCompraPorMoeda(price)
+    const custoUnit = custoDeCompraPorMoeda(price, taxas)
     if (buyer.balance < custoUnit * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
 
     /*
@@ -198,7 +205,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     const toBuy = offers.slice(0, qty)
     const idsConsumidos = new Set<string>()
     let compradas = 0
-    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price)
+    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price, taxas)
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
@@ -261,17 +268,17 @@ export async function publishBid(
   precoUnit: Cents,
   tipoMoeda: string,
 ): Promise<ActionResult> {
-  return executar((state, session) => {
+  return executar((state, session, { taxas, catalogo }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
     if (qtyRaw <= 0 || cents <= 0) return { ok: false, error: BID_INVALIDO_PUBLICAR }
-    if (!isNegociavel(tipoMoeda)) return { ok: false, error: TIPO_NAO_NEGOCIAVEL }
+    if (!isNegociavel(tipoMoeda, catalogo)) return { ok: false, error: TIPO_NAO_NEGOCIAVEL }
 
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
     // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite (inclui comissão de compra).
-    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents))
+    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
 
     const qty = Math.min(qtyRaw, maxAfford)
@@ -286,7 +293,7 @@ export async function publishBid(
       tipoMoeda,
     })
 
-    const { matched } = matchOrders(state)
+    const { matched } = matchOrders(state, taxas)
 
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
@@ -337,7 +344,7 @@ export async function editBid(
   qtyPedida: number,
   precoUnit: Cents,
 ): Promise<ActionResult> {
-  return executar((state, session) => {
+  return executar((state, session, { taxas }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
     if (cents <= 0 || qtyRaw <= 0) return { ok: false, error: BID_INVALIDO_EDITAR }
@@ -348,7 +355,7 @@ export async function editBid(
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents))
+    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
     const precoMudou = bo.price !== cents
@@ -366,7 +373,7 @@ export async function editBid(
     bo.price = cents
     bo.qty = novaQty
 
-    const { matched } = matchOrders(state)
+    const { matched } = matchOrders(state, taxas)
     const msgFila = perdeuVez
       ? ' Como o preço mudou ou a quantidade aumentou, ela foi para o fim da fila desse preço.'
       : ''

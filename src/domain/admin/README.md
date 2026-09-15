@@ -24,6 +24,22 @@ passa o que leu do banco e do ambiente por parâmetro; estes arquivos só decide
 | `cs.test.ts` | 7 testes |
 | `usuarios.ts` | **C2.** A lista (`lerFiltroUsuarios`, `linhasDeUsuarios`, `filtrarUsuarios`, dia de Brasília), a validação das ações (`validarNovoUsuario`, `montarCadastroDoPainel`, `montarDadosBancarios`, `validarAjusteDeSaldo`), o `resumirConta` do cartão do CS e o `acervoDaConta` |
 | `usuarios.test.ts` | 9 testes |
+| `bancada.ts` | **C3.** A análise pela bancada web: faixa de peso (1 g a 100 g), `validarMoedasDaBancada` (uma linha por moeda, caixa e posição, posição repetida no mesmo envio recusada) e `nomeDoArquivoDeVideo` |
+| `bancada.test.ts` | 8 testes |
+| `caixas.ts` | **C3.** As caixas físicas do cofre: `chaveDeCaixa` (" cx-01 " e "CX-01" são a mesma), `validarCaixa`, e a ocupação vinda das análises × moedas × retiradas (`ocupantesDoCofre`, `posicoesJaOcupadas`, `ocupacaoDasCaixas`). Moeda retirada e postada sai da caixa |
+| `caixas.test.ts` | 7 testes |
+| `moedas.ts` | **C3.** A auditoria do acervo: `linhasDoAcervo` (situação de cada moeda), filtro pela URL, `resumirAcervo` e `verificarAcervo` (hash de cada análise, corrente do ledger e recibos divergentes) |
+| `moedas.test.ts` | 6 testes |
+| `logistica.ts` | **C3.** Envios e retiradas: dias úteis em Brasília, prazos de alerta (padrão 2 dias úteis de validação, 15 dias de trânsito), as linhas das duas tabelas e os rótulos de situação e de forma de pagamento (B3) |
+| `logistica.test.ts` | 8 testes |
+| `configuracao.ts` | **C3.** As definições de cada parâmetro editável — as onze taxas (um para um com `TabelaDeTaxas`), o operacional, os prazos dos Termos, os canais de atendimento —, com faixa e formato; `lerValorDigitado` ("0,5" vira 50 bp, "1,00" vira 100 centavos), `valoresVigentes` (padrão do código sobreposto pelo banco), `tabelaDeTaxasDe`, `operacionalDe`, `termosDe`, `canaisDe`, `prepararMudancas` e `simularNegociacao` |
+| `configuracao.test.ts` | 11 testes |
+| `documentos.ts` | **C3.** O texto da Tabela de Taxas e dos Termos de Uso a partir da configuração. Com os valores padrão, reproduz byte a byte a versão 1.0 publicada pela frente A — o teste confere o hash |
+| `documentos.test.ts` | 7 testes |
+| `catalogo.ts` | **C3.** O catálogo de tipos de moeda no banco: `validarTipoMoeda` (nome não muda depois de criado), `linhasIniciaisDoCatalogo` (a semeadura com `COIN_TYPES`) e `catalogoDasLinhas` (o formato que `isNegociavel` consulta) |
+| `catalogo.test.ts` | 7 testes |
+| `integracoes.ts` | **C3.** Cada serviço externo — ligado, incompleto ou desligado — pelos **nomes** das variáveis presentes, nunca pelos valores |
+| `integracoes.test.ts` | 2 testes |
 
 Os indicadores do negócio (KPIs) moram em `src/domain/kpis.ts`, um nível acima, como pede o plano
 do Admin — mesmo desenho de `dre.ts`, e testados em `kpis.test.ts`.

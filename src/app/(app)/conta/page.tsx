@@ -42,7 +42,7 @@ import { useModal } from '@/components/ui/Modal'
 const VISIVEIS = 4
 
 export default function ContaPage(): ReactNode {
-  const { state, session, me } = useApp()
+  const { state, session, me, catalogo } = useApp()
   const { open } = useModal()
   const router = useRouter()
 
@@ -68,7 +68,7 @@ export default function ContaPage(): ReactNode {
    * duas perguntas distintas.
    */
   const medPorTipo: Record<string, Cents | null> = {}
-  tiposNegociaveis().forEach((t) => {
+  tiposNegociaveis(catalogo).forEach((t) => {
     medPorTipo[t.key] = medianSellPrice(state, t.key)
   })
 

@@ -29,6 +29,7 @@
 
 import type { ReactNode } from 'react'
 
+import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { coinTypeInfo } from '@/domain/constants'
 import { apelidoVendedor } from '@/domain/contraparte'
@@ -53,6 +54,8 @@ export function LotCard({
   onAdjust,
   onBuy,
 }: LotCardProps): ReactNode {
+  // A ficha técnica vem do catálogo vigente, editado no painel (C3).
+  const { catalogo } = useApp()
   const qtyAvail = lot.coinIds.length
 
   /**
@@ -85,7 +88,7 @@ export function LotCard({
         </div>
 
         <div className="o-meta">
-          {coinTypeInfo(lot.tipoMoeda).detail}
+          {coinTypeInfo(lot.tipoMoeda, catalogo).detail}
           <br />
           {/* O nome do vendedor saiu daqui em 10/09/2026 (D-5): mostrar quem é
               o dono de cada lote expunha dado pessoal de um cliente para todos

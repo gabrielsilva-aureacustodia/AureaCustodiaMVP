@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { temPermissao } from '@/domain/admin/permissoes'
+import { carregarMembro } from '@/server/admin/acesso'
 import { getState } from '@/server/state'
 import { getSessionEmail } from '@/server/session'
 import {
@@ -33,21 +35,27 @@ export async function GET(
   }
 
   const state = await getState()
-  const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+  // O dono imprime a própria etiqueta; quem é do painel com `logistica.etiquetas` reimprime a de
+  // qualquer conta (plano do Admin, 3.6). Para o resto, o protocolo alheio continua "não encontrado".
+  const doProtocolo = state.envios.find((e) => e.protocolo === protocolo)
+  const podeReimprimir = doProtocolo !== undefined && doProtocolo.userEmail !== session && temPermissao(await carregarMembro(session), 'logistica.etiquetas')
+  const envio = doProtocolo && (doProtocolo.userEmail === session || podeReimprimir) ? doProtocolo : undefined
 
   if (!envio) {
     return NextResponse.json({ ok: false, error: 'Protocolo de envio não encontrado.' }, { status: 404 })
   }
 
   const modalidade: ModalidadeEnvio = 'SEDEX'
-  const user = state.users[session]
+  // Remetente é o dono do envio — que, na reimpressão pelo painel, não é quem está logado.
+  const dono = envio.userEmail
+  const user = state.users[dono]
 
   // Gera os dados da pré-postagem e etiqueta com o adaptador
   const prePostagem = await gerarPrePostagemCorreios({
     protocolo: envio.protocolo,
     remetente: {
-      nome: user?.name || session,
-      email: session,
+      nome: user?.name || dono,
+      email: dono,
       logradouro: 'Endereço do Remetente (Informado no envio)',
       numero: 'S/N',
       bairro: 'Centro',
@@ -202,8 +210,8 @@ export async function GET(
 
     <div class="box">
       <h2>2. Remetente</h2>
-      <div class="row"><span class="k">Cliente:</span><span class="v">${user?.name || session}</span></div>
-      <div class="row"><span class="k">E-mail:</span><span class="v">${session}</span></div>
+      <div class="row"><span class="k">Cliente:</span><span class="v">${user?.name || dono}</span></div>
+      <div class="row"><span class="k">E-mail:</span><span class="v">${dono}</span></div>
       <div class="row"><span class="k">Referência:</span><span class="v">${envio.protocolo}</span></div>
     </div>
 

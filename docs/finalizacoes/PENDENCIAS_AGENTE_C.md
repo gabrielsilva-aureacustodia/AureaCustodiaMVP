@@ -14,6 +14,10 @@ Cada item diz **o que falta**, **quem pode fazer**, **o que fica esperando** e *
 
 ### P-C1-01 · Aplicar as migrations 020 e 021 no Supabase de produção
 
+> ✅ **FEITO em 14/09**, pelo Agente C, junto com o merge das três frentes na `main` (pedido do
+> Gabriel). O `db:migrate` aplicou 014 a 023 de uma vez, e o `db:check` lista 001 a 023. Detalhes em
+> `RELATORIO_AGENTE_C.md`, seção "Merge das três frentes na main".
+
 - **Quando:** logo depois de a C1 entrar na `main` e o deploy da Vercel terminar — publicar e migrar
   são um passo só, nessa ordem (aprendizado de 11/09 no README das migrations).
 - **Quem:** Gabriel, ou o agente de auditoria que levar a C1 para a `main`.
@@ -87,6 +91,8 @@ DROP SCHEMA aurea_local_admin CASCADE;
 ## C2 — Usuários e CS
 
 ### P-C2-01 · Aplicar as migrations 022 e 023 no Supabase de produção
+
+> ✅ **FEITO em 14/09**, no mesmo passo do P-C1-01.
 
 - **Quando:** logo depois de a C2 entrar na `main` e o deploy da Vercel terminar.
 - **Quem:** Gabriel, ou o agente de auditoria que levar a C2 para a `main`.
@@ -238,6 +244,10 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
 
 ### P-C2-06 · Pedido ao Agente A — o número do WhatsApp do CS como canal de SAC
 
+> ✅ **FEITO em 14/09**, na C3, sem precisar do Agente A: os canais viraram configuração. O número entra
+> em `/admin/configuracao?aba=operacional`, bloco "Canais de atendimento", campo WhatsApp, e `/suporte`
+> passa a mostrar o link. Falta só o número, que é o do celular que o P-C2-02 conectar.
+
 - **O que:** quando o P-C2-02 conectar o número, ele entra nos canais de SAC de
   `src/domain/documentos-legais/parametros.ts` (A3), que alimentam `/suporte`. O agente não inventa
   número: **o valor é o número do celular do atendimento que o Gabriel conectar.**
@@ -245,6 +255,10 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
   finalizações). **O que fica esperando:** nada no painel.
 
 ### P-C2-07 · O que acende sozinho quando A2, A3, B1 e B2 chegarem à `main` (informativo)
+
+> ✅ **FEITO em 14/09**, na C3: a aba Mercado da ficha mostra a posição de cada lote e ordem na fila
+> (`posicaoNaFila`, A2), e a aba Financeiro tem "Quitar com o saldo" em fatura pendente ou atrasada, pela
+> ação `pagarFaturaCustodiaComSaldo` da B2.
 
 - **Sem commit nenhum:** aba Cadastro com os aceites formais (`aceites_documentos`, A3); aba Mercado
   com o histórico da fila (`ofertas_historico`, A2); aba Financeiro com recebimentos do gateway
@@ -276,3 +290,127 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
   ler `aceites_documentos` sozinha quando a migration 016 existir.
 - **Quem:** Agente A, se quiser que o campo persista; ou nada, se `aceites_documentos` já substituir o
   uso. **O que fica esperando no painel:** nada.
+
+---
+
+## C3 — Bancada e configuração
+
+### P-C3-01 · Aplicar as migrations 024 e 025 no Supabase de produção
+
+- **Quando:** quando a C3 for levada à `main`. A ordem entre publicar e migrar não importa desta vez: o
+  código novo pergunta se as tabelas existem e, sem elas, cobra o padrão do código — que é exatamente o
+  que a `main` cobra hoje (RA-47). Migrar logo depois do deploy é o suficiente.
+- **Quem:** Gabriel, ou o agente que levar a C3 para a `main`.
+- **O que fica esperando:** editar taxas, catálogo, parâmetros e canais (até lá, a tela de configuração
+  mostra os valores e pede o `db:migrate`), o histórico e o cadastro de caixas.
+- **Comando**, no PowerShell, na pasta principal com a `main` atualizada:
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run db:check
+```
+
+- **Como conferir:** o `db:migrate` imprime `+ 024_config_plataforma` e `+ 025_caixas_fisicas`; o
+  `db:check` lista 001 a 025 em "migrations aplicadas".
+
+### P-C3-02 · Conferir logado as quatro telas da C3
+
+- **Por que é seu:** nesta sessão eu não consegui abrir as telas logadas. O painel do navegador do app
+  estava ligado ao servidor da pasta principal (`C:\dev\AureaCustodiaMVP`, com o `.env.local` de
+  produção), e não ao deste worktree; e senha em tela de login eu não digito. O que sustenta a entrega
+  são os testes — 79 novos, entre eles a bancada web fechando uma análise e a configuração publicando a
+  Tabela de Taxas nos repositórios reais da frente A, no Postgres embutido — e o build.
+- **Quem:** Gabriel, depois do P-C3-01, com uma conta de sócio do seed ou o próprio e-mail com papel
+  Desenvolvimento.
+- **Roteiro** (endereço de produção; no domínio próprio, o caminho é o mesmo):
+  1. `https://aurea-custodia-mvp.vercel.app/admin/configuracao` — aba **Taxas e comissões**: os onze
+     campos com os valores de hoje (0,5% + R$ 1,00 de cada lado; R$ 2,00 de custódia por mês) e a
+     simulação de uma negociação. Mude a comissão fixa do comprador para `1,50` e veja a simulação mudar
+     antes de salvar. **Salvar** → toast "Salvo: … Tabela de Taxas publicada na versão 1.1." (o número
+     pode ser outro se a A3 já tiver publicado versões). Volte o valor para `1,00` e salve de novo.
+  2. `https://aurea-custodia-mvp.vercel.app/taxas` mostra a versão nova; no app, a faixa do topo diz "Há
+     versão nova de: Tabela de Taxas" até o aceite — é o comportamento esperado (RA-46).
+  3. Aba **Histórico**: as duas mudanças, com quem, quando, antes e depois.
+  4. Aba **Catálogo de moedas**: os tipos do código já semeados; **Editar** um tipo, desligar
+     "Negociável no mercado", salvar e ver o tipo sumir do seletor de `/vender`; ligar de novo.
+  5. Aba **Operacional**: limite de depósito, ciclo de sincronização, prazos da logística, prazos dos
+     Termos e canais de atendimento. O WhatsApp do atendimento entra aqui (P-C2-06) e aparece em
+     `https://aurea-custodia-mvp.vercel.app/suporte`.
+  6. Aba **Integrações**: cada serviço ligado, incompleto ou desligado, só com nomes de variável.
+  7. `https://aurea-custodia-mvp.vercel.app/admin/bancada` — **Cadastrar caixa** (`EB-001`), abra um envio
+     em "Recebido pela custódia", escolha a câmera (o navegador pede permissão), grave alguns segundos,
+     pare, e preencha uma linha por moeda. **Fechar análise** emite os recibos pelo mesmo serviço da
+     estação.
+  8. `https://aurea-custodia-mvp.vercel.app/admin/moedas` — **Verificar corrente** responde íntegra; a
+     moeda recém-analisada abre a ficha com os quinze campos e o vídeo.
+  9. `https://aurea-custodia-mvp.vercel.app/admin/logistica` — envios e retiradas, com o alerta de prazo e
+     os links de etiqueta.
+- **Se alguma tela der erro:** me passe o texto do erro do log do deploy na Vercel.
+
+### P-C3-03 · Pedido ao Agente B — dois pontos que ainda leem a tabela e o catálogo do código
+
+- **O que:** o painel já grava taxas e catálogo, e `src/server/config/carregar.ts` entrega o vigente.
+  Dois arquivos da frente B ainda não perguntam (RA-47):
+  1. `src/server/payments/conciliacao.ts`, a compra direta de lote pelo gateway: desconta a comissão
+     padrão do vendedor. Trocar pela tabela de `carregarTabelaDeTaxas()` (`src/server/taxas/carregar.ts`),
+     como `buyLot` já faz — é o mesmo RA-24 que espera a B1.4.
+  2. `src/server/estacao/analise.ts`, ao calcular o valor de entrada da moeda: decide se o tipo tem
+     mercado por `isNegociavel(tipo)` sem catálogo, isto é, pelo código. Passar o catálogo de
+     `carregarCatalogo()` (`src/server/config/carregar.ts`) — **sem tocar na fórmula do hash**.
+- **Quem:** Agente B. **O que fica esperando:** tipo novo marcado como negociável no painel nasce com o
+  valor do meio da faixa, e não com a mediana; taxa mudada no painel não vale na compra direta pelo
+  gateway.
+- **Como conferir:** mudar a comissão do vendedor no painel e fazer uma compra direta no sandbox — o
+  vendedor recebe com a comissão nova.
+
+### P-C3-04 · Vídeo da bancada web (informativo)
+
+- A bancada web sobe o vídeo pelo **mesmo caminho da estação**: `SUPABASE_URL` (ou
+  `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY` e o balde `analises` (ou o nome em
+  `SUPABASE_STORAGE_BUCKET`). É a mesma chave do P-C2-03 — se ela já estiver na Vercel e a estação já
+  sobe vídeo, nada a fazer. Sem ela, a tela diz o nome do que falta, a gravação fica num link "Baixar a
+  gravação" enquanto a página estiver aberta e a análise fecha sem vídeo.
+- Câmera no navegador só funciona em endereço `https` (a Vercel é) ou em `localhost`.
+
+---
+
+## Merge das três frentes na `main` — 14/09
+
+### P-M-01 · Conferir logado em produção, depois do merge
+
+- **O que falta:** abrir o site com uma conta e ver as telas que leem o banco. Eu conferi o que dá para
+  conferir sem login — `/`, `/entrar`, `/taxas`, `/suporte` e `/termos` respondem 200, `/admin` manda
+  para o login —, e o `db:check` lista as migrations 001 a 023. A leitura do estado de produção pelo
+  código novo, que eu ia rodar como prova, foi barrada pela permissão do modo automático, e senha em
+  tela de login eu não digito.
+- **Quem:** Gabriel.
+- **Roteiro:**
+  1. Entrar em `https://aurea-custodia-mvp.vercel.app/entrar`.
+  2. Abrir `https://aurea-custodia-mvp.vercel.app/inicio` e `https://aurea-custodia-mvp.vercel.app/mercado` —
+     saldo, moedas e livro de ofertas aparecem (é a leitura que as migrations 014 e 015 mudaram).
+  3. Abrir `https://aurea-custodia-mvp.vercel.app/admin/resultados/financeiro` e
+     `https://aurea-custodia-mvp.vercel.app/admin/usuarios` — carregam.
+- **Se alguma tela der erro:** me passe o texto do erro que aparece no log do deploy do commit `4d35ee7`
+  na Vercel.
+
+### P-M-02 · Atualizar a pasta principal
+
+- **O que falta:** a `main` da pasta `C:\dev\AureaCustodiaMVP` continua em `3358845` no disco. O merge foi
+  montado no worktree da frente C e enviado direto ao GitHub, sem mexer na pasta principal (que pode ter
+  trabalho seu aberto).
+- **Quem:** Gabriel, quando for usar a pasta principal. O comando só avança se não houver conflito:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP pull --ff-only
+```
+
+### P-M-03 · Aviso aos Agentes A e B (informativo)
+
+- As migrations 014 a 019 já estão aplicadas em produção — o item B-6 de
+  `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md` está feito, e não editei o arquivo da B.
+- Quem voltar a trabalhar numa branch de frente traz a `main` antes (`git merge origin/main`). Os ajustes
+  que o merge exigiu em arquivo de outra frente estão descritos no relatório da C e nas mensagens dos
+  commits `f5961ad` e `4d35ee7`.

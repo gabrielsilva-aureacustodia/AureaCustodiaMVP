@@ -46,7 +46,8 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
     await pglite.waitReady
     executar = executorPGlite(pglite)
     await aplicarMigrations(executar)
-  })
+    // Subir o PGlite e aplicar as 25 migrations passa de 10 s com a suíte inteira em paralelo.
+  }, 60_000)
 
   afterAll(async () => {
     await pglite?.close()

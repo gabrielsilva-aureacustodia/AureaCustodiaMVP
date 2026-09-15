@@ -52,13 +52,14 @@ import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { publishOffer, sellToBid } from '@/server/actions/sell'
 
-/** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
-const NEGOCIAVEIS = tiposNegociaveis()
-
 export default function VenderPage(): ReactNode {
-  const { state, session, me, run } = useApp()
+  const { state, session, me, run, taxas, catalogo } = useApp()
   const modal = useModal()
   const toast = useToast()
+
+  /** Tipos que a plataforma aceita negociar hoje — do catálogo vigente, editado no painel (C3). */
+  const NEGOCIAVEIS = tiposNegociaveis(catalogo)
+  const primeiroTipo = NEGOCIAVEIS[0]?.key ?? ''
 
   /* ---------- estado da tela (as globais selectedCoins/termsOk do MVP) ------- */
   const [selecionadas, setSelecionadas] = useState<string[]>([])
@@ -83,20 +84,20 @@ export default function VenderPage(): ReactNode {
    * tem Bandeira vê a pasta vazia com o motivo à vista em vez de ser levado a
    * um tipo que não escolheu.
    */
-  const [tipoAtivo, setTipoAtivo] = useState<string>(NEGOCIAVEIS[0].key)
+  const [tipoAtivo, setTipoAtivo] = useState<string>(primeiroTipo)
 
   /** Categorias abertas na lista de moedas. Ver a nota em components/market/Folder. */
   const [abertas, setAbertas] = useState<ReadonlySet<string>>(
-    () => new Set([coinTypeInfo(NEGOCIAVEIS[0].key).categoria]),
+    () => new Set([coinTypeInfo(primeiroTipo, catalogo).categoria]),
   )
 
   /* ---------- recortes do estado (as mesmas quatro linhas do renderSell) ----- */
   // Todas as moedas de tipos negociáveis: é o universo das pastas. As não
   // negociáveis ficam de fora porque esta tela existe para anunciar.
-  const negociaveis = me.coins.filter((c) => coinTypeInfo(c.tipoMoeda).negociavel)
+  const negociaveis = me.coins.filter((c) => coinTypeInfo(c.tipoMoeda, catalogo).negociavel)
   const anunciadas = new Set(state.sellOffers.map((o) => o.coinId))
   // Livres DO TIPO ATIVO — é o teto do campo de quantidade e da seleção.
-  const avail = availableCoinsForSell(state, me, tipoAtivo)
+  const avail = availableCoinsForSell(state, me, tipoAtivo, catalogo)
   // Ofertas de compra das OUTRAS contas, da mais alta para a mais baixa: quem
   // vende quer ver primeiro quem paga mais. De TODOS os tipos, de propósito —
   // o vendedor pode ter moedas de mais de um ativo, e esconder os bids dos
@@ -109,7 +110,7 @@ export default function VenderPage(): ReactNode {
   /** Quantas moedas livres o usuário tem de cada tipo — alimenta o seletor. */
   const livresPorTipo: Record<string, string> = {}
   NEGOCIAVEIS.forEach((t) => {
-    const n = availableCoinsForSell(state, me, t.key).length
+    const n = availableCoinsForSell(state, me, t.key, catalogo).length
     livresPorTipo[t.key] = `${n} disponível(is)`
   })
 
@@ -148,7 +149,7 @@ export default function VenderPage(): ReactNode {
     const moeda = me.coins.find((c) => c.id === moedaParam)
     if (!moeda) return
     setTipoAtivo(moeda.tipoMoeda)
-    setAbertas(new Set([coinTypeInfo(moeda.tipoMoeda).categoria]))
+    setAbertas(new Set([coinTypeInfo(moeda.tipoMoeda, catalogo).categoria]))
     setSelecionadas([moedaParam])
     setQtyTexto('1')
     // `me.coins` fora das dependências de propósito: o efeito consome o
@@ -168,9 +169,9 @@ export default function VenderPage(): ReactNode {
    * "taxa R$ 1,00" com o campo de preço ainda vazio — a linha 1625 do monolito
    * tem exatamente esta mesma proteção do lado de fora.
    */
-  const feeUnit = cents > 0 ? comissaoPorMoeda(cents, 'vendedor') : 0
+  const feeUnit = cents > 0 ? comissaoPorMoeda(cents, 'vendedor', taxas) : 0
   const fee = feeUnit * qty
-  const netUnit = cents > 0 ? liquidoDeVendaPorMoeda(cents) : 0
+  const netUnit = cents > 0 ? liquidoDeVendaPorMoeda(cents, taxas) : 0
   const net = netUnit * qty
   const podePublicar = qty > 0 && cents > 0 && termsOk
 
@@ -206,7 +207,7 @@ export default function VenderPage(): ReactNode {
     setTipoAtivo(tipo)
     setSelecionadas([])
     setQtyTexto('')
-    setAbertas(new Set([coinTypeInfo(tipo).categoria]))
+    setAbertas(new Set([coinTypeInfo(tipo, catalogo).categoria]))
   }
 
   function alternarPasta(categoria: string): void {
@@ -263,7 +264,7 @@ export default function VenderPage(): ReactNode {
     // O estoque conferido é o DO TIPO DO BID, e não o do tipo ativo no seletor:
     // a lista de ofertas recebidas mostra todos os ativos, então dá para vender
     // uma Direitos Humanos com a tela apontada para a Bandeira.
-    const livresDoTipo = availableCoinsForSell(state, me, bid.tipoMoeda).length
+    const livresDoTipo = availableCoinsForSell(state, me, bid.tipoMoeda, catalogo).length
     const maxQ = Math.min(bid.qty, livresDoTipo)
     if (maxQ <= 0) {
       toast(`Você não possui ${bid.tipoMoeda} disponível para vender agora.`)
@@ -444,7 +445,7 @@ export default function VenderPage(): ReactNode {
                 // Quantas moedas DESTE tipo o vendedor tem livres agora. O botão
                 // fica apagado quando é zero, em vez de abrir a modal só para
                 // recusar em seguida.
-                livres={availableCoinsForSell(state, me, b.tipoMoeda).length}
+                livres={availableCoinsForSell(state, me, b.tipoMoeda, catalogo).length}
                 onSellDirect={() => abrirVendaDireta(b)}
               />
             ))
@@ -518,7 +519,7 @@ export default function VenderPage(): ReactNode {
  * sozinha — é o `if(!bo){ closeModal(); return; }` da linha 1743.
  */
 function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): ReactNode {
-  const { state, run } = useApp()
+  const { state, run, taxas } = useApp()
   const { close } = useModal()
   const [qty, setQty] = useState(1)
 
@@ -582,14 +583,14 @@ function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): R
       </div>
       <div className="summary-row">
         <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
-        <span className="v">- {brl(comissaoPorMoeda(bo.price, 'vendedor') * qty)}</span>
+        <span className="v">- {brl(comissaoPorMoeda(bo.price, 'vendedor', taxas) * qty)}</span>
       </div>
       <div className="summary-row total" style={{ marginBottom: 16 }}>
         <span className="k">Você recebe</span>
         <span className="v" style={{ fontSize: 17 }}>
           {qty > 1
-            ? `${brl(liquidoDeVendaPorMoeda(bo.price) * qty)} (${brl(liquidoDeVendaPorMoeda(bo.price))}/moeda)`
-            : brl(liquidoDeVendaPorMoeda(bo.price) * qty)}
+            ? `${brl(liquidoDeVendaPorMoeda(bo.price, taxas) * qty)} (${brl(liquidoDeVendaPorMoeda(bo.price, taxas))}/moeda)`
+            : brl(liquidoDeVendaPorMoeda(bo.price, taxas) * qty)}
         </span>
       </div>
 

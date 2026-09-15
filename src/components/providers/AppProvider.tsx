@@ -40,9 +40,10 @@ import { useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { SYNC_MS } from '@/domain/constants'
+import { CONFIG_DO_CLIENTE_PADRAO, type ConfigDoCliente } from '@/domain/admin/configuracao'
+import type { TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
-import type { ActionResult, AppState, Trade, User, UserEmail } from '@/domain/types'
+import type { ActionResult, AppState, CoinType, Trade, User, UserEmail } from '@/domain/types'
 import { useToast } from '@/components/ui/Toast'
 
 /**
@@ -108,6 +109,20 @@ interface AppCtx {
    * mora em src/server/relatorios/acesso.ts e o cliente só a recebe pronta.
    */
   admin: boolean
+  /**
+   * A Tabela de Taxas vigente (C3: editável no painel). As telas mostram a comissão com ela antes
+   * do clique; quem cobra de verdade é a Server Action, com a tabela que ela mesma carrega.
+   */
+  taxas: TabelaDeTaxas
+  /** O catálogo de tipos de moeda vigente — passe para `isNegociavel`, `coinTypeInfo` e afins. */
+  catalogo: CoinType[]
+  /** Teto de cada depósito, da configuração do painel. */
+  depositoMax: number
+  /**
+   * Documentos que a conta ainda não aceitou na versão vigente. `null` = não dá para saber (sem
+   * banco): a faixa de termos usa a regra antiga.
+   */
+  aceitesPendentes: string[] | null
   /** Relê GET /api/state e atualiza, se mudou. */
   refresh(): Promise<void>
   /** Executa a server action, mostra o toast e relê o estado. Ver nota do topo. */
@@ -136,14 +151,22 @@ interface Props {
   session: UserEmail
   /** Decidido no servidor. Padrão false: ninguém vira administrador por omissão. */
   admin?: boolean
+  /** Taxas, catálogo e limites vigentes, lidos pelo layout (C3). Ausente = padrão do código. */
+  config?: ConfigDoCliente
+  aceitesPendentes?: string[] | null
   children: ReactNode
 }
 
-export function AppProvider({ initialState, session, admin = false, children }: Props): ReactNode {
+export function AppProvider({ initialState, session, admin = false, config: configInicial = CONFIG_DO_CLIENTE_PADRAO, aceitesPendentes: pendentesIniciais = null, children }: Props): ReactNode {
   const router = useRouter()
   const toast = useToast()
 
   const [state, setState] = useState<AppState>(initialState)
+  // Configuração e pendência de aceite chegam junto com o estado a cada ciclo: uma taxa mudada no
+  // painel aparece na tela do cliente no ciclo seguinte, sem ele recarregar a página.
+  const [config, setConfig] = useState<ConfigDoCliente>(configInicial)
+  const [aceitesPendentes, setAceitesPendentes] = useState<string[] | null>(pendentesIniciais)
+  const ultimoConfigJson = useRef<string>(JSON.stringify(configInicial))
 
   /**
    * Serialização do último estado aplicado. É o equivalente do
@@ -193,8 +216,19 @@ export function AppProvider({ initialState, session, admin = false, children }: 
       }
       if (!r.ok) return
 
-      const body = (await r.json()) as { state: AppState }
+      const body = (await r.json()) as { state: AppState; config?: ConfigDoCliente; aceitesPendentes?: string[] | null }
       if (body && body.state) aplicar(body.state)
+      if (body?.config) {
+        const json = JSON.stringify(body.config)
+        if (json !== ultimoConfigJson.current) {
+          ultimoConfigJson.current = json
+          setConfig(body.config)
+        }
+      }
+      if (body && body.aceitesPendentes !== undefined) {
+        const novos = body.aceitesPendentes
+        setAceitesPendentes((atuais) => (JSON.stringify(atuais) === JSON.stringify(novos) ? atuais : novos))
+      }
     } catch {
       // Falha de rede numa leitura de fundo não merece toast: o estado que já
       // está na tela continua válido e a próxima volta do ciclo tenta de novo.
@@ -233,7 +267,8 @@ export function AppProvider({ initialState, session, admin = false, children }: 
     [toast, refresh],
   )
 
-  /* ---------- ciclo de sincronização (SYNC_MS = 10s) ---------- */
+  /* ---------- ciclo de sincronização (padrão SYNC_MS = 10s; desde a C3, configurável no painel) ---------- */
+  const syncMs = config.syncMs
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null
 
@@ -244,7 +279,7 @@ export function AppProvider({ initialState, session, admin = false, children }: 
       }
     }
     const comecar = (): void => {
-      if (timer === null) timer = setInterval(() => void refresh(), SYNC_MS)
+      if (timer === null) timer = setInterval(() => void refresh(), syncMs)
     }
     const aoTrocarVisibilidade = (): void => {
       if (document.hidden) {
@@ -263,7 +298,7 @@ export function AppProvider({ initialState, session, admin = false, children }: 
       parar()
       document.removeEventListener('visibilitychange', aoTrocarVisibilidade)
     }
-  }, [refresh])
+  }, [refresh, syncMs])
 
   /**
    * `me` nunca é undefined na prática: o (app)/layout já derrubou para o login
@@ -273,8 +308,19 @@ export function AppProvider({ initialState, session, admin = false, children }: 
   const me = state.users[session]
 
   const value = useMemo<AppCtx>(
-    () => ({ state, session, me, admin, refresh, run }),
-    [state, session, me, admin, refresh, run],
+    () => ({
+      state,
+      session,
+      me,
+      admin,
+      taxas: config.taxas,
+      catalogo: config.catalogo,
+      depositoMax: config.depositoMaxCents,
+      aceitesPendentes,
+      refresh,
+      run,
+    }),
+    [state, session, me, admin, config, aceitesPendentes, refresh, run],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

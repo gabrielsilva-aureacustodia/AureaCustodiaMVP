@@ -36,10 +36,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { DEPOSITO_MAX } from '@/domain/constants'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
-import { TAXA_SAQUE_FIXA_CENTS } from '@/domain/fees'
 import { calcularDataLimiteSaque } from '@/domain/dates'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
@@ -302,7 +300,8 @@ export function ModalNotificacoes(): ReactNode {
  * desta tela: a pessoa precisa continuar vendo o campo para corrigi-lo.
  */
 export function ModalDeposito(): ReactNode {
-  const { me } = useApp()
+  // Teto da configuração do painel (C3); sem banco, o DEPOSITO_MAX do código.
+  const { me, depositoMax: DEPOSITO_MAX } = useApp()
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
@@ -431,7 +430,9 @@ export function ModalDeposito(): ReactNode {
  * ---------------------------------------------------------------------- */
 
 export function ModalSaque(): ReactNode {
-  const { me, run } = useApp()
+  const { me, run, taxas } = useApp()
+  // Tarifa da Tabela de Taxas vigente (C3); sem banco, a do código.
+  const TAXA_SAQUE_FIXA_CENTS = taxas.taxaSaqueFixa
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')

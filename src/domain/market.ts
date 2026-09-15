@@ -9,7 +9,7 @@
  * volta e a ordem de execução define quem compra de quem e por quanto.
  */
 
-import type { AppState, Cents, Coin, Lot, MatchResult, Trade, User } from '@/domain/types'
+import type { AppState, Cents, Coin, CoinType, Lot, MatchResult, Trade, User } from '@/domain/types'
 import { isNegociavel } from '@/domain/constants'
 import { DAY_MS, fdate } from '@/domain/dates'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
@@ -96,12 +96,14 @@ export function medianSellPrice(state: AppState, tipo: string): Cents | null {
  * A conferência de `isNegociavel` continua aqui mesmo com o tipo vindo por
  * parâmetro: quem chama pode passar um tipo que o usuário tem em custódia mas
  * que o mercado não aceita, e é esta função que fecha essa porta.
+ *
+ * `catalogo` é o catálogo vigente (C3: editável no painel); omitido, vale o do código.
  */
-export function availableCoinsForSell(state: AppState, u: User, tipo?: string): Coin[] {
+export function availableCoinsForSell(state: AppState, u: User, tipo?: string, catalogo?: readonly CoinType[]): Coin[] {
   return u.coins.filter(
     (c) =>
       c.recibo.status === 'Ativo' &&
-      (tipo === undefined ? isNegociavel(c.tipoMoeda) : c.tipoMoeda === tipo && isNegociavel(tipo)) &&
+      (tipo === undefined ? isNegociavel(c.tipoMoeda, catalogo) : c.tipoMoeda === tipo && isNegociavel(tipo, catalogo)) &&
       !state.sellOffers.some((o) => o.coinId === c.id) &&
       !(state.retiradas ?? []).some(
         (r) =>

@@ -49,7 +49,10 @@ export const PERMISSOES = [
   { chave: 'logistica.ver', modulo: 'logistica', rotulo: 'Ver logística', descricao: 'Envios, retiradas e rastreio de todas as contas.' },
   { chave: 'logistica.etiquetas', modulo: 'logistica', rotulo: 'Emitir etiquetas', descricao: 'Reimprimir etiquetas de envio e de retirada.' },
   { chave: 'config.ver', modulo: 'config', rotulo: 'Ver configuração', descricao: 'Taxas, catálogo, parâmetros operacionais e integrações.' },
-  { chave: 'config.taxas', modulo: 'config', rotulo: 'Editar taxas', descricao: 'Mudar comissão, custódia, saque e retirada.' },
+  // C3: a mesma permissão cobre os parâmetros operacionais, os prazos dos Termos e os canais de
+  // atendimento — tudo é "número que o contrato ou a operação usa". Uma permissão nova não chegaria
+  // ao papel Sócio já criado no banco (as concessões iniciais valem uma vez só).
+  { chave: 'config.taxas', modulo: 'config', rotulo: 'Editar taxas e parâmetros', descricao: 'Comissão, custódia, saque, retirada, limite de depósito, prazos dos Termos e canais de atendimento.' },
   { chave: 'config.catalogo', modulo: 'config', rotulo: 'Editar catálogo', descricao: 'Criar e editar tipos de moeda.' },
   { chave: 'admin.papeis', modulo: 'admin', rotulo: 'Administrar papéis', descricao: 'Criar papéis e escolher as permissões de cada um.' },
   { chave: 'admin.membros', modulo: 'admin', rotulo: 'Administrar membros', descricao: 'Dar e tirar acesso ao painel, trocar o papel de um membro.' },

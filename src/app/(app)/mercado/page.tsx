@@ -59,9 +59,6 @@ import { buyLot, cancelBid, publishBid } from '@/server/actions/market'
 import { iniciarCompraDireta } from '@/server/actions/payments'
 import type { CompraDiretaIniciada, MetodoDeposito } from '@/server/payments/tipos'
 
-/** Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela. */
-const NEGOCIAVEIS = tiposNegociaveis()
-
 /**
  * Pré-checagem do formulário de oferta (linha 1714). O texto é o mesmo que a
  * server action devolve: aqui ele só poupa uma ida ao servidor para um erro que
@@ -70,9 +67,16 @@ const NEGOCIAVEIS = tiposNegociaveis()
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
 export default function MercadoPage(): ReactNode {
-  const { state, session, me, run } = useApp()
+  const { state, session, me, run, taxas, catalogo } = useApp()
   const modal = useModal()
   const toast = useToast()
+
+  /**
+   * Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela — desde a C3, do
+   * catálogo editado no painel, que chega pelo AppProvider (antes era constante de módulo).
+   */
+  const NEGOCIAVEIS = tiposNegociaveis(catalogo)
+  const primeiroTipo = NEGOCIAVEIS[0]?.key ?? ''
 
   /* ---------- estado de tela ---------- */
 
@@ -99,11 +103,11 @@ export default function MercadoPage(): ReactNode {
    * Não existia no monolito — lá havia um ativo só, e por isso "Média de
    * mercado" podia ser um número solto sem dizer de quê.
    */
-  const [tipoAtivo, setTipoAtivo] = useState<string>(NEGOCIAVEIS[0].key)
+  const [tipoAtivo, setTipoAtivo] = useState<string>(primeiroTipo)
 
   /** Pastas abertas na vitrine. Ver a nota em components/market/Folder. */
   const [abertas, setAbertas] = useState<ReadonlySet<string>>(
-    () => new Set([coinTypeInfo(NEGOCIAVEIS[0].key).categoria]),
+    () => new Set([coinTypeInfo(primeiroTipo, catalogo).categoria]),
   )
 
   /* ---------- recortes do estado ---------- */
@@ -135,7 +139,7 @@ export default function MercadoPage(): ReactNode {
    */
   const lotesPorCategoria = new Map<string, Map<string, Lot[]>>()
   lots.forEach((l) => {
-    const cat = coinTypeInfo(l.tipoMoeda).categoria
+    const cat = coinTypeInfo(l.tipoMoeda, catalogo).categoria
     const tipos = lotesPorCategoria.get(cat) ?? new Map<string, Lot[]>()
     const lista = tipos.get(l.tipoMoeda) ?? []
     lista.push(l)
@@ -171,14 +175,14 @@ export default function MercadoPage(): ReactNode {
   /** Trocar o foco abre a pasta correspondente — senão o clique não mostra nada. */
   function trocarTipo(tipo: string): void {
     setTipoAtivo(tipo)
-    setAbertas(new Set([coinTypeInfo(tipo).categoria]))
+    setAbertas(new Set([coinTypeInfo(tipo, catalogo).categoria]))
   }
 
-  // Prévia do total da oferta de compra com comissão (A1.6).
+  // Prévia do total da oferta de compra com comissão (A1.6), com a Tabela de Taxas vigente (C3).
   const bidQtyNum = parseInt(bidQty, 10) || 0
   const bidPriceCents = parsePrice(bidPrice)
-  const bidCustoUnit = bidPriceCents > 0 ? custoDeCompraPorMoeda(bidPriceCents) : 0
-  const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador') : 0
+  const bidCustoUnit = bidPriceCents > 0 ? custoDeCompraPorMoeda(bidPriceCents, taxas) : 0
+  const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador', taxas) : 0
   const bidSubtotal = bidPriceCents > 0 && bidQtyNum > 0 ? bidPriceCents * bidQtyNum : 0
   const bidComissaoTotal = bidComissaoUnit * bidQtyNum
   const bidTotalComComissao = bidCustoUnit * bidQtyNum
@@ -518,7 +522,7 @@ function ConfirmarCompraModal({
   qty: number
   aoConcluir(): void
 }): ReactNode {
-  const { me, run } = useApp()
+  const { me, run, taxas } = useApp()
   const { close, open } = useModal()
 
   const [enviando, setEnviando] = useState(false)
@@ -526,7 +530,7 @@ function ConfirmarCompraModal({
   const [erroMp, setErroMp] = useState('')
 
   const subtotal = lot.price * qty
-  const comissaoComprador = comissaoPorMoeda(lot.price, 'comprador') * qty
+  const comissaoComprador = comissaoPorMoeda(lot.price, 'comprador', taxas) * qty
   const total = subtotal + comissaoComprador
   const temSaldo = me.balance >= total
 

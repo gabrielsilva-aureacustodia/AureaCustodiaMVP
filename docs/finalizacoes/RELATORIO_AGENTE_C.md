@@ -13,8 +13,11 @@ Pendências:  docs/finalizacoes/PENDENCIAS_AGENTE_C.md
 > a parte contábil, os indicadores do negócio e o uso da plataforma — e a tela de equipe, onde se
 > escolhe quem acessa e o que cada um pode fazer. A segunda entrega trouxe o **atendimento** (o
 > WhatsApp da empresa dentro do painel, com a ficha do cliente ao lado) e a **administração de
-> usuários** (a lista de contas e a ficha completa de cada uma, com as ações de ajuste). Bancada,
-> moedas, logística e configuração já aparecem no menu e chegam na próxima entrega.
+> usuários** (a lista de contas e a ficha completa de cada uma, com as ações de ajuste). A terceira
+> fechou o painel: a **bancada no navegador** (analisar moedas com a webcam, sem instalar programa), a
+> **auditoria das moedas guardadas**, a **logística** de envios e retiradas e a **configuração do site** —
+> taxas, tipos de moeda, limites, prazos e canais de atendimento mudam por tela, sem programador, e cada
+> mudança fica registrada e gera versão nova da Tabela de Taxas ou dos Termos.
 
 ---
 
@@ -373,3 +376,206 @@ Em `RISCOS_ASSUMIDOS.md` e nos `ATALHOS.md` de `src/lib/mensageria/` e `src/serv
 - P-C2-07: com A2 e B2 na `main`, trocar "disponível depois da A2" por `posicaoNaFila` na aba Mercado e
   ligar o pagamento manual de fatura da B2 na aba Financeiro.
 - Os canais de SAC (P-C2-06) podem virar configuração na aba Operacional.
+
+---
+
+## Merge das três frentes na `main` — 14/09/2026
+
+> **Para o Rogério.** As três equipes de trabalho tinham terminado as suas partes, mas cada uma estava
+> guardada numa pasta separada. A pedido do Gabriel, juntei as três na versão oficial do site, conferi
+> que tudo continua passando nos testes, atualizei o banco de dados e publiquei.
+
+**Pedido:** Gabriel, 14/09, depois de eu apontar que a `main` ainda não tinha A1, A3 e B2: *"REALIZE O
+MERGE QUE FALTA DE TODAS AS BRANCHES e depois continue"*. O plano dizia que o agente da frente não leva
+nada à `main`; o pedido direto do Gabriel substitui essa regra para este merge.
+
+### Como foi feito
+
+A `main` está em uso na pasta principal, então a integração foi montada numa branch temporária
+(`integracao/finalizacoes-main`) neste worktree, a partir de `origin/main` @ `3358845`, e enviada com
+`git push origin HEAD:main` — avanço simples, sem forçar. A pasta principal não foi tocada (P-M-02). A
+ordem segue a seção 7.1 do plano, com a A primeiro:
+
+| Merge | Commit | Conferência depois do merge |
+|---|---|---|
+| Frente A (A1, A2, A3 · migrations 014–016) | `87b4bfb` | typecheck ✓ · 52 arquivos, 385 testes ✓ · build ✓ |
+| Frente B (B1, B2, B3 · migrations 017–019) | `f5961ad` | typecheck ✓ · 59 arquivos, 471 testes ✓ · lint ✓ · build ✓ |
+| Frente C (C1, C2 · migrations 020–023) | `4d35ee7` | typecheck ✓ · 76 arquivos, 654 testes (1 pulado) ✓ · lint ✓ · build ✓ |
+
+Antes, conferi que cada branch de frente contém todas as suas sub-branches e que nenhuma mexe no
+`package.json`.
+
+### Conflitos, e como ficou cada um
+
+- **`src/domain/dre.ts` (A × B):** a A1 passou a contar negociações distintas (a comissão agora gera dois
+  lançamentos por negociação); a B trocou a observação da receita de custódia para "competência". Ficaram
+  as duas.
+- **`RISCOS_ASSUMIDOS.md` (A × B, depois × C):** ficaram todos os blocos, na ordem das faixas — RA-24 a
+  RA-26 da A, RA-30 e RA-32 da B, RA-40 a RA-44 da C. A B não tinha posto RA-30 e RA-32 no índice; pus.
+- **`src/server/db/db.test.ts` (A × C):** a lista de tabelas ficou com as das três frentes, em ordem
+  alfabética.
+
+### Ajustes que o merge exigiu sem conflito de texto
+
+Os dois primeiros ficam em arquivo de outra frente — são o mínimo para a `main` compilar e passar, e estão
+descritos na mensagem do commit `f5961ad`:
+
+- **`src/domain/fees.test.ts` (A1):** importava `TAXA_RETIRADA_COMUM_CENTS` e `TAXA_RETIRADA_SEGURA_CENTS`,
+  que a B3 substituiu por `TAXAS_RETIRADA_PADRAO`. O teste continua conferindo a mesma coisa — a tabela de
+  taxas da A1 e a de retirada da B3 concordam —, agora também nas parcelas.
+- **`src/server/db/livro-de-ordens.test.ts` (A2):** o `TRUNCATE` do teste passou a incluir
+  `planos_custodia` e `recebimentos_gateway`, porque `planos_custodia` (018) aponta para `users`.
+- **`src/server/admin/banco.test.ts` (C):** dois testes afirmavam que as leituras de aceites, fila e
+  recebimentos voltavam `null` porque as tabelas não existiam. Agora voltam lista vazia; o caminho sem
+  tabela continua testado, apagando a tabela dentro de uma transação que é desfeita.
+
+### Banco de produção e publicação
+
+1. `npm run db:check` antes: 001 a 013 aplicadas.
+2. `npm run db:migrate` **antes** do push: aplicou 014 a 023. A ordem é de propósito — o código novo lê
+   colunas que só existem depois das migrations (`fee_comprador`, `prioridade_em`), e publicar antes
+   derrubaria todas as telas logadas. As migrations são aditivas, então o código antigo seguiu funcionando
+   no minuto entre um passo e outro.
+3. `git push origin HEAD:main`: `3358845..4d35ee7`.
+4. `npm run db:check` depois: 001 a 023 aplicadas, RLS em todas as tabelas, nada em `public`.
+5. Publicação conferida sem login: `/taxas` e `/suporte`, que só existem no código novo, responderam 200
+   às 19:34 (o código de `3358845` não tinha essas páginas); `/`, `/entrar` e `/termos` 200; `/admin` 307 para o login;
+   `/api/estacao` 401.
+
+**O que não conferi:** as telas logadas em produção. A leitura do estado pelo código novo contra o banco
+de produção foi barrada pela permissão do modo automático, e não digito senha em tela de login. Roteiro
+para o Gabriel no P-M-01.
+
+### Depois do merge
+
+- `feat/c-painel-admin` avançou para `4d35ee7` e foi enviada; `feat/c3-bancada-e-configuracao` reabriu em
+  cima dela, sem commit perdido (ainda não tinha nenhum).
+- A branch temporária de integração foi apagada — o conteúdo dela é a `main`.
+- Os itens P-C1-01 e P-C2-01 (migrations da C em produção) estão feitos.
+
+---
+
+## C3 · Bancada e configuração — `feat/c3-bancada-e-configuracao`
+
+**C3 pronta para main — merge 1ed2eac**
+
+**Base:** `feat/c-painel-admin` @ `4d35ee7`, igual à `main` depois do merge das três frentes — A1, A2,
+A3, B1, B2 e B3 já estavam lá, então nada nesta etapa é leitura defensiva de código ausente.
+**Commits:** `8c146d3` (servidor: migrations, domínio, serviços, ações, ligação do site à configuração e
+riscos), `dad4351` (telas) e `c966675` (documentação, relatório e pendências), trazidos para
+`feat/c-painel-admin` pelo merge `--no-ff` `1ed2eac`. Depois de levar para a `main`: P-C3-01
+(migrations 024 e 025) e P-C3-02 (conferência logada).
+
+### O que entrou, pela seção do plano do Admin
+
+| Seção | Entrega |
+|---|---|
+| 3.1 | `024_config_plataforma.sql`: `config_plataforma` (valor `jsonb` com tipo), `config_historico` (só inserir) e `tipos_moeda`. RLS em todas. Nenhuma semeia valor |
+| 3.2 | `src/server/config/carregar.ts`: `carregarConfiguracaoDoSite()` lê a cada operação, sem cópia em memória; linha gravada e válida sobrepõe o padrão do código, e leitura que falha devolve o padrão (RA-47). `carregarTabelaDeTaxas()` (A1) passou a delegar para cá |
+| 3.3 | `/admin/configuracao` em cinco abas: **Taxas e comissões** (os onze campos de `TabelaDeTaxas`, um para um, com quem mudou, quando e a simulação de uma negociação), **Catálogo de moedas** (semeado com `COIN_TYPES` ao abrir; negociável e aceita envio novo), **Operacional** (limite de depósito, ciclo de sincronização, prazos da logística, prazos dos Termos, canais de atendimento), **Integrações** (só nomes de variável) e **Histórico** |
+| 3.4 | `/admin/bancada`: fila dos envios em "Recebido pela custódia" e "Em análise física", câmera escolhida e lembrada, gravação sem microfone com envio direto ao Storage por URL assinada, uma linha por moeda (veredito, peso, caixa, posição, motivo) e **Fechar análise pelo serviço `src/server/estacao/analise.ts`**, com o membro como operador |
+| 3.5 | `/admin/moedas` e `/admin/moedas/[codigo]`: o acervo com situação, filtro pela URL, **Verificar corrente** (hash de cada análise, livro-razão e recibos que não batem) e a ficha com recibo, os quinze campos da análise, vídeo por link assinado de 10 minutos, envio de origem e retiradas |
+| 3.6 | `/admin/logistica`: envios e retiradas com alerta de prazo (dias úteis em Brasília, prazos da aba Operacional), forma de pagamento, parcelas e situação da retirada (B3), e os links de etiqueta — as rotas de etiqueta passaram a aceitar `logistica.etiquetas` além do dono |
+| 3.7 | `025_caixas_fisicas.sql` e o quadro de caixas na bancada: cadastro, capacidade e ocupação vinda das análises × moedas × retiradas. Posição já ocupada é recusada antes de chamar o serviço |
+| 6 (finalizações) | Toda mudança de taxa grava `config_historico` e publica versão nova da Tabela de Taxas pela `publicarVersaoDocumento` da A3; prazo dos Termos publica versão nova dos Termos. `matchOrders`, `buyLot`, `sellToBid`, `publishBid`, `editBid`, plano de custódia, faturamento e retirada recebem a tabela carregada. `isNegociavel(tipo, catalogo)` consulta `tipos_moeda`. P-C2-07: posição na fila na aba Mercado e "Quitar com o saldo" na aba Financeiro, pela ação da B2 |
+
+### Decisões tomadas dentro do plano — e como explicar cada uma
+
+1. **Taxa mudada vale na operação seguinte, e a publicação do documento vem logo depois, em transação
+   separada.** *Para o Rogério:* o valor que a equipe salvou é o que o site cobra a partir dali; em
+   seguida o sistema gera a nova versão da Tabela de Taxas. Se essa segunda parte falhar, a tela diz e
+   oferece "Publicar a versão vigente" — a taxa não é desfeita (RA-46).
+2. **A faixa de "versão nova" pede o aceite, mas não bloqueia operação.** O plano não pede bloqueio, e
+   travar o mercado de todos a cada ajuste de centavo seria uma trava que o Gabriel não pediu. O aceite
+   registra a versão vigente, e não mais a 1.0 do código.
+3. **O texto da Tabela e dos Termos é gerado a partir da configuração** e, com os valores de hoje, é
+   idêntico byte a byte à versão 1.0 publicada pela A3 — o teste confere o hash. Assim a primeira
+   publicação pelo painel só acontece quando alguém muda um número, e nunca por diferença de espaço.
+4. **Faixa de valor é anteparo de digitação, não trava de negócio.** Comissão de 0 a 20%, depósito de
+   R$ 1 a R$ 1 milhão por operação, ciclo de 3 a 120 segundos: evitam "50" digitado no lugar de "0,5".
+   Valor gravado inválido (banco editado à mão) cai no padrão, em vez de zerar a comissão.
+5. **A bancada web não tem regra própria.** Ela valida o que a tela digitou (peso, posição) para dar o
+   erro na hora, e fecha pelo mesmo serviço da estação Electron. A fórmula do hash e os quinze campos de
+   `estacao/CONTRATO.md` não mudaram; a linha `admin.bancada.analisar` entra depois do serviço, com
+   `origem: 'bancada_web'` (RA-45).
+6. **O nome do tipo de moeda não muda depois de criado**: está gravado em cada moeda, envio e negociação.
+   Desligar "negociável" tira o tipo do mercado sem mexer nas moedas guardadas.
+7. **Caixa não é trava.** Sem cadastro, a bancada aceita o código digitado; com cadastro, grava a grafia
+   cadastrada ("eb 001" vira "EB-001"). Cadastrar caixa não reescreve análise — o texto gravado entra no
+   hash.
+8. **O cliente recebe a configuração pelo mesmo ciclo do estado** (`/api/state`), e as telas do app leem
+   taxas, catálogo e limite do contexto: mudança no painel chega à tela aberta no ciclo seguinte.
+9. **Os canais de atendimento viraram configuração** (resolve o P-C2-06 sem o Agente A): e-mail,
+   WhatsApp e telefone de `/suporte` mudam na aba Operacional e não alteram o texto dos Termos.
+
+### Arquivos fora da lista de território, editados porque o plano pede
+
+A seção 6 do plano de finalizações manda "funções recebem a tabela carregada" e "`isNegociavel` consulta
+`tipos_moeda`"; fazer isso é, necessariamente, editar os pontos que usavam a constante.
+
+| Arquivo | Por quê |
+|---|---|
+| `src/domain/constants.ts`, `market.ts`, `types.ts` | `coinTypeInfo`, `isNegociavel`, `tiposNegociaveis`, `tiposAtivos` e `availableCoinsForSell` recebem o catálogo por parâmetro, com o do código como padrão; `CoinType.ativo` opcional. Chamadas antigas respondem igual |
+| `src/server/taxas/carregar.ts` | `carregarTabelaDeTaxas()` lê a configuração |
+| `src/server/actions/market.ts`, `sell.ts`, `account.ts`, `payments.ts`, `plano-custodia.ts`, `custody.ts`, `src/server/custodia/faturamento.ts` | Tabela, catálogo e limite de depósito carregados em vez da constante |
+| `src/server/documentos/aceites.ts` | O aceite grava a versão e o hash vigentes |
+| `src/app/api/state/route.ts`, `src/components/providers/AppProvider.tsx`, `src/app/(app)/layout.tsx` | Configuração e pendência de aceite chegam ao cliente |
+| `src/components/shell/Topbar.tsx` | A faixa aparece quando falta aceite da versão vigente, dizendo qual documento |
+| `src/app/(app)/mercado`, `vender`, `recibos`, `conta`, `envios`; `src/components/market/LotCard.tsx`, `ModalEditarLote.tsx`, `sell/CoinPicker.tsx`, `recibo/Certificate.tsx`, `recibo/ModalSolicitarRetirada.tsx`, `account/AccountModals.tsx` | As telas leem taxas, catálogo e limite do contexto |
+| `src/app/taxas`, `termos`, `suporte` | A versão vigente e os canais configurados |
+| `src/app/api/envios/etiqueta/[protocolo]/route.ts`, `retiradas/etiqueta/[id]/route.ts` | Seção 3.6: `logistica.etiquetas` abre a etiqueta |
+| `src/server/db/repositories/config.ts`, `caixas.ts` (novos) | O SQL das migrations novas mora em `repositories/` |
+| `src/server/db/db.test.ts`, `livro-de-ordens.test.ts`, `payments.test.ts` | Lista de tabelas com as quatro novas; prazo do `beforeAll` de 30 s para 60 s — com 25 migrations a suíte inteira em paralelo passava do limite |
+| `CLAUDE.md` | O parágrafo do Admin ganhou a bancada web e a configuração; a seção de regras de negócio passou a dizer que os números são o padrão, editável em `/admin/configuracao` — mantê-la como "não pode mudar" faria o próximo agente recusar a tela pedida |
+| READMEs de `src/domain/`, `src/server/db/migrations/`, `src/server/db/repositories/` | Documentação que a mudança tornou incompleta |
+
+### Testes novos — 79
+
+A suíte foi de **76 arquivos e 654 testes** para **84 arquivos, 733 passando e 1 pulado** (o de banco
+real, como antes). `npm run typecheck`, `npm run lint` e `npm run build` limpos.
+
+| Arquivo | Testes | O que protege |
+|---|---|---|
+| `src/domain/admin/configuracao.test.ts` | 11 | Chaves de taxa um para um com `TabelaDeTaxas`; sem nada gravado vale o padrão; valor inválido cai no padrão; percentual e reais digitados; só o que mudou, com o antes; erro recusa o grupo; grupo `sistema` não editável; simulação de R$ 300; data de Brasília |
+| `src/domain/admin/documentos.test.ts` | 7 | Com `TAXAS_PADRAO`, o texto é o da versão 1.0; com outra tabela só os números mudam e o exemplo de R$ 200 é recalculado; o hash dos Termos com os parâmetros de hoje é o vetor congelado; o prazo trocado na cláusula certa |
+| `src/domain/admin/bancada.test.ts` | 8 | Faixa de peso igual à da rota da estação, miligramas inteiros, posição, quantidade do envio, posição repetida, caixa e vídeo opcionais, nome do arquivo |
+| `src/domain/admin/caixas.test.ts` | 7 | Grafia da caixa, validação, ocupação por análise × moeda × retirada, posição ocupada, quadro |
+| `src/domain/admin/logistica.test.ts` | 8 | Dias úteis, virada de dia em Brasília, prazos por parâmetro, envio encerrado, retirada atrasada, filtros |
+| `src/domain/admin/moedas.test.ts` | 6 | Linhas do acervo, resumo, filtro, corrente íntegra, adulteração apontada, sem livro-razão |
+| `src/domain/admin/catalogo.test.ts` | 7 | Nome com acento, repetido, grafia gravada, semeadura, `isNegociavel`/`coinTypeInfo`/`tiposAtivos` pelo catálogo passado |
+| `src/domain/admin/integracoes.test.ts` | 2 | Ligado, incompleto, desligado; só nomes de variável |
+| `src/server/actions/admin/acoes.test.ts` | +15 (51) | As 11 ações novas pedem a sua permissão e, recusadas, não chamam o serviço; o membro é o operador da análise; quitar fatura chama a B2 com o dono da ficha; grupo desconhecido e caminho de vídeo com `..` recusados; verificação da corrente na trilha |
+| `src/server/admin/banco.test.ts` | +8 (42) | Postgres embutido: taxa gravada com histórico e trilha **e a Tabela de Taxas publicada na versão 1.1 pelos repositórios reais da A3**; nada mudou e valor inválido não publicam; publicação que falha não desfaz a taxa; catálogo semeado, criado, repetido e editado com histórico; caixa cadastrada e grafia recusada; bancada que valida antes do serviço e fecha com a caixa cadastrada e a linha `admin.bancada.analisar` |
+
+### O que cliquei para conferir, e o que apareceu
+
+**Nada nas telas logadas, nesta etapa.** O painel do navegador do app ficou preso ao servidor da pasta
+principal — `C:\dev\AureaCustodiaMVP`, rodando com o `.env.local` de produção —, e não subiu um servidor
+deste worktree; usar aquele servidor seria conferir código antigo contra o banco de produção. E senha em
+tela de login eu não digito. A conferência logada ficou com o Gabriel, com roteiro clique a clique, no
+**P-C3-02**. O que sustenta a entrega: os 79 testes acima (inclusive a publicação real da Tabela de Taxas
+e o fechamento da análise pela bancada web no Postgres embutido), o typecheck, o lint e o build de
+produção com as rotas `/admin/bancada`, `/admin/moedas`, `/admin/moedas/[codigo]`, `/admin/logistica` e
+`/admin/configuracao`.
+
+### Riscos registrados
+
+- **RA-45** 🟡 — bancada web sem gravação local nem retomada depois de recarregar; linha do painel fora da
+  transação da análise; faixa de peso copiada da rota da estação.
+- **RA-46** 🟠 — taxa e prazo valem na hora, sem aviso prévio; a faixa pede aceite sem bloquear; publicação
+  do documento em transação separada.
+- **RA-47** 🟡 — leitura que falha cai no padrão do código; compra direta pelo gateway e valor de entrada da
+  análise ainda leem tabela e catálogo do código (pedido ao Agente B no P-C3-03).
+
+Em `RISCOS_ASSUMIDOS.md` e nos `ATALHOS.md` de `src/server/admin/`, `src/server/config/` e
+`src/components/admin/bancada/`.
+
+### O que pode dar conflito com trabalho de A e B
+
+- `src/server/actions/market.ts`, `sell.ts`, `custody.ts`, `account.ts`, `payments.ts`: as funções passaram
+  a carregar a configuração no começo; quem mexer nelas mantém a tabela carregada no lugar da constante.
+- `src/domain/constants.ts`: parâmetro opcional novo em quatro funções — chamadas antigas continuam
+  compilando.
+- `src/server/db/db.test.ts`: a lista de tabelas ganhou `caixas`, `config_historico`, `config_plataforma` e
+  `tipos_moeda`, em ordem alfabética.
+- `RISCOS_ASSUMIDOS.md`: três linhas de índice, uma na tabela de pastas e três seções no fim.

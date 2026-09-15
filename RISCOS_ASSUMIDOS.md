@@ -64,6 +64,9 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-42** | WhatsApp do atendimento por QR code (Evolution API, não oficial): risco de banimento do número, webhook sem assinatura do corpo, conversas sem prazo de retenção | 🟠 | `src/lib/mensageria/`, `src/app/api/webhooks/whatsapp/` |
 | **RA-43** | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | 🟡 | `src/server/admin/` |
 | **RA-44** | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | 🟡 | `src/server/admin/` |
+| **RA-45** | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | 🟡 | `src/server/admin/`, `src/components/admin/bancada/` |
+| **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
+| **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
 
 ---
 
@@ -590,6 +593,8 @@ controle de acesso de verdade; (f) vira receita não cobrada.
 | `src/server/admin/` | [`ATALHOS.md`](src/server/admin/ATALHOS.md) |
 | `src/app/api/eventos/` | [`ATALHOS.md`](src/app/api/eventos/ATALHOS.md) |
 | `src/lib/mensageria/` | [`ATALHOS.md`](src/lib/mensageria/ATALHOS.md) |
+| `src/server/config/` | [`ATALHOS.md`](src/server/config/ATALHOS.md) |
+| `src/components/admin/bancada/` | [`ATALHOS.md`](src/components/admin/bancada/ATALHOS.md) |
 
 # RA-18 — Cadastro aberto por padrão 🟡
 
@@ -951,3 +956,99 @@ quando o banco falha e para qualquer conta da equipe do painel — e o pedido es
 > **Para o Rogério:** desativar uma conta já impede a pessoa de entrar de novo. Quem estiver com o
 > site aberto no momento continua dentro até sair; a outra frente de trabalho vai fechar essa porta
 > também.
+---
+
+# RA-45 — Bancada web: rede estável, sem retomada e sem gravação local 🟡
+
+```
+Decidido em: 12/09/2026 (plano do Admin, seção 11) · entregue na C3, 14/09/2026
+Dono:        Gabriel
+Pastas:      src/server/admin/ (ATALHOS.md) · src/components/admin/bancada/ (ATALHOS.md)
+```
+
+A bancada de análise no navegador (`/admin/bancada`) fecha o procedimento pelo mesmo serviço da
+estação Electron — `fecharAnalise()` de `src/server/estacao/analise.ts` —, na mesma corrente de
+hashes. O que ela **não** faz, e a estação faz:
+
+- **não grava o vídeo em disco antes de subir.** Se a internet cair durante o envio, a cópia fica
+  num link "Baixar a gravação" que vale só enquanto a página estiver aberta;
+- **não sobrevive a recarregar a página** no meio do procedimento: o que foi digitado se perde
+  (a análise não foi gravada, então nada fica pela metade no banco);
+- **a linha `admin.bancada.analisar` vai para a trilha depois da análise, em outra transação.** O
+  serviço da estação abre a própria transação e não recebe executor de fora. Se o processo cair
+  entre os dois passos, a análise fica gravada sem a linha do painel — continua identificada pelo
+  `operador` (o e-mail do membro), que entra no hash, e pela trilha derivada do próprio estado.
+
+Duas coisas a mais que valem saber:
+
+- **as regras de peso e de motivo de recusa existem em três lugares** — a rota da estação (sem
+  exportação), o programa Electron e `src/domain/admin/bancada.ts`. O teste do painel congela a
+  faixa de 1 g a 100 g; mudar uma cópia sem as outras faria as bancadas discordarem;
+- **a posição já ocupada só é recusada pela bancada web.** A rota da estação não confere caixas
+  (RA-22 continua valendo para ela).
+
+Deixa de valer quando a bancada de verdade usar a web com rede estável comprovada, ou quando a
+estação passar a chamar a mesma validação. Para bancada sem rede estável, o `.exe` da pasta
+`estacao/`.
+
+> **Para o Rogério:** dá para analisar moeda direto pelo painel, com câmera do computador. Só não
+> recarregue a página no meio: o que foi preenchido some. Com internet ruim, use o programa do
+> notebook, que guarda tudo antes de enviar.
+
+---
+
+# RA-46 — Taxa e prazo mudados no painel valem na hora 🟠
+
+```
+Decidido em: 13/09/2026 (tabela 6 do plano de finalizações) · entregue na C3, 14/09/2026
+Dono:        Gabriel
+Pastas:      src/server/config/ (ATALHOS.md) · src/server/admin/ (ATALHOS.md)
+```
+
+Desde a C3, as taxas (os campos de `TabelaDeTaxas`), o limite de depósito, o ciclo de
+sincronização, os prazos dos Termos e os canais de atendimento são editados em
+`/admin/configuracao`. Cada mudança grava o valor, uma linha append-only em
+`aurea.config_historico` e `admin.config.<grupo>` na trilha — na mesma transação — e publica versão
+nova da Tabela de Taxas ou dos Termos. O que isso assume:
+
+- **a taxa nova vale para a próxima operação, sem aviso prévio.** Negociação já feita, plano já
+  contratado e retirada já pedida guardam o valor da hora em que aconteceram;
+- **a faixa de versão nova no topo do app pede o aceite, mas não bloqueia nada** (decisão do
+  Gabriel: nenhuma trava). Quem não aceitar continua operando com a tabela nova;
+- **a publicação do documento é da A3 e abre a própria transação.** Se falhar, a taxa já vale e a
+  Tabela publicada fica atrasada; a tela mostra "Publicar a versão vigente" até alguém completar;
+- **a versão publicada vale a partir do momento da publicação**, mesmo quando a data escrita no
+  texto dos Termos é outra.
+
+Deixa de valer com uma regra comercial de antecedência para mudança de taxa (os Termos podem
+exigir), se os sócios quiserem uma.
+
+> **Para o Rogério:** mudar a taxa no painel muda a cobrança a partir da próxima operação, e a
+> Tabela de Taxas do site ganha versão nova com o valor novo. Os clientes veem um aviso para aceitar,
+> mas conseguem continuar usando.
+
+---
+
+# RA-47 — Configuração que não lê cai no padrão do código 🟡
+
+```
+Decidido em: 14/09/2026 (C3) · entregue na C3
+Dono:        Gabriel
+Pasta:       src/server/config/ (ATALHOS.md)
+```
+
+`carregarConfiguracaoDoSite()` lê a configuração a cada operação, sem cópia em memória. Se o banco
+não responder, ela **devolve o padrão do código** — `TAXAS_PADRAO`, `COIN_TYPES`, `DEPOSITO_MAX` — e
+registra o erro no log, em vez de derrubar o mercado. Durante uma falha dessas, uma taxa mudada no
+painel deixa de valer até o banco voltar.
+
+E dois pontos ainda leem a tabela e o catálogo do código, porque os arquivos são da frente B e o
+painel não os edita:
+
+- **a compra direta de lote pelo gateway** (`src/server/payments/conciliacao.ts`) desconta a
+  comissão padrão do vendedor — é o RA-24, que já espera a B1.4;
+- **a análise da estação** (`src/server/estacao/analise.ts`) decide se o tipo tem mercado pelo
+  catálogo do código ao calcular o valor de entrada da moeda. Tipo novo marcado como negociável no
+  painel nasce com o valor do meio da faixa, e não com a mediana, até a frente B passar o catálogo.
+
+Os pedidos estão em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.

@@ -3,7 +3,9 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { LegalDocument } from '@/components/legal/LegalDocument'
+import { formatarTelefoneE164 } from '@/domain/admin/telefone'
 import { PARAMETROS_LEGAIS } from '@/domain/documentos-legais/parametros'
+import { carregarCanaisDeAtendimento } from '@/server/config/carregar'
 
 export const metadata: Metadata = {
   title: 'Atendimento ao Cliente (SAC) | Áurea Custódia',
@@ -11,7 +13,13 @@ export const metadata: Metadata = {
     'Canal oficial de Serviço de Atendimento ao Cliente (SAC) da Áurea Custódia — suporte numismático, dúvidas operacionais e exercício de direitos LGPD.',
 }
 
-export default function SupportPage(): ReactNode {
+// Canais de atendimento editáveis no painel desde a C3 (aba Operacional): dinâmica para não
+// congelar no build o e-mail e os números que existiam na hora do deploy.
+export const dynamic = 'force-dynamic'
+
+export default async function SupportPage(): Promise<ReactNode> {
+  const canais = await carregarCanaisDeAtendimento()
+  const whatsappDigitos = canais.whatsapp.replace(/\D/g, '')
   return (
     <LegalDocument
       title="Serviço de Atendimento ao Cliente (SAC)"
@@ -40,13 +48,29 @@ export default function SupportPage(): ReactNode {
           <p>
             • <strong>Endereço:</strong>{' '}
             <a
-              href={`mailto:${PARAMETROS_LEGAIS.sac.email}`}
+              href={`mailto:${canais.email}`}
               className="legal-block-link"
               style={{ fontWeight: 600 }}
             >
-              {PARAMETROS_LEGAIS.sac.email}
+              {canais.email}
             </a>
           </p>
+          {canais.whatsapp ? (
+            <p>
+              • <strong>WhatsApp:</strong>{' '}
+              <a href={`https://wa.me/${whatsappDigitos}`} className="legal-block-link" style={{ fontWeight: 600 }} target="_blank" rel="noreferrer">
+                {formatarTelefoneE164(canais.whatsapp)}
+              </a>
+            </p>
+          ) : null}
+          {canais.telefone ? (
+            <p>
+              • <strong>Telefone:</strong>{' '}
+              <a href={`tel:${canais.telefone}`} className="legal-block-link" style={{ fontWeight: 600 }}>
+                {formatarTelefoneE164(canais.telefone)}
+              </a>
+            </p>
+          ) : null}
           <p>
             • <strong>Horário de Atendimento:</strong> Dias úteis, das 09:00 às 18:00 (horário de Brasília)
           </p>
@@ -97,15 +121,17 @@ export default function SupportPage(): ReactNode {
         </aside>
       </section>
 
-      <section>
-        <h2>4. Nota sobre Telefonia e WhatsApp Corporativo (RA-26)</h2>
-        <p>
-          Informamos aos usuários que as linhas corporativas de atendimento telefônico e WhatsApp
-          oficial encontram-se atualmente em fase final de homologação junto às operadoras de
-          telecomunicações e segurança da informação. Tão logo homologados, os novos números serão
-          publicados formalmente nesta página.
-        </p>
-      </section>
+      {!canais.whatsapp && !canais.telefone ? (
+        <section>
+          <h2>4. Nota sobre Telefonia e WhatsApp Corporativo (RA-26)</h2>
+          <p>
+            Informamos aos usuários que as linhas corporativas de atendimento telefônico e WhatsApp
+            oficial encontram-se atualmente em fase final de homologação junto às operadoras de
+            telecomunicações e segurança da informação. Tão logo homologados, os novos números serão
+            publicados formalmente nesta página.
+          </p>
+        </section>
+      ) : null}
     </LegalDocument>
   )
 }

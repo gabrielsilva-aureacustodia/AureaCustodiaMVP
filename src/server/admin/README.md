@@ -34,15 +34,20 @@ do painel chama `permissaoParaAcao` por conta própria.
 | `cs.ts` | **C2.** O atendimento: `receberEventos` (o que o webhook traduziu — contato, conversa, conta pelo telefone, reentrega sem duplicar, estado de entrega só para a frente), `carregarCaixa`, `abrirConversa`, `responderConversa` (envia fora da transação e grava enviada, registrada ou falhou), `iniciarConversa`, notas, etiquetas, responsável, situação e `atualizarContato` | — |
 | `usuarios.ts` | **C2.** As ações da ficha: criar conta, editar cadastro e dados bancários, ajustar saldo, inadimplência, ativar e desativar, redefinir senha, anotar. As portas `PortaDeEstado` (com `portaDeEstadoNoBanco`: `mutarEstado` e a linha `admin.usuarios.<verbo>` na mesma transação) e `PortaDeIdentidade` | — |
 | `identidade.ts` | **C2.** A porta do Supabase Auth pela chave de serviço: buscar, criar, definir senha, bloquear e enviar o link de redefinição. Sem as variáveis, responde "não configurada" com os nomes do que falta | ✅ |
-| `portas.ts` | **C2.** Liga os serviços ao mundo real: `portaDeEstadoDoServidor` (banco ou memória), `executorOuNulo`, `ehTabelaAusente` (erro 42P01) | ✅ |
-| `ficha.ts` | **C2.** Os carregadores da lista e da ficha do usuário, aba por aba. Dados bancários só saem com `usuarios.dados_bancarios`; leituras que podem faltar viram `null` | ✅ |
+| `portas.ts` | **C2.** Liga os serviços ao mundo real: `portaDeEstadoDoServidor` (banco ou memória), `executorOuNulo`, `ehTabelaAusente` (erro 42P01). **C3:** `caixasCadastradas`, `portaDaBancadaDoServidor`, `portaDePublicacaoDoServidor`, `portaDeVideoDoServidor` | ✅ |
+| `ficha.ts` | **C2.** Os carregadores da lista e da ficha do usuário, aba por aba. Dados bancários só saem com `usuarios.dados_bancarios`; leituras que podem faltar viram `null`. **C3:** a posição de cada lote e ordem na fila (`posicaoNaFila`, A2) | ✅ |
+| `bancada.ts` | **C3.** A bancada web: `abrirPelaBancadaWeb`, `fecharPelaBancadaWeb` (valida, confere a ocupação da caixa e fecha **pelo serviço de `src/server/estacao/analise.ts`**, com o membro como operador; a linha `admin.bancada.analisar` vem depois, com `origem: 'bancada_web'`), `assinarVideoPelaBancadaWeb` e `salvarCaixa`. Recebe a `PortaDaBancada` por parâmetro | — |
+| `configuracao.ts` | **C3.** `salvarGrupoDeConfiguracao`: as linhas de `config_plataforma`, o `config_historico` e o `admin.config.<grupo>` na mesma transação; depois do commit, publica versão nova da Tabela de Taxas ou dos Termos pela função da frente A (`admin.config.publicar_documento`). `publicarDocumentoVigente`, `garantirCatalogoNoBanco` e `salvarTipoDeMoeda` | — |
+| `moedas.ts` | **C3.** Os carregadores da auditoria do acervo, da verificação da corrente e da ficha da moeda | ✅ |
+| `logistica.ts` | **C3.** O carregador de envios e retiradas com os prazos configurados | ✅ |
+| `video.ts` | **C3.** O vídeo da análise no Storage: o que falta no ambiente e a URL de leitura assinada por 10 minutos | ✅ |
 | `atendimento.ts` | **C2.** O carregador da tela de CS (`carregarAtendimento`) e a equipe para atribuir conversa | ✅ |
 | `situacao.ts` | **C2.** `contaDesativada(email)`: a pergunta que o login, o callback e o casco do app vão fazer (frente A). Banco fora ou conta da equipe respondem "ativa" | ✅ |
-| `banco.test.ts` | 34 testes contra o Postgres embutido: migrations 020 a 023, catálogo, membros, proteção do último dev, trilha, registro de uso, ações contábeis, atendimento e ações da ficha do usuário | — |
+| `banco.test.ts` | 42 testes contra o Postgres embutido: migrations 020 a 025, catálogo, membros, proteção do último dev, trilha, registro de uso, ações contábeis, atendimento, ações da ficha do usuário e, na C3, configuração com publicação real da Tabela de Taxas, catálogo, caixas e bancada web | — |
 | `acesso.test.ts` | 5 testes do caminho sem banco: bootstrap e recusa 401/403 | — |
 | `situacao.test.ts` | 3 testes de `contaDesativada` | — |
 | `testing/` | O executor PGlite dos testes desta pasta. Não é código de produção | — |
-| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40, RA-41, RA-43, RA-44) | — |
+| `ATALHOS.md` | O que esta pasta deve ao próprio rigor (RA-40, RA-41, RA-43, RA-44, RA-45, RA-46) | — |
 
 Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâmetro, como
 `src/server/db/estado.ts`: é o que deixa a suíte rodá-los contra o Postgres embutido.
@@ -88,4 +93,8 @@ Os arquivos sem `server-only` recebem o `Executor` (ou a `Consulta`) por parâme
 | `src/server/db/repositories/cs.ts`, `admin-usuarios.ts` | O SQL das migrations 022 e 023 |
 | `src/server/db/estado.ts` | `lerEstado` e `mutarEstado`, reaproveitados pela `PortaDeEstado` — o ajuste de saldo vira `ajuste` no ledger pela derivação de sempre |
 | `src/lib/mensageria/` | O provedor de WhatsApp que `cs.ts` recebe por parâmetro |
+| `src/server/estacao/analise.ts` | **C3.** Abrir e fechar análise — a bancada web chama, não reimplementa; a fórmula do hash não muda |
+| `src/server/documentos/` | **C3.** `publicarVersaoDocumento` e `garantirDocumentosVigentes` (frente A), chamadas depois de salvar taxa ou prazo dos Termos |
+| `src/server/db/repositories/config.ts`, `caixas.ts` | **C3.** O SQL das migrations 024 e 025 |
+| `src/server/actions/admin/usuarios.ts` | **C3.** A quitação manual de fatura chama `pagarFaturaCustodiaComSaldo` (frente B) |
 | `src/domain/kpis.ts`, `src/domain/admin/` | A regra pura que os carregadores alimentam |

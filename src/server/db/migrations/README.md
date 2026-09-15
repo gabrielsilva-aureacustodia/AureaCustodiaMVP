@@ -73,7 +73,11 @@ tabela de outra frente, então entram na ordem em que as sub-branches chegarem �
 | `021_eventos_uso.sql` | C1: `eventos_uso`, o registro de uso da plataforma (append-only, sem IP nem user agent) |
 | `022_cs_mensageria.sql` | C2: `cs_canais`, `cs_contatos`, `cs_conversas`, `cs_mensagens` — o WhatsApp do atendimento. `id_no_provedor` único contra webhook reentregue; telefone em E.164 canônico |
 | `023_notas_e_atribuicoes.sql` | C2: `cs_notas`, `cs_etiquetas`, `cs_conversa_etiquetas`, `admin_notas_usuario` e `admin_situacao_contas` (ativar e desativar conta). Notas e situação são append-only |
+| `024_config_plataforma.sql` | C3: `config_plataforma` (chave, valor `jsonb`, tipo `bp`/`centavos`/`inteiro`/`texto`, quem e quando), `config_historico` (append-only, valor antigo e novo) e `tipos_moeda` (o catálogo que `isNegociavel` consulta). **Nenhuma semeia valor**: sem linha, vale o padrão do código (`TAXAS_PADRAO`, `COIN_TYPES`); o catálogo é semeado pelo código ao abrir a aba |
+| `025_caixas_fisicas.sql` | C3: `caixas` (código, rótulo, local, capacidade opcional, ativa). A ocupação não é coluna: sai das análises × moedas × retiradas |
 
 Todas só **criam** tabelas: aplicadas antes do deploy, não quebram código nenhum; o código
 publicado antes delas cai no bootstrap do ambiente (RA-40) e não grava registro de uso. Sem a
-022 e a 023, `/admin/cs` e as notas da ficha de usuário mostram o aviso de tabela ausente.
+022 e a 023, `/admin/cs` e as notas da ficha de usuário mostram o aviso de tabela ausente. Sem a
+024, o site cobra o padrão do código e a tela de configuração pede `npm run db:migrate`; sem a
+025, a bancada web aceita qualquer código de caixa e o quadro de caixas fica vazio.

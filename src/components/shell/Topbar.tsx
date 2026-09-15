@@ -147,8 +147,15 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   }
 }
 
+/** Nome de cada documento na faixa de versão nova (C3). */
+const NOME_DOCUMENTO_NA_FAIXA: Record<string, string> = {
+  termos_de_uso: 'Termos de Uso',
+  politica_privacidade: 'Política de Privacidade',
+  tabela_de_taxas: 'Tabela de Taxas',
+}
+
 export function Topbar(): ReactNode {
-  const { me } = useApp()
+  const { me, aceitesPendentes } = useApp()
   const { dark, toggle } = useTheme()
   const { open, toggle: alternarGaveta } = useSidebar()
   const pathname = usePathname()
@@ -158,10 +165,15 @@ export function Topbar(): ReactNode {
   const [aceitando, setAceitando] = useState(false)
   const [aceitoAgora, setAceitoAgora] = useState(false)
 
+  // Desde a C3, com banco, a faixa aparece quando falta aceite da versão VIGENTE de algum
+  // documento — inclusive a versão nova que o painel publica ao mudar taxa ou prazo. Sem banco
+  // (`aceitesPendentes === null`), vale a regra anterior, pela preferência da conta.
   const precisaAceite =
     !aceitoAgora &&
     !dispensado &&
-    (!me.settings?.legalAcceptance || me.settings.legalAcceptance.termsVersion !== '1.0')
+    (aceitesPendentes !== null
+      ? aceitesPendentes.length > 0
+      : !me.settings?.legalAcceptance || me.settings.legalAcceptance.termsVersion !== '1.0')
 
   const titulo = tituloDaRota(pathname, me)
 
@@ -170,7 +182,15 @@ export function Topbar(): ReactNode {
       {precisaAceite && (
         <aside className="topbar-alert-banner" role="status">
           <span>
-            Atualizamos nossos <strong>Termos de Uso e Condições Operacionais (v1.0 oficial)</strong>.{' '}
+            {aceitesPendentes === null ? (
+              <>
+                Atualizamos nossos <strong>Termos de Uso e Condições Operacionais (v1.0 oficial)</strong>.{' '}
+              </>
+            ) : (
+              <>
+                Há versão nova de: <strong>{aceitesPendentes.map((c) => NOME_DOCUMENTO_NA_FAIXA[c] ?? c).join(', ')}</strong>.{' '}
+              </>
+            )}
             <Link href="/termos">Ler termos</Link> • <Link href="/taxas">Tabela de Taxas</Link>
           </span>
           <div className="topbar-alert-actions">

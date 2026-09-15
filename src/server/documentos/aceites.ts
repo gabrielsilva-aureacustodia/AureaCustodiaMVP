@@ -15,6 +15,7 @@ import {
   listarAceitesPorUsuario,
 } from '@/server/db/repositories/aceites'
 import { garantirDocumentosVigentes } from '@/server/db/repositories/documentos'
+import { carregarDocumentosVigentes } from '@/server/config/documentos'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { mutateState } from '@/server/state'
 import { DOCUMENTOS_VIGENTES } from '@/domain/documentos-legais'
@@ -67,10 +68,22 @@ export async function registrarAceitesFormais(
 
   const pendentes: AceitePendente[] = []
 
+  // C3 (14/09/2026): a versão aceita é a VIGENTE — a mais recente publicada em
+  // `documentos_legais` quando a Tabela de Taxas ou os Termos mudam pelo painel —, e não
+  // mais a 1.0 do código. Sem banco ou sem publicação, é a mesma de DOCUMENTOS_VIGENTES.
+  const vigentes = new Map(
+    (await carregarDocumentosVigentes([...chavesDesejadas, 'clausula_arbitragem'])).map((v) => [v.chave, v]),
+  )
+  const infoDe = (chave: ChaveDocumento): { versao: string; hash: string } =>
+    vigentes.get(chave) ?? DOCUMENTOS_VIGENTES[chave]
+  // O texto padrão cita a versão 1.0; com versão nova publicada, a frase gravada cita a vigente.
+  const textoPadrao = (chave: ChaveDocumento): string =>
+    TEXTOS_EXIBIDOS_PADRAO[chave].replace('(versão 1.0)', `(versão ${infoDe(chave).versao})`)
+
   for (const chave of chavesDesejadas) {
-    const docInfo = DOCUMENTOS_VIGENTES[chave]
+    const docInfo = infoDe(chave)
     const textoExibido =
-      opcoes?.textoExibidoCustomizado?.[chave] ?? TEXTOS_EXIBIDOS_PADRAO[chave]
+      opcoes?.textoExibidoCustomizado?.[chave] ?? textoPadrao(chave)
 
     pendentes.push({
       createdAt: agora,
@@ -88,7 +101,7 @@ export async function registrarAceitesFormais(
   }
 
   if (opcoes?.arbitragem?.assinada && opcoes.arbitragem.nomeDigitado?.trim()) {
-    const docArbitragem = DOCUMENTOS_VIGENTES.clausula_arbitragem
+    const docArbitragem = infoDe('clausula_arbitragem')
     pendentes.push({
       createdAt: agora,
       userEmail: email,

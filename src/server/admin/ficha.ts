@@ -24,6 +24,7 @@ import {
 } from '@/domain/admin/usuarios'
 import { ACCOUNTS } from '@/domain/constants'
 import { verificarStatusFatura } from '@/domain/custody'
+import { posicaoNaFila, type InfoPosicaoFila } from '@/domain/market'
 import { statementTotals, userStatement, type StatementRow, type StatementTotals } from '@/domain/statement'
 import type {
   AppState,
@@ -200,12 +201,14 @@ export interface LoteDaConta {
   quantidade: number
   createdAt: number
   prioridadeEm: number | null
+  /** A posição que o cliente vê em "Minhas ofertas" — `posicaoNaFila` da A2, sem conta própria. */
+  posicao: InfoPosicaoFila | null
 }
 
 export interface AbaMercado {
   aba: 'mercado'
   lotes: LoteDaConta[]
-  ordensDeCompra: BuyOrder[]
+  ordensDeCompra: Array<BuyOrder & { posicao: InfoPosicaoFila | null }>
   negociacoes: Array<Trade & { lado: 'compra' | 'venda' }>
   historicoDaFila: EventoDaFilaDaConta[] | null
 }
@@ -238,8 +241,10 @@ function lotesDaConta(state: AppState, email: string): LoteDaConta[] {
     const prioridade = (o as typeof o & { prioridadeEm?: number }).prioridadeEm ?? null
     const lote = mapa.get(o.lotId)
     if (lote) lote.quantidade += 1
-    else mapa.set(o.lotId, { lotId: o.lotId, tipoMoeda: o.tipoMoeda, preco: o.price, quantidade: 1, createdAt: o.createdAt, prioridadeEm: prioridade })
+    else mapa.set(o.lotId, { lotId: o.lotId, tipoMoeda: o.tipoMoeda, preco: o.price, quantidade: 1, createdAt: o.createdAt, prioridadeEm: prioridade, posicao: null })
   }
+  // O lote inteiro divide a vez da oferta mais antiga dele — é como a tela do cliente mostra.
+  for (const lote of mapa.values()) lote.posicao = posicaoNaFila(state, 'venda', lote.lotId)
   return [...mapa.values()].sort((a, b) => b.createdAt - a.createdAt)
 }
 
@@ -334,7 +339,7 @@ async function conteudoDaAba(aba: AbaFicha, state: AppState, email: string, reti
       return {
         aba,
         lotes: lotesDaConta(state, email),
-        ordensDeCompra: state.buyOrders.filter((b) => b.buyer === email),
+        ordensDeCompra: state.buyOrders.filter((b) => b.buyer === email).map((b) => ({ ...b, posicao: posicaoNaFila(state, 'compra', b.id) })),
         negociacoes: state.trades
           .filter((t) => t.buyer === email || t.seller === email)
           .map((t) => ({ ...t, lado: t.buyer === email ? ('compra' as const) : ('venda' as const) }))

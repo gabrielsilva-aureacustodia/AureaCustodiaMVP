@@ -20,6 +20,10 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
 | `inicio/` | Painel inicial por variante do papel. Ver [README](inicio/README.md) | não |
 | `cs/` | **C2.** A caixa de conversas do WhatsApp em três colunas, com polling de 5 s. Ver [README](cs/README.md) | sim |
 | `usuarios/` | **C2.** Lista de contas, criação de conta e a ficha em sete abas com as ações. Ver [README](usuarios/README.md) | misto |
+| `bancada/` | **C3.** A bancada web: fila, câmera e gravação, uma linha por moeda, quadro de caixas. Ver [README](bancada/README.md) | sim |
+| `moedas/` | **C3.** Filtro e tabela do acervo, verificação da corrente, vídeo da análise. Ver [README](moedas/README.md) | sim |
+| `logistica/` | **C3.** Envios e retiradas com alerta de prazo e etiquetas. Ver [README](logistica/README.md) | sim |
+| `configuracao/` | **C3.** Formulário por grupo com simulação, versão publicada do documento, catálogo de moedas. Ver [README](configuracao/README.md) | sim |
 
 ## Regras desta pasta
 

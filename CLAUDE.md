@@ -78,8 +78,10 @@ por WhatsApp (`/admin/cs`) fala com o provedor pela interface de `src/lib/mensag
 variáveis da Evolution, as respostas ficam registradas só no painel —, e as ações da ficha do
 usuário (`/admin/usuarios/[email]`) não fazem conta própria: ajuste de saldo é o lançamento `ajuste`
 que o ledger já deriva, e login, senha e bloqueio passam pelo Supabase Auth com a chave de serviço,
-só no servidor. O mapa das rotas e permissões está em `src/app/(admin)/README.md`; o desenho, em
-`docs/PLANO_EXECUCAO_ADMIN.md`.
+só no servidor. A bancada web (`/admin/bancada`) fecha a análise **pelo mesmo serviço da estação**
+(`src/server/estacao/analise.ts`) — a fórmula do hash não muda —, e `/admin/configuracao` edita
+taxas, catálogo e parâmetros que o site inteiro passa a ler (seção abaixo). O mapa das rotas e
+permissões está em `src/app/(admin)/README.md`; o desenho, em `docs/PLANO_EXECUCAO_ADMIN.md`.
 
 **Persistência é plugável** (`src/server/store/`) e escolhida por variável de ambiente,
 nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*` ou
@@ -87,7 +89,7 @@ nesta ordem: Postgres (`POSTGRES_URL`/`DATABASE_URL`) → Redis (`KV_REST_API_*`
 (`SELECT … FOR UPDATE`). Em serverless sem banco externo o estado se recria a cada
 cold start.
 
-## Regras de negócio que não podem mudar sem decisão dos sócios
+## Regras de negócio e os valores padrão combinados com os sócios
 
 - Comissão de negociação: **0,5% + R$ 1,00 por moeda**, cobrada de **ambos os lados**
   (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
@@ -101,14 +103,21 @@ cold start.
 - **Mediana de 24h** como valor estimado do recibo, calculada **por tipo**.
 - São negociáveis **"Entrega da Bandeira Olímpica"** e **"Direitos Humanos"**
   (decisão dos sócios, agosto/2026). Quem responde "este tipo pode ir ao
-  mercado?" é `isNegociavel(tipo)` em `src/domain/constants.ts` — nunca uma
-  comparação com `COIN.name`, que era o atalho válido enquanto havia um ativo só.
+  mercado?" é `isNegociavel(tipo, catalogo)` em `src/domain/constants.ts`, com o
+  catálogo vigente de `aurea.tipos_moeda` — nunca uma comparação com `COIN.name`, que
+  era o atalho válido enquanto havia um ativo só.
 - **Dinheiro sempre em centavos inteiros** (`Cents`). Nunca `float` para valor monetário.
 - **Depósito em conta é simulado** e limitado a `DEPOSITO_MAX` (R$ 100.000 por
   operação). Não há Pix, cartão nem conciliação — a tela precisa dizer isso.
 
-Esses números vivem em `src/domain/constants.ts` e `src/domain/fees.ts`. A fonte canônica
-é `TAXAS_PADRAO`. Alterar qualquer um deles altera o produto — confirmar com o Gabriel antes.
+Esses números são o **padrão** e vivem em `src/domain/constants.ts` e `src/domain/fees.ts`
+(`TAXAS_PADRAO`, `COIN_TYPES`, `DEPOSITO_MAX`). Desde a C3 (migration 024), **a equipe os edita em
+`/admin/configuracao`** — taxas, catálogo de tipos (inclusive quem é negociável), limite de
+depósito, prazos e canais de atendimento —, e o servidor lê o vigente por `src/server/config/`:
+linha gravada no banco sobrepõe o padrão, e sem linha vale o código. Toda mudança fica em
+`aurea.config_historico` e publica versão nova da Tabela de Taxas ou dos Termos. Mudar um valor
+pela tela é a funcionalidade pedida, não alteração da superfície protegida; mudar o **padrão no
+código** ou a regra de casamento continua sendo mudança de produto.
 
 ## Restrições de marca, jurídico e regulatório
 

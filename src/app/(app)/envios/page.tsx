@@ -38,7 +38,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN_TYPES, coinTypeInfo } from '@/domain/constants'
+import { COIN_TYPES, coinTypeInfo, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodiaMensalPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
@@ -170,7 +170,10 @@ function retomada(state: AppState, session: UserEmail): EstadoWizard {
 }
 
 export default function EnviosPage(): ReactNode {
-  const { state, session, me, run } = useApp()
+  const { state, session, me, run, taxas, catalogo } = useApp()
+  // Catálogo e taxas vigentes (C3): só tipo ativo aceita envio novo, e o preço da custódia é o da Tabela.
+  const tiposDeEnvio = tiposAtivos(catalogo)
+  const primeiroTipoEnvio = tiposDeEnvio[0] ?? COIN_TYPES[0]
   const modal = useModal()
   const router = useRouter()
 
@@ -179,8 +182,8 @@ export default function EnviosPage(): ReactNode {
   const [wizard, setWizard] = useState<EstadoWizard>(() => retomada(state, session))
 
   /* ---------- formulário do passo 1 (o `sendForm` da linha 898) ---------- */
-  const [tipoMoeda, setTipoMoeda] = useState<string>(COIN_TYPES[0].key)
-  const [ano, setAno] = useState<number>(COIN_TYPES[0].anoPadrao)
+  const [tipoMoeda, setTipoMoeda] = useState<string>(primeiroTipoEnvio.key)
+  const [ano, setAno] = useState<number>(primeiroTipoEnvio.anoPadrao)
   /**
    * A quantidade é guardada como TEXTO e só depois interpretada.
    *
@@ -297,13 +300,13 @@ export default function EnviosPage(): ReactNode {
    * houver outro em aberto a tela abre nele, que é o que o original fazia.
    */
   const novoEnvio = useCallback(() => {
-    setTipoMoeda(COIN_TYPES[0].key)
-    setAno(COIN_TYPES[0].anoPadrao)
+    setTipoMoeda(primeiroTipoEnvio.key)
+    setAno(primeiroTipoEnvio.anoPadrao)
     setQtdTexto('1')
     setFotos(FOTOS_VAZIAS)
     setConfirmOk(false)
     setWizard(retomada(state, session))
-  }, [state, session])
+  }, [state, session, primeiroTipoEnvio])
 
   /* ---------- envio em foco (passos 3 e 4) ---------- */
   const envio: Envio | null =
@@ -357,10 +360,10 @@ export default function EnviosPage(): ReactNode {
                 // Trocar o tipo reposiciona o ano no padrão do catálogo — é o
                 // que a linha 2073 fazia antes de redesenhar.
                 setTipoMoeda(e.target.value)
-                setAno(coinTypeInfo(e.target.value).anoPadrao)
+                setAno(coinTypeInfo(e.target.value, catalogo).anoPadrao)
               }}
             >
-              {COIN_TYPES.map((t) => (
+              {tiposDeEnvio.map((t) => (
                 <option key={t.key} value={t.key}>
                   {t.key}
                 </option>
@@ -670,11 +673,11 @@ export default function EnviosPage(): ReactNode {
                     </span>
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
-                    {brl(envio.quantidade * 200)}
+                    {brl(envio.quantidade * taxas.custodiaMensalPorMoeda)}
                     <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / mês</span>
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
-                    R$ 2,00 por moeda / mês
+                    {brl(taxas.custodiaMensalPorMoeda)} por moeda / mês
                   </div>
                 </div>
 
@@ -735,7 +738,7 @@ export default function EnviosPage(): ReactNode {
                         borderRadius: 12,
                       }}
                     >
-                      12x sem juros
+                      {taxas.custodiaAnualParcelasMax}x sem juros
                     </span>
                   </div>
 
@@ -758,17 +761,17 @@ export default function EnviosPage(): ReactNode {
                     </span>
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
-                    {brl(envio.quantidade * 2400)}
+                    {brl(envio.quantidade * taxas.custodiaAnualPorMoeda)}
                     <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / ano</span>
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
-                    ou 12x de {brl(Math.round((envio.quantidade * 2400) / 12))} no cartão
+                    ou {taxas.custodiaAnualParcelasMax}x de {brl(Math.round((envio.quantidade * taxas.custodiaAnualPorMoeda) / taxas.custodiaAnualParcelasMax))} no cartão
                   </div>
                 </div>
 
                 <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
                   ✓ 12 meses de guarda garantida<br />
-                  ✓ Parcelamento em até 12x no cartão<br />
+                  ✓ Parcelamento em até {taxas.custodiaAnualParcelasMax}x no cartão<br />
                   ✓ Proteção contra reajustes no período
                 </div>
               </div>
@@ -785,8 +788,8 @@ export default function EnviosPage(): ReactNode {
               </div>
               {faturaId ? (
                 <PainelPagamento
-                  valorCents={modalidadePlano === 'anual' ? envio.quantidade * 2400 : envio.quantidade * 200}
-                  parcelasMax={modalidadePlano === 'anual' ? 12 : 1}
+                  valorCents={(state.faturasCustodia ?? []).find((f) => f.id === faturaId)?.valorCents ?? (modalidadePlano === 'anual' ? envio.quantidade * taxas.custodiaAnualPorMoeda : envio.quantidade * taxas.custodiaMensalPorMoeda)}
+                  parcelasMax={modalidadePlano === 'anual' ? taxas.custodiaAnualParcelasMax : 1}
                   saldoDisponivel={me?.balance ?? 0}
                   pagarComSaldo={async () => {
                     const res = await pagarFaturaComSaldo(faturaId)
@@ -966,7 +969,7 @@ export default function EnviosPage(): ReactNode {
                         aposentou. Agora mostra o que estas moedas custam por
                         mês; a fatura fechada é gerada pelo ciclo mensal. */}
                     <span className="v">
-                      {brl(custodiaMensalPorMoeda(quantidade))} / mês
+                      {brl(custodiaMensalPorMoeda(quantidade, taxas))} / mês
                     </span>
                   </div>
                 </div>

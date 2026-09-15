@@ -38,6 +38,7 @@ import {
   type CobrancaCartao,
   type CobrancaPix,
 } from '@/lib/payments'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import { getSessionEmail } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
@@ -64,6 +65,9 @@ export async function contratarPlanoCustodia(
     return { ok: false, error: 'Modalidade de plano inválida.' }
   }
 
+  // O preço por moeda vem da Tabela de Taxas vigente (C3) e fica congelado no plano.
+  const { taxas } = await carregarRegrasDoMercado()
+
   try {
     const { result } = await mutateState((s) => {
       const u = s.users[session]
@@ -86,7 +90,7 @@ export async function contratarPlanoCustodia(
       if (planoExistente) {
         if (planoExistente.status === 'aguardando_pagamento' && planoExistente.modalidade !== modalidade) {
           // O cliente trocou a modalidade antes de pagar: recalcula valores
-          const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade)
+          const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade, { ...taxas })
           planoExistente.modalidade = modalidade
           planoExistente.valorPorMoedaCents = porMoeda
           planoExistente.valorTotalCents = total
@@ -113,7 +117,7 @@ export async function contratarPlanoCustodia(
 
       // Cria novo plano
       const planoId = nextPlanoCode(s.seq)
-      const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade)
+      const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade, { ...taxas })
       const inicioCompetencia = competenciaAtual(agora)
 
       const novoPlano: PlanoCustodia = {
