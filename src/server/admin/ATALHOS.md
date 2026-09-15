@@ -26,6 +26,20 @@ e um e-mail do ambiente rebaixado pela tela volta a ser `dev` durante uma falha 
 
 ---
 
+## RA-48 🟡 — o e-mail do Gabriel é `dev` pelo código; a entrada `/painel`
+
+**Arquivos:** `acesso.ts` (`membroDaPagina`, `ENTRADA_DO_PAINEL`), `src/domain/admin/permissoes.ts`
+(`EMAILS_FIXOS_DA_EQUIPE`), `src/app/painel/`, `src/server/auth/destino.ts`
+
+- `gabriel.silva@aureacustodia.com.br` entra como `dev` com ou sem `AUREA_ADMIN_EMAILS` — o link
+  publicado abria o site do cliente porque o e-mail dele não estava no bootstrap.
+- Sem sessão, ou com conta fora da equipe, `/admin` manda para `/painel`, que diz qual é a conta.
+
+**Como se paga:** Gabriel cadastrado em `/admin/equipe`, lista fixa vazia e `AUREA_ADMIN_EMAILS`
+com a equipe, antes de cliente real.
+
+---
+
 ## RA-41 🟡 — registro de uso sem consentimento, sem retenção, agregado em memória
 
 **Arquivos:** `uso.ts` (`gravarEventosDeUso`, `carregarUsoNoBanco`), `resultados.ts` (`carregarUso`),

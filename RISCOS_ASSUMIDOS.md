@@ -67,6 +67,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-45** | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | 🟡 | `src/server/admin/`, `src/components/admin/bancada/` |
 | **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
 | **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
+| **RA-48** | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
 
 ---
 
@@ -1052,3 +1053,30 @@ painel não os edita:
   painel nasce com o valor do meio da faixa, e não com a mediana, até a frente B passar o catálogo.
 
 Os pedidos estão em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
+
+---
+
+# RA-48 — O e-mail do Gabriel é `dev` do painel pelo código 🟡
+
+```
+Decidido em: 14/09/2026 (entrada própria do painel) · entregue no mesmo dia
+Dono:        Gabriel
+Pastas:      src/server/admin/ (ATALHOS.md) · src/domain/admin/ (src/domain/ATALHOS.md)
+```
+
+Com o painel publicado, o Gabriel abriu o link e viu o site do cliente: `/admin` sem sessão ia para
+`/entrar`, que depois do login sempre leva a `/inicio`, e o e-mail dele não estava no bootstrap — a
+Vercel não lista `AUREA_ADMIN_EMAILS` com ele, e sem a variável só as contas do seed entram. O
+guarda mandava a conta para `/inicio` sem aviso.
+
+O que foi feito, e o atalho que isso carrega:
+
+- `EMAILS_FIXOS_DA_EQUIPE` em `src/domain/admin/permissoes.ts` tem `gabriel.silva@aureacustodia.com.br`,
+  que entra como `dev` com ou sem a variável. **Quem controla esse e-mail no Supabase Auth controla o
+  painel inteiro**; o repositório é público, então a lista é visível. A linha da tabela de membros
+  continua valendo sobre ela, inclusive para rebaixar.
+- A entrada `/painel` mostra, para a conta logada que não é da equipe, qual é o e-mail — nada além do
+  que a própria pessoa digitou.
+
+**Como se paga:** antes de cliente real, o Gabriel cadastrado como membro em `/admin/equipe`, a lista
+fixa esvaziada e `AUREA_ADMIN_EMAILS` definida na Vercel com os e-mails da equipe.

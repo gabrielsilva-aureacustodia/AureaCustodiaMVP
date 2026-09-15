@@ -21,6 +21,7 @@ import {
   AuthConfigurationError,
   getRegistrationStatus,
 } from '@/server/auth/config'
+import { destinoPermitido, lembrarDestinoDoLogin, type DestinoDoLogin } from '@/server/auth/destino'
 import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
@@ -204,9 +205,15 @@ export async function registerWithEmail(
   }
 }
 
-/** Inicia Google OAuth para uma conta que já aceitou os termos anteriormente. */
-export async function loginWithGoogle(): Promise<ActionResult<OAuthStartData>> {
+/**
+ * Inicia Google OAuth para uma conta que já aceitou os termos anteriormente.
+ *
+ * `destino` é `/admin` quando o login começa na entrada do painel (`/painel`): o callback lê
+ * o cookie e volta para o painel em vez do site do cliente (src/server/auth/destino.ts).
+ */
+export async function loginWithGoogle(destino: DestinoDoLogin = '/inicio'): Promise<ActionResult<OAuthStartData>> {
   try {
+    await lembrarDestinoDoLogin(destinoPermitido(destino))
     const client = await createAuthClient()
     const { data, error } = await client.auth.signInWithOAuth({
       provider: 'google',

@@ -67,7 +67,9 @@ contrato em `docs/API_RELATORIOS.md`, integração com Sheets/Excel em
 
 **O painel administrativo vive em `/admin`** (route group `src/app/(admin)/`, frente C), com
 layout, provider e CSS próprios — não carrega o `AppState` do cliente — e a mesma sessão do app,
-sem segundo login. Quem pode o quê são papéis e permissões no banco (migration 020; catálogo em
+sem segundo login. **O link da equipe é `/painel`** (`src/app/painel/`): sem sessão ou com conta fora
+da equipe, `/admin/*` manda para lá, e nunca para `/entrar` ou `/inicio` — foi assim que o painel
+publicado pareceu não existir em 14/09/2026 (RA-48). Quem pode o quê são papéis e permissões no banco (migration 020; catálogo em
 `src/domain/admin/permissoes.ts`, upsertado pelo código): o menu esconde, mas **a página e cada
 Server Action de `src/server/actions/admin/` conferem a permissão por conta própria**, e toda ação
 do painel grava `admin.<area>.<verbo>` em `audit_log`. Quem está em `AUREA_ADMIN_EMAILS` (ou, sem

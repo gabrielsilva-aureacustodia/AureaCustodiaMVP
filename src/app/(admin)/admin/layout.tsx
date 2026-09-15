@@ -9,8 +9,9 @@
  * compartilha com o app é a sessão, o tema, o toast e as classes do casco.
  *
  * SERVER COMPONENT DE PROPÓSITO. A sessão e o papel são conferidos antes de qualquer
- * HTML sair: sem sessão, login; logado sem ser da equipe, volta para o app. Sem
- * segundo login e sem segundo fator — quem entrou por /entrar e é membro abre direto.
+ * HTML sair: sem sessão, ou logado sem ser da equipe, vai para a entrada do painel
+ * (/painel). Sem segundo login e sem segundo fator — quem já está logado e é membro abre
+ * direto, tenha entrado por /entrar ou por /painel.
  *
  * Cada página confere a própria permissão de novo, no servidor: layout e página
  * renderizam em paralelo no App Router, e o menu é só conveniência.

@@ -109,17 +109,25 @@ export async function membroDaSessao(): Promise<MembroAdmin | null> {
   return carregarMembro(email)
 }
 
+/** A entrada própria do painel: login que volta para /admin e explica quem não tem acesso. */
+export const ENTRADA_DO_PAINEL = '/painel'
+
 /**
- * O guarda de toda página do painel: sem sessão, login; logado sem ser da equipe, o
- * app do cliente. A página confere por conta própria mesmo com o layout fazendo o
- * mesmo — no App Router layout e página renderizam em paralelo, e dado carregado pela
- * página antes de o layout redirecionar seria dado entregue.
+ * O guarda de toda página do painel: sem sessão, ou logado sem ser da equipe, a entrada do
+ * painel. A página confere por conta própria mesmo com o layout fazendo o mesmo — no App
+ * Router layout e página renderizam em paralelo, e dado carregado pela página antes de o
+ * layout redirecionar seria dado entregue.
+ *
+ * ATÉ 14/09/2026 O DESTINO ERA /entrar E /inicio, e o painel parecia não existir: /entrar
+ * sempre devolve para o site do cliente depois do login, e a conta fora da equipe era
+ * mandada para /inicio sem uma palavra. /painel entra e volta para cá, e diz com qual conta
+ * a pessoa está e por que ela não abre o painel.
  */
 export async function membroDaPagina(): Promise<MembroAdmin> {
   const email = await getSessionEmail().catch(() => null)
-  if (!email) redirect('/entrar')
+  if (!email) redirect(ENTRADA_DO_PAINEL)
   const membro = await carregarMembro(email)
-  if (!membro) redirect('/inicio')
+  if (!membro) redirect(ENTRADA_DO_PAINEL)
   return membro
 }
 

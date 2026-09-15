@@ -45,7 +45,7 @@ configuração, na C3.
 **Server Component que confere a permissão antes de carregar qualquer dado:**
 
 ```tsx
-const membro = await membroDaPagina()                       // sem sessão → /entrar; não é da equipe → /inicio
+const membro = await membroDaPagina()                       // sem sessão ou fora da equipe → /painel
 if (!temPermissao(membro, 'resultados.ver')) return <SemPermissao permissoes={['resultados.ver']} />
 const dados = await carregarFinanceiro(periodo)             // só depois
 ```
@@ -54,11 +54,18 @@ O layout faz o mesmo guarda, mas layout e página renderizam em paralelo no App 
 não pode contar com ele. Filtros e período moram na URL (`?ano=&mes=&trimestre=`, `?aba=`,
 `?ator=&acao=`): o Server Component lê e carrega.
 
+## A porta: `/painel`
+
+**O link da equipe é `/painel`** (`src/app/painel/`). Sem sessão, ou com uma conta que não é da
+equipe, qualquer `/admin/*` manda para lá: um formulário de entrada que volta para `/admin`, ou a
+explicação de com qual conta a pessoa está. Até 14/09/2026 esse destino era `/entrar` e `/inicio`, e
+o painel parecia não existir (RA-48).
+
 ## Sem segundo login
 
-Quem entrou por `/entrar` e é membro abre `/admin` direto: o mesmo cookie assinado do app. Quem
-está em `AUREA_ADMIN_EMAILS` (ou, sem a variável, nas contas de demonstração) e não aparece na
-tabela de membros entra como `dev` (RA-40).
+Quem já está logado e é membro abre `/admin` direto: o mesmo cookie assinado do app. Quem está em
+`AUREA_ADMIN_EMAILS` (ou, sem a variável, nas contas de demonstração), ou em
+`EMAILS_FIXOS_DA_EQUIPE`, e não aparece na tabela de membros entra como `dev` (RA-40, RA-48).
 
 ## Conexões
 

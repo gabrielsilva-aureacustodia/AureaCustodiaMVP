@@ -10,12 +10,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
+const { getSessionEmail, redirect } = vi.hoisted(() => ({
+  getSessionEmail: vi.fn(),
+  // Como o do Next: redirect interrompe a renderização lançando.
+  redirect: vi.fn((destino: string) => {
+    throw new Error(`REDIRECT ${destino}`)
+  }),
+}))
 vi.mock('@/server/session', () => ({ getSessionEmail }))
+vi.mock('next/navigation', () => ({ redirect }))
 
 import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
 
-import { SESSAO_EXPIRADA, SO_EQUIPE, carregarMembro, exigirPermissao, permissaoParaAcao, podeAbrirPainelAdmin } from './acesso'
+import { SESSAO_EXPIRADA, SO_EQUIPE, carregarMembro, exigirPermissao, membroDaPagina, permissaoParaAcao, podeAbrirPainelAdmin } from './acesso'
 
 const SOCIO = 'gabrielsilva@testeaurea.com.br'
 const CLIENTE = 'cliente@exemplo.com.br'
@@ -49,6 +56,23 @@ describe('carregarMembro sem banco', () => {
     expect(await carregarMembro('Gabriel.Silva@aureacustodia.com.br')).toMatchObject({ papel: { slug: 'dev' } })
     expect(await podeAbrirPainelAdmin('gabriel.silva@aureacustodia.com.br')).toBe(true)
     expect(await podeAbrirPainelAdmin(SOCIO)).toBe(false)
+  })
+})
+
+describe('o guarda das páginas manda para a entrada do painel, nunca para o site do cliente', () => {
+  it('sem sessão e com conta fora da equipe: /painel; membro: passa', async () => {
+    getSessionEmail.mockResolvedValue(null)
+    await expect(membroDaPagina()).rejects.toThrow('REDIRECT /painel')
+    getSessionEmail.mockResolvedValue(CLIENTE)
+    await expect(membroDaPagina()).rejects.toThrow('REDIRECT /painel')
+    getSessionEmail.mockResolvedValue(SOCIO)
+    await expect(membroDaPagina()).resolves.toMatchObject({ email: SOCIO })
+  })
+
+  it('o e-mail do Gabriel abre o painel mesmo com AUREA_ADMIN_EMAILS sem ele (RA-48)', async () => {
+    process.env.AUREA_ADMIN_EMAILS = 'contador@exemplo.com.br'
+    getSessionEmail.mockResolvedValue('gabriel.silva@aureacustodia.com.br')
+    await expect(membroDaPagina()).resolves.toMatchObject({ papel: { slug: 'dev' } })
   })
 })
 

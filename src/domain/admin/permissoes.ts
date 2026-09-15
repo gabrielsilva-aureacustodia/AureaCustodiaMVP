@@ -174,11 +174,23 @@ export function normalizarEmail(email: string): string {
 }
 
 /**
+ * Quem entra no painel como `dev` em qualquer ambiente, com ou sem `AUREA_ADMIN_EMAILS`.
+ *
+ * POR QUE NO CÓDIGO. Em 14/09/2026 o Gabriel abriu o painel publicado com o próprio e-mail
+ * e caiu no site do cliente: a variável não o listava, e sem ela o bootstrap só conhecia as
+ * contas do seed. "Nada tranca o Gabriel para fora" não pode depender de alguém lembrar de
+ * uma variável na Vercel. A tabela de membros continua valendo sobre esta lista (inclusive
+ * para rebaixar), e os outros sócios entram por Equipe e papéis. RA-48.
+ */
+export const EMAILS_FIXOS_DA_EQUIPE: readonly string[] = ['gabriel.silva@aureacustodia.com.br']
+
+/**
  * O bootstrap: quem entra como `dev` quando a tabela de membros não conhece o e-mail.
  *
  * A MESMA REGRA de `ehAdmin()` desde 03/09/2026, agora num lugar puro: com
- * `AUREA_ADMIN_EMAILS` definida, vale só a lista; sem ela, valem as contas do seed.
- * Mudar a precedência aqui mudaria também quem lê a DRE por `/api/relatorios`.
+ * `AUREA_ADMIN_EMAILS` definida, vale só a lista; sem ela, valem as contas do seed. Os
+ * `EMAILS_FIXOS_DA_EQUIPE` valem nos dois casos. Mudar a precedência aqui mudaria também
+ * quem lê a DRE por `/api/relatorios`.
  */
 export function ehEmailDeBootstrap(
   email: string | null | undefined,
@@ -188,6 +200,7 @@ export function ehEmailDeBootstrap(
   if (!email) return false
   const e = normalizarEmail(email)
   if (!e) return false
+  if (EMAILS_FIXOS_DA_EQUIPE.includes(e)) return true
   const lista = emailsDaLista(listaDoAmbiente)
   if (lista) return lista.includes(e)
   return Object.prototype.hasOwnProperty.call(contasDoSeed, e)
@@ -202,12 +215,13 @@ export function emailsDaLista(listaDoAmbiente: string | undefined): string[] | n
     .filter(Boolean)
 }
 
-/** Os e-mails que entram pelo bootstrap — a lista do ambiente ou as contas do seed. */
+/** Os e-mails que entram pelo bootstrap — a lista do ambiente ou as contas do seed, e os fixos. */
 export function emailsDeBootstrap(
   listaDoAmbiente: string | undefined,
   contasDoSeed: Readonly<Record<string, unknown>>,
 ): string[] {
-  return emailsDaLista(listaDoAmbiente) ?? Object.keys(contasDoSeed).map(normalizarEmail)
+  const base = emailsDaLista(listaDoAmbiente) ?? Object.keys(contasDoSeed).map(normalizarEmail)
+  return [...base, ...EMAILS_FIXOS_DA_EQUIPE.filter((e) => !base.includes(e))]
 }
 
 function papelVisivel(p: { slug: string; nome: string; rank: number; variantePainel: VariantePainel }): MembroAdmin['papel'] {

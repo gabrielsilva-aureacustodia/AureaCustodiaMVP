@@ -16,6 +16,7 @@ import {
   SLUG_DEV,
   devsAtivosDepois,
   ehChavePermissao,
+  EMAILS_FIXOS_DA_EQUIPE,
   ehEmailDeBootstrap,
   emailValido,
   emailsDeBootstrap,
@@ -83,7 +84,14 @@ describe('bootstrap pelo ambiente — a mesma regra de ehAdmin', () => {
     expect(ehEmailDeBootstrap(' GabrielSilva@TesteAurea.com.br ', undefined, SEED)).toBe(true)
     expect(ehEmailDeBootstrap('visitante@exemplo.com.br', undefined, SEED)).toBe(false)
     expect(ehEmailDeBootstrap(null, undefined, SEED)).toBe(false)
-    expect(emailsDeBootstrap('', SEED)).toEqual(Object.keys(SEED))
+    expect(emailsDeBootstrap('', SEED)).toEqual([...Object.keys(SEED), ...EMAILS_FIXOS_DA_EQUIPE])
+  })
+
+  it('o e-mail do Gabriel entra como dev com ou sem a lista do ambiente (RA-48)', () => {
+    expect(ehEmailDeBootstrap(' Gabriel.Silva@AureaCustodia.com.br ', undefined, SEED)).toBe(true)
+    expect(ehEmailDeBootstrap('gabriel.silva@aureacustodia.com.br', 'contador@exemplo.com.br', SEED)).toBe(true)
+    // Sem repetir quando a lista já o traz.
+    expect(emailsDeBootstrap('gabriel.silva@aureacustodia.com.br', SEED)).toEqual(['gabriel.silva@aureacustodia.com.br'])
   })
 
   it('com a lista definida vale só ela — o seed deixa de valer', () => {

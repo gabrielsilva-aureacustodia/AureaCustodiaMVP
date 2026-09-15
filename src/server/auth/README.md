@@ -15,6 +15,9 @@ Os atalhos temporários desta transição estão em [`ATALHOS.md`](ATALHOS.md), 
   versões dos Termos e da Política aceitas, com data e hora.
 - Google: o OAuth usa PKCE e volta por `/entrar/callback`; após o aceite legal,
   o callback cria os dados mockados antes de liberar `/inicio`.
+- Destino do login (`destino.ts`): quando o login começa na entrada do painel (`/painel`),
+  `loginWithGoogle('/admin')` grava um cookie curto e o callback volta para `/admin` em vez de
+  `/inicio`. Só `/admin` é aceito como alternativa — valor livre seria redirecionamento aberto.
 - E-mail transacional: o Supabase Auth deve usar o SMTP do Resend configurado no
   painel. Nenhuma chave do Resend pertence ao navegador ou ao repositório.
 
