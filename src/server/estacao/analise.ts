@@ -8,14 +8,15 @@ import 'server-only'
 
 import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePendente } from '@/domain/analise'
 import { nextCodigoRecibo } from '@/domain/codes'
-import { faixaValor, isNegociavel } from '@/domain/constants'
+import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { Analise, AppState, Cents, Coin, Envio, VereditoAnalise } from '@/domain/types'
+import type { Analise, AppState, Cents, Coin, CoinType, Envio, VereditoAnalise } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
+import { carregarCatalogo } from '@/server/config/carregar'
 import { getState, mutateState } from '@/server/state'
 
 /**
@@ -153,14 +154,14 @@ function naoEncontrado(protocolo: string): ResultadoEstacao<never> {
 /**
  * O valor estimado com que a moeda nasce.
  *
- * Tipo negociável usa a mediana das ofertas abertas DELE; sem mercado, cai no
- * MEIO da faixa de referência do tipo. `advanceAnalysis` sorteia dentro da
+ * Tipo negociável no catálogo vigente usa a mediana das ofertas abertas DELE; sem mercado,
+ * cai no MEIO da faixa de referência do tipo. `advanceAnalysis` sorteia dentro da
  * faixa, e ali isso é aceitável porque a tela é demonstração. Aqui não: esta
  * moeda existe de verdade, e um valor sorteado num recibo de custódia é um
  * número que ninguém consegue explicar ao cliente que perguntar de onde veio.
  */
-function valorDeEntrada(state: AppState, tipoMoeda: string): Cents {
-  const mediana = isNegociavel(tipoMoeda) ? medianSellPrice(state, tipoMoeda) : null
+function valorDeEntrada(state: AppState, tipoMoeda: string, catalogo: readonly CoinType[]): Cents {
+  const mediana = isNegociavel(tipoMoeda, catalogo) ? medianSellPrice(state, tipoMoeda) : null
   if (mediana !== null) return Math.round(mediana / 500) * 500
   const faixa = faixaValor(tipoMoeda)
   return Math.round((faixa.min + faixa.max) / 2 / 500) * 500
@@ -193,6 +194,14 @@ export async function fecharAnalise(
   const { protocolo, operador, moedas } = entrada
 
   try {
+    // O catálogo editado no painel decide se o tipo tem mercado (C3 / P-C3-03). É lido antes da
+    // transação, como em advanceAnalysis. Moeda que já está na bancada não pode deixar de nascer
+    // porque a configuração não respondeu: na falha, vale o catálogo do código (RA-47).
+    const catalogo = await carregarCatalogo().catch((err: unknown) => {
+      console.error('[fecharAnalise] catálogo não leu; valendo o do código:', err)
+      return COIN_TYPES
+    })
+
     const { result } = await mutateState((state) => {
       const envio: Envio | undefined = state.envios.find((e) => e.protocolo === protocolo)
       if (!envio) return { tipo: 'nao-encontrado' as const }
@@ -212,7 +221,7 @@ export async function fecharAnalise(
 
       const agora = Date.now()
       const entradaStr = fdate(agora)
-      const valor = valorDeEntrada(state, envio.tipoMoeda)
+      const valor = valorDeEntrada(state, envio.tipoMoeda, catalogo)
       // A corrente continua de onde parou. Primeira análise do sistema encadeia
       // no GENESIS — 64 zeros, a mesma convenção do ledger.
       let anterior = ultimoHashDeAnalise(state.analises) ?? GENESIS

@@ -54,7 +54,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-21** | Papel único na bancada: quem analisa é quem aprova, sem segregação de função | 🟡 | `src/server/estacao/`, `src/domain/analise.ts` |
 | **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
-| **RA-24** | Compra direta via gateway cobra comissão apenas do vendedor — temporário até B1.4 unificar | 🟡 | `src/server/payments/` |
+| **RA-24** | Compra direta via gateway não cobra a comissão do comprador; a do vendedor segue a tabela vigente desde a E2 | 🟡 | `src/server/payments/` |
 | **RA-25** | Prazos operacionais provisórios estipulados nos Termos de Uso v1.0 | 🟡 | `src/domain/documentos-legais/`, `src/app/termos/` |
 | **RA-26** | SAC provisoriamente operado via e-mail único (`suporte@aureacustodia.com.br`) | 🟡 | `src/app/suporte/`, `src/domain/documentos-legais/` |
 | **RA-30** | Gravação de `recebimentos_gateway` fora da transação do estado | 🟡 | `src/server/payments/` |
@@ -65,8 +65,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-43** | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | 🟡 | `src/server/admin/` |
 | **RA-44** | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | 🟡 | `src/server/admin/` |
 | **RA-45** | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | 🟡 | `src/server/admin/`, `src/components/admin/bancada/` |
-| **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
-| **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
+| **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava | 🟡 | `src/server/config/` |
 | **RA-48** | Os e-mails do Gabriel, do Rogério e da Rozane estão no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
 
 ---
@@ -724,23 +723,26 @@ Nota em `estacao/ATALHOS.md`.
 
 ---
 
-# RA-24 — Compra direta pelo gateway cobra taxa apenas do vendedor 🟡
+# RA-24 — Compra direta pelo gateway não cobra a comissão do comprador 🟡
 
 ```
-Pasta: src/server/payments/ · temporário até B1.4
+Pasta: src/server/payments/ · atualizado na E2 (15/09/2026) · parte restante para a E8
 ```
 
 Na compra direta de lote do mercado via Pix/cartão pelo gateway (`iniciarCompraDireta`), a
-cobrança no gateway repassa o preço anunciado e retém taxa apenas do vendedor ao liquidar. No
-mercado interno com saldo em conta, o comprador paga a comissão de compra (A1).
+cobrança no gateway repassa o preço anunciado sem incluir a comissão do comprador. Ao liquidar
+(`liquidarCompraDireta`), a comissão do vendedor passou a vir de `carregarTabelaDeTaxas()` e
+fica gravada no `Trade` com `feeVendedor`, `feeComprador: 0` e `fee` (E2, 15/09/2026), fechando
+o livro-razão sem lançamentos de ajuste.
 
-**Consequência:** temporariamente, enquanto o Agente B não concluir B1.4 e unificar o split de
-pagamentos com `TAXAS_PADRAO`, compras via gateway cobram comissão apenas do vendedor.
+**O que falta:** a comissão do comprador na compra direta pelo gateway. O modal de `/mercado`
+mostra o total com comissão, mas a cobrança externa pelo Pix ou cartão cobra apenas o subtotal do
+lote. Cobrar essa metade exige somar a comissão ao valor da cobrança em `iniciarCompraDireta`,
+gravar essa comissão no `Trade` e ajustar a tela do modal.
 
-**Como se paga:** Agente B implementa B1.4, alinhando a cobrança do gateway com `TAXAS_PADRAO`
-e os 4 lançamentos contábeis.
+**Como se paga:** E8 (segunda onda), após a integração das branches E1 a E7.
 
-Nota em `docs/finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`.
+Nota em `src/server/payments/ATALHOS.md`.
 
 ---
 
@@ -1048,16 +1050,11 @@ não responder, ela **devolve o padrão do código** — `TAXAS_PADRAO`, `COIN_T
 registra o erro no log, em vez de derrubar o mercado. Durante uma falha dessas, uma taxa mudada no
 painel deixa de valer até o banco voltar.
 
-E dois pontos ainda leem a tabela e o catálogo do código, porque os arquivos são da frente B e o
-painel não os edita:
-
-- **a compra direta de lote pelo gateway** (`src/server/payments/conciliacao.ts`) desconta a
-  comissão padrão do vendedor — é o RA-24, que já espera a B1.4;
-- **a análise da estação** (`src/server/estacao/analise.ts`) decide se o tipo tem mercado pelo
-  catálogo do código ao calcular o valor de entrada da moeda. Tipo novo marcado como negociável no
-  painel nasce com o valor do meio da faixa, e não com a mediana, até a frente B passar o catálogo.
-
-Os pedidos estão em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
+A compra direta de lote pelo gateway (`src/server/payments/conciliacao.ts`) e o valor de
+entrada da análise da estação (`src/server/estacao/analise.ts`) passaram a ler a configuração
+vigente na E2 (15/09/2026). Se a leitura da tabela de taxas ou do catálogo falhar, as duas
+operações também caem no padrão do código, garantindo a liquidação do pagamento e a emissão
+do recibo.
 
 ---
 

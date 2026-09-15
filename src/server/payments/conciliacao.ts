@@ -9,7 +9,7 @@
 import 'server-only'
 
 import { competenciaAtual, isInadimplente } from '@/domain/custody'
-import { tradeFee } from '@/domain/fees'
+import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { calcularPagoAte, somarMeses } from '@/domain/plano-custodia'
@@ -19,6 +19,7 @@ import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/pay
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { mutateState } from '@/server/state'
+import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 
 import { gravarRecebimento } from './recebimentos'
 import { repositorioIntencoes } from './repositorios'
@@ -29,10 +30,16 @@ export interface ResultadoLiquidacao {
   compraConcluida?: boolean
 }
 
+/** O que a liquidação lê da configuração vigente ANTES da transação (C3 / P-C3-03). */
+export interface RegrasDaLiquidacao {
+  taxas: TabelaDeTaxas
+}
+
 export type Liquidador = (
   s: AppState,
   intencao: IntencaoDeposito,
   detalhes: DetalhesPagamento,
+  regras: RegrasDaLiquidacao,
 ) => ResultadoLiquidacao
 
 export interface ResultadoConciliacao {
@@ -68,6 +75,8 @@ function liquidarDeposito(
 function liquidarCompraDireta(
   s: AppState,
   reivindicada: IntencaoDeposito,
+  _detalhes: DetalhesPagamento,
+  regras: RegrasDaLiquidacao,
 ): ResultadoLiquidacao {
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
@@ -90,18 +99,21 @@ function liquidarCompraDireta(
     const price = offers[0].price
     const idsConsumidos = new Set<string>()
     let compradas = 0
+    const feeVendedorUnit = comissaoPorMoeda(price, 'vendedor', regras.taxas)
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      const fee = tradeFee(price)
       if (!transferCoin(seller, buyer, o.coinId)) continue
-      seller.balance += price - fee
+      seller.balance += price - feeVendedorUnit
       compradas += 1
     }
 
     s.sellOffers = s.sellOffers.filter((o) => !idsConsumidos.has(o.id))
 
     if (compradas > 0) {
+      // Grava fee, feeComprador e feeVendedor para que derivar.ts (ledger), diff.ts e statement.ts
+      // não recalculem a comissão padrão, o que geraria um lançamento 'ajuste' no livro-razão.
+      // feeComprador é zero porque o gateway cobrou apenas o valor do lote (RA-24).
       s.trades.push({
         price,
         qty: compradas,
@@ -109,6 +121,9 @@ function liquidarCompraDireta(
         buyer: reivindicada.userEmail,
         seller: sellerId,
         tipoMoeda: offers[0].tipoMoeda,
+        fee: feeVendedorUnit * compradas,
+        feeComprador: 0,
+        feeVendedor: feeVendedorUnit * compradas,
       })
 
       // Para a contabilidade: entrada externa que cobriu a compra
@@ -379,7 +394,7 @@ export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
  *     o caso comum, esta trava protege o caso simultâneo.
  *  4. **Despachante por tipo de operação (Passo B1.4)**:
  *     - `deposito`: credita `u.balance` e registra em `deposits`.
- *     - `compra_direta`: transfere as moedas e credita vendedor líquido de taxa.
+ *     - `compra_direta`: transfere as moedas e credita o vendedor líquido da comissão da tabela vigente.
  *     - `fatura_custodia` / `plano_custodia` / `assinatura_custodia`: B2.
  *     - `retirada`: B3.
  *  5. **Separação contábil do gateway (Passo B1.3 / B1.4, F-5, RA-30, RA-32)**:
@@ -430,8 +445,15 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
   let resLiquidacao: ResultadoLiquidacao = { sucesso: true, motivo: 'creditado' }
 
   try {
+    // A tabela é lida antes da transação, como em buyLot (executar, src/server/actions/market.ts).
+    // Leitura que falha não pode deixar o pagamento sem liquidar: o cliente já pagou. Vale a
+    // tabela padrão, a mesma regra de carregarConfiguracaoDoSite (RA-47).
+    const taxas = await carregarTabelaDeTaxas().catch((err: unknown) => {
+      console.error('[conciliarPagamento] tabela de taxas não leu; valendo o padrão do código:', err)
+      return TAXAS_PADRAO
+    })
     await mutateState((s) => {
-      resLiquidacao = liquidador(s, reivindicada, detalhes)
+      resLiquidacao = liquidador(s, reivindicada, detalhes, { taxas })
     })
   } catch (erro) {
     await intencoes.devolverParaPendente(ref)
