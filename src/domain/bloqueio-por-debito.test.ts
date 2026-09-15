@@ -219,10 +219,10 @@ describe('casarOrdensRespeitandoPendencia', () => {
 
   function setupState(): {
     state: AppState
-    vendedorBloqueado: User
-    vendedorEquipe: User
-    vendedorLimpo: User
-    comprador: User
+    vendedorBloqueado: User & { email: string }
+    vendedorEquipe: User & { email: string }
+    vendedorLimpo: User & { email: string }
+    comprador: User & { email: string }
   } {
     const vendedorBloqueado = criarUsuario('bloqueado@exemplo.com.br', true)
     const vendedorEquipe = criarUsuario('socio@testeaurea.com.br', true)

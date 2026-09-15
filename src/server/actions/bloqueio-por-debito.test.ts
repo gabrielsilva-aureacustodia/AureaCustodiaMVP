@@ -186,7 +186,7 @@ describe('retirada com pendência de custódia', () => {
     expect(res.error).toContain(MENSAGEM_PENDENCIA)
   })
 
-  it('pagarRetiradaComSaldo recusa com pendência: saldo igual e recibo Ativo', async () => {
+  it('pagarRetiradaComSaldo recusa com pendência: saldo e recibo intactos', async () => {
     const [moeda] = await moedasDoCliente()
     const sol = await solicitarRetirada(moeda.id, 'comum', ENDERECO)
     expect(sol.ok).toBe(true)

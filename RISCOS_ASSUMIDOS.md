@@ -68,6 +68,8 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
 | **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
 | **RA-48** | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
+| **RA-52** | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta | 🟡 | `src/domain/`, `src/server/actions/`, `src/server/custodia/` |
+| **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento | 🟡 | `src/server/actions/`, `src/server/payments/` |
 
 ---
 
