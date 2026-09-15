@@ -7,7 +7,7 @@ finalizações.
 
 ## Por que um route group próprio
 
-`(app)/layout.tsx` monta o `AppProvider`, que carrega o `AppState` inteiro e o relê a cada 10 s.
+`(app)/layout.tsx` monta o `AppProvider`, que carrega o `AppState` inteiro e o relê a cada 10 s (ciclo editável em Configuração desde a C3).
 O painel lê ledger, trilha, papéis e indicadores — nada disso está no `AppState`. Aqui o layout, o
 provider (`AdminProvider`) e a folha (`src/styles/admin.css`) são próprios. Os parênteses fazem o
 grupo não aparecer na URL: as rotas são `/admin/...`.
@@ -30,14 +30,15 @@ grupo não aparecer na URL: as rotas são `/admin/...`.
     ├── cs/                     atendimento com WhatsApp e ficha do cliente           cs.ver
     ├── usuarios/               lista de contas e criação de conta                    usuarios.ver
     │   └── [email]/            ficha completa em sete abas, com as ações da conta    usuarios.ver
-    ├── bancada/                (C3) bancada de análise no navegador                  bancada.ver
-    ├── moedas/                 (C3) auditoria do acervo                              bancada.auditoria
-    ├── logistica/              (C3) envios, retiradas e etiquetas                    logistica.ver
-    └── configuracao/           (C3) taxas, catálogo e parâmetros                     config.ver
+    ├── bancada/                fila, câmera, gravação, caixas e fechamento da análise bancada.ver (analisar: bancada.analisar)
+    ├── moedas/                 auditoria do acervo e verificação da corrente         bancada.auditoria
+    │   └── [codigo]/           ficha da moeda: recibo, os quinze campos, vídeo       bancada.auditoria
+    ├── logistica/              envios e retiradas, prazos, etiquetas                 logistica.ver
+    └── configuracao/           taxas, catálogo, operacional, integrações, histórico  config.ver
 ```
 
-As páginas marcadas com (C3) são provisórias desde a C1: o menu nasceu completo, e a etapa
-seguinte substitui o `page.tsx` sem tocar na navegação. As de CS e usuários entraram na C2.
+O menu nasceu completo na C1; CS e usuários entraram na C2; bancada, moedas, logística e
+configuração, na C3.
 
 ## A regra de toda página daqui
 
@@ -64,7 +65,9 @@ tabela de membros entra como `dev` (RA-40).
 | Pasta | Relação |
 |---|---|
 | `src/components/admin/` | Toda a interface do painel |
-| `src/server/admin/` | `membroDaPagina`, e os carregadores das telas (`resultados.ts`, `rbac.ts`, `atendimento.ts`, `ficha.ts`) |
+| `src/server/admin/` | `membroDaPagina`, e os carregadores das telas (`resultados.ts`, `rbac.ts`, `atendimento.ts`, `ficha.ts`, `moedas.ts`, `logistica.ts`) |
+| `src/server/config/` | A configuração vigente (C3) que a tela de configuração edita e o resto do site lê |
+| `src/server/estacao/analise.ts` | O serviço que a bancada web chama — o mesmo da estação Electron |
 | `src/app/api/webhooks/whatsapp/` | Por onde as mensagens do WhatsApp chegam à tela de CS |
 | `src/server/actions/admin/` | As escritas, cada uma conferindo a permissão de novo |
 | `src/app/(app)/relatorios/` | Redireciona para `/admin/resultados/financeiro` desde a C1 |

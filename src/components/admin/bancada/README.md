@@ -8,6 +8,7 @@ Components; os dados chegam da página e de `atualizarBancadaNoPainel`.
 | `BancadaWeb.tsx` | A fila, o procedimento (uma ficha por moeda: aprovar ou recusar, peso em gramas, caixa e posição, motivo da recusa) e o fechamento. Valida com as regras do servidor antes do clique, só para o operador saber na hora |
 | `GravadorDeVideo.tsx` | Câmera por `getUserMedia` com escolha e memória do dispositivo, gravação por `MediaRecorder` tentando os formatos até um funcionar, sem microfone, envio direto ao Storage por URL assinada e o link "Baixar a gravação" |
 | `QuadroDeCaixas.tsx` | As caixas do cofre com a ocupação real (cadastradas e as que só existem no texto de alguma análise), e o cadastro e a edição de caixa |
+| `ATALHOS.md` | RA-45: sem cópia em disco e sem retomada depois de recarregar |
 
 ## Regras desta pasta
 

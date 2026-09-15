@@ -594,6 +594,7 @@ controle de acesso de verdade; (f) vira receita não cobrada.
 | `src/app/api/eventos/` | [`ATALHOS.md`](src/app/api/eventos/ATALHOS.md) |
 | `src/lib/mensageria/` | [`ATALHOS.md`](src/lib/mensageria/ATALHOS.md) |
 | `src/server/config/` | [`ATALHOS.md`](src/server/config/ATALHOS.md) |
+| `src/components/admin/bancada/` | [`ATALHOS.md`](src/components/admin/bancada/ATALHOS.md) |
 
 # RA-18 — Cadastro aberto por padrão 🟡
 
@@ -962,7 +963,7 @@ quando o banco falha e para qualquer conta da equipe do painel — e o pedido es
 ```
 Decidido em: 12/09/2026 (plano do Admin, seção 11) · entregue na C3, 14/09/2026
 Dono:        Gabriel
-Pastas:      src/server/admin/ (ATALHOS.md) · src/components/admin/bancada/
+Pastas:      src/server/admin/ (ATALHOS.md) · src/components/admin/bancada/ (ATALHOS.md)
 ```
 
 A bancada de análise no navegador (`/admin/bancada`) fecha o procedimento pelo mesmo serviço da

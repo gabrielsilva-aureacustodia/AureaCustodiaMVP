@@ -29,7 +29,13 @@ de falha de gravação, nunca um erro na tela.
 | `usuarios.ts` (C2) | `criarUsuarioNoPainel` | `usuarios.criar` |
 | | `editarCadastroNoPainel`, `ajustarSaldoNoPainel`, `marcarInadimplenciaNoPainel`, `mudarSituacaoDaContaNoPainel`, `redefinirSenhaNoPainel`, `anotarUsuarioNoPainel` | `usuarios.editar` |
 | | `editarDadosBancariosNoPainel` | `usuarios.editar` **e** `usuarios.dados_bancarios` |
-| `acoes.test.ts` | 36 testes: cada ação pede a sua permissão e, recusada, não chama o serviço nem olha o banco; dados bancários pedem as duas; ator = e-mail do membro; tabela ausente vira a instrução do `db:migrate`; exceção vira mensagem | — |
+| | `quitarFaturaComSaldoNoPainel` (C3 — chama `pagarFaturaCustodiaComSaldo` da frente B) | `usuarios.editar` |
+| `bancada.ts` (C3) | `atualizarBancadaNoPainel` (a fila, só leitura) | `bancada.ver` |
+| | `abrirAnaliseNoPainel`, `assinarVideoNoPainel`, `fecharAnaliseNoPainel`, `salvarCaixaNoPainel` | `bancada.analisar` |
+| | `verificarCorrenteNoPainel`, `urlDoVideoNoPainel` | `bancada.auditoria` |
+| `config.ts` (C3) | `salvarConfiguracaoNoPainel` (taxas, operacional, termos, canais), `publicarDocumentoNoPainel` | `config.taxas` |
+| | `salvarTipoDeMoedaNoPainel` | `config.catalogo` |
+| `acoes.test.ts` | 51 testes: cada ação pede a sua permissão e, recusada, não chama o serviço nem olha o banco; dados bancários pedem as duas; ator = e-mail do membro, e o membro é o operador da análise; o grupo `sistema` da configuração é recusado; tabela ausente vira a instrução do `db:migrate`; exceção vira mensagem | — |
 
 ## A trilha
 
@@ -47,13 +53,19 @@ Desde a C2: `admin.cs.responder`, `admin.cs.enviar_midia`, `admin.cs.anotar`, `a
 `admin.usuarios.anotar`. A trilha de dado pessoal guarda **quais campos** mudaram, nunca os valores,
 e senha nunca entra.
 
+Desde a C3: `admin.usuarios.quitar_fatura`, `admin.bancada.analisar` (com `origem: 'bancada_web'`),
+`admin.bancada.caixa`, `admin.moedas.verificar`, `admin.moedas.ver_video`, `admin.config.taxas`,
+`admin.config.operacional`, `admin.config.termos`, `admin.config.sac`,
+`admin.config.publicar_documento` e `admin.config.catalogo`. Mudança de configuração também entra em
+`aurea.config_historico`, com o valor antigo e o novo.
+
 O polling da caixa de conversas (`atualizarAtendimentoNoPainel`) é leitura e não grava trilha.
 
 ## Conexões
 
 | Pasta | Relação |
 |---|---|
-| `src/server/admin/` | `acesso.ts` (a recusa), `contabil.ts`, `rbac.ts`, `cs.ts` e `usuarios.ts` (os serviços), `portas.ts` (banco, estado, Supabase e provedor de WhatsApp), `auditar.ts` (a trilha) |
+| `src/server/admin/` | `acesso.ts` (a recusa), `contabil.ts`, `rbac.ts`, `cs.ts`, `usuarios.ts`, `bancada.ts` e `configuracao.ts` (os serviços), `portas.ts` (banco, estado, Supabase, provedor de WhatsApp, estação, publicação e vídeo), `auditar.ts` (a trilha) |
 | `src/server/relatorios/sincronizar.ts` | O envio ao Google Sheets reaproveitado |
 | `src/components/admin/` | Quem chama, sempre pelo `run()` do `AdminProvider` |
 | `src/server/actions/contabil.ts` | As ações da tela antiga `/relatorios`, com a regra do ambiente; sem tela que as use desde a C1 |
