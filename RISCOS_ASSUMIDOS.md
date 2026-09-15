@@ -62,12 +62,14 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-40** | Painel administrativo: quem está no bootstrap do ambiente entra como `dev`, inclusive quando o banco falha | 🟠 | `src/server/admin/` |
 | **RA-41** | Registro de uso sem consentimento de rastreamento, sem prazo de retenção e agregado em memória com teto | 🟡 | `src/server/admin/`, `src/app/api/eventos/` |
 | **RA-42** | WhatsApp do atendimento por QR code (Evolution API, não oficial): risco de banimento do número, webhook sem assinatura do corpo, conversas sem prazo de retenção | 🟠 | `src/lib/mensageria/`, `src/app/api/webhooks/whatsapp/` |
-| **RA-43** | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | 🟡 | `src/server/admin/` |
-| **RA-44** | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | 🟡 | `src/server/admin/` |
+| **RA-43** | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; **tela de nova senha no link de redefinição paga na E1** | 🟡 | `src/server/admin/` |
+| **RA-44** | Desativar conta bloqueia o login pelo Supabase; portas checam a situação — **pago na E1 (15/09/2026)**; o que ainda passa está no RA-49 | ✅ | `src/server/admin/`, `src/server/auth/` |
 | **RA-45** | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | 🟡 | `src/server/admin/`, `src/components/admin/bancada/` |
 | **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
 | **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
 | **RA-48** | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
+| **RA-49** | Conta desativada: Server Action e rota de API de aba aberta aceitam a sessão até o próximo ciclo de 10 s; checagem que falha libera; `/entrar/sair` desloga por link; a frase de conta desativada aparece com senha errada | 🟡 | `src/server/auth/`, `src/app/entrar/` |
+| **RA-50** | Tela de nova senha sem a senha atual para quem tem sessão aberta do Supabase; link de recuperação por `?code=` não é reconhecido; tamanho da senha validado só pelo Supabase | 🟡 | `src/server/auth/`, `src/server/actions/` |
 
 ---
 
@@ -921,42 +923,34 @@ fica gravada na plataforma nem na trilha. O que isso assume:
 - **não há segundo fator** nem **troca obrigatória** no primeiro acesso — a senha provisória vale até
   a pessoa trocá-la em Minha conta;
 - quem digitou a senha a conhece, e o canal por onde ela é passada fica por conta da equipe;
-- o **link de redefinição por e-mail** leva ao callback de login, que autentica a pessoa, mas o site
-  ainda não tem a tela "defina sua nova senha" sem pedir a senha atual — o pedido está com a frente A
-  (`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`). Até lá, a senha provisória é o caminho que funciona
-  inteiro.
+- a tela de nova senha para o link de redefinição por e-mail existe desde a E1 (`/entrar/nova-senha`),
+  permitindo definir a nova senha diretamente sem precisar da atual.
 
-**Deixa de valer antes do primeiro cliente real:** troca obrigatória no primeiro acesso, tela de nova
-senha no fluxo de recuperação e segundo fator para a equipe.
+**Deixa de valer antes do primeiro cliente real:** troca obrigatória no primeiro acesso e segundo fator para a equipe.
 
 > **Para o Rogério:** a equipe consegue criar a conta de alguém e dar uma senha inicial, para quem
 > não quer se cadastrar sozinho. Antes de ter cliente, o site vai obrigar a pessoa a trocar essa
 > senha no primeiro acesso.
 
-# RA-44 — Desativar conta fecha o login pelo Supabase; o resto espera a frente A 🟡
+# RA-44 — Desativar conta fecha o login pelo Supabase; portas checam a situação ✅ PAGO na E1 (15/09/2026)
 
 ```
-Decidido em: 14/09/2026 (C2, na falta de desenho no plano do Admin) · entregue na C2
+Decidido em: 14/09/2026 (C2, na falta de desenho no plano do Admin) · entregue na C2 · pago na E1 (15/09/2026)
 Dono:        Gabriel
-Pasta:       src/server/admin/ (ATALHOS.md)
+Pasta:       src/server/admin/ (ATALHOS.md) · src/server/auth/ (ATALHOS.md)
 ```
 
 "Desativar conta" na ficha faz duas coisas: **bloqueia a identidade no Supabase Auth** (quem entra
 por senha ou Google não entra mais) e **registra quem desativou, quando e por quê** em
-`aurea.admin_situacao_contas`. O que ainda passa:
+`aurea.admin_situacao_contas`.
 
-- **as contas do catálogo de demonstração** (RA-19), que entram sem Supabase;
-- **a sessão já aberta**: o cookie do app vale até 7 dias e não pergunta de novo;
-- **sem `SUPABASE_SERVICE_ROLE_KEY`** no ambiente, só o registro é feito — a tela diz isso.
+Desde a E1, todas as portas de entrada chamam `barrarContaDesativada` (`src/server/auth/conta-desativada.ts`):
+login do catálogo local, login do Supabase, callback (`/entrar/callback`), o casco do app
+(`src/app/(app)/layout.tsx`) e o ciclo de 10 s (`GET /api/state`). Quem estiver com o site aberto é
+levado para fora em até dez segundos para `/entrar/sair`. O que ainda passa está descrito no RA-49.
 
-O dono das portas de entrada (login, callback e casco do app) é a frente A. A função que elas
-chamam já existe — `contaDesativada(email)` em `src/server/admin/situacao.ts`, que responde "ativa"
-quando o banco falha e para qualquer conta da equipe do painel — e o pedido está em
-`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
-
-> **Para o Rogério:** desativar uma conta já impede a pessoa de entrar de novo. Quem estiver com o
-> site aberto no momento continua dentro até sair; a outra frente de trabalho vai fechar essa porta
-> também.
+> **Para o Rogério:** desativar uma conta já impede a pessoa de entrar de novo; quem estiver com o
+> site aberto é levado para fora em até dez segundos.
 ---
 
 # RA-45 — Bancada web: rede estável, sem retomada e sem gravação local 🟡
@@ -1080,3 +1074,52 @@ O que foi feito, e o atalho que isso carrega:
 
 **Como se paga:** antes de cliente real, o Gabriel cadastrado como membro em `/admin/equipe`, a lista
 fixa esvaziada e `AUREA_ADMIN_EMAILS` definida na Vercel com os e-mails da equipe.
+
+---
+
+# RA-49 — Conta desativada: Server Action e rota de API aceitam sessão até o próximo ciclo 🟡
+
+```
+Decidido em: 15/09/2026 (E1)
+Dono:        Gabriel
+Pastas:      src/server/auth/ (ATALHOS.md) · src/app/entrar/
+```
+
+O que este atalho assume:
+
+- **Server Actions e rotas de `/api/*` leem `getSessionEmail()` sem perguntar a situação** — uma aba
+  aberta ainda consegue agir até o próximo `GET /api/state` (até 10 s) ou numa chamada feita à mão;
+- **banco fora do ar = conta tratada como ativa** (instabilidade no banco não é desativação de conta);
+- **`GET /entrar/sair` desloga qualquer um que abra o link** (link externo pode deslogar quem clicar);
+- **a resposta `user_banned` do Supabase vem antes da conferência da senha**, então a frase de conta
+  desativada aparece para quem digita o e-mail certo com a senha errada.
+
+**Como se paga:** checagem da situação dentro de `getSessionEmail` (ou num `middleware.ts`) com cache curto,
+antes de cliente real.
+
+> **Para o Rogério:** a conta desativada perde o acesso em até dez segundos. Em caso de falha temporária
+> do banco de dados, o sistema prefere liberar a conta a bloquear clientes por engano.
+
+---
+
+# RA-50 — Tela de nova senha sem a senha atual para quem tem sessão 🟡
+
+```
+Decidido em: 15/09/2026 (E1)
+Dono:        Gabriel
+Pastas:      src/server/auth/ (ATALHOS.md) · src/server/actions/ (ATALHOS.md)
+```
+
+O que este atalho assume:
+
+- **`/entrar/nova-senha` troca a senha sem pedir a atual** para qualquer sessão da plataforma que
+  também tenha sessão do Supabase com o mesmo e-mail — não só a aberta pelo link (o próprio Supabase dá
+  esse poder à sessão, no padrão dele);
+- **link de recuperação por `?code=` (PKCE) cai no login comum**;
+- **sem regra local de tamanho de senha** (validação delegada inteiramente ao Supabase).
+
+**Como se paga:** exigir sessão de recuperação (claim `amr` do Supabase) e troca obrigatória no
+primeiro acesso, antes de cliente real.
+
+> **Para o Rogério:** o link que a equipe envia para redefinir senha permite escolher uma nova senha
+> diretamente, sem ter que lembrar a antiga.

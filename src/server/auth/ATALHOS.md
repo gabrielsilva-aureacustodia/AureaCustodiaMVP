@@ -46,3 +46,33 @@ Quando a conta ainda não existe no estado, é criada com o saldo e o acervo de 
 em `src/domain/constants.ts` — R$ 85.000,00 e 18 moedas no caso do Rogério.
 
 Remover antes do primeiro cliente real.
+
+---
+
+## RA-49 🟡 — conta desativada: Server Action e rotas de API aceitam sessão até o próximo ciclo
+
+**Arquivos:** `conta-desativada.ts`, `src/app/entrar/sair/route.ts`, `src/app/api/state/route.ts`, `src/app/(app)/layout.tsx`
+
+- Server Actions e rotas de `/api/*` leem `getSessionEmail()` sem perguntar a situação — uma aba
+  aberta ainda consegue agir até o próximo `GET /api/state` (até 10 s) ou uma chamada feita à mão.
+- Banco fora do ar = conta tratada como ativa (instabilidade não é desativação).
+- `GET /entrar/sair` desloga qualquer um que abra o link (não exige sessão válida).
+- A resposta `user_banned` do Supabase vem antes da conferência da senha, então a frase de conta
+  desativada aparece para quem digita o e-mail certo com a senha errada.
+
+**Como se paga:** checagem da situação dentro de `getSessionEmail` (ou num `middleware.ts`) com cache curto,
+antes de cliente real.
+
+---
+
+## RA-50 🟡 — tela de nova senha sem a senha atual para quem tem sessão
+
+**Arquivos:** `src/server/actions/auth.ts`, `src/app/entrar/nova-senha/`
+
+- `/entrar/nova-senha` troca a senha sem pedir a atual para qualquer sessão da plataforma que
+  também tenha sessão do Supabase com o mesmo e-mail — não só a aberta pelo link (o próprio Supabase dá
+  esse poder à sessão, no padrão dele).
+- Link de recuperação por `?code=` (PKCE) cai no login comum.
+- Sem regra local de tamanho de senha (validação delegada ao Supabase).
+
+**Como se paga:** exigir sessão de recuperação (claim `amr` do Supabase) e troca obrigatória no primeiro acesso, antes de cliente real.

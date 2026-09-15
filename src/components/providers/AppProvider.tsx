@@ -36,7 +36,6 @@
  *    uma leitura imediata.
  */
 
-import { useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -158,7 +157,6 @@ interface Props {
 }
 
 export function AppProvider({ initialState, session, admin = false, config: configInicial = CONFIG_DO_CLIENTE_PADRAO, aceitesPendentes: pendentesIniciais = null, children }: Props): ReactNode {
-  const router = useRouter()
   const toast = useToast()
 
   const [state, setState] = useState<AppState>(initialState)
@@ -208,10 +206,11 @@ export function AppProvider({ initialState, session, admin = false, config: conf
       // resposta congelada pelo CDN e a sincronização entre contas some.
       const r = await fetch('/api/state', { cache: 'no-store' })
 
-      // Sessão caiu (cookie expirou, segredo rotacionado): volta ao login em vez
-      // de continuar mostrando dados de um usuário que já não está autenticado.
+      // Sessão caiu (cookie expirou, segredo rotacionado) ou a conta foi desativada pelo painel: carga
+      // completa na rota que apaga a sessão. Não depende de o roteador do cliente seguir redirect até
+      // Route Handler; sem sessão, a rota só manda para /entrar, que é onde o '/' antigo terminava.
       if (r.status === 401) {
-        router.replace('/')
+        window.location.assign('/entrar/sair')
         return
       }
       if (!r.ok) return
@@ -233,7 +232,7 @@ export function AppProvider({ initialState, session, admin = false, config: conf
       // Falha de rede numa leitura de fundo não merece toast: o estado que já
       // está na tela continua válido e a próxima volta do ciclo tenta de novo.
     }
-  }, [router, aplicar])
+  }, [aplicar])
 
   const run = useCallback(
     // A vírgula em <T,> não é engano: sem ela o TypeScript lê o <T> como abertura

@@ -26,6 +26,7 @@ import { NextResponse } from 'next/server'
 
 import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/carregar'
 import { documentosPendentesDeAceite } from '@/server/config/documentos'
+import { barrarContaDesativada } from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -40,6 +41,13 @@ export async function GET(): Promise<NextResponse> {
   // Mesma frase que as server actions devolvem quando a sessão sumiu. O cliente
   // reage ao status 401, não ao texto — ele redireciona para o login.
   if (!session) {
+    return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401, headers: SEM_CACHE })
+  }
+
+  // Conta desativada com a aba aberta: o layout não roda de novo na navegação interna, então quem a
+  // alcança é este ciclo de 10 s. O 401 leva o AppProvider, com carga completa, a /entrar/sair, que
+  // apaga a sessão e mostra o aviso.
+  if (await barrarContaDesativada(session)) {
     return NextResponse.json({ error: 'Sessão expirada.' }, { status: 401, headers: SEM_CACHE })
   }
 

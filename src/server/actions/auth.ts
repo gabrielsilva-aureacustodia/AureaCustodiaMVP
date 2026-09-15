@@ -28,6 +28,11 @@ import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { clearSession, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
+import {
+  barrarContaDesativada,
+  ehIdentidadeBloqueada,
+  MENSAGEM_CONTA_DESATIVADA,
+} from '@/server/auth/conta-desativada'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
@@ -61,6 +66,10 @@ async function loginDoCatalogoLocal(email: string, senha: string): Promise<Actio
   const existente = state.users[email]
   const senhaEsperada = existente?.pass || account.pass
   if (senha !== senhaEsperada) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+  if (await barrarContaDesativada(email)) {
+    return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+  }
 
   await mutateState((current) => {
     const atual = current.users[email]
@@ -105,7 +114,16 @@ export async function login(email: string, senha: string): Promise<ActionResult>
       password: senha,
     })
 
+    if (ehIdentidadeBloqueada(error)) {
+      return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+    }
+
     if (error || !data.user?.email) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+    if (await barrarContaDesativada(data.user.email)) {
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+    }
 
     // Identidade confirmada pelo Supabase basta para provisionar. A exigência
     // de aceite legal no metadata trancava para fora quem tinha confirmado o

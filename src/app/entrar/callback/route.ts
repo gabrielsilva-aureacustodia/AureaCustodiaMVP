@@ -1,5 +1,5 @@
 /**
- * Callback do Supabase Auth para confirmação de e-mail e Google OAuth.
+ * Callback do Supabase Auth para confirmação de e-mail, Google OAuth e recuperação de senha.
  *
  * Aceita TODOS os formatos que o Supabase produz, inclusive o do template
  * padrão — nenhuma configuração especial de e-mail é necessária:
@@ -8,6 +8,10 @@
  *  - `?token_hash=&type=`              template com TokenHash
  *  - `?token=&type=`                   formato antigo de verificação
  *  - `#access_token=&refresh_token=`   template padrão, sessão no fragmento
+ *  - `type=recovery`                   link de redefinição de senha → tela de nova senha
+ *
+ * Conta desativada pelo painel é barrada aqui antes de abrir sessão e antes do
+ * provisionamento, redirecionando para `/entrar?status=conta-desativada`.
  *
  * O fragmento nunca chega ao servidor. Antes, isso fazia todo link do template
  * padrão cair em "link expirou": o handler não via parâmetro nenhum e recusava.
@@ -23,6 +27,11 @@ import type { EmailOtpType, User } from '@supabase/supabase-js'
 
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
+import {
+  barrarContaDesativada,
+  ehIdentidadeBloqueada,
+  STATUS_CONTA_DESATIVADA,
+} from '@/server/auth/conta-desativada'
 import { consumirDestinoDoLogin } from '@/server/auth/destino'
 import { consumePendingLegalAcceptance } from '@/server/auth/legal'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
@@ -33,11 +42,21 @@ function destination(request: Request, path: string): URL {
   return new URL(path, request.url)
 }
 
+async function contaDesativadaNaEntrada(request: Request): Promise<NextResponse> {
+  await consumirDestinoDoLogin()
+  const url = destination(request, '/entrar')
+  url.searchParams.set('status', STATUS_CONTA_DESATIVADA)
+  return NextResponse.redirect(url)
+}
+
 /**
- * Leva o motivo real ate a tela de entrada. Antes toda falha virava a mesma
- * frase generica, e diagnosticar OAuth ficava impossivel sem os logs.
+ * Leva o motivo real ate a tela de entrada. Se for identidade bloqueada pelo
+ * painel, direciona para o aviso de conta desativada descartando o destino.
  */
-function falha(request: Request, motivo: string): NextResponse {
+async function falha(request: Request, motivo: string): Promise<NextResponse> {
+  if (ehIdentidadeBloqueada({ message: motivo })) {
+    return contaDesativadaNaEntrada(request)
+  }
   const url = destination(request, '/entrar')
   url.searchParams.set('erro', 'callback')
   url.searchParams.set('motivo', motivo.slice(0, 300))
@@ -81,11 +100,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   const accessToken = params.get('access_token')
   const refreshToken = params.get('refresh_token')
   const tipo = (params.get('type') ?? 'email') as EmailOtpType
+  const recuperacao = params.get('type') === 'recovery'
 
   // Sem nenhum parâmetro conhecido a informação pode estar no fragmento.
   if (!code && !tokenHash && !token && !accessToken) {
     const erroExterno = params.get('error_description') ?? params.get('error')
-    if (erroExterno) return falha(request, erroExterno)
+    if (erroExterno) return await falha(request, erroExterno)
     return paginaQueRecuperaOFragmento()
   }
 
@@ -98,11 +118,11 @@ export async function GET(request: Request): Promise<NextResponse> {
         access_token: accessToken,
         refresh_token: refreshToken,
       })
-      if (error) return falha(request, `setSession: ${error.message}`)
+      if (error) return await falha(request, `setSession: ${error.message}`)
       user = data.user
     } else if (code) {
       const { data, error } = await client.auth.exchangeCodeForSession(code)
-      if (error) return falha(request, `exchangeCode: ${error.message}`)
+      if (error) return await falha(request, `exchangeCode: ${error.message}`)
       user = data.user
     } else {
       const { data, error } = await client.auth.verifyOtp(
@@ -110,11 +130,16 @@ export async function GET(request: Request): Promise<NextResponse> {
           ? { token_hash: tokenHash, type: tipo }
           : { token_hash: token as string, type: tipo },
       )
-      if (error) return falha(request, `verifyOtp: ${error.message}`)
+      if (error) return await falha(request, `verifyOtp: ${error.message}`)
       user = data.user
     }
 
-    if (!user?.email) return falha(request, 'identidade sem e-mail')
+    if (!user?.email) return await falha(request, 'identidade sem e-mail')
+
+    if (await barrarContaDesativada(user.email)) {
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      return await contaDesativadaNaEntrada(request)
+    }
 
     // O aceite legal, quando existir, é apenas registrado. Ele nunca decide se
     // a pessoa entra: falhar aqui não interrompe o acesso.
@@ -150,9 +175,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
 
     await setSession(user.email.trim().toLowerCase())
-    // `/admin` quando o login começou na entrada do painel (/painel); senão, o site do cliente.
-    return NextResponse.redirect(destination(request, await consumirDestinoDoLogin()))
+
+    const destino = await consumirDestinoDoLogin()
+    if (recuperacao) {
+      const url = destination(request, '/entrar/nova-senha')
+      // Quem pediu o link a partir da entrada do painel volta ao painel depois de trocar a senha.
+      if (destino === '/admin') url.searchParams.set('destino', '/admin')
+      return NextResponse.redirect(url)
+    }
+
+    return NextResponse.redirect(destination(request, destino))
   } catch (erro) {
-    return falha(request, erro instanceof Error ? erro.message : 'excecao no callback')
+    return await falha(request, erro instanceof Error ? erro.message : 'excecao no callback')
   }
 }
