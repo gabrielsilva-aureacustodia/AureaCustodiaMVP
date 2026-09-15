@@ -74,3 +74,12 @@ Remover uma dessas travas passa pelo build e pelos testes sem acusar nada.
 Ela é hoje a única documentação do que não pode cair.
 
 **Como se paga:** teste de integração na Fase 1, quando houver banco real para apontar.
+
+---
+
+## RA-50 🟡 — definirNovaSenha sem a senha atual
+
+**Arquivos:** `auth.ts` (`definirNovaSenha`)
+
+A ação troca a senha sem exigir a senha atual para qualquer usuário com sessão válida na plataforma
+e no Supabase com o mesmo e-mail. Os detalhes e o plano de pagamento estão em [`src/server/auth/ATALHOS.md`](../auth/ATALHOS.md#ra-50).

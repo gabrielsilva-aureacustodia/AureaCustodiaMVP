@@ -91,6 +91,20 @@ export function normalizarUser(u: User): UserRegistro {
           notifEnvios: u.settings.notifEnvios,
           notifNegociacoes: u.settings.notifNegociacoes,
           notifNovidades: u.settings.notifNovidades,
+          // Aceite dos Termos por blocos (A3). Ausente fica AUSENTE — não `null` —, para a linha de
+          // quem nunca aceitou continuar idêntica à gravada e o diff não inventar atualização.
+          // O jsonb do Postgres reordena chaves; reconstruir o objeto com ordem fixa impede
+          // atualizações espúrias a cada gravação.
+          ...(u.settings.legalAcceptance
+            ? {
+                legalAcceptance: {
+                  termsVersion: u.settings.legalAcceptance.termsVersion,
+                  privacyVersion: u.settings.legalAcceptance.privacyVersion,
+                  acceptedAt: u.settings.legalAcceptance.acceptedAt,
+                  blocks: [...u.settings.legalAcceptance.blocks],
+                },
+              }
+            : {}),
         }
       : null,
     cadastro: u.cadastro

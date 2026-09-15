@@ -38,6 +38,7 @@ import { ModalHost } from '@/components/ui/Modal'
 import { podeAbrirPainelAdmin } from '@/server/admin/acesso'
 import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/carregar'
 import { documentosPendentesDeAceite } from '@/server/config/documentos'
+import { barrarContaDesativada, SAIDA_DA_CONTA_DESATIVADA } from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -55,6 +56,10 @@ export default async function AppLayout({
   // recriado, seed trocado). Sem esta checagem, `me` seria undefined e a topbar
   // quebraria em me.name — um erro de tela cheia onde o certo é pedir login.
   if (!state.users[session]) redirect('/entrar')
+
+  // Conta desativada pelo painel sai pela rota que apaga a sessão: Server Component não apaga cookie,
+  // e mandar direto para /entrar faria laço com o redirecionamento de /entrar para /inicio.
+  if (await barrarContaDesativada(session)) redirect(SAIDA_DA_CONTA_DESATIVADA)
 
   // Desde a C1 a pergunta é "esta conta é membro do painel?" — pelos papéis do
   // banco, caindo na lista do ambiente se o banco falhar. Uma consulta de uma linha.

@@ -67,26 +67,24 @@ antes de cliente real; agregação em SQL quando o volume pedir.
 - O atendente digita a senha; ela vai ao Supabase Auth pela chave de serviço e não fica na
   plataforma nem na trilha (a trilha guarda só o modo: `link`, `provisoria`, `identidade_criada`).
 - Não há troca obrigatória no primeiro acesso nem segundo fator.
-- O link de redefinição autentica pelo callback do login, mas o site ainda não tem a tela de nova
-  senha sem a senha atual (pedido à frente A em `PENDENCIAS_AGENTE_C.md`).
+- A tela de nova senha para o link de redefinição existe desde a E1 (`/entrar/nova-senha`).
 
-**Como se paga:** troca obrigatória no primeiro acesso, tela de nova senha na recuperação e
-segundo fator, antes de cliente real.
+**Como se paga:** troca obrigatória no primeiro acesso e segundo fator, antes de cliente real.
 
 ---
 
-## RA-44 🟡 — desativar conta fecha o Supabase; catálogo e sessão aberta esperam a frente A
+## RA-44 ✅ — desativar conta fecha o Supabase; catálogo e sessão aberta chamam barrarContaDesativada
 
 **Arquivos:** `usuarios.ts` (`mudarSituacaoDaConta`), `situacao.ts` (`contaDesativada`),
 `src/server/db/repositories/admin-usuarios.ts`
 
 - A identidade é bloqueada no Supabase (`ban_duration`) e a situação é registrada em
   `aurea.admin_situacao_contas`.
-- A entrada pelo catálogo de demonstração e o cookie de sessão já emitido não consultam nada disso
-  até a frente A chamar `contaDesativada` no login, no callback e no casco do app.
+- Desde a E1, as portas de entrada (login do catálogo, login do Supabase, callback, casco do app e `/api/state`)
+  consultam `barrarContaDesativada`.
 - Sem `SUPABASE_SERVICE_ROLE_KEY`, só o registro acontece, e a mensagem da ação diz isso.
 
-**Como se paga:** a checagem da frente A (pedido em `PENDENCIAS_AGENTE_C.md`).
+**Como se paga:** pago na E1; o que resta é o RA-49 (`src/server/auth/ATALHOS.md`).
 
 ---
 

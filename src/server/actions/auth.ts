@@ -26,8 +26,13 @@ import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
-import { clearSession, setSession } from '@/server/session'
+import { clearSession, getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
+import {
+  barrarContaDesativada,
+  ehIdentidadeBloqueada,
+  MENSAGEM_CONTA_DESATIVADA,
+} from '@/server/auth/conta-desativada'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
@@ -61,6 +66,10 @@ async function loginDoCatalogoLocal(email: string, senha: string): Promise<Actio
   const existente = state.users[email]
   const senhaEsperada = existente?.pass || account.pass
   if (senha !== senhaEsperada) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+  if (await barrarContaDesativada(email)) {
+    return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+  }
 
   await mutateState((current) => {
     const atual = current.users[email]
@@ -105,7 +114,16 @@ export async function login(email: string, senha: string): Promise<ActionResult>
       password: senha,
     })
 
+    if (ehIdentidadeBloqueada(error)) {
+      return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+    }
+
     if (error || !data.user?.email) return { ok: false, error: CREDENCIAIS_INVALIDAS }
+
+    if (await barrarContaDesativada(data.user.email)) {
+      await client.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+    }
 
     // Identidade confirmada pelo Supabase basta para provisionar. A exigência
     // de aceite legal no metadata trancava para fora quem tinha confirmado o
@@ -267,3 +285,62 @@ export async function logout(): Promise<ActionResult> {
   }
   return { ok: true }
 }
+
+/**
+ * Tela de nova senha do link de redefinição (P-C2-05, RA-50). Não pede a senha atual porque quem
+ * chega pelo link a esqueceu; a autorização é a sessão de recuperação que o callback deixou nos
+ * cookies do Supabase, e a conferência de e-mail impede trocar a senha de outra identidade. Tamanho
+ * da senha fica com o Supabase, como no cadastro (RA-18).
+ */
+export async function definirNovaSenha(
+  nova: string,
+  confirmacao: string,
+): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) {
+    return {
+      ok: false,
+      error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+    }
+  }
+
+  if (nova !== confirmacao) {
+    return { ok: false, error: 'A confirmação da nova senha não confere.' }
+  }
+
+  if (await barrarContaDesativada(email)) {
+    return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+  }
+
+  try {
+    const client = await createAuthClient()
+    const { data, error: userError } = await client.auth.getUser()
+
+    const emailSupabase = data?.user?.email?.trim().toLowerCase()
+    if (userError || !emailSupabase || emailSupabase !== email.trim().toLowerCase()) {
+      return {
+        ok: false,
+        error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+      }
+    }
+
+    const { error: updateError } = await client.auth.updateUser({ password: nova })
+    if (updateError) {
+      if (updateError.code === 'same_password') {
+        return { ok: false, error: 'A senha nova precisa ser diferente da anterior.' }
+      }
+      if (updateError.code === 'weak_password') {
+        return { ok: false, error: `Senha fraca: ${updateError.message}` }
+      }
+      return { ok: false, error: updateError.message || FALHA_AUTENTICACAO }
+    }
+
+    return { ok: true, message: 'Senha nova salva. Use-a no próximo login.' }
+  } catch (error) {
+    if (error instanceof AuthConfigurationError) {
+      return { ok: false, error: 'O login pelo Supabase não está configurado neste ambiente.' }
+    }
+    return authError()
+  }
+}
+

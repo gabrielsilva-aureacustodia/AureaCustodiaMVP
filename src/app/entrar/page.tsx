@@ -12,6 +12,10 @@ import type { ReactNode } from 'react'
 
 import { LoginForm } from '@/components/login/LoginForm'
 import { getRegistrationStatus } from '@/server/auth/config'
+import {
+  MENSAGEM_CONTA_DESATIVADA,
+  STATUS_CONTA_DESATIVADA,
+} from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -28,6 +32,9 @@ function feedback(params: { erro?: string; status?: string; motivo?: string }): 
   error?: string
   message?: string
 } {
+  if (params.status === STATUS_CONTA_DESATIVADA) {
+    return { error: MENSAGEM_CONTA_DESATIVADA }
+  }
   if (params.status === 'conta-pendente') {
     return {
       message:

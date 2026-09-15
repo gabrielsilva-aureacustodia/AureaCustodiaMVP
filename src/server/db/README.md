@@ -36,7 +36,10 @@ sempre, e os 38 testes do domínio continuam valendo sem uma linha alterada.
 | `repositories/` | Uma tabela (ou par) por arquivo: SQL de leitura e escrita. Ver [README](repositories/README.md) | — |
 | `diff.test.ts` | 16 testes do planejador, sem banco | — |
 | `db.test.ts` | 21 testes de integração contra um **Postgres real embutido** (PGlite), incluindo ledger, auditoria, catálogos contábeis e o diagnóstico do `db:check` | — |
+| `aceite-nas-preferencias.test.ts` | 5 testes de persistência do aceite legal nas preferências (PGlite) | — |
 | `ATALHOS.md` | O que esta pasta deve ao próprio rigor | — |
+
+Desde a E1, `settings.legalAcceptance` é persistido; o comentário da migration 023 descreve a limitação antiga.
 
 Só `client.ts` tem `import 'server-only'`, e é o único que lê `process.env.POSTGRES_URL`.
 Os demais são parametrizados pelo `Executor` — é o que permite à suíte rodá-los contra um

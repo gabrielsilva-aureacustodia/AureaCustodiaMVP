@@ -18,6 +18,11 @@ Os atalhos temporários desta transição estão em [`ATALHOS.md`](ATALHOS.md), 
 - Destino do login (`destino.ts`): quando o login começa na entrada do painel (`/painel`),
   `loginWithGoogle('/admin')` grava um cookie curto e o callback volta para `/admin` em vez de
   `/inicio`. Só `/admin` é aceito como alternativa — valor livre seria redirecionamento aberto.
+- Conta desativada nas portas (`conta-desativada.ts`): login do catálogo, login do Supabase,
+  callback, casco do app e `/api/state` barram conta desativada e mandam para `/entrar/sair` ou
+  `/entrar?status=conta-desativada`.
+- Recuperação de senha: o link de redefinição volta com `type=recovery` ao callback e redireciona
+  para `/entrar/nova-senha` para definição de nova senha.
 - E-mail transacional: o Supabase Auth deve usar o SMTP do Resend configurado no
   painel. Nenhuma chave do Resend pertence ao navegador ou ao repositório.
 
