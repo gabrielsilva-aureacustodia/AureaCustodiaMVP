@@ -14,9 +14,7 @@ Para quem:       Gabriel, Rogério, e os três agentes que vão executar
 > **Como ler.** A seção 0 cabe numa tela e serve para o Rogério. A seção 1 é a regra que
 > atravessa todo o resto e precisa ser lida antes de qualquer bloco. As seções 2 a 4 são o
 > levantamento honesto do que existe e do que falta. A seção 5 é a única coisa que **trava**
-> execução: seis decisões que só o Gabriel e os sócios podem tomar — **quatro já foram
-> fechadas em 10/09/2026; duas continuam abertas** (D-2, o prazo de postagem, e D-6, o
-> endereço real dos Correios). As seções 6 a 9 são o plano propriamente dito.
+> execução: seis decisões que só o Gabriel e os sócios podem tomar — **as seis foram fechadas entre 10 e 11/09/2026 (seção 5)**. As seções 6 a 9 são o plano propriamente dito.
 >
 > O *como* executar está em [`PROTOCOLO_DO_AGENTE.md`](PROTOCOLO_DO_AGENTE.md). O *quem faz
 > o quê e em que ordem* está em

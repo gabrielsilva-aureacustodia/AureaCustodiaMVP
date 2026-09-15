@@ -10,6 +10,8 @@ Estado do código: main em e612aaa + correções do check-up — typecheck, lint
 Para quem: Gabriel, e o que ele precisa pedir aos sócios, ao contador e ao advogado
 ```
 
+> **Histórico de 03/09.** A lista viva do que continua pendente está em [PENDENCIAS_ABERTAS.md](PENDENCIAS_ABERTAS.md).
+
 > **Como ler.** Cada bloco diz **o que é**, **por que importa**, **onde se faz**, **como
 > conferir que deu certo** e **o que quebra se pular**. A ordem dos blocos é a ordem em que
 > as coisas destravam umas às outras. Nada aqui é código: tudo o que era código já está no
