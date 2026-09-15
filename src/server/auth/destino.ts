@@ -3,7 +3,7 @@
  *
  * POR QUE UM COOKIE. O login pelo Google sai do site e volta pelo callback, e o callback só
  * sabia mandar para `/inicio`: quem entrava pela entrada do painel (`/painel`) terminava no
- * site do cliente. Pôr o destino na URL de retorno dependeria de cadastrar a URL com
+ * site do cliente. Pôr o destino no endereço de volta dependeria de cadastrar a URL com
  * parâmetro na lista de redirecionamento do Supabase — configuração fora do padrão. Um
  * cookie curto, lido só pelo callback, funciona com a configuração que já existe.
  *

@@ -10,7 +10,8 @@ import 'server-only'
  *    e de decimal para `Cents` no retorno com `Math.round(val * 100)`.
  *  - Sem credenciais configuradas, opera em modo simulador (sandbox determinístico)
  *    para não quebrar testes nem ambiente de desenvolvimento local.
- *  - RA-01: Por padrão opera em sandbox. Produção só com parecer jurídico formal.
+ *  - RA-01: Por padrão opera em sandbox; `MP_SANDBOX="false"` liga produção. O RA-01 foi encerrado
+ *    em 11/09/2026 (os sócios decidiram permitir) — não há parecer a esperar.
  */
 
 import { brl } from '@/domain/money'

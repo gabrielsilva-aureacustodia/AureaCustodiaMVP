@@ -13,6 +13,6 @@
 - **Usa as mesmas Server Actions de `/entrar`** (`login`, `loginWithGoogle`, `logout`). Não há login
   próprio do painel, só um destino diferente.
 - **O Google volta para `/admin` por cookie de destino** (`src/server/auth/destino.ts`), não por
-  parâmetro na URL de retorno — assim não depende de configuração nova no Supabase.
+  parâmetro no endereço de volta — assim não depende de configuração nova no Supabase.
 - **Classes do login do site** (`.login-wrap`, `.login-card`, `.field`): a entrada tem a cara do
   site, e o casco do painel só aparece depois de entrar.

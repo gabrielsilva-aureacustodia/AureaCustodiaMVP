@@ -5,7 +5,7 @@
 
 ---
 
-## RA-01 🔴 — `deposit()` vai passar a mover dinheiro real, sem parecer jurídico
+## RA-01 ✅ ASSUMIDO em 11/09/2026 — `deposit()` e o dinheiro real
 
 **Arquivo:** `account.ts`, função `deposit()`
 
@@ -21,8 +21,10 @@ configura arranjo ou conta de pagamento sob regulação do Banco Central. Havia 
 evitava a pergunta — liquidação direta com split no gateway — e ela foi trocada por
 velocidade de entrega e por preservar a compra instantânea.
 
-**Trava enquanto o parecer não vem:** construir a integração com o Mercado Pago é seguro.
-**Ligá-la em produção com dinheiro real não é.** Não ative sem a resposta escrita.
+**Encerrado em 11/09/2026:** os sócios decidiram permitir, com cláusulas nos termos se for preciso
+(`RISCOS_ASSUMIDOS.md`, RA-01). **Não há trava**: ligar o Mercado Pago em produção é só configurar as
+credenciais, e nenhum agente deve parar esperando parecer. Até 15/09 este parágrafo ainda dizia "não
+ative sem a resposta escrita" — texto velho que contrariava a decisão.
 
 ---
 

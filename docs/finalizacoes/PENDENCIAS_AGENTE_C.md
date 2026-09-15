@@ -375,6 +375,21 @@ npm run db:check
   gravação" enquanto a página estiver aberta e a análise fecha sem vídeo.
 - Câmera no navegador só funciona em endereço `https` (a Vercel é) ou em `localhost`.
 
+### P-C3-05 · O link do painel abria o site do cliente
+
+> ✅ **FEITO em 15/09**, commit `40bb8c8` na `main`. O Gabriel abriu `/admin` e viu o site comum: sem sessão,
+> `/admin` ia para `/entrar`, que sempre devolve para `/inicio`, e o e-mail dele não estava no bootstrap. Agora
+> **o link da equipe é `https://aurea-custodia-mvp.vercel.app/painel`**: entra e volta para `/admin`, e diz com
+> qual conta a pessoa está quando ela não tem acesso; `gabriel.silva@aureacustodia.com.br` é `dev` pelo código
+> (RA-48). Conferido em produção sem login: `/painel` 200 com o formulário, `/admin` 307 para `/painel`. A parte
+> logada é o passo 1 de `docs/execucao-pendencias/TUTORIAL_MANUAL_GABRIEL.md`.
+
+### P-C3-06 · As pendências abertas viraram branches de execução
+
+- Desde 15/09, o que falta das pendências desta página (e das frentes A e B) está dividido em oito ordens de
+  serviço em `docs/execucao-pendencias/` (plano mestre, integração, prompts e tutorial manual). Cada item
+  continua aqui até a integração marcá-lo como feito.
+
 ---
 
 ## Merge das três frentes na `main` — 14/09

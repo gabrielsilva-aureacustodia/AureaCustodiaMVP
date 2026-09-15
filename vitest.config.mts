@@ -12,6 +12,12 @@
  * estoura fora do contexto de servidor do Next, e é assim que deve ser —
  * essa é a barreira do CD-04 funcionando. Em src/server/db/ só client.ts
  * tem a barreira; o resto é parametrizado pelo Executor e por isso testável.
+ *
+ * `oxc.jsx` (15/09/2026): o tsconfig do Next usa `"jsx": "preserve"` — quem transforma JSX
+ * é o Next —, e sem esta linha um teste que importa `page.tsx` ou componente falha com
+ * "make sure to not set jsx to preserve". Entrou na main antes das branches de execução
+ * E5 e E6 (docs/execucao-pendencias/), que renderizam telas, para as duas não
+ * escreverem versões diferentes do mesmo bloco.
  */
 
 import { defineConfig } from 'vitest/config'
@@ -21,6 +27,7 @@ export default defineConfig({
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },
   },
+  oxc: { jsx: { runtime: 'automatic' } },
   test: {
     include: ['src/**/*.test.ts'],
     environment: 'node',

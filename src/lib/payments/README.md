@@ -21,4 +21,4 @@ src/lib/payments/
 2. **Sem dados de cartão (PCI-DSS)**: A plataforma nunca recebe, manipula ou armazena números de cartão (PAN). Utiliza exclusivamente Checkout Pro hospedado ou Pix nativo.
 3. **Dinheiro estritamente em `Cents` (inteiro)**: Nenhuma operação monetária utiliza ponto flutuante internamente. A conversão para decimal ocorre estritamente na borda de comunicação com a API do gateway.
 4. **Idempotência Obrigatória (RA-07)**: Todo webhook processado é registrado por ID único. Webhooks reenviados pelo gateway são descartados com resposta 200 imediata, garantindo que o saldo seja creditado exatamente uma única vez.
-5. **Sandbox por padrão (RA-01)**: Opera em ambiente de teste até que o parecer jurídico sobre arranjo de pagamento seja formalizado.
+5. **Sandbox por padrão (RA-01)**: Sem `MP_SANDBOX="false"`, opera em ambiente de teste. Produção é só configurar as credenciais de produção e `MP_SANDBOX="false"` — o RA-01 foi encerrado em 11/09/2026 e não há parecer a esperar.

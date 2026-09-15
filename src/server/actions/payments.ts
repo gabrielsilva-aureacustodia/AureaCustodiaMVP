@@ -15,9 +15,10 @@
  * (a tela de retorno) é uma URL que qualquer pessoa consegue abrir — creditar
  * ali seria dar saldo a quem digitasse o endereço.
  *
- * SANDBOX (RA-01). Enquanto não houver parecer jurídico, o token usado é o de
- * teste e, sem token nenhum, `src/lib/payments/` responde com um simulador
- * determinístico. Em nenhuma dessas situações há dinheiro real.
+ * SANDBOX POR PADRÃO (RA-01, encerrado em 11/09/2026). Sem `MP_SANDBOX="false"`, o
+ * token usado é o de teste e, sem token nenhum, `src/lib/payments/` responde com um
+ * simulador determinístico — sem dinheiro real. Com `MP_SANDBOX="false"` e o token de
+ * produção, a cobrança é de verdade; não há parecer a esperar.
  */
 
 import { randomUUID } from 'node:crypto'

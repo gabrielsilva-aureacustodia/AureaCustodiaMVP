@@ -8,9 +8,9 @@ Data:          03/09/2026 (atualizado na conclusão da Frente C)
 
 ## Atalhos e riscos registrados (RA-01 e RA-14)
 
-### 1. RA-01 — Operação exclusiva em Sandbox até parecer jurídico
+### 1. RA-01 — Sandbox por padrão; produção por variável (encerrado em 11/09/2026)
 - **Situação:** A plataforma movimenta saldo interno lastreado em depósitos de terceiros. Guardar dinheiro de terceiros pode configurar arranjo de pagamento sob supervisão do Banco Central (Res. BCB 519–521/2026).
-- **Implementação:** Toda a integração de pagamentos opera em modo **Sandbox (`MP_SANDBOX=true` por padrão e fallback determinístico sem token)**. A ativação em produção com dinheiro real fica formalmente condicionada à obtenção de parecer jurídico pelos sócios.
+- **Implementação:** Toda a integração de pagamentos opera em modo **Sandbox (`MP_SANDBOX=true` por padrão e fallback determinístico sem token)**. Ligar produção é só configurar `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e `MP_SANDBOX="false"`: o RA-01 foi encerrado em 11/09/2026 (os sócios decidiram permitir), e não há parecer a esperar. Até 15/09 esta linha ainda condicionava a ativação a parecer jurídico — texto velho que contrariava a decisão.
 
 ### 2. RA-14.a — Idempotência em memória — PAGO em 03/09/2026
 - **Situação:** A Vercel executa cada requisição em funções serverless isoladas.
