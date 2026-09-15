@@ -30,8 +30,9 @@
  * Reagir à mudança de etapa e saltar sozinho para o passo 4 seria mais "certo"
  * e não é o que o produto faz.
  *
- * AS FOTOS FICAM NA MEMÓRIA DA ABA. Nada de imagem é enviado ao servidor — ver o
- * cabeçalho de components/custody/PhotoSlot.tsx.
+ * A FOTO FICA NA MEMÓRIA DA ABA. Nada de imagem é enviado ao servidor — ver o
+ * cabeçalho de components/custody/PhotoSlot.tsx. Desde 14/09/2026 é uma foto só,
+ * do item, sem frente e verso obrigatórios.
  */
 
 import { useRouter } from 'next/navigation'
@@ -48,7 +49,6 @@ import { useApp } from '@/components/providers/AppProvider'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { useModal } from '@/components/ui/Modal'
 import { PhotoSlot } from '@/components/custody/PhotoSlot'
-import type { Fotos, FotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
@@ -137,9 +137,6 @@ const ANOS: number[] = (() => {
   return out
 })()
 
-/** Estado inicial do formulário — o `sendForm` da linha 898. */
-const FOTOS_VAZIAS: Fotos = { frente: null, verso: null }
-
 /**
  * A retomada do wizard de envio com 5 passos:
  * - Se não há envio pendente -> Passo 1 (Dados do envio).
@@ -194,7 +191,7 @@ export default function EnviosPage(): ReactNode {
    * número usado pela regra é sempre o clamp abaixo.
    */
   const [qtdTexto, setQtdTexto] = useState<string>('1')
-  const [fotos, setFotos] = useState<Fotos>(FOTOS_VAZIAS)
+  const [foto, setFoto] = useState<string | null>(null)
   const [confirmOk, setConfirmOk] = useState<boolean>(false)
   const [modalidade, setModalidade] = useState<ModalidadeEnvio>('SEDEX')
   const [cepOrigem, setCepOrigem] = useState<string>('')
@@ -250,13 +247,9 @@ export default function EnviosPage(): ReactNode {
 
   /* ---------- ações ---------- */
 
-  const escolherFoto = useCallback((slot: FotoSlot, dataUrl: string) => {
-    setFotos((f) => ({ ...f, [slot]: dataUrl }))
-  }, [])
+  const escolherFoto = useCallback((dataUrl: string) => setFoto(dataUrl), [])
 
-  const removerFoto = useCallback((slot: FotoSlot) => {
-    setFotos((f) => ({ ...f, [slot]: null }))
-  }, [])
+  const removerFoto = useCallback(() => setFoto(null), [])
 
   /** `generateProtocol` (2114-2127): gera, guarda o protocolo e vai ao passo 3 (escolha de plano). */
   const gerarProtocolo = useCallback(async () => {
@@ -303,7 +296,7 @@ export default function EnviosPage(): ReactNode {
     setTipoMoeda(primeiroTipoEnvio.key)
     setAno(primeiroTipoEnvio.anoPadrao)
     setQtdTexto('1')
-    setFotos(FOTOS_VAZIAS)
+    setFoto(null)
     setConfirmOk(false)
     setWizard(retomada(state, session))
   }, [state, session, primeiroTipoEnvio])
@@ -312,8 +305,7 @@ export default function EnviosPage(): ReactNode {
   const envio: Envio | null =
     state.envios.find((e) => e.protocolo === wizard.protocolo) ?? null
 
-  const temFotos = Boolean(fotos.frente) && Boolean(fotos.verso)
-  const podeContinuar = quantidade >= 1 && temFotos
+  const podeContinuar = quantidade >= 1 && Boolean(foto)
 
   /**
    * Gatilho de cadastro do envio (D-7, 11/09/2026).
@@ -436,22 +428,9 @@ export default function EnviosPage(): ReactNode {
               </div>
             )}
 
-            <div className="field-lbl">Fotos da moeda</div>
-            <div className="photo-row">
-              <PhotoSlot
-                slot="frente"
-                label="Frente"
-                data={fotos.frente}
-                onSelect={escolherFoto}
-                onRemove={removerFoto}
-              />
-              <PhotoSlot
-                slot="verso"
-                label="Verso"
-                data={fotos.verso}
-                onSelect={escolherFoto}
-                onRemove={removerFoto}
-              />
+            <div className="field-lbl">Foto do item</div>
+            <div className="photo-row single">
+              <PhotoSlot data={foto} onSelect={escolherFoto} onRemove={removerFoto} />
             </div>
 
             <div className="note">
@@ -459,8 +438,7 @@ export default function EnviosPage(): ReactNode {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v5M12 16.5v.5" />
               </svg>
-              Envie fotos nítidas da frente e do verso da moeda. Imagens claras ajudam na
-              avaliação preliminar.
+              Envie uma foto nítida do item. Imagens claras ajudam na avaliação preliminar.
             </div>
 
             <div className="warn-box">
@@ -558,10 +536,10 @@ export default function EnviosPage(): ReactNode {
                 <span className="v">{enderecoDescricao}</span>
               </div>
             )}
-            {/* Texto fixo: chegar ao passo 2 já exige as duas fotos. */}
+            {/* Texto fixo: chegar ao passo 2 já exige a foto. */}
             <div className="sr">
-              <span className="k">Fotos anexadas</span>
-              <span className="v">Frente e verso ✓</span>
+              <span className="k">Foto anexada</span>
+              <span className="v">Foto do item ✓</span>
             </div>
           </div>
 
