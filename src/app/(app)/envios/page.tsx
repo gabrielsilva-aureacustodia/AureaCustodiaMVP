@@ -41,7 +41,7 @@ import type { ReactNode } from 'react'
 
 import { COIN_TYPES, coinTypeInfo, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { custodiaMensalPorMoeda } from '@/domain/fees'
+import { custodiaDoEnvio } from '@/domain/custodia-texto'
 import { brl } from '@/domain/money'
 import type { AppState, Envio, UserEmail } from '@/domain/types'
 import { temCadastroCompleto } from '@/domain/cadastro'
@@ -939,17 +939,27 @@ export default function EnviosPage(): ReactNode {
                     <span className="k">Moeda(s) gerada(s)</span>
                     <span className="v">{envio.codigosAtivosGerados.join(', ')}</span>
                   </div>
-                  <div className="sr">
-                    <span className="k">Custódia mensal destas moedas</span>
-                    {/* O texto dizia "Taxa de custódia anual (nova faixa)" e
-                        mostrava a cobrança única do mecanismo antigo — rótulo,
-                        periodicidade e valor, os três de um modelo que a D-3
-                        aposentou. Agora mostra o que estas moedas custam por
-                        mês; a fatura fechada é gerada pelo ciclo mensal. */}
-                    <span className="v">
-                      {brl(custodiaMensalPorMoeda(quantidade, taxas))} / mês
-                    </span>
-                  </div>
+                  {(() => {
+                    const plano = (state.planosCustodia ?? []).find(
+                      (p) => p.protocoloEnvio === envio.protocolo && p.status !== 'cancelado',
+                    )
+                    const custodia = custodiaDoEnvio(envio, plano, taxas)
+                    return (
+                      <div className="sr">
+                        <span className="k">{custodia.rotulo}</span>
+                        {/* O texto dizia "Taxa de custódia anual (nova faixa)" e
+                            mostrava a cobrança única do mecanismo antigo — rótulo,
+                            periodicidade e valor, os três de um modelo que a D-3
+                            aposentou. Além disso, usava o campo do formulário do
+                            passo 1 (que volta a '1' ao recarregar a página),
+                            mostrando R$ 2,00 a quem recarregava. Agora deriva do
+                            protocolo congelado e do plano contratado. */}
+                        <span className="v">
+                          {brl(custodia.valorCents)} / {custodia.periodo}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
                   <button

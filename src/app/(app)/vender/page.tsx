@@ -34,16 +34,19 @@
  * O resto é fiel: mesma ordem de painéis, mesmos textos, mesma aritmética.
  */
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { apelidoComprador } from '@/domain/contraparte'
+import { MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA } from '@/domain/bloqueio-por-debito'
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { CoinPicker } from '@/components/sell/CoinPicker'
@@ -54,8 +57,13 @@ import { publishOffer, sellToBid } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
   const { state, session, me, run, taxas, catalogo } = useApp()
+  const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
   const modal = useModal()
   const toast = useToast()
+
+  useEffect(() => {
+    void consultar()
+  }, [consultar])
 
   /** Tipos que a plataforma aceita negociar hoje — do catálogo vigente, editado no painel (C3). */
   const NEGOCIAVEIS = tiposNegociaveis(catalogo)
@@ -277,6 +285,14 @@ export default function VenderPage(): ReactNode {
   return (
     <>
       <MinhasOfertas />
+      {pendencia ? (
+        <div className="warn-box" style={{ marginBottom: 18 }}>
+          <div>
+            {MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA}{' '}
+            <Link href="/conta/faturas">Abrir faturas de custódia</Link>
+          </div>
+        </div>
+      ) : null}
       <div className="cols sell">
       {/* ================= coluna 1 — escolha dos ativos ================= */}
       <div className="panel">
@@ -412,7 +428,7 @@ export default function VenderPage(): ReactNode {
         <button
           className="btn btn-gold"
           type="button"
-          disabled={!podePublicar}
+          disabled={!podePublicar || pendencia}
           onClick={() => void publicar()}
         >
           Publicar anúncio
@@ -445,7 +461,9 @@ export default function VenderPage(): ReactNode {
                 // Quantas moedas DESTE tipo o vendedor tem livres agora. O botão
                 // fica apagado quando é zero, em vez de abrir a modal só para
                 // recusar em seguida.
-                livres={availableCoinsForSell(state, me, b.tipoMoeda, catalogo).length}
+                livres={
+                  pendencia ? 0 : availableCoinsForSell(state, me, b.tipoMoeda, catalogo).length
+                }
                 onSellDirect={() => abrirVendaDireta(b)}
               />
             ))

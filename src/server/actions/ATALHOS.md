@@ -83,3 +83,22 @@ Ela é hoje a única documentação do que não pode cair.
 
 A ação troca a senha sem exigir a senha atual para qualquer usuário com sessão válida na plataforma
 e no Supabase com o mesmo e-mail. Os detalhes e o plano de pagamento estão em [`src/server/auth/ATALHOS.md`](../auth/ATALHOS.md#ra-50).
+
+---
+
+## RA-52 🟡 — o bloqueio por pendência de custódia é calculado, e a equipe é isenta
+
+**Arquivos:** `custody.ts`, `sell.ts`, `market.ts`, `payments.ts`, `bloqueio-por-debito.ts`
+
+Retirada, venda e compra de lote de vendedor com fatura vencida são recusadas pela regra de
+`src/domain/bloqueio-por-debito.ts`, sem gravar `'Bloqueado'` no recibo. Conta da equipe
+(`carregarMembro`) é isenta, e checagem que falha libera. Detalhe em `RISCOS_ASSUMIDOS.md`.
+
+---
+
+## RA-53 🟡 — a confirmação do gateway não reconfere a pendência
+
+**Arquivos:** `custody.ts` (`iniciarPixRetirada`, `iniciarCartaoRetirada`), `payments.ts` (`iniciarCompraDireta`)
+
+A checagem está só na porta de entrada; o pagamento que cai depois de a fatura vencer segue na
+conciliação (arquivo da E2). Dono: E8. Detalhe em `RISCOS_ASSUMIDOS.md`.

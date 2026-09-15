@@ -30,9 +30,15 @@
 
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
-import { matchOrders, transferCoin } from '@/domain/market'
+import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, UserEmail } from '@/domain/types'
+import {
+  casarOrdensRespeitandoPendencia,
+  contaComPendenciaNoEstado,
+  MENSAGEM_ANUNCIO_PAUSADO,
+} from '@/domain/bloqueio-por-debito'
+import { vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -161,6 +167,7 @@ function novoBidId(): string {
  * uma oferta escolhida a dedo, fora do livro. O original também não chamava.
  */
 export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionResult> {
+  const bloqueaveis = await vendedoresBloqueaveis()
   return executar((state, session, { taxas }) => {
     // Ordem natural do array, como na linha 1413 — as ofertas de um lote têm
     // todas o mesmo preço e o mesmo vendedor, então qual vem primeiro só decide
@@ -181,6 +188,10 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     // Vendedor que saiu do estado (banco recriado, conta removida): sem os dois
     // lados não há para onde mover moeda nem dinheiro. O anúncio é órfão.
     if (!buyer || !seller) return { ok: false, error: ANUNCIO_INDISPONIVEL }
+
+    if (bloqueaveis.has(sellerId) && contaComPendenciaNoEstado(state, sellerId, Date.now())) {
+      return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }
+    }
 
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
@@ -268,6 +279,7 @@ export async function publishBid(
   precoUnit: Cents,
   tipoMoeda: string,
 ): Promise<ActionResult> {
+  const bloqueaveis = await vendedoresBloqueaveis()
   return executar((state, session, { taxas, catalogo }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
@@ -293,7 +305,7 @@ export async function publishBid(
       tipoMoeda,
     })
 
-    const { matched } = matchOrders(state, taxas)
+    const { matched } = casarOrdensRespeitandoPendencia(state, taxas, agora, bloqueaveis)
 
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
@@ -344,6 +356,7 @@ export async function editBid(
   qtyPedida: number,
   precoUnit: Cents,
 ): Promise<ActionResult> {
+  const bloqueaveis = await vendedoresBloqueaveis()
   return executar((state, session, { taxas }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
@@ -358,13 +371,14 @@ export async function editBid(
     const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
+    const agora = Date.now()
     const precoMudou = bo.price !== cents
     const novaQty = Math.min(qtyRaw, maxAfford)
     const qtyAumentou = novaQty > bo.qty
     const perdeuVez = precoMudou || qtyAumentou
 
     if (perdeuVez) {
-      bo.prioridadeEm = Date.now()
+      bo.prioridadeEm = agora
     }
     // `bo.tipoMoeda` NÃO é editável: trocar o ativo de uma ordem já publicada
     // preservaria a posição dela na fila de um livro em que ela nunca esteve,
@@ -373,7 +387,7 @@ export async function editBid(
     bo.price = cents
     bo.qty = novaQty
 
-    const { matched } = matchOrders(state, taxas)
+    const { matched } = casarOrdensRespeitandoPendencia(state, taxas, agora, bloqueaveis)
     const msgFila = perdeuVez
       ? ' Como o preço mudou ou a quantidade aumentou, ela foi para o fim da fila desse preço.'
       : ''

@@ -120,7 +120,7 @@ describe('userStatement', () => {
     expect(linhas).toHaveLength(2)
     expect(linhas.every((l) => l.impacto === 0)).toBe(true)
     // O valor da cobrança aparece como taxa informativa, não como saída de caixa:
-    // no MVP nenhuma ação debita a custódia do saldo.
+    // fatura pendente não move saldo.
     expect(tot.variacaoSaldo).toBe(0)
   })
 })

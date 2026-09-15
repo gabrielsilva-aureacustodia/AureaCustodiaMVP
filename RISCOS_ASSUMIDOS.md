@@ -70,6 +70,8 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-48** | Os e-mails do Gabriel, do Rogério e da Rozane estão no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
 | **RA-49** | Conta desativada: Server Action e rota de API de aba aberta aceitam a sessão até o próximo ciclo de 10 s; checagem que falha libera; `/entrar/sair` desloga por link; a frase de conta desativada aparece com senha errada | 🟡 | `src/server/auth/`, `src/app/entrar/` |
 | **RA-50** | Tela de nova senha sem a senha atual para quem tem sessão aberta do Supabase; link de recuperação por `?code=` não é reconhecido; tamanho da senha validado só pelo Supabase | 🟡 | `src/server/auth/`, `src/server/actions/` |
+| **RA-52** | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta | 🟡 | `src/domain/`, `src/server/actions/`, `src/server/custodia/` |
+| **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento | 🟡 | `src/server/actions/`, `src/server/payments/` |
 
 ---
 
@@ -1132,3 +1134,54 @@ primeiro acesso, antes de cliente real.
 
 > **Para o Rogério:** o link que a equipe envia para redefinir senha permite escolher uma nova senha
 > diretamente, sem ter que lembrar a antiga.
+
+---
+
+# RA-52 — Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta 🟡
+
+```
+Decidido em: 15/09/2026 (E4, pendência B-2) · entregue no mesmo dia
+Dono:        Gabriel
+Pastas:      src/domain/ (ATALHOS.md) · src/server/actions/ (ATALHOS.md) · src/server/custodia/
+```
+
+Conta com fatura de custódia vencida (ou marca manual de inadimplência) não vende nem retira, e os
+anúncios dela ficam pausados — fora da vitrine e do casamento, sem serem apagados. A regra mora em
+`src/domain/bloqueio-por-debito.ts` e é **calculada na hora** a partir das faturas: a fatura vence por
+passagem de tempo, sem evento que dispare gravação, e pagar libera no mesmo instante.
+
+O que isso carrega:
+
+- **Conta da equipe é isenta.** Conta que `carregarMembro` reconhece (membro, bootstrap do ambiente,
+  `EMAILS_FIXOS_DA_EQUIPE`) não é bloqueada, e checagem de equipe que falha libera — decisão de MVP de
+  teste com as contas dos sócios ("nada tranca a equipe para fora"), a mesma regra de `contaDesativada`.
+  Quando houver cliente real, rever se a equipe continua isenta.
+- O recibo continua `'Ativo'` no banco; a auditoria pública, o PDF baixado, a grade de `/recibos`, o
+  status em `/conta` e a contagem `recibosBloqueados` da ficha do painel não mostram o bloqueio por
+  pendência.
+- O anúncio pausado continua gravado e volta a casar quando a fatura é paga.
+- A marca manual de inadimplência é apagada quando o cliente paga qualquer fatura ou quando o ciclo roda
+  (`faturamento.ts`, `plano-custodia.ts`, `conciliacao.ts`), porque a coluna `inadimplente` guarda as
+  duas coisas.
+
+**Como se paga:** separar marca manual de marca por fatura (coluna nova) e decidir se o bloqueio aparece
+no recibo impresso.
+
+---
+
+# RA-53 — O gateway não reconfere a pendência na confirmação 🟡
+
+```
+Decidido em: 15/09/2026 (E4, pendência B-2) · só registrado
+Dono:        E8, na segunda onda, depois dos merges da E2 e da E4
+Pastas:      src/server/actions/ (ATALHOS.md) · src/server/payments/
+```
+
+A compra direta paga por Pix/cartão (`conciliacao.ts`, `liquidarCompraDireta`) e a taxa de retirada paga
+por Pix/cartão (`conciliacao.ts`, que extingue o recibo) seguem mesmo que a conta tenha passado a ter
+fatura vencida entre gerar a cobrança e o pagamento cair. A checagem está na porta de entrada
+(`iniciarCompraDireta`, `iniciarPixRetirada`, `iniciarCartaoRetirada`). O arquivo é da E2 e o dinheiro já
+entrou. A E4 só registra; não implementa.
+
+**Como se paga:** na conciliação, com pendência, creditar o valor no saldo em vez de transferir a moeda
+ou extinguir o recibo.
