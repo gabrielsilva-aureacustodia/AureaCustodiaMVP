@@ -55,38 +55,24 @@ export type Autorizacao =
   | { ok: false; status: 401 | 403; erro: string }
 
 /**
- * Decide o acesso a um relatório: sessão de administrador OU token de
- * integração (cabeçalho `Authorization: Bearer …` ou `?token=`). A ordem é
- * sessão primeiro — quem está logado como admin não precisa de token, e um
- * token errado numa URL de quem está logado não derruba a leitura.
- */
-export function autorizarRelatorio(
-  sessao: string | null,
-  tokenRecebido: string | null,
-): Autorizacao {
-  if (sessao) {
-    if (ehAdmin(sessao)) return { ok: true, ator: sessao, via: 'sessao' }
-    if (!tokenRecebido) return { ok: false, status: 403, erro: 'Esta área é restrita aos administradores.' }
-  }
-  if (tokenDeIntegracaoValido(tokenRecebido)) return { ok: true, ator: 'integracao:token', via: 'token' }
-  return { ok: false, status: 401, erro: 'Sessão expirada.' }
-}
-
-/**
- * A mesma decisão de `autorizarRelatorio`, consultando os PAPÉIS DO PAINEL
- * (plano do Admin, seção 1.3). É a que as rotas de /api/relatorios/* e de
- * /api/admin/conciliacao usam desde a C1.
+ * Decide o acesso a um relatório consultando os PAPÉIS DO PAINEL
+ * (plano do Admin, seção 1.3). É a função que as rotas de `/api/relatorios/*` usam.
+ *
+ * A ordem é sessão primeiro: quem está logado com a permissão não precisa da
+ * chave de integração, e uma chave errada na URL de quem está logado não derruba
+ * a leitura. Substitui a versão síncrona antiga que ignorava papéis e conferia só
+ * a lista de ambiente.
  *
  *  - Sessão de membro com `permissao` entra. Quem está no bootstrap do ambiente é
  *    `dev` e tem todas — para os sócios de hoje, nada muda.
  *  - Leitura na tela pede `resultados.ver`; CSV, XLSX e o envio ao Google Sheets
  *    pedem `resultados.exportar`. É o que permite um papel "contador" ver a DRE sem
  *    poder levar a planilha de extratos de todas as contas.
- *  - O token de integração continua valendo exatamente como antes: ele é do contador
- *    e do Sheets, não de uma pessoa da equipe.
+ *  - A chave de integração (`?token=`) continua valendo exatamente como antes: ela é
+ *    do contador e do Sheets, não de uma pessoa da equipe.
  *
- * Mesmos códigos de sempre: 401 sem sessão e sem token válido; 403 logado sem a
- * permissão (e sem token).
+ * Mesmos códigos de sempre: 401 sem sessão e sem chave válida; 403 logado sem a
+ * permissão (e sem chave).
  */
 export async function autorizarRelatorioNoPainel(
   sessao: string | null,
@@ -107,3 +93,4 @@ export async function autorizarRelatorioNoPainel(
   if (tokenDeIntegracaoValido(tokenRecebido)) return { ok: true, ator: 'integracao:token', via: 'token' }
   return { ok: false, status: 401, erro: 'Sessão expirada.' }
 }
+
