@@ -56,16 +56,9 @@ O fluxo configurado usa Supabase Auth no login e na troca de senha. A comparaç�
 resta apenas quando as variáveis do Supabase não existem, para manter as sete contas do
 seed acessíveis durante desenvolvimento. Remover junto com o RA-17 após recriar os sócios.
 
----
+## RA-16.c 🟢 — Pago por remoção na E3
 
-## RA-16.c 🟡 — `contabil.ts` não tem teste, e decide "quem é administrador" por variável
-
-**Arquivo:** `contabil.ts`
-
-As cinco ações conferem sessão, `ehAdmin` e banco configurado antes de qualquer escrita, e
-cada escrita deixa linha na trilha de auditoria com o e-mail de quem fez. Mas a orquestração
-não é exercitada por teste (mesmo motivo do RA-04), e `ehAdmin` lê `AUREA_ADMIN_EMAILS` ou cai
-nas sete contas do seed (RA-16.a) — não há papel de usuário no modelo até o M2.
+Pago por remoção na E3: o arquivo não existe mais e as escritas contábeis passam por `src/server/actions/admin/contabil.ts`, com permissão por papel e testes em `acoes.test.ts`.
 
 ---
 

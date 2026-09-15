@@ -42,13 +42,14 @@ relatório.
 
 ---
 
-## RA-16.c 🟡 — nenhuma rota nem Server Action desta frente tem teste
+## RA-16.c 🟡 — nenhuma rota desta frente tem teste
 
-**Arquivos:** `dados.ts`, `sincronizar.ts`, `src/app/api/relatorios/*`, `src/server/actions/contabil.ts`
+**Arquivos:** `dados.ts`, `sincronizar.ts`, `src/app/api/relatorios/*`
 
 O que está testado: a serialização (`exportar.test.ts`), o JWT (`jwt.test.ts`), a regra pura
 (`src/domain/*.test.ts`) e a gravação do ledger (`src/server/db/db.test.ts`). A montagem dos
 relatórios a partir das fontes e a autorização das rotas são exercitadas só manualmente.
+A parte de Server Action saiu com a remoção, e continuam sem teste de rota as `/api/relatorios/*` em si e `dados.ts`.
 
 **Por quê:** `dados.ts` importa `client.ts` (`server-only`); parametrizá-lo pelo `Executor`
 como `estado.ts` é o caminho, e ficou para a sessão seguinte.

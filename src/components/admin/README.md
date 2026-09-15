@@ -56,7 +56,5 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
 
 ## O painel antigo
 
-`src/components/relatorios/RelatoriosPainel.tsx` (a tela `/relatorios` até 13/09/2026) ficou sem
-rota que o use: `/relatorios` redireciona para `/admin/resultados/financeiro`, e o conteúdo dele
-foi reorganizado em `resultados/`. A remoção está pedida em
-`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
+O painel antigo de `/relatorios` foi removido na E3, e o conteúdo vive em `resultados/`.
+

@@ -1,10 +1,9 @@
 /**
  * A validação das ações contábeis do painel — lançamento manual, estorno e alíquota.
  *
- * AS MESMAS REGRAS de src/server/actions/contabil.ts, que servia a tela antiga
- * `/relatorios`, agora num lugar puro e testado. Aquele arquivo continua existindo (é
- * de outra área e segue funcionando para quem está no bootstrap do ambiente); o painel
- * usa estas funções, com a permissão do papel na frente.
+ * Estas regras vieram das ações da tela antiga `/relatorios`, removidas na E3,
+ * agora num lugar puro e testado. O painel é agora o único caminho de escrita contábil,
+ * usando estas funções com a permissão do papel conferida em cada ação.
  *
  * Toda entrada chega de uma Server Action — um endpoint HTTP —, então nada aqui confia
  * no tipo que o TypeScript promete: número pode ser NaN, texto pode ser vazio, chave

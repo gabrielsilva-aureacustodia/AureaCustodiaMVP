@@ -15,13 +15,13 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 
 | Arquivo | O que faz | `server-only` |
 |---|---|---|
-| `acesso.ts` | `ehAdmin(email)` (o bootstrap do ambiente), `tokenDeIntegracaoValido`, `autorizarRelatorio` e `autorizarRelatorioNoPainel` — quem pode ver. Desde a C1, as rotas usam a versão que consulta os papéis do painel (`src/server/admin/acesso.ts`) | ✅ |
+| `acesso.ts` | `ehAdmin(email)` (o bootstrap do ambiente), `tokenDeIntegracaoValido` e `autorizarRelatorioNoPainel` — quem pode ver. Desde a C1, as rotas usam a versão que consulta os papéis do painel (`src/server/admin/acesso.ts`) | ✅ |
 | `dados.ts` | Os doze relatórios (`NOMES_RELATORIOS`), o período da consulta e `dreCompleta` | ✅ |
 | `exportar.ts` | `Relatorio` → CSV (regras do Excel pt-BR) e XLSX (SheetJS, no servidor) | — |
 | `sheets.ts` | Push para o Google Sheets pela API REST, com conta de serviço | ✅ |
 | `jwt.ts` | O JWT RS256 da conta de serviço, sem ler ambiente — testável | — |
 | `sincronizar.ts` | Gera tudo, envia, e registra em `exportacoes` e na trilha | ✅ |
-| `exportar.test.ts`, `jwt.test.ts` | 4 testes: CSV, XLSX de ida e volta, matriz do Sheets, JWT verificável | — |
+| `acesso.test.ts`, `acesso-painel.test.ts`, `exportar.test.ts`, `jwt.test.ts` | 14 testes: acesso de ambiente/chave (6), papéis do painel (4), CSV/XLSX (3), JWT (1) | — |
 | `ATALHOS.md` | O que esta pasta deve ao próprio rigor | — |
 
 ## Quem chama
@@ -30,7 +30,6 @@ Sheets (push). Tela e arquivo nunca divergem porque são a mesma função.
 |---|---|
 | `src/app/api/relatorios/[relatorio]/route.ts` | `gerarRelatorio`, `gerarTodosRelatorios`, `relatorioParaCsv`, `relatoriosParaXlsx` |
 | `src/app/api/relatorios/sheets/route.ts` | `sincronizarSheetsComoAtor` (para cron/Apps Script) |
-| `src/server/actions/contabil.ts` | `ehAdmin`, `sincronizarSheetsComoAtor` (ações da tela antiga; sem tela que as use desde a C1) |
 | `src/server/admin/resultados.ts` | `dreCompleta`, `gerarRelatorio`, `ehNomeDeRelatorio`, `configuracaoSheets` — a Central de Resultados do painel |
 | `src/server/actions/admin/contabil.ts` | `sincronizarSheetsComoAtor` — o envio ao Sheets pelo painel |
 | `src/app/(app)/relatorios/page.tsx` | Nada: desde a C1 só redireciona para `/admin/resultados/financeiro` |

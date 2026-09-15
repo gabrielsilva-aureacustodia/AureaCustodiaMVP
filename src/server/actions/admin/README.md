@@ -68,4 +68,4 @@ O polling da caixa de conversas (`atualizarAtendimentoNoPainel`) é leitura e n�
 | `src/server/admin/` | `acesso.ts` (a recusa), `contabil.ts`, `rbac.ts`, `cs.ts`, `usuarios.ts`, `bancada.ts` e `configuracao.ts` (os serviços), `portas.ts` (banco, estado, Supabase, provedor de WhatsApp, estação, publicação e vídeo), `auditar.ts` (a trilha) |
 | `src/server/relatorios/sincronizar.ts` | O envio ao Google Sheets reaproveitado |
 | `src/components/admin/` | Quem chama, sempre pelo `run()` do `AdminProvider` |
-| `src/server/actions/contabil.ts` | As ações da tela antiga `/relatorios`, com a regra do ambiente; sem tela que as use desde a C1 |
+

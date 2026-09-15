@@ -138,7 +138,7 @@ serve dentro de um `&&`. O roteiro completo da virada para produção está em
 ## Quem depende desta pasta
 
 `src/server/state.ts` (o motor do `AppState`), `src/server/payments/repositorios.ts` (frente
-C, tabelas da 002) e `src/server/relatorios/` + `src/server/actions/contabil.ts` (as tabelas
+C, tabelas da 002) e `src/server/relatorios/` e `src/server/admin/contabil.ts` (as tabelas
 da 003, que não entram no `AppState`). Fora isso, nada: o resto da aplicação fala com
 `getState()`/`mutateState()`.
 

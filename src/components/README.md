@@ -17,7 +17,6 @@ Client Components, organizados **uma subpasta por área da aplicação**.
 | `custody/` | `WizardSteps`, `Timeline`, `PhotoSlot` | `/envios` |
 | `charts/` | `LineChart`, `Sparkline` | `/graficos` e subrotas |
 | `reports/` | `PeriodTabs` | `/graficos` |
-| `relatorios/` | `RelatoriosPainel` — DRE, ledger, auditoria, lançamentos, alíquotas, exportação e Google Sheets. Ver [README próprio](relatorios/README.md) | `/relatorios` (só administradores) |
 | `home/` | `HomeStats`, `HomeBlocks` | `/inicio` |
 | `svg/` | `CoinArt`, `QrCode` | Recibos, mercado, venda, certificado |
 

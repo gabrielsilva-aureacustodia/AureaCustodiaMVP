@@ -25,6 +25,6 @@ em `Authorization: Bearer …` ou `?token=`. Decidido em `src/server/relatorios/
 ## Conexões
 
 - `src/server/relatorios/` — quem monta e serializa.
-- `src/components/relatorios/RelatoriosPainel.tsx` — o consumidor em JSON.
+- `src/components/admin/resultados/` — os botões de CSV e XLSX de `Financeiro.tsx` e o exemplo de fórmula de `Contabil.tsx`. O formato JSON segue no contrato para integrações.
 - `vercel.json` — se um dia o push for agendado, o cron entra ali com `CRON_SECRET`… **não**:
   esta rota usa `AUREA_RELATORIOS_TOKEN`, porque o mesmo token serve ao Apps Script. Ver o doc.

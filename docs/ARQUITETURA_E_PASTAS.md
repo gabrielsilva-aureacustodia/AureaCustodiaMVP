@@ -65,7 +65,6 @@ domain/    ──────> (nada)      não importa de NENHUMA outra pasta d
 | `src/server/db/` | [README](../src/server/db/README.md) | O estado em tabelas, o ledger e a trilha — **superfície protegida** |
 | `src/server/relatorios/` | [README](../src/server/relatorios/README.md) | DRE, relatórios, exportação e Google Sheets |
 | `src/app/api/relatorios/` | [README](../src/app/api/relatorios/README.md) | A API dos relatórios — contrato em [`API_RELATORIOS.md`](API_RELATORIOS.md) |
-| `src/components/relatorios/` | [README](../src/components/relatorios/README.md) | O painel `/relatorios` |
 | `src/app/` | [README](../src/app/README.md) | Rotas e telas |
 | `src/components/` | [README](../src/components/README.md) | UI, uma subpasta por área |
 | `src/lib/` | [README](../src/lib/README.md) | Integrações externas e exportadores |
