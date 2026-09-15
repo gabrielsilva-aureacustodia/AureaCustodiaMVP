@@ -96,3 +96,14 @@ Para não confundir dívida com decisão:
 **Arquivo:** `admin/permissoes.ts`, `EMAILS_FIXOS_DA_EQUIPE`, lida por `ehEmailDeBootstrap` e `emailsDeBootstrap`.
 
 Entra como `dev` com ou sem `AUREA_ADMIN_EMAILS`, para o link do painel nunca trancar o Gabriel fora. A tabela de membros vale sobre a lista. Detalhe em `src/server/admin/ATALHOS.md`.
+
+---
+
+## RA-52 🟡 — `bloqueio-por-debito.ts` calcula o bloqueio na hora
+
+**Arquivo:** `bloqueio-por-debito.ts`
+
+A pendência é `user.inadimplente || isInadimplente(...)`, feita por fora para não travar a marca nos
+pontos que a regravam. O recibo não recebe `'Bloqueado'` e o anúncio pausado fica no livro, fora do
+casamento. Quem é da equipe (isento) é pergunta do servidor, não deste arquivo. Detalhe em
+`RISCOS_ASSUMIDOS.md`.

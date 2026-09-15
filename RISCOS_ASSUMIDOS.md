@@ -1080,3 +1080,53 @@ O que foi feito, e o atalho que isso carrega:
 
 **Como se paga:** antes de cliente real, o Gabriel cadastrado como membro em `/admin/equipe`, a lista
 fixa esvaziada e `AUREA_ADMIN_EMAILS` definida na Vercel com os e-mails da equipe.
+---
+
+# RA-52 — Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta 🟡
+
+```
+Decidido em: 15/09/2026 (E4, pendência B-2) · entregue no mesmo dia
+Dono:        Gabriel
+Pastas:      src/domain/ (ATALHOS.md) · src/server/actions/ (ATALHOS.md) · src/server/custodia/
+```
+
+Conta com fatura de custódia vencida (ou marca manual de inadimplência) não vende nem retira, e os
+anúncios dela ficam pausados — fora da vitrine e do casamento, sem serem apagados. A regra mora em
+`src/domain/bloqueio-por-debito.ts` e é **calculada na hora** a partir das faturas: a fatura vence por
+passagem de tempo, sem evento que dispare gravação, e pagar libera no mesmo instante.
+
+O que isso carrega:
+
+- **Conta da equipe é isenta.** Conta que `carregarMembro` reconhece (membro, bootstrap do ambiente,
+  `EMAILS_FIXOS_DA_EQUIPE`) não é bloqueada, e checagem de equipe que falha libera — decisão de MVP de
+  teste com as contas dos sócios ("nada tranca a equipe para fora"), a mesma regra de `contaDesativada`.
+  Quando houver cliente real, rever se a equipe continua isenta.
+- O recibo continua `'Ativo'` no banco; a auditoria pública, o PDF baixado, a grade de `/recibos`, o
+  status em `/conta` e a contagem `recibosBloqueados` da ficha do painel não mostram o bloqueio por
+  pendência.
+- O anúncio pausado continua gravado e volta a casar quando a fatura é paga.
+- A marca manual de inadimplência é apagada quando o cliente paga qualquer fatura ou quando o ciclo roda
+  (`faturamento.ts`, `plano-custodia.ts`, `conciliacao.ts`), porque a coluna `inadimplente` guarda as
+  duas coisas.
+
+**Como se paga:** separar marca manual de marca por fatura (coluna nova) e decidir se o bloqueio aparece
+no recibo impresso.
+
+---
+
+# RA-53 — O gateway não reconfere a pendência na confirmação 🟡
+
+```
+Decidido em: 15/09/2026 (E4, pendência B-2) · só registrado
+Dono:        E8, na segunda onda, depois dos merges da E2 e da E4
+Pastas:      src/server/actions/ (ATALHOS.md) · src/server/payments/
+```
+
+A compra direta paga por Pix/cartão (`conciliacao.ts`, `liquidarCompraDireta`) e a taxa de retirada paga
+por Pix/cartão (`conciliacao.ts`, que extingue o recibo) seguem mesmo que a conta tenha passado a ter
+fatura vencida entre gerar a cobrança e o pagamento cair. A checagem está na porta de entrada
+(`iniciarCompraDireta`, `iniciarPixRetirada`, `iniciarCartaoRetirada`). O arquivo é da E2 e o dinheiro já
+entrou. A E4 só registra; não implementa.
+
+**Como se paga:** na conciliação, com pendência, creditar o valor no saldo em vez de transferir a moeda
+ou extinguir o recibo.
