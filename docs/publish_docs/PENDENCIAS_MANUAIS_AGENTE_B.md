@@ -11,11 +11,15 @@ Os Agentes A e C têm os seus; ninguém escreve no arquivo do outro.
 
 Item resolvido **não some**: é marcado `✅ FEITO em dd/mm`, para o próximo agente não refazer.
 
+Desde 15/09, com as frentes A, B e C encerradas, os itens resolvidos ficam no lugar, marcados no título. A lista do que continua aberto, de todos os arquivos, está em [`../PENDENCIAS_ABERTAS.md`](../PENDENCIAS_ABERTAS.md).
+
 ---
 
 ## Abertas
 
-### B-1 · Aplicar a migration 007 no Supabase de produção 🟡
+### B-1 · Aplicar a migration 007 no Supabase de produção ✅ FEITO em 11/09
+
+> Aplicada em 11/09 (CHECKUP_11_09_2026.md, seção 1). Conferida em 15/09 por npm run db:check: 007_cadastro_usuario na lista.
 
 | | |
 |---|---|
@@ -41,7 +45,9 @@ O Agente B gerencia o faturamento e a marcação de inadimplência; por contrato
 
 ---
 
-### B-3 · Aplicar a migration 008 no Supabase de produção 🟡
+### B-3 · Aplicar a migration 008 no Supabase de produção ✅ FEITO em 11/09
+
+> Aplicada em 11/09 (CHECKUP_11_09_2026.md, seção 1). Conferida em 15/09 por npm run db:check: 008_compra_direta na lista.
 
 | | |
 |---|---|
@@ -54,7 +60,9 @@ A migration adiciona apenas as colunas `tipo_operacao` (com default `'deposito'`
 
 ---
 
-### B-4 · Aplicar a migration 009 no Supabase de produção 🟡
+### B-4 · Aplicar a migration 009 no Supabase de produção ✅ FEITO em 11/09
+
+> Aplicada em 11/09 (CHECKUP_11_09_2026.md, seção 1). Conferida em 15/09 por npm run db:check: 009_saques na lista.
 
 | | |
 |---|---|
@@ -68,7 +76,9 @@ Operacionalmente, os saques entram no status `solicitado` com prazo D+3 úteis e
 
 ---
 
-### B-5 · Aplicar a migration 010 no Supabase de produção 🟡
+### B-5 · Aplicar a migration 010 no Supabase de produção ✅ FEITO em 11/09
+
+> Aplicada em 11/09 (CHECKUP_11_09_2026.md, seção 1). Conferida em 15/09 por npm run db:check: 010_faturamento_custodia na lista.
 
 | | |
 |---|---|
@@ -82,7 +92,9 @@ Totalmente inócua e retrocompatível com as contas existentes.
 
 ---
 
-### B-6 · Aplicar migrations da rodada de finalizações (017, 018 e 019) no Supabase de produção 🟡
+### B-6 · Aplicar migrations da rodada de finalizações (017, 018 e 019) no Supabase de produção ✅ FEITO em 14/09
+
+> Aplicadas em 14/09 pelo Agente C antes do push de 4d35ee7 (RELATORIO_AGENTE_C.md, "Banco de produção e publicação"; PENDENCIAS_AGENTE_C.md, P-M-03). Conferidas em 15/09 por npm run db:check.
 
 | | |
 |---|---|
@@ -100,12 +112,29 @@ Resumo das migrations:
 
 ### B-7 · Configurar credenciais de produção do Mercado Pago na Vercel 🟡
 
+> Conferido em 15/09 por vercel env ls production: nenhuma variável MP_* no ambiente Production da Vercel. O commit 2cc7194 (11/09) ligou o código e deixou as credenciais com o Gabriel.
+
 | | |
 |---|---|
-| **O que falta** | Configurar as variáveis de ambiente de produção na Vercel: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e `MP_SANDBOX=false` |
-| **Quem pode fazer** | **Gabriel** via Vercel Dashboard (Settings › Environment Variables) |
+| **O que falta** | Configurar as variáveis de ambiente de produção na Vercel (`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_SANDBOX` e `NEXT_PUBLIC_APP_URL`) e o webhook de produção no Mercado Pago |
+| **Quem pode fazer** | **Gabriel** via Vercel Dashboard e painel do Mercado Pago |
 | **O que está bloqueado** | Cobrança real de clientes via Pix e Cartão em produção |
-| **Como conferir que foi feito** | Teste de geração de cobrança em produção retorna credencial do Mercado Pago e não cai no simulador |
+| **Como conferir que foi feito** | (1) se a CLI da Vercel estiver autenticada, `vercel env ls production --cwd C:\dev\AureaCustodiaMVP` lista as quatro (opcional); (2) depois do Redeploy, `https://aurea-custodia-mvp.vercel.app/admin/configuracao?aba=integracoes` mostra "Pagamento (Mercado Pago)" ligado e a observação `Modo: produção (MP_SANDBOX=false).` (`src/domain/admin/integracoes.ts:87`); (3) **pelo gateway, com credencial**: um depósito de R$ 1,00 por Pix abre o QR do Mercado Pago e não a modal do simulador; **sem credencial** (estado de hoje), o mesmo depósito abre a modal do simulador, porque sem `MP_ACCESS_TOKEN` o `src/server/actions/payments.ts` responde pelo simulador — é assim que se confere o fluxo enquanto as variáveis não existem. |
+
+Abaixo, os nomes das variáveis e as configurações (nenhum valor de credencial entra no repositório):
+
+- variáveis (Production): `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_SANDBOX` — passo a passo no passo 5 de `docs/execucao-pendencias/TUTORIAL_MANUAL_GABRIEL.md` (os valores o Gabriel copia do painel do Mercado Pago; nenhum entra no repositório);
+- `NEXT_PUBLIC_APP_URL`, com o valor:
+
+```
+https://aurea-custodia-mvp.vercel.app
+```
+
+- endereço do webhook de produção (a configuração no painel do Mercado Pago está no mesmo passo 5 do tutorial):
+
+```
+https://aurea-custodia-mvp.vercel.app/api/webhooks/mercadopago
+```
 
 Graças à entrega B1.0, o código agora isola estritamente produção (`MP_SANDBOX=false` usa exclusivamente `MP_ACCESS_TOKEN`).
 

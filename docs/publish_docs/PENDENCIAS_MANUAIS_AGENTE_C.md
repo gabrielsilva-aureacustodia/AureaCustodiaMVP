@@ -11,11 +11,15 @@ Os Agentes A e B têm os seus; ninguém escreve no arquivo do outro.
 
 Item resolvido **não some**: é marcado `✅ FEITO em dd/mm`, para o próximo agente não refazer.
 
+Desde 15/09, com as frentes A, B e C encerradas, os itens resolvidos ficam no lugar, marcados no título. A lista do que continua aberto, de todos os arquivos, está em [`../PENDENCIAS_ABERTAS.md`](../PENDENCIAS_ABERTAS.md).
+
 ---
 
 ## Abertas
 
-### D-2 · Prazo de retirada: D+30 total ou D+30 postagem + D+5 trânsito? 🟡
+### D-2 · Prazo de retirada: D+30 total ou D+30 postagem + D+5 trânsito? ✅ DECIDIDO em 11/09
+
+> D+30 é o prazo operacional da Áurea para preparar e postar; o trânsito dos Correios corre por fora, sem número prometido. Decisão em PLANO_EXECUTIVO_PUBLICACAO.md, seção 5 ("D-2 · O prazo de postagem"), aplicada na tela, no certificado, nos termos e na Academy pelo commit 2cc7194. Desde a C3 os prazos da logística e dos Termos também se editam em /admin/configuracao, aba Operacional.
 
 | | |
 |---|---|
@@ -28,7 +32,9 @@ A máquina de estados calcula o prazo a partir de `PRAZO_RETIRADA_DIAS`. Alterar
 
 ---
 
-### C-1 · Aplicação da migration 009 no Supabase de produção/staging 🟡
+### C-1 · Aplicação da migration 011 no Supabase de produção ✅ FEITO em 11/09
+
+> O título dizia 009: a migration nasceu 009 e virou 011 no merge cc3c95c (CHECKUP_11_09_2026.md, seção 3.1). Aplicada em 11/09; conferida em 15/09 por npm run db:check (011_retiradas).
 
 | | |
 |---|---|
@@ -45,7 +51,9 @@ npm run db:migrate
 
 ---
 
-### C-2 · Aplicação da migration 010 no Supabase de produção/staging 🟡
+### C-2 · Aplicação da migration 012 no Supabase de produção ✅ FEITO em 11/09
+
+> O título dizia 010: a migration nasceu 010 e virou 012 no merge cc3c95c (CHECKUP_11_09_2026.md, seção 3.1). Aplicada em 11/09; conferida em 15/09 por npm run db:check (012_retiradas_ledger).
 
 | | |
 |---|---|
