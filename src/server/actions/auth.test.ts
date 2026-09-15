@@ -63,7 +63,7 @@ vi.mock('@/server/auth/destino', () => ({
 }))
 
 import type { AppState } from '@/domain/types'
-import { login } from './auth'
+import { definirNovaSenha, login } from './auth'
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
 import {
@@ -71,7 +71,7 @@ import {
   MENSAGEM_CONTA_DESATIVADA,
 } from '@/server/auth/conta-desativada'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
-import { setSession } from '@/server/session'
+import { getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
 describe('login() — portas 1 e 2 (P-C2-04)', () => {
@@ -174,5 +174,100 @@ describe('login() — portas 1 e 2 (P-C2-04)', () => {
 
     expect(res.ok).toBe(true)
     expect(setSession).toHaveBeenCalledWith('externo@teste.com')
+  })
+})
+
+describe('definirNovaSenha() — link de redefinição (P-C2-05)', () => {
+  const mockGetUser = vi.fn()
+  const mockUpdateUser = vi.fn()
+  const mockSignInWithPassword = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(getSessionEmail).mockResolvedValue('externo@teste.com')
+    vi.mocked(barrarContaDesativada).mockResolvedValue(false)
+    mockGetUser.mockResolvedValue({
+      data: { user: { email: 'externo@teste.com' } },
+      error: null,
+    })
+    mockUpdateUser.mockResolvedValue({ data: { user: {} }, error: null })
+    vi.mocked(createAuthClient).mockResolvedValue({
+      auth: {
+        getUser: mockGetUser,
+        updateUser: mockUpdateUser,
+        signInWithPassword: mockSignInWithPassword,
+      },
+    } as unknown as ReturnType<typeof createAuthClient> extends Promise<infer T> ? T : never)
+  })
+
+  it('sem sessão pede link novo', async () => {
+    vi.mocked(getSessionEmail).mockResolvedValue(null)
+
+    const res = await definirNovaSenha('senha-nova', 'senha-nova')
+
+    expect(res).toEqual({
+      ok: false,
+      error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+    })
+    expect(createAuthClient).not.toHaveBeenCalled()
+  })
+
+  it('confirmação diferente não chama o Supabase', async () => {
+    const res = await definirNovaSenha('senha-nova', 'outra-senha')
+
+    expect(res).toEqual({ ok: false, error: 'A confirmação da nova senha não confere.' })
+    expect(createAuthClient).not.toHaveBeenCalled()
+  })
+
+  it('sessão do Supabase de outro e-mail é recusada', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: { email: 'outra@teste.com' } },
+      error: null,
+    })
+
+    const res = await definirNovaSenha('senha-nova', 'senha-nova')
+
+    expect(res.ok).toBe(false)
+    expect(res.error).toContain('link de redefinição expirou')
+    expect(mockUpdateUser).not.toHaveBeenCalled()
+  })
+
+  it('conta desativada é recusada', async () => {
+    vi.mocked(barrarContaDesativada).mockResolvedValue(true)
+
+    const res = await definirNovaSenha('senha-nova', 'senha-nova')
+
+    expect(res).toEqual({ ok: false, error: MENSAGEM_CONTA_DESATIVADA })
+    expect(createAuthClient).not.toHaveBeenCalled()
+  })
+
+  it('senha repetida e senha fraca viram frase em português', async () => {
+    mockUpdateUser
+      .mockResolvedValueOnce({
+        data: { user: null },
+        error: { code: 'same_password', message: 'New password should be different' },
+      })
+      .mockResolvedValueOnce({
+        data: { user: null },
+        error: { code: 'weak_password', message: 'Password should be at least 8 characters' },
+      })
+
+    await expect(definirNovaSenha('senha-nova', 'senha-nova')).resolves.toEqual({
+      ok: false,
+      error: 'A senha nova precisa ser diferente da anterior.',
+    })
+    await expect(definirNovaSenha('curta', 'curta')).resolves.toEqual({
+      ok: false,
+      error: 'Senha fraca: Password should be at least 8 characters',
+    })
+  })
+
+  it('troca a senha sem pedir a atual', async () => {
+    const res = await definirNovaSenha('senha-nova', 'senha-nova')
+
+    expect(res).toEqual({ ok: true, message: 'Senha nova salva. Use-a no próximo login.' })
+    expect(mockUpdateUser).toHaveBeenCalledTimes(1)
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'senha-nova' })
+    expect(mockSignInWithPassword).not.toHaveBeenCalled()
   })
 })

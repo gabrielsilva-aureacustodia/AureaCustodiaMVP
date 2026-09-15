@@ -26,7 +26,7 @@ import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
-import { clearSession, setSession } from '@/server/session'
+import { clearSession, getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 import {
   barrarContaDesativada,
@@ -285,3 +285,56 @@ export async function logout(): Promise<ActionResult> {
   }
   return { ok: true }
 }
+
+export async function definirNovaSenha(
+  nova: string,
+  confirmacao: string,
+): Promise<ActionResult> {
+  const email = await getSessionEmail()
+  if (!email) {
+    return {
+      ok: false,
+      error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+    }
+  }
+
+  if (nova !== confirmacao) {
+    return { ok: false, error: 'A confirmação da nova senha não confere.' }
+  }
+
+  if (await barrarContaDesativada(email)) {
+    return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
+  }
+
+  try {
+    const client = await createAuthClient()
+    const { data, error: userError } = await client.auth.getUser()
+
+    const emailSupabase = data?.user?.email?.trim().toLowerCase()
+    if (userError || !emailSupabase || emailSupabase !== email.trim().toLowerCase()) {
+      return {
+        ok: false,
+        error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+      }
+    }
+
+    const { error: updateError } = await client.auth.updateUser({ password: nova })
+    if (updateError) {
+      if (updateError.code === 'same_password') {
+        return { ok: false, error: 'A senha nova precisa ser diferente da anterior.' }
+      }
+      if (updateError.code === 'weak_password') {
+        return { ok: false, error: `Senha fraca: ${updateError.message}` }
+      }
+      return { ok: false, error: updateError.message || FALHA_AUTENTICACAO }
+    }
+
+    return { ok: true, message: 'Senha nova salva. Use-a no próximo login.' }
+  } catch (error) {
+    if (error instanceof AuthConfigurationError) {
+      return { ok: false, error: 'O login pelo Supabase não está configurado neste ambiente.' }
+    }
+    return authError()
+  }
+}
+
