@@ -1,7 +1,8 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
+import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { fdatetime } from '@/domain/dates'
@@ -15,7 +16,12 @@ import { ModalEditarLote } from './ModalEditarLote'
 
 export function MinhasOfertas(): ReactNode {
   const { state, session, run } = useApp()
+  const { minhaContaBloqueada, consultar } = useBloqueioPorPendencia()
   const modal = useModal()
+
+  useEffect(() => {
+    void consultar()
+  }, [consultar])
 
   const meusLotes = lotsFromOffers(state).filter((l) => l.seller === session)
   const meusBids = state.buyOrders.filter((b) => b.buyer === session)
@@ -60,6 +66,12 @@ export function MinhasOfertas(): ReactNode {
           </span>
         ) : null}
       </div>
+
+      {minhaContaBloqueada ? (
+        <div className="note" style={{ marginBottom: 14 }}>
+          Seus anúncios estão pausados enquanto houver fatura de custódia vencida.
+        </div>
+      ) : null}
 
       {!temOfertas ? (
         <div className="empty" style={{ padding: '16px', fontSize: 13 }}>

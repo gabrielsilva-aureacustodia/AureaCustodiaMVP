@@ -35,10 +35,11 @@
  * oferta por engano.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { BidRow } from '@/components/market/BidRow'
+import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { Folder } from '@/components/market/Folder'
 import { LotCard } from '@/components/market/LotCard'
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
@@ -68,8 +69,13 @@ const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
 export default function MercadoPage(): ReactNode {
   const { state, session, me, run, taxas, catalogo } = useApp()
+  const { vendedoresPausados, consultar } = useBloqueioPorPendencia()
   const modal = useModal()
   const toast = useToast()
+
+  useEffect(() => {
+    void consultar()
+  }, [consultar])
 
   /**
    * Tipos que a plataforma aceita negociar hoje. Sai do catálogo, não da tela — desde a C3, do
@@ -123,7 +129,9 @@ export default function MercadoPage(): ReactNode {
   const max = parsePrice(filMax)
   const passa = (p: Cents): boolean => (!min || p >= min) && (!max || p <= max)
 
-  const lots = lotsFromOffers(state).filter((l) => passa(l.price))
+  const lots = lotsFromOffers(state).filter(
+    (l) => passa(l.price) && !vendedoresPausados.includes(l.seller),
+  )
   const bids = state.buyOrders
     .slice() // cópia: sort muta, e state.buyOrders é o array do servidor
     .sort((a, b) => b.price - a.price || a.createdAt - b.createdAt)

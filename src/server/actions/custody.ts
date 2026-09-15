@@ -37,7 +37,15 @@ import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
-import { mutateState } from '@/server/state'
+import { mutateState, getState } from '@/server/state'
+import {
+  contaComPendenciaDeCustodia,
+  contaComPendenciaNoEstado,
+  MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+} from '@/domain/bloqueio-por-debito'
+import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
+import { carregarMembro } from '@/server/admin/acesso'
+import { temPermissao } from '@/domain/admin/permissoes'
 
 /* ---------------------------------------------------------------------------
  * Mensagens
@@ -236,12 +244,10 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
  * nada. O retorno vem sem `message` justamente para que `run()` não abra aviso —
  * o retorno visual é a própria linha do tempo mudando.
  *
- * Ao chegar em 'Recibo emitido' acontecem as três coisas que dão valor ao
- * envio, na ordem do original:
+ * Ao chegar em 'Recibo emitido' acontecem as ações que dão valor ao
+ * envio:
  *   1. as moedas são criadas com recibo e amarradas ao protocolo;
- *   2. a taxa de custódia é RECALCULADA pela faixa da nova contagem total —
- *      não é a taxa do envio, é a do acervo inteiro depois dele;
- *   3. a cobrança nasce 'Pendente'.
+ *   2. a emissão alimenta o plano de custódia (`alimentarPlanoNaAnalise`); a cobrança mensal é do ciclo, ver o fim desta função.
  */
 export async function advanceAnalysis(protocolo: string): Promise<ActionResult> {
   const session = await getSessionEmail()
@@ -450,6 +456,7 @@ export async function solicitarRetirada(
 
   // A taxa da retirada é a da Tabela de Taxas vigente (C3) e fica congelada na solicitação.
   const { taxas } = await carregarRegrasDoMercado()
+  const bloqueavel = await contaBloqueavel(session)
 
   try {
     const { result } = await mutateState((state) => {
@@ -459,6 +466,12 @@ export async function solicitarRetirada(
       const coin = u.coins.find((c) => c.id === coinId)
       if (!coin) {
         return { ok: false, error: 'Moeda não encontrada no seu acervo.' } as const
+      }
+
+      const agora = Date.now()
+      const faturasDaConta = (state.faturasCustodia ?? []).filter((f) => f.userEmail === session)
+      if (bloqueavel && contaComPendenciaDeCustodia(u, faturasDaConta, agora)) {
+        return { ok: false, error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA } as const
       }
 
       // Rejeita se anunciada no mercado
@@ -501,7 +514,6 @@ export async function solicitarRetirada(
         } as const
       }
 
-      const agora = Date.now()
       const solicitacao = criarSolicitacaoRetirada({
         id: `RET-${coin.id}-${agora}`,
         coinId: coin.id,
@@ -548,6 +560,7 @@ export async function pagarRetiradaComSaldo(
 ): Promise<ActionResult<{ retiradaId: string; dataLimiteD30: number }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+  const bloqueavel = await contaBloqueavel(session)
 
   try {
     const { result } = await mutateState((state) => {
@@ -583,13 +596,25 @@ export async function pagarRetiradaComSaldo(
         return { ok: false, error: 'Moeda correspondente não encontrada no acervo.' } as const
       }
 
+      if (coin.recibo.status === 'Bloqueado') {
+        return {
+          ok: false,
+          error: 'O recibo desta moeda está bloqueado por pendência administrativa ou financeira. Regularize sua situação para solicitar retirada.',
+        } as const
+      }
+
+      const agora = Date.now()
+      const faturasDaConta = (state.faturasCustodia ?? []).filter((f) => f.userEmail === session)
+      if (bloqueavel && contaComPendenciaDeCustodia(u, faturasDaConta, agora)) {
+        return { ok: false, error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA } as const
+      }
+
       // Debita saldo da conta
       u.balance -= ret.valorTaxaCents
 
       // Extinção imediata do recibo (Regra inegociável do Bloco 10)
       coin.recibo.status = 'Extinto'
 
-      const agora = Date.now()
       // D+30 recalculado a partir da data de confirmação do pagamento
       const novoLimiteD30 = calcularPrazoLimiteRetirada(agora)
 
@@ -641,6 +666,17 @@ export async function iniciarPixRetirada(
   if (ret.userEmail !== session) return { ok: false, error: 'Acesso não autorizado.' }
   if (ret.status !== 'solicitada') {
     return { ok: false, error: `Esta retirada já está com status "${ret.status}".` }
+  }
+
+  if (await contaBloqueavel(session)) {
+    try {
+      const s = await getState()
+      if (contaComPendenciaNoEstado(s, session, Date.now())) {
+        return { ok: false, error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA }
+      }
+    } catch {
+      /* leitura falhou: libera */
+    }
   }
 
   const externalReference = `RET-${randomUUID()}`
@@ -713,6 +749,17 @@ export async function iniciarCartaoRetirada(
   if (ret.userEmail !== session) return { ok: false, error: 'Acesso não autorizado.' }
   if (ret.status !== 'solicitada') {
     return { ok: false, error: `Esta retirada já está com status "${ret.status}".` }
+  }
+
+  if (await contaBloqueavel(session)) {
+    try {
+      const s = await getState()
+      if (contaComPendenciaNoEstado(s, session, Date.now())) {
+        return { ok: false, error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA }
+      }
+    } catch {
+      /* leitura falhou: libera */
+    }
   }
 
   const parcelasMax = ret.modalidade === 'segura' ? 2 : 1
@@ -947,6 +994,12 @@ export async function bloquearReciboPorDebito(
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
+  // Fecha o furo onde qualquer usuário logado podia bloquear recibos.
+  // Apenas a equipe com permissão pode alterar a restrição administrativa do recibo.
+  if (!temPermissao(await carregarMembro(session), 'usuarios.editar')) {
+    return { ok: false, error: 'Ação restrita à equipe da Áurea.' }
+  }
+
   try {
     const { result } = await mutateState((s) => {
       let donoEncontrado: User | undefined
@@ -1001,6 +1054,12 @@ export async function desbloquearRecibo(
 ): Promise<ActionResult<{ coinId: string; status: StatusRecibo }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // Fecha o furo onde qualquer usuário logado podia desbloquear qualquer recibo pelo console.
+  // Ser dono do recibo não basta para desbloquear restrição administrativa.
+  if (!temPermissao(await carregarMembro(session), 'usuarios.editar')) {
+    return { ok: false, error: 'Ação restrita à equipe da Áurea.' }
+  }
 
   try {
     const { result } = await mutateState((s) => {

@@ -30,6 +30,8 @@ import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
+import { contaComPendenciaNoEstado, MENSAGEM_ANUNCIO_PAUSADO } from '@/domain/bloqueio-por-debito'
+import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import type {
   CompraDiretaIniciada,
@@ -195,6 +197,10 @@ export async function iniciarCompraDireta(
 
   const seller = state.users[sellerId]
   if (!seller) return { ok: false, error: 'Este anúncio não está mais disponível.' }
+
+  if ((await contaBloqueavel(sellerId)) && contaComPendenciaNoEstado(state, sellerId, Date.now())) {
+    return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }
+  }
 
   const qty = Math.min(
     Math.max(Number.isFinite(qtyPedida) ? Math.floor(qtyPedida) : 1, 1),

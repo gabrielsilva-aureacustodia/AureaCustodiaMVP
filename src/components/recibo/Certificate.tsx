@@ -31,6 +31,7 @@ import { brl } from '@/domain/money'
 import { coinStatusDigital } from '@/domain/selectors'
 import type { Retirada } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { QrCode } from '@/components/svg/QrCode'
 import { useModal } from '@/components/ui/Modal'
@@ -53,11 +54,16 @@ export interface CertificateProps {
 
 export function Certificate({ coinId }: CertificateProps): ReactNode {
   const { state, me, catalogo } = useApp()
+  const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
   const modal = useModal()
   const toast = useToast()
   const router = useRouter()
 
   const [retirada, setRetirada] = useState<Retirada | null>(null)
+
+  useEffect(() => {
+    void consultar()
+  }, [consultar])
 
   // A página (Server Component) já garantiu a posse antes de renderizar; esta
   // busca é sobre o estado VIVO. Ela falha quando a moeda sai do inventário com
@@ -66,7 +72,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   const coin = me.coins.find((c) => c.id === coinId)
 
   const extinto = coin?.recibo.status === 'Extinto'
-  const bloqueado = coin?.recibo.status === 'Bloqueado'
+  const bloqueado = coin?.recibo.status === 'Bloqueado' || pendencia
 
   useEffect(() => {
     if (extinto && coin) {
@@ -103,7 +109,9 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
   const statusTxt = extinto
     ? 'Moeda retirada da custódia — recibo extinto'
     : bloqueado
-    ? 'Bloqueado — restrição financeira'
+    ? pendencia
+      ? 'Bloqueado — pendência de custódia'
+      : 'Bloqueado — restrição financeira'
     : 'Moeda física recebida e custodiada'
 
   // Mesma regra de valor da grade 1.4 (linha 1858): mediana de 24h para o ativo
@@ -157,7 +165,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               RECIBO BLOQUEADO
               <br />
               <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
-                RESTRIÇÃO ADMINISTRATIVA
+                {pendencia ? 'PENDÊNCIA DE CUSTÓDIA' : 'RESTRIÇÃO ADMINISTRATIVA'}
               </span>
             </div>
           ) : null}
@@ -280,7 +288,16 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                   <path d="M12 3l9 16H3z" />
                   <path d="M12 10v4M12 17v.5" />
                 </svg>
-                O recibo desta moeda está bloqueado por pendência administrativa ou inadimplência financeira.
+                {pendencia ? (
+                  <>
+                    O recibo está bloqueado para venda e retirada enquanto houver fatura de custódia
+                    vencida. Pague em{' '}
+                    <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link> para liberar
+                    na hora.
+                  </>
+                ) : (
+                  'O recibo desta moeda está bloqueado por pendência administrativa ou financeira.'
+                )}
               </div>
             ) : null}
             {!sellable ? (

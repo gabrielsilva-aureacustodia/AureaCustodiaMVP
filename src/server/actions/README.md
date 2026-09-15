@@ -62,6 +62,7 @@ TypeScript aponta. O que ele **não** aponta:
 
 | Ação | Chamada por |
 |---|---|
+| `bloqueio-por-debito.ts` | `components/custody/useBloqueioPorPendencia.ts` |
 | `auth.ts` | `components/login/LoginForm.tsx`, `components/shell/Sidebar.tsx` |
 | `account.ts` | `components/account/AccountModals.tsx`, `app/(app)/conta/` |
 | `market.ts` | `app/(app)/mercado/page.tsx` |

@@ -33,9 +33,16 @@
 
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
-import { availableCoinsForSell, matchOrders, transferCoin } from '@/domain/market'
+import { availableCoinsForSell, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
+import { apelidoComprador } from '@/domain/contraparte'
+import {
+  casarOrdensRespeitandoPendencia,
+  contaComPendenciaNoEstado,
+  MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+} from '@/domain/bloqueio-por-debito'
+import { contaBloqueavel, vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -106,12 +113,23 @@ export async function publishOffer(
   const observacao = String(obs ?? '').trim().slice(0, OBS_MAX)
   // Taxas e catálogo da configuração (C3): lidos antes da transação, valem para esta operação.
   const { taxas, catalogo } = await carregarRegrasDoMercado()
+  const bloqueavel = await contaBloqueavel(email)
+  const bloqueaveis = await vendedoresBloqueaveis()
 
   try {
     const { result } = await mutateState(
       (s: AppState): ActionResult<{ limparSelecao: boolean }> => {
         const u = s.users[email]
         if (!u) return { ok: false, error: SESSAO_EXPIRADA, data: { limparSelecao: false } }
+
+        const agora = Date.now()
+        if (bloqueavel && contaComPendenciaNoEstado(s, email, agora)) {
+          return {
+            ok: false,
+            error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+            data: { limparSelecao: false },
+          }
+        }
 
         // A revalidação inteira do original (linha 1640), agora contra o estado
         // do servidor: a moeda precisa estar NO INVENTÁRIO DE QUEM VENDE e não
@@ -165,7 +183,6 @@ export async function publishOffer(
         }
 
         const lotId = novoLotId()
-        const agora = Date.now()
         validas.forEach((c) => {
           const oferta: SellOffer = {
             id: novoOfferId(),
@@ -183,7 +200,7 @@ export async function publishOffer(
 
         // Casamento imediato: o anúncio novo pode ser mais barato que um bid já
         // publicado, e nesse caso a venda acontece antes de a tela redesenhar.
-        const { matched } = matchOrders(s, taxas)
+        const { matched } = casarOrdensRespeitandoPendencia(s, taxas, agora, bloqueaveis)
 
         return {
           ok: true,
@@ -260,6 +277,8 @@ export async function editLot(
   const qtyDesejada = Math.max(1, Math.floor(qty))
   const observacao = obs !== undefined ? String(obs).trim().slice(0, OBS_MAX) : undefined
   const { taxas, catalogo } = await carregarRegrasDoMercado()
+  const bloqueavel = await contaBloqueavel(email)
+  const bloqueaveis = await vendedoresBloqueaveis()
 
   try {
     const { result } = await mutateState((s: AppState): ActionResult => {
@@ -278,6 +297,13 @@ export async function editLot(
       let perdeuVez = precoMudou
 
       if (qtyDesejada > offers.length) {
+        if (bloqueavel && contaComPendenciaNoEstado(s, email, agora)) {
+          return {
+            ok: false,
+            error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+          }
+        }
+
         // Aumentar quantidade passa a ser possível (Decisão F-3)
         const necessarias = qtyDesejada - offers.length
         const livres = availableCoinsForSell(s, u, tipoMoeda, catalogo)
@@ -338,7 +364,7 @@ export async function editLot(
         })
       }
 
-      const { matched } = matchOrders(s, taxas)
+      const { matched } = casarOrdensRespeitandoPendencia(s, taxas, agora, bloqueaveis)
       const msgFila = perdeuVez
         ? ' Como o preço mudou, ela foi para o fim da fila desse preço.'
         : ''
@@ -372,6 +398,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
   const { taxas, catalogo } = await carregarRegrasDoMercado()
+  const bloqueavel = await contaBloqueavel(email)
 
   try {
     const { result } = await mutateState((s: AppState): ActionResult => {
@@ -390,6 +417,11 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // Comprador some do estado (banco recriado): no original isso estourava um
       // TypeError; aqui a oferta órfã é tratada como oferta que já não existe.
       if (!buyer) return { ok: false, error: BID_SUMIU }
+
+      const agora = Date.now()
+      if (bloqueavel && contaComPendenciaNoEstado(s, email, agora)) {
+        return { ok: false, error: MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA }
+      }
 
       // Só as moedas DO TIPO que o bid pede. Sem o recorte, aceitar uma oferta
       // de compra de Direitos Humanos entregaria a primeira moeda livre do
@@ -428,7 +460,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       s.trades.push({
         price: bo.price,
         qty: execN,
-        date: Date.now(),
+        date: agora,
         buyer: bo.buyer,
         seller: email,
         feeComprador,
@@ -441,7 +473,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       return {
         ok: true,
-        message: `Venda concluída: ${execN} ${bo.tipoMoeda} vendida(s) diretamente a ${buyer.name} por ${brl(bo.price)} cada.`,
+        message: `Venda concluída: ${execN} ${bo.tipoMoeda} vendida(s) diretamente a ${apelidoComprador(bo.id)} por ${brl(bo.price)} cada.`,
       }
     })
     return result

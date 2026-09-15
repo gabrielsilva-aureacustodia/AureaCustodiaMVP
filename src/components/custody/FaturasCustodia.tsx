@@ -15,6 +15,7 @@ import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import {
   iniciarCartaoFatura,
@@ -26,6 +27,7 @@ import {
 
 export function FaturasCustodia(): ReactNode {
   const { me } = useApp()
+  const { minhaContaBloqueada, consultar } = useBloqueioPorPendencia()
   const [faturas, setFaturas] = useState<FaturaCustodia[]>([])
   const [planos, setPlanos] = useState<PlanoCustodia[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -53,6 +55,10 @@ export function FaturasCustodia(): ReactNode {
     void carregar()
   }, [carregar])
 
+  useEffect(() => {
+    void consultar()
+  }, [consultar])
+
   const faturaSelecionada = faturas.find((f) => f.id === faturaEmPagamento)
   const planoDaFatura = faturaSelecionada?.planoId
     ? planos.find((p) => p.id === faturaSelecionada.planoId)
@@ -65,7 +71,7 @@ export function FaturasCustodia(): ReactNode {
   return (
     <div>
       {/* Aviso de fatura atrasada / inadimplência */}
-      {me?.inadimplente && (
+      {minhaContaBloqueada && (
         <div
           className="warn-box"
           style={{ marginBottom: 18, border: '1px solid #d9383a' }}
@@ -75,8 +81,9 @@ export function FaturasCustodia(): ReactNode {
             <path d="M12 10v4M12 17v.5" />
           </svg>
           <div>
-            <b>Atenção:</b> Você possui faturas de custódia com tolerância de pagamento vencida.
-            Suas retiradas físicas e transferências estão temporariamente bloqueadas até a quitação.
+            <b>Atenção:</b> Você tem fatura de custódia com prazo vencido. Até a quitação, a venda e a
+            retirada dos seus recibos ficam bloqueadas e seus anúncios ficam pausados. Pagar libera
+            na hora.
           </div>
         </div>
       )}
