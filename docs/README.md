@@ -14,6 +14,7 @@ docs/
 ├── CHECKUP_GERAL_03_09.md           🩺 Check-up geral do repositório: achados, correções, rotas testadas
 ├── METODO_PUBLICACAO_VIA_FORK.md    🔓 Publicar via fork quando o push direto for negado por permissão
 ├── EXECUCOES_MANUAIS_PENDENTES.md   👤 Tudo que só o Gabriel/sócios fazem, em ordem, com como conferir
+├── PENDENCIAS_ABERTAS.md            📌 O índice único do que continua pendente, com dono e prova
 ├── GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md  🌐 Vercel agora; e-mail HostGator e domínio próprio depois
 ├── ARQUITETURA_O_QUE_FALTA.md       🏗️ O que ainda falta ou pode melhorar na arquitetura, com custo e caminho
 ├── GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md  🚀 Roteiro executivo do merge e deploy da Frente A
@@ -100,6 +101,7 @@ faz alguém contar com uma feature que não existe. Plano cumprido sai de lá.
 | Vai juntar as três frentes de 02/09 | `EXECUCAO_POS_FRENTES_PARALELAS.md` |
 | **Vai fazer o merge e publicar a Frente A** | `GUIA_MERGE_E_PUBLICACAO_BRANCH_A.md` |
 | **Vai tocar uma frente hoje** | `EXECUCAO_FINAL_AGENTE_A.md`, `_B.md` ou `_C.md` |
+| **Quer saber o que ainda está pendente, e de quem é** | `PENDENCIAS_ABERTAS.md` |
 | **Vai configurar contas, DNS, variáveis** | `EXECUCOES_MANUAIS_PENDENTES.md` |
 | **Vai configurar Vercel, e-mail HostGator ou domínio próprio** | `GUIA_VERCEL_HOSTGATOR_EMAIL_E_DOMINIOS.md` |
 | **Vai pôr a estação de análise no ar** | `TUTORIAL_ESTACAO_PASSO_A_PASSO.md` |
