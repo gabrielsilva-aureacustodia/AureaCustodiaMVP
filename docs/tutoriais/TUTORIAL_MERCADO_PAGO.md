@@ -165,13 +165,12 @@ está publicado — normal antes da Parte 5.
 
 **5.1** Entre em <https://vercel.com> e abra o projeto da Áurea.
 
-**5.2** Na aba **Deployments**, o deploy de produção mostra o endereço. É algo como
-`aurea-custodia.vercel.app`, ou o domínio próprio se já estiver apontado.
+**5.2** Na aba **Deployments**, o deploy de produção mostra o endereço. É `aurea-custodia-mvp.vercel.app` (conferido em 15/09, respondendo 200), ou o domínio próprio se já estiver apontado.
 
 **5.3** Anote com `https://` na frente e **sem barra no fim**:
 
 ```
-NEXT_PUBLIC_APP_URL = https://aurea-custodia.vercel.app
+NEXT_PUBLIC_APP_URL = https://aurea-custodia-mvp.vercel.app
 ```
 
 **Por que importa:** é para onde o Mercado Pago devolve o cliente depois do pagamento. Se

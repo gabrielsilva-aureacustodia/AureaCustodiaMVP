@@ -124,6 +124,8 @@ Rogério, Felipe, o contador, o Guilherme), **o que está bloqueado enquanto nã
 **como conferir que foi feito**. Item resolvido não some — é marcado `✅ FEITO em dd/mm`, para
 que o próximo agente não refaça.
 
+**Desde 15/09/2026**, com as frentes A, B e C encerradas, os arquivos de pendência dessas frentes são atualizados pela branch que resolver o item ou pela integração, e o índice [`../PENDENCIAS_ABERTAS.md`](../PENDENCIAS_ABERTAS.md) é a porta de entrada. Quem fecha um item marca `✅ FEITO em dd/mm` no arquivo de origem **e** na linha do índice, no mesmo commit.
+
 ## 9. Atalho tomado entra em dois lugares, no mesmo commit
 
 Pular teste, adiar validação, aceitar risco conhecido — tudo isso é permitido para entregar
