@@ -27,13 +27,14 @@
  */
 
 import { nextEnvioCode } from '@/domain/codes'
-import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
+import { faixaValor, isNegociavel, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { medianSellPrice } from '@/domain/market'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -124,7 +125,9 @@ export async function createProtocol(
 
   // O tipo tem de ser uma chave do catálogo: `coinTypeInfo` cairia no primeiro
   // item silenciosamente, e uma moeda de tipo inventado entraria no inventário.
-  if (!COIN_TYPES.some((t) => t.key === tipoMoeda)) return { ok: false, error: DADOS_INVALIDOS }
+  // Desde a C3 o catálogo é o do painel, e só tipo ativo aceita envio novo.
+  const { catalogo } = await carregarRegrasDoMercado()
+  if (!tiposAtivos(catalogo).some((t) => t.key === tipoMoeda)) return { ok: false, error: DADOS_INVALIDOS }
   if (!Number.isInteger(ano) || ano < ANO_MIN || ano > ANO_MAX) {
     return { ok: false, error: DADOS_INVALIDOS }
   }
@@ -241,6 +244,7 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
 export async function advanceAnalysis(protocolo: string): Promise<ActionResult> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+  const { catalogo } = await carregarRegrasDoMercado()
 
   try {
     const { result } = await mutateState((state) => {
@@ -271,7 +275,7 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
         // a mesma que o seed usa. Antes isto olhava só para COIN.name, o que
         // daria à Direitos Humanos um valor sorteado na faixa das olímpicas
         // comuns (R$ 140–360) mesmo com o mercado dela aberto e cotado.
-        const negociavel = isNegociavel(envio.tipoMoeda)
+        const negociavel = isNegociavel(envio.tipoMoeda, catalogo)
         const med = negociavel ? medianSellPrice(state, envio.tipoMoeda) : null
         const faixa = faixaValor(envio.tipoMoeda)
 
@@ -442,6 +446,9 @@ export async function solicitarRetirada(
     return { ok: false, error: 'Modalidade de retirada inválida. Escolha comum ou segura.' }
   }
 
+  // A taxa da retirada é a da Tabela de Taxas vigente (C3) e fica congelada na solicitação.
+  const { taxas } = await carregarRegrasDoMercado()
+
   try {
     const { result } = await mutateState((state) => {
       const u = state.users[session]
@@ -501,6 +508,7 @@ export async function solicitarRetirada(
         modalidade,
         endereco,
         solicitadoEm: agora,
+        taxas,
       })
 
       state.retiradas.push(solicitacao)

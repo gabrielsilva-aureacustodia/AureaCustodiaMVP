@@ -104,7 +104,8 @@ describe('migration 002 — pagamentos e rastreio', () => {
         [PROTOCOLO, EMAIL, Date.now()],
       )
     })
-  }, 30_000)
+    // 60s: com as migrations 024 e 025 a suíte inteira em paralelo passa dos 30s na máquina carregada.
+  }, 60_000)
 
   afterAll(async () => {
     await db.close()

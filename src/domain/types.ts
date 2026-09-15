@@ -691,3 +691,13 @@ export interface AppState {
   retiradas?: Retirada[]
 }
 
+/* === Finalizações · Frente C === */
+
+export interface CoinType {
+  /**
+   * `false` = o tipo não aceita envio novo para a custódia (catálogo editado no painel, C3).
+   * Ausente vale `true`: o catálogo do código não tem o campo, e todo tipo dele está ativo.
+   * Não mexe em negociação — quem decide mercado é `negociavel`.
+   */
+  ativo?: boolean
+}

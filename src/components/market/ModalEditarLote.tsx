@@ -12,13 +12,13 @@ import type { Lot } from '@/domain/types'
 import { editLot } from '@/server/actions/sell'
 
 export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
-  const { state, me, run } = useApp()
+  const { state, me, run, catalogo } = useApp()
   const { close } = useModal()
   const toast = useToast()
 
   const moedasLoteAtual = lote.coinIds.length
   // Moedas livres do mesmo tipo que podem ser acrescentadas ao lote
-  const livres = availableCoinsForSell(state, me, lote.tipoMoeda)
+  const livres = availableCoinsForSell(state, me, lote.tipoMoeda, catalogo)
   const maxPossivel = moedasLoteAtual + livres.length
 
   const [precoTexto, setPrecoTexto] = useState(() =>

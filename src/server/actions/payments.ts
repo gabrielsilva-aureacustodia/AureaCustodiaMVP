@@ -23,10 +23,10 @@
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
-import { DEPOSITO_MAX } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
 import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from '@/lib/payments'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
@@ -74,8 +74,10 @@ export async function iniciarDeposito(
 
   const valor = Number.isFinite(valorCents) ? Math.floor(valorCents) : 0
   if (valor <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
-  if (valor > DEPOSITO_MAX) {
-    return { ok: false, error: `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.` }
+  // Teto da configuração do painel (C3); sem banco, o DEPOSITO_MAX do código.
+  const { depositoMaxCents } = await carregarRegrasDoMercado()
+  if (valor > depositoMaxCents) {
+    return { ok: false, error: `O depósito máximo por operação é ${brl(depositoMaxCents)}.` }
   }
   if (metodo !== 'pix' && metodo !== 'checkout_pro') {
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
@@ -202,8 +204,9 @@ export async function iniciarCompraDireta(
   const tipoMoeda = offers[0].tipoMoeda
 
   if (valorTotal <= 0) return { ok: false, error: 'Valor da compra inválido.' }
-  if (valorTotal > DEPOSITO_MAX) {
-    return { ok: false, error: `O valor máximo por operação é ${brl(DEPOSITO_MAX)}.` }
+  const { depositoMaxCents } = await carregarRegrasDoMercado()
+  if (valorTotal > depositoMaxCents) {
+    return { ok: false, error: `O valor máximo por operação é ${brl(depositoMaxCents)}.` }
   }
 
   const externalReference = `CMP-${randomUUID()}`

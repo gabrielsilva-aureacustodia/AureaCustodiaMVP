@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { LegalDocument } from '@/components/legal/LegalDocument'
-import { DOCUMENTOS_VIGENTES } from '@/domain/documentos-legais'
+import { carregarDocumentoVigente } from '@/server/config/documentos'
 import { BLOCOS_LEGAIS_OBRIGATORIOS } from '@/domain/legal'
 
 export const metadata: Metadata = {
@@ -52,8 +52,12 @@ function renderizarTextoComLinks(texto: string): ReactNode {
   return texto
 }
 
-export default function TermsPage(): ReactNode {
-  const info = DOCUMENTOS_VIGENTES.termos_de_uso
+// A versão vigente vem do banco desde a C3: mudar um prazo pelo painel publica versão nova.
+// Dinâmica para não congelar no build a versão que existia na hora do deploy.
+export const dynamic = 'force-dynamic'
+
+export default async function TermsPage(): Promise<ReactNode> {
+  const info = await carregarDocumentoVigente('termos_de_uso')
   const doc = info.documento
 
   return (

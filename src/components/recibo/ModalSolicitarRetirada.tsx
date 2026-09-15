@@ -24,7 +24,7 @@ export interface ModalSolicitarRetiradaProps {
 }
 
 export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetiradaProps): ReactNode {
-  const { me, run } = useApp()
+  const { me, run, taxas } = useApp()
   const { close } = useModal()
   const toast = useToast()
 
@@ -48,7 +48,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   const [submetendo, setSubmetendo] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
-  const taxaCents = calcularTaxaRetirada(modalidade)
+  const taxaCents = calcularTaxaRetirada(modalidade, taxas)
 
   /**
    * Consulta o CEP automaticamente ao digitar 8 números.
@@ -126,7 +126,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
         <PainelPagamento
           valorCents={taxaCents}
-          parcelasMax={modalidade === 'segura' ? 2 : 1}
+          parcelasMax={modalidade === 'segura' ? taxas.retiradaSeguraParcelasMax : 1}
           saldoDisponivel={me.balance}
           pagarComSaldo={async () => {
             const res = await run(() => pagarRetiradaComSaldo(retiradaIdCriada))
@@ -193,7 +193,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       >
         <div className="modalidade-header">
           <span>📦 Comum (Correios com AR)</span>
-          <span className="modalidade-preco">{brl(5000)}</span>
+          <span className="modalidade-preco">{brl(taxas.taxaRetiradaComum)}</span>
         </div>
         <div className="modalidade-desc">
           Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
@@ -215,7 +215,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       >
         <div className="modalidade-header">
           <span>🛡️ Segura (Transporte de valores blindado)</span>
-          <span className="modalidade-preco">{brl(18000)} (em até 2x)</span>
+          <span className="modalidade-preco">{brl(taxas.taxaRetiradaSegura)} (em até {taxas.retiradaSeguraParcelasMax}x)</span>
         </div>
         <div className="modalidade-desc">
           Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
@@ -371,7 +371,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
         <div className="sr">
           <span className="k">Formas de pagamento</span>
-          <span className="v">Saldo em conta · Pix · Cartão{modalidade === 'segura' ? ' (em até 2x)' : ''}</span>
+          <span className="v">Saldo em conta · Pix · Cartão{modalidade === 'segura' ? ` (em até ${taxas.retiradaSeguraParcelasMax}x)` : ''}</span>
         </div>
       </div>
 
@@ -419,7 +419,7 @@ export function ModalPagarRetirada({
   retirada: Retirada
   onSuccess?: () => void
 }): ReactNode {
-  const { me, run } = useApp()
+  const { me, run, taxas } = useApp()
   const { close } = useModal()
   const toast = useToast()
 
@@ -434,7 +434,7 @@ export function ModalPagarRetirada({
 
       <PainelPagamento
         valorCents={retirada.valorTaxaCents}
-        parcelasMax={retirada.modalidade === 'segura' ? 2 : 1}
+        parcelasMax={retirada.modalidade === 'segura' ? taxas.retiradaSeguraParcelasMax : 1}
         saldoDisponivel={me.balance}
         pagarComSaldo={async () => {
           const res = await run(() => pagarRetiradaComSaldo(retirada.id))

@@ -27,6 +27,7 @@ import {
   valorDoPlano,
 } from '@/domain/plano-custodia'
 import type { ActionResult, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { mutateState } from '@/server/state'
 
 export interface RelatorioCicloFaturamento {
@@ -48,6 +49,8 @@ export async function processarCicloFaturamento(
 ): Promise<RelatorioCicloFaturamento> {
   const agora = relogioReferencia ?? Date.now()
   const competencia = competenciaAlvo ?? competenciaAtual(agora)
+  // Valores por moeda da Tabela de Taxas vigente (C3); sem banco, TAXAS_PADRAO.
+  const { taxas } = await carregarRegrasDoMercado()
 
   const { result } = await mutateState<RelatorioCicloFaturamento>((s) => {
     s.faturasCustodia = s.faturasCustodia ?? []
@@ -85,7 +88,7 @@ export async function processarCicloFaturamento(
                 ? moedasAtivasDoPlano.length
                 : (plano.moedaIds.length > 0 ? plano.moedaIds.length : plano.quantidadeContratada)
 
-            const { total } = valorDoPlano('anual', qtdRenovacao)
+            const { total } = valorDoPlano('anual', qtdRenovacao, { ...taxas })
             const sanitizeEmail = email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
             const idRenovacao = `FAT-${competencia}-${sanitizeEmail}-REN-${agora}`
 
@@ -131,7 +134,7 @@ export async function processarCicloFaturamento(
       const faturaCicloExistente = faturasExistentes.get(chaveCiclo)
 
       if (!faturaCicloExistente) {
-        const novaFatura = gerarFaturaDoCiclo(user, email, competencia, planosDoUsuario, undefined, agora)
+        const novaFatura = gerarFaturaDoCiclo(user, email, competencia, planosDoUsuario, { ...taxas }, agora)
         if (novaFatura) {
           faturasGeradas++
           // Débito automático se houver saldo suficiente

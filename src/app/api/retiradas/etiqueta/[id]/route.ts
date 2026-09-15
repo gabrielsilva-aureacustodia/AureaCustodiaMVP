@@ -3,6 +3,8 @@ import { getSessionEmail } from '@/server/session'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { ENDERECO_CENTRAL_AUREA } from '@/lib/shipping/correios'
 import { ehAdmin } from '@/server/relatorios/acesso'
+import { temPermissao } from '@/domain/admin/permissoes'
+import { carregarMembro } from '@/server/admin/acesso'
 import { DESCRICAO_CONTEUDO_PADRAO } from '@/lib/shipping/types'
 
 /**
@@ -33,7 +35,8 @@ export async function GET(
     return NextResponse.json({ ok: false, error: 'Solicitação de retirada não encontrada.' }, { status: 404 })
   }
 
-  const admin = ehAdmin(session)
+  // Além do administrador de antes, quem é do painel com `logistica.etiquetas` reimprime (plano do Admin, 3.6).
+  const admin = retirada.userEmail !== session && (ehAdmin(session) || temPermissao(await carregarMembro(session), 'logistica.etiquetas'))
   if (!admin && retirada.userEmail !== session) {
     return NextResponse.json({ ok: false, error: 'Acesso não autorizado a esta retirada.' }, { status: 403 })
   }

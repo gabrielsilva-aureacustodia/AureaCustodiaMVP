@@ -22,9 +22,8 @@
  *    run() do AppProvider ficar calado, que é exatamente esse comportamento.
  */
 
-import { ACCOUNTS, DEPOSITO_MAX } from '@/domain/constants'
+import { ACCOUNTS } from '@/domain/constants'
 import { calcularDataLimiteSaque, PRAZO_SAQUE_DIAS } from '@/domain/dates'
-import { TAXA_SAQUE_FIXA_CENTS } from '@/domain/fees'
 import { temDadosBancarios } from '@/domain/cadastro'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
@@ -32,6 +31,7 @@ import { limparCpf, validarCpf } from '@/domain/cpf'
 import type { ActionResult, Cadastro, Cents, Saque } from '@/domain/types'
 import { createAuthClient } from '@/server/auth/client'
 import { AuthConfigurationError } from '@/server/auth/config'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
@@ -241,8 +241,10 @@ export async function deposit(valorCents: Cents): Promise<ActionResult> {
   // saldo o transformaria em Infinity, e daí em `null` na serialização JSON.
   const valor = Number.isFinite(valorCents) ? Math.floor(valorCents) : 0
   if (valor <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
-  if (valor > DEPOSITO_MAX) {
-    return { ok: false, error: `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.` }
+  // O teto vem da configuração do painel (C3); sem banco, é o DEPOSITO_MAX do código.
+  const { depositoMaxCents } = await carregarRegrasDoMercado()
+  if (valor > depositoMaxCents) {
+    return { ok: false, error: `O depósito máximo por operação é ${brl(depositoMaxCents)}.` }
   }
 
   try {
@@ -471,10 +473,14 @@ export async function solicitarSaque(
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
-  if (!Number.isInteger(valorCents) || valorCents <= TAXA_SAQUE_FIXA_CENTS) {
+  // A tarifa vem da Tabela de Taxas vigente (C3); sem banco, é TAXA_SAQUE_FIXA_CENTS.
+  const { taxas } = await carregarRegrasDoMercado()
+  const tarifaSaque = taxas.taxaSaqueFixa
+  if (!Number.isInteger(valorCents) || valorCents <= tarifaSaque) {
     return {
       ok: false,
-      error: `O valor mínimo para saque é de R$ 5,01 (para cobrir a tarifa fixa de ${brl(TAXA_SAQUE_FIXA_CENTS)}).`,
+      // O mínimo sai com espaço comum depois do "R$", como o texto fixo que existia antes da C3.
+      error: `O valor mínimo para saque é de ${brl(tarifaSaque + 1).replace(/\s/g, ' ')} (para cobrir a tarifa fixa de ${brl(tarifaSaque)}).`,
     }
   }
 
@@ -496,7 +502,7 @@ export async function solicitarSaque(
       }
 
       const agora = Date.now()
-      const taxa = TAXA_SAQUE_FIXA_CENTS
+      const taxa = tarifaSaque
       const valorLiquido = valorCents - taxa
       const prazo = calcularDataLimiteSaque(agora, PRAZO_SAQUE_DIAS)
       const saqueId = `SAQ-${agora}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`

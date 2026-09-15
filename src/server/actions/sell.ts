@@ -36,6 +36,7 @@ import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, matchOrders, transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -103,6 +104,8 @@ export async function publishOffer(
   // A observação é texto livre que aparece na vitrine das OUTRAS contas. O
   // maxlength do textarea é enfeite do lado de fora; o corte real é aqui.
   const observacao = String(obs ?? '').trim().slice(0, OBS_MAX)
+  // Taxas e catálogo da configuração (C3): lidos antes da transação, valem para esta operação.
+  const { taxas, catalogo } = await carregarRegrasDoMercado()
 
   try {
     const { result } = await mutateState(
@@ -153,7 +156,7 @@ export async function publishOffer(
           }
         }
 
-        if (!isNegociavel(tipoMoeda)) {
+        if (!isNegociavel(tipoMoeda, catalogo)) {
           return {
             ok: false,
             error: 'Este tipo de moeda ainda não está disponível para negociação.',
@@ -180,7 +183,7 @@ export async function publishOffer(
 
         // Casamento imediato: o anúncio novo pode ser mais barato que um bid já
         // publicado, e nesse caso a venda acontece antes de a tela redesenhar.
-        const { matched } = matchOrders(s)
+        const { matched } = matchOrders(s, taxas)
 
         return {
           ok: true,
@@ -256,6 +259,7 @@ export async function editLot(
 
   const qtyDesejada = Math.max(1, Math.floor(qty))
   const observacao = obs !== undefined ? String(obs).trim().slice(0, OBS_MAX) : undefined
+  const { taxas, catalogo } = await carregarRegrasDoMercado()
 
   try {
     const { result } = await mutateState((s: AppState): ActionResult => {
@@ -276,7 +280,7 @@ export async function editLot(
       if (qtyDesejada > offers.length) {
         // Aumentar quantidade passa a ser possível (Decisão F-3)
         const necessarias = qtyDesejada - offers.length
-        const livres = availableCoinsForSell(s, u, tipoMoeda)
+        const livres = availableCoinsForSell(s, u, tipoMoeda, catalogo)
         if (livres.length < necessarias) {
           return {
             ok: false,
@@ -334,7 +338,7 @@ export async function editLot(
         })
       }
 
-      const { matched } = matchOrders(s)
+      const { matched } = matchOrders(s, taxas)
       const msgFila = perdeuVez
         ? ' Como o preço mudou, ela foi para o fim da fila desse preço.'
         : ''
@@ -367,6 +371,7 @@ export async function editLot(
 export async function sellToBid(bidId: string, qtyWanted: number): Promise<ActionResult> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+  const { taxas, catalogo } = await carregarRegrasDoMercado()
 
   try {
     const { result } = await mutateState((s: AppState): ActionResult => {
@@ -389,7 +394,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // Só as moedas DO TIPO que o bid pede. Sem o recorte, aceitar uma oferta
       // de compra de Direitos Humanos entregaria a primeira moeda livre do
       // inventário — que quase sempre seria uma Bandeira, bem mais barata.
-      const availableCoins = availableCoinsForSell(s, seller, bo.tipoMoeda)
+      const availableCoins = availableCoinsForSell(s, seller, bo.tipoMoeda, catalogo)
       const pedido = Number.isFinite(qtyWanted) ? Math.floor(qtyWanted) : 0
       const n = Math.min(pedido, bo.qty, availableCoins.length)
       if (n <= 0)
@@ -400,11 +405,11 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
-      const affordable = Math.floor(buyer.balance / custoDeCompraPorMoeda(bo.price))
+      const affordable = Math.floor(buyer.balance / custoDeCompraPorMoeda(bo.price, taxas))
       const execN = Math.min(n, affordable)
       if (execN <= 0) return { ok: false, error: 'O comprador não possui saldo suficiente no momento.' }
 
-      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price)
+      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price, taxas)
 
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]

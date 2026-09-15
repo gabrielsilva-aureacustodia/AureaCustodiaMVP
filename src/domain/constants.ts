@@ -247,14 +247,23 @@ export const DEMO_DATA: Record<string, { balance: number; coins: number; entrada
   'solares@testeaurea.com.br': { balance: 4_400_000, coins: 11, entrada: '24/06/2026' },
 }
 
+/*
+ * O CATÁLOGO VIGENTE CHEGA POR PARÂMETRO (C3, 14/09/2026). Desde a C3 o catálogo é editado
+ * no painel e mora em `aurea.tipos_moeda`; `COIN_TYPES` passou a ser o padrão com que a tabela
+ * nasce. As três funções abaixo recebem o catálogo carregado — no servidor por
+ * `carregarCatalogo()` (src/server/config/carregar.ts), no cliente pelo `useApp().catalogo` — e
+ * caem em `COIN_TYPES` quando ninguém passa nada. É o mesmo desenho da `TabelaDeTaxas` da A1: o
+ * domínio continua puro e síncrono, e os testes que já existiam continuam valendo.
+ */
+
 /**
  * Busca a ficha de um tipo de moeda pela chave.
  *
  * Cai no primeiro item do catálogo quando a chave não existe: a interface
  * precisa de algo para renderizar, e a moeda-referência é o palpite seguro.
  */
-export function coinTypeInfo(key: string): CoinType {
-  return COIN_TYPES.find((t) => t.key === key) || COIN_TYPES[0]
+export function coinTypeInfo(key: string, catalogo: readonly CoinType[] = COIN_TYPES): CoinType {
+  return catalogo.find((t) => t.key === key) || COIN_TYPES.find((t) => t.key === key) || catalogo[0] || COIN_TYPES[0]
 }
 
 /**
@@ -265,14 +274,19 @@ export function coinTypeInfo(key: string): CoinType {
  * catálogo não tem mercado nenhum, então deixá-lo cair na Bandeira abriria a
  * porta para negociar um ativo que a plataforma não reconhece.
  */
-export function isNegociavel(key: string): boolean {
-  const t = COIN_TYPES.find((x) => x.key === key)
+export function isNegociavel(key: string, catalogo: readonly CoinType[] = COIN_TYPES): boolean {
+  const t = catalogo.find((x) => x.key === key)
   return t ? t.negociavel : false
 }
 
 /** Tipos negociáveis, na ordem do catálogo. Alimenta os seletores de tipo. */
-export function tiposNegociaveis(): CoinType[] {
-  return COIN_TYPES.filter((t) => t.negociavel)
+export function tiposNegociaveis(catalogo: readonly CoinType[] = COIN_TYPES): CoinType[] {
+  return catalogo.filter((t) => t.negociavel)
+}
+
+/** Tipos que aceitam envio novo para a custódia — `ativo` ausente vale ativo. */
+export function tiposAtivos(catalogo: readonly CoinType[] = COIN_TYPES): CoinType[] {
+  return catalogo.filter((t) => t.ativo !== false)
 }
 
 /**

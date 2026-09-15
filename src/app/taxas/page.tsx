@@ -3,13 +3,13 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { LegalDocument } from '@/components/legal/LegalDocument'
-import { DOCUMENTOS_VIGENTES } from '@/domain/documentos-legais'
 import {
   comissaoPorMoeda,
   custoDeCompraPorMoeda,
   liquidoDeVendaPorMoeda,
 } from '@/domain/fees'
 import { brl } from '@/domain/money'
+import { carregarDocumentoVigente } from '@/server/config/documentos'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 
 export const metadata: Metadata = {
@@ -18,10 +18,13 @@ export const metadata: Metadata = {
     'Tabela oficial de taxas da Áurea Custódia: corretagem de negociação em dois lados, tarifas de custódia física, saques e retiradas.',
 }
 
+// A tabela e a versão vigentes vêm do banco desde a C3: dinâmica para não congelar no build.
+export const dynamic = 'force-dynamic'
+
 export default async function FeesPage(): Promise<ReactNode> {
-  const info = DOCUMENTOS_VIGENTES.tabela_de_taxas
-  const doc = info.documento
   const taxas = await carregarTabelaDeTaxas()
+  const info = await carregarDocumentoVigente('tabela_de_taxas')
+  const doc = info.documento
 
   // Exemplo dinâmico de R$ 200,00 (20.000 centavos)
   const precoExemplo = 20_000
