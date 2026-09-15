@@ -10,6 +10,7 @@ estado da plataforma. **É o único lugar em que um pagamento de fora vira créd
 | `repositorios.ts` | Escolhe onde a idempotência e as intenções de depósito vivem: banco (com `POSTGRES_URL`) ou memória (sem) | ✅ |
 | `conciliacao.ts` | `conciliarPagamento(paymentId)` — confere no gateway e credita, uma vez só | ✅ |
 | `tipos.ts` | `DepositoIniciado` e `MetodoDeposito`, compartilhados com a tela | — |
+| `ATALHOS.md` | Atalhos assumidos da conciliação e pagamentos (RA-24) | — |
 
 `tipos.ts` não tem a barreira de propósito: um arquivo `'use server'` só deve exportar funções
 assíncronas, então o tipo mora fora — e como tipo some na compilação, o Client Component pode

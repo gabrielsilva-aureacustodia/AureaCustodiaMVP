@@ -28,12 +28,8 @@ Cada item também está em [`RISCOS_ASSUMIDOS.md`](../../../RISCOS_ASSUMIDOS.md)
   falha, uma taxa mudada no painel deixa de valer.
 - Não há cópia em memória entre requisições (mesmo motivo do `AppState`): cada leitura é uma
   transação curta de três consultas, também no ciclo de sincronização do app.
-- A compra direta pelo gateway (`src/server/payments/conciliacao.ts`, RA-24) e o valor de entrada
-  da análise da estação (`src/server/estacao/analise.ts`) ainda leem a tabela e o catálogo do
-  código — os arquivos são da frente B, e o pedido está em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
 
-**Como se paga:** a frente B passando a tabela e o catálogo carregados nesses dois pontos; e, se a
-leitura por operação pesar, um cache curto com invalidação na gravação.
+**Como se paga:** se a leitura por operação pesar, um cache curto com invalidação na gravação.
 
 ---
 
