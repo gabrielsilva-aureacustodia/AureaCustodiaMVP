@@ -739,7 +739,7 @@ git push -u origin exec/e5-qa-painel-resultados-equipe-cs-usuarios
 Nenhum DNS ou conta em serviço novo. A única variável envolvida é a `SUPABASE_SERVICE_ROLE_KEY`, que
 o roteiro C usa (veja o pré-requisito lá). Sobra a **conferência logada**, depois que a
 integração publicar a `main` com a E5. O endereço é o de produção usado em
-`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`; no domínio próprio, o caminho é o mesmo. As senhas são
+`docs/finalizacoes/PENDENCIAS_AGENTE_C.md`; o domínio próprio não está publicado, use só o endereço da Vercel. As senhas são
 digitadas por você.
 
 **A. Entrada do painel**

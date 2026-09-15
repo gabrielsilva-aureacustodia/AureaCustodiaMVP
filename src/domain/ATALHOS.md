@@ -91,8 +91,8 @@ Para não confundir dívida com decisão:
 
 ---
 
-## RA-48 🟡 — o e-mail do Gabriel é `dev` do painel pelo código
+## RA-48 🟡 — Gabriel, Rogério e Rozane são `dev` do painel pelo código
 
 **Arquivo:** `admin/permissoes.ts`, `EMAILS_FIXOS_DA_EQUIPE`, lida por `ehEmailDeBootstrap` e `emailsDeBootstrap`.
 
-Entra como `dev` com ou sem `AUREA_ADMIN_EMAILS`, para o link do painel nunca trancar o Gabriel fora. A tabela de membros vale sobre a lista. Detalhe em `src/server/admin/ATALHOS.md`.
+Gabriel, as duas contas do Rogério e a da Rozane entram como `dev` com ou sem `AUREA_ADMIN_EMAILS`, para o link do painel nunca trancar a equipe fora. A tabela de membros vale sobre a lista. Detalhe em `src/server/admin/ATALHOS.md`.

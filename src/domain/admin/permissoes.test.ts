@@ -84,21 +84,30 @@ describe('bootstrap pelo ambiente — a mesma regra de ehAdmin', () => {
     expect(ehEmailDeBootstrap(' GabrielSilva@TesteAurea.com.br ', undefined, SEED)).toBe(true)
     expect(ehEmailDeBootstrap('visitante@exemplo.com.br', undefined, SEED)).toBe(false)
     expect(ehEmailDeBootstrap(null, undefined, SEED)).toBe(false)
-    expect(emailsDeBootstrap('', SEED)).toEqual([...Object.keys(SEED), ...EMAILS_FIXOS_DA_EQUIPE])
+    expect(emailsDeBootstrap('', SEED)).toEqual([...new Set([...Object.keys(SEED), ...EMAILS_FIXOS_DA_EQUIPE])])
+  })
+
+  it('Rogério e Rozane entram no painel como dev mesmo com uma lista do ambiente sem eles', () => {
+    const lista = 'contador@exemplo.com.br'
+    for (const e of ['rogerio@aureacustodia.com.br', 'RogerioPena@testeaurea.com.br', 'rozane@testeaurea.com.br']) {
+      expect(ehEmailDeBootstrap(e, lista, SEED)).toBe(true)
+    }
+    // Quem não está na lista fixa continua dependendo da lista do ambiente.
+    expect(ehEmailDeBootstrap('alex@testeaurea.com.br', lista, SEED)).toBe(false)
   })
 
   it('o e-mail do Gabriel entra como dev com ou sem a lista do ambiente (RA-48)', () => {
     expect(ehEmailDeBootstrap(' Gabriel.Silva@AureaCustodia.com.br ', undefined, SEED)).toBe(true)
     expect(ehEmailDeBootstrap('gabriel.silva@aureacustodia.com.br', 'contador@exemplo.com.br', SEED)).toBe(true)
     // Sem repetir quando a lista já o traz.
-    expect(emailsDeBootstrap('gabriel.silva@aureacustodia.com.br', SEED)).toEqual(['gabriel.silva@aureacustodia.com.br'])
+    expect(emailsDeBootstrap('gabriel.silva@aureacustodia.com.br', SEED)).toEqual([...EMAILS_FIXOS_DA_EQUIPE])
   })
 
   it('com a lista definida vale só ela — o seed deixa de valer', () => {
     const lista = ' Contador@Exemplo.com.br , gabriel.silva@aureacustodia.com.br '
     expect(ehEmailDeBootstrap('contador@exemplo.com.br', lista, SEED)).toBe(true)
     expect(ehEmailDeBootstrap('gabrielsilva@testeaurea.com.br', lista, SEED)).toBe(false)
-    expect(emailsDeBootstrap(lista, SEED)).toEqual(['contador@exemplo.com.br', 'gabriel.silva@aureacustodia.com.br'])
+    expect(emailsDeBootstrap(lista, SEED)).toEqual(['contador@exemplo.com.br', ...EMAILS_FIXOS_DA_EQUIPE])
   })
 })
 

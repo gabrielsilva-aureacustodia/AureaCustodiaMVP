@@ -10,8 +10,12 @@ Caminhos:    os menus da Vercel, do Supabase e do Mercado Pago foram conferidos 
              oficial em 15/09/2026 (fontes no fim).
 ```
 
-Faça na ordem. Os passos 1 a 3 são os que destravam o trabalho agora; do 4 em diante, cada um liga uma
-integração e pode ser feito quando quiser.
+Faça na ordem. Os passos 1 e 3 destravam o trabalho agora; os passos 2 e 4 já estão feitos; do 5 em diante,
+cada um liga uma integração e pode ser feito quando quiser.
+
+**Redeploy** (vale para todo passo que cria variável na Vercel — variável nova só vale em deploy novo): no
+projeto, **Deployments** → no deploy de produção mais recente, os três pontos (**…**) → **Redeploy** →
+**Redeploy**.
 
 **Atalho para saber o que já está ligado:** depois do passo 1, abra
 `https://aurea-custodia-mvp.vercel.app/admin/configuracao?aba=integracoes`. Cada serviço aparece como
@@ -29,30 +33,23 @@ produção. Passo cujo serviço já aparece **ligado** pode ser pulado.
 4. **Se aparecer** "Você está conectado como …, e esta conta não faz parte da equipe do painel": o e-mail
    mostrado não é o seu corporativo. Clique **Sair e entrar com outra conta** e entre de novo com o
    corporativo.
-5. **Se der erro ou tela em branco**, me mande o texto da tela ou um print.
+5. **Rogério e Rozane** entram do mesmo jeito, pelo mesmo endereço: as contas `rogerio@aureacustodia.com.br`,
+   `rogeriopena@testeaurea.com.br` e `rozane@testeaurea.com.br` abrem o painel com todas as permissões. Se
+   algum deles usar outro e-mail, a tela de entrada mostra qual é — me passe e eu incluo.
+6. **Se der erro ou tela em branco**, me mande o texto da tela ou um print.
 
 ---
 
-## 2. Atualizar a pasta principal do seu computador
+## 2. Atualizar a pasta principal do seu computador — ✅ feito, nada a fazer
 
-A `main` do GitHub recebeu o painel e os seus dois commits locais (card de oferta e foto do item). A pasta
-`C:\dev\AureaCustodiaMVP` ainda está no ponto antigo. No PowerShell:
-
-```bash
-git -C C:/dev/AureaCustodiaMVP pull --ff-only
-```
-
-- **Esperado:** a lista de arquivos atualizados, terminando sem erro.
-- **Se disser** `Not possible to fast-forward`: há algum commit novo só na pasta principal. Não force;
-  me mande a saída do comando.
-- Se o `npm run dev` estiver rodando nessa pasta, ele recarrega sozinho.
+Você já atualizou em 15/09. Daqui em diante, atualizar a pasta principal é tarefa do agente, não passo
+manual: ele executa, e se o comando for barrado avisa na hora com o comando pronto.
 
 ---
 
 ## 3. Disparar os agentes de execução
 
-O arquivo com os textos é `docs/execucao-pendencias/PROMPTS.md` (no GitHub e, depois do passo 2, na sua
-pasta).
+O arquivo com os textos é `docs/execucao-pendencias/PROMPTS.md` (no GitHub e na sua pasta principal).
 
 1. **Abra sete sessões de agente** (Claude Code, Codex ou outro), uma para cada bloco **E1** a **E7**, e
    cole em cada uma o bloco inteiro dela. As sete podem rodar ao mesmo tempo: cada uma cria a própria
@@ -66,38 +63,13 @@ grupos — E1, E2, E3 e E7 primeiro; E4, E5 e E6 depois.
 
 ---
 
-## 4. Chave de serviço do Supabase na Vercel
+## 4. Chave de serviço do Supabase na Vercel — ✅ já cadastrada, nada a fazer
 
-**Para quê:** criar login e redefinir senha pelo painel, bloquear conta desativada e subir e assistir os
-vídeos da bancada. **Pule** se a aba Integrações mostrar "Chave de serviço do Supabase" como **ligado**.
-
-1. Abra `https://supabase.com/dashboard/project/vjbqikfamqdttbmaqrxf/settings/api-keys`.
-2. Na seção **Legacy API Keys**, na linha **service_role**, revele e copie o valor inteiro.
-3. Abra `https://vercel.com/aurea-custodia/aurea-custodia-mvp/settings/environment-variables`.
-4. Crie a variável, marcando só o ambiente **Production**, e clique **Save**:
-
-| Name | Value |
-|---|---|
-| `SUPABASE_SERVICE_ROLE_KEY` | o valor copiado no item 2, inteiro |
-
-5. Se a lista **não** tiver `SUPABASE_URL` nem `NEXT_PUBLIC_SUPABASE_URL`, crie também:
-
-| Name | Value |
-|---|---|
-| `SUPABASE_URL` | `https://vjbqikfamqdttbmaqrxf.supabase.co` |
-
-6. **Redeploy** (variável nova só vale em deploy novo): no projeto, **Deployments** → no deploy de produção
-   mais recente, os três pontos (**…**) → **Redeploy** → **Redeploy**.
-7. **Conferir:** depois que o deploy terminar, a aba Integrações mostra "Chave de serviço do Supabase"
-   **ligado**; e numa ficha de usuário, aba Cadastro, o bloco do login deixa de dizer "Sem
-   SUPABASE_SERVICE_ROLE_KEY no ambiente".
-
-Observação: a Supabase anuncia o fim das chaves legadas até o fim de 2026. Quando for trocar, a chave nova
-fica na mesma página, seção **Publishable and secret API keys** (a que começa com `sb_secret_`), e vai na
-mesma variável.
+`SUPABASE_SERVICE_ROLE_KEY` está na Vercel de produção desde antes desta rodada. Só volta a este tutorial se
+aparecer um motivo concreto (por exemplo, a Supabase desligar as chaves legadas, anunciado para o fim de
+2026), e o motivo vem escrito junto.
 
 ---
-
 ## 5. Mercado Pago em produção (cobrança de verdade)
 
 **Para quê:** Pix e cartão de verdade em depósito, compra direta, planos, faturas e retirada. Sem isso, as
@@ -131,7 +103,7 @@ https://aurea-custodia-mvp.vercel.app/api/webhooks/mercadopago
 | `MP_WEBHOOK_SECRET` | a assinatura secreta copiada no item 4, inteira |
 | `MP_SANDBOX` | `false` |
 
-5. **Redeploy**, como no passo 4.6.
+5. **Redeploy**, como explicado no topo.
 6. **Conferir:** a aba Integrações mostra "Pagamento (Mercado Pago)" **ligado** e "Modo: produção". No
    Mercado Pago, em **Webhooks**, o botão **Simular** manda um evento de teste para a URL: a resposta
    esperada é 200 (ou 401 se a assinatura simulada não bater, o que também prova que a rota está no ar e
@@ -177,7 +149,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 |---|---|
 | `CRON_SECRET` | o texto de 64 caracteres que o comando do item 1 imprimiu |
 
-3. **Redeploy**, como no passo 4.6. A Vercel manda o valor sozinha no cabeçalho de cada chamada agendada.
+3. **Redeploy**, como explicado no topo. A Vercel manda o valor sozinha no cabeçalho de cada chamada agendada.
 4. **Conferir:** a aba Integrações mostra "Tarefas agendadas" **ligado**; no projeto da Vercel, **Settings**
    → **Cron Jobs** lista `/api/cron/shipping` (diário) e `/api/cron/faturamento` (mensal). No plano
    gratuito, o horário tem precisão de uma hora.
@@ -240,7 +212,7 @@ Invoke-RestMethod -Method Post -Uri "$evolution/webhook/set/aurea-cs" -Headers @
 | `EVOLUTION_INSTANCE` | `aurea-cs` |
 | `WHATSAPP_WEBHOOK_SECRET` | o mesmo valor de `$segredo` (item 2) |
 
-6. **Redeploy**, como no passo 4.6.
+6. **Redeploy**, como explicado no topo.
 7. **Conferir:** sem autenticação, a rota deve responder **401** (503 significa que as variáveis não
    chegaram ao deploy):
 

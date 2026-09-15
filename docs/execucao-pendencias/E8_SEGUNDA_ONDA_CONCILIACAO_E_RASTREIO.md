@@ -492,6 +492,29 @@ lotes pausados que a E4 pôs perto de `:126` fica como está.
   `custoDeCompraPorMoeda × qty` no Pix e no cartão (E8, RA-24).
 - Sem número de taxa escrito na tela. Alvo de toque de 44px continua nos botões existentes.
 
+### 8b. Prazo da retirada: 30 dias para POSTAR (decisão D-2)
+
+**Decisão do Gabriel em 15/09/2026:** o prazo de 30 dias da retirada é **até a postagem** da moeda. O tempo
+de entrega depende dos Correios, da logística e da localização do cliente, e a Áurea não o controla nem o
+promete. O código já conta assim (`PRAZO_RETIRADA_DIAS = 30` em `src/domain/retirada.ts`, dias corridos a
+partir do pagamento); o que falta é o texto dizer isso em todo lugar.
+
+- Varra `src/` por `PRAZO_RETIRADA_DIAS`, `D+30`, `30 dias` e `prazo de retirada` e alinhe cada texto de tela
+  à frase: **"postagem em até 30 dias corridos depois do pagamento; o prazo de entrega é o dos Correios"**.
+  Pontos conhecidos: `src/components/recibo/ModalSolicitarRetirada.tsx` (as duas opções dizem "Prazo limite
+  de D+30 após pagamento", sem dizer limite de quê), `src/app/(app)/retirada/page.tsx` (os rótulos "Prazo
+  D+30" e "Limite para postar (30 dias)"), `src/domain/admin/logistica.ts` (o alerta "Passou do prazo de 30
+  dias" vira "Passou do prazo de postagem de 30 dias").
+- `src/domain/legal.ts:43` diz "até 30 dias **úteis** para separação, embalagem e postagem". O código conta
+  dias **corridos**. Alinhe o texto a "30 dias corridos" (o que o código, `/retirada` e a Academy já dizem) e
+  registre a troca no relatório. Se o texto dos Termos publicados em `documentos_legais` também citar o
+  prazo, **não edite o documento publicado**: anote no relatório a cláusula e o texto, para a equipe publicar
+  a versão nova pela aba Operacional do painel.
+- Nenhuma mudança de cálculo, de constante nem de migration. Teste: o que já existe em
+  `src/domain/retirada.test.ts` continua passando; acrescente um caso em `src/domain/admin/logistica.test.ts`
+  para o texto novo do alerta.
+- Território: os arquivos acima entram em "Pode editar" desta branch, só nos textos do prazo.
+
 ### 9. Registro dos riscos
 
 - **`RISCOS_ASSUMIDOS.md`**

@@ -11,7 +11,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FILTRO_PADRAO } from '@/domain/admin/cs'
-import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
+import { CHAVES_PERMISSAO, EMAILS_FIXOS_DA_EQUIPE } from '@/domain/admin/permissoes'
 import { validarLoteDeEventos } from '@/domain/admin/uso'
 import type { Cadastro } from '@/domain/types'
 import { criarRegistroLocal } from '@/lib/mensageria/registro-local'
@@ -212,11 +212,20 @@ describe('quem é membro', () => {
 
 describe('o painel nunca fica sem dev', () => {
   it('o único dev do ambiente não consegue se rebaixar nem se desativar', async () => {
+    // Desde 15/09/2026 a lista fixa também traz Rogério e Rozane (RA-48): para o Gabriel ser o
+    // único dev, os outros três são rebaixados antes — e voltam a dev no fim, para o próximo teste.
+    const outros = EMAILS_FIXOS_DA_EQUIPE.filter((e) => e !== 'gabriel.silva@aureacustodia.com.br')
+    for (const email of outros) {
+      expect(await alterarMembro(executar, 'gabriel.silva@aureacustodia.com.br', { email, papelSlug: 'socio' }, SO_GABRIEL)).toMatchObject({ ok: true })
+    }
     const rebaixar = await alterarMembro(executar, 'gabriel.silva@aureacustodia.com.br', { email: 'gabriel.silva@aureacustodia.com.br', papelSlug: 'socio' }, SO_GABRIEL)
     expect(rebaixar).toMatchObject({ ok: false })
     const desativar = await alterarMembro(executar, 'gabriel.silva@aureacustodia.com.br', { email: 'gabriel.silva@aureacustodia.com.br', status: 'inativo' }, SO_GABRIEL)
     expect(desativar).toMatchObject({ ok: false })
     expect(await carregarMembroNoBanco(executar, 'gabriel.silva@aureacustodia.com.br', SO_GABRIEL)).toMatchObject({ papel: { slug: 'dev' } })
+    for (const email of outros) {
+      expect(await alterarMembro(executar, 'gabriel.silva@aureacustodia.com.br', { email, papelSlug: 'dev' }, SO_GABRIEL)).toMatchObject({ ok: true })
+    }
   })
 
   it('com outro dev ativo na tabela, a mesma mudança passa — e fica na trilha com antes e depois', async () => {

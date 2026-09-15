@@ -44,7 +44,7 @@ npm run db:check
 - **Roteiro:**
   1. Entrar em `https://aurea-custodia-mvp.vercel.app/entrar` com uma conta de sócio do seed (senha
      `12345678`). No menu do app aparece **Administração**; clicar abre `/admin`. (Endereço conferido
-     em 14/09, respondendo 200; no domínio próprio, o caminho é o mesmo.)
+     em 14/09, respondendo 200. O domínio próprio ainda não está publicado: o endereço é o da Vercel.)
   2. Abrir `/admin/resultados/financeiro`, `/contabil`, `/kpis` e `/uso` — as quatro carregam.
   3. Em `/admin/resultados/uso`, a trilha filtrada por "Ações do painel" fica vazia até a primeira ação;
      o cartão "Páginas abertas" cresce conforme a navegação.
@@ -200,6 +200,9 @@ try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/
 
 ### P-C2-03 · Chave de serviço do Supabase na Vercel, para criar login, redefinir senha e bloquear conta
 
+> ✅ **FEITO** — confirmado pelo Gabriel em 15/09: `SUPABASE_SERVICE_ROLE_KEY` está cadastrada na Vercel de
+> produção. Não pedir de novo sem um motivo concreto escrito junto.
+
 - **O que:** as ações "Criar conta" (com login), "Redefinir senha" e "Desativar conta" falam com o
   Supabase Auth pela chave de serviço, só no servidor. Sem ela, a conta é criada só na plataforma e as
   ações de senha dizem, na tela, o nome da variável que falta.
@@ -325,7 +328,7 @@ npm run db:check
   Tabela de Taxas nos repositórios reais da frente A, no Postgres embutido — e o build.
 - **Quem:** Gabriel, depois do P-C3-01, com uma conta de sócio do seed ou o próprio e-mail com papel
   Desenvolvimento.
-- **Roteiro** (endereço de produção; no domínio próprio, o caminho é o mesmo):
+- **Roteiro** (endereço da Vercel, o único publicado):
   1. `https://aurea-custodia-mvp.vercel.app/admin/configuracao` — aba **Taxas e comissões**: os onze
      campos com os valores de hoje (0,5% + R$ 1,00 de cada lado; R$ 2,00 de custódia por mês) e a
      simulação de uma negociação. Mude a comissão fixa do comprador para `1,50` e veja a simulação mudar
@@ -389,6 +392,17 @@ npm run db:check
 - Desde 15/09, o que falta das pendências desta página (e das frentes A e B) está dividido em oito ordens de
   serviço em `docs/execucao-pendencias/` (plano mestre, integração, prompts e tutorial manual). Cada item
   continua aqui até a integração marcá-lo como feito.
+
+### P-C3-07 · Rogério e Rozane no painel, decisão D-2 e o ritual de higiene
+
+> ✅ **FEITO em 15/09**, pedidos diretos do Gabriel:
+> - `rogerio@aureacustodia.com.br`, `rogeriopena@testeaurea.com.br` e `rozane@testeaurea.com.br` entram no
+>   painel como `dev`, como o Gabriel (`EMAILS_FIXOS_DA_EQUIPE`, RA-48 ampliado).
+> - **D-2 decidida:** o prazo de 30 dias da retirada é para **postar** a moeda; a entrega depende dos Correios.
+>   O código já conta assim; o alinhamento dos textos é a tarefa 8b da E8, e a marcação da D-2 no arquivo de
+>   pendências da publicação é da integração.
+> - **Ritual novo** (Parte 4.1 de `docs/diario/RITUAL_DE_SESSAO.md`): depois de merge e testes, perguntar ao
+>   Gabriel se está tudo ok, relatar os erros, e só então remover os worktrees e branches mesclados.
 
 ---
 

@@ -169,7 +169,9 @@ git worktree add C:\dev\AureaCustodiaMVP-integracao -b integracao/execucao-pende
 cd C:\dev\AureaCustodiaMVP-integracao
 npm install
 
-Merges na ordem E3, E2, E1, E4, E5, E6, E7, com typecheck, lint e testes depois de cada um, sem servidor local rodando. Conflito em RISCOS_ASSUMIDOS.md e ATALHOS.md: união, em ordem numérica. Conflito em código que não for trivial: pare e descreva. Publique com git push origin HEAD:main (sem forçar), confira o deploy e as rotas sem login, e entregue o roteiro manual consolidado em docs/execucao-pendencias/relatorios/INTEGRACAO.md.
+Merges na ordem E3, E2, E1, E4, E5, E6, E7, com typecheck, lint e testes depois de cada um, sem servidor local rodando. Conflito em RISCOS_ASSUMIDOS.md e ATALHOS.md: união, em ordem numérica. Conflito em código que não for trivial: pare e descreva. Publique com git push origin HEAD:main (sem forçar), confira o deploy e as rotas sem login em https://aurea-custodia-mvp.vercel.app (o domínio próprio não está publicado; não o use), e entregue o roteiro manual consolidado em docs/execucao-pendencias/relatorios/INTEGRACAO.md.
+
+Depois: relate ao Gabriel os erros encontrados (ou que está tudo bem) e PERGUNTE se os testes manuais dele estão ok. Só com o ok dele, faça a higiene das pastas da seção 5 de INTEGRACAO.md (remover os worktrees e branches já mesclados, deixar tudo na pasta principal atualizada). O que você puder executar, execute; se um comando for barrado, avise na hora com o comando pronto, a pasta e para que serve.
 ```
 
 ---

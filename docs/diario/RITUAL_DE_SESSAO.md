@@ -8,7 +8,7 @@ Repositório: github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP · branch m
 Commit:      8e0f0a5
 Gerado em:   28/08/2026
 Fonte:       repositório · documentos do projeto
-Versão base: 1.1
+Versão base: 1.2
 ```
 
 > A versão resumida deste documento é `RITUAL_DE_SESSAO_RESUMO.md`. Ela contém os comandos
@@ -348,6 +348,59 @@ pelo Rogério.**
 
 Por fim, gere a Leitura Diária do dia seguinte enquanto o contexto ainda está fresco.
 
+## 4.1 Depois de merge de branches — confirmar com o Gabriel e limpar as pastas
+
+Pedido do Gabriel em 15/09/2026, quando `C:\dev` já tinha treze pastas de worktree. Vale depois de todo
+merge de branch na `main` — o primeiro caso é a integração das branches E1 a E7
+(`docs/execucao-pendencias/INTEGRACAO.md`).
+
+1. **Testes do ambiente.** Depois do merge: `npm run typecheck`, `npm run lint`, `npm test`,
+   `npm run build`, push e deploy conferido.
+2. **Perguntar ao Gabriel.** Relatar o que passou e **os erros encontrados** (ou dizer que está tudo
+   bem), e perguntar se os testes manuais dele estão ok. **Não limpar antes da resposta.**
+3. **Com o ok, higienizar.** Para cada pasta `C:\dev\AureaCustodiaMVP-*` da rodada:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP worktree list
+```
+
+```bash
+git -C C:/dev/AureaCustodiaMVP branch --merged origin/main
+```
+
+   Para cada worktree cuja branch aparece como mesclada e cujo `git -C <pasta> status --short` volta
+   vazio:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP worktree remove C:/dev/AureaCustodiaMVP-e1
+```
+
+```bash
+git -C C:/dev/AureaCustodiaMVP branch -d exec/e1-portas-de-entrada-da-conta
+```
+
+   (um par de comandos por pasta, com o nome dela), e no fim:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP worktree prune
+```
+
+```bash
+git -C C:/dev/AureaCustodiaMVP pull --ff-only
+```
+
+4. **Tudo fica na pasta principal** `C:\dev\AureaCustodiaMVP`, atualizada.
+5. **Exceções — manter e dizer por quê:** branch com trabalho não mesclado, worktree com alteração sem
+   commit, frente ainda em andamento (ex.: a E8 enquanto não for integrada). **Nunca** apagar pasta que não
+   seja worktree deste repositório: `C:\dev` tem outros projetos.
+
+**Por quê.** Cada worktree carrega um `node_modules` inteiro e uma cópia do código; acumuladas, as pastas
+confundem qual é a versão atual e fazem o próximo agente abrir a pasta errada.
+
+**E o que o agente pode executar, executa.** Atualizar a pasta principal (`git pull --ff-only`), mesclar,
+rodar migration e remover worktree são tarefas do agente, não passos manuais. Se um comando for barrado,
+o agente avisa na hora, com o comando pronto, a pasta onde rodar e para que serve.
+
 ---
 
 # Parte 5 — Cuidados permanentes
@@ -413,4 +466,5 @@ Divisão natural deste projeto, quando chegar a hora:
 | Versão | Data | O que mudou | Origem |
 |---|---|---|---|
 | 1.0 | 28/08/2026 | Criação, a partir da leitura do commit `8e0f0a5` | Leitura Diária 2026-08-28 |
+| 1.2 | 15/09/2026 | Parte 4.1: depois de merge de branches, confirmar com o Gabriel (erros ou tudo ok) e só então remover os worktrees e branches mesclados, deixando tudo na pasta principal; o que o agente pode executar ele executa | Pedido direto do Gabriel |
 | 1.1 | 01/09/2026 | `npm test` entra no Passo 4 da abertura e no `/commit` (Vitest, CD-03); ESLint real e CI no GitHub Actions (CD-06, CD-07); `xlsx` vendorizado — o aviso do Passo 3 sobre o CDN vira histórico (CD-05); rituais versionados em `docs/diario/` (H-02) | Entrada 002 do `VERSION_COMPARISON_DAILY.md` |

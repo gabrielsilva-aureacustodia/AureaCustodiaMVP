@@ -67,7 +67,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-45** | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | 🟡 | `src/server/admin/`, `src/components/admin/bancada/` |
 | **RA-46** | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | 🟠 | `src/server/config/`, `src/server/admin/` |
 | **RA-47** | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | 🟡 | `src/server/config/` |
-| **RA-48** | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
+| **RA-48** | Os e-mails do Gabriel, do Rogério e da Rozane estão no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
 
 ---
 
@@ -1056,7 +1056,7 @@ Os pedidos estão em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md`.
 
 ---
 
-# RA-48 — O e-mail do Gabriel é `dev` do painel pelo código 🟡
+# RA-48 — Gabriel, Rogério e Rozane são `dev` do painel pelo código 🟡
 
 ```
 Decidido em: 14/09/2026 (entrada própria do painel) · entregue no mesmo dia
@@ -1078,5 +1078,11 @@ O que foi feito, e o atalho que isso carrega:
 - A entrada `/painel` mostra, para a conta logada que não é da equipe, qual é o e-mail — nada além do
   que a própria pessoa digitou.
 
-**Como se paga:** antes de cliente real, o Gabriel cadastrado como membro em `/admin/equipe`, a lista
-fixa esvaziada e `AUREA_ADMIN_EMAILS` definida na Vercel com os e-mails da equipe.
+**Ampliado em 15/09/2026**, a pedido do Gabriel: a lista fixa passou a ter também as contas do Rogério
+(`rogerio@aureacustodia.com.br` e `rogeriopena@testeaurea.com.br`) e da Rozane (`rozane@testeaurea.com.br`).
+São contas do catálogo de demonstração, que entram com a senha de teste pública do repositório (RA-19): **quem
+souber essa senha abre o painel inteiro com elas**. Aceito por ser MVP com dado de demonstração.
+
+**Como se paga:** antes de cliente real, a equipe cadastrada como membro em `/admin/equipe` com os e-mails
+reais, a lista fixa esvaziada, `AUREA_ADMIN_EMAILS` definida na Vercel e as contas de demonstração removidas
+(RA-19).

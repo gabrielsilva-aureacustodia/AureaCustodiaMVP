@@ -44,8 +44,10 @@ Em código, parar e ler os dois lados; se o conflito não for trivial, registrar
 - **Pendências feitas**: em `docs/finalizacoes/PENDENCIAS_AGENTE_C.md` marcar ✅ FEITO P-C1-03 (E3),
   P-C2-04, P-C2-05, P-C2-09 (E1), P-C3-01 (feito em 14/09, migrations 024 e 025) e P-C3-03 (E2); corrigir o
   passo 4 do P-C1-02 (conta fora da equipe vai para `/painel`, não para `/inicio`) e o parágrafo "Se quiser
-  usar o e-mail real" do mesmo item (desde o RA-48, o e-mail do Gabriel já abre o painel); no P-C2-03, apontar
-  para o passo 4 do tutorial manual. Em `docs/finalizacoes/PENDENCIAS_AGENTE_B.md`, a seção 4 que a E7 deixa
+  usar o e-mail real" do mesmo item (desde o RA-48, o e-mail do Gabriel já abre o painel). P-C2-03 já está
+  marcado como feito (a chave está cadastrada na Vercel, confirmado pelo Gabriel em 15/09). Em
+  `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_C.md`, marcar a **D-2 ✅ decidida em 15/09**: 30 dias corridos
+  para **postar** a moeda; a entrega depende dos Correios (o alinhamento dos textos é a tarefa 8b da E8). Em `docs/finalizacoes/PENDENCIAS_AGENTE_B.md`, a seção 4 que a E7 deixa
   "em execução na E2" passa a "feita — merge da E2". Em
   `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_A.md` marcar A-4 e em `_B.md` marcar B-2 (E4), cada um com
   o hash do merge.
@@ -74,9 +76,24 @@ faixa de aceite de todas as contas: são duas publicações, não quatro. A comp
 (E2) **não** entra no roteiro: sem Mercado Pago o modal para em "Nenhuma cobrança foi aberta", e a prova é
 o teste `src/server/payments/compra-direta-taxa-vigente.test.ts`.
 
-## 5. Depois da integração
+## 5. Depois da integração: perguntar ao Gabriel, e só então limpar as pastas
 
-Liberar a **E8** (prompt em `PROMPTS.md`), que parte da `main` integrada.
+Ritual da Parte 4.1 de `docs/diario/RITUAL_DE_SESSAO.md`, pedido do Gabriel em 15/09/2026.
+
+1. **Relatar ao Gabriel** o resultado dos testes do ambiente (o que passou e **os erros encontrados**, ou que
+   está tudo bem), entregar o roteiro manual consolidado da seção 4 e **perguntar se os testes manuais dele
+   estão ok**. Não limpar nada antes da resposta.
+2. **Com o ok**, para cada pasta `C:\dev\AureaCustodiaMVP-e1` a `-e7` e `C:\dev\AureaCustodiaMVP-integracao`:
+   conferir que a branch aparece em `git -C C:/dev/AureaCustodiaMVP branch --merged origin/main` e que
+   `git -C <pasta> status --short` volta vazio; então `git -C C:/dev/AureaCustodiaMVP worktree remove <pasta>`
+   e `git -C C:/dev/AureaCustodiaMVP branch -d <branch>`. No fim, `git -C C:/dev/AureaCustodiaMVP worktree prune`
+   e `git -C C:/dev/AureaCustodiaMVP pull --ff-only`.
+3. **Também entram na limpeza** os worktrees antigos já mesclados das rodadas anteriores
+   (`-banco`, `-cadastro`, `-cobranca`, `-juridico`, `-mercado`, `-admin`), com a mesma conferência. Pasta com
+   alteração sem commit ou branch não mesclada fica, e o relatório diz qual e por quê.
+4. **Nunca** apagar pasta que não seja worktree deste repositório: `C:\dev` tem outros projetos.
+5. Liberar a **E8** (prompt em `PROMPTS.md`), que parte da `main` integrada. A pasta `-e8` e a de integração
+   da E8 são limpas pelo mesmo ritual depois da integração dela.
 
 ## 6. Integração da E8
 

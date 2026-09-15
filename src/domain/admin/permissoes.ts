@@ -180,9 +180,18 @@ export function normalizarEmail(email: string): string {
  * e caiu no site do cliente: a variável não o listava, e sem ela o bootstrap só conhecia as
  * contas do seed. "Nada tranca o Gabriel para fora" não pode depender de alguém lembrar de
  * uma variável na Vercel. A tabela de membros continua valendo sobre esta lista (inclusive
- * para rebaixar), e os outros sócios entram por Equipe e papéis. RA-48.
+ * para rebaixar). RA-48.
+ *
+ * Em 15/09/2026 o Gabriel pediu o mesmo acesso para o Rogério e a Rozane: as duas contas do
+ * Rogério (a de demonstração em @aureacustodia.com.br e a do seed) e a da Rozane. Outros
+ * sócios entram por Equipe e papéis.
  */
-export const EMAILS_FIXOS_DA_EQUIPE: readonly string[] = ['gabriel.silva@aureacustodia.com.br']
+export const EMAILS_FIXOS_DA_EQUIPE: readonly string[] = [
+  'gabriel.silva@aureacustodia.com.br',
+  'rogerio@aureacustodia.com.br',
+  'rogeriopena@testeaurea.com.br',
+  'rozane@testeaurea.com.br',
+]
 
 /**
  * O bootstrap: quem entra como `dev` quando a tabela de membros não conhece o e-mail.

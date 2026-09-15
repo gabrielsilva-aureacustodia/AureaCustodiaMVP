@@ -33,6 +33,9 @@ e um e-mail do ambiente rebaixado pela tela volta a ser `dev` durante uma falha 
 
 - `gabriel.silva@aureacustodia.com.br` entra como `dev` com ou sem `AUREA_ADMIN_EMAILS` — o link
   publicado abria o site do cliente porque o e-mail dele não estava no bootstrap.
+- Desde 15/09/2026 também `rogerio@aureacustodia.com.br`, `rogeriopena@testeaurea.com.br` e
+  `rozane@testeaurea.com.br`, a pedido do Gabriel. São contas de demonstração com a senha de teste
+  pública (RA-19): quem a conhece abre o painel com elas.
 - Sem sessão, ou com conta fora da equipe, `/admin` manda para `/painel`, que diz qual é a conta.
 
 **Como se paga:** Gabriel cadastrado em `/admin/equipe`, lista fixa vazia e `AUREA_ADMIN_EMAILS`

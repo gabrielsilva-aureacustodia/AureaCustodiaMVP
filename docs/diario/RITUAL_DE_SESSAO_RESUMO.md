@@ -1,7 +1,7 @@
 # Ritual de Sessão — RESUMO
 
 **Áurea Custódia · para executar, não para ler**
-Versão base 1.1 · commit de referência `8e0f0a5` · 28/08/2026
+Versão base 1.2 · commit de referência `8e0f0a5` · 28/08/2026
 
 > Versão completa com explicações: `RITUAL_DE_SESSAO.md`
 
@@ -72,6 +72,17 @@ Uma tarefa por sessão → `/commit` → `/clear` → próxima.
 
 Confira o deploy: vercel.com → Deployments.
 Quebrou? Deployments → deploy anterior → `⋯` → **Promote to Production**.
+
+## Depois de merge de branches (desde 15/09/2026)
+
+1. Testes do ambiente + deploy conferido.
+2. **Perguntar ao Gabriel** se os testes manuais dele estão ok, relatando os erros encontrados. Esperar o ok.
+3. Com o ok: `git worktree remove` de cada pasta `C:\dev\AureaCustodiaMVP-*` já mesclada e sem alteração,
+   `git branch -d` da branch, `git worktree prune`, `git pull --ff-only` na pasta principal. Manter só o que
+   ainda tem trabalho aberto, dizendo por quê. Detalhe na Parte 4.1 do ritual completo.
+
+O que o agente pode executar (pull, merge, migration, remover worktree), ele executa; se for barrado,
+avisa na hora com o comando pronto.
 
 ---
 
