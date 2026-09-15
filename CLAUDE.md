@@ -172,9 +172,14 @@ código** ou a regra de casamento continua sendo mudança de produto.
    Actions. Fora dela, é desenvolvimento normal.
 4. **Toda decisão precisa ser explicável ao Rogério**, sócio não técnico. Se a explicação
    só funciona em jargão, a explicação está incompleta.
-5. Antes de commitar: `npm run build`, `npm run typecheck` e `npm test`.
+5. Antes de commitar um bloco funcional: `npm run build`, `npm run typecheck` e `npm test` — no fim da
+   branch ou de um bloco grande, nunca a cada escrita.
 6. **Nunca commitar `.env.local`**, segredo, token ou credencial. Se um segredo vazar
    para o histórico, avise em vez de tentar reescrever o histórico sozinho.
+7. **Regras de eficiência de sessão** (`docs/Regras_eficiencia_de_sessao_v1.md`) valem para toda sessão
+   e prevalecem sobre qualquer plano: pedido direto se atende sem nada além; o que um MD já responde não
+   se relê no código; MD de execução atualizado a cada tarefa; revisão e melhoria só depois do merge;
+   commits em blocos funcionais; todo plano de branch lista exatamente o que ler e a ordem de prioridade.
 
 ## Documentos de referência do projeto
 

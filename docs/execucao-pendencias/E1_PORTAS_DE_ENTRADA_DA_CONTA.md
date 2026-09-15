@@ -32,6 +32,21 @@ Relatório de saída:   docs/execucao-pendencias/relatorios/E1.md
 
 ---
 
+## Regras de eficiência ([docs/Regras_eficiencia_de_sessao_v1.md](../Regras_eficiencia_de_sessao_v1.md)) — prevalecem sobre o resto deste documento
+
+- **Leia só:** este documento, `00_PLANO_MESTRE.md` e os arquivos citados em "O que o código faz hoje"
+  e "Território". Não releia o repositório para confirmar o que o documento já diz.
+- **Prioridade:** as Tarefas na ordem numérica (1 → 8). Feature funcionando e commitada primeiro;
+  melhoria e acabamento só depois, se sobrar.
+- **MD de execução:** crie `relatorios/E1_EXECUCAO.md` na primeira ação e acrescente uma linha a cada
+  tarefa fechada (o que fez, arquivos, o que falta). Se a execução passar para outro agente, ele parte daí.
+- **Verificação:** typecheck, lint, suíte e build só no fim da branch (ou no fim de um bloco grande de
+  tarefas), nunca a cada escrita. A tarefa 0 não roda a suíte para "medir a base": a contagem está no
+  plano mestre.
+- **Commits:** em blocos funcionais, não a cada edição.
+
+---
+
 ## Objetivo final — pronto quando
 
 1. `npm run typecheck`, `npm run lint`, `npm test` e `npm run build` verdes no worktree da E1, com o

@@ -1,7 +1,10 @@
 # Integração das branches E1–E7 na `main`
 
 ```
-Quando:      depois de as sete relatarem "E<N> pronta para integração — <hash>"
+Quando:      depois de E1, E2, E3, E4 e E7 relatarem "E<N> pronta para integração — <hash>".
+             E5 e E6 são revisão e só começam DEPOIS desta integração (docs/Regras_eficiencia_de_sessao_v1.md,
+             regra 5); cada uma é integrada sozinha ao terminar, com as linhas 5 e 6 da tabela abaixo.
+Eficiência:  typecheck, lint, suíte e build uma vez no fim dos merges, ou logo após um merge com conflito de código
 Quem:        o agente de integração (prompt em PROMPTS.md) ou o Gabriel pedindo ao Claude
 Worktree:    C:\dev\AureaCustodiaMVP-integracao, branch integracao/execucao-pendencias a partir de origin/main
 Publica:     git push origin HEAD:main (avanço simples, sem forçar)
@@ -19,8 +22,10 @@ Publica:     git push origin HEAD:main (avanço simples, sem forçar)
 
 ## 1. Ordem e o que conferir depois de cada merge
 
-Cada merge é `git merge --no-ff origin/exec/<branch>`, seguido de `npm run typecheck`, `npm run lint`,
-`npm test` (comparando a contagem de arquivos) e, nos marcados, `npm run build`.
+Ordem desta rodada: **E3 → E2 → E1 → E4 → E7** (linhas 5 e 6 ficam para a integração de E5 e E6).
+Cada merge é `git merge --no-ff origin/exec/<branch>`. `npm run typecheck`, `npm run lint`, `npm test`
+(comparando a contagem de arquivos) e `npm run build` rodam **uma vez depois do último merge**; só rodam
+no meio se um merge tiver conflito em código. A conferência extra de cada linha entra nesse ciclo final.
 
 | Ordem | Branch | Arquivos de teste depois do merge (estimativa) | Conflitos esperados | Conferência extra |
 |---|---|---|---|---|

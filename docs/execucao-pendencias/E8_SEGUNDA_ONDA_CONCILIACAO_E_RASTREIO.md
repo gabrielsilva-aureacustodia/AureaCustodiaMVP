@@ -35,6 +35,21 @@ Relatório de saída:   docs/execucao-pendencias/relatorios/E8.md
 
 ---
 
+## Regras de eficiência ([docs/Regras_eficiencia_de_sessao_v1.md](../Regras_eficiencia_de_sessao_v1.md)) — prevalecem sobre o resto deste documento
+
+- **Leia só:** este documento, `00_PLANO_MESTRE.md`, os relatórios `relatorios/E2.md` e `relatorios/E4.md`
+  e os arquivos citados em "O que o código faz hoje" e "Território". Não releia o repositório para
+  confirmar o que o documento e os relatórios já dizem.
+- **Prioridade:** as Tarefas na ordem numérica. Feature funcionando e commitada primeiro; melhoria e
+  acabamento só depois, se sobrar.
+- **MD de execução:** crie `relatorios/E8_EXECUCAO.md` na primeira ação e acrescente uma linha a cada
+  tarefa fechada (o que fez, arquivos, o que falta). Se a execução passar para outro agente, ele parte daí.
+- **Verificação:** typecheck, lint, suíte e build só no fim da branch (ou no fim de um bloco grande de
+  tarefas), nunca a cada escrita.
+- **Commits:** em blocos funcionais, não a cada edição.
+
+---
+
 ## Objetivo final — pronto quando
 
 1. **Comissão do comprador (RA-24).** `iniciarCompraDireta` cobra `custoDeCompraPorMoeda(price, taxas) × qty`

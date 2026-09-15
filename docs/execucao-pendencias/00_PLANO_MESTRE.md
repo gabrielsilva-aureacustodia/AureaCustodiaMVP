@@ -3,7 +3,8 @@
 ```
 Criado em:   15/09/2026
 Base:        origin/main que contém esta pasta (depois do painel com entrada própria em /painel, 40bb8c8)
-Ordens:      E1 a E7 ao mesmo tempo · E8 depois da integração
+Ordens:      E1, E2, E3, E4 e E7 ao mesmo tempo · integração · E5 e E6 (revisão) e E8 depois dela
+Eficiência:  docs/Regras_eficiencia_de_sessao_v1.md (prevalece sobre este plano e sobre cada documento)
 Prompts:     PROMPTS.md (um bloco para colar em cada agente)
 Integração:  INTEGRACAO.md
 Manual:      TUTORIAL_MANUAL_GABRIEL.md (o que só uma pessoa faz)
@@ -30,7 +31,15 @@ Manual:      TUTORIAL_MANUAL_GABRIEL.md (o que só uma pessoa faz)
 | E7 | `exec/e7-documentacao-das-pendencias` | [E7](E7_DOCUMENTACAO_DAS_PENDENCIAS.md) | Marca como feito o que já está feito, conserta o arquivo de pendências corrompido, cria o índice único | B-1, B-3…B-7, C-1, C-2, pendências da B |
 | E8 | `exec/e8-segunda-onda-conciliacao-e-rastreio` | [E8](E8_SEGUNDA_ONDA_CONCILIACAO_E_RASTREIO.md) | Comissão do comprador na compra direta, pendência reconferida na conciliação, rastreio da retirada, origem da marca de inadimplência | RA-24 (comprador), RA-53 · **só depois da integração** |
 
-## Por que dá para rodar E1–E7 juntas
+## E5 e E6 saíram da rodada paralela (15/09/2026)
+
+E5 e E6 são revisão, teste e melhoria. Pela regra 5 de `docs/Regras_eficiencia_de_sessao_v1.md`, revisão
+só roda **depois** que as outras branches estão mescladas e commitadas na `main` — revisar antes é revisar
+código que ainda vai mudar. A ordem passa a ser: E1, E2, E3, E4 e E7 em paralelo → integração → E5 e E6
+(e E8) sobre a `main` integrada. As linhas de E5 e E6 na tabela de convivência abaixo ficam só como
+referência para a integração.
+
+## Por que dá para rodar E1–E4 e E7 juntas
 
 Cada documento tem uma seção **Território** com o que pode e o que não pode editar, cruzada por um
 crítico em 15/09/2026. Os arquivos que mais de uma branch toca têm regra de convivência escrita:
@@ -92,7 +101,11 @@ Número reservado e não usado fica livre; `npm run db:migrate` ordena por nome 
 9. **Servidor local só na porta da branch** (tabela acima). A 3000 é da pasta principal do Gabriel.
 10. **Suíte com o servidor local parado**, e a contagem de arquivos comparada com a base mais os arquivos
     novos da branch — arquivo que some da contagem é worker de teste que morreu.
-11. **Ciclo antes de cada push**: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`.
+11. **Ciclo no fim da branch** (ou no fim de um bloco grande de tarefas), nunca a cada escrita:
+    `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`. Commits em blocos funcionais.
+14. **Regras de eficiência** (`docs/Regras_eficiencia_de_sessao_v1.md`) prevalecem sobre tudo acima: ler
+    só o que o documento da branch lista, manter o `relatorios/E<N>_EXECUCAO.md` atualizado a cada tarefa
+    fechada, feature commitada antes de qualquer melhoria.
 12. **Não fazer merge na `main`.** A branch termina com push e com o relatório em
     `docs/execucao-pendencias/relatorios/E<N>.md`, que acaba na linha `E<N> pronta para integração — <hash>`.
 13. **Nenhuma mudança de taxa em produção** por roteiro de branch: a conferência de comissão pela tela é um
@@ -100,6 +113,7 @@ Número reservado e não usado fica livre; `npm run db:migrate` ordena por nome 
 
 ## Depois
 
-A integração segue [INTEGRACAO.md](INTEGRACAO.md): merges na ordem E3 → E2 → E1 → E4 → E5 → E6 → E7, suíte
-e build depois de cada um, as pendências marcadas como feitas, deploy conferido e um roteiro manual
-consolidado. Só então a E8 começa.
+A integração segue [INTEGRACAO.md](INTEGRACAO.md): merges na ordem E3 → E2 → E1 → E4 → E7, suíte e build
+**uma vez no fim** dos merges (ou depois de um merge com conflito de código), as pendências marcadas como
+feitas, deploy conferido e um roteiro manual consolidado. Só então começam E5 e E6 (revisão sobre a `main`
+integrada) e a E8; cada uma é integrada ao terminar.

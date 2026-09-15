@@ -30,6 +30,26 @@ Relatório de saída:    docs/execucao-pendencias/relatorios/E5.md
 
 ---
 
+## Regras de eficiência ([docs/Regras_eficiencia_de_sessao_v1.md](../Regras_eficiencia_de_sessao_v1.md)) — prevalecem sobre o resto deste documento
+
+- **Quando roda:** esta é uma branch de revisão e melhoria, então **só começa depois que E1, E2, E3, E4
+  e E7 estiverem mescladas e commitadas na `main`**. Não roda junto com as outras. A base é essa `main`
+  já integrada, e a revisão cobre também o que E1–E4 mudaram nas áreas desta branch.
+- **Leia só:** este documento, `00_PLANO_MESTRE.md`, `relatorios/INTEGRACAO.md`, os relatórios das
+  branches que tocaram estas áreas (`relatorios/E1.md` e `relatorios/E4.md`) e os arquivos citados em
+  "O que o código faz hoje" e "Território". Não releia o repositório para confirmar o que os documentos
+  já dizem.
+- **Prioridade:** primeiro os defeitos concretos listados nas Tarefas, na ordem numérica, cada um
+  corrigido e commitado; os testes de tela vêm depois; melhoria sem defeito apontado, só no fim e se
+  sobrar.
+- **MD de execução:** crie `relatorios/E5_EXECUCAO.md` na primeira ação e acrescente uma linha a cada
+  tarefa fechada (o que fez, arquivos, o que falta). Se a execução passar para outro agente, ele parte daí.
+- **Verificação:** typecheck, lint, suíte e build só no fim da branch (ou no fim de um bloco grande de
+  tarefas), nunca a cada escrita.
+- **Commits:** em blocos funcionais, não a cada edição.
+
+---
+
 ## Objetivo final — pronto quando
 
 1. No worktree da branch, o ciclo passa inteiro:

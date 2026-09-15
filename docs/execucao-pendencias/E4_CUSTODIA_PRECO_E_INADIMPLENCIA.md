@@ -28,6 +28,20 @@ Servidor local:       npm run dev -- -p 3104   (http://localhost:3104; nunca a 3
 
 ---
 
+## Regras de eficiência ([docs/Regras_eficiencia_de_sessao_v1.md](../Regras_eficiencia_de_sessao_v1.md)) — prevalecem sobre o resto deste documento
+
+- **Leia só:** este documento, `00_PLANO_MESTRE.md` e os arquivos citados em "O que o código faz hoje"
+  e "Território". Não releia o repositório para confirmar o que o documento já diz.
+- **Prioridade:** as Tarefas na ordem numérica. Feature funcionando e commitada primeiro; melhoria e
+  acabamento só depois, se sobrar.
+- **MD de execução:** crie `relatorios/E4_EXECUCAO.md` na primeira ação e acrescente uma linha a cada
+  tarefa fechada (o que fez, arquivos, o que falta). Se a execução passar para outro agente, ele parte daí.
+- **Verificação:** typecheck, lint, suíte e build só no fim da branch (ou no fim de um bloco grande de
+  tarefas), nunca a cada escrita. Não rode a suíte para "medir a base": a contagem está no plano mestre.
+- **Commits:** em blocos funcionais, não a cada edição.
+
+---
+
 ## Objetivo final — pronto quando
 
 1. `npm test` passa, com os arquivos novos `src/domain/custodia-texto.test.ts`,
