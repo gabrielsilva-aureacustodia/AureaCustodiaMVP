@@ -24,6 +24,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
+import { custoDeCompraPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
 import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from '@/lib/payments'
@@ -161,6 +162,11 @@ export async function iniciarDeposito(
  * Trava de cadastro (bloco 6): exige cadastro formal completo confirmado no primeiro
  * movimento financeiro.
  *
+ * O TOTAL COBRADO É O DA TELA (E8, RA-24). O gateway cobra `custoDeCompraPorMoeda × qty` — preço
+ * mais a comissão de compra da Tabela de Taxas vigente —, e não só o preço do lote. Antes da E8 o
+ * comprador via a comissão no "Total a pagar" e o Pix cobrava menos, o que deixava o livro-razão
+ * fechar com um `ajuste` a cada compra direta.
+ *
  * Referência externa gerada com prefixo 'CMP-' para a conciliação distinguir
  * contabilmente compra direta de depósito comum.
  */
@@ -207,11 +213,19 @@ export async function iniciarCompraDireta(
     offers.length,
   )
   const price = offers[0].price
-  const valorTotal = price * qty
   const tipoMoeda = offers[0].tipoMoeda
 
+  // Uma leitura só da configuração vigente: o teto do depósito e a Tabela de Taxas saem da mesma
+  // chamada. Sem banco, ou com falha na leitura, vale o padrão do código (RA-47).
+  const { depositoMaxCents, taxas } = await carregarRegrasDoMercado()
+
+  // O Pix e o cartão cobram o mesmo total que o modal de /mercado mostra: preço mais a comissão de
+  // compra da Tabela de Taxas vigente (RA-24). A comissão fica congelada na intenção, porque o valor
+  // cobrado não muda depois de a cobrança abrir; a conciliação lê de lá, e não da tabela da aprovação.
+  const comissaoCompradorPorMoeda = custoDeCompraPorMoeda(price, taxas) - price
+  const valorTotal = custoDeCompraPorMoeda(price, taxas) * qty
+
   if (valorTotal <= 0) return { ok: false, error: 'Valor da compra inválido.' }
-  const { depositoMaxCents } = await carregarRegrasDoMercado()
   if (valorTotal > depositoMaxCents) {
     return { ok: false, error: `O valor máximo por operação é ${brl(depositoMaxCents)}.` }
   }
@@ -233,6 +247,7 @@ export async function iniciarCompraDireta(
       tipoMoeda,
       sellerEmail: sellerId,
       unitPrice: price,
+      comissaoCompradorPorMoeda,
     },
     paymentId: null,
     motivoRecusa: null,

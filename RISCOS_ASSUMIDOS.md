@@ -54,7 +54,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-21** | Papel único na bancada: quem analisa é quem aprova, sem segregação de função | 🟡 | `src/server/estacao/`, `src/domain/analise.ts` |
 | **RA-22** | Endereçamento físico da cápsula como texto digitado, sem estrutura de cofre | 🟡 | `src/server/estacao/`, `estacao/renderer/` |
 | **RA-23** | Vídeo não é obrigatório para fechar a análise | 🟡 | `src/app/api/estacao/`, `estacao/main.js` |
-| **RA-24** | Compra direta via gateway não cobra a comissão do comprador; a do vendedor segue a tabela vigente desde a E2 | 🟡 | `src/server/payments/` |
+| **RA-24** | Compra direta via gateway não cobra a comissão do comprador — **pago em 18/09/2026 (E8)** | ✅ | `src/server/payments/` |
 | **RA-25** | Prazos operacionais provisórios estipulados nos Termos de Uso v1.0 | 🟡 | `src/domain/documentos-legais/`, `src/app/termos/` |
 | **RA-26** | SAC provisoriamente operado via e-mail único (`suporte@aureacustodia.com.br`) | 🟡 | `src/app/suporte/`, `src/domain/documentos-legais/` |
 | **RA-30** | Gravação de `recebimentos_gateway` fora da transação do estado | 🟡 | `src/server/payments/` |
@@ -70,8 +70,9 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-48** | Os e-mails do Gabriel, do Rogério e da Rozane estão no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | 🟡 | `src/server/admin/`, `src/domain/admin/` |
 | **RA-49** | Conta desativada: Server Action e rota de API de aba aberta aceitam a sessão até o próximo ciclo de 10 s; checagem que falha libera; `/entrar/sair` desloga por link; a frase de conta desativada aparece com senha errada | 🟡 | `src/server/auth/`, `src/app/entrar/` |
 | **RA-50** | Tela de nova senha sem a senha atual para quem tem sessão aberta do Supabase; link de recuperação por `?code=` não é reconhecido; tamanho da senha validado só pelo Supabase | 🟡 | `src/server/auth/`, `src/server/actions/` |
-| **RA-52** | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta | 🟡 | `src/domain/`, `src/server/actions/`, `src/server/custodia/` |
-| **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento | 🟡 | `src/server/actions/`, `src/server/payments/` |
+| **RA-52** | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta (a parte da marca manual apagada foi **paga em 18/09/2026, E8**) | 🟡 | `src/domain/`, `src/server/actions/`, `src/server/custodia/` |
+| **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento — **pago em 18/09/2026 (E8)** | ✅ | `src/server/actions/`, `src/server/payments/` |
+| **RA-56** | Pagamento aprovado que não pode liquidar vira saldo em conta, sem devolução pelo gateway e sem aviso próprio na tela de pagamento | 🟡 | `src/server/payments/` |
 
 ---
 
@@ -728,11 +729,20 @@ Nota em `estacao/ATALHOS.md`.
 
 ---
 
-# RA-24 — Compra direta pelo gateway não cobra a comissão do comprador 🟡
+# RA-24 — Compra direta pelo gateway não cobra a comissão do comprador ✅ pago em 18/09/2026 (E8)
 
 ```
-Pasta: src/server/payments/ · atualizado na E2 (15/09/2026) · parte restante para a E8
+Pasta: src/server/payments/ · atualizado na E2 (15/09/2026) · PAGO na E8 (18/09/2026)
 ```
+
+**Pago.** `iniciarCompraDireta` cobra `custoDeCompraPorMoeda(price, taxas) × qty` — preço mais a
+comissão de compra da Tabela de Taxas vigente —, e congela a comissão por moeda na metadata da
+intenção, porque o valor cobrado não muda depois de a cobrança abrir. `liquidarCompraDireta` grava no
+`Trade` o `feeComprador` congelado, o `feeVendedor` da tabela vigente na aprovação (regra da E2) e o
+`fee` igual à soma. O depósito que explica a compra passou a cobrir os dois lados, e o livro-razão
+fecha com `ajustes` vazio — antes gerava um lançamento de ajuste a cada compra direta.
+
+O texto abaixo é o registro de como o risco existia.
 
 Na compra direta de lote do mercado via Pix/cartão pelo gateway (`iniciarCompraDireta`), a
 cobrança no gateway repassa o preço anunciado sem incluir a comissão do comprador. Ao liquidar
@@ -1183,5 +1193,46 @@ fatura vencida entre gerar a cobrança e o pagamento cair. A checagem está na p
 (`iniciarCompraDireta`, `iniciarPixRetirada`, `iniciarCartaoRetirada`). O arquivo é da E2 e o dinheiro já
 entrou. A E4 só registra; não implementa.
 
-**Como se paga:** na conciliação, com pendência, creditar o valor no saldo em vez de transferir a moeda
-ou extinguir o recibo.
+**Pago em 18/09/2026 (E8).** A conciliação pergunta, antes da transação, se a conta que a pendência pode
+travar está fora da equipe (`contaBloqueavel`, assíncrona), e reconfere a pendência dentro dela. Na compra
+direta, o anúncio de vendedor pendente não vende; na retirada, o recibo não se extingue — nem quando o
+recibo está `'Bloqueado'`. Nos dois casos o valor pago entra INTEIRO no saldo de quem pagou, a retirada
+continua `solicitada` com um evento no histórico explicando o motivo, e o anúncio continua no livro.
+Checagem de equipe que falha libera a liquidação: o dinheiro já entrou, e nada tranca a equipe para fora.
+
+O que sobra dessa decisão — o cliente ver "Pagamento confirmado" quando o valor virou saldo — está
+registrado no RA-56.
+
+---
+
+# RA-56 — Pagamento aprovado que não pode liquidar vira saldo em conta 🟡
+
+```
+Decidido em: 18/09/2026 (E8)
+Pasta:       src/server/payments/
+```
+
+Quatro situações fazem um pagamento aprovado **não** entregar o que foi comprado:
+
+1. **Lote indisponível** — outra pessoa comprou primeiro, ou o anúncio foi cancelado.
+2. **O preço subiu** entre abrir a cobrança e o pagamento cair, e o valor pago não cobre mais o anúncio.
+3. **O vendedor ficou com fatura de custódia vencida** nesse meio-tempo (RA-53).
+4. **A retirada não pode ser liquidada** — a conta ficou com fatura vencida, ou o recibo está bloqueado.
+
+Nos quatro, o valor pago entra **inteiro no saldo em conta** de quem pagou, e não volta pelo gateway.
+A razão é prática: estornar exigiria uma chamada de saída ao Mercado Pago, que a conta da empresa não
+tem credenciada, e deixaria o dinheiro em trânsito por dias. Com saldo, o cliente compra de novo na
+hora ou pede saque.
+
+**O atalho.** `PainelPagamento` mostra **"Pagamento confirmado com sucesso!"** para qualquer intenção
+que termine como `creditado` — inclusive nesses quatro casos, em que o cliente não recebeu a moeda nem
+teve a retirada liquidada. O motivo existe e fica registrado: é devolvido pela conciliação
+(`vendedor_com_pendencia_creditado_em_saldo`, `valor_pago_nao_cobre_o_anuncio_creditado_em_saldo`,
+`lote_indisponivel_creditado_em_saldo`, `retirada_com_pendencia_creditada_em_saldo`,
+`recibo_bloqueado_creditado_em_saldo`) e, na retirada, entra no histórico que a tela `/retirada` e o
+painel leem. Mas a tela de pagamento não o mostra.
+
+**Como se paga:** guardar o motivo na intenção e exibi-lo em `PainelPagamento`, com o texto certo para
+cada caso. Devolução pelo gateway, se o Gabriel quiser, é decisão separada e depende de credenciamento.
+
+Nota em `src/server/payments/ATALHOS.md`.

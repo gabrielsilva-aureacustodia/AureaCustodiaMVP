@@ -616,8 +616,10 @@ function ConfirmarCompraModal({
         <span className="k">Comissão de compra da Áurea</span>
         <span className="v">+ {brl(comissaoComprador)}</span>
       </div>
+      {/* O total é o mesmo nas duas opções: o servidor cobra custoDeCompraPorMoeda × qty no Pix e
+          no cartão, exatamente o que está aqui (E8, RA-24). */}
       <div className="summary-row total">
-        <span className="k">Total a pagar (debitado da conta)</span>
+        <span className="k">Total a pagar</span>
         <span className="v" style={{ fontWeight: 600 }}>
           {brl(total)}
         </span>
@@ -670,8 +672,10 @@ function ConfirmarCompraModal({
           Opção 2 · Comprar direto pelo gateway
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Pague direto por Pix ou cartão, sem usar o saldo em conta. A moeda entra no seu
-          acervo assim que o pagamento for aprovado.
+          Pague {brl(total)} direto por Pix ou cartão — as moedas e a comissão de compra —, sem
+          usar o saldo em conta. A moeda entra no seu acervo assim que o pagamento for aprovado.
+          Se, nessa hora, o anúncio já tiver sido vendido, tiver subido de preço ou estiver
+          pausado, o valor pago entra inteiro no seu saldo em conta.
         </div>
         <div className="m-actions" style={{ marginTop: 0 }}>
           <button
@@ -718,8 +722,9 @@ function ConfirmarCompraModal({
             />
           ) : null}
           <div className="note">
-            Referência {pix.externalReference} · {brl(pix.valorCents)}. Assim que o pagamento for
-            confirmado pelo gateway, o lote é liquidado e as moedas entram na sua conta.
+            Referência {pix.externalReference} · {brl(pix.valorCents)}, com a comissão de compra.
+            Assim que o pagamento for confirmado pelo gateway, o lote é liquidado e as moedas
+            entram na sua conta.
           </div>
         </div>
       ) : null}

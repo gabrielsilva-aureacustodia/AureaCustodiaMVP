@@ -23,7 +23,7 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `015_prioridade_e_historico_ofertas.sql` | Frente A: `prioridade_em` em `sell_offers` e `buy_orders`, tabela append-only `ofertas_historico` (A2, Decisão F-3) |
 | `016_documentos_e_aceites.sql` | Frente A: `documentos_legais` e `aceites_documentos` com hash encadeado e RLS (A3) |
 
-A próxima é a **017**. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **031**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**
@@ -81,6 +81,7 @@ tabela de outra frente, então entram na ordem em que as sub-branches chegarem �
 | Arquivo | O que faz |
 |---|---|
 | `026_plano_bienal.sql` | Amplia o CHECK de `planos_custodia.modalidade` para aceitar `bienal`, o plano de 24 meses criado em 18/09/2026. `mensal` continua aceito porque está gravado nos planos antigos: tirar o valor do CHECK travaria qualquer UPDATE neles. O código não cria mais plano mensal |
+| `030_rastreio_da_retirada.sql` | E8: `rastreios` ganha `retirada_id` e `protocolo` deixa de ser `NOT NULL`. A restrição `rastreios_um_dono_check` garante um dono por linha — um envio OU uma retirada, nunca os dois. Aditiva: a gravação antiga (protocolo preenchido, `retirada_id` nulo) continua passando, e por isso pode ser aplicada antes do deploy |
 
 Sem ela, a primeira contratação de plano de 24 meses falha por violação de constraint no meio
 do fluxo de envio — o plano anual e o ciclo mensal continuam funcionando.

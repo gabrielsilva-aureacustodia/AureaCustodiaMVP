@@ -31,7 +31,11 @@ import {
   reivindicarIntencao,
   type IntencaoDeposito,
 } from './repositories/payments'
-import { carregarRastreios, salvarRastreio } from './repositories/rastreios'
+import {
+  carregarRastreios,
+  salvarRastreio,
+  salvarRastreioDeRetirada,
+} from './repositories/rastreios'
 import {
   buscarRecebimentoPorPaymentIdBanco,
   inserirRecebimentoBanco,
@@ -367,6 +371,66 @@ describe('migration 002 — pagamentos e rastreio', () => {
     const lista = await executar((tx) => listarRecebimentosPorCompetenciaBanco(tx, '2026-09'))
     expect(lista.some((r) => r.paymentId === 'MP-PAY-777')).toBe(true)
   })
+
+  /* ------------------------------------------------------------------ *
+   * Migration 030 — o rastreio da retirada (E8)                        *
+   * ------------------------------------------------------------------ */
+
+  it('a migration 030 grava o rastreio de uma retirada com retirada_id, e a chave do mapa é o id', async () => {
+    const RET_ID = 'RET-E8-DB-1'
+    const COIN_ID = 'RO-E8-DB-1'
+
+    await executar(async (tx) => {
+      await tx.query(
+        `INSERT INTO ${SCHEMA}.coins
+           (id, owner_email, posicao, tipo_moeda, ano, entrada, status_fisico, status_digital,
+            valor_estimado, protocolo)
+         VALUES ($1, $2, 1, 'Entrega da Bandeira Olímpica', 2016, '01/01/2026', 'Armazenado',
+                 'Validado', 20000, $3)
+         ON CONFLICT (id) DO NOTHING`,
+        [COIN_ID, EMAIL, PROTOCOLO],
+      )
+      await tx.query(
+        `INSERT INTO ${SCHEMA}.retiradas
+           (id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
+            endereco, solicitado_em, data_limite_d30, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'comum', 'postada', 5000, '{}'::jsonb, $5, $5, $5, $5)
+         ON CONFLICT (id) DO NOTHING`,
+        [RET_ID, COIN_ID, `REC-${COIN_ID}`, EMAIL, Date.now()],
+      )
+    })
+
+    await executar((tx) =>
+      salvarRastreioDeRetirada(tx, {
+        codigoRastreio: 'BR555555555BR',
+        retiradaId: RET_ID,
+        statusAtual: 'em_transito',
+        etapaDescricao: 'Objeto em trânsito para o destinatário',
+        entregue: false,
+        dataUltimaAtualizacao: 1_700_000_000_000,
+        eventos: [],
+      }),
+    )
+
+    const linhas = await executar((tx) => carregarRastreios(tx))
+    const daRetirada = linhas.find((l) => l.codigoRastreio === 'BR555555555BR')
+    expect(daRetirada).toBeDefined()
+    expect(daRetirada?.retiradaId).toBe(RET_ID)
+    // A chave do dono é o id da retirada — a mesma que /admin/logistica procura.
+    expect(daRetirada?.protocolo).toBe(RET_ID)
+  })
+
+  it('a restrição de um dono só recusa a linha sem envio e sem retirada', async () => {
+    await expect(
+      executar(async (tx) => {
+        await tx.query(
+          `INSERT INTO ${SCHEMA}.rastreios
+             (codigo_rastreio, protocolo, retirada_id, status_atual, etapa_descricao, entregue,
+              atualizado_em, eventos)
+           VALUES ('BR000000000BR', NULL, NULL, 'postado', 'Sem dono', false, $1, '[]'::jsonb)`,
+          [Date.now()],
+        )
+      }),
+    ).rejects.toThrow()
+  })
 })
-
-

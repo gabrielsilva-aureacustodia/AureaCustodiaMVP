@@ -1,7 +1,8 @@
 # `src/server/shipping/` — o rastreio dos Correios, ligado ao estado
 
-Liga os envios de `state.envios` à biblioteca dos Correios (`src/lib/shipping/`) e grava o
-último retrato em `aurea.rastreios`.
+Liga os envios de `state.envios` **e as retiradas postadas** à biblioteca dos Correios
+(`src/lib/shipping/`) e grava o último retrato em `aurea.rastreios`. Cada linha dessa tabela tem um
+dono só: o protocolo de um envio, ou o `retirada_id` de uma retirada (migration 030, E8).
 
 ## Arquivos
 
@@ -19,9 +20,12 @@ carregamento.
 ```
 Vercel Cron (diário, 9h)  →  GET /api/cron/shipping   (Bearer CRON_SECRET)
                           →  envios com código e ainda não entregues
-                          →  atualizarRastreiosEmLote()   src/lib/shipping/
-                          →  UPSERT em aurea.rastreios
+                          →  retiradas 'postada' com código           (E8)
+                          →  atualizarRastreiosEmLote()   src/lib/shipping/   (uma chamada só)
+                          →  UPSERT em aurea.rastreios   (envios: protocolo)
+                          →  UPSERT em aurea.rastreios   (retiradas: retirada_id, transação à parte)
 tela /envios              →  GET /api/rastreios → lê do banco
+/admin/logistica          →  rastreiosPorProtocolo()[retirada.id]
 ```
 
 O agendamento está em `vercel.json` e é **diário** porque o plano Hobby da Vercel só permite

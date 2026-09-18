@@ -94,11 +94,16 @@ Retirada, venda e compra de lote de vendedor com fatura vencida são recusadas p
 `src/domain/bloqueio-por-debito.ts`, sem gravar `'Bloqueado'` no recibo. Conta da equipe
 (`carregarMembro`) é isenta, e checagem que falha libera. Detalhe em `RISCOS_ASSUMIDOS.md`.
 
+A parte da **marca manual apagada** foi paga em 18/09/2026 (E8): nenhum processo automático grava
+mais `user.inadimplente`. A coluna é só a marca da equipe (`marcarInadimplencia`), e a inadimplência
+por fatura é calculada na hora por quem lê.
+
 ---
 
-## RA-53 🟡 — a confirmação do gateway não reconfere a pendência
+## RA-53 ✅ — pago em 18/09/2026 (E8)
 
 **Arquivos:** `custody.ts` (`iniciarPixRetirada`, `iniciarCartaoRetirada`), `payments.ts` (`iniciarCompraDireta`)
 
-A checagem está só na porta de entrada; o pagamento que cai depois de a fatura vencer segue na
-conciliação (arquivo da E2). Dono: E8. Detalhe em `RISCOS_ASSUMIDOS.md`.
+A porta de entrada continua igual. O que faltava — a outra ponta — está em
+`src/server/payments/conciliacao.ts`: a liquidação reconfere a pendência e, com ela, credita o valor
+no saldo em vez de transferir a moeda ou extinguir o recibo. Detalhe em `RISCOS_ASSUMIDOS.md`.

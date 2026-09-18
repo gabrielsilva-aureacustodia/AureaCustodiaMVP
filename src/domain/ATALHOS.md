@@ -103,7 +103,8 @@ Gabriel, as duas contas do Rogério e a da Rozane entram como `dev` com ou sem `
 
 **Arquivo:** `bloqueio-por-debito.ts`
 
-A pendência é `user.inadimplente || isInadimplente(...)`, feita por fora para não travar a marca nos
-pontos que a regravam. O recibo não recebe `'Bloqueado'` e o anúncio pausado fica no livro, fora do
+A pendência é `user.inadimplente || isInadimplente(...)`. Desde a E8 (18/09/2026) nenhum processo
+automático regrava a marca, então as duas parcelas da soma têm donos distintos: a marca é da equipe,
+a fatura vencida é calculada na hora. O recibo não recebe `'Bloqueado'` e o anúncio pausado fica no livro, fora do
 casamento. Quem é da equipe (isento) é pergunta do servidor, não deste arquivo. Detalhe em
 `RISCOS_ASSUMIDOS.md`.

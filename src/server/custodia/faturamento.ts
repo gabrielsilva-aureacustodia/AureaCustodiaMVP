@@ -8,8 +8,10 @@ import 'server-only'
  * - Ciclo mensal com tolerância de 10 dias para pagamento.
  * - Cobrança automática no saldo disponível caso o cliente possua saldo suficiente.
  * - Caso não haja saldo, fatura fica pendente para liquidação externa (Pix/cartão).
- * - Faturas vencidas ativam o status de inadimplência do usuário (`inadimplente = true`),
- *   o que bloqueia retiradas físicas e transferências.
+ * - A inadimplência POR FATURA é calculada na hora, a partir das próprias faturas, por quem lê:
+ *   lista, ficha, indicadores e o bloqueio de venda e retirada. Nenhum processo automático grava
+ *   `user.inadimplente` — essa coluna é só a marca manual do painel (`marcarInadimplencia`), e
+ *   desde a E8 só a equipe a põe e só a equipe a tira.
  */
 
 import {
@@ -161,8 +163,9 @@ export async function processarCicloFaturamento(
         f.status = verificarStatusFatura(f, agora)
       }
 
-      const inadimplente = isInadimplente(user, faturasDoUsuario, agora)
-      user.inadimplente = inadimplente
+      // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
+      // A inadimplência por fatura é calculada por quem lê (E8). O contador soma as duas origens.
+      const inadimplente = Boolean(user.inadimplente) || isInadimplente(user, faturasDoUsuario, agora)
       if (inadimplente) {
         usuariosInadimplentes++
       }
@@ -244,10 +247,6 @@ export async function pagarFaturaCustodiaComSaldo(
           plano.atualizadoEm = agora
         }
       }
-
-      // Reavalia status de inadimplência do usuário
-      const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === userEmail)
-      u.inadimplente = isInadimplente(u, faturasRestantes, agora)
 
       return { ok: true, data: { fatura } }
     })

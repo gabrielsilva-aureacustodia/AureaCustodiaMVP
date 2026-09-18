@@ -38,7 +38,7 @@ export default async function LogisticaPage({ searchParams }: { searchParams: Pr
         <Cartao rotulo="Envios em andamento" valor={numero(c.enviosAbertos)} />
         <Cartao rotulo="Envios com prazo estourado" valor={numero(c.enviosAtrasados)} tom={c.enviosAtrasados > 0 ? 'alerta' : 'normal'} detalhe={`validação em ${operacional.prazos.validacaoDiasUteis} dia(s) útil(eis) · trânsito em ${operacional.prazos.transitoEnvioDias} dias`} />
         <Cartao rotulo="Retiradas em andamento" valor={numero(c.retiradasAbertas)} />
-        <Cartao rotulo="Retiradas depois do D+30" valor={numero(c.retiradasAtrasadas)} tom={c.retiradasAtrasadas > 0 ? 'alerta' : 'normal'} />
+        <Cartao rotulo="Retiradas fora do prazo de postagem" valor={numero(c.retiradasAtrasadas)} tom={c.retiradasAtrasadas > 0 ? 'alerta' : 'normal'} />
       </div>
       <PainelLogistica dados={dados} filtro={filtro} podeEtiqueta={temPermissao(membro, 'logistica.etiquetas')} />
     </>

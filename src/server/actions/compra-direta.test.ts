@@ -167,7 +167,9 @@ describe('Server Action iniciarCompraDireta (payments.ts)', () => {
 
     expect(res.data.metodo).toBe('pix')
     expect(res.data.externalReference).toMatch(/^CMP-/)
-    expect(res.data.valorCents).toBe(30_000)
+    // Desde a E8 o gateway cobra o mesmo total da tela: preço mais a comissão de compra da tabela
+    // vigente. Sobre R$ 300,00 com a tabela padrão são 0,5% + R$ 1,00 = 150 + 100 = 250.
+    expect(res.data.valorCents).toBe(30_250)
     expect(res.data.lotId).toBe(lotId)
     expect(res.data.qty).toBe(1)
     expect(res.data.qrCode).toBe('pix-copia-e-cola-test')

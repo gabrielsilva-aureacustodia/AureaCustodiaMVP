@@ -95,7 +95,8 @@ describe('server/custodia/faturamento', () => {
     // Cliente com saldo: 2 moedas = R$ 4,00 (400 cents)
     const userComSaldo = estadoSimulado.users['com_saldo@teste.com']
     expect(userComSaldo.balance).toBe(10_000 - 400) // 9600
-    expect(userComSaldo.inadimplente).toBe(false)
+    // Desde a E8 o ciclo não grava user.inadimplente: essa coluna é só a marca manual do painel.
+    expect(userComSaldo.inadimplente).toBeFalsy()
 
     const faturaComSaldo = estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'com_saldo@teste.com')
     expect(faturaComSaldo).toBeDefined()
@@ -106,7 +107,7 @@ describe('server/custodia/faturamento', () => {
     // Cliente sem saldo: 1 moeda = R$ 2,00 (200 cents), saldo permanece 100
     const userSemSaldo = estadoSimulado.users['sem_saldo@teste.com']
     expect(userSemSaldo.balance).toBe(100)
-    expect(userSemSaldo.inadimplente).toBe(false) // Dentro da tolerância
+    expect(userSemSaldo.inadimplente).toBeFalsy() // o ciclo não grava a coluna (E8)
 
     const faturaSemSaldo = estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'sem_saldo@teste.com')
     expect(faturaSemSaldo).toBeDefined()
@@ -140,11 +141,13 @@ describe('server/custodia/faturamento', () => {
     const rel = await processarCicloFaturamento('2026-09', aposVencimento)
 
     expect(fatura?.status).toBe('atrasada')
-    expect(estadoSimulado.users['sem_saldo@teste.com'].inadimplente).toBe(true)
+    // A fatura vencida NÃO grava mais a coluna (E8) — quem lê calcula a partir das faturas —, mas o
+    // contador do relatório continua somando as duas origens.
+    expect(estadoSimulado.users['sem_saldo@teste.com'].inadimplente).toBeFalsy()
     expect(rel.usuariosInadimplentes).toBe(1)
   })
 
-  it('permite o usuário pagar fatura pendente com saldo posterior e remove inadimplência', async () => {
+  it('permite o usuário pagar fatura pendente com saldo posterior e preserva a marca manual', async () => {
     // Fatura atrasada existente
     const agora = 1726000000000
     const faturaAtrasada: FaturaCustodia = {
@@ -172,7 +175,9 @@ describe('server/custodia/faturamento', () => {
     expect(estadoSimulado.users['sem_saldo@teste.com'].balance).toBe(4_800)
     expect(faturaAtrasada.status).toBe('paga')
     expect(faturaAtrasada.formaPagamento).toBe('saldo')
-    expect(estadoSimulado.users['sem_saldo@teste.com'].inadimplente).toBe(false)
+    // A marca posta à mão no setup continua lá: pagar fatura não apaga marca da equipe (E8).
+    // A inadimplência POR FATURA sumiu sozinha, porque a fatura está paga.
+    expect(estadoSimulado.users['sem_saldo@teste.com'].inadimplente).toBe(true)
   })
 
   it('recusa pagamento com saldo se o usuário não possuir saldo suficiente', async () => {
