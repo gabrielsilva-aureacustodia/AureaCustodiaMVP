@@ -76,7 +76,16 @@ tabela de outra frente, então entram na ordem em que as sub-branches chegarem �
 | `024_config_plataforma.sql` | C3: `config_plataforma` (chave, valor `jsonb`, tipo `bp`/`centavos`/`inteiro`/`texto`, quem e quando), `config_historico` (append-only, valor antigo e novo) e `tipos_moeda` (o catálogo que `isNegociavel` consulta). **Nenhuma semeia valor**: sem linha, vale o padrão do código (`TAXAS_PADRAO`, `COIN_TYPES`); o catálogo é semeado pelo código ao abrir a aba |
 | `025_caixas_fisicas.sql` | C3: `caixas` (código, rótulo, local, capacidade opcional, ativa). A ocupação não é coluna: sai das análises × moedas × retiradas |
 
-Todas só **criam** tabelas: aplicadas antes do deploy, não quebram código nenhum; o código
+## Migration 026 — o plano de custódia de 24 meses
+
+| Arquivo | O que faz |
+|---|---|
+| `026_plano_bienal.sql` | Amplia o CHECK de `planos_custodia.modalidade` para aceitar `bienal`, o plano de 24 meses criado em 18/09/2026. `mensal` continua aceito porque está gravado nos planos antigos: tirar o valor do CHECK travaria qualquer UPDATE neles. O código não cria mais plano mensal |
+
+Sem ela, a primeira contratação de plano de 24 meses falha por violação de constraint no meio
+do fluxo de envio — o plano anual e o ciclo mensal continuam funcionando.
+
+Todas as demais só **criam** tabelas: aplicadas antes do deploy, não quebram código nenhum; o código
 publicado antes delas cai no bootstrap do ambiente (RA-40) e não grava registro de uso. Sem a
 022 e a 023, `/admin/cs` e as notas da ficha de usuário mostram o aviso de tabela ausente. Sem a
 024, o site cobra o padrão do código e a tela de configuração pede `npm run db:migrate`; sem a

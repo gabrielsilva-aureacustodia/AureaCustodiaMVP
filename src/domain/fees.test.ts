@@ -35,6 +35,16 @@ describe('Regras de Taxas e Tarifas (fees.ts)', () => {
       expect(custodiaAnualPorMoeda(18)).toBe(43200) // 18 moedas = R$ 432,00
     })
 
+    it('plano de 24 meses: R$ 36,00 por moeda, que é R$ 1,50 por mês', () => {
+      expect(TAXAS_PADRAO.custodiaBienalPorMoeda).toBe(3600)
+      expect(TAXAS_PADRAO.custodiaBienalPorMoeda / 24).toBe(150)
+      // O anual sai a R$ 2,00/mês: o de 24 meses é o desconto do prazo maior.
+      expect(TAXAS_PADRAO.custodiaAnualPorMoeda / 12).toBe(200)
+      // Os dois parcelam em até 12x no cartão.
+      expect(TAXAS_PADRAO.custodiaAnualParcelasMax).toBe(12)
+      expect(TAXAS_PADRAO.custodiaBienalParcelasMax).toBe(12)
+    })
+
     it('não existe mais atalho para o modelo de faixas aposentado', () => {
       expect(custodiaMensalPorMoeda(1)).toBe(200)
       expect(custodiaAnualPorMoeda(1)).toBe(2400)

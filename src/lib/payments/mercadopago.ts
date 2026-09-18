@@ -231,6 +231,11 @@ export interface DebitoAutomaticoResult {
 /**
  * Ativa assinatura recorrente mensal via endpoint POST /preapproval do Mercado Pago (B2.8).
  * Opera em modo simulado caso não haja token do gateway configurado.
+ *
+ * Nenhum plano usa isto hoje: desde 18/09/2026 os planos são o anual e o de 24 meses,
+ * cobrados de uma vez (à vista ou parcelados em até 12x), e quem não tem plano cai no
+ * ciclo mensal, que é fatura e não assinatura. A função fica de pé para a cobrança
+ * recorrente do ciclo, se um dia for ligada.
  */
 export async function ativarDebitoAutomatico(
   input: AtivarDebitoAutomaticoInput,
@@ -250,7 +255,7 @@ export async function ativarDebitoAutomatico(
   const payload = {
     payer_email: input.userEmail,
     back_url: input.backUrl || 'https://aureacustodia.com.br/conta/faturas',
-    reason: input.descricao || `Plano Mensal de Custódia — Áurea Custódia (${input.planoId})`,
+    reason: input.descricao || `Custódia mensal — Áurea Custódia (${input.planoId})`,
     external_reference: externalReference,
     auto_recurring: {
       frequency: 1,

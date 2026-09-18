@@ -1,20 +1,29 @@
 /**
- * Regras puras de domínio para planos de custódia (mensal e anual) e ciclo de faturamento.
+ * Regras puras de domínio para planos de custódia (anual e 24 meses) e ciclo de faturamento.
  *
- * Passo B2.3 da Frente B (Finalizações 13/09/2026).
+ * Passo B2.3 da Frente B (Finalizações 13/09/2026); planos revistos em 18/09/2026.
  *
  * Modos de contratação:
- * - Mensal: R$ 2,00 por moeda por mês, 1 parcela.
- * - Anual: R$ 24,00 por moeda por ano, parcelamento em até 12x no cartão.
+ * - Anual: R$ 24,00 por moeda pelos 12 meses (R$ 2,00/mês), em até 12x no cartão.
+ * - 24 meses: R$ 36,00 por moeda pelos 24 meses (R$ 1,50/mês), em até 12x no cartão.
+ *
+ * NÃO EXISTE MAIS PLANO MENSAL. Ele saía por R$ 2,00/moeda/mês sem compromisso, e
+ * foi aposentado: agora a moeda entra em custódia dentro de um dos dois prazos. O
+ * que sobrou com cara de mensal é o CICLO (`gerarFaturaDoCiclo`), que cobra os
+ * mesmos R$ 2,00 de quem tem moeda guardada sem plano vigente — plano vencido,
+ * moeda solta de plano cancelado. Chamar os dois de "mensal" foi o que confundiu
+ * antes; aqui plano é prazo contratado e ciclo é cobrança de quem não tem prazo.
  *
  * Cobertura e ciclo:
  * - A competência coberta impede cobrança duplicada no ciclo do dia 1º.
  * - Moedas cobertas por plano vigente e quitado são deduzidas das moedas faturáveis.
- * - Planos anuais vencidos geram renovação anual no 13º mês.
+ * - Plano vencido gera fatura de renovação no mês seguinte ao último mês coberto
+ *   (13º mês do anual, 25º do de 24 meses).
  */
 
 import {
   CUSTODIA_ANUAL_POR_MOEDA_CENTS,
+  CUSTODIA_BIENAL_POR_MOEDA_CENTS,
   CUSTODIA_MENSAL_POR_MOEDA_CENTS,
 } from '@/domain/fees'
 import {
@@ -36,13 +45,27 @@ export interface TabelaDeTaxasPlano {
   custodiaMensalPorMoeda?: Cents
   custodiaAnualPorMoeda?: Cents
   custodiaAnualParcelasMax?: number
+  custodiaBienalPorMoeda?: Cents
+  custodiaBienalParcelasMax?: number
   [key: string]: unknown
 }
 
 export type TabelaDeTaxas = TabelaDeTaxasPlano
 
 /**
+ * Quantos meses de guarda cada modalidade cobre. É daqui que saem a competência
+ * final do plano, a apropriação contábil e o mês da renovação — deixar o 12 e o 24
+ * espalhados pelo código foi como o plano de 24 meses quase renovou no 13º mês.
+ */
+export function mesesCobertos(modalidade: ModalidadePlanoCustodia): number {
+  return modalidade === 'bienal' ? 24 : 12
+}
+
+/**
  * Calcula os valores unitário, total e limite de parcelamento do plano de custódia.
+ *
+ * O total é o preço do período inteiro, não uma mensalidade: R$ 24,00 por moeda no
+ * anual, R$ 36,00 no de 24 meses. Os dois parcelam em até 12x no cartão.
  */
 export function valorDoPlano(
   modalidade: ModalidadePlanoCustodia,
@@ -51,12 +74,13 @@ export function valorDoPlano(
 ): { porMoeda: Cents; total: Cents; parcelasMax: number } {
   const qtd = Math.max(0, Math.floor(quantidade))
 
-  if (modalidade === 'mensal') {
-    const porMoeda = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
+  if (modalidade === 'bienal') {
+    const porMoeda = taxas?.custodiaBienalPorMoeda ?? CUSTODIA_BIENAL_POR_MOEDA_CENTS
+    const parcelasMax = taxas?.custodiaBienalParcelasMax ?? 12
     return {
       porMoeda,
       total: porMoeda * qtd,
-      parcelasMax: 1,
+      parcelasMax,
     }
   }
 
@@ -90,16 +114,14 @@ export function somarMeses(competencia: string, meses: number): string {
 
 /**
  * Calcula até qual competência um plano recém-pago cobre a custódia.
- * - Mensal: cobre a própria competência de início (+0 meses).
- * - Anual: cobre 12 meses (+11 meses a partir do início).
+ * O mês de início conta, por isso é `meses - 1`: o anual contratado em 2026-09
+ * cobre até 2027-08, e o de 24 meses até 2028-08.
  */
 export function calcularPagoAte(
   inicioCompetencia: string,
   modalidade: ModalidadePlanoCustodia
 ): string {
-  return modalidade === 'mensal'
-    ? somarMeses(inicioCompetencia, 0)
-    : somarMeses(inicioCompetencia, 11)
+  return somarMeses(inicioCompetencia, mesesCobertos(modalidade) - 1)
 }
 
 /**
@@ -126,7 +148,7 @@ export function moedasCobertas(
 ): Set<string> {
   const cobertas = new Set<string>()
   for (const plano of planos) {
-    if (competenciaCoberta(plano, competencia) || renovacaoAnualDevida(plano, competencia)) {
+    if (competenciaCoberta(plano, competencia) || renovacaoDevida(plano, competencia)) {
       for (const id of plano.moedaIds) {
         cobertas.add(id)
       }
@@ -179,13 +201,16 @@ export function gerarFaturaDoCiclo(
 }
 
 /**
- * Avalia se um plano anual atingiu o período de renovação (13º mês, ou seja, pago até o mês anterior).
+ * Avalia se um plano vigente chegou ao mês da renovação — o primeiro mês depois do
+ * último coberto (13º do anual, 25º do de 24 meses).
+ *
+ * A conta não olha a modalidade: compara `pagoAteCompetencia` com o mês anterior,
+ * e quem escreveu essa competência já levou o prazo do plano em conta.
  */
-export function renovacaoAnualDevida(
+export function renovacaoDevida(
   plano: PlanoCustodia,
   competencia: string
 ): boolean {
-  if (plano.modalidade !== 'anual') return false
   if (plano.status !== 'vigente') return false
   if (!plano.pagoAteCompetencia) return false
 

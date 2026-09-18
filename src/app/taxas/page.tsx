@@ -121,17 +121,30 @@ export default async function FeesPage(): Promise<ReactNode> {
           <tbody>
             <tr>
               <td>
-                <strong>Plano Mensal</strong>
+                <strong>Plano Anual</strong>
               </td>
-              <td>{brl(taxas.custodiaMensalPorMoeda)} / mês</td>
-              <td>Cobrança pós-paga mensal baseada nas moedas ativas sob custódia</td>
+              <td>{brl(taxas.custodiaAnualPorMoeda)} pelos 12 meses</td>
+              <td>
+                Equivale a {brl(Math.round(taxas.custodiaAnualPorMoeda / 12))} por mês. Parcelamento em até{' '}
+                {taxas.custodiaAnualParcelasMax}x no cartão de crédito
+              </td>
             </tr>
             <tr>
               <td>
-                <strong>Plano Anual</strong>
+                <strong>Plano de 24 Meses</strong>
               </td>
-              <td>{brl(taxas.custodiaAnualPorMoeda)} / ano</td>
-              <td>Parcelamento em até {taxas.custodiaAnualParcelasMax}x no cartão de crédito</td>
+              <td>{brl(taxas.custodiaBienalPorMoeda)} pelos 24 meses</td>
+              <td>
+                Equivale a {brl(Math.round(taxas.custodiaBienalPorMoeda / 24))} por mês. Parcelamento em até{' '}
+                {taxas.custodiaBienalParcelasMax}x no cartão de crédito
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Ciclo mensal (sem plano)</strong>
+              </td>
+              <td>{brl(taxas.custodiaMensalPorMoeda)} / mês</td>
+              <td>Cobrança pós-paga das moedas sob custódia que não estejam cobertas por um plano vigente</td>
             </tr>
           </tbody>
         </table>

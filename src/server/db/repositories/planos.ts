@@ -1,7 +1,9 @@
 /**
  * Repositório de planos de custódia: `aurea.planos_custodia`.
  *
- * Persiste e consulta planos de custódia (mensal e anual) contratados (Passo B2.2).
+ * Persiste e consulta planos de custódia contratados (Passo B2.2): anual e de 24 meses
+ * ('bienal') desde 18/09/2026. Linhas antigas com modalidade 'mensal' continuam no banco
+ * — o CHECK da migration 026 as aceita para não travar UPDATE, e nada mais cria uma.
  * Opera dentro de transações de banco com `Consulta` (ou `tx`).
  */
 

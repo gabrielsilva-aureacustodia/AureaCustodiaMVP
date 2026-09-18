@@ -649,7 +649,13 @@ export interface UserSettings {
 
 /* === Finalizações · Frente B === */
 
-export type ModalidadePlanoCustodia = 'mensal' | 'anual'
+/**
+ * As duas modalidades de plano de custódia (18/09/2026). O plano mensal foi
+ * aposentado: quem guarda moeda contrata 12 ou 24 meses. A cobrança mês a mês
+ * continua existindo como `origem: 'ciclo_mensal'` da fatura, que é outra coisa —
+ * é o que se cobra de moeda sem plano vigente, não um plano que se escolhe.
+ */
+export type ModalidadePlanoCustodia = 'anual' | 'bienal'
 export type StatusPlanoCustodia = 'aguardando_pagamento' | 'vigente' | 'encerrado' | 'cancelado'
 
 export interface PlanoCustodia {

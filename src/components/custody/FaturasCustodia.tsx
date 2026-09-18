@@ -6,7 +6,7 @@
  * Exibe:
  * 1. Resumo e lista de faturas do usuário com status (Paga, Pendente, Em atraso, Cancelada).
  * 2. Botão "Pagar" para faturas em aberto, acionando o PainelPagamento inline (Saldo, Pix ou Cartão).
- * 3. Lista de planos de custódia contratados e vigentes (Mensal/Anual, moedas cobertas, pago até).
+ * 3. Lista de planos de custódia contratados e vigentes (anual ou 24 meses, moedas cobertas, pago até).
  */
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
@@ -242,7 +242,7 @@ export function FaturasCustodia(): ReactNode {
                       f.origem === 'contratacao'
                         ? 'Contratação'
                         : f.origem === 'renovacao_anual'
-                          ? 'Renovação anual'
+                          ? 'Renovação do plano'
                           : 'Ciclo mensal'
 
                     return (
@@ -359,13 +359,13 @@ export function FaturasCustodia(): ReactNode {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
               {planos.map((p) => {
-                const isAnual = p.modalidade === 'anual'
+                const bienal = p.modalidade === 'bienal'
                 return (
                   <div key={p.id} className="panel" style={{ position: 'relative' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                       <div>
                         <h4 style={{ margin: 0, fontSize: '16px', color: 'var(--text-main)' }}>
-                          {isAnual ? 'Plano Anual de Custódia' : 'Plano Mensal de Custódia'}
+                          {bienal ? 'Plano de 24 Meses de Custódia' : 'Plano Anual de Custódia'}
                         </h4>
                         <div style={{ fontSize: '12px', color: 'var(--gold)', marginTop: 2 }}>
                           {p.id} · Envio {p.protocoloEnvio}
@@ -413,7 +413,7 @@ export function FaturasCustodia(): ReactNode {
                       <div className="sr">
                         <span className="k">Valor do plano</span>
                         <span className="v">
-                          {brl(p.valorTotalCents)} {isAnual ? '/ ano' : '/ mês'}
+                          {brl(p.valorTotalCents)} {bienal ? 'pelos 24 meses' : 'pelos 12 meses'}
                         </span>
                       </div>
                       <div className="sr">

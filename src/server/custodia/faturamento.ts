@@ -22,7 +22,8 @@ import {
 import {
   calcularPagoAte,
   gerarFaturaDoCiclo,
-  renovacaoAnualDevida,
+  mesesCobertos,
+  renovacaoDevida,
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
@@ -71,9 +72,9 @@ export async function processarCicloFaturamento(
       totalProcessados++
       const planosDoUsuario = s.planosCustodia.filter((p) => p.userEmail === email)
 
-      // A) Renovação anual para planos anuais que atingiram o 13º mês
+      // A) Renovação dos planos que passaram do último mês coberto (13º do anual, 25º do de 24 meses)
       for (const plano of planosDoUsuario) {
-        if (plano.modalidade === 'anual' && renovacaoAnualDevida(plano, competencia)) {
+        if (renovacaoDevida(plano, competencia)) {
           const chaveRenovacao = `${email}#${competencia}#renovacao_anual#${plano.id}`
           const jaTemRenovacao = s.faturasCustodia.some(
             (f) => f.planoId === plano.id && f.competencia === competencia && f.origem === 'renovacao_anual',
@@ -88,7 +89,8 @@ export async function processarCicloFaturamento(
                 ? moedasAtivasDoPlano.length
                 : (plano.moedaIds.length > 0 ? plano.moedaIds.length : plano.quantidadeContratada)
 
-            const { total } = valorDoPlano('anual', qtdRenovacao, { ...taxas })
+            // Renova na modalidade do próprio plano, e pelo preço vigente hoje.
+            const { total } = valorDoPlano(plano.modalidade, qtdRenovacao, { ...taxas })
             const sanitizeEmail = email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
             const idRenovacao = `FAT-${competencia}-${sanitizeEmail}-REN-${agora}`
 
@@ -116,7 +118,7 @@ export async function processarCicloFaturamento(
               faturaRenovacao.dataPagamento = agora
               faturaRenovacao.formaPagamento = 'saldo'
               faturasLiquidadasComSaldo++
-              plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+              plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
               plano.atualizadoEm = agora
             } else {
               faturaRenovacao.status = 'pendente'
@@ -237,7 +239,7 @@ export async function pagarFaturaCustodiaComSaldo(
         s.planosCustodia = s.planosCustodia ?? []
         const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
         if (plano) {
-          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
           plano.formaPagamento = 'saldo'
           plano.atualizadoEm = agora
         }

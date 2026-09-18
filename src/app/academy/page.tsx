@@ -159,7 +159,7 @@ export default function AcademyPage(): ReactNode {
           </li>
           <li>
             <strong>3. Manutenção ou negociação:</strong> O titular pode manter a moeda sob guarda
-            (mediante taxa de custódia mensal simples e acessível) ou ofertá-la para venda no marketplace.
+            (mediante plano de custódia de 12 ou 24 meses, parcelável em até 12x) ou ofertá-la para venda no marketplace.
             Caso outro colecionador compre o item, o valor é creditado na conta do vendedor e a posse
             do recibo é transferida no mesmo instante ao comprador.
           </li>

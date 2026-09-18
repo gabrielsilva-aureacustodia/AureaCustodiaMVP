@@ -241,11 +241,11 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
         <Cartao rotulo="Inadimplência do período" valor={percentual(faturas.taxaInadimplenciaBp)} detalhe="atrasado hoje ÷ faturado no período" />
         {planos ? (
           <>
-            <Cartao rotulo="Planos mensais vigentes" valor={numero(planos.mensal.vigentes)} detalhe={`${numero(planos.mensal.moedas)} moeda(s) coberta(s)`} />
-            <Cartao rotulo="Planos anuais vigentes" valor={numero(planos.anual.vigentes)} detalhe={`${numero(planos.anual.moedas)} moeda(s) coberta(s) · ${numero(planos.aguardandoPagamento)} aguardando pagamento`} />
+            <Cartao rotulo="Planos anuais vigentes" valor={numero(planos.anual.vigentes)} detalhe={`${numero(planos.anual.moedas)} moeda(s) coberta(s)`} />
+            <Cartao rotulo="Planos de 24 meses vigentes" valor={numero(planos.bienal.vigentes)} detalhe={`${numero(planos.bienal.moedas)} moeda(s) coberta(s) · ${numero(planos.aguardandoPagamento)} aguardando pagamento`} />
           </>
         ) : (
-          <Indisponivel titulo="Planos mensal × anual" quando="Disponível depois da B2, que cria a contratação do plano no envio." />
+          <Indisponivel titulo="Planos anual × 24 meses" quando="Disponível depois da B2, que cria a contratação do plano no envio." />
         )}
       </div>
     </>

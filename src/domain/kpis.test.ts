@@ -114,10 +114,10 @@ function cenario(): FontesKpi {
     agora: AGORA,
     historicoDaFila: historico,
     planos: [
-      { modalidade: 'mensal', status: 'vigente', quantidadeContratada: 2, moedaIds: ['m1', 'm2', 'm3'] },
+      { modalidade: 'bienal', status: 'vigente', quantidadeContratada: 2, moedaIds: ['m1', 'm2', 'm3'] },
       { modalidade: 'anual', status: 'vigente', quantidadeContratada: 3 },
       { modalidade: 'anual', status: 'aguardando_pagamento', quantidadeContratada: 1 },
-      { modalidade: 'mensal', status: 'cancelado', quantidadeContratada: 1 },
+      { modalidade: 'bienal', status: 'cancelado', quantidadeContratada: 1 },
     ],
   }
 }
@@ -194,7 +194,7 @@ describe('montarKpis', () => {
   })
 
   it('planos: vigentes por modalidade, com as moedas cobertas', () => {
-    expect(k.planos).toEqual({ mensal: { vigentes: 1, moedas: 3 }, anual: { vigentes: 1, moedas: 3 }, aguardandoPagamento: 1, cancelados: 1 })
+    expect(k.planos).toEqual({ anual: { vigentes: 1, moedas: 3 }, bienal: { vigentes: 1, moedas: 3 }, aguardandoPagamento: 1, cancelados: 1 })
   })
 
   it('sem histórico da fila (A2) e sem planos (B2): null, não zero', () => {

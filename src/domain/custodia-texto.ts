@@ -2,13 +2,13 @@
  * Textos e valores da custódia como funções puras de domínio.
  *
  * Evita dois erros históricos mapeados na pendência A-4:
- * 1. `descricaoDaFaturaDeCustodia`: evita que contratações de plano anual ou
- *    renovações anuais apareçam rotuladas como "Custódia mensal" no extrato
- *    enquanto cobram o valor cheio do ano (ex: R$ 72,00 por 3 moedas).
+ * 1. `descricaoDaFaturaDeCustodia`: evita que contratações de plano ou renovações
+ *    apareçam rotuladas como "Custódia mensal" no extrato enquanto cobram o valor
+ *    cheio do período (ex: R$ 72,00 por 3 moedas).
  * 2. `custodiaDoEnvio`: evita que o passo 5 do fluxo de envios calcule a
  *    taxa com base no campo do formulário do passo 1 (que volta a '1' ao recarregar
  *    a página), congelando a quantidade real pelo protocolo do envio e
- *    respeitando a modalidade anual ou mensal do plano contratado.
+ *    respeitando o prazo do plano contratado (12 ou 24 meses, desde 18/09/2026).
  */
 
 import type { Cents, Envio, FaturaCustodia, PlanoCustodia } from '@/domain/types'
@@ -27,14 +27,16 @@ export function descricaoDaFaturaDeCustodia(
     if (plano?.modalidade === 'anual') {
       return `Plano anual de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
     }
-    if (plano?.modalidade === 'mensal') {
-      return `Plano mensal de custódia ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    if (plano?.modalidade === 'bienal') {
+      return `Plano de 24 meses de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
     }
     return `Contratação de plano de custódia ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   if (origem === 'renovacao_anual') {
-    return `Renovação anual da custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    // A origem no banco ainda se chama 'renovacao_anual' (migration 018), mas hoje
+    // renova plano de 12 ou de 24 meses — o texto não promete prazo que não sabe.
+    return `Renovação do plano de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   // Origem ausente ou 'ciclo_mensal' mantém o formato exato histórico do extrato
@@ -48,7 +50,7 @@ export function custodiaDoEnvio(
   envio: Envio,
   plano: PlanoCustodia | undefined,
   taxas: TabelaDeTaxas,
-): { rotulo: string; valorCents: Cents; periodo: 'mês' | 'ano' } {
+): { rotulo: string; valorCents: Cents; periodo: 'mês' | 'ano' | '24 meses' } {
   const quantidade = envio.quantidade
 
   if (plano?.modalidade === 'anual') {
@@ -59,14 +61,15 @@ export function custodiaDoEnvio(
     }
   }
 
-  if (plano?.modalidade === 'mensal') {
+  if (plano?.modalidade === 'bienal') {
     return {
-      rotulo: 'Custódia mensal destas moedas',
-      valorCents: quantidade * plano.valorPorMoedaCents,
-      periodo: 'mês',
+      rotulo: 'Plano de 24 meses destas moedas',
+      valorCents: plano.valorTotalCents,
+      periodo: '24 meses',
     }
   }
 
+  // Sem plano contratado, o que vale é o ciclo mensal.
   return {
     rotulo: 'Custódia mensal destas moedas',
     valorCents: custodiaMensalPorMoeda(quantidade, taxas),

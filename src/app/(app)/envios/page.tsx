@@ -43,7 +43,8 @@ import { COIN_TYPES, coinTypeInfo, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodiaDoEnvio } from '@/domain/custodia-texto'
 import { brl } from '@/domain/money'
-import type { AppState, Envio, UserEmail } from '@/domain/types'
+import { valorDoPlano } from '@/domain/plano-custodia'
+import type { AppState, Cents, Envio, UserEmail } from '@/domain/types'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { useApp } from '@/components/providers/AppProvider'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
@@ -131,6 +132,123 @@ interface EstadoWizard {
  * Construído no módulo porque a lista é fixa — recriá-la a cada render seria
  * trabalho puro sem ganho nenhum.
  */
+/**
+ * Um cartão de plano de custódia no passo 3.
+ *
+ * Existe porque os dois planos — anual e 24 meses — são o mesmo cartão com outros
+ * números, e manter dois blocos de JSX gêmeos foi o que deixou o antigo cartão
+ * mensal com selo e o anual sem, na mesma tela.
+ */
+function CartaoDePlano({
+  titulo,
+  selecionado,
+  aoEscolher,
+  total,
+  periodo,
+  porMoeda,
+  parcela,
+  selos,
+  vantagens,
+}: {
+  titulo: string
+  selecionado: boolean
+  aoEscolher: () => void
+  total: Cents
+  /** O que vem depois do preço: 'pelos 12 meses'. */
+  periodo: string
+  /** A linha abaixo do preço: quanto sai por moeda por mês. */
+  porMoeda: string
+  /** A linha do parcelamento no cartão. */
+  parcela: string
+  selos: string[]
+  vantagens: string[]
+}): ReactNode {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={selecionado}
+      className="plan-card"
+      onClick={aoEscolher}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault()
+          aoEscolher()
+        }
+      }}
+      style={{
+        padding: 16,
+        borderRadius: 8,
+        border: selecionado ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
+        background: selecionado ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
+        cursor: 'pointer',
+        position: 'relative',
+        minHeight: 180,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}
+    >
+      <div>
+        {selos.length > 0 && (
+          <div style={{ position: 'absolute', top: -10, right: 12, display: 'flex', gap: 6 }}>
+            {selos.map((selo, i) => (
+              <span
+                key={selo}
+                style={{
+                  background: i === 0 ? 'var(--gold)' : '#1a7f37',
+                  color: i === 0 ? '#000' : '#fff',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  textTransform: i === 0 ? 'uppercase' : 'none',
+                }}
+              >
+                {selo}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
+          <span style={{ fontWeight: 700, fontSize: '15px' }}>{titulo}</span>
+          <span
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              border: '2px solid var(--gold)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
+              color: 'var(--gold)',
+            }}
+          >
+            {selecionado ? '●' : ''}
+          </span>
+        </div>
+        <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
+          {brl(total)}
+          <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> {periodo}</span>
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>{porMoeda}</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>{parcela}</div>
+      </div>
+
+      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
+        {vantagens.map((v) => (
+          <span key={v}>
+            {'✓'} {v}
+            <br />
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const ANOS: number[] = (() => {
   const out: number[] = []
   for (let y = 2016; y >= 1980; y--) out.push(y)
@@ -602,157 +720,41 @@ export default function EnviosPage(): ReactNode {
             </h3>
             <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
               Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
-              Selecione como prefere pagar a custódia das suas moedas.
+              Escolha por quanto tempo quer contratar a guarda. Os dois planos podem ser parcelados em até 12x no cartão.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 20 }}>
-              {/* Opção Mensal */}
-              <div
-                role="button"
-                tabIndex={0}
-                className="plan-card"
-                onClick={() => setModalidadePlano('mensal')}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault()
-                    setModalidadePlano('mensal')
-                  }
-                }}
-                style={{
-                  padding: 16,
-                  borderRadius: 8,
-                  border: modalidadePlano === 'mensal' ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
-                  background: modalidadePlano === 'mensal' ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  minHeight: 180,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: '15px' }}>Plano Mensal</span>
-                    <span
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        border: '2px solid var(--gold)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        color: 'var(--gold)',
-                      }}
-                    >
-                      {modalidadePlano === 'mensal' ? '●' : ''}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
-                    {brl(envio.quantidade * taxas.custodiaMensalPorMoeda)}
-                    <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / mês</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
-                    {brl(taxas.custodiaMensalPorMoeda)} por moeda / mês
-                  </div>
-                </div>
+              <CartaoDePlano
+                titulo="Plano Anual"
+                selecionado={modalidadePlano === 'anual'}
+                aoEscolher={() => setModalidadePlano('anual')}
+                total={envio.quantidade * taxas.custodiaAnualPorMoeda}
+                periodo="pelos 12 meses"
+                porMoeda={`${brl(Math.round(taxas.custodiaAnualPorMoeda / 12))} por moeda / mês`}
+                parcela={`ou ${taxas.custodiaAnualParcelasMax}x de ${brl(Math.round((envio.quantidade * taxas.custodiaAnualPorMoeda) / taxas.custodiaAnualParcelasMax))} no cartão`}
+                selos={[`${taxas.custodiaAnualParcelasMax}x sem juros`]}
+                vantagens={[
+                  '12 meses de guarda garantida',
+                  `Parcelamento em até ${taxas.custodiaAnualParcelasMax}x no cartão`,
+                  'Proteção contra reajustes no período',
+                ]}
+              />
 
-                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
-                  ✓ Cobrança mensal no dia 1º<br />
-                  ✓ Sem fidelidade nem carência<br />
-                  ✓ Débito automático em saldo ou Pix
-                </div>
-              </div>
-
-              {/* Opção Anual */}
-              <div
-                role="button"
-                tabIndex={0}
-                className="plan-card"
-                onClick={() => setModalidadePlano('anual')}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault()
-                    setModalidadePlano('anual')
-                  }
-                }}
-                style={{
-                  padding: 16,
-                  borderRadius: 8,
-                  border: modalidadePlano === 'anual' ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
-                  background: modalidadePlano === 'anual' ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  minHeight: 180,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ position: 'absolute', top: -10, right: 12, display: 'flex', gap: 6 }}>
-                    <span
-                      style={{
-                        background: 'var(--gold)',
-                        color: '#000',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: 12,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      Mais escolhido
-                    </span>
-                    <span
-                      style={{
-                        background: '#1a7f37',
-                        color: '#fff',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: 12,
-                      }}
-                    >
-                      {taxas.custodiaAnualParcelasMax}x sem juros
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: '15px' }}>Plano Anual</span>
-                    <span
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        border: '2px solid var(--gold)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        color: 'var(--gold)',
-                      }}
-                    >
-                      {modalidadePlano === 'anual' ? '●' : ''}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
-                    {brl(envio.quantidade * taxas.custodiaAnualPorMoeda)}
-                    <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> / ano</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>
-                    ou {taxas.custodiaAnualParcelasMax}x de {brl(Math.round((envio.quantidade * taxas.custodiaAnualPorMoeda) / taxas.custodiaAnualParcelasMax))} no cartão
-                  </div>
-                </div>
-
-                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
-                  ✓ 12 meses de guarda garantida<br />
-                  ✓ Parcelamento em até {taxas.custodiaAnualParcelasMax}x no cartão<br />
-                  ✓ Proteção contra reajustes no período
-                </div>
-              </div>
+              <CartaoDePlano
+                titulo="Plano de 24 Meses"
+                selecionado={modalidadePlano === 'bienal'}
+                aoEscolher={() => setModalidadePlano('bienal')}
+                total={envio.quantidade * taxas.custodiaBienalPorMoeda}
+                periodo="pelos 24 meses"
+                porMoeda={`${brl(Math.round(taxas.custodiaBienalPorMoeda / 24))} por moeda / mês`}
+                parcela={`ou ${taxas.custodiaBienalParcelasMax}x de ${brl(Math.round((envio.quantidade * taxas.custodiaBienalPorMoeda) / taxas.custodiaBienalParcelasMax))} no cartão`}
+                selos={['Melhor preço', `${taxas.custodiaBienalParcelasMax}x sem juros`]}
+                vantagens={[
+                  '24 meses de guarda garantida',
+                  `Parcelamento em até ${taxas.custodiaBienalParcelasMax}x no cartão`,
+                  'Proteção contra reajustes no período',
+                ]}
+              />
             </div>
 
             <div className="note" style={{ marginBottom: 16 }}>
@@ -766,8 +768,8 @@ export default function EnviosPage(): ReactNode {
               </div>
               {faturaId ? (
                 <PainelPagamento
-                  valorCents={(state.faturasCustodia ?? []).find((f) => f.id === faturaId)?.valorCents ?? (modalidadePlano === 'anual' ? envio.quantidade * taxas.custodiaAnualPorMoeda : envio.quantidade * taxas.custodiaMensalPorMoeda)}
-                  parcelasMax={modalidadePlano === 'anual' ? taxas.custodiaAnualParcelasMax : 1}
+                  valorCents={(state.faturasCustodia ?? []).find((f) => f.id === faturaId)?.valorCents ?? valorDoPlano(modalidadePlano, envio.quantidade, { ...taxas }).total}
+                  parcelasMax={valorDoPlano(modalidadePlano, envio.quantidade, { ...taxas }).parcelasMax}
                   saldoDisponivel={me?.balance ?? 0}
                   pagarComSaldo={async () => {
                     const res = await pagarFaturaComSaldo(faturaId)

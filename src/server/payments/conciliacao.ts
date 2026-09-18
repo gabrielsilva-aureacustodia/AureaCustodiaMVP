@@ -12,7 +12,7 @@ import { competenciaAtual, isInadimplente } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
-import { calcularPagoAte, somarMeses } from '@/domain/plano-custodia'
+import { calcularPagoAte, mesesCobertos, somarMeses } from '@/domain/plano-custodia'
 import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
 import type { AppState, FormaPagamentoFatura } from '@/domain/types'
 import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
@@ -230,7 +230,8 @@ function liquidarFaturaCustodia(
     s.planosCustodia = s.planosCustodia ?? []
     const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
     if (plano) {
-      plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+      // Renovação estende pelo prazo do plano: 12 meses no anual, 24 no de 24 meses.
+      plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
       plano.formaPagamento = metodoPagamento
       plano.atualizadoEm = agora
     }
@@ -271,6 +272,9 @@ function liquidarAssinaturaCustodia(
       plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
     }
     plano.status = 'vigente'
+    // Um mês por cobrança: a assinatura do gateway é recorrente mensal. Nenhum plano
+    // entra por aqui hoje — anual e 24 meses são pagos de uma vez (B2.8 continua de pé
+    // para a cobrança recorrente do ciclo, se um dia for ligada).
     plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
     plano.formaPagamento = 'cartao'
     plano.atualizadoEm = agora

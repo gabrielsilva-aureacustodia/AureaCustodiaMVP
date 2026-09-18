@@ -19,7 +19,7 @@ Java acontecer.
 |---|---|---|
 | `types.ts` | **A fonte da verdade do modelo de dados.** Todo tipo do domínio | ⚠️ |
 | `constants.ts` | Catálogo de moedas, contas de teste, taxas, faixas de valor, `STORE_KEY`. Desde a C3, `COIN_TYPES` e `TAXAS_PADRAO` são o **padrão**: a configuração editada em `/admin/configuracao` sobrepõe, e `coinTypeInfo`, `isNegociavel`, `tiposNegociaveis` e `tiposAtivos` recebem o catálogo vigente por parâmetro (sem ele, valem os do código) | ⚠️ |
-| `fees.ts` | Comissão de negociação dos dois lados e custódia mensal e anual por moeda | ⚠️ |
+| `fees.ts` | Comissão de negociação dos dois lados, os planos de custódia (anual e 24 meses) e o ciclo mensal por moeda | ⚠️ |
 | `market.ts` | **O motor de casamento de ordens**, lotes e indicadores | ⚠️ |
 | `money.ts` | Centavos ↔ exibição em BRL. `parsePrice` e `brl` | |
 | `dates.ts` | `Timestamp` ↔ `dd/mm/aaaa`, e o início do dia local | |

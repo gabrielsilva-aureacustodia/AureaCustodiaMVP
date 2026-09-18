@@ -146,7 +146,8 @@ describe('Relatórios B3 — Financeiro e Custódia (dados.ts)', () => {
       expect(rel.linhas).toHaveLength(1)
 
       const linha = rel.linhas[0]
-      expect(linha.Plano_Anual).toBe('PLC-ANUAL-02')
+      expect(linha.Plano).toBe('PLC-ANUAL-02')
+      expect(linha.Modalidade).toBe('anual')
       expect(linha.Valor_Pago).toBe(20)
       expect(typeof linha.Ja_Apropriado).toBe('number')
       expect(typeof linha.A_Apropriar).toBe('number')

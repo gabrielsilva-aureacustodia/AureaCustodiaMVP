@@ -73,7 +73,7 @@ GET /api/relatorios/tudo.xlsx           → todos, uma aba cada
 | `retiradas` | Retiradas físicas de custódia com status, endereço, taxa e rastreio | com `recortar=1` |
 | `recebimentos-gateway` | Recebimentos do Mercado Pago com segregação de bruto, tarifa e líquido | com `recortar=1` |
 | `planos-custodia` | Contratos de custódia mensais e anuais vigentes, encerrados ou aguardando pagamento | — |
-| `receita-diferida` | Demonstrativo de apropriação futura de planos anuais (mês a mês) | — |
+| `receita-diferida` | Demonstrativo de apropriação futura dos planos de custódia, anual e de 24 meses (mês a mês). Colunas: `Plano`, `Modalidade`, `Valor_Pago`, `Ja_Apropriado`, `A_Apropriar`, `Meses_Restantes` | — |
 | `faturas-custodia` | Faturas de custódia emitidas (ciclo mensal, contratação e renovação) com status e forma | com `recortar=1` |
 
 ### Parâmetros de consulta

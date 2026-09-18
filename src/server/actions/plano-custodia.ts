@@ -22,6 +22,7 @@ import {
 import { brl } from '@/domain/money'
 import {
   calcularPagoAte,
+  mesesCobertos,
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
@@ -51,7 +52,7 @@ export type RespostaPagarFatura =
   | (CobrancaCartao & { forma: 'cartao' })
 
 /**
- * Contrata um plano de custódia (mensal ou anual) associado a um envio.
+ * Contrata um plano de custódia (anual ou de 24 meses) associado a um envio.
  * Cria o plano com status 'aguardando_pagamento' e a fatura correspondente de origem 'contratacao'.
  */
 export async function contratarPlanoCustodia(
@@ -61,7 +62,9 @@ export async function contratarPlanoCustodia(
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
-  if (modalidade !== 'mensal' && modalidade !== 'anual') {
+  // O plano mensal foi aposentado em 18/09/2026; a tela manda só estes dois, e uma
+  // chamada com 'mensal' vinda de aba velha ou de cliente antigo para aqui.
+  if (modalidade !== 'anual' && modalidade !== 'bienal') {
     return { ok: false, error: 'Modalidade de plano inválida.' }
   }
 
@@ -253,7 +256,8 @@ export async function pagarFaturaComSaldo(
         s.planosCustodia = s.planosCustodia ?? []
         const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
         if (plano) {
-          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 12)
+          // A renovação estende pelo prazo do próprio plano: 12 meses no anual, 24 no de 24 meses.
+          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
           plano.formaPagamento = 'saldo'
           plano.atualizadoEm = agora
         }
@@ -353,8 +357,10 @@ export async function iniciarCartaoFatura(
   const plano = fatura.planoId
     ? (state.planosCustodia || []).find((p) => p.id === fatura.planoId)
     : undefined
-  const isAnual = fatura.origem === 'renovacao_anual' || plano?.modalidade === 'anual'
-  const parcelasMax = isAnual ? (plano?.parcelasMax || 12) : 1
+  // Fatura de plano parcela no cartão pelo que o próprio plano congelou na contratação.
+  // Fatura do ciclo mensal, não: são R$ 2,00 por moeda, não há o que parcelar.
+  const deplano = plano !== undefined || fatura.origem === 'renovacao_anual'
+  const parcelasMax = deplano ? (plano?.parcelasMax || 12) : 1
 
   const externalReference = `FAT-${randomUUID()}`
   const agora = Date.now()

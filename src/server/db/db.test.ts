@@ -291,6 +291,32 @@ function suite(alvo: Alvo): void {
       expect(res.rows[0]).toMatchObject({ fee: 500, fee_comprador: 250, fee_vendedor: 250 })
     })
 
+    it('migration 026: planos_custodia aceita bienal e recusa modalidade desconhecida', async () => {
+      const S = alvo.schema
+      const semeado = await lerEstado(executar)
+      const [dono] = Object.keys(semeado.users)
+
+      const inserir = (id: string, modalidade: string): Promise<unknown> =>
+        executar((tx) =>
+          tx.query(
+            `INSERT INTO ${S}.planos_custodia
+               (id, user_email, protocolo_envio, modalidade, quantidade_contratada,
+                valor_por_moeda, valor_total, parcelas_max, inicio_competencia, status,
+                criado_em, atualizado_em)
+             VALUES ($1, $2, 'ENV-CHECK', $3, 1, 3600, 3600, 12, '2026-09', 'aguardando_pagamento', 1, 1)`,
+            [id, dono, modalidade],
+          ),
+        )
+
+      // O plano de 24 meses é o que a tela contrata desde 18/09/2026.
+      await inserir('PLC-BIENAL', 'bienal')
+      // 'mensal' continua aceito só para não travar UPDATE nos planos antigos.
+      await inserir('PLC-LEGADO', 'mensal')
+      await expect(inserir('PLC-INVALIDO', 'trienal')).rejects.toThrow()
+
+      await executar((tx) => tx.query(`DELETE FROM ${S}.planos_custodia WHERE protocolo_envio = 'ENV-CHECK'`))
+    })
+
     it('banco vazio semeia na primeira leitura, e a segunda leitura é idêntica à primeira', async () => {
       const primeira = await lerEstado(executar)
       expect(Object.keys(primeira.users)).toHaveLength(7)

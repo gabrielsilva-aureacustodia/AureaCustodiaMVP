@@ -22,13 +22,13 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
       paragrafos: [
         {
           numero: '1.1',
-          titulo: 'Plano Mensal de Custódia',
-          texto: 'R$ 2,00 por moeda por mês.',
+          titulo: 'Plano Anual de Custódia',
+          texto: 'R$ 24,00 por moeda pelos 12 meses, em até 12x no cartão de crédito.',
         },
         {
           numero: '1.2',
-          titulo: 'Plano Anual de Custódia',
-          texto: 'R$ 24,00 por moeda por ano, em até 12x no cartão de crédito.',
+          titulo: 'Plano de 24 Meses de Custódia',
+          texto: 'R$ 36,00 por moeda pelos 24 meses, em até 12x no cartão de crédito.',
         },
         {
           numero: '1.3',

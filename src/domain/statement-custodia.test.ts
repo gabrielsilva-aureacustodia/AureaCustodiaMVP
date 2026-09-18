@@ -75,7 +75,7 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     expect(row.impacto).toBe(-7200)
   })
 
-  it('fatura de renovação anual descreve "Renovação anual"', () => {
+  it('fatura de renovação descreve "Renovação do plano"', () => {
     const faturaRenovacao: FaturaCustodia = {
       id: 'FAT-RENOVACAO',
       userEmail: email,
@@ -98,7 +98,7 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     expect(rows).toHaveLength(1)
     const row = rows[0]
     expect(row.kind).toBe('Taxa de custódia')
-    expect(row.descricao).toContain('Renovação anual')
+    expect(row.descricao).toContain('Renovação do plano')
     expect(row.taxa).toBe(7200)
     expect(row.impacto).toBe(-7200)
   })

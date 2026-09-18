@@ -5,15 +5,16 @@
  * Valores monetários SEMPRE inteiros em centavos (Cents).
  *
  * REGRAS CONTÁBEIS:
- *  - Mensal (ciclo e contratação de plano mensal): receita na competência da fatura paga.
- *  - Anual: 1/12 por mês coberto; a sobra do arredondamento vai para o 12º mês,
- *    para os doze somarem exatamente o valor pago.
- *  - Não conta duas vezes: faturas de planos anuais não somam na receita de fatura mensal,
- *    pois são apropriadas mês a mês via `apropriacaoPlanoAnual`.
+ *  - Ciclo mensal: receita na competência da fatura paga.
+ *  - Plano: linear pelos meses que ele cobre — 1/12 no anual, 1/24 no de 24 meses;
+ *    a sobra do arredondamento vai para o último mês, para todos somarem exatamente
+ *    o valor pago.
+ *  - Não conta duas vezes: faturas de plano não somam na receita de fatura do ciclo,
+ *    pois são apropriadas mês a mês via `apropriacaoDoPlano`.
  */
 
 import type { Periodo } from './dre'
-import { somarMeses } from './plano-custodia'
+import { mesesCobertos, somarMeses } from './plano-custodia'
 import type { Cents, FaturaCustodia, PlanoCustodia, Timestamp } from './types'
 
 /**
@@ -28,26 +29,28 @@ export function mesNoPeriodo(competencia: string, periodo: Periodo): boolean {
 }
 
 /**
- * Receita de um plano anual dentro de um período contábil:
- * 1/12 por mês coberto; a sobra do arredondamento vai para o 12º mês,
- * para os doze meses somarem exatamente o valor líquido pago.
+ * Receita de um plano de custódia dentro de um período contábil, apropriada
+ * linearmente pelos meses que o plano cobre: 1/12 no anual, 1/24 no de 24 meses.
+ * A sobra do arredondamento vai para o último mês, para as parcelas somarem
+ * exatamente o valor líquido pago — R$ 36,00 em 24 meses dá R$ 1,50 redondo, mas
+ * uma tabela de taxas editada no painel pode gerar valor que não divide.
  */
-export function apropriacaoPlanoAnual(plano: PlanoCustodia, periodo: Periodo): Cents {
-  if (plano.modalidade !== 'anual') return 0
+export function apropriacaoDoPlano(plano: PlanoCustodia, periodo: Periodo): Cents {
   if (plano.status !== 'vigente' && plano.status !== 'encerrado') return 0
 
   const valorLiquido = plano.valorTotalCents - (plano.estornadoCents ?? 0)
   if (valorLiquido <= 0) return 0
 
-  const parcelaMensal = Math.floor(valorLiquido / 12)
-  const sobra = valorLiquido - parcelaMensal * 12
+  const meses = mesesCobertos(plano.modalidade)
+  const parcelaMensal = Math.floor(valorLiquido / meses)
+  const sobra = valorLiquido - parcelaMensal * meses
 
   let totalPeriodo = 0
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < meses; i++) {
     const compMes = somarMeses(plano.inicioCompetencia, i)
     if (mesNoPeriodo(compMes, periodo)) {
-      const valorMes = i === 11 ? parcelaMensal + sobra : parcelaMensal
+      const valorMes = i === meses - 1 ? parcelaMensal + sobra : parcelaMensal
       totalPeriodo += valorMes
     }
   }
@@ -57,11 +60,11 @@ export function apropriacaoPlanoAnual(plano: PlanoCustodia, periodo: Periodo): C
 
 /**
  * Receita de custódia total reconhecida por competência no período:
- *  - Faturas pagas de ciclo mensal e de planos mensais (pela competência da fatura);
- *  - Planos anuais vigentes ou encerrados apropriados linearmente (1/12 por mês coberto).
+ *  - Faturas pagas do ciclo mensal (pela competência da fatura);
+ *  - Planos vigentes ou encerrados apropriados linearmente pelos meses cobertos.
  *
- * Evita contagem dupla: faturas emitidas para planos anuais são desconsideradas
- * na soma de faturas, sendo reconhecidas estritamente pela apropriação mensal do plano.
+ * Evita contagem dupla: faturas emitidas para um plano são desconsideradas na soma
+ * de faturas, sendo reconhecidas estritamente pela apropriação mensal do plano.
  */
 export function receitaDeCustodiaNoPeriodo(
   faturas: FaturaCustodia[],
@@ -76,30 +79,25 @@ export function receitaDeCustodiaNoPeriodo(
   for (const f of faturas ?? []) {
     if (f.status !== 'paga') continue
 
-    // Se a fatura é de contratação ou renovação de plano anual, sua receita é reconhecida via plano
+    // Se a fatura é de contratação ou renovação de plano, sua receita é reconhecida via plano
     if (f.origem === 'renovacao_anual') continue
-    if (f.planoId) {
-      const p = planosMap.get(f.planoId)
-      if (p && p.modalidade === 'anual') continue
-    }
+    if (f.planoId && planosMap.has(f.planoId)) continue
 
     if (mesNoPeriodo(f.competencia, periodo)) {
       receita += f.valorCents
     }
   }
 
-  // 2. Receita de planos anuais por competência (1/12 ao mês)
+  // 2. Receita dos planos por competência (1/12 ou 1/24 ao mês)
   for (const p of planos ?? []) {
-    if (p.modalidade === 'anual') {
-      receita += apropriacaoPlanoAnual(p, periodo)
-    }
+    receita += apropriacaoDoPlano(p, periodo)
   }
 
   return receita
 }
 
 /**
- * Detalhamento de receita diferida para um plano de custódia anual:
+ * Detalhamento de receita diferida para um plano de custódia:
  * calcula o total pago, quanto já foi apropriado até a data de referência,
  * quanto resta a apropriar e quantos meses restam.
  */
@@ -114,7 +112,7 @@ export function calcularReceitaDiferida(
   mesesApropriados: number
 } {
   const valorPago = Math.max(0, plano.valorTotalCents - (plano.estornadoCents ?? 0))
-  if (plano.modalidade !== 'anual' || valorPago <= 0) {
+  if (valorPago <= 0) {
     return {
       valorPago,
       jaApropriado: valorPago,
@@ -124,8 +122,9 @@ export function calcularReceitaDiferida(
     }
   }
 
-  const parcelaMensal = Math.floor(valorPago / 12)
-  const sobra = valorPago - parcelaMensal * 12
+  const meses = mesesCobertos(plano.modalidade)
+  const parcelaMensal = Math.floor(valorPago / meses)
+  const sobra = valorPago - parcelaMensal * meses
 
   const dRef = new Date(dataReferencia)
   const compRef = `${dRef.getFullYear()}-${String(dRef.getMonth() + 1).padStart(2, '0')}`
@@ -133,15 +132,15 @@ export function calcularReceitaDiferida(
   let jaApropriado = 0
   let mesesApropriados = 0
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < meses; i++) {
     const compMes = somarMeses(plano.inicioCompetencia, i)
     if (compMes <= compRef) {
       mesesApropriados++
-      jaApropriado += i === 11 ? parcelaMensal + sobra : parcelaMensal
+      jaApropriado += i === meses - 1 ? parcelaMensal + sobra : parcelaMensal
     }
   }
 
-  const mesesRestantes = Math.max(0, 12 - mesesApropriados)
+  const mesesRestantes = Math.max(0, meses - mesesApropriados)
   const aApropriar = Math.max(0, valorPago - jaApropriado)
 
   return {

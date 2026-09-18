@@ -19,7 +19,11 @@ import type { ModalidadeEnvio } from '@/lib/shipping'
  *  1. Valida se o usuário está autenticado e se é o proprietário do protocolo.
  *  2. Modalidade estritamente PAC ou SEDEX. Carta comum é proibida.
  *  3. Declaração de conteúdo obrigatória: "Moeda comemorativa / colecionável".
- *  4. Endereço fixo da Central de Custódia da Áurea Custódia LTDA (Av. Paulista, 1500).
+ *  4. Destinatário fixo: a caixa postal da Central de Custódia. A etiqueta imprime
+ *     SÓ a caixa postal e o CEP — agência, logradouro, bairro e cidade não vão para
+ *     o papel (pedido do Gabriel, 18/09/2026). Os Correios entregam numa caixa postal
+ *     com esses dois dados, e o endereço detalhado da central não precisa circular
+ *     colado do lado de fora de uma encomenda de moeda.
  *  5. Suporta saída em HTML estilizado pronto para impressão (`window.print()`)
  *     ou saída em JSON se especificado `?format=json`.
  */
@@ -69,6 +73,11 @@ export async function GET(
     tipoMoeda: envio.tipoMoeda,
     valorDeclaradoCents: envio.quantidade * 15000, // R$ 150,00 por moeda como base declarada padrão
   })
+
+  // O nome cadastrado nos Correios ja traz a caixa postal colada ("AUREA CUSTODIA LTDA
+  // - Caixa Postal 7990"), e na etiqueta a caixa tem linha propria. Sem isto, o papel
+  // repete o numero duas vezes. Sem o separador, o split devolve o nome inteiro.
+  const razaoSocial = ENDERECO_CENTRAL_AUREA.nome.split('—')[0].trim()
 
   const { searchParams } = new URL(req.url)
   if (searchParams.get('format') === 'json') {
@@ -200,11 +209,9 @@ export async function GET(
 
     <div class="box">
       <h2>1. Destinatário (Central de Custódia)</h2>
-      <div class="row"><span class="k">Nome:</span><span class="v">${ENDERECO_CENTRAL_AUREA.nome}</span></div>
+      <div class="row"><span class="k">Nome:</span><span class="v">${razaoSocial}</span></div>
       <div class="row"><span class="k">CNPJ:</span><span class="v">${ENDERECO_CENTRAL_AUREA.cpfOuCnpj}</span></div>
-      <div class="row"><span class="k">Endereço:</span><span class="v">${ENDERECO_CENTRAL_AUREA.logradouro}, ${ENDERECO_CENTRAL_AUREA.numero} — ${ENDERECO_CENTRAL_AUREA.complemento}</span></div>
-      <div class="row"><span class="k">Bairro:</span><span class="v">${ENDERECO_CENTRAL_AUREA.bairro}</span></div>
-      <div class="row"><span class="k">Cidade / UF:</span><span class="v">${ENDERECO_CENTRAL_AUREA.cidade} / ${ENDERECO_CENTRAL_AUREA.uf}</span></div>
+      <div class="row"><span class="k">Caixa Postal:</span><span class="v">${ENDERECO_CENTRAL_AUREA.logradouro}</span></div>
       <div class="row"><span class="k">CEP:</span><span class="v" style="font-size: 15px; color: #000;">${ENDERECO_CENTRAL_AUREA.cep}</span></div>
     </div>
 

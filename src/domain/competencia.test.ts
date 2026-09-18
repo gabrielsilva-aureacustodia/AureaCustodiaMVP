@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from 'vitest'
 
 import {
-  apropriacaoPlanoAnual,
+  apropriacaoDoPlano,
   calcularReceitaDiferida,
   mesNoPeriodo,
   receitaDeCustodiaNoPeriodo,
@@ -27,7 +27,7 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
     })
   })
 
-  describe('apropriacaoPlanoAnual', () => {
+  describe('apropriacaoDoPlano', () => {
     it('apropria plano de R$ 24,00 em 12 meses somando exatamente R$ 24,00 no ano', () => {
       const plano: PlanoCustodia = {
         id: 'PLC-001',
@@ -52,12 +52,12 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
 
       // No ano de 2026 inteiro, deve somar exatamente 2400
       const pAno = periodoAnual(2026)
-      expect(apropriacaoPlanoAnual(plano, pAno)).toBe(2400)
+      expect(apropriacaoDoPlano(plano, pAno)).toBe(2400)
 
       // Em cada mês individual, deve ser 200 cents (R$ 2,00)
       for (let mes = 1; mes <= 12; mes++) {
         const pMes = periodoMensal(2026, mes)
-        expect(apropriacaoPlanoAnual(plano, pMes)).toBe(200)
+        expect(apropriacaoDoPlano(plano, pMes)).toBe(200)
       }
     })
 
@@ -84,12 +84,12 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       }
 
       const pAno = periodoAnual(2026)
-      expect(apropriacaoPlanoAnual(plano, pAno)).toBe(7200)
+      expect(apropriacaoDoPlano(plano, pAno)).toBe(7200)
 
       // R$ 6,00 por mês
       for (let mes = 1; mes <= 12; mes++) {
         const pMes = periodoMensal(2026, mes)
-        expect(apropriacaoPlanoAnual(plano, pMes)).toBe(600)
+        expect(apropriacaoDoPlano(plano, pMes)).toBe(600)
       }
     })
 
@@ -118,17 +118,17 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
 
       let somaMeses = 0
       for (let mes = 1; mes <= 11; mes++) {
-        const valorMes = apropriacaoPlanoAnual(plano, periodoMensal(2026, mes))
+        const valorMes = apropriacaoDoPlano(plano, periodoMensal(2026, mes))
         expect(valorMes).toBe(208)
         somaMeses += valorMes
       }
 
-      const mes12 = apropriacaoPlanoAnual(plano, periodoMensal(2026, 12))
+      const mes12 = apropriacaoDoPlano(plano, periodoMensal(2026, 12))
       expect(mes12).toBe(212) // 208 + 4 de sobra
       somaMeses += mes12
 
       expect(somaMeses).toBe(2500)
-      expect(apropriacaoPlanoAnual(plano, periodoAnual(2026))).toBe(2500)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(2500)
     })
 
     it('plano que começa em novembro divide receita entre os dois anos', () => {
@@ -154,15 +154,15 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       }
 
       // Em 2026: nov e dez = 2 meses * 200 = 400
-      expect(apropriacaoPlanoAnual(plano, periodoAnual(2026))).toBe(400)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(400)
 
       // Em 2027: jan a out = 10 meses * 200 = 2000
-      expect(apropriacaoPlanoAnual(plano, periodoAnual(2027))).toBe(2000)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2027))).toBe(2000)
 
       // Soma dos dois anos = 2400
       expect(
-        apropriacaoPlanoAnual(plano, periodoAnual(2026)) +
-          apropriacaoPlanoAnual(plano, periodoAnual(2027)),
+        apropriacaoDoPlano(plano, periodoAnual(2026)) +
+          apropriacaoDoPlano(plano, periodoAnual(2027)),
       ).toBe(2400)
     })
 
@@ -189,8 +189,39 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       }
 
       // Valor líquido = 4800 (400 por mês)
-      expect(apropriacaoPlanoAnual(plano, periodoAnual(2026))).toBe(4800)
-      expect(apropriacaoPlanoAnual(plano, periodoMensal(2026, 1))).toBe(400)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(4800)
+      expect(apropriacaoDoPlano(plano, periodoMensal(2026, 1))).toBe(400)
+    })
+    it('apropria plano de 24 meses a 1/24 por mês, somando R$ 36,00 nos dois anos', () => {
+      const plano: PlanoCustodia = {
+        id: 'PLC-BIENAL',
+        userEmail: 'user@teste.com',
+        protocoloEnvio: 'ENV-BIENAL',
+        modalidade: 'bienal',
+        quantidadeContratada: 1,
+        moedaIds: [],
+        valorPorMoedaCents: 3600,
+        valorTotalCents: 3600,
+        parcelasMax: 12,
+        inicioCompetencia: '2026-01',
+        pagoAteCompetencia: '2027-12',
+        status: 'vigente',
+        formaPagamento: 'cartao',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: Date.now(),
+        atualizadoEm: Date.now(),
+      }
+
+      // R$ 1,50 por mês, nos 24 meses — e nenhum centavo no 25º
+      for (let mes = 1; mes <= 12; mes++) {
+        expect(apropriacaoDoPlano(plano, periodoMensal(2026, mes))).toBe(150)
+        expect(apropriacaoDoPlano(plano, periodoMensal(2027, mes))).toBe(150)
+      }
+      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(1800)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2027))).toBe(1800)
+      expect(apropriacaoDoPlano(plano, periodoAnual(2028))).toBe(0)
     })
   })
 

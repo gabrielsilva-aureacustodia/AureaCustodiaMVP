@@ -18,7 +18,7 @@
  *    uma linha daqui.
  *  - Tempo até a execução da oferta (A2): vem do histórico da fila. `null` = a tabela
  *    ainda não existe, e a tela diz isso.
- *  - Planos mensal × anual (B2): vêm de `planosCustodia`. `null` = ainda não existem.
+ *  - Planos anual × 24 meses (B2): vêm de `planosCustodia`. `null` = ainda não existem.
  *
  * O que este arquivo NÃO faz: receita oficial. A receita da empresa é a da DRE, lida do
  * livro-razão. Aqui "receita por tipo" é a comissão congelada em cada negociação — os
@@ -141,8 +141,8 @@ export interface Kpis {
   }
   /** `null` = sem planos de custódia neste estado (B2). */
   planos: {
-    mensal: { vigentes: number; moedas: number }
     anual: { vigentes: number; moedas: number }
+    bienal: { vigentes: number; moedas: number }
     aguardandoPagamento: number
     cancelados: number
   } | null
@@ -312,8 +312,8 @@ export function montarKpis({ state, retiradas, periodo, agora, historicoDaFila, 
       return { vigentes: lista.length, moedas: lista.reduce((s, p) => s + moedasDo(p), 0) }
     }
     resumoPlanos = {
-      mensal: vigentes('mensal'),
       anual: vigentes('anual'),
+      bienal: vigentes('bienal'),
       aguardandoPagamento: planos.filter((p) => p.status === 'aguardando_pagamento').length,
       cancelados: planos.filter((p) => p.status === 'cancelado').length,
     }

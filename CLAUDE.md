@@ -97,8 +97,13 @@ cold start.
   (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
   derivados em `constants.ts`). Em uma negociação de R$ 200,00: o comprador paga R$ 202,00, o
   vendedor recebe R$ 198,00 e a Áurea retém R$ 4,00.
-- Custódia mensal: **R$ 2,00 por moeda por mês** (`custodiaMensalCents: 200` em `TAXAS_PADRAO`,
-  decisão D-3 de 11/09/2026). A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
+- Custódia: **dois planos, e só dois** (decisão de 18/09/2026). **Anual**, R$ 24,00 por moeda
+  pelos 12 meses (`custodiaAnualPorMoeda: 2400`), e **de 24 meses**, R$ 36,00 por moeda
+  (`custodiaBienalPorMoeda: 3600`) — ou seja R$ 2,00 e R$ 1,50 por mês. Os dois parcelam em
+  até 12x no cartão. **Não existe plano mensal**: quem guarda moeda contrata um prazo.
+  O que continua mensal é o **ciclo** (`origem: 'ciclo_mensal'`), a cobrança de R$ 2,00 por
+  moeda de quem está sem plano vigente (`custodiaMensalPorMoeda: 200`, decisão D-3 de
+  11/09/2026). A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
 - Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
   **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
   nunca casa com oferta de outro).

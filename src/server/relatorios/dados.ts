@@ -414,7 +414,7 @@ function relatorioNegociacoes(fontes: Fontes, periodo: Periodo | null): Relatori
 
 function relatorioCustodia(fontes: Fontes): Relatorio {
   const r = base('custodia', fontes, null)
-  r.observacoes.push('Uma linha por fatura mensal de custódia, a R$ 2,00 por moeda por mês (D-3).')
+  r.observacoes.push('Uma linha por fatura do ciclo mensal de custódia, a R$ 2,00 por moeda por mês (D-3).')
   // Até 11/09/2026 este relatório lia `custodyCharges` — uma cobrança única por
   // conta, com a coluna chamada `Valor_Anual` e valor da tabela de faixas. As
   // três coisas saíram junto com o mecanismo antigo.
@@ -691,12 +691,17 @@ function relatorioPlanosCustodia(fontes: Fontes): Relatorio {
 
 function relatorioReceitaDiferida(fontes: Fontes): Relatorio {
   const r = base('receita-diferida', fontes, null)
-  r.observacoes.push('Demonstrativo de apropriação futura de planos de custódia anuais (receita diferida).')
-  const anuais = (fontes.state.planosCustodia ?? []).filter((p) => p.modalidade === 'anual')
-  const linhas = anuais.map((p) => {
+  r.observacoes.push('Demonstrativo de apropriação futura dos planos de custódia (receita diferida).')
+  // Desde 18/09/2026 há dois prazos, e o de 24 meses difere receita por 24 meses. A
+  // coluna se chamava `Plano_Anual` e passou a `Plano` + `Modalidade`: mantê-la com o
+  // nome antigo carregando um plano de 24 meses é o tipo de rótulo que o contador lê
+  // errado uma vez e nunca mais confia.
+  const planos = fontes.state.planosCustodia ?? []
+  const linhas = planos.map((p) => {
     const dif = calcularReceitaDiferida(p)
     return {
-      Plano_Anual: p.id,
+      Plano: p.id,
+      Modalidade: p.modalidade === 'bienal' ? '24 meses' : 'anual',
       Valor_Pago: reais(dif.valorPago),
       Ja_Apropriado: reais(dif.jaApropriado),
       A_Apropriar: reais(dif.aApropriar),
@@ -704,7 +709,8 @@ function relatorioReceitaDiferida(fontes: Fontes): Relatorio {
     }
   })
   return comLinhas(r, linhas, [
-    'Plano_Anual',
+    'Plano',
+    'Modalidade',
     'Valor_Pago',
     'Ja_Apropriado',
     'A_Apropriar',
