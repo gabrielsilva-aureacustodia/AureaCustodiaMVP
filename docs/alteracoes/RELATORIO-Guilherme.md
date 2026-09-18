@@ -97,6 +97,62 @@ arquivo alterado explicando o que mudou e por quê.
   vieram significaria inferir a intenção a partir do diff — o que produziria um
   documento com a aparência de registro e o conteúdo de chute.
 
+### 5. Levantamento: não há `middleware.ts`, e rota nova nasce pública
+
+**O que foi levantado.** Foram mapeadas todas as rotas do projeto: **32 páginas** e
+**10 rotas de API** exigem sessão de usuário. A proteção vem de dois lugares apenas:
+
+| Guarda | Onde | Cobre |
+|---|---|---|
+| `getSessionEmail()` → `/entrar` | `src/app/(app)/layout.tsx:51` | as 16 páginas de `(app)` |
+| `membroDaPagina()` → `/painel` | `src/server/admin/acesso.ts:126` | as 15 páginas de `(admin)` |
+
+Mais `/entrar/nova-senha`, que confere a sessão por conta própria, e as 10 rotas de API,
+cada uma com a sua verificação.
+
+**O problema.** O projeto **não tem `middleware.ts`**. Não existe nenhuma camada que
+olhe a requisição antes de ela chegar à rota. A consequência é que a proteção não é
+herdada, é escolhida arquivo a arquivo — e o padrão de quem não escolhe é **público**.
+
+Uma página criada em `src/app/qualquer-coisa/page.tsx`, fora dos grupos `(app)` e
+`(admin)`, **nasce acessível sem login**, e nada no build, no typecheck ou no lint
+acusa. O erro só aparece quando alguém tenta a URL.
+
+**Por que isso é grave e não teórico.** O projeto está em desenvolvimento acelerado, com
+oito frentes de execução paralelas e agentes diferentes criando telas. É precisamente o
+cenário em que uma rota nasce no lugar errado — e o repositório está **público**
+(RA-02, RA-11), então a URL não depende de ninguém adivinhar.
+
+**Situação.** Levantado hoje, correção planejada. Ver "Em aberto".
+
+### 6. Auditoria de SQL injection nas rotas públicas
+
+**O que foi feito.** Auditoria da camada de banco inteira, com foco no que uma pessoa
+sem login consegue alcançar. Foram varridos os **35 arquivos** que executam SQL e as
+**197 interpolações** dentro de comandos SQL fora de teste.
+
+**Resultado: nenhum vetor de injeção encontrado.** O padrão do repositório é correto e
+consistente:
+
+| Ponto auditado | Conclusão |
+|---|---|
+| As 197 interpolações em SQL | Quase todas são `${S}`, o nome do schema. Os **valores** vão sempre em `$1, $2, …` |
+| `nomeDoSchema()` (`src/server/db/sql.ts:63`) | Vem de `AUREA_DB_SCHEMA`, não do usuário, e ainda assim é validado por regex — inválido **lança**, não degrada |
+| Construtores dinâmicos de `WHERE` (`painel-leituras.ts`, `ledger.ts`, `ofertas-historico.ts`, `cs.ts`) | A função `param()` empurra o valor no array e devolve `$N`. O que é concatenado são fragmentos literais e placeholders — nunca dado do usuário |
+| `tabelaExiste()` | Valida o identificador contra `/^[a-z_][a-z0-9_]*$/` **e** usa `to_regclass($1)` parametrizado |
+| Busca textual do atendimento e da trilha | `semCuringa()` escapa `%`, `_` e `\` antes do `LIKE` — quem digita `_` procura `_`, não "qualquer caractere" |
+| `src/server/auth/*` e `src/app/api/webhooks/*` | **Nenhum SQL cru.** Login e cadastro passam pelo Supabase Auth; webhooks gravam pelos repositórios |
+| Páginas públicas (`/`, `/entrar`, `/cadastrar`, `/painel`, `/taxas`, `/termos`, `/suporte`, `/academy`, `/privacidade`) | Só leem sessão e configuração. Nenhuma leva entrada do visitante para dentro de uma consulta |
+
+**O que não é risco, mas parece.** Duas construções chamam atenção numa leitura rápida e
+são seguras: em `cs.ts:289`, `const texto = param(...)` guarda o **retorno** de `param()`,
+que é a string `$N` — o que entra na consulta é o placeholder; e `state.ts:97` interpola
+variáveis numa **mensagem de erro**, não em SQL.
+
+**Conclusão.** Não há o que corrigir. O que falta é **impedir a regressão**: hoje nada
+obriga a próxima consulta a seguir o padrão, e a auditoria é um retrato de um dia. Ver
+"Em aberto".
+
 ---
 
 ## Em aberto, aguardando decisão
@@ -108,3 +164,5 @@ vira entrada do dia.
 |---|---|---|
 | **Vulnerabilidade crítica no `next`** — RCE não autenticado em servidor Windows e na API de otimização de imagem com AVIF ([GHSA-p293-qw3h-jr36](https://github.com/advisories/GHSA-p293-qw3h-jr36), [GHSA-2xp9-vwfh-vxw4](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4)). Junto vem `sharp` < 0.35.4, severidade alta. O `npm audit fix` resolve os dois sem trocar de major. | 18/09/2026 | Aguardando aval do Gabriel — mexer em dependência de produção pede build de verificação |
 | **Fluxo entre `staging` e `main`** — qual das duas recebe o trabalho novo | 18/09/2026 | A combinar |
+| **Rota nova nasce pública** — sem `middleware.ts`, a proteção é escolhida arquivo a arquivo e o padrão de quem esquece é aberto (item 5) | 18/09/2026 | Correção planejada, aguardando aval — ver abaixo |
+| **Nada impede uma consulta SQL futura de sair do padrão seguro** (item 6) | 18/09/2026 | Guarda de regressão planejada, aguardando aval |
