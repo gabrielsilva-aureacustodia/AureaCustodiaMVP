@@ -10,6 +10,17 @@ Caminhos:    os menus da Vercel, do Supabase e do Mercado Pago foram conferidos 
              oficial em 15/09/2026 (fontes no fim).
 ```
 
+> **Atualização de 18/09/2026 — a maior parte destes passos saiu das suas mãos.** O que é
+> navegador virou roteiro para o **Claude Cowork**, em [`../cowork/`](../cowork/): o Mercado Pago
+> (passo 5) está em [`cowork/01_MERCADO_PAGO_PRODUCAO.md`](../cowork/01_MERCADO_PAGO_PRODUCAO.md),
+> o parcelamento (passo 6) e a gaveta do banco (passo 9) em
+> [`cowork/03_TAREFAS_CURTAS.md`](../cowork/03_TAREFAS_CURTAS.md), e o WhatsApp (passo 8) em
+> [`cowork/04_WHATSAPP_EVOLUTION.md`](../cowork/04_WHATSAPP_EVOLUTION.md). O texto para colar na
+> sessão do Cowork é [`cowork/PROMPT_COWORK.md`](../cowork/PROMPT_COWORK.md). Continuam sendo seus:
+> as pausas de segundo fator e reCAPTCHA, as decisões, e **um comando de terminal** para o passo 7
+> (`CRON_SECRET`), porque a permissão do modo automático não deixa um agente gravar segredo na
+> Vercel.
+
 Faça na ordem. Os passos 1 e 3 destravam o trabalho agora; os passos 2 e 4 já estão feitos; do 5 em diante,
 cada um liga uma integração e pode ser feito quando quiser.
 
