@@ -3,7 +3,8 @@
 ```
 Criado em:   15/09/2026
 Base:        origin/main que contém esta pasta (depois do painel com entrada própria em /painel, 40bb8c8)
-Ordens:      E1, E2, E3, E4 e E7 ao mesmo tempo · integração · E5 e E6 (revisão) e E8 depois dela
+Ordens:      E1, E2, E3, E4 e E7 ao mesmo tempo · integração · E8 depois dela
+Situação:    E1, E2, E3, E4 e E7 MESCLADAS em 18/09/2026 · E5 e E6 CANCELADAS · E8 por executar
 Eficiência:  docs/Regras_eficiencia_de_sessao_v1.md (prevalece sobre este plano e sobre cada documento)
 Prompts:     PROMPTS.md (um bloco para colar em cada agente)
 Integração:  INTEGRACAO.md
@@ -26,18 +27,24 @@ Manual:      TUTORIAL_MANUAL_GABRIEL.md (o que só uma pessoa faz)
 | E2 | `exec/e2-cobranca-com-configuracao-vigente` | [E2](E2_COBRANCA_COM_CONFIGURACAO_VIGENTE.md) | Compra direta pelo gateway e valor de entrada da análise lendo a taxa e o catálogo do painel | P-C3-03 · RA-24 (vendedor), RA-47 |
 | E3 | `exec/e3-limpeza-relatorios-antigos` | [E3](E3_LIMPEZA_RELATORIOS_ANTIGOS.md) | Remove o painel antigo de relatórios que ficou sem uso | P-C1-03 |
 | E4 | `exec/e4-custodia-preco-e-inadimplencia` | [E4](E4_CUSTODIA_PRECO_E_INADIMPLENCIA.md) | Preço da custódia correto na tela e no extrato; recibo bloqueado por pendência (com a equipe isenta); anonimato na venda | A-4, B-2 · CD-11 |
-| E5 | `exec/e5-qa-painel-resultados-equipe-cs-usuarios` | [E5](E5_QA_PAINEL_RESULTADOS_EQUIPE_CS_USUARIOS.md) | Análise, testes e melhorias do painel: entrada, resultados, equipe, atendimento e usuários | P-C1-02, P-C2 (conferência) |
-| E6 | `exec/e6-qa-painel-bancada-moedas-logistica-configuracao` | [E6](E6_QA_PAINEL_BANCADA_MOEDAS_LOGISTICA_CONFIGURACAO.md) | Análise, testes e melhorias do painel: bancada, moedas, logística, configuração e o efeito dela no site | P-C3-02 |
+| ~~E5~~ | — | **cancelada em 18/09/2026** | Era revisão e teste do painel (entrada, resultados, equipe, CS, usuários) | — |
+| ~~E6~~ | — | **cancelada em 18/09/2026** | Era revisão e teste do painel (bancada, moedas, logística, configuração) | — |
 | E7 | `exec/e7-documentacao-das-pendencias` | [E7](E7_DOCUMENTACAO_DAS_PENDENCIAS.md) | Marca como feito o que já está feito, conserta o arquivo de pendências corrompido, cria o índice único | B-1, B-3…B-7, C-1, C-2, pendências da B |
 | E8 | `exec/e8-segunda-onda-conciliacao-e-rastreio` | [E8](E8_SEGUNDA_ONDA_CONCILIACAO_E_RASTREIO.md) | Comissão do comprador na compra direta, pendência reconferida na conciliação, rastreio da retirada, origem da marca de inadimplência | RA-24 (comprador), RA-53 · **só depois da integração** |
 
-## E5 e E6 saíram da rodada paralela (15/09/2026)
+## E5 e E6 foram canceladas (18/09/2026)
 
-E5 e E6 são revisão, teste e melhoria. Pela regra 5 de `docs/Regras_eficiencia_de_sessao_v1.md`, revisão
-só roda **depois** que as outras branches estão mescladas e commitadas na `main` — revisar antes é revisar
-código que ainda vai mudar. A ordem passa a ser: E1, E2, E3, E4 e E7 em paralelo → integração → E5 e E6
-(e E8) sobre a `main` integrada. As linhas de E5 e E6 na tabela de convivência abaixo ficam só como
-referência para a integração.
+Em 15/09 elas saíram da rodada paralela porque revisão só roda depois do merge (regra 5 de
+`docs/Regras_eficiencia_de_sessao_v1.md`). Em **18/09 o Gabriel cancelou as duas**: eram rodadas de
+revisão e teste do painel, e essa revisão já tinha sido feita em outros momentos. As ordens de serviço
+saíram do repositório; o histórico do Git guarda as duas versões, se algum dia forem necessárias.
+
+O que sobrou delas é a **conferência visual das telas logadas**, que virou tarefa do Claude Cowork em
+[`../cowork/02_QA_PAINEL_LOGADO.md`](../cowork/02_QA_PAINEL_LOGADO.md). Os riscos que elas tratariam —
+RA-40, RA-41, RA-42, RA-45, RA-46 e RA-48 — continuam registrados em `RISCOS_ASSUMIDOS.md`, agora sem
+dono. Risco sem dono é anotação, não bloqueio.
+
+As menções a E5 e E6 na tabela de convivência abaixo ficam como registro histórico da rodada de 15/09.
 
 ## Por que dá para rodar E1–E4 e E7 juntas
 
@@ -63,8 +70,8 @@ crítico em 15/09/2026. Os arquivos que mais de uma branch toca têm regra de co
 | E2 | RA-51 | — | 3102 |
 | E3 | — | — | 3103 |
 | E4 | RA-52, RA-53 | 027 | 3104 |
-| E5 | RA-54 | 028 | 3105 |
-| E6 | RA-55 | 029 | 3106 |
+| ~~E5~~ | ~~RA-54~~ (livre) | ~~028~~ (livre) | — |
+| ~~E6~~ | ~~RA-55~~ (livre) | ~~029~~ (livre) | — |
 | E7 | — | — | — |
 | E8 | RA-56 | 030 | 3108 |
 
@@ -113,7 +120,9 @@ Número reservado e não usado fica livre; `npm run db:migrate` ordena por nome 
 
 ## Depois
 
-A integração segue [INTEGRACAO.md](INTEGRACAO.md): merges na ordem E3 → E2 → E1 → E4 → E7, suíte e build
-**uma vez no fim** dos merges (ou depois de um merge com conflito de código), as pendências marcadas como
-feitas, deploy conferido e um roteiro manual consolidado. Só então começam E5 e E6 (revisão sobre a `main`
-integrada) e a E8; cada uma é integrada ao terminar.
+A integração foi feita: E3, E2, E1, E4 e E7 estão na `main` e no `origin/main` desde 18/09/2026, com
+845 testes verdes e typecheck limpo. **Resta a E8**, que dependia justamente de E2 e E4 estarem no ar —
+ver [E8](E8_SEGUNDA_ONDA_CONCILIACAO_E_RASTREIO.md). E5 e E6 foram canceladas.
+
+O que é de painel externo e navegador saiu deste plano e virou [`../cowork/`](../cowork/), para o Claude
+Cowork executar.

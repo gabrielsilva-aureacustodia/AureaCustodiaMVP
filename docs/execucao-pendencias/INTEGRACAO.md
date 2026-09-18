@@ -1,9 +1,12 @@
 # Integração das branches E1–E7 na `main`
 
+> ✅ **Concluída em 18/09/2026.** E3, E2, E1, E4 e E7 estão na `main` e no `origin/main`; `git branch
+> --no-merged main` volta vazio, com 845 testes verdes e typecheck limpo. **E5 e E6 foram canceladas** no
+> mesmo dia, então as linhas 5 e 6 das tabelas deste documento não têm mais uso. O documento fica como
+> registro de como a integração foi feita. A E8 ainda não foi executada.
+
 ```
 Quando:      depois de E1, E2, E3, E4 e E7 relatarem "E<N> pronta para integração — <hash>".
-             E5 e E6 são revisão e só começam DEPOIS desta integração (docs/Regras_eficiencia_de_sessao_v1.md,
-             regra 5); cada uma é integrada sozinha ao terminar, com as linhas 5 e 6 da tabela abaixo.
 Eficiência:  typecheck, lint, suíte e build uma vez no fim dos merges, ou logo após um merge com conflito de código
 Quem:        o agente de integração (prompt em PROMPTS.md) ou o Gabriel pedindo ao Claude
 Worktree:    C:\dev\AureaCustodiaMVP-integracao, branch integracao/execucao-pendencias a partir de origin/main

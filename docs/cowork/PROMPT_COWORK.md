@@ -20,10 +20,8 @@ O repositório é **público** — você lê sem autenticação nenhuma:
 
 **https://github.com/gabrielsilva-aureacustodia/AureaCustodiaMVP**
 
-- Branch de trabalho: **`main`**
-- Commit em que este prompt foi escrito: **`7368d21`** ("Merge da E4: preco da custodia e recibo
-  bloqueado por pendencia")
-- Estado: 838 testes automatizados passando, `tsc --noEmit` limpo, build de produção verde
+- Branch de trabalho: **`main`** — é a única que importa para você; todas as outras já foram mescladas
+- Estado: **845 testes automatizados passando**, `tsc --noEmit` limpo, build de produção verde (18/09/2026)
 - Na máquina do Gabriel, a mesma coisa está em `C:\dev\AureaCustodiaMVP`
 
 Se sua integração com Git permitir clonar, clone. Se só permitir ler arquivos pela web, use os

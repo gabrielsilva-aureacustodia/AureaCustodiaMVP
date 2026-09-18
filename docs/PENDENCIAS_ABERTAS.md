@@ -11,7 +11,7 @@ Regra:         quem fecha um item marca ✅ no arquivo de origem E move a linha 
 Execução:      o que é de navegador virou roteiro para o Claude Cowork em docs/cowork/
 ```
 
-> **Para o Rogério.** Este é o painel único de tudo o que ainda falta fazer no sistema da Áurea. A maior parte das tarefas técnicas está sendo concluída de forma automatizada pelas frentes de desenvolvimento paralelas (E1 a E6). O que resta sob responsabilidade direta dos sócios são configurações manuais e decisões de negócio — sendo a principal delas a ativação definitiva das chaves de produção do Mercado Pago na Vercel (item B-7), que ligará o recebimento real de pagamentos.
+> **Para o Rogério.** Este é o painel único de tudo o que ainda falta fazer no sistema da Áurea. **As frentes de desenvolvimento automatizadas terminaram**: E1, E2, E3, E4 e E7 já estão no site, e E5 e E6 foram canceladas porque aquela revisão já tinha sido feita antes. Falta uma frente técnica, a E8, que corrige a cobrança da comissão de quem compra pagando direto por Pix ou cartão. O resto está sob responsabilidade direta dos sócios: configurações manuais e decisões de negócio — sendo a principal a ativação das credenciais de produção do Mercado Pago (item B-7), que liga o recebimento real de pagamentos.
 
 ## 1. Com o Gabriel e os sócios
 
@@ -28,19 +28,23 @@ Execução:      o que é de navegador virou roteiro para o Claude Cowork em doc
 
 ## 2. Em execução nas branches de 15/09
 
-Estado anterior aos merges de E1 a E6. A integração passa cada linha para a seção 4 no mesmo commit do merge da E7, que é mesclada por último.
+**Fechada em 18/09/2026.** E1, E2, E3, E4 e E7 foram mescladas e estão no `origin/main`; `git branch
+--no-merged main` volta vazio. As linhas que estavam aqui foram para a seção 4.
 
-| ID | O que falta | Branch | Riscos ligados | Fonte |
-|---|---|---|---|---|
-| P-C2-04 | Conta desativada recusada no login do catálogo, no login Supabase, no callback e na sessão já aberta | em execução na E1 (`exec/e1-portas-de-entrada-da-conta`) | RA-44 | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
-| P-C2-05 | Tela de nova senha no link de recuperação | em execução na E1 | RA-43 | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
-| P-C2-09 | `settings.legalAcceptance` apagado na gravação do Postgres (`src/server/db/diff.ts`) | em execução na E1 | — | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
-| P-C3-03 | Compra direta pelo gateway e valor de entrada da análise com a tabela e o catálogo vigentes | em execução na E2 (`exec/e2-cobranca-com-configuracao-vigente`) | RA-24, RA-47 | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
-| P-C1-03 | Remover o painel antigo de relatórios | em execução na E3 (`exec/e3-limpeza-relatorios-antigos`) | — | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
-| A-4 | Preço de custódia informado ao cliente | em execução na E4 (`exec/e4-custodia-preco-e-inadimplencia`) | — | [`publish_docs/PENDENCIAS_MANUAIS_AGENTE_A.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_A.md) |
-| B-2 | Recibo bloqueado por inadimplência na retirada e na venda | em execução na E4 | — | [`publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md) |
-| QA-C1C2 | Análise, testes e melhorias de `/painel`, `/admin`, resultados, equipe, CS, usuários | E5 `exec/e5-qa-painel-resultados-equipe-cs-usuarios` | RA-40, RA-41, RA-42, RA-48 | plano da E5 |
-| QA-C3 | Análise, testes e melhorias de bancada, moedas, logística, configuração | E6 `exec/e6-qa-painel-bancada-moedas-logistica-configuracao` | RA-45, RA-46 | plano da E6 |
+**E5 e E6 foram canceladas** (decisão do Gabriel, 18/09/2026): eram rodadas de revisão e teste do painel,
+e essa revisão já tinha sido feita em outros momentos. Os planos saíram do repositório — o histórico do
+Git guarda as duas versões, se algum dia forem necessárias. A conferência visual que sobrou virou tarefa
+do Cowork em [`cowork/02_QA_PAINEL_LOGADO.md`](cowork/02_QA_PAINEL_LOGADO.md). Os riscos que elas tratariam
+(RA-40, RA-41, RA-42, RA-45, RA-46, RA-48) continuam registrados em `RISCOS_ASSUMIDOS.md`, sem dono.
+
+### A única branch de código ainda por executar: E8
+
+| ID | O que falta | Plano | Riscos ligados |
+|---|---|---|---|
+| E8 | Quatro acertos que dependiam de E2 e E4 estarem no ar: **(1)** a compra direta pelo gateway cobra do comprador só o preço do lote, e não a comissão que a tela mostra em "Total a pagar"; **(2)** a pendência de custódia não é reconferida quando o pagamento chega; **(3)** o rastreio diário dos Correios acompanha só as moedas que chegam, nunca as retiradas que saem; **(4)** a marca de inadimplência posta pela equipe some sozinha na próxima fatura | [`execucao-pendencias/E8_SEGUNDA_ONDA_CONCILIACAO_E_RASTREIO.md`](execucao-pendencias/E8_SEGUNDA_ONDA_CONCILIACAO_E_RASTREIO.md) | RA-24, RA-52, RA-53 |
+
+Conferido em 18/09: `feeComprador: 0` continua fixo em `src/server/payments/conciliacao.ts:125`, a
+migration 030 não existe (a última é a 026) e RA-24, RA-52 e RA-53 seguem 🟡 em `RISCOS_ASSUMIDOS.md`.
 
 ## 3. Para a integração atualizar nos arquivos de origem
 
@@ -55,7 +59,11 @@ Estado anterior aos merges de E1 a E6. A integração passa cada linha para a se
 
 | ID | Resolvida em | Prova | Fonte |
 |---|---|---|---|
-| P-M-02 (atualizar a pasta principal) | 18/09 | `git log --oneline -1` em `C:\dev\AureaCustodiaMVP` dá `7368d21`, o mesmo de `origin/main`; `git rev-list --count origin/main..main` = 0 | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) (P-M-02) |
+| P-C2-04, P-C2-05, P-C2-09 | 18/09 | Merge da E1 (`98e0c2f`); `git branch --no-merged main` vazio | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
+| P-C3-03 | 18/09 | Merge da E2 (`60dfad8`) | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
+| P-C1-03 | 18/09 | Merge da E3 (`ee129ba`) | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) |
+| A-4, B-2 | 18/09 | Merge da E4 (`7368d21`) | [`publish_docs/PENDENCIAS_MANUAIS_AGENTE_A.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_A.md), [`_B.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md) |
+| P-M-02 (atualizar a pasta principal) | 18/09 | `git log --oneline -1` em `C:\dev\AureaCustodiaMVP` bate com `origin/main`; `git rev-list --count origin/main..main` = 0 | [`finalizacoes/PENDENCIAS_AGENTE_C.md`](finalizacoes/PENDENCIAS_AGENTE_C.md) (P-M-02) |
 | `NEXT_PUBLIC_APP_URL` ausente (parte do B-7) | 18/09 | `vercel env ls production` lista a variável; sem ela o Checkout Pro devolvia o cliente para `http://localhost:3000` (`src/lib/payments/cobranca.ts:140`) | conferido nesta sessão |
 | B-1, B-3, B-4, B-5 | 11/09 | 007, 008, 009, 010 no `db:check` de 15/09; `CHECKUP_11_09_2026.md` seção 1 | [`publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md) |
 | B-6 e seção 1 de `finalizacoes/PENDENCIAS_AGENTE_B.md` | 14/09 | 017, 018, 019 no `db:check`; `RELATORIO_AGENTE_C.md` "Banco de produção e publicação" | [`publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md`](publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md) e [`finalizacoes/PENDENCIAS_AGENTE_B.md`](finalizacoes/PENDENCIAS_AGENTE_B.md) |
@@ -81,15 +89,19 @@ Estado anterior aos merges de E1 a E6. A integração passa cada linha para a se
 
 Risco registrado é anotação, não portão: nenhum RA abaixo é pré-requisito de publicação.
 
-| RA | Resumo | Situação | Branch |
+| RA | Resumo | Situação | Quem trata |
 |---|---|---|---|
-| RA-24 | Compra direta via gateway cobra comissão apenas do vendedor — temporário até B1.4 unificar | registrado | E2 (`exec/e2-cobranca-com-configuracao-vigente`) |
-| RA-43 | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | registrado | E1 (`exec/e1-portas-de-entrada-da-conta`) |
-| RA-44 | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | registrado | E1 (`exec/e1-portas-de-entrada-da-conta`) |
-| RA-45 | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | registrado | E6 (`exec/e6-qa-painel-bancada-moedas-logistica-configuracao`) |
-| RA-46 | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | registrado | E6 (`exec/e6-qa-painel-bancada-moedas-logistica-configuracao`) |
-| RA-47 | Leitura da configuração que falha cai no padrão do código, sem trava; a compra direta pelo gateway e a análise da estação ainda usam a tabela e o catálogo do código | registrado | E2 (`exec/e2-cobranca-com-configuracao-vigente`) |
-| RA-48 | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | registrado | E5 (`exec/e5-qa-painel-resultados-equipe-cs-usuarios`) |
+| RA-24 | Compra direta via gateway cobra comissão apenas do vendedor | registrado | **E8**, ainda por executar |
+| RA-43 | Conta criada pelo painel com senha provisória, sem segundo fator e sem troca obrigatória; link de redefinição sem tela de nova senha | tratado na E1, mesclada em 18/09 | — |
+| RA-44 | Desativar conta bloqueia o login pelo Supabase; a entrada pelo catálogo e a sessão já aberta dependem da checagem da frente A | tratado na E1, mesclada em 18/09 | — |
+| RA-45 | Bancada web: sem gravação local nem retomada depois de recarregar a página; linha do painel fora da transação da análise; regra de peso copiada da rota | registrado, **sem dono** desde o cancelamento da E6 | ninguém |
+| RA-46 | Taxa e prazo mudados no painel valem na hora, sem aviso prévio; a faixa pede aceite da versão nova sem bloquear operação; publicação do documento em transação separada | registrado, **sem dono** desde o cancelamento da E6 | ninguém |
+| RA-47 | Leitura da configuração que falha cai no padrão do código, sem trava | tratado na E2, mesclada em 18/09 | — |
+| RA-48 | O e-mail do Gabriel está no código como `dev` do painel em qualquer ambiente, e a entrada `/painel` diz com qual conta a pessoa está | registrado, **sem dono** desde o cancelamento da E5 | ninguém |
+| RA-52 | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo | registrado | **E8** |
+| RA-53 | O gateway não reconfere a pendência de custódia na confirmação do pagamento | registrado | **E8** |
+
+Risco sem dono não é bloqueio: fica anotado em `RISCOS_ASSUMIDOS.md` e volta à mesa se virar problema.
 
 ## 7. Outras listas vivas (apontadas, não copiadas)
 

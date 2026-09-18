@@ -58,19 +58,15 @@ manual: ele executa, e se o comando for barrado avisa na hora com o comando pron
 
 ---
 
-## 3. Disparar os agentes de execução
+## 3. Disparar os agentes de execução — ✅ quase tudo feito; sobrou a E8
 
-O arquivo com os textos é `docs/execucao-pendencias/PROMPTS.md` (no GitHub e na sua pasta principal).
+E1, E2, E3, E4 e E7 foram executadas, mescladas e publicadas em 18/09/2026. E5 e E6 foram canceladas.
 
-1. **Abra sete sessões de agente** (Claude Code, Codex ou outro), uma para cada bloco **E1** a **E7**, e
-   cole em cada uma o bloco inteiro dela. As sete podem rodar ao mesmo tempo: cada uma cria a própria
-   pasta (`C:\dev\AureaCustodiaMVP-e1` … `-e7`) e a própria branch.
-2. **Quando as sete disserem** "E<N> pronta para integração", abra mais uma sessão e cole o bloco
-   **Integração**.
-3. **Quando a integração terminar**, cole o bloco **E8** numa sessão nova.
-
-Máquina: sete agentes rodando testes e builds juntos pesam. Se o computador engasgar, dispare em dois
-grupos — E1, E2, E3 e E7 primeiro; E4, E5 e E6 depois.
+**Falta uma sessão só:** abra um agente novo e cole o bloco **E8** de
+`docs/execucao-pendencias/PROMPTS.md`. Ele corrige quatro coisas que dependiam de E2 e E4 estarem no ar —
+a principal é que **a compra direta por Pix ou cartão cobra do comprador só o preço do lote, e não a
+comissão que a tela mostra em "Total a pagar"**. Enquanto a E8 não rodar, a Áurea deixa de receber a
+comissão de quem compra por esse caminho.
 
 ---
 

@@ -1,7 +1,11 @@
 # Prompts dos agentes de execução
 
+> **Situação em 18/09/2026.** E1, E2, E3, E4 e E7 foram executadas, mescladas e publicadas — os blocos
+> delas ficam aqui como registro. **E5 e E6 foram canceladas** e seus blocos saíram. **O único prompt vivo
+> desta pasta é o da E8**, no fim do arquivo. O que é de navegador virou [`../cowork/`](../cowork/).
+
 Um bloco por agente. **E1, E2, E3, E4 e E7 podem ser enviados ao mesmo tempo.** A integração vai quando
-as cinco relatarem pronta; **E5, E6 e E8 só depois da integração.** Todo agente segue
+as cinco relatarem pronta; **a E8 só depois da integração.** Todo agente segue
 `docs/Regras_eficiencia_de_sessao_v1.md`, que prevalece sobre o texto de cada prompt: ler só o que o
 documento lista, MD de execução atualizado a cada tarefa, typecheck/lint/suíte/build só no fim da branch
 (ou de um bloco grande), commits em blocos funcionais. Cada prompt serve para Claude Code, Codex ou outro agente
@@ -92,48 +96,6 @@ npm install
 Trabalhe só nesse worktree e só no território do seu documento. Outras seis branches rodam ao mesmo tempo em outras pastas: não toque em arquivo delas (src/server/payments/conciliacao.ts é da E2). Conta da equipe do painel fica isenta do bloqueio por pendência, e checagem que falha responde "liberado". Dinheiro em centavos inteiros. Servidor local só com: npm run dev -- -p 3104. Não digite senha em tela de login. Rode a suíte com o servidor parado e compare a contagem com a base (86 arquivos, 741 testes, 1 pulado) mais os seus arquivos novos.
 
 Siga docs/Regras_eficiencia_de_sessao_v1.md: crie docs/execucao-pendencias/relatorios/E4_EXECUCAO.md na primeira ação e acrescente uma linha a cada tarefa fechada; não releia o repositório além do que o documento lista. No fim da branch (não a cada escrita): npm run typecheck; npm run lint; npm test; npm run build. Commits em blocos funcionais. Termine com git push -u origin exec/e4-custodia-preco-e-inadimplencia e o relatório docs/execucao-pendencias/relatorios/E4.md (o que fez, testes, o que conferiu e como, riscos, passos manuais com valor literal completo), cuja última linha é "E4 pronta para integração — <hash>". NÃO faça merge na main.
-```
-
----
-
-## E5 · Análise, testes e melhorias do painel — entrada, resultados, equipe, CS e usuários (só depois da integração)
-
-```text
-Você é o agente de execução E5 do repositório AureaCustodiaMVP (Áurea Custódia / Real Olímpico), em C:\dev\AureaCustodiaMVP. Esta branch é revisão e só começa com E1, E2, E3, E4 e E7 já mescladas e commitadas na main; confira isso em docs/execucao-pendencias/relatorios/INTEGRACAO.md e, se não estiver, pare. Siga docs/Regras_eficiencia_de_sessao_v1.md (prevalece sobre este prompt): leia só o que a seção "Regras de eficiência" do seu documento lista, crie relatorios/E5_EXECUCAO.md na primeira ação e atualize a cada tarefa fechada, typecheck/lint/suíte/build só no fim da branch, commits em blocos funcionais.
-
-Sua ordem de serviço é docs/execucao-pendencias/E5_QA_PAINEL_RESULTADOS_EQUIPE_CS_USUARIOS.md. Leia, nesta ordem: CLAUDE.md, docs/execucao-pendencias/00_PLANO_MESTRE.md e o seu documento inteiro. O documento é a aprovação do Gabriel para tudo o que está escrito nele: não pare para pedir aprovação de passo que está lá. Pergunte só decisão que ele não cobre e, enquanto espera, siga com o resto.
-
-Preparação, no PowerShell:
-cd C:\dev\AureaCustodiaMVP
-git fetch origin
-git worktree add C:\dev\AureaCustodiaMVP-e5 -b exec/e5-qa-painel-resultados-equipe-cs-usuarios origin/main
-cd C:\dev\AureaCustodiaMVP-e5
-npm install
-
-Trabalhe só nesse worktree e só no território do seu documento (as áreas bancada, moedas, logística e configuração são da E6). Toda Server Action do painel confere a permissão por conta própria e grava audit_log; mantenha. Os testes de tela usam renderToStaticMarkup — o JSX já funciona no Vitest pela base; não edite vitest.config.mts. Nunca desative nem troque o papel de conta do seed, do bootstrap ou da equipe em roteiro: use conta de teste. Servidor local só com: npm run dev -- -p 3105. Não digite senha em tela de login. Rode a suíte com o servidor parado e compare a contagem com a base (86 arquivos, 741 testes, 1 pulado) mais os seus arquivos novos.
-
-Antes de cada push: npm run typecheck; npm run lint; npm test; npm run build. Termine com git push -u origin exec/e5-qa-painel-resultados-equipe-cs-usuarios e o relatório docs/execucao-pendencias/relatorios/E5.md (o que fez, testes, bugs achados e corrigidos, o que conferiu e como, riscos, roteiro logado para o Gabriel), cuja última linha é "E5 pronta para integração — <hash>". NÃO faça merge na main.
-```
-
----
-
-## E6 · Análise, testes e melhorias do painel — bancada, moedas, logística e configuração (só depois da integração)
-
-```text
-Você é o agente de execução E6 do repositório AureaCustodiaMVP (Áurea Custódia / Real Olímpico), em C:\dev\AureaCustodiaMVP. Esta branch é revisão e só começa com E1, E2, E3, E4 e E7 já mescladas e commitadas na main; confira isso em docs/execucao-pendencias/relatorios/INTEGRACAO.md e, se não estiver, pare. Siga docs/Regras_eficiencia_de_sessao_v1.md (prevalece sobre este prompt): leia só o que a seção "Regras de eficiência" do seu documento lista, crie relatorios/E6_EXECUCAO.md na primeira ação e atualize a cada tarefa fechada, typecheck/lint/suíte/build só no fim da branch, commits em blocos funcionais.
-
-Sua ordem de serviço é docs/execucao-pendencias/E6_QA_PAINEL_BANCADA_MOEDAS_LOGISTICA_CONFIGURACAO.md. Leia, nesta ordem: CLAUDE.md, docs/execucao-pendencias/00_PLANO_MESTRE.md e o seu documento inteiro. O documento é a aprovação do Gabriel para tudo o que está escrito nele: não pare para pedir aprovação de passo que está lá. Pergunte só decisão que ele não cobre e, enquanto espera, siga com o resto.
-
-Preparação, no PowerShell:
-cd C:\dev\AureaCustodiaMVP
-git fetch origin
-git worktree add C:\dev\AureaCustodiaMVP-e6 -b exec/e6-qa-painel-bancada-moedas-logistica-configuracao origin/main
-cd C:\dev\AureaCustodiaMVP-e6
-npm install
-
-Trabalhe só nesse worktree e só no território do seu documento (resultados, equipe, CS e usuários são da E5; src/server/estacao/analise.ts é da E2; o bloco do 401 em AppProvider.tsx é da E1). A análise pela bancada web chama src/server/estacao/analise.ts e a fórmula do hash não muda. Os testes de tela usam renderToStaticMarkup — o JSX já funciona no Vitest pela base; não edite vitest.config.mts. Não mude taxa em produção e não feche análise de envio real. Servidor local só com: npm run dev -- -p 3106. Não digite senha em tela de login. Rode a suíte com o servidor parado e compare a contagem com a base (86 arquivos, 741 testes, 1 pulado) mais os seus arquivos novos.
-
-Antes de cada push: npm run typecheck; npm run lint; npm test; npm run build. Termine com git push -u origin exec/e6-qa-painel-bancada-moedas-logistica-configuracao e o relatório docs/execucao-pendencias/relatorios/E6.md (o que fez, testes, bugs achados e corrigidos, o que conferiu e como, riscos, roteiro logado para o Gabriel), cuja última linha é "E6 pronta para integração — <hash>". NÃO faça merge na main.
 ```
 
 ---

@@ -34,4 +34,5 @@ arquivo abrir e, se o Cowork não alcançar o disco do Gabriel, qual pergunta fa
   [`../tutoriais/TUTORIAL_CORREIOS_CONTRATO.md`](../tutoriais/TUTORIAL_CORREIOS_CONTRATO.md).
 - **Domínio `aureacustodia.com.br`.** É o último passo do projeto e mexe em DNS que sustenta o
   e-mail corporativo no Google Workspace. Não encostar.
-- **E5, E6 e E8.** São branches de código, para agentes de repositório, não para o navegador.
+- **E8.** É branch de código, para um agente de repositório, não para o navegador — a única que resta.
+  E5 e E6 foram canceladas em 18/09/2026.
