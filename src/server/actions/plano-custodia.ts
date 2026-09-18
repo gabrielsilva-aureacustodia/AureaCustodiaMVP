@@ -17,7 +17,6 @@ import {
   calcularVencimentoFatura,
   competenciaAtual,
   DIAS_TOLERANCIA_FATURA,
-  isInadimplente,
 } from '@/domain/custody'
 import { brl } from '@/domain/money'
 import {
@@ -263,10 +262,8 @@ export async function pagarFaturaComSaldo(
         }
       }
 
-      // Reavalia status de inadimplência
-      const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === session)
-      u.inadimplente = isInadimplente(u, faturasRestantes, agora)
-
+      // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
+      // A inadimplência por fatura é calculada por quem lê (E8).
       return {
         ok: true,
         data: {

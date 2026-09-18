@@ -8,7 +8,8 @@
 
 import 'server-only'
 
-import { competenciaAtual, isInadimplente } from '@/domain/custody'
+import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
+import { competenciaAtual } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { transferCoin } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -17,6 +18,7 @@ import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
 import type { AppState, FormaPagamentoFatura } from '@/domain/types'
 import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
+import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { mutateState } from '@/server/state'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
@@ -33,6 +35,12 @@ export interface ResultadoLiquidacao {
 /** O que a liquidação lê da configuração vigente ANTES da transação (C3 / P-C3-03). */
 export interface RegrasDaLiquidacao {
   taxas: TabelaDeTaxas
+  /**
+   * A conta que a pendência de custódia pode travar nesta liquidação (o vendedor na compra direta, o
+   * titular na retirada) está FORA da equipe. Perguntado antes do mutateState, porque carregarMembro é
+   * assíncrono e não pode rodar com a linha do estado presa. Ausente ou false: liberado (E4).
+   */
+  contaBloqueavel?: boolean
 }
 
 export type Liquidador = (
@@ -89,10 +97,32 @@ function liquidarCompraDireta(
   const sellerId = offers[0]?.seller
   const seller = sellerId ? s.users[sellerId] : undefined
 
+  // Comissão do comprador congelada na cobrança (E8, tarefa 1). Intenção aberta antes da E8 não tem o
+  // campo: vale zero, que é exatamente o que o gateway cobrou dela.
+  const bruta = Number(reivindicada.metadata?.comissaoCompradorPorMoeda)
+  const feeCompradorUnit = Number.isInteger(bruta) && bruta > 0 ? bruta : 0
+
+  // O anúncio de quem tem fatura de custódia vencida não vende, nem quando o pagamento já entrou
+  // (RA-53). `regras.contaBloqueavel` foi perguntado ANTES da transação, porque a isenção da equipe
+  // é assíncrona. Se o dono do anúncio for outro e-mail, a isenção perguntada não vale para ele e a
+  // checagem libera.
+  const vendedorPausado =
+    Boolean(regras.contaBloqueavel) &&
+    sellerId === reivindicada.metadata?.sellerEmail &&
+    contaComPendenciaNoEstado(s, sellerId, Date.now())
+
+  // O preço do lote pode ter subido entre abrir a cobrança e o pagamento cair. O que o gateway
+  // cobrou precisa cobrir o preço de agora mais a comissão congelada; se não cobrir, a compra não
+  // acontece — senão o comprador levaria a moeda pagando menos do que ela custa hoje.
+  const precoAgora = offers[0]?.price ?? 0
+  const cabeNoValorPago = (precoAgora + feeCompradorUnit) * qtyPedida <= reivindicada.valor
+
   const podeComprar =
     offers.length >= qtyPedida &&
     Boolean(seller) &&
-    sellerId !== reivindicada.userEmail
+    sellerId !== reivindicada.userEmail &&
+    !vendedorPausado &&
+    cabeNoValorPago
 
   if (podeComprar && seller) {
     const toBuy = offers.slice(0, qtyPedida)
@@ -113,7 +143,11 @@ function liquidarCompraDireta(
     if (compradas > 0) {
       // Grava fee, feeComprador e feeVendedor para que derivar.ts (ledger), diff.ts e statement.ts
       // não recalculem a comissão padrão, o que geraria um lançamento 'ajuste' no livro-razão.
-      // feeComprador é zero porque o gateway cobrou apenas o valor do lote (RA-24).
+      // A comissão do comprador é a congelada na cobrança (E8); a do vendedor, a da tabela vigente
+      // na aprovação (E2). São propositalmente de momentos diferentes: o comprador já pagou, o
+      // vendedor está recebendo agora.
+      const feeCompradorTotal = feeCompradorUnit * compradas
+      const feeVendedorTotal = feeVendedorUnit * compradas
       s.trades.push({
         price,
         qty: compradas,
@@ -121,20 +155,22 @@ function liquidarCompraDireta(
         buyer: reivindicada.userEmail,
         seller: sellerId,
         tipoMoeda: offers[0].tipoMoeda,
-        fee: feeVendedorUnit * compradas,
-        feeComprador: 0,
-        feeVendedor: feeVendedorUnit * compradas,
+        fee: feeCompradorTotal + feeVendedorTotal,
+        feeComprador: feeCompradorTotal,
+        feeVendedor: feeVendedorTotal,
       })
 
-      // Para a contabilidade: entrada externa que cobriu a compra
+      // Para a contabilidade: entrada externa que cobriu a compra. Precisa cobrir o que o
+      // livro-razão debita do comprador — preço mais comissão de compra —, senão derivarLancamentos
+      // fecha a conta com um lançamento 'ajuste'.
       s.deposits.push({
         userEmail: reivindicada.userEmail,
-        valor: price * compradas,
+        valor: (price + feeCompradorUnit) * compradas,
         date: Date.now(),
       })
 
       // Se apenas parte das moedas do lote pôde ser transferida, o troco fica no saldo
-      const troco = reivindicada.valor - price * compradas
+      const troco = reivindicada.valor - (price + feeCompradorUnit) * compradas
       if (troco > 0) {
         buyer.balance += troco
         s.deposits.push({
@@ -156,15 +192,28 @@ function liquidarCompraDireta(
       return { sucesso: true, motivo: 'lote_indisponivel_creditado_em_saldo', compraConcluida: false }
     }
   } else {
-    // Lote indisponível (corrida de compra ou lote cancelado):
-    // O dinheiro não se perde: vira saldo em conta para o cliente
+    // A compra não acontece, por um de três motivos: o lote sumiu (corrida de compra ou anúncio
+    // cancelado), o anúncio ficou pausado por pendência do vendedor (RA-53) ou o preço subiu depois
+    // da cobrança e o valor pago não cobre mais o anúncio.
+    //
+    // Em todos, o VALOR INTEIRO vira saldo em conta, e não devolução pelo gateway: estornar exigiria
+    // uma chamada de saída ao Mercado Pago, que a conta não tem credenciada, e deixaria o dinheiro
+    // em trânsito por dias. Com saldo, o cliente compra de novo na hora ou pede saque (RA-56).
+    //
+    // Nenhuma oferta sai do livro nestes ramos: o anúncio pausado continua gravado (RA-52) e o que
+    // subiu de preço continua à venda.
     buyer.balance += reivindicada.valor
     s.deposits.push({
       userEmail: reivindicada.userEmail,
       valor: reivindicada.valor,
       date: Date.now(),
     })
-    return { sucesso: true, motivo: 'lote_indisponivel_creditado_em_saldo', compraConcluida: false }
+    const motivo = vendedorPausado
+      ? 'vendedor_com_pendencia_creditado_em_saldo'
+      : !cabeNoValorPago && offers.length >= qtyPedida
+        ? 'valor_pago_nao_cobre_o_anuncio_creditado_em_saldo'
+        : 'lote_indisponivel_creditado_em_saldo'
+    return { sucesso: true, motivo, compraConcluida: false }
   }
 }
 
@@ -237,10 +286,9 @@ function liquidarFaturaCustodia(
     }
   }
 
-  // Reavalia status de inadimplência do usuário
-  const faturasRestantes = s.faturasCustodia.filter((f) => f.userEmail === reivindicada.userEmail)
-  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
-
+  // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
+  // A inadimplência por fatura é calculada por quem lê (E8). Pagar a fatura já tira a conta da
+  // inadimplência por fatura, porque ela sai das próprias faturas.
   return { sucesso: true, motivo: 'fatura_custodia_liquidada' }
 }
 
@@ -295,10 +343,6 @@ function liquidarAssinaturaCustodia(
     buyer.balance += reivindicada.valor
   }
 
-  // Reavalia status de inadimplência
-  const faturasRestantes = (s.faturasCustodia || []).filter((f) => f.userEmail === reivindicada.userEmail)
-  buyer.inadimplente = isInadimplente(buyer, faturasRestantes, agora)
-
   return { sucesso: true, motivo: 'assinatura_custodia_liquidada' }
 }
 
@@ -311,6 +355,7 @@ function liquidarRetirada(
   s: AppState,
   reivindicada: IntencaoDeposito,
   detalhes: DetalhesPagamento,
+  regras: RegrasDaLiquidacao,
 ): ResultadoLiquidacao {
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
@@ -337,6 +382,46 @@ function liquidarRetirada(
     return { sucesso: true, motivo: 'retirada_ja_paga' }
   }
 
+  const coin = buyer.coins.find((c) => c.id === ret.coinId)
+  const comPendencia =
+    Boolean(regras.contaBloqueavel) &&
+    contaComPendenciaNoEstado(s, reivindicada.userEmail, agora)
+  const reciboBloqueado = coin?.recibo.status === 'Bloqueado'
+
+  if (comPendencia || reciboBloqueado) {
+    // RA-53: o recibo só se extingue se a conta pudesse retirar AGORA. Entre abrir a cobrança e o
+    // pagamento cair, a fatura de custódia pode ter vencido — e extinguir o recibo é irreversível.
+    // O dinheiro não se perde: vira saldo, e a retirada continua esperando pagamento. Pagar com
+    // saldo depois que a fatura for paga (ou o recibo, liberado) é o caminho de volta, já coberto
+    // por pagarRetiradaComSaldo. O aviso na tela de pagamento fica no RA-56.
+    const forma = reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'
+    const motivoEvento = comPendencia
+      ? `Pagamento via ${forma} aprovado com fatura de custódia vencida: o valor entrou no saldo em conta e a retirada continua aguardando pagamento.`
+      : `Pagamento via ${forma} aprovado com o recibo bloqueado: o valor entrou no saldo em conta e a retirada continua aguardando pagamento.`
+
+    buyer.balance += reivindicada.valor
+    s.deposits.push({
+      userEmail: reivindicada.userEmail,
+      valor: reivindicada.valor,
+      date: agora,
+    })
+    ret.historico.push({
+      de: ret.status,
+      para: ret.status,
+      data: agora,
+      motivo: motivoEvento,
+      autor: 'gateway',
+    })
+    ret.updatedAt = agora
+
+    return {
+      sucesso: true,
+      motivo: comPendencia
+        ? 'retirada_com_pendencia_creditada_em_saldo'
+        : 'recibo_bloqueado_creditado_em_saldo',
+    }
+  }
+
   // 1. Atualiza status da retirada
   ret.status = 'paga'
   ret.pagoEm = agora
@@ -354,7 +439,6 @@ function liquidarRetirada(
   ret.updatedAt = agora
 
   // 2. Extinção do recibo da moeda (Regra inegociável do Bloco 10)
-  const coin = buyer.coins.find((c) => c.id === ret?.coinId)
   if (coin) {
     coin.recibo.status = 'Extinto'
   }
@@ -456,8 +540,25 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
       console.error('[conciliarPagamento] tabela de taxas não leu; valendo o padrão do código:', err)
       return TAXAS_PADRAO
     })
+
+    // Quem a pendência de custódia pode travar nesta liquidação, e se essa conta é da equipe
+    // (RA-53). Pergunta assíncrona, por isso fora do mutateState. Checagem que falha libera: o
+    // dinheiro já entrou, e a regra da E4 é "nada tranca a equipe para fora".
+    const emailQuePodeTravar =
+      tipo === 'compra_direta'
+        ? String(reivindicada.metadata?.sellerEmail ?? '')
+        : tipo === 'retirada'
+          ? reivindicada.userEmail
+          : ''
+    const contaBloqueavelNaLiquidacao = emailQuePodeTravar
+      ? await contaBloqueavel(emailQuePodeTravar).catch(() => false)
+      : false
+
     await mutateState((s) => {
-      resLiquidacao = liquidador(s, reivindicada, detalhes, { taxas })
+      resLiquidacao = liquidador(s, reivindicada, detalhes, {
+        taxas,
+        contaBloqueavel: contaBloqueavelNaLiquidacao,
+      })
     })
   } catch (erro) {
     await intencoes.devolverParaPendente(ref)
@@ -494,7 +595,30 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
       const repo = repositorioRetiradas()
       const retId = (reivindicada.metadata?.retiradaId as string) || ''
       const ret = await repo.buscarPorId(retId)
-      if (ret && ret.status !== 'paga') {
+
+      // O valor virou saldo em vez de liquidar a retirada (RA-53). O status NÃO muda — a retirada
+      // continua esperando pagamento —, mas o histórico do repositório precisa contar o mesmo que o
+      // do estado, porque é ele que /retirada e o painel leem.
+      const creditadoEmSaldo =
+        resLiquidacao.motivo === 'retirada_com_pendencia_creditada_em_saldo' ||
+        resLiquidacao.motivo === 'recibo_bloqueado_creditado_em_saldo'
+
+      if (ret && ret.status !== 'paga' && creditadoEmSaldo) {
+        const agora = Date.now()
+        const forma = reivindicada.metodo === 'pix' ? 'Pix' : 'Cartão de Crédito'
+        ret.historico.push({
+          de: ret.status,
+          para: ret.status,
+          data: agora,
+          motivo:
+            resLiquidacao.motivo === 'retirada_com_pendencia_creditada_em_saldo'
+              ? `Pagamento via ${forma} aprovado com fatura de custódia vencida: o valor entrou no saldo em conta e a retirada continua aguardando pagamento.`
+              : `Pagamento via ${forma} aprovado com o recibo bloqueado: o valor entrou no saldo em conta e a retirada continua aguardando pagamento.`,
+          autor: 'gateway',
+        })
+        ret.updatedAt = agora
+        await repo.atualizar(ret)
+      } else if (ret && ret.status !== 'paga') {
         const agora = Date.now()
         ret.status = 'paga'
         ret.pagoEm = agora

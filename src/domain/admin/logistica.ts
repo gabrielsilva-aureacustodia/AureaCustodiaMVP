@@ -154,7 +154,7 @@ export function linhaDeRetirada(r: Retirada, nome: string, agora: number): Linha
     historico: r.historico ?? [],
     aberta,
     atrasada,
-    alerta: atrasada ? `Passou do prazo de 30 dias há ${diasCorridosEntre(r.dataLimiteD30, agora)} dia(s).` : null,
+    alerta: atrasada ? `Passou do prazo de postagem de 30 dias há ${diasCorridosEntre(r.dataLimiteD30, agora)} dia(s).` : null,
   }
 }
 

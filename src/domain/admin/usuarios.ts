@@ -339,8 +339,12 @@ export interface ResumoConta {
   ultimoAcesso: Timestamp | null
   acessoAnterior: Timestamp | null
   comCadastro: boolean
-  /** Marca manual do painel ou fatura vencida. */
+  /** Marca manual do painel OU fatura vencida (calculada na hora a partir das faturas). */
   inadimplente: boolean
+  /**
+   * Só a marca posta pela equipe em marcarInadimplencia. Desde a E8 nenhum processo automático
+   * grava user.inadimplente, então fatura vencida nunca aparece aqui.
+   */
   marcaManual: boolean
 }
 

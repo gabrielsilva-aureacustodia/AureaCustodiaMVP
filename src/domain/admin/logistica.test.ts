@@ -95,7 +95,7 @@ describe('prazos da logística', () => {
     expect(linhaDeRetirada(retirada({}), 'Alex', agora)).toMatchObject({
       aberta: true,
       atrasada: true,
-      alerta: 'Passou do prazo de 30 dias há 3 dia(s).',
+      alerta: 'Passou do prazo de postagem de 30 dias há 3 dia(s).',
       formaPagamento: 'cartao',
       parcelas: 2,
     })

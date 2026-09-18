@@ -40,7 +40,7 @@ export const BLOCOS_LEGAIS_OBRIGATORIOS: readonly LegalBlockItem[] = [
     id: 'prazos_d3_d30',
     titulo: 'Prazos operacionais (D+3 e D+30)',
     resumo:
-      'Prazos operacionais: até D+3 (3 dias úteis) para conclusão de saques bancários e até 30 dias úteis para separação, embalagem e postagem da moeda na retirada física.',
+      'Prazos operacionais: até D+3 (3 dias úteis) para conclusão de saques bancários e até 30 dias corridos para separação, embalagem e POSTAGEM da moeda na retirada física. O prazo de entrega depois da postagem é o dos Correios, e não da Áurea.',
     clausulaReferencia: 'Cláusulas 7.5.6 e 7.7.2 dos Termos de Uso',
     urlDocumento: '/termos',
   },
