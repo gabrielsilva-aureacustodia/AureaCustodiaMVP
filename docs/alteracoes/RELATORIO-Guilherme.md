@@ -20,6 +20,85 @@ Detalhe:     o "porquê" de cada arquivo vive no MD espelhado (ver README.md des
 
 ---
 
+## 19/09/2026
+
+**Resumo do dia.** As duas brechas levantadas ontem foram fechadas. A de acesso era real
+e foi corrigida; a de SQL não existia, e o que entrou no lugar foi a garantia de que ela
+não vai passar a existir. Sete arquivos novos, um refatorado.
+
+### 1. Middleware: o padrão deixou de ser "público"
+
+**O que foi feito.** Criado `src/middleware.ts`, primeira camada a olhar a requisição
+antes de ela chegar na rota. Junto vieram `src/server/rotas-publicas.ts` (a lista do que
+é aberto) e `src/server/session-core.ts` (a criptografia da sessão, extraída de
+`session.ts` para que o middleware possa conferir a mesma assinatura).
+
+**A inversão.** Antes: rota nova nascia pública, e proteger era opt-in. Agora: tudo exige
+sessão, menos as 15 entradas declaradas. Abrir uma rota virou um ato escrito, visível no
+diff.
+
+**Destinos, que não são um só:**
+
+| Origem sem sessão | Vai para |
+|---|---|
+| `/admin/*` | `/painel` — nunca `/entrar`, pela regra do RA-48 |
+| `/api/*` | `401` em JSON |
+| demais páginas | `/entrar` |
+
+**A refatoração da sessão, e o risco que ela trouxe.** O middleware não podia importar
+`session.ts`, que carrega `server-only` e `node:crypto`. A criptografia foi para um
+núcleo com Web Crypto, que roda nos dois lados. O risco: se a assinatura mudasse em um
+byte, todos os cookies em circulação virariam inválidos e o deploy deslogaria a
+plataforma inteira — sem erro em build, typecheck ou lint. Por isso o primeiro teste
+escrito monta um cookie com o código antigo e exige que o novo o aceite.
+
+**Verificação ao vivo,** com o servidor de produção local rodando:
+
+| Rota | Antes | Agora |
+|---|---|---|
+| `/pagina-que-nao-existe` | 200 (pública!) | **307 → `/entrar`** |
+| `/admin` | 307 → `/painel` | 307 → `/painel` |
+| `/api/state` | 401 | 401 |
+| `/`, `/termos`, `/taxas`, `/api/crypto` | 200 | 200 |
+| `/api/webhooks/mercadopago` | 405 | 405 (passou; a rota é que recusa GET) |
+
+Login completo refeito no navegador: entrou como Rogério Pena, saldo correto, e as nove
+rotas protegidas seguem em 200 para quem tem sessão.
+
+### 2. Guarda de regressão contra SQL injection
+
+**O que foi feito.** Criado `src/server/db/sql-injecao.test.ts` com linha de base.
+O teste varre o código, extrai toda interpolação dentro de comando SQL e compara com
+`sql-injecao.baseline.json`. Interpolação nova reprova a suíte até alguém revisar.
+
+**A base:** 32 arquivos, 56 interpolações, **17 expressões distintas** — todas conferidas
+uma a uma. A auditoria de ontem não achou vetor nenhum; isto existe para que continue
+assim.
+
+**O que o exercício rendeu além da guarda.** A varredura grosseira de ontem apontava 197
+ocorrências; o varredor de verdade, que conta chaves em vez de usar regex, reduziu a 17
+expressões únicas — uma lista pequena o bastante para auditar à mão, que foi o que fiz.
+Duas delas nem eram SQL: eram a URL da API do Google Sheets, pega porque `/values/` casa
+com `VALUES`. O detector foi ajustado e a base caiu para 17.
+
+### 3. Estado da verificação
+
+| | |
+|---|---|
+| `npm test` | **901 passando**, 1 pulado, 107 arquivos |
+| `npm run typecheck` | 0 erros |
+| `npm run lint` | limpo |
+| `npm run build` | compilou; middleware registrado em 34,9 kB |
+
+Os 26 testes novos (13 do middleware, 13 do núcleo da sessão) e mais 6 do varredor de SQL
+entraram nessa conta.
+
+**Um detalhe que vale registrar:** a barreira de import do núcleo da sessão reprovou a
+própria suíte na primeira execução, porque o teste do middleware importa o núcleo. Foi
+consertado isentando arquivos de teste — e serviu de prova de que a regra funciona.
+
+---
+
 ## 18/09/2026
 
 **Resumo do dia.** A cópia local estava um mês atrasada e foi atualizada; a branch de
@@ -164,5 +243,5 @@ vira entrada do dia.
 |---|---|---|
 | **Vulnerabilidade crítica no `next`** — RCE não autenticado em servidor Windows e na API de otimização de imagem com AVIF ([GHSA-p293-qw3h-jr36](https://github.com/advisories/GHSA-p293-qw3h-jr36), [GHSA-2xp9-vwfh-vxw4](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4)). Junto vem `sharp` < 0.35.4, severidade alta. O `npm audit fix` resolve os dois sem trocar de major. | 18/09/2026 | Aguardando aval do Gabriel — mexer em dependência de produção pede build de verificação |
 | **Fluxo entre `staging` e `main`** — qual das duas recebe o trabalho novo | 18/09/2026 | A combinar |
-| **Rota nova nasce pública** — sem `middleware.ts`, a proteção é escolhida arquivo a arquivo e o padrão de quem esquece é aberto (item 5) | 18/09/2026 | Correção planejada, aguardando aval — ver abaixo |
-| **Nada impede uma consulta SQL futura de sair do padrão seguro** (item 6) | 18/09/2026 | Guarda de regressão planejada, aguardando aval |
+| ~~**Rota nova nasce pública**~~ | 18/09/2026 | **Resolvido em 19/09** — middleware com lista de públicas e teste de inventário |
+| ~~**Nada impede uma consulta SQL futura de sair do padrão seguro**~~ | 18/09/2026 | **Resolvido em 19/09** — linha de base com 17 expressões auditadas |
