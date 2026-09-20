@@ -13,6 +13,7 @@
 import 'server-only'
 
 import { STORE_KEY } from '@/domain/constants'
+import { estadoVazio } from '@/domain/estado-vazio'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
@@ -113,9 +114,33 @@ function garantirFormato(state: AppState): AppState {
 }
 
 /**
- * Lê o estado. Na primeira execução — banco vazio — semeia com `seedState()` e
- * grava, exatamente como o `loadState` original fazia quando window.storage
- * não devolvia nada.
+ * O estado com que um armazenamento vazio nasce.
+ *
+ * FORA DE TESTE, SEMPRE VAZIO. Até 20/09/2026 era `seedState()` — sete contas de
+ * demonstração com saldo de milhares de reais, dezenas de moedas e um histórico
+ * de negociações inventado. Num site publicado isso é saldo que ninguém
+ * depositou e moeda que ninguém enviou: bastaria o banco vir vazio uma vez para
+ * a plataforma inteira renascer com dinheiro falso.
+ *
+ * A checagem é por `NODE_ENV === 'test'` e não por "tem Postgres configurado?".
+ * A diferença importa: amarrar ao banco faria a segurança depender de uma
+ * variável de ambiente estar presente, e um deploy sem `POSTGRES_URL` voltaria a
+ * semear dados fictícios em produção sem ninguém perceber. O Next.js força
+ * `NODE_ENV=production` em todo build, e o Vitest força `test` — então a porta
+ * só abre onde ela precisa abrir: na suíte, que exerce mercado, custódia e
+ * ledger contra um estado povoado.
+ */
+function estadoInicial(): AppState {
+  return process.env.NODE_ENV === 'test' ? seedState() : estadoVazio()
+}
+
+/**
+ * Lê o estado. Na primeira execução — banco vazio — grava um estado VAZIO.
+ *
+ * Até 20/09/2026 gravava `seedState()`, com sete contas de demonstração, saldo
+ * de milhares de reais e histórico de negociações inventado. Num ambiente
+ * publicado isso é saldo que ninguém depositou: a plataforma nasce sem conta,
+ * sem moeda e sem negociação, e tudo entra por operação real.
  */
 export async function getState(): Promise<AppState> {
   if (bancoConfigurado()) return lerEstado(executarNoBanco)
@@ -131,7 +156,7 @@ export async function getState(): Promise<AppState> {
   // estado da primeira e o devolve intacto).
   const { state } = await store.mutate<AppState, AppState>(
     STORE_KEY,
-    (cur) => cur ?? seedState(),
+    (cur) => cur ?? estadoInicial(),
     (s) => s,
   )
   return state
@@ -161,7 +186,7 @@ export async function mutateState<T>(
   return store.mutate<T, AppState>(
     STORE_KEY,
     async (current) => {
-      const state = garantirFormato(current ?? seedState())
+      const state = garantirFormato(current ?? estadoInicial())
       captured = { value: await fn(state) }
       return state
     },

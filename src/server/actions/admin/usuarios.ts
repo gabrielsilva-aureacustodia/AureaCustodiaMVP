@@ -36,7 +36,6 @@ import {
   redefinirSenha,
 } from '@/server/admin/usuarios'
 import { authCallbackUrl } from '@/server/auth/origin'
-import { MOEDAS_MOCK_INICIAIS, SALDO_MOCK_INICIAL } from '@/server/auth/provisioning'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 
 const FALHA_GRAVACAO = 'Falha ao salvar dados. Tente novamente.'
@@ -75,7 +74,6 @@ export async function criarUsuarioNoPainel(entrada: { email: string; nome: strin
       portaDeIdentidadeDoAmbiente(),
       membro.email,
       { email: e.email, nome: e.nome, senha: e.senha, demonstracao: e.demonstracao },
-      { saldo: SALDO_MOCK_INICIAL, moedas: MOEDAS_MOCK_INICIAIS },
     ),
   )
 }

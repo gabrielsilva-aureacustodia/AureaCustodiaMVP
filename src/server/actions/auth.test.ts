@@ -104,33 +104,12 @@ describe('login() — portas 1 e 2 (P-C2-04)', () => {
     vi.mocked(authorizeProvisionedUser).mockResolvedValue(true)
   })
 
-  it('catálogo: conta desativada com a senha certa é recusada sem sessão e sem gravar acesso', async () => {
-    vi.mocked(barrarContaDesativada).mockResolvedValue(true)
-
-    const res = await login('rogeriopena@testeaurea.com.br', '12345678')
-
-    expect(res.ok).toBe(false)
-    expect(res.error).toBe(MENSAGEM_CONTA_DESATIVADA)
-    expect(setSession).not.toHaveBeenCalled()
-    expect(mutateState).not.toHaveBeenCalled()
-  })
-
-  it('catálogo: senha errada responde credenciais inválidas sem perguntar a situação', async () => {
-    const res = await login('rogeriopena@testeaurea.com.br', 'senha_errada')
-
-    expect(res.ok).toBe(false)
-    expect(res.error).toContain('E-mail ou senha incorretos')
-    expect(barrarContaDesativada).not.toHaveBeenCalled()
-    expect(setSession).not.toHaveBeenCalled()
-  })
-
-  it('catálogo: conta ativa entra como antes', async () => {
-    const res = await login('rogeriopena@testeaurea.com.br', '12345678')
-
-    expect(res.ok).toBe(true)
-    expect(setSession).toHaveBeenCalledWith('rogeriopena@testeaurea.com.br')
-    expect(mutateState).toHaveBeenCalled()
-  })
+  // Os três testes de "catálogo" saíram em 20/09/2026 junto com a função que
+  // eles cobriam. `loginDoCatalogoLocal` deixava oito contas entrarem com senha
+  // escrita no código, sem passar pelo Supabase, e criava saldo e moedas de
+  // `DEMO_DATA` para quem ainda não existisse no estado. Num site publicado isso
+  // era uma porta para dinheiro que ninguém depositou. Toda senha passa pelo
+  // Supabase Auth, e os testes de Supabase abaixo são o contrato inteiro agora.
 
   it('Supabase: identidade bloqueada pelo painel recebe a frase de conta desativada', async () => {
     mockSignInWithPassword.mockResolvedValueOnce({

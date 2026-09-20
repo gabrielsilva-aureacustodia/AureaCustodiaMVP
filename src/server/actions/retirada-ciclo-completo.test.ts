@@ -32,7 +32,7 @@ import { GET as etiquetaRoute } from '@/app/api/retiradas/etiqueta/[id]/route'
 let state: AppState
 
 const CLIENTE = 'gabrielsilva@testeaurea.com.br'
-const OPERADOR = 'alex@testeaurea.com.br'
+const OPERADOR = 'rozane@testeaurea.com.br'
 
 const ENDERECO_COMPLETO: EnderecoEntrega = {
   nome: 'Gabriel Silva',
@@ -81,8 +81,11 @@ describe('Ciclo Completo de Retirada Física de Moedas (E2E Integration)', () =>
     expect(tentativaSemEndereco.error).toContain('Endereço de entrega incompleto')
     expect(tentativaSemEndereco.error).toContain('Sem endereço completo e confirmado o prazo D+30 não começa')
 
-    // 1b. Bloqueio preventivo: Se o recibo estiver bloqueado por inadimplência, não sai
+    // 1b. Bloqueio preventivo: Se o recibo estiver bloqueado por inadimplência, não sai.
+    // O bloqueio é ação da equipe, então a sessão troca para o operador e volta.
+    getSessionEmailMock.mockResolvedValue(OPERADOR)
     await bloquearReciboPorDebito(moeda.id)
+    getSessionEmailMock.mockResolvedValue(CLIENTE)
     expect(moeda.recibo.status).toBe('Bloqueado')
     const tentativaBloqueado = await solicitarRetirada(moeda.id, 'comum', ENDERECO_COMPLETO)
     expect(tentativaBloqueado.ok).toBe(false)

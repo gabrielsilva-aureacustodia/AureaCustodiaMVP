@@ -32,7 +32,7 @@ import {
 
 let state: AppState
 
-const USER_EMAIL = 'gabrielsilva@testeaurea.com.br'
+const USER_EMAIL = 'rogeriopena@testeaurea.com.br'
 const OUTRO_USER = 'alex@testeaurea.com.br'
 
 const ENDERECO_VALIDO: EnderecoEntrega = {

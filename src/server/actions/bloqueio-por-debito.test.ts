@@ -58,6 +58,10 @@ const BANDEIRA = COIN.name
 const CLIENTE = 'cliente.novo@exemplo.com.br'
 const ROGERIO = 'rogeriopena@testeaurea.com.br'
 const GABRIEL = 'gabrielsilva@testeaurea.com.br'
+// Conta da equipe pelo bootstrap: está em EMAILS_FIXOS_DA_EQUIPE, que valem com
+// ou sem AUREA_ADMIN_EMAILS. Antes de 20/09/2026 qualquer conta do catálogo
+// local servia; com o catálogo vazio, o ator da equipe tem de ser explícito.
+const EQUIPE = 'rozane@testeaurea.com.br'
 const MENSAGEM_PENDENCIA = 'fatura de custódia vencida'
 
 const ENDERECO: EnderecoEntrega = {
@@ -433,7 +437,7 @@ describe('bloquear e desbloquear recibo são da equipe', () => {
 
   it('conta da equipe pelo bootstrap bloqueia e desbloqueia como antes', async () => {
     const [moeda] = await moedasDoCliente()
-    getSessionEmail.mockResolvedValue(GABRIEL)
+    getSessionEmail.mockResolvedValue(EQUIPE)
 
     const bloq = await bloquearReciboPorDebito(moeda.id)
     expect(bloq.ok).toBe(true)

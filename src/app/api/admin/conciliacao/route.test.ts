@@ -29,8 +29,8 @@ describe('Admin Conciliação Route — GET /api/admin/conciliacao', () => {
     expect(body.ok).toBe(false)
   })
 
-  it('devolve o relatório para um sócio do seed (administrador sem variável)', async () => {
-    getSessionEmail.mockResolvedValue('gabrielsilva@testeaurea.com.br')
+  it('devolve o relatório para um e-mail fixo da equipe (sem variável)', async () => {
+    getSessionEmail.mockResolvedValue('rogeriopena@testeaurea.com.br')
     const res = await GET()
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -42,7 +42,8 @@ describe('Admin Conciliação Route — GET /api/admin/conciliacao', () => {
 
   it('respeita AUREA_ADMIN_EMAILS quando definida', async () => {
     process.env.AUREA_ADMIN_EMAILS = 'contador@exemplo.com.br'
-    getSessionEmail.mockResolvedValue('gabrielsilva@testeaurea.com.br')
+    // Conta de teste comum, fora da lista e fora dos EMAILS_FIXOS_DA_EQUIPE.
+    getSessionEmail.mockResolvedValue('alex@testeaurea.com.br')
     expect((await GET()).status).toBe(403)
     getSessionEmail.mockResolvedValue('contador@exemplo.com.br')
     expect((await GET()).status).toBe(200)

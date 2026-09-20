@@ -23,7 +23,6 @@ export function CriarUsuario(): ReactNode {
   const [email, setEmail] = useState('')
   const [nome, setNome] = useState('')
   const [senha, setSenha] = useState('')
-  const [demonstracao, setDemonstracao] = useState(true)
   const [ocupado, setOcupado] = useState(false)
 
   return (
@@ -34,7 +33,7 @@ export function CriarUsuario(): ReactNode {
           onSubmit={async (e) => {
             e.preventDefault()
             setOcupado(true)
-            const r = await run(() => criarUsuarioNoPainel({ email, nome, senha, demonstracao }))
+            const r = await run(() => criarUsuarioNoPainel({ email, nome, senha, demonstracao: false }))
             setOcupado(false)
             if (r.ok && r.data?.email) router.push(`/admin/usuarios/${encodeURIComponent(r.data.email)}`)
           }}
@@ -53,10 +52,6 @@ export function CriarUsuario(): ReactNode {
               <input id="novo-senha" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" />
             </div>
           </div>
-          <label className="adm-check">
-            <input type="checkbox" checked={demonstracao} onChange={(e) => setDemonstracao(e.target.checked)} />
-            Carregar saldo e moedas de demonstração, como no cadastro pelo site
-          </label>
           <div className="adm-acoes" style={{ marginTop: 10 }}>
             <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso="usuarios-criar">
               {ocupado ? 'Criando…' : 'Criar conta'}

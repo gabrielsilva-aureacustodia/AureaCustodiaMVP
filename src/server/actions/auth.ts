@@ -3,18 +3,15 @@
 /**
  * Autenticação com Supabase Auth.
  *
- * A senha deixa de ser comparada com ACCOUNTS ou `user.pass`: ela segue direto
- * para o Supabase Auth, que guarda apenas o hash. Depois de a identidade ser
- * confirmada, a aplicação ainda exige que a frente B tenha carregado os dados
- * mockados daquele e-mail antes de criar a sessão interna.
+ * A senha segue direto para o Supabase Auth, que guarda apenas o hash. Não há
+ * mais catálogo local de senhas nem provisionamento de saldo e acervo: a conta
+ * nasce zerada (ver `@/server/auth/provisioning`), e valor só entra por depósito
+ * confirmado ou por moeda que passou pela bancada.
  */
 
 import { headers } from 'next/headers'
 
-import { ACCOUNTS, DEMO_DATA } from '@/domain/constants'
-import { fdate } from '@/domain/dates'
-import { mkCoinsForUser } from '@/domain/seed'
-import type { ActionResult, User } from '@/domain/types'
+import type { ActionResult } from '@/domain/types'
 import { authorizeProvisionedUser } from '@/server/auth/authorization'
 import { createAuthClient } from '@/server/auth/client'
 import {
@@ -45,54 +42,6 @@ function authError<T = unknown>(): ActionResult<T> {
   return { ok: false, error: FALHA_AUTENTICACAO }
 }
 
-/**
- * Entrada pelo catálogo local — RA-19.
- *
- * Vale para as contas de demonstração (`ACCOUNTS`), entre elas a do Rogério em
- * `rogerio@aureacustodia.com.br`. Não passa pelo Supabase em momento nenhum:
- * se a integração de login estiver fora do ar, com chave errada, com o e-mail
- * de confirmação barrado ou com o OAuth quebrado, a demonstração do site
- * continua funcionando. É a rede de segurança da apresentação.
- *
- * Quando a conta ainda não existe no estado — banco semeado antes de ela ser
- * criada, por exemplo — ela é criada aqui com o saldo e o acervo de `DEMO_DATA`,
- * os mesmos que o seed produziria.
- */
-async function loginDoCatalogoLocal(email: string, senha: string): Promise<ActionResult | null> {
-  const account = ACCOUNTS[email]
-  if (!account) return null
-
-  const state = await getState()
-  const existente = state.users[email]
-  const senhaEsperada = existente?.pass || account.pass
-  if (senha !== senhaEsperada) return { ok: false, error: CREDENCIAIS_INVALIDAS }
-
-  if (await barrarContaDesativada(email)) {
-    return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
-  }
-
-  await mutateState((current) => {
-    const atual = current.users[email]
-    if (atual) {
-      atual.prevAccess = atual.lastAccess
-      atual.lastAccess = Date.now()
-      return
-    }
-
-    const demo = DEMO_DATA[email]
-    const novo: User = {
-      name: account.name,
-      balance: demo?.balance ?? 500_000,
-      coins: mkCoinsForUser(current.seq, demo?.coins ?? 6, demo?.entrada ?? fdate(Date.now())),
-      lastAccess: Date.now(),
-    }
-    current.users[email] = novo
-  })
-
-  await setSession(email)
-  return { ok: true }
-}
-
 function nomeDoSupabase(metadata: Record<string, unknown>): string | undefined {
   const name = metadata.full_name ?? metadata.name
   return typeof name === 'string' ? name : undefined
@@ -102,10 +51,11 @@ export async function login(email: string, senha: string): Promise<ActionResult>
   const normalized = email.trim().toLowerCase()
   if (!normalized || !senha) return { ok: false, error: CREDENCIAIS_INVALIDAS }
 
-  // As contas de demonstração entram sempre por aqui, antes de qualquer
-  // chamada ao Supabase. Ver RA-19.
-  const local = await loginDoCatalogoLocal(normalized, senha)
-  if (local) return local
+  // Não existe mais entrada por catálogo local. Até 20/09/2026 as contas de
+  // demonstração entravam aqui, antes do Supabase, com senha escrita no código —
+  // e ganhavam saldo e moedas de `DEMO_DATA` se ainda não existissem no estado.
+  // Publicado o site no domínio oficial, esse atalho virou uma porta de entrada
+  // para saldo que ninguém depositou. Toda senha passa pelo Supabase Auth.
 
   try {
     const client = await createAuthClient()

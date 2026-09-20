@@ -26,6 +26,7 @@
  *    sem lançamento: ou os dois commitam, ou nenhum.
  */
 
+import { estadoVazio } from '@/domain/estado-vazio'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
@@ -72,9 +73,18 @@ export async function mutarEstado<T>(
     const antes = await carregarEstado(tx, { travar: true })
     const semeadura = estaVazio(antes)
     // `structuredClone` em vez de mutar `antes`: o planejador de diff precisa
-    // dos dois retratos. Num banco vazio o "depois" nasce do seed, e o diff
-    // contra o retrato vazio vira a semeadura inteira em INSERTs.
-    const state = semeadura ? seedState() : structuredClone(antes)
+    // dos dois retratos.
+    //
+    // BANCO VAZIO NÃO RENASCE COM DADOS DE DEMONSTRAÇÃO. Até 20/09/2026 esta
+    // linha era `semeadura ? seedState() : ...`, e `seedState()` traz sete
+    // contas com saldo de milhares de reais, dezenas de moedas e um histórico
+    // de negociações inventado. Era o caminho do Postgres, ou seja, PRODUÇÃO:
+    // bastava o banco ficar vazio uma vez — limpeza, restauração, projeto novo —
+    // para a plataforma inteira renascer com dinheiro que ninguém depositou e
+    // moeda que ninguém enviou. Fora de teste o estado nasce vazio, e tudo entra
+    // por operação real.
+    const inicial = process.env.NODE_ENV === 'test' ? seedState() : estadoVazio()
+    const state = semeadura ? inicial : structuredClone(antes)
     const result = await fn(state)
     const ops = await persistirEstado(tx, antes, state)
     congelarComissoes(state, antes.trades.length)

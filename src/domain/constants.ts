@@ -232,41 +232,33 @@ export const COIN_TYPES: CoinType[] = [
 ]
 
 /**
- * Contas de demonstração do ambiente de teste.
+ * Catálogo local de contas — VAZIO desde a publicação, em 20/09/2026.
  *
- * PORT FIEL: as senhas continuam em texto puro, exatamente como no MVP. Trocar
- * por hash é a Etapa 2 da migração e está fora deste escopo — mexer agora
- * quebraria a paridade de comportamento que este port precisa provar.
+ * Aqui moravam oito contas de demonstração com a senha `12345678` escrita no
+ * código, e em `DEMO_DATA` o saldo e o acervo que cada uma ganhava ao ser criada
+ * sob demanda — de R$ 35.500 a R$ 97.000, com até 21 moedas. Isso existia para a
+ * apresentação do site funcionar mesmo com o Supabase fora do ar (RA-19).
+ *
+ * Publicado o site no domínio oficial, com o gateway fora do sandbox, esses dois
+ * objetos passaram a ser um caminho para dinheiro que ninguém depositou: quem
+ * soubesse um dos e-mails entrava sem passar pelo Supabase e encontrava saldo
+ * pronto para anunciar moeda inexistente ou pedir saque contra a conta real da
+ * empresa. Toda autenticação passa pelo Supabase Auth agora.
+ *
+ * OS OBJETOS CONTINUAM EXISTINDO, VAZIOS, DE PROPÓSITO. Meia dúzia de módulos
+ * perguntam `email in ACCOUNTS` para saber se a conta é do catálogo — a ficha do
+ * usuário no painel, o RBAC, o acesso aos relatórios. Com o objeto vazio a
+ * resposta é `false` em todos, que é a resposta certa, e nenhum deles precisou
+ * mudar. Apagar os símbolos obrigaria a mexer em arquivo que não tem nada a ver
+ * com isso.
+ *
+ * NÃO REPOVOAR. Conta de demonstração, se for preciso de novo, se cria pelo
+ * painel em `/admin/usuarios`, uma a uma, com registro de quem criou.
  */
-export const ACCOUNTS: Record<string, { pass: string; name: string }> = {
-  // Conta de demonstração do Rogério. Entra sempre pelo catálogo local, sem
-  // depender do Supabase, para que a apresentação do site funcione mesmo se a
-  // integração de login estiver fora do ar. Ver RA-19.
-  'rogerio@aureacustodia.com.br': { pass: '12345678', name: 'Rogério Pena' },
-  'rogeriopena@testeaurea.com.br': { pass: '12345678', name: 'Rogério Pena' },
-  'gabrielsilva@testeaurea.com.br': { pass: '12345678', name: 'Gabriel Silva' },
-  'alex@testeaurea.com.br': { pass: '12345678', name: 'Alex' },
-  'pegge@testeaurea.com.br': { pass: '12345678', name: 'Pegge' },
-  'rozane@testeaurea.com.br': { pass: '12345678', name: 'Rozane' },
-  'goturuba@testeaurea.com.br': { pass: '12345678', name: 'Goturuba' },
-  'solares@testeaurea.com.br': { pass: '12345678', name: 'Solares' },
-}
+export const ACCOUNTS: Record<string, { pass: string; name: string }> = {}
 
-/**
- * Saldo e acervo de cada conta do catálogo, usados quando ela precisa ser
- * criada sob demanda — banco já semeado antes de a conta existir, por exemplo.
- * Mantém a demonstração idêntica ao que o seed produziria.
- */
-export const DEMO_DATA: Record<string, { balance: number; coins: number; entrada: string }> = {
-  'rogerio@aureacustodia.com.br': { balance: 8_500_000, coins: 18, entrada: '15/06/2026' },
-  'rogeriopena@testeaurea.com.br': { balance: 6_200_000, coins: 15, entrada: '18/06/2026' },
-  'gabrielsilva@testeaurea.com.br': { balance: 5_400_000, coins: 13, entrada: '20/06/2026' },
-  'alex@testeaurea.com.br': { balance: 3_800_000, coins: 9, entrada: '22/06/2026' },
-  'pegge@testeaurea.com.br': { balance: 4_100_000, coins: 10, entrada: '22/06/2026' },
-  'rozane@testeaurea.com.br': { balance: 3_550_000, coins: 8, entrada: '23/06/2026' },
-  'goturuba@testeaurea.com.br': { balance: 9_700_000, coins: 21, entrada: '18/06/2026' },
-  'solares@testeaurea.com.br': { balance: 4_400_000, coins: 11, entrada: '24/06/2026' },
-}
+/** Saldo e acervo das contas do catálogo. Vazio — ver o bloco acima. */
+export const DEMO_DATA: Record<string, { balance: number; coins: number; entrada: string }> = {}
 
 /*
  * O CATÁLOGO VIGENTE CHEGA POR PARÂMETRO (C3, 14/09/2026). Desde a C3 o catálogo é editado

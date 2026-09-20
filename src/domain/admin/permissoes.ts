@@ -187,10 +187,17 @@ export function normalizarEmail(email: string): string {
  * sócios entram por Equipe e papéis.
  */
 export const EMAILS_FIXOS_DA_EQUIPE: readonly string[] = [
+  // Só o e-mail institucional. Em 20/09/2026 saíram daqui
+  // 'rogerio@aureacustodia.com.br', 'rogeriopena@testeaurea.com.br' e
+  // 'rozane@testeaurea.com.br': eram contas de demonstração, excluídas do banco
+  // no mesmo dia, e um e-mail de conta que não existe mais continuar dando
+  // acesso de `dev` ao painel é porta aberta sem dono.
+  //
+  // Quem mais precisar de painel entra por `aurea.admin_membros`, cadastrado
+  // pela equipe com papel e permissões — que é o caminho certo — ou por
+  // AUREA_ADMIN_EMAILS. Este e-mail fica para a equipe nunca ficar trancada
+  // fora por variável mal preenchida (RA-40).
   'gabriel.silva@aureacustodia.com.br',
-  'rogerio@aureacustodia.com.br',
-  'rogeriopena@testeaurea.com.br',
-  'rozane@testeaurea.com.br',
 ]
 
 /**

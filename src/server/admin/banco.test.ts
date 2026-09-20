@@ -578,24 +578,26 @@ describe('administração de usuários', () => {
     await lerEstado(executar)
   })
 
-  it('criar conta grava identidade, conta com demonstração, abertura no ledger e a linha do painel', async () => {
+  it('criar conta grava identidade, conta zerada, abertura no ledger e a linha do painel', async () => {
     const { porta, contas } = identidadeFalsa()
     const estado = portaDeEstadoNoBanco(executar, ATENDENTE)
-    const r = await criarUsuario(estado, porta, ATENDENTE, { email: 'Nova@Exemplo.com.br', nome: 'Nova Conta', senha: 'provisoria1', demonstracao: true }, DEMO)
+    const r = await criarUsuario(estado, porta, ATENDENTE, { email: 'Nova@Exemplo.com.br', nome: 'Nova Conta', senha: 'provisoria1', demonstracao: true })
     expect(r).toMatchObject({ ok: true, dados: { email: 'nova@exemplo.com.br' } })
     expect(contas.get('nova@exemplo.com.br')?.senha).toBe('provisoria1')
 
     const lido = await lerEstado(executar)
-    expect(lido.users['nova@exemplo.com.br']).toMatchObject({ name: 'Nova Conta', balance: 500_000 })
-    expect(lido.users['nova@exemplo.com.br'].coins).toHaveLength(6)
+    // Conta criada pelo painel nasce ZERADA desde 20/09/2026: a caixa "carregar
+    // saldo e moedas de demonstração" saiu junto com o provisionamento mockado.
+    expect(lido.users['nova@exemplo.com.br']).toMatchObject({ name: 'Nova Conta', balance: 0 })
+    expect(lido.users['nova@exemplo.com.br'].coins).toHaveLength(0)
     expect((await executar((tx) => datasDeCriacao(tx)))['nova@exemplo.com.br']).toBeGreaterThan(0)
 
     const [linha] = await executar((tx) => listarAuditoria(tx, { acao: 'admin.usuarios.criar' }))
-    expect(linha).toMatchObject({ ator: ATENDENTE, entidadeId: 'nova@exemplo.com.br', detalhes: { demonstracao: true, identidade: 'criada', senhaProvisoria: true } })
+    expect(linha).toMatchObject({ ator: ATENDENTE, entidadeId: 'nova@exemplo.com.br', detalhes: { identidade: 'criada', senhaProvisoria: true } })
     expect(JSON.stringify(linha.detalhes)).not.toContain('provisoria1')
 
-    expect((await criarUsuario(estado, porta, ATENDENTE, { email: 'nova@exemplo.com.br', nome: 'De novo', senha: '', demonstracao: false }, DEMO)).ok).toBe(false)
-    const recusada = await criarUsuario(estado, porta, ATENDENTE, { email: 'fraca@exemplo.com.br', nome: 'Fraca', senha: 'fraca', demonstracao: false }, DEMO)
+    expect((await criarUsuario(estado, porta, ATENDENTE, { email: 'nova@exemplo.com.br', nome: 'De novo', senha: '', demonstracao: false })).ok).toBe(false)
+    const recusada = await criarUsuario(estado, porta, ATENDENTE, { email: 'fraca@exemplo.com.br', nome: 'Fraca', senha: 'fraca', demonstracao: false })
     expect(recusada).toMatchObject({ ok: false })
     expect((await lerEstado(executar)).users['fraca@exemplo.com.br']).toBeUndefined()
   })
@@ -675,7 +677,7 @@ describe('administração de usuários', () => {
   it('desativar bloqueia o login no Supabase e registra; conta da equipe é recusada; reativar desbloqueia', async () => {
     const { porta, contas } = identidadeFalsa()
     const estado = portaDeEstadoNoBanco(executar, ATENDENTE)
-    await criarUsuario(estado, porta, ATENDENTE, { email: 'sai@exemplo.com.br', nome: 'Sai', senha: 'provisoria1', demonstracao: false }, DEMO)
+    await criarUsuario(estado, porta, ATENDENTE, { email: 'sai@exemplo.com.br', nome: 'Sai', senha: 'provisoria1', demonstracao: false })
 
     const equipe = await mudarSituacaoDaConta(executar, estado, porta, ATENDENTE, { email: 'rogeriopena@testeaurea.com.br', ativa: false, motivo: '', ehDaEquipe: true })
     expect(equipe).toMatchObject({ ok: false })

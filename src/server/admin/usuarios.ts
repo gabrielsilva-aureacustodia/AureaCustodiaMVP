@@ -22,7 +22,6 @@
  *    provisionamento do login (src/server/auth/provisioning.ts), passados por parâmetro.
  */
 
-import { mkCoinsForUser } from '@/domain/seed'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import { validarTexto } from '@/domain/admin/cs'
@@ -108,11 +107,6 @@ function semChave(identidade: PortaDeIdentidade): string {
 
 /* ---------- criar ---------- */
 
-export interface DadosDeDemonstracao {
-  saldo: Cents
-  moedas: number
-}
-
 /**
  * Cria a conta: a identidade no Supabase Auth (quando há chave de serviço) e o registro em
  * `aurea.users`, com saldo e moedas de demonstração se pedido.
@@ -129,7 +123,6 @@ export async function criarUsuario(
   identidade: PortaDeIdentidade,
   ator: string,
   entrada: { email: unknown; nome: unknown; senha: unknown; demonstracao: unknown },
-  demonstracao: DadosDeDemonstracao,
   agora: number = Date.now(),
 ): Promise<ResultadoAdmin<{ email: string }>> {
   const v = validarNovoUsuario(entrada, (await estado.ler()).users)
@@ -153,8 +146,12 @@ export async function criarUsuario(
       if (s.users[novo.email]) return { ok: false, erro: 'Já existe uma conta com este e-mail.' }
       s.users[novo.email] = {
         name: novo.nome,
-        balance: novo.demonstracao ? demonstracao.saldo : 0,
-        coins: novo.demonstracao ? mkCoinsForUser(s.seq, demonstracao.moedas, fdate(agora)) : [],
+        // Conta criada pelo painel nasce zerada, igual à criada pelo site. Até
+        // 20/09/2026 havia uma caixa "carregar saldo e moedas de demonstração",
+        // marcada por padrão, que dava R$ 5.000 e 6 moedas. Valor entra por
+        // depósito confirmado; moeda entra por envio analisado na bancada.
+        balance: 0,
+        coins: [],
       }
       return { ok: true, mensagem: '' }
     },
@@ -167,7 +164,7 @@ export async function criarUsuario(
             entidade: 'usuario',
             entidadeId: novo.email,
             usuariosAfetados: [novo.email],
-            detalhes: { demonstracao: novo.demonstracao, identidade: situacaoDaIdentidade, senhaProvisoria: novo.senha !== null },
+            detalhes: { identidade: situacaoDaIdentidade, senhaProvisoria: novo.senha !== null },
             agora,
           }
         : null,

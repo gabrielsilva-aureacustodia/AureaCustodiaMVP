@@ -24,7 +24,7 @@ import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
 
 import { SESSAO_EXPIRADA, SO_EQUIPE, carregarMembro, exigirPermissao, membroDaPagina, permissaoParaAcao, podeAbrirPainelAdmin } from './acesso'
 
-const SOCIO = 'gabrielsilva@testeaurea.com.br'
+const SOCIO = 'rogeriopena@testeaurea.com.br'
 const CLIENTE = 'cliente@exemplo.com.br'
 
 const salvo = { POSTGRES_URL: process.env.POSTGRES_URL, DATABASE_URL: process.env.DATABASE_URL }
@@ -42,20 +42,27 @@ afterEach(() => {
 })
 
 describe('carregarMembro sem banco', () => {
-  it('sócio do seed é dev pelo ambiente, com o nome da conta; cliente não é membro', async () => {
+  it('e-mail fixo da equipe é dev pelo ambiente; cliente não é membro', async () => {
     const m = await carregarMembro(SOCIO)
-    expect(m).toMatchObject({ email: SOCIO, nome: 'Gabriel Silva', origem: 'ambiente', papel: { slug: 'dev' } })
+    // O rótulo é o próprio e-mail: o nome de exibição vinha do catálogo local
+    // (`ACCOUNTS`), esvaziado em 20/09/2026. Quem entra pelo bootstrap aparece
+    // pelo e-mail até ser cadastrado em `admin_membros`, que tem nome próprio.
+    expect(m).toMatchObject({ email: SOCIO, nome: SOCIO, origem: 'ambiente', papel: { slug: 'dev' } })
     expect(m?.permissoes).toEqual(CHAVES_PERMISSAO)
     expect(await carregarMembro(CLIENTE)).toBeNull()
     expect(await carregarMembro(null)).toBeNull()
   })
 
-  it('com AUREA_ADMIN_EMAILS vale só a lista', async () => {
+  it('com AUREA_ADMIN_EMAILS vale a lista mais os e-mails fixos da equipe', async () => {
     process.env.AUREA_ADMIN_EMAILS = 'gabriel.silva@aureacustodia.com.br'
-    expect(await carregarMembro(SOCIO)).toBeNull()
     expect(await carregarMembro('Gabriel.Silva@aureacustodia.com.br')).toMatchObject({ papel: { slug: 'dev' } })
     expect(await podeAbrirPainelAdmin('gabriel.silva@aureacustodia.com.br')).toBe(true)
-    expect(await podeAbrirPainelAdmin(SOCIO)).toBe(false)
+    // Conta de teste fora da lista e fora dos fixos: não é membro.
+    expect(await carregarMembro('alex@testeaurea.com.br')).toBeNull()
+    expect(await podeAbrirPainelAdmin('alex@testeaurea.com.br')).toBe(false)
+    // SOCIO continua entrando: está entre os EMAILS_FIXOS_DA_EQUIPE, que valem
+    // com ou sem a variável, para a equipe nunca ficar trancada fora (RA-40).
+    expect(await podeAbrirPainelAdmin(SOCIO)).toBe(true)
   })
 })
 

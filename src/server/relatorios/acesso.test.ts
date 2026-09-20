@@ -14,7 +14,7 @@ vi.mock('@/server/admin/acesso', () => ({ carregarMembro }))
 
 import { autorizarRelatorioNoPainel, ehAdmin, tokenDeIntegracaoValido } from './acesso'
 
-const SOCIO = 'gabrielsilva@testeaurea.com.br'
+const SOCIO = 'rogeriopena@testeaurea.com.br'
 const VISITANTE = 'visitante@exemplo.com.br'
 const TOKEN = 'token-de-integracao-com-mais-de-16-chars'
 const EMAIL = 'contador@exemplo.com.br'
@@ -39,18 +39,26 @@ afterEach(() => {
 })
 
 describe('ehAdmin', () => {
-  it('sem AUREA_ADMIN_EMAILS, os sócios do seed são administradores e mais ninguém', () => {
+  it('sem AUREA_ADMIN_EMAILS, valem os e-mails fixos da equipe e mais ninguém', () => {
+    // Antes de 20/09/2026 qualquer conta do catálogo local era administradora.
+    // Com o catálogo esvaziado, quem entra pelo ambiente são só os e-mails fixos
+    // da equipe — uma conta de teste comum não abre a DRE.
     expect(ehAdmin(SOCIO)).toBe(true)
-    expect(ehAdmin('GabrielSilva@TesteAurea.com.br ')).toBe(true)
+    expect(ehAdmin('RogerioPena@TesteAurea.com.br ')).toBe(true)
+    expect(ehAdmin('alex@testeaurea.com.br')).toBe(false)
     expect(ehAdmin(VISITANTE)).toBe(false)
     expect(ehAdmin(null)).toBe(false)
     expect(ehAdmin('')).toBe(false)
   })
 
-  it('com AUREA_ADMIN_EMAILS, vale só a lista — o seed deixa de valer', () => {
+  it('com AUREA_ADMIN_EMAILS, vale a lista mais os e-mails fixos da equipe', () => {
     process.env.AUREA_ADMIN_EMAILS = ' Contador@Exemplo.com.br , outro@exemplo.com.br '
     expect(ehAdmin('contador@exemplo.com.br')).toBe(true)
-    expect(ehAdmin(SOCIO)).toBe(false)
+    // Quem não está nem na lista nem entre os fixos fica de fora.
+    expect(ehAdmin('alex@testeaurea.com.br')).toBe(false)
+    // O e-mail fixo da equipe vale nos dois casos, por desenho: é o que impede
+    // uma variável mal preenchida de trancar a equipe fora do painel (RA-40).
+    expect(ehAdmin(SOCIO)).toBe(true)
   })
 })
 
