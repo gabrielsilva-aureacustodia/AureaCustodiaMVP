@@ -24,7 +24,7 @@ export interface ProvisioningResult {
 function nomeDaConta(nome: string | undefined, email: string): string {
   const normalizado = nome?.trim()
   if (normalizado && normalizado.length >= 2) return normalizado
-  return email.split('@')[0] || 'Conta Áurea'
+  return email.split('@')[0] || 'Conta Real Olímpico'
 }
 
 /**

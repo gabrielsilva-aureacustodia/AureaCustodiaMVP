@@ -8,9 +8,9 @@ import { PARAMETROS_LEGAIS } from '@/domain/documentos-legais/parametros'
 import { carregarCanaisDeAtendimento } from '@/server/config/carregar'
 
 export const metadata: Metadata = {
-  title: 'Atendimento ao Cliente (SAC) | Áurea Custódia',
+  title: 'Atendimento ao Cliente (SAC) | Real Olímpico',
   description:
-    'Canal oficial de Serviço de Atendimento ao Cliente (SAC) da Áurea Custódia — suporte numismático, dúvidas operacionais e exercício de direitos LGPD.',
+    'Canal oficial de Serviço de Atendimento ao Cliente (SAC) do Real Olímpico — suporte numismático, dúvidas operacionais e exercício de direitos LGPD.',
 }
 
 // Canais de atendimento editáveis no painel desde a C3 (aba Operacional): dinâmica para não
@@ -29,7 +29,7 @@ export default async function SupportPage(): Promise<ReactNode> {
     >
       <div className="legal-quote">
         <p>
-          A Áurea Custódia preza pela transparência, segurança patrimonial e pelo respeito absoluto
+          O Real Olímpico preza pela transparência, segurança patrimonial e pelo respeito absoluto
           aos direitos dos colecionadores e usuários de nossos serviços. Este canal destina-se ao
           esclarecimento de dúvidas operacionais, suporte a negociações no marketplace,
           rastreamento de custódia e atendimento à legislação vigente.
@@ -113,7 +113,7 @@ export default async function SupportPage(): Promise<ReactNode> {
         <aside className="legal-draft-warning" role="note" style={{ borderColor: 'var(--gold)' }}>
           <strong>Aviso de Segurança Contra Fraudes:</strong>
           <p>
-            A equipe da Áurea Custódia <strong>nunca</strong> solicita sua senha de acesso, códigos de
+            A equipe do Real Olímpico <strong>nunca</strong> solicita sua senha de acesso, códigos de
             verificação por e-mail ou dados confidenciais por qualquer meio. Todas as comunicações
             oficiais provêm unicamente de endereços com o domínio oficial{' '}
             <code>@aureacustodia.com.br</code>. Em caso de mensagens suspeitas, contate imediatamente o SAC.

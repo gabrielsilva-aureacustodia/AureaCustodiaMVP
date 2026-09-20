@@ -10,7 +10,7 @@
  * responder enquanto se digita. Quem grava e recusa é a Server Action.
  *
  * A SIMULAÇÃO é o que torna a mudança de taxa explicável antes de salvar: "com esta tabela, uma
- * negociação de R$ 300 rende R$ X para a Áurea".
+ * negociação de R$ 300 rende R$ X para o Real Olímpico".
  */
 
 import { useMemo, useState } from 'react'
@@ -72,7 +72,7 @@ function Simulacao({ valores, campos }: { valores: ValoresConfig; campos: Record
           </dd>
         </div>
         <div>
-          <dt>A Áurea recebe</dt>
+          <dt>O Real Olímpico recebe</dt>
           <dd>
             <b>{dinheiro(s.aureaRecebe)}</b>
             {s.aureaRecebe !== hoje.aureaRecebe ? <span className="adm-fraco"> · hoje {dinheiro(hoje.aureaRecebe)}</span> : null}

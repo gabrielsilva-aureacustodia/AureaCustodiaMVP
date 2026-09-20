@@ -14,7 +14,7 @@ import { DESCRICAO_CONTEUDO_PADRAO } from '@/lib/shipping/types'
  *
  * REGRAS DE NEGÓCIO E CONFORMIDADE:
  *  1. Valida se o usuário está autenticado e se é o solicitante da retirada ou operador/administrador.
- *  2. Remetente oficial: Central de Custódia Áurea (Caixa Postal 7990, Belo Horizonte - MG, CEP 30315-970).
+ *  2. Remetente oficial: Central de Custódia Real Olímpico (Caixa Postal 7990, Belo Horizonte - MG, CEP 30315-970).
  *  3. Destinatário: endereço congelado na solicitação com Trava 2 de segurança.
  *  4. Declaração de conteúdo obrigatória com Aviso de Recebimento (AR) e seguro declarado.
  *  5. Suporta saída em JSON (`?format=json`) ou HTML estilizado para impressão (`window.print()`).
@@ -175,7 +175,7 @@ export async function GET(
 <body>
   <div class="container">
     <div class="header">
-      <h1>Áurea Custódia — Expedição de Moeda</h1>
+      <h1>Real Olímpico — Expedição de Moeda</h1>
       <span class="badge">${retirada.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios SEDEX'}</span>
     </div>
 

@@ -201,7 +201,7 @@ export async function GET(
   <div class="container">
     <div class="header">
       <div>
-        <h1>Áurea Custódia — Envio Postal</h1>
+        <h1>Real Olímpico — Envio Postal</h1>
         <div style="font-size: 12px; color: #666;">Protocolo: <b>${envio.protocolo}</b></div>
       </div>
       <div class="badge">${modalidade} COM SEGURO</div>

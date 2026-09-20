@@ -15,8 +15,8 @@ import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
 export const metadata: Metadata = {
-  title: 'Criar conta | Áurea Custódia',
-  description: 'Crie sua conta na plataforma Áurea Custódia.',
+  title: 'Criar conta | Real Olímpico',
+  description: 'Crie sua conta na plataforma Real Olímpico.',
 }
 
 interface CadastrarPageProps {

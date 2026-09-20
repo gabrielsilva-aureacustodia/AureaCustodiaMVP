@@ -318,7 +318,7 @@ export function ModalDeposito(): ReactNode {
         </p>
 
         <div className="note" style={{ marginBottom: 16 }}>
-          A Áurea Custódia protege o que tem valor para gerações. Seus dados são protegidos sob a LGPD
+          O Real Olímpico protege o que tem valor para gerações. Seus dados são protegidos sob a LGPD
           e utilizados exclusivamente para identificação fiscal e transferências bancárias. Não
           solicitamos fotos de documentos nem biometria facial.
         </div>

@@ -16,7 +16,7 @@ import { getSessionEmail } from '@/server/session'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Nova senha | Áurea Custódia',
+  title: 'Nova senha | Real Olímpico',
   robots: { index: false, follow: false },
 }
 

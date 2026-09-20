@@ -5,9 +5,9 @@ import type { ReactNode } from 'react'
 import { LegalDocument } from '@/components/legal/LegalDocument'
 
 export const metadata: Metadata = {
-  title: 'Academy | Áurea Custódia',
+  title: 'Academy | Real Olímpico',
   description:
-    'Conteúdo educativo oficial da Áurea Custódia: entenda o que somos, o que não somos, como funciona a guarda física de moedas comemorativas e a negociação de recibos de custódia.',
+    'Conteúdo educativo oficial do Real Olímpico: entenda o que somos, o que não somos, como funciona a guarda física de moedas comemorativas e a negociação de recibos de custódia.',
 }
 
 const VERSION = '1.0-2026-09-10'
@@ -16,15 +16,15 @@ const UPDATED_AT = '10 de setembro de 2026'
 export default function AcademyPage(): ReactNode {
   return (
     <LegalDocument
-      title="Áurea Academy"
+      title="Real Olímpico Academy"
       version={VERSION}
       updatedAt={UPDATED_AT}
       eyebrow="Material Educativo Oficial"
-      noticeTitle="O que a Áurea é e o que a Áurea não é"
+      noticeTitle="O que o Real Olímpico é e o que o Real Olímpico não é"
       noticeDescription={
         <p>
           Este guia foi elaborado para esclarecer de forma direta e acessível o funcionamento
-          da Áurea Custódia, a natureza dos nossos serviços de guarda física de itens numismáticos,
+          do Real Olímpico, a natureza dos nossos serviços de guarda física de itens numismáticos,
           nosso marketplace e nossas diretrizes de conformidade institucional e regulatória.
         </p>
       }
@@ -36,16 +36,16 @@ export default function AcademyPage(): ReactNode {
           definimos nossa atuação através do seguinte compromisso formal:
         </p>
         <blockquote className="legal-quote">
-          &ldquo;A Áurea <strong>não é corretora</strong> e não está sujeita à regulação da CVM
-          ou do mercado de capitais. A Áurea <strong>não é instituição financeira</strong>.
-          A Áurea <strong>não é plataforma de ativos digitais</strong>. A Áurea é um serviço
+          &ldquo;O Real Olímpico <strong>não é corretora</strong> e não está sujeito à regulação da CVM
+          ou do mercado de capitais. O Real Olímpico <strong>não é instituição financeira</strong>.
+          O Real Olímpico <strong>não é plataforma de ativos digitais</strong>. O Real Olímpico é um serviço
           de guarda de itens de coleção com um marketplace onde quem guarda pode negociar o
           recibo do item sem precisar resgatá-lo fisicamente.&rdquo;
         </blockquote>
       </section>
 
       <section>
-        <h2>2. O que a Áurea NÃO é (Delimitações regulatórias)</h2>
+        <h2>2. O que o Real Olímpico NÃO é (Delimitações regulatórias)</h2>
         <p>
           É fundamental que todo cliente compreenda com exatidão o que não fazemos e o que não somos:
         </p>
@@ -62,7 +62,7 @@ export default function AcademyPage(): ReactNode {
             financeiros e não realizamos operações de câmbio ou crédito.
           </li>
           <li>
-            <strong>Não somos plataforma de criptoativos nem emitimos tokens ou NFTs:</strong> A Áurea
+            <strong>Não somos plataforma de criptoativos nem emitimos tokens ou NFTs:</strong> O Real Olímpico
             não opera em redes blockchain e não faz emissão de ativos virtuais sujeitos à Lei nº 14.478/2022
             ou resoluções conexas do Banco Central. Nossos recibos de custódia são comprovantes digitais
             emitidos em sistema próprio para comprovar a existência e posse de um item físico depositado.
@@ -78,9 +78,9 @@ export default function AcademyPage(): ReactNode {
       </section>
 
       <section>
-        <h2>3. O que a Áurea É: Guarda física e liquidez para colecionadores</h2>
+        <h2>3. O que o Real Olímpico É: Guarda física e liquidez para colecionadores</h2>
         <p>
-          A Áurea Custódia é uma prestadora de serviços especializada na guarda e preservação
+          O Real Olímpico é um prestador de serviços especializado na guarda e preservação
           de moedas comemorativas nacionais elegíveis (como a série Real Olímpico dos Jogos Rio 2016).
           Nossa estrutura oferece três soluções integradas:
         </p>
@@ -110,9 +110,9 @@ export default function AcademyPage(): ReactNode {
       </section>
 
       <section>
-        <h2>4. A história de origem: Da coleção do Rogério à criação da Áurea</h2>
+        <h2>4. A história de origem: Da coleção do Rogério à criação do Real Olímpico</h2>
         <p>
-          A Áurea Custódia nasceu da experiência genuína de quem vivencia o colecionismo no dia a dia.
+          O Real Olímpico nasceu da experiência genuína de quem vivencia o colecionismo no dia a dia.
           Rogério Pena, um dos fundadores da plataforma, é colecionador dedicado da série de moedas
           comemorativas Real Olímpico.
         </p>
@@ -134,7 +134,7 @@ export default function AcademyPage(): ReactNode {
           </li>
         </ol>
         <p>
-          Diante dessas dificuldades, surgiu o modelo da Áurea: centralizar a guarda física em um
+          Diante dessas dificuldades, surgiu o modelo do Real Olímpico: centralizar a guarda física em um
           ambiente seguro e segurado, emitir comprovantes digitais confiáveis de custódia e criar um
           mercado onde colecionadores possam negociar a posse das moedas entre si sem a obrigação de
           movimentar o metal físico a cada transação comercial.
@@ -144,7 +144,7 @@ export default function AcademyPage(): ReactNode {
       <section>
         <h2>5. Como funciona o ciclo da custódia na prática</h2>
         <p>
-          O ciclo operacional da Áurea Custódia é transparente e dividido em quatro etapas claras:
+          O ciclo operacional do Real Olímpico é transparente e dividido em quatro etapas claras:
         </p>
         <ul>
           <li>
@@ -183,11 +183,11 @@ export default function AcademyPage(): ReactNode {
         <p>
           <strong>Quais são os prazos de saque e de resgate físico?</strong><br />
           Para transferências de saldo financeiro em reais para a conta bancária do titular, o prazo é
-          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, a Áurea tem até
+          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, o Real Olímpico tem até
           <strong>30 dias corridos para preparar e postar</strong> — período necessário para
           conferência pericial, deslocamento seguro de cofre, embalagem de alta segurança e despacho.
           A esse prazo <strong>soma-se o tempo de entrega dos Correios</strong>, que varia conforme o
-          destino e não é controlado pela Áurea.
+          destino e não é controlado pelo Real Olímpico.
         </p>
         <p>
           <strong>Quem paga os custos de frete e envio?</strong><br />

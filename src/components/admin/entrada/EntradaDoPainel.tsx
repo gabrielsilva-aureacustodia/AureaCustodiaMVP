@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { login, loginWithGoogle, logout } from '@/server/actions/auth'
 
 const ERRO_GENERICO = 'Não foi possível entrar. Tente novamente.'
@@ -76,7 +76,7 @@ export function EntradaDoPainel({ contaSemAcesso }: { contaSemAcesso: string | n
     <main className="login-wrap auth-page">
       <section className="login-card" aria-labelledby="painel-titulo">
         <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={120} height={120} priority />
+          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={130} height={120} priority />
         </Link>
 
         <h1 className="login-title" id="painel-titulo">
@@ -103,7 +103,7 @@ export function EntradaDoPainel({ contaSemAcesso }: { contaSemAcesso: string | n
           </>
         ) : (
           <>
-            <p className="login-sub">Acesso da equipe da Áurea. Use a mesma conta do site.</p>
+            <p className="login-sub">Acesso da equipe do Real Olímpico. Use a mesma conta do site.</p>
             <form onSubmit={(event) => void entrar(event)}>
               <div className="field">
                 <label htmlFor="painelEmail">E-mail</label>

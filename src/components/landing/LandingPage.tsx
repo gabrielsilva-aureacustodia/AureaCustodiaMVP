@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 
 const etapas = [
   {
@@ -28,11 +28,11 @@ export function LandingPage(): ReactNode {
   return (
     <main className="landing-page">
       <header className="landing-header">
-        <Link className="landing-brand" href="/" aria-label="Áurea Custódia — início">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={72} height={72} priority />
+        <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
+          <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={72} height={72} priority />
           <span>
-            <strong>Áurea Custódia</strong>
-            <small>Real Olímpico</small>
+            <strong>Real Olímpico</strong>
+            <small>Custódia de moedas comemorativas</small>
           </span>
         </Link>
         <nav className="landing-nav" aria-label="Acesso à plataforma">
@@ -53,7 +53,7 @@ export function LandingPage(): ReactNode {
           <p className="landing-eyebrow">Custódia de moedas comemorativas</p>
           <h1 id="landing-title">Sua coleção protegida, registrada e pronta para negociar.</h1>
           <p className="landing-lead">
-            A Áurea Custódia conecta o cuidado com o patrimônio físico a uma experiência
+            O Real Olímpico conecta o cuidado com o patrimônio físico a uma experiência
             digital simples para acompanhar recibos e oportunidades de mercado.
           </p>
           <div className="landing-actions">
@@ -67,11 +67,11 @@ export function LandingPage(): ReactNode {
           <p className="landing-test-note">Ambiente de teste · Pré-MVP · Dados fictícios</p>
         </div>
 
-        <div className="landing-emblem" aria-label="Marca Áurea Custódia">
+        <div className="landing-emblem" aria-label="Marca Real Olímpico">
           <div className="landing-emblem-halo" aria-hidden="true" />
           <Image
-            src={LOGO_AUREA}
-            alt="Áurea Custódia"
+            src={LOGO_REAL_EMBLEMA}
+            alt="Real Olímpico"
             width={420}
             height={420}
             sizes="(max-width: 720px) 76vw, 380px"
@@ -103,7 +103,7 @@ export function LandingPage(): ReactNode {
         </div>
         <div className="landing-origin-grid">
           <p>
-            A Áurea Custódia nasceu da experiência direta de quem vivencia o colecionismo.
+            O Real Olímpico nasceu da experiência direta de quem vivencia o colecionismo.
             Rogério Pena, um dos fundadores da empresa, começou a reunir sua coleção particular
             da série de moedas comemorativas Real Olímpico e logo se deparou com desafios que todo
             colecionador conhece: a preocupação com a guarda segura em domicílio e o alto custo
@@ -136,15 +136,15 @@ export function LandingPage(): ReactNode {
             <h2 id="positioning-title">Nosso posicionamento institucional</h2>
           </div>
           <blockquote className="landing-positioning-quote">
-            &ldquo;A Áurea <strong>não é corretora</strong> e não está sujeita à regulação da CVM ou do
-            mercado de capitais. A Áurea <strong>não é instituição financeira</strong>. A Áurea{' '}
-            <strong>não é plataforma de ativos digitais</strong>. A Áurea é um serviço de guarda de itens de
+            &ldquo;O Real Olímpico <strong>não é corretora</strong> e não está sujeito à regulação da CVM ou do
+            mercado de capitais. O Real Olímpico <strong>não é instituição financeira</strong>. O Real Olímpico{' '}
+            <strong>não é plataforma de ativos digitais</strong>. O Real Olímpico é um serviço de guarda de itens de
             coleção com um marketplace onde quem guarda pode negociar o recibo do item sem precisar
             resgatá-lo fisicamente.&rdquo;
           </blockquote>
           <div className="landing-positioning-actions">
             <Link className="landing-link-academy" href="/academy">
-              Entenda em detalhes no Áurea Academy &rarr;
+              Entenda em detalhes no Real Olímpico Academy &rarr;
             </Link>
           </div>
         </div>
@@ -152,7 +152,7 @@ export function LandingPage(): ReactNode {
 
       <footer className="landing-footer">
         <div className="landing-footer-brand">
-          <Image src={LOGO_AUREA} alt="" width={52} height={52} />
+          <Image src={LOGO_REAL_EMBLEMA} alt="" width={52} height={52} />
           <p>
             <strong>AUREA CUSTODIA LTDA</strong>
             <span>CNPJ 68.071.452/0001-06</span>

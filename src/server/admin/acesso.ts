@@ -153,7 +153,7 @@ export { temPermissao }
 /* ---------- a recusa ---------- */
 
 export const SESSAO_EXPIRADA = 'Sessão expirada. Entre de novo.'
-export const SO_EQUIPE = 'Esta área é restrita à equipe da Áurea.'
+export const SO_EQUIPE = 'Esta área é restrita à equipe do Real Olímpico.'
 
 export function semPermissao(chave: ChavePermissao): string {
   const rotulo = PERMISSOES.find((p) => p.chave === chave)?.rotulo ?? chave

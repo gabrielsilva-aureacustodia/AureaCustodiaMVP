@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { login, loginWithGoogle } from '@/server/actions/auth'
 
 const PW_REVEAL_MS = 3000
@@ -105,7 +105,7 @@ export function LoginForm({
     <main className="login-wrap auth-page">
       <section className="login-card" aria-labelledby="login-title">
         <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={120} height={120} priority />
+          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={130} height={120} priority />
         </Link>
 
         <h1 className="login-title" id="login-title">

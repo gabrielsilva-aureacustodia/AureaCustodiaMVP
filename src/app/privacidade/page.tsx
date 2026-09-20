@@ -5,9 +5,9 @@ import { LegalDocument } from '@/components/legal/LegalDocument'
 import { DOCUMENTOS_VIGENTES } from '@/domain/documentos-legais'
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidade | Áurea Custódia',
+  title: 'Política de Privacidade | Real Olímpico',
   description:
-    'Política de Privacidade da plataforma Áurea Custódia — governança de dados pessoais, cadastro progressivo e conformidade com a LGPD.',
+    'Política de Privacidade da plataforma Real Olímpico — governança de dados pessoais, cadastro progressivo e conformidade com a LGPD.',
 }
 
 export default function PrivacyPage(): ReactNode {

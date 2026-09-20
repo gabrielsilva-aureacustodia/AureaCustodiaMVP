@@ -91,7 +91,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
         className="obs"
         maxLength={140}
         rows={2}
-        placeholder="Ex.: Moedas em custódia na Áurea."
+        placeholder="Ex.: Moedas em custódia no Real Olímpico."
         aria-label="Observação do anúncio"
         value={obs}
         onChange={(e) => setObs(e.target.value)}

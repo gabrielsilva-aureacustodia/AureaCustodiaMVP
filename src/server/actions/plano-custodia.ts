@@ -321,7 +321,7 @@ export async function iniciarPixFatura(
       externalReference,
       userEmail: session,
       valorCents: fatura.valorCents,
-      titulo: `Fatura de Custódia — Áurea (${fatura.competencia})`,
+      titulo: `Fatura de Custódia — Real Olímpico (${fatura.competencia})`,
       descricao: `Custódia ${fatura.quantidadeMoedas} moeda(s) - ${fatura.competencia}`,
       parcelasMax: 1,
     })
@@ -383,7 +383,7 @@ export async function iniciarCartaoFatura(
       externalReference,
       userEmail: session,
       valorCents: fatura.valorCents,
-      titulo: `Fatura de Custódia — Áurea (${fatura.competencia})`,
+      titulo: `Fatura de Custódia — Real Olímpico (${fatura.competencia})`,
       descricao: `Custódia ${fatura.quantidadeMoedas} moeda(s) - ${fatura.competencia}`,
       parcelasMax,
       voltarPara: {

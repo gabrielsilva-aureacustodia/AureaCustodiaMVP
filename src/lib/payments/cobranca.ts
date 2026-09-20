@@ -1,7 +1,7 @@
 import 'server-only'
 
 /**
- * Cobrança genérica reutilizável pelo ecossistema Áurea (depósito, faturas, planos e retiradas).
+ * Cobrança genérica reutilizável pelo ecossistema Real Olímpico (depósito, faturas, planos e retiradas).
  *
  * Implementa o passo B1.1 do plano de finalizações de 13/09/2026.
  *
@@ -53,7 +53,7 @@ export async function criarCobrancaPix(p: PedidoDeCobranca): Promise<CobrancaPix
 
   const payload = {
     transaction_amount: valorCents / 100,
-    description: descricao || titulo || `Áurea Custódia - ${externalReference}`,
+    description: descricao || titulo || `Real Olímpico - ${externalReference}`,
     payment_method_id: 'pix',
     payer: {
       email: userEmail,
@@ -136,7 +136,7 @@ export async function criarCobrancaCartao(p: PedidoDeCobranca): Promise<Cobranca
   }
 
   const unitPrice = valorCents / 100
-  const title = titulo || 'Pagamento — Áurea Custódia'
+  const title = titulo || 'Pagamento — Real Olímpico'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
   const payload = {

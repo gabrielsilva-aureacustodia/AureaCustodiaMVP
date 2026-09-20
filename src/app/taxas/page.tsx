@@ -13,9 +13,9 @@ import { carregarDocumentoVigente } from '@/server/config/documentos'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 
 export const metadata: Metadata = {
-  title: 'Tabela de Taxas | Áurea Custódia',
+  title: 'Tabela de Taxas | Real Olímpico',
   description:
-    'Tabela oficial de taxas da Áurea Custódia: corretagem de negociação em dois lados, tarifas de custódia física, saques e retiradas.',
+    'Tabela oficial de taxas do Real Olímpico: corretagem de negociação em dois lados, tarifas de custódia física, saques e retiradas.',
 }
 
 // A tabela e a versão vigentes vêm do banco desde a C3: dinâmica para não congelar no build.
@@ -97,7 +97,7 @@ export default async function FeesPage(): Promise<ReactNode> {
             {brl(comissao.vendedor)}) = <strong>{brl(liquidoVenda)}</strong> valor líquido recebido.
           </p>
           <p>
-            • <strong>Áurea Custódia:</strong> Recebe{' '}
+            • <strong>Real Olímpico:</strong> Recebe{' '}
             <strong>{brl(comissao.comprador + comissao.vendedor)}</strong> no total ({brl(comissao.comprador)} do comprador + {brl(comissao.vendedor)} do vendedor).
           </p>
         </div>
@@ -217,7 +217,7 @@ export default async function FeesPage(): Promise<ReactNode> {
             Conforme disposto no item 7.5.5 dos <Link href="/termos">Termos de Uso</Link>, todas as
             despesas com envio, frete e contratação do seguro postal de valor declarado junto aos
             Correios ou transportadora para a remessa física de moedas destinadas a depósito em
-            custódia correm exclusivamente por conta e ônus do cliente remetente. A Áurea Custódia
+            custódia correm exclusivamente por conta e ônus do cliente remetente. O Real Olímpico
             não cobra tarifa de entrada para validação, mas não reembolsa despesas postais.
           </p>
         </aside>

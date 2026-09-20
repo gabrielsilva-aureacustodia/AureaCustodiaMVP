@@ -128,7 +128,23 @@ código** ou a regra de casamento continua sendo mudança de produto.
 
 ## Restrições de marca, jurídico e regulatório
 
-- **Logos:** usar exclusivamente `/brand/logo-aurea.webp` e `/brand/logo-real-olimpico.webp`.
+- **A marca do site é Real Olímpico** (decisão de 20/09/2026, enquanto corre o registro
+  formal das marcas). Todo texto de interface, título de página, e-mail e material
+  público diz **Real Olímpico** — e a concordância é **masculina** ("o Real Olímpico",
+  "do Real Olímpico"), ao contrário da "Áurea Custódia", que era feminina. A **razão
+  social continua AUREA CUSTODIA LTDA** e é ela que aparece onde há CNPJ, contrato,
+  objeto postal e descritor de fatura de cartão: trocar esses pela marca faz o pacote
+  ser recusado na agência e a cobrança não bater com o cadastro do adquirente.
+  Identificadores internos **não** mudam — o schema `aurea.*` do Postgres, as variáveis
+  `AUREA_*`, a `STORE_KEY` e os e-mails de semente `@testeaurea.com.br`.
+- **Logos:** usar exclusivamente os arquivos de `/brand/`. `logo-aurea.webp` é a marca
+  antiga, mantida só como histórico. `logo-real-olimpico.webp` é a **prancha de
+  identidade inteira** (painel principal mais seis variações em miniatura) e não serve
+  para a interface — dentro de um box de 72px vira borrão. A interface usa os dois
+  recortes do painel principal dessa prancha: **`logo-real-olimpico-marca.webp`**
+  (emblema + letreiro, 234x216, para o logo isolado) e
+  **`logo-real-olimpico-emblema.webp`** (só o medalhão, quadrado, para quando o nome já
+  está escrito ao lado). Constantes em `src/domain/constants.ts`.
   Nunca gerar, redesenhar ou substituir por alternativa.
 - **Anéis olímpicos não podem aparecer** em arte de moeda (risco de PI do COB).
 - O rótulo **"código simulado"** no QR do recibo é deliberado e não sai. Não há

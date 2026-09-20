@@ -35,7 +35,7 @@ import {
 } from 'react'
 import type { ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { logout } from '@/server/actions/auth'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -262,7 +262,7 @@ export function Sidebar(): ReactNode {
                 (.logo-box img{width:100%;height:100%}). Passar pelo otimizador
                 só acrescentaria uma função serverless no caminho. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_AUREA} alt="Áurea Custódia" />
+            <img src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" />
           </div>
         </div>
 

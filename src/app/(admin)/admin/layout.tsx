@@ -31,7 +31,7 @@ import { membroDaPagina } from '@/server/admin/acesso'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Painel administrativo — Áurea Custódia',
+  title: 'Painel administrativo — Real Olímpico',
   // Área interna: não tem por que aparecer em buscador.
   robots: { index: false, follow: false },
 }

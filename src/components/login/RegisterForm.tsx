@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { registerWithEmail, registerWithGoogle } from '@/server/actions/auth'
 
 interface RegistrationStatusView {
@@ -91,7 +91,7 @@ export function RegisterForm({
     <main className="auth-page register-wrap">
       <section className="register-card" aria-labelledby="register-title">
         <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={104} height={104} priority />
+          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={113} height={104} priority />
         </Link>
         <h1 className="login-title" id="register-title">
           Criar conta
@@ -223,7 +223,7 @@ export function RegisterForm({
               <Link href="/taxas" target="_blank">
                 Tabela de Taxas
               </Link>{' '}
-              da Áurea Custódia.
+              do Real Olímpico.
             </p>
           </fieldset>
 

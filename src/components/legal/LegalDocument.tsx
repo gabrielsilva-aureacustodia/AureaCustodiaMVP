@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { PrintButton } from './PrintButton'
 
 interface LegalDocumentProps {
@@ -29,11 +29,11 @@ export function LegalDocument({
   return (
     <main className="legal-page">
       <header className="legal-header">
-        <Link className="landing-brand" href="/" aria-label="Áurea Custódia — início">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={58} height={58} priority />
+        <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
+          <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={58} height={58} priority />
           <span>
-            <strong>Áurea Custódia</strong>
-            <small>Real Olímpico</small>
+            <strong>Real Olímpico</strong>
+            <small>Custódia de moedas comemorativas</small>
           </span>
         </Link>
         <nav aria-label="Documentos e acesso">

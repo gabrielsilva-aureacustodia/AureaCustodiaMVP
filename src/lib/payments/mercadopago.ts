@@ -77,8 +77,8 @@ export async function criarPreferenciaDeposito(
     externalReference: input.externalReference,
     userEmail: input.userEmail,
     valorCents: input.valorCents,
-    titulo: input.descricao || `Depósito de saldo — Áurea Custódia (${brl(input.valorCents)})`,
-    descricao: input.descricao || 'Aporte de recursos na plataforma Áurea Custódia',
+    titulo: input.descricao || `Depósito de saldo — Real Olímpico (${brl(input.valorCents)})`,
+    descricao: input.descricao || 'Aporte de recursos na plataforma Real Olímpico',
     parcelasMax: 1,
     voltarPara: backUrls,
   })
@@ -100,8 +100,8 @@ export async function criarPixDeposito(
     externalReference: input.externalReference,
     userEmail: input.userEmail,
     valorCents: input.valorCents,
-    titulo: `Depósito de saldo Áurea Custódia - ${input.externalReference}`,
-    descricao: input.descricao || `Depósito de saldo Áurea Custódia - ${input.externalReference}`,
+    titulo: `Depósito de saldo Real Olímpico - ${input.externalReference}`,
+    descricao: input.descricao || `Depósito de saldo Real Olímpico - ${input.externalReference}`,
     parcelasMax: 1,
   })
 }
@@ -254,8 +254,11 @@ export async function ativarDebitoAutomatico(
 
   const payload = {
     payer_email: input.userEmail,
-    back_url: input.backUrl || 'https://aureacustodia.com.br/conta/faturas',
-    reason: input.descricao || `Custódia mensal — Áurea Custódia (${input.planoId})`,
+    // Era 'https://aureacustodia.com.br/conta/faturas' fixo no código — um domínio
+    // que nunca foi publicado. Agora sai do mesmo NEXT_PUBLIC_APP_URL que o Checkout
+    // Pro usa, para que a troca de domínio seja só uma variável de ambiente.
+    back_url: input.backUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/conta/faturas`,
+    reason: input.descricao || `Custódia mensal — Real Olímpico (${input.planoId})`,
     external_reference: externalReference,
     auto_recurring: {
       frequency: 1,

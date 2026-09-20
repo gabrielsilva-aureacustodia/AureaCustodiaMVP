@@ -1,5 +1,5 @@
 /**
- * Landing pública da Áurea Custódia.
+ * Landing pública do Real Olímpico.
  *
  * Visitantes sem sessão recebem a página institucional. Uma sessão válida e
  * já ligada aos dados mockados segue direto para o painel; sessão antiga ou
@@ -15,7 +15,7 @@ import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
 export const metadata: Metadata = {
-  title: 'Áurea Custódia | Custódia de moedas comemorativas',
+  title: 'Real Olímpico | Custódia de moedas comemorativas',
   description:
     'Custódia física, recibo digital e marketplace para moedas comemorativas brasileiras.',
 }
