@@ -2,11 +2,36 @@
 
 ```
 Objetivo:     a Production da Vercel atender em https://realolimpico.com.br
-Executor:     Claude Cowork, no navegador
-Tempo:        20 minutos de trabalho + espera de propagação de DNS
-Estado hoje:  o site responde só em https://aurea-custodia-mvp.vercel.app
+Estado:       ✅ EXECUTADO em 20/09/2026 — o site está no ar no domínio oficial
 Paths:        conferidos na documentação oficial da Vercel em 20/09/2026 (fontes no fim)
 ```
+
+> ## ✅ Executado — o que ficou provado em 20/09/2026
+>
+> | Verificação | Resultado |
+> |---|---|
+> | `realolimpico.com.br` — `/`, `/entrar`, `/cadastrar`, `/painel`, `/termos` | HTTP 200, certificado válido, `Server: Vercel` |
+> | `www.realolimpico.com.br` | 308 para a raiz, preservando o caminho |
+> | Vercel, os dois domínios | `verified: true`, `misconfigured: false`, sem conflitos |
+> | `AUREA_SITE_URL` e `NEXT_PUBLIC_APP_URL` | `https://realolimpico.com.br`, com redeploy **depois** da troca |
+> | Supabase — lista de Redirect URLs | endereço novo honrado; endereço não autorizado recusado e jogado no Site URL, que é `https://realolimpico.com.br` |
+> | E-mail do domínio | `MX → mail.realolimpico.com.br` e `mail → 162.240.81.81`, intacto na HostGator |
+> | `aurea-custodia-mvp.vercel.app` | continua no ar — os webhooks apontados para ele não quebraram |
+>
+> **Como o Supabase foi verificado sem esperar e-mail:** chamando
+> `https://vjbqikfamqdttbmaqrxf.supabase.co/auth/v1/verify` com token inválido e variando o
+> `redirect_to`. Endereço que está na lista é honrado no destino do erro; endereço que não está
+> cai no Site URL. A queda revela o Site URL vigente de quebra. Vale para qualquer troca futura.
+>
+> **Cuidado ao consultar DNS do Windows:** `nslookup`, mesmo apontando para o nameserver
+> autoritativo, devolveu por horas os valores antigos com a marca "não é resposta autoritativa" —
+> os servidores da HostGator respondem como resolvedores recursivos e serviram o próprio cache.
+> Quem mostrou a verdade foi consulta de fora da máquina:
+> `curl -H "accept: application/dns-json" "https://dns.google/resolve?name=<domínio>&type=<tipo>"`.
+>
+> **Pendências não bloqueantes**, porque o endereço antigo continua respondendo: reapontar os
+> webhooks do Mercado Pago e da Evolution (seção 6), o `estacao.json` da bancada e as fórmulas
+> das planilhas (seção 8).
 
 > **O que este guia NÃO faz.** Não troca de hospedagem — o site continua rodando na Vercel,
 > exatamente o mesmo projeto e o mesmo deploy. Não troca os nameservers do domínio. Não mexe em
