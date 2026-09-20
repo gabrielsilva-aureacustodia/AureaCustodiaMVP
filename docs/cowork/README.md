@@ -21,6 +21,7 @@ Site:        https://aurea-custodia-mvp.vercel.app
 | [`02_QA_PAINEL_LOGADO.md`](02_QA_PAINEL_LOGADO.md) | Conferência visual das 15 telas do painel e das 4 do site | P-C1-02, P-C3-02, P-M-01 | alta |
 | [`03_TAREFAS_CURTAS.md`](03_TAREFAS_CURTAS.md) | Parcelamento, balde de vídeos, gaveta de teste do banco | B-8, P-C3-04, P-C1-04 | média |
 | [`04_WHATSAPP_EVOLUTION.md`](04_WHATSAPP_EVOLUTION.md) | Atendimento por WhatsApp em `/admin/cs` | P-C2-02 | baixa |
+| [`05_DOMINIO_REALOLIMPICO.md`](05_DOMINIO_REALOLIMPICO.md) | Publicar a Production no domínio oficial `realolimpico.com.br` | — | **alta** |
 
 ## A regra da pasta
 
