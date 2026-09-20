@@ -87,7 +87,40 @@ no cPanel, a ferramenta chama **Zone Editor** (em português, *Editor de Zona*);
 o caminho é pelo painel do cliente, em **Domínios → Gerenciar DNS**. Se a tela não bater com
 nenhuma das duas, tire um print e pergunte antes de editar.
 
-Criar **exatamente dois registros**, com os valores que você copiou no passo 1.1:
+### 2.1 Primeiro, proteger o e-mail — antes de tocar no registro `A`
+
+Levantamento da zona em 20/09/2026: o registro **`MX` do domínio aponta para o próprio
+`realolimpico.com.br`**, e `mail.realolimpico.com.br` é apelido da raiz. Isso quer dizer que o
+e-mail é entregue onde quer que o domínio resolva. No instante em que o `A` passar a apontar
+para a Vercel, o e-mail desse domínio é entregue num servidor que não fala SMTP e some.
+
+Hoje ninguém usa `@realolimpico.com.br`, mas isso não muda o que se faz aqui: existe um jeito de
+apontar o site sem pôr o e-mail em risco, ele custa dois campos, e **o jeito que não quebra nada
+é o jeito certo** (ver `docs/MINIMO_NECESSARIO_E_SALVAGUARDA.md`). Então, **antes** dos
+registros do site, criar estes dois:
+
+| Tipo | Nome / Host | Valor | TTL |
+|---|---|---|---|
+| `A` | `mail` | `162.240.81.81` | o padrão |
+| `MX` | `@` (prioridade `0`) | `mail.realolimpico.com.br` | o padrão |
+
+`162.240.81.81` é o IP para onde o domínio aponta hoje, ou seja, o servidor de e-mail atual da
+HostGator. Com esses dois registros, o e-mail passa a ser endereçado por um nome próprio que
+continua na HostGator, e deixa de depender do `A` da raiz. Se o painel já tiver um `MX`
+apontando para `realolimpico.com.br`, **editar esse mesmo registro** em vez de criar um segundo
+— dois `MX` com a mesma prioridade dividem a entrega e criam falha intermitente.
+
+Conferir antes de seguir:
+
+```bash
+dig a mail.realolimpico.com.br +short
+```
+
+Tem que responder `162.240.81.81`. Só então ir para o passo 2.2.
+
+### 2.2 Agora sim, os registros do site
+
+Criar **dois registros**, com os valores que você copiou no passo 1.1:
 
 | Tipo | Nome / Host | Valor | TTL |
 |---|---|---|---|
