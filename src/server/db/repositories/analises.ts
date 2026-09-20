@@ -34,6 +34,8 @@ type LinhaAnalise = {
   caminho_video: string | null
   hash_anterior: string
   hash: string
+  origem: string | null
+  observacao: string | null
 }
 
 export async function carregarAnalises(tx: Consulta): Promise<Analise[]> {
@@ -41,7 +43,7 @@ export async function carregarAnalises(tx: Consulta): Promise<Analise[]> {
   const { rows } = await tx.query<LinhaAnalise>(
     `SELECT protocolo, protocolo_envio, codigo_moeda, codigo_recibo, tipo_moeda, ano,
             peso_mg, veredito, motivo_recusa, operador, aprovador, caixa, posicao_caixa,
-            validado_em, caminho_video, hash_anterior, hash
+            validado_em, caminho_video, hash_anterior, hash, origem, observacao
        FROM ${S}.analises
       ORDER BY posicao`,
   )
@@ -63,6 +65,9 @@ export async function carregarAnalises(tx: Consulta): Promise<Analise[]> {
     caminhoVideo: r.caminho_video,
     hashAnterior: r.hash_anterior,
     hash: r.hash,
+    // Linha gravada antes de 20/09/2026 não tem origem: lê-se como bancada.
+    origem: r.origem === 'cadastro_direto' ? 'cadastro_direto' : 'bancada',
+    observacao: r.observacao,
   }))
 }
 
@@ -76,8 +81,8 @@ export async function inserirAnalise(
     `INSERT INTO ${S}.analises
        (protocolo, posicao, protocolo_envio, codigo_moeda, codigo_recibo, tipo_moeda, ano,
         peso_mg, veredito, motivo_recusa, operador, aprovador, caixa, posicao_caixa,
-        validado_em, caminho_video, hash_anterior, hash)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        validado_em, caminho_video, hash_anterior, hash, origem, observacao)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
     [
       a.protocolo,
       posicao,
@@ -97,6 +102,8 @@ export async function inserirAnalise(
       a.caminhoVideo,
       a.hashAnterior,
       a.hash,
+      a.origem ?? 'bancada',
+      a.observacao ?? null,
     ],
   )
 }

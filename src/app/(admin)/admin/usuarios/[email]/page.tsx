@@ -16,6 +16,9 @@ import type { ReactNode } from 'react'
 
 import { SemPermissao } from '@/components/admin/Blocos'
 import { AbaAcervo } from '@/components/admin/usuarios/AbaAcervo'
+import { CadastroDiretoDeMoeda } from '@/components/admin/acervo/CadastroDiretoDeMoeda'
+import { carregarCatalogo } from '@/server/config/carregar'
+import { COIN_TYPES } from '@/domain/constants'
 import { AbaAtividade } from '@/components/admin/usuarios/AbaAtividade'
 import { AbaCadastro } from '@/components/admin/usuarios/AbaCadastro'
 import { AbaFinanceiro } from '@/components/admin/usuarios/AbaFinanceiro'
@@ -53,6 +56,9 @@ export default async function FichaDoUsuarioPage({
   const email = emailDaRota((await params).email)
   const aba = lerAba(primeiroValor((await searchParams).aba))
   const ficha = await carregarFicha(email, aba, membro)
+  // O catálogo editado no painel manda; falha de leitura cai no do código (RA-47)
+  // em vez de deixar a tela sem a lista de tipos.
+  const catalogoVigente = await carregarCatalogo().catch(() => COIN_TYPES)
 
   if (!ficha) {
     return (
@@ -89,7 +95,16 @@ export default async function FichaDoUsuarioPage({
       <div className="panel">
         {conteudo.aba === 'cadastro' ? <AbaCadastro email={email} nome={cabecalho.resumo.nome} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
         {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={temPermissao(membro, 'usuarios.editar')} /> : null}
-        {conteudo.aba === 'acervo' ? <AbaAcervo dados={conteudo} /> : null}
+        {conteudo.aba === 'acervo' ? (
+          <>
+            {/* Cadastro direto: moeda que já está no armazém entra por aqui, sem
+                envio postal nem fila de bancada. Só sócio e desenvolvimento veem. */}
+            {temPermissao(membro, 'acervo.cadastro_direto') ? (
+              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} />
+            ) : null}
+            <AbaAcervo dados={conteudo} />
+          </>
+        ) : null}
         {conteudo.aba === 'logistica' ? <AbaLogistica dados={conteudo} /> : null}
         {conteudo.aba === 'mercado' ? <AbaMercado dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
         {conteudo.aba === 'atividade' ? <AbaAtividade dados={conteudo} semBanco={cabecalho.semBanco} /> : null}

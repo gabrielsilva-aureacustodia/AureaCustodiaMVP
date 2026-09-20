@@ -74,7 +74,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
                       </div>
                     </>
                   ) : (
-                    <span className="adm-fraco">sem análise (acervo de demonstração)</span>
+                    <span className="adm-fraco">sem laudo de bancada</span>
                   )}
                 </td>
                 <td>

@@ -261,6 +261,12 @@ export function normalizarAnalise(a: Analise): Analise {
     caminhoVideo: a.caminhoVideo,
     hashAnterior: a.hashAnterior,
     hash: a.hash,
+    // Campo novo aqui é fácil de esquecer e falha em silêncio: esta função monta
+    // um objeto do zero, então o que não estiver listado é descartado antes de
+    // chegar ao INSERT. Foi o que aconteceu com `origem` em 20/09/2026 — as
+    // moedas do cadastro direto foram gravadas como se fossem da bancada.
+    origem: a.origem ?? 'bancada',
+    observacao: a.observacao ?? null,
   }
 }
 

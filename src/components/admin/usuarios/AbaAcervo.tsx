@@ -58,7 +58,7 @@ export function AbaAcervo({ dados }: { dados: DadosAbaAcervo }): ReactNode {
                       <div className="adm-mono adm-fraco">{m.analise.hash.slice(0, 16)}…</div>
                     </>
                   ) : (
-                    <span className="adm-fraco">sem laudo na corrente (moeda de demonstração)</span>
+                    <span className="adm-fraco">sem laudo na corrente</span>
                   )}
                 </td>
                 <td className="adm-num">{dinheiro(m.valorEstimado)}</td>

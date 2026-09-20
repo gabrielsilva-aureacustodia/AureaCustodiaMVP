@@ -275,6 +275,8 @@ export async function fecharAnalise(
           posicao: aprovada && typeof m.posicao === 'number' ? Math.round(m.posicao) : null,
           validadoEm: agora,
           caminhoVideo: textoOuNulo(m.caminhoVideo),
+          origem: 'bancada',
+          observacao: null,
         }
 
         const analise = encadearAnalise(pendente, anterior)

@@ -163,7 +163,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           <h3>Ocupação do estoque físico, por caixa</h3>
           <TabelaContagem linhas={acervo.porCaixa.map((c) => ({ rotulo: c.caixa, valor: c.moedas }))} coluna="Caixa" vazio="Nenhuma moeda em custódia." />
           <p className="adm-fraco" style={{ marginTop: 10 }}>
-            A caixa vem do laudo da bancada. Moedas do acervo de demonstração não passaram por bancada. A capacidade de cada
+            A caixa vem do laudo da bancada. Moeda registrada por cadastro direto não passa pela pesagem da bancada. A capacidade de cada
             caixa entra com o cadastro de caixas, na C3.
           </p>
           <h4 className="adm-subtitulo">Retiradas por situação</h4>

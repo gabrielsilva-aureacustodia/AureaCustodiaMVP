@@ -313,7 +313,31 @@ export interface Analise {
   hashAnterior: string
   /** SHA-256 desta análise. É o que vai para o recibo da moeda. */
   hash: string
+  /**
+   * Como esta moeda entrou: pela bancada ou por cadastro direto.
+   *
+   * FORA da fórmula do hash de propósito — `domain/analise.ts` documenta que
+   * acrescentar campo aqui sem tocar em `CAMPOS_DA_ANALISE` é seguro e não muda
+   * hash nenhum. Quem realmente denuncia a origem de dentro do hash é o
+   * `protocoloEnvio`, que vale `RO-DIR-nnnn` no cadastro direto e `RO-ENV-nnnn`
+   * na bancada, e ESSE campo está na fórmula. Este aqui é o rótulo legível.
+   *
+   * Opcional porque análise gravada antes de 20/09/2026 não o tem; ausente
+   * lê-se como 'bancada'.
+   */
+  origem?: OrigemDaAnalise
+  /** Por que houve cadastro direto. `null` na bancada. */
+  observacao?: string | null
 }
+
+/**
+ * Por onde a moeda entrou no acervo.
+ *
+ * 'bancada' é o caminho normal: envio postal, fila, pesagem e veredito.
+ * 'cadastro_direto' é a moeda que já estava no armazém e já fora conferida fora
+ * do sistema — acervo anterior à plataforma, entrega em mãos, acervo próprio.
+ */
+export type OrigemDaAnalise = 'bancada' | 'cadastro_direto'
 
 // ---------------------------------------------------------------------------
 // Taxa de custódia

@@ -16,6 +16,9 @@ import { BancadaWeb } from '@/components/admin/bancada/BancadaWeb'
 import { SemPermissao } from '@/components/admin/Blocos'
 import { ocupacaoDasCaixas, ocupantesDoCofre } from '@/domain/admin/caixas'
 import { temPermissao } from '@/domain/admin/permissoes'
+import { CadastroDiretoDeMoeda } from '@/components/admin/acervo/CadastroDiretoDeMoeda'
+import { COIN_TYPES } from '@/domain/constants'
+import { carregarCatalogo } from '@/server/config/carregar'
 import type { Retirada } from '@/domain/types'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { caixasCadastradas } from '@/server/admin/portas'
@@ -45,7 +48,16 @@ export default async function BancadaPage(): Promise<ReactNode> {
     }),
   ])
 
+  const catalogoVigente = await carregarCatalogo().catch(() => COIN_TYPES)
+
   return (
+    <>
+      {/* Moeda que já está no armazém e não tem envio para analisar entra por
+          aqui. Só sócio e desenvolvimento veem — `operacao` recebe apenas
+          bancada.* e logistica.*, e esta permissão é do módulo acervo. */}
+      {temPermissao(membro, 'acervo.cadastro_direto') ? (
+        <CadastroDiretoDeMoeda catalogo={catalogoVigente} />
+      ) : null}
     <BancadaWeb
       filaInicial={fila}
       caixasIniciais={ocupacaoDasCaixas(caixas ?? [], ocupantesDoCofre({ ...state, retiradas }))}
@@ -55,5 +67,6 @@ export default async function BancadaPage(): Promise<ReactNode> {
       videoConfigurado={videoConfigurado()}
       videoFaltando={variaveisDoVideoFaltando()}
     />
+    </>
   )
 }

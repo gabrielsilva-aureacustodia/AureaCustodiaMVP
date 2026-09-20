@@ -28,6 +28,7 @@ import { verificarCorrenteDoAcervo } from '@/server/admin/moedas'
 import { caixasCadastradas, ehTabelaAusente, executorOuNulo, portaDaBancadaDoServidor, portaDeVideoDoServidor } from '@/server/admin/portas'
 import { urlDeLeituraDoVideo, VideoNaoConfigurado } from '@/server/admin/video'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { cadastrarMoedasDiretamente, MAX_POR_CADASTRO_DIRETO } from '@/server/estacao/cadastro-direto'
 import type { SaidaFechamento } from '@/server/estacao/analise'
 import { filaDeAnalise } from '@/server/estacao/analise'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
@@ -165,4 +166,90 @@ export async function urlDoVideoNoPainel(caminho: string): Promise<ActionResult<
       return { ok: false, erro: 'O armazenamento não devolveu o vídeo. Ele pode não ter subido — a estação guarda uma cópia no notebook.' }
     }
   })
+}
+
+/* ---------- cadastro direto de moeda ---------- */
+
+/**
+ * Registra no acervo de um cliente moedas que JÁ estão no armazém, sem envio
+ * postal e sem a fila da bancada.
+ *
+ * Serve para o acervo que a empresa recebeu antes de a plataforma existir, para
+ * moeda entregue em mãos e para acervo próprio. A moeda nasce igual à da
+ * bancada — código da mesma série, recibo derivado do código e hash vindo de uma
+ * análise encadeada na mesma corrente SHA-256 —, e é negociável como qualquer
+ * outra. O que a distingue está dentro do hash: o protocolo vale `RO-DIR-nnnn`
+ * em vez de `RO-ENV-nnnn`.
+ *
+ * A permissão é `acervo.cadastro_direto`, e o nome do módulo é o que restringe:
+ * o papel `operacao` recebe automaticamente só `bancada.*` e `logistica.*`, então
+ * esta ação fica com sócio e desenvolvimento, como combinado.
+ */
+export async function cadastrarMoedaDiretaNoPainel(entrada: {
+  userEmail: string
+  tipoMoeda: string
+  ano: number
+  quantidade: number
+  pesoMg?: number
+  caixa?: string | null
+  observacao?: string | null
+}): Promise<ActionResult<{ protocolo: string; moedas: string[] }>> {
+  return comPermissao('acervo.cadastro_direto', async (membro) => {
+    const e = entrada ?? { userEmail: '', tipoMoeda: '', ano: 0, quantidade: 0 }
+
+    const r = await cadastrarMoedasDiretamente({
+      userEmail: texto(e.userEmail),
+      tipoMoeda: texto(e.tipoMoeda),
+      ano: Number(e.ano),
+      quantidade: Number(e.quantidade),
+      operador: membro.email,
+      pesoMg: typeof e.pesoMg === 'number' ? e.pesoMg : 0,
+      caixa: typeof e.caixa === 'string' ? e.caixa : null,
+      observacao: typeof e.observacao === 'string' ? e.observacao : null,
+    })
+
+    if (r.tipo === 'usuario-nao-encontrado') {
+      return { ok: false, erro: 'Não existe conta com este e-mail.' }
+    }
+    if (r.tipo === 'tipo-invalido') {
+      return { ok: false, erro: `"${r.tipoMoeda}" não está no catálogo vigente de tipos de moeda.` }
+    }
+    if (r.tipo === 'quantidade-invalida') {
+      return { ok: false, erro: `Informe uma quantidade de 1 a ${r.max} moedas.` }
+    }
+
+    // A trilha do painel, além da que `mutateState` já grava: aqui fica quem
+    // registrou, para qual conta, quantas moedas e por quê.
+    const executar = executorOuNulo()
+    if (executar) {
+      await executar((tx) =>
+        registrarAcaoAdmin(tx, {
+          ator: membro.email,
+          area: 'acervo',
+          verbo: 'cadastro_direto',
+          entidade: 'acervo',
+          entidadeId: r.protocolo,
+          usuariosAfetados: [texto(e.userEmail).trim().toLowerCase()],
+          detalhes: {
+            quantidade: r.moedas.length,
+            tipoMoeda: texto(e.tipoMoeda),
+            ano: Number(e.ano),
+            moedas: r.moedas,
+            recibos: r.recibos,
+            observacao: typeof e.observacao === 'string' ? e.observacao : null,
+          },
+        }),
+      )
+    }
+
+    return {
+      ok: true,
+      mensagem: `${r.moedas.length} moeda(s) registradas no acervo, protocolo ${r.protocolo}.`,
+      dados: { protocolo: r.protocolo, moedas: r.moedas },
+    }
+  })
+}
+
+export async function limiteDoCadastroDireto(): Promise<number> {
+  return MAX_POR_CADASTRO_DIRETO
 }
