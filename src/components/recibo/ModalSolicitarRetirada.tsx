@@ -359,7 +359,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         <div style={{ fontSize: '12.5px', color: 'var(--text-strong)' }}>
           <strong>Cláusula de devolução de acervo equiparável:</strong> Declaro que estou ciente e
           concordo que a moeda física devolvida <em>não é necessariamente a mesma que foi depositada</em>,
-          mas moeda idêntica e equiparável em mesmo padrão e estado de conservação, conforme as regras de custódia da Áurea.
+          mas moeda idêntica e equiparável em mesmo padrão e estado de conservação, conforme as regras de custódia do Real Olímpico.
         </div>
       </div>
 

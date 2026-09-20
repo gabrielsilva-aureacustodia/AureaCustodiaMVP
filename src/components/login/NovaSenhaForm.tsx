@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { definirNovaSenha } from '@/server/actions/auth'
 
 const ERRO_GENERICO = 'Não foi possível salvar a senha nova. Tente novamente.'
@@ -56,7 +56,7 @@ export function NovaSenhaForm({ email, destino }: NovaSenhaFormProps): ReactNode
     <main className="login-wrap auth-page">
       <section className="login-card" aria-labelledby="nova-senha-title">
         <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_AUREA} alt="Áurea Custódia" width={120} height={120} priority />
+          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={130} height={120} priority />
         </Link>
 
         <h1 className="login-title" id="nova-senha-title">

@@ -24,23 +24,16 @@ import {
 } from './types'
 
 /**
- * Endereço oficial da Central de Custódia da Áurea (Destinatário para envios).
- * Oficializado conforme Termo de Assinatura de Caixa Postal dos Correios (Decisão D-6 resolvida):
- * Caixa Postal 7990, AGF Bandeirantes, Belo Horizonte - MG, CEP 30315-970.
+ * Endereço oficial da Central de Custódia (destinatário dos envios).
+ *
+ * A definição mora em `./endereco-central`, que não é `server-only`, justamente para
+ * que a tela de envios leia o mesmo valor que a etiqueta. O re-export aqui mantém
+ * `import { ENDERECO_CENTRAL_AUREA } from '@/lib/shipping/correios'` funcionando em
+ * todo servidor que já o usava.
  */
-export const ENDERECO_CENTRAL_AUREA: EnderecoEnvio = {
-  nome: 'AUREA CUSTODIA LTDA — Caixa Postal 7990',
-  cpfOuCnpj: '68.071.452/0001-06',
-  logradouro: 'Caixa Postal 7990',
-  numero: 'S/N',
-  complemento: 'AGF Bandeirantes — Av. dos Bandeirantes',
-  bairro: 'Mangabeiras',
-  cidade: 'Belo Horizonte',
-  uf: 'MG',
-  cep: '30315-970',
-  telefone: '(31) 3100-0000',
-  email: 'custodia@aureacustodia.com.br',
-}
+import { ENDERECO_CENTRAL_AUREA } from './endereco-central'
+
+export { ENDERECO_CENTRAL_AUREA }
 
 /** Códigos de serviço dos Correios (PAC e SEDEX com contrato / à vista). */
 export const CODIGOS_SERVICO_CORREIOS = {

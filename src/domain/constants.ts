@@ -81,6 +81,27 @@ export const LOGO_AUREA: string = '/brand/logo-aurea.webp'
 export const LOGO_REAL: string = '/brand/logo-real-olimpico.webp'
 
 /**
+ * As duas versões que a interface usa desde a virada de marca de 20/09/2026.
+ *
+ * `LOGO_REAL` acima é a PRANCHA DE IDENTIDADE inteira — o painel principal mais as
+ * seis variações em miniatura, lado a lado. Ela serve como referência da marca, mas
+ * dentro de um box de 72px vira um borrão: era esse arquivo que a tela de
+ * configurações da conta exibia. As duas constantes abaixo são recortes do painel
+ * principal DESSA MESMA prancha, sem redesenho nenhum — só enquadramento.
+ *
+ * Qual usar: `LOGO_REAL_MARCA` quando o logo aparece sozinho e precisa dizer o nome
+ * (telas de entrada, cadastro, nova senha, entrada do painel). `LOGO_REAL_EMBLEMA`
+ * quando o nome já está escrito ao lado em texto — barra lateral, cabeçalho da
+ * landing, rodapé —, porque ali repetir o letreiro só rouba altura.
+ *
+ * ATENÇÃO à proporção: a marca completa é 234x216 (levemente mais larga que alta),
+ * então `<Image width={130} height={120}>`. Forçar 120x120 achata o letreiro.
+ * O emblema é quadrado e aceita width = height.
+ */
+export const LOGO_REAL_MARCA: string = '/brand/logo-real-olimpico-marca.webp'
+export const LOGO_REAL_EMBLEMA: string = '/brand/logo-real-olimpico-emblema.webp'
+
+/**
  * A moeda-referência do marketplace: a primeira a ser negociada e a que define
  * a "cara" da plataforma. Boa parte da interface fala dela no singular, com
  * nome curto, nome completo e ficha técnica.

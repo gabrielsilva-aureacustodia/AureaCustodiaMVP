@@ -72,6 +72,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-50** | Tela de nova senha sem a senha atual para quem tem sessão aberta do Supabase; link de recuperação por `?code=` não é reconhecido; tamanho da senha validado só pelo Supabase | 🟡 | `src/server/auth/`, `src/server/actions/` |
 | **RA-52** | Bloqueio por pendência de custódia calculado na hora, sem gravar no recibo, e conta da equipe isenta (a parte da marca manual apagada foi **paga em 18/09/2026, E8**) | 🟡 | `src/domain/`, `src/server/actions/`, `src/server/custodia/` |
 | **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento — **pago em 18/09/2026 (E8)** | ✅ | `src/server/actions/`, `src/server/payments/` |
+| **RA-57** | Os documentos legais versionados (Termos de Uso, Política de Privacidade, Tabela de Taxas, Cláusula de Arbitragem) continuam escritos com a marca "Áurea" enquanto o site inteiro já diz "Real Olímpico" | 🟡 | `src/domain/documentos-legais/`, `src/domain/legal.ts` |
 | **RA-56** | Pagamento aprovado que não pode liquidar vira saldo em conta, sem devolução pelo gateway e sem aviso próprio na tela de pagamento | 🟡 | `src/server/payments/` |
 
 ---
@@ -1236,3 +1237,30 @@ painel leem. Mas a tela de pagamento não o mostra.
 cada caso. Devolução pelo gateway, se o Gabriel quiser, é decisão separada e depende de credenciamento.
 
 Nota em `src/server/payments/ATALHOS.md`.
+
+
+# RA-57 — Os documentos legais ainda falam em "Áurea" 🟡
+
+**O atalho:** em 20/09/2026 a marca do site virou **Real Olímpico** em toda a interface — títulos de
+página, landing, telas de entrada, recibos, mensagens de erro e logotipo. Os **documentos legais
+versionados** ficaram de fora: `termos-de-uso-v1.ts`, `politica-privacidade-v1.ts`,
+`tabela-de-taxas-v1.ts`, `clausula-arbitragem-v1.ts`, `src/domain/legal.ts` e os textos de aceite de
+`src/server/documentos/aceites.ts` seguem dizendo "Plataforma Áurea", "Conta Áurea" e "Serviços Áurea".
+
+**Por que ficaram de fora:** são textos de contrato revisados pelo advogado (Felipe Moraes, 09 e
+13/09/2026) e o conteúdo deles é convertido em texto canônico e hasheado com SHA-256
+(`documentos-legais/canonico.ts`). Mudar uma palavra muda o hash, o que obriga a subir
+`VERSAO_TERMOS_VIGENTE` e a pedir aceite novo de quem já aceitou. É trabalho de uma linha de código e
+uma decisão de produto — não de improviso no meio de um rebrand de interface.
+
+**O que o usuário vê enquanto isso:** um site chamado Real Olímpico cujos Termos de Uso falam de uma
+plataforma chamada Áurea. Não invalida o contrato, porque a parte contratante está identificada por
+razão social, CNPJ e endereço no preâmbulo, e a Política de Privacidade já registra "nome fantasia
+Real Olímpico". Mas é incoerência visível para quem lê.
+
+**Como se paga:** reescrever o preâmbulo definindo o termo curto como Real Olímpico
+(`AUREA CUSTODIA LTDA., CNPJ 68.071.452/0001-06, nome fantasia Real Olímpico ("Real Olímpico")`),
+trocar as referências à plataforma nos quatro documentos, subir a versão vigente e deixar o aceite
+novo rodar. A razão social continua no preâmbulo e em todo ponto com CNPJ.
+
+Nota em `src/domain/documentos-legais/ATALHOS.md`.

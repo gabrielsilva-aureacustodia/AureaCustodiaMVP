@@ -500,7 +500,7 @@ export default function MercadoPage(): ReactNode {
         <svg viewBox="0 0 24 24">
           <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
         </svg>
-        Todas as moedas são armazenadas com segurança na Áurea Custódia. A plataforma não recomenda
+        Todas as moedas são armazenadas com segurança no Real Olímpico. A plataforma não recomenda
         preço; valores são definidos por oferta e demanda.
       </div>
     </>
@@ -613,7 +613,7 @@ function ConfirmarCompraModal({
         <span className="v">{brl(subtotal)}</span>
       </div>
       <div className="summary-row">
-        <span className="k">Comissão de compra da Áurea</span>
+        <span className="k">Comissão de compra do Real Olímpico</span>
         <span className="v">+ {brl(comissaoComprador)}</span>
       </div>
       {/* O total é o mesmo nas duas opções: o servidor cobra custoDeCompraPorMoeda × qty no Pix e

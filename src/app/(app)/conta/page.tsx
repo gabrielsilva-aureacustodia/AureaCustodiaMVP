@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN, LOGO_AUREA, tiposNegociaveis } from '@/domain/constants'
+import { COIN, LOGO_REAL_MARCA, tiposNegociaveis } from '@/domain/constants'
 import { temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -405,10 +405,10 @@ export default function ContaPage(): ReactNode {
                   next/image: o webp de marca já vem otimizado de /public e as
                   dimensões saem do CSS. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={LOGO_AUREA} alt="Áurea Custódia" />
+              <img src={LOGO_REAL_MARCA} alt="Real Olímpico" />
             </div>
             <div className="note" style={{ justifyContent: 'center', textAlign: 'center' }}>
-              Você está em um ambiente de teste seguro. A Áurea Custódia protege o que tem valor
+              Você está em um ambiente de teste seguro. O Real Olímpico protege o que tem valor
               para gerações.
             </div>
           </div>

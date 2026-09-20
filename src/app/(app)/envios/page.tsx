@@ -57,6 +57,9 @@ import { advanceAnalysis, consultarCepEnvio, cotarFreteEnvio, createProtocol, ma
 import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
 import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
+// Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
+// `correios.ts`, que é `server-only` e derrubaria o build deste Client Component.
+import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
 
 /** Os cinco passos da tela. */
 type Passo = 1 | 2 | 3 | 4 | 5
@@ -758,7 +761,7 @@ export default function EnviosPage(): ReactNode {
             </div>
 
             <div className="note" style={{ marginBottom: 16 }}>
-              🛡️ <b>Garantia Áurea:</b> Caso alguma moeda seja recusada na análise física, o valor da custódia pago correspondente é <b>estornado integralmente</b> para o seu saldo.
+              🛡️ <b>Garantia Real Olímpico:</b> Caso alguma moeda seja recusada na análise física, o valor da custódia pago correspondente é <b>estornado integralmente</b> para o seu saldo.
             </div>
 
             {/* Painel de Pagamento Inline */}
@@ -834,19 +837,32 @@ export default function EnviosPage(): ReactNode {
               moeda com segurança e poste no endereço abaixo.
             </p>
 
-            {/* Endereço fictício — ver a nota logo abaixo, que é do original. */}
+            {/*
+              Até 20/09/2026 este bloco trazia "Avenida Paulista, 1500 — São Paulo/SP"
+              digitado à mão, herdado do monolito. A etiqueta em PDF já usava a caixa
+              postal verdadeira, então quem imprimia acertava e quem lia a tela postava
+              a moeda para um endereço que não existe. Agora os dois leem
+              ENDERECO_CENTRAL_AUREA, a mesma constante, e não há como divergirem.
+
+              O endereçamento é só caixa postal + CEP: os Correios exigem que a caixa
+              postal seja o único endereçamento do objeto (cláusula 3.1 do Termo de
+              Assinatura), e logradouro ou bairro impressos junto atrapalham a triagem.
+            */}
             <div className="mailbox-card">
               <div className="mb-row">
                 <span className="k">Destinatário</span>
-                <span className="v">Áurea Custódia — Central de Recebimento</span>
+                <span className="v">{RAZAO_SOCIAL_POSTAL}</span>
               </div>
               <div className="mb-row">
                 <span className="k">Endereço</span>
-                <span className="v">Avenida Paulista, 1500 — Andar 14</span>
+                <span className="v">{ENDERECO_CENTRAL_AUREA.logradouro}</span>
               </div>
               <div className="mb-row">
                 <span className="k">CEP</span>
-                <span className="v">01310-100 — São Paulo/SP</span>
+                <span className="v">
+                  {ENDERECO_CENTRAL_AUREA.cep} — {ENDERECO_CENTRAL_AUREA.cidade}/
+                  {ENDERECO_CENTRAL_AUREA.uf}
+                </span>
               </div>
               <div className="mb-row">
                 <span className="k">Referência</span>

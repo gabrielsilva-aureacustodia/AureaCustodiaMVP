@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { LOGO_REAL } from '@/domain/constants'
+import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { getSettings } from '@/domain/selectors'
 import {
   ModalDadosPessoais,
@@ -236,7 +236,7 @@ export default function ConfiguracoesPage(): ReactNode {
             <h3 style={{ justifyContent: 'center' }}>Produtos ativos</h3>
             <div className="logo-box logo-footer" style={{ marginBottom: 8 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={LOGO_REAL} alt="Real Olímpico" />
+              <img src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" />
             </div>
             <div className="note" style={{ justifyContent: 'center' }}>
               Real Olímpico ativo na sua conta.

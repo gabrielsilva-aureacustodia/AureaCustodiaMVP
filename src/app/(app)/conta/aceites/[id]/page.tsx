@@ -6,7 +6,7 @@ import { PrintButton } from '@/components/legal/PrintButton'
 import { obterComprovanteAceite } from '@/server/actions/legal'
 
 export const metadata: Metadata = {
-  title: 'Comprovante de Aceite Legal | Áurea Custódia',
+  title: 'Comprovante de Aceite Legal | Real Olímpico',
   description: 'Comprovante de manifestação de vontade e aceite formal de termos e documentos legais com prova matemática encadeada.',
 }
 
@@ -142,7 +142,7 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
         <section>
           <h2>3. Prova Matemática e Encadeamento Criptográfico</h2>
           <p style={{ fontSize: 13, color: '#555', margin: '0 0 12px' }}>
-            Cada registro de aceite na Áurea Custódia é vinculado matematicamente ao elo histórico
+            Cada registro de aceite no Real Olímpico é vinculado matematicamente ao elo histórico
             anterior da tabela através do algoritmo SHA-256 (Lei 14.063/2020 e Código de Processo Civil, art. 411, II).
           </p>
           <div className="legal-proof-grid">
@@ -165,7 +165,7 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
 
         <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #ddd', fontSize: 11, color: '#777', textAlign: 'center' }}>
           Este documento constitui meio de prova eletrônica de declaração de vontade e aceitação de termos,
-          gerado a partir dos registros auditáveis mantidos de forma imutável nos servidores da Áurea Custódia.
+          gerado a partir dos registros auditáveis mantidos de forma imutável nos servidores do Real Olímpico.
         </footer>
       </article>
     </main>

@@ -162,7 +162,7 @@ export async function baixarReciboPdf(params: {
   doc.setFontSize(9.5)
   doc.setTextColor(138, 117, 80)
   doc.text('Este recibo certifica a custódia e o vínculo documental.', 240, y + 130, { align: 'center' })
-  doc.text('A moeda física permanece sob guarda da Áurea Custódia.', 240, y + 143, { align: 'center' })
+  doc.text('A moeda física permanece sob guarda do Real Olímpico.', 240, y + 143, { align: 'center' })
   // Mesma tarja do rodapé da aplicação: o PDF sai do ambiente e precisa dizer
   // sozinho que é documento de teste.
   doc.setFontSize(8)

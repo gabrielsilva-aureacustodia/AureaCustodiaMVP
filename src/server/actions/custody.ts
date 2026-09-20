@@ -703,7 +703,7 @@ export async function iniciarPixRetirada(
       externalReference,
       userEmail: session,
       valorCents: ret.valorTaxaCents,
-      titulo: `Retirada Física — Áurea (Moeda ${ret.coinId})`,
+      titulo: `Retirada Física — Real Olímpico (Moeda ${ret.coinId})`,
       descricao: `Taxa de retirada ${ret.modalidade} - Moeda ${ret.coinId}`,
       parcelasMax: 1,
     })
@@ -789,7 +789,7 @@ export async function iniciarCartaoRetirada(
       externalReference,
       userEmail: session,
       valorCents: ret.valorTaxaCents,
-      titulo: `Retirada Física — Áurea (Moeda ${ret.coinId})`,
+      titulo: `Retirada Física — Real Olímpico (Moeda ${ret.coinId})`,
       descricao: `Taxa de retirada ${ret.modalidade} - Moeda ${ret.coinId}`,
       parcelasMax,
       voltarPara: {
@@ -997,7 +997,7 @@ export async function bloquearReciboPorDebito(
   // Fecha o furo onde qualquer usuário logado podia bloquear recibos.
   // Apenas a equipe com permissão pode alterar a restrição administrativa do recibo.
   if (!temPermissao(await carregarMembro(session), 'usuarios.editar')) {
-    return { ok: false, error: 'Ação restrita à equipe da Áurea.' }
+    return { ok: false, error: 'Ação restrita à equipe do Real Olímpico.' }
   }
 
   try {
@@ -1058,7 +1058,7 @@ export async function desbloquearRecibo(
   // Fecha o furo onde qualquer usuário logado podia desbloquear qualquer recibo pelo console.
   // Ser dono do recibo não basta para desbloquear restrição administrativa.
   if (!temPermissao(await carregarMembro(session), 'usuarios.editar')) {
-    return { ok: false, error: 'Ação restrita à equipe da Áurea.' }
+    return { ok: false, error: 'Ação restrita à equipe do Real Olímpico.' }
   }
 
   try {

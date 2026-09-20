@@ -419,7 +419,7 @@ describe('bloquear e desbloquear recibo são da equipe', () => {
     const [moeda] = await moedasDoCliente()
 
     const bloq = await bloquearReciboPorDebito(moeda.id)
-    expect(bloq).toEqual({ ok: false, error: 'Ação restrita à equipe da Áurea.' })
+    expect(bloq).toEqual({ ok: false, error: 'Ação restrita à equipe do Real Olímpico.' })
     expect((await moedasDoCliente()).find((c) => c.id === moeda.id)?.recibo.status).toBe('Ativo')
 
     await mutateState((s) => {
@@ -427,7 +427,7 @@ describe('bloquear e desbloquear recibo são da equipe', () => {
       if (c) c.recibo.status = 'Bloqueado'
     })
     const desbloq = await desbloquearRecibo(moeda.id)
-    expect(desbloq).toEqual({ ok: false, error: 'Ação restrita à equipe da Áurea.' })
+    expect(desbloq).toEqual({ ok: false, error: 'Ação restrita à equipe do Real Olímpico.' })
     expect((await moedasDoCliente()).find((c) => c.id === moeda.id)?.recibo.status).toBe('Bloqueado')
   })
 

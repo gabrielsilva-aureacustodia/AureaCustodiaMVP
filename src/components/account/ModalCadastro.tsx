@@ -511,7 +511,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       {/* Aviso LGPD / Minimização */}
       <div className="note" style={{ marginTop: 14, fontSize: 11.5 }}>
         <b>Privacidade e LGPD:</b> Seus dados são protegidos por criptografia e utilizados
-        exclusivamente para conformidade fiscal e transferências bancárias. A Áurea não exige nem
+        exclusivamente para conformidade fiscal e transferências bancárias. O Real Olímpico não exige nem
         armazena fotos de documentos, biometria facial ou selfies.
       </div>
 

@@ -41,7 +41,7 @@ export const INICIO_ADMIN: ItemNav = {
   href: '/admin',
   rotulo: 'Painel',
   titulo: 'Painel administrativo',
-  subtitulo: 'Resultados, operação e equipe da Áurea Custódia.',
+  subtitulo: 'Resultados, operação e equipe do Real Olímpico.',
   permissoes: [],
   icone: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
 }

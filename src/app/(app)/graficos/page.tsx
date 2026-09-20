@@ -340,7 +340,7 @@ export default function GraficosPage(): ReactNode {
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v5M12 16.5v.5" />
             </svg>
-            Estoque auditado periodicamente pela Áurea Custódia.
+            Estoque auditado periodicamente pelo Real Olímpico.
           </div>
 
           {/* `go('audit')` da linha 2442. Continua <button> e não <a>: .btn e

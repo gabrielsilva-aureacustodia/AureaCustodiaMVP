@@ -18,7 +18,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
-import { LOGO_AUREA } from '@/domain/constants'
+import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useLogout, useSidebar } from '@/components/shell/Sidebar'
 
@@ -45,7 +45,7 @@ export function AdminSidebar(): ReactNode {
         <div className="sb-brand adm-marca">
           <div className="logo-box logo-sidebar">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_AUREA} alt="Áurea Custódia" />
+            <img src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" />
           </div>
           <div className="adm-marca-tag">Painel administrativo</div>
         </div>

@@ -305,7 +305,7 @@ export default function RetiradasPage(): ReactNode {
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
             Ao solicitar a retirada física, o recibo de custódia é extinto imediatamente e a moeda deixa
-            o acervo negociável. A Áurea tem até 30 dias corridos para preparar e POSTAR; a
+            o acervo negociável. O Real Olímpico tem até 30 dias corridos para preparar e POSTAR; a
             entrega depende do prazo dos Correios, que corre por fora e tem rastreamento oficial.
           </div>
         </div>

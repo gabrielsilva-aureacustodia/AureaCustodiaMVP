@@ -27,7 +27,7 @@ import { getSessionEmail } from '@/server/session'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Painel administrativo — entrar | Áurea Custódia',
+  title: 'Painel administrativo — entrar | Real Olímpico',
   // Área interna: não tem por que aparecer em buscador.
   robots: { index: false, follow: false },
 }

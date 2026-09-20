@@ -20,8 +20,8 @@ import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
 export const metadata: Metadata = {
-  title: 'Entrar | Áurea Custódia',
-  description: 'Acesse a plataforma de custódia e negociação da Áurea Custódia.',
+  title: 'Entrar | Real Olímpico',
+  description: 'Acesse a plataforma de custódia e negociação do Real Olímpico.',
 }
 
 interface EntrarPageProps {

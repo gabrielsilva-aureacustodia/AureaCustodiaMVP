@@ -7,9 +7,9 @@ import { carregarDocumentoVigente } from '@/server/config/documentos'
 import { BLOCOS_LEGAIS_OBRIGATORIOS } from '@/domain/legal'
 
 export const metadata: Metadata = {
-  title: 'Termos de Uso | Áurea Custódia',
+  title: 'Termos de Uso | Real Olímpico',
   description:
-    'Termos e Condições Gerais de Uso da plataforma Áurea Custódia — serviço de guarda especializada de moedas comemorativas e marketplace numismático.',
+    'Termos e Condições Gerais de Uso da plataforma Real Olímpico — serviço de guarda especializada de moedas comemorativas e marketplace numismático.',
 }
 
 function renderizarTextoComLinks(texto: string): ReactNode {

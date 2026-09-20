@@ -230,7 +230,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
 
           <div className="cert-foot">
             Este recibo certifica a custódia e o vínculo documental.
-            <br />A moeda física permanece sob guarda da Áurea Custódia.
+            <br />A moeda física permanece sob guarda do Real Olímpico.
           </div>
         </div>
 
