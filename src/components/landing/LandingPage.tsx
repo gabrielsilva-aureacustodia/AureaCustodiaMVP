@@ -64,7 +64,6 @@ export function LandingPage(): ReactNode {
               Entrar
             </Link>
           </div>
-          <p className="landing-test-note">Ambiente de teste · Pré-MVP · Dados fictícios</p>
         </div>
 
         <div className="landing-emblem" aria-label="Marca Real Olímpico">

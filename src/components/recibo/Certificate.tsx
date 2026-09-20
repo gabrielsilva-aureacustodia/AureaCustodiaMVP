@@ -13,10 +13,12 @@
  * modos, porque é o mesmo documento que sai em PDF. Quem garante isso é o
  * styles/recibo.css; aqui não há uma cor sequer escrita à mão.
  *
- * SOBRE "CÓDIGO SIMULADO": o rótulo abaixo do QR é requisito de negócio, não
- * enfeite. Não existe blockchain por trás deste recibo e a interface não pode
- * sugerir verificação externa. O componente QrCode já o imprime dentro da
- * própria <div> — por isso ele entra direto no .cert-seal, sem invólucro.
+ * SEM QR DESDE 20/09/2026. O certificado trazia um quadrado desenhado a partir
+ * do código e do hash do recibo, com o rótulo "código simulado" embaixo para
+ * deixar claro que não havia nada para ler. Num recibo publicado isso convida a
+ * pessoa a apontar a câmera e não acontecer nada, então saiu. O que autentica o
+ * recibo continua sendo o par código + hash, impresso na tela e no PDF, e
+ * verificável pela auditoria da corrente em /admin.
  */
 
 import Link from 'next/link'
@@ -33,7 +35,6 @@ import type { Retirada } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { CoinArt } from '@/components/svg/CoinArt'
-import { QrCode } from '@/components/svg/QrCode'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { ModalSolicitarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
@@ -223,9 +224,6 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               <br />
               verificada
             </div>
-            {/* Semente = código + hash, igual ao original (linha 1932): o mesmo
-                recibo desenha sempre o mesmo padrão, na tela e no PDF. */}
-            <QrCode seed={coin.recibo.codigo + coin.recibo.hash} size={78} />
           </div>
 
           <div className="cert-foot">

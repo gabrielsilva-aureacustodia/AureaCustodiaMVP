@@ -569,14 +569,11 @@ function ConfirmarCompraModal({
         setErroMp(res.error ?? 'Não foi possível abrir a cobrança no gateway.')
         return
       }
-      // Ver a nota em AccountModals: sem credencial a cobrança vem do
-      // simulador, e abrir aba nenhuma é melhor do que mandar o cliente para a
-      // página de erro do gateway.
+      // Sem credencial a cobrança volta do simulador e não há aba para abrir.
+      // A mensagem fala de indisponibilidade momentânea, não de ambiente: quem
+      // está comprando não tem o que fazer com a nossa configuração interna.
       if (res.data.simulado) {
-        setErroMp(
-          'O gateway de pagamento ainda não está configurado neste ambiente. ' +
-            'Nenhuma cobrança foi aberta.',
-        )
+        setErroMp('O meio de pagamento está temporariamente indisponível. Nenhuma cobrança foi aberta.')
         return
       }
       if (metodo === 'pix') {

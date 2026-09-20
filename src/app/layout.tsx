@@ -46,7 +46,7 @@ const sans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: 'Real Olímpico — Ambiente de Teste MVP',
+  title: 'Real Olímpico — Custódia de moedas comemorativas',
   description: 'Plataforma de custódia e marketplace de moedas comemorativas brasileiras.',
 }
 

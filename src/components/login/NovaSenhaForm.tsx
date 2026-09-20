@@ -102,7 +102,6 @@ export function NovaSenhaForm({ email, destino }: NovaSenhaFormProps): ReactNode
         <p className="auth-switch">
           <Link href={destino}>Continuar sem trocar</Link>
         </p>
-        <p className="env-tag">Ambiente de teste · Pré-MVP · Dados fictícios</p>
       </section>
     </main>
   )

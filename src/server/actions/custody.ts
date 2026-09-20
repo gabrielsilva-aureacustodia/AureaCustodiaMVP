@@ -252,6 +252,20 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
 export async function advanceAnalysis(protocolo: string): Promise<ActionResult> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // AVANÇAR ANÁLISE É DA BANCADA, NÃO DO DONO DO ENVIO.
+  //
+  // Até 20/09/2026 esta função conferia só a sessão e se o envio pertencia a quem
+  // pediu — e a tela de envios tinha um botão "Simular avanço de etapa" que a
+  // chamava. Num ambiente de teste era o jeito de demonstrar o fluxo sem a
+  // bancada; publicado, qualquer pessoa podia aprovar a própria moeda e emitir um
+  // recibo negociável sem que ninguém tivesse examinado nada. O botão saiu da tela
+  // do cliente no mesmo commit; a permissão é o que garante que ele não volte por
+  // uma chamada direta à Server Action.
+  if (!temPermissao(await carregarMembro(session), 'bancada.analisar')) {
+    return { ok: false, error: 'Ação restrita à equipe do Real Olímpico.' }
+  }
+
   const { catalogo } = await carregarRegrasDoMercado()
 
   try {

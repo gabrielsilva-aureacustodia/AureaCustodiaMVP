@@ -102,7 +102,7 @@ export function ModalDadosPessoais(): ReactNode {
         aria-label="Nome completo"
       />
 
-      <div className="field-lbl">E-mail (fixo neste ambiente de teste)</div>
+      <div className="field-lbl">E-mail (não pode ser alterado)</div>
       {/* `disabled` já basta para o React aceitar um campo sem onChange — e é
           exatamente o atributo que o original usava (linha 2740). */}
       <input className="tinput" value={session} disabled style={{ opacity: 0.6 }} />
@@ -254,8 +254,8 @@ export function ModalNotificacoes(): ReactNode {
     <>
       <h3 className="serif">Notificações por e-mail</h3>
       <p style={{ marginBottom: 10 }}>
-        Escolha quais avisos você quer receber (simulado neste ambiente de teste — nenhum e-mail é
-        enviado).
+        Escolha quais avisos você quer receber. O envio por e-mail ainda não está ativo — por
+        enquanto a preferência fica registrada na sua conta.
       </p>
 
       {NOTIF_KEYS.map((k) => (

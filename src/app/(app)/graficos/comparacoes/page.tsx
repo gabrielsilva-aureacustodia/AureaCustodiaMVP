@@ -200,16 +200,6 @@ export default function ComparacoesPage(): ReactNode {
             </div>
           </div>
 
-          {crypto && crypto.simulated ? (
-            <div className="warn-box">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 3l9 16H3z" />
-                <path d="M12 10v4M12 17v.5" />
-              </svg>
-              Sem conexão com a API de cotações — os dados de BTC/ETH/USDT exibidos são simulados.
-              Faça login novamente com conexão para atualizar.
-            </div>
-          ) : null}
         </div>
 
         <div>

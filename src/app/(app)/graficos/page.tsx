@@ -394,18 +394,6 @@ export default function GraficosPage(): ReactNode {
           ) : (
             <div className="empty">Carregando cotações…</div>
           )}
-
-          {/* Aviso de transparência: a série simulada NUNCA pode passar por real. */}
-          {cotacoes && cotacoes.simulated ? (
-            <div className="note">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16.5v.5" />
-              </svg>
-              Sem conexão com a API de cotações — exibindo dados simulados.
-            </div>
-          ) : null}
-
           <div className="note">
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="9" />

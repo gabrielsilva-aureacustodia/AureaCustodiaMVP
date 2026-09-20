@@ -56,7 +56,7 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   if (pathname === '/inicio') {
     return {
       h1: 'Painel Real Olímpico',
-      p: `Olá, ${primeiroNome} — ambiente de teste com dados fictícios.`,
+      p: `Olá, ${primeiroNome} — seu acervo em custódia e o mercado do dia.`,
     }
   }
   if (pathname === '/mercado') {
@@ -143,7 +143,7 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   // original. Melhor um título honesto do que um cabeçalho vazio.
   return {
     h1: 'Painel Real Olímpico',
-    p: `Olá, ${primeiroNome} — ambiente de teste com dados fictícios.`,
+    p: `Olá, ${primeiroNome} — seu acervo em custódia e o mercado do dia.`,
   }
 }
 

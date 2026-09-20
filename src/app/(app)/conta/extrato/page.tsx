@@ -253,8 +253,7 @@ export default function ExtratoPage(): ReactNode {
           Cada fatura de custódia é uma linha, com o mês de referência, a quantidade de moedas e o
           valor. A fatura paga com o saldo da conta aparece como saída; a fatura em aberto, ou paga
           por Pix ou cartão, não mexe no saldo. Faturas e planos ficam em{' '}
-          <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link>. O saldo inicial da
-          conta de demonstração não aparece como depósito.
+          <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link>.
         </div>
       </div>
     </>

@@ -213,58 +213,25 @@ export async function toggle2FA(): Promise<ActionResult> {
   }
 }
 
-/**
- * Deposita saldo na própria conta. NÃO É PORT — é funcionalidade nova.
+/*
+ * `deposit()` FOI REMOVIDA EM 20/09/2026, e é bom saber que ela existiu.
  *
- * SIMULADO, E ISSO É REQUISITO, NÃO LIMITAÇÃO PROVISÓRIA
- * -----------------------------------------------------
- * Não há Pix, cartão, boleto nem qualquer integração de pagamento. A ação soma
- * um número ao saldo e registra o aporte para o extrato. A tela precisa dizer
- * isso em texto — um botão "Depositar" que parece movimentar dinheiro de
- * verdade num ambiente onde nada é cobrado seria enganoso mesmo entre sócios.
+ * Era uma Server Action que somava um número ao saldo da própria conta, sem
+ * pagamento nenhum, até o teto de DEPOSITO_MAX (R$ 100.000 por operação). Num
+ * ambiente de teste fechado era o jeito de dar dinheiro às sete contas de sócios
+ * para exercitar o mercado. Publicada no domínio oficial, virou a pior porta da
+ * plataforma: qualquer pessoa logada criava saldo do nada, comprava moeda de
+ * verdade no marketplace e pedia saque contra a conta real da empresa.
  *
- * POR QUE A REGRA MORA NO SERVIDOR
- * --------------------------------
- * É a ação mais perigosa da plataforma inteira: ela cria dinheiro. Se rodasse
- * no navegador — como TUDO rodava no monolito — bastaria o console para
- * inventar saldo e varrer o livro de ordens das outras seis contas.
+ * A tela já não a chamava — o botão de depósito usa `iniciarDeposito`
+ * (src/server/actions/payments.ts), que abre Pix ou Checkout Pro no Mercado
+ * Pago. Mas um arquivo com 'use server' no topo publica TODA função exportada
+ * como endpoint, então código morto aqui continuava sendo uma porta aberta.
  *
- * O valor chega em centavos; quem digita é a tela, e parsePrice() converte. O
- * servidor aceita apenas inteiro positivo até DEPOSITO_MAX.
+ * Saldo agora entra por um caminho só: pagamento confirmado pelo webhook, que
+ * `src/server/payments/conciliacao.ts` credita depois de conferir a assinatura.
+ * Não recriar esta função nem uma variante dela.
  */
-export async function deposit(valorCents: Cents): Promise<ActionResult> {
-  const email = await getSessionEmail()
-  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
-
-  // Number.isFinite antes de qualquer conta: uma server action é um endpoint
-  // HTTP e NaN/Infinity chegam se alguém quiser mandar. Infinity somado ao
-  // saldo o transformaria em Infinity, e daí em `null` na serialização JSON.
-  const valor = Number.isFinite(valorCents) ? Math.floor(valorCents) : 0
-  if (valor <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
-  // O teto vem da configuração do painel (C3); sem banco, é o DEPOSITO_MAX do código.
-  const { depositoMaxCents } = await carregarRegrasDoMercado()
-  if (valor > depositoMaxCents) {
-    return { ok: false, error: `O depósito máximo por operação é ${brl(depositoMaxCents)}.` }
-  }
-
-  try {
-    const { result } = await mutateState<ActionResult>((s) => {
-      const u = s.users[email]
-      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
-
-      u.balance += valor
-      s.deposits.push({ userEmail: email, valor, date: Date.now() })
-
-      return {
-        ok: true,
-        message: `Depósito simulado de ${brl(valor)} concluído. Novo saldo: ${brl(u.balance)}.`,
-      }
-    })
-    return result
-  } catch {
-    return { ok: false, error: FALHA_GRAVACAO }
-  }
-}
 
 /**
  * Alterna uma preferência de notificação por e-mail (linhas 2804-2810).

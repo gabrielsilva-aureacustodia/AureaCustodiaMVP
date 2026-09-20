@@ -53,7 +53,7 @@ import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
-import { advanceAnalysis, consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '@/server/actions/custody'
+import { consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '@/server/actions/custody'
 import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
 import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
@@ -399,13 +399,6 @@ export default function EnviosPage(): ReactNode {
     const protocolo = wizard.protocolo
     if (!protocolo) return
     await run(() => markPosted(protocolo))
-  }, [run, wizard.protocolo])
-
-  /** `advanceAnalysis` (2202-2230). Sem toast, como no original. */
-  const avancarEtapa = useCallback(async () => {
-    const protocolo = wizard.protocolo
-    if (!protocolo) return
-    await run(() => advanceAnalysis(protocolo))
   }, [run, wizard.protocolo])
 
   /**
@@ -927,7 +920,7 @@ export default function EnviosPage(): ReactNode {
                 style={{ width: '100%', marginTop: 16 }}
                 onClick={() => void marcarPostado()}
               >
-                Marcar como postado (simulado)
+                Marcar como postado
               </button>
             )}
           </div>
@@ -1000,21 +993,13 @@ export default function EnviosPage(): ReactNode {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 18 }}
-                  onClick={() => void avancarEtapa()}
-                >
-                  Simular avanço de etapa (ambiente de teste)
-                </button>
-                <div className="note" style={{ marginTop: 10 }}>
+                <div className="note" style={{ marginTop: 18 }}>
                   <svg viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 8v5M12 16.5v.5" />
                   </svg>
-                  Em produção, cada etapa avança automaticamente conforme a equipe de custódia
-                  confirma o recebimento e a análise física.
+                  Cada etapa avança conforme a equipe de custódia confirma o recebimento e
+                  conclui a análise física na bancada. Você acompanha por aqui.
                 </div>
               </>
             )}

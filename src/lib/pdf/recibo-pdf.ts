@@ -1,5 +1,5 @@
 /**
- * Recibo de custódia em PDF — porte de `downloadNftPdf` / `drawPdfQR`
+ * Recibo de custódia em PDF — porte de `downloadNftPdf`
  * (MVP, linhas 1951-2026).
  *
  * Roda no CLIENTE: o jsPDF monta um Blob e dispara o download pelo DOM, coisa
@@ -15,42 +15,12 @@
 import type { jsPDF } from 'jspdf'
 import type { Coin } from '@/domain/types'
 import { COIN } from '@/domain/constants'
-import { qrMatrix } from '@/lib/qr-seed'
 
 /**
  * Desenha o "QR" decorativo ponto a ponto. Usa o mesmo PRNG do QR em SVG da
  * tela (ver lib/qr-seed.ts) para que o recibo impresso e o recibo em tela
  * mostrem o desenho idêntico para o mesmo recibo.
  */
-function drawPdfQR(doc: jsPDF, seedStr: string, x: number, y: number, size: number): void {
-  const cells = 12
-  const cell = size / cells
-  const matrix = qrMatrix(seedStr, cells)
-
-  doc.setFillColor(20, 20, 20)
-  for (let r = 0; r < cells; r++) {
-    for (let c = 0; c < cells; c++) {
-      if (matrix[r][c]) doc.rect(x + c * cell, y + r * cell, cell * 0.9, cell * 0.9, 'F')
-    }
-  }
-
-  // Os três "olhos" do QR, desenhados por cima da trama: preto, miolo creme,
-  // ponto preto no centro.
-  const finders: Array<[number, number]> = [
-    [0, 0],
-    [cells - 3, 0],
-    [0, cells - 3],
-  ]
-  for (const [cx, cy] of finders) {
-    doc.setFillColor(20, 20, 20)
-    doc.rect(x + cx * cell, y + cy * cell, cell * 3, cell * 3, 'F')
-    doc.setFillColor(245, 240, 228)
-    doc.rect(x + (cx + 0.5) * cell, y + (cy + 0.5) * cell, cell * 2, cell * 2, 'F')
-    doc.setFillColor(20, 20, 20)
-    doc.rect(x + (cx + 1.1) * cell, y + (cy + 1.1) * cell, cell * 0.8, cell * 0.8, 'F')
-  }
-}
-
 /**
  * Gera e baixa o recibo. Diferente do MVP, não conhece `state` nem exibe toast:
  * quem chama já resolveu o dono da moeda e é quem avisa o usuário
@@ -153,21 +123,18 @@ export async function baixarReciboPdf(params: {
   doc.text('CUSTÓDIA', 112, y + 37, { align: 'center' })
   doc.text('VERIFICADA', 112, y + 47, { align: 'center' })
 
-  drawPdfQR(doc, coin.recibo.codigo + coin.recibo.hash, 320, y + 12, 78)
-  doc.setFontSize(7)
-  doc.setTextColor(160, 142, 94)
-  doc.text('código simulado', 359, y + 98, { align: 'center' })
+  // O QR decorativo saiu em 20/09/2026, por decisão do Gabriel. Ele era um
+  // desenho gerado do código e do hash do recibo, sem nada para ler: não abria
+  // página, não verificava nada, e levava embaixo o rótulo "código simulado"
+  // justamente para não sugerir verificação externa. Num recibo publicado, um
+  // quadrado que parece QR e não é convida a pessoa a apontar a câmera e não
+  // acontecer nada. O que autentica o recibo é o código e o hash impressos.
 
   doc.setFont('times', 'italic')
   doc.setFontSize(9.5)
   doc.setTextColor(138, 117, 80)
   doc.text('Este recibo certifica a custódia e o vínculo documental.', 240, y + 130, { align: 'center' })
   doc.text('A moeda física permanece sob guarda do Real Olímpico.', 240, y + 143, { align: 'center' })
-  // Mesma tarja do rodapé da aplicação: o PDF sai do ambiente e precisa dizer
-  // sozinho que é documento de teste.
-  doc.setFontSize(8)
-  doc.setTextColor(160, 142, 94)
-  doc.text('Ambiente de teste · Pré-MVP · Dados fictícios', 240, y + 156, { align: 'center' })
 
   // Se o recibo foi extinto (retirada física solicitada), estampa a marca indelével
   if (coin.recibo.status === 'Extinto') {

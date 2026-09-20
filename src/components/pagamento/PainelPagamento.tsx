@@ -272,7 +272,7 @@ export function PainelPagamento({
             </>
           ) : pixDados.simulado ? (
             <div className="note" style={{ textAlign: 'center' }}>
-              Ambiente de teste: o gateway de pagamento ainda não está configurado neste ambiente.
+              O meio de pagamento está temporariamente indisponível. Tente novamente em instantes.
               Nenhuma cobrança externa foi aberta.
             </div>
           ) : (
@@ -356,7 +356,7 @@ export function PainelPagamento({
             </>
           ) : cartaoDados.simulado ? (
             <div className="note" style={{ textAlign: 'center' }}>
-              Ambiente de teste: o gateway de pagamento ainda não está configurado neste ambiente.
+              O meio de pagamento está temporariamente indisponível. Tente novamente em instantes.
               Nenhuma cobrança externa foi aberta.
             </div>
           ) : (

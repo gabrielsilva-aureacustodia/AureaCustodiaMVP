@@ -408,8 +408,7 @@ export default function ContaPage(): ReactNode {
               <img src={LOGO_REAL_MARCA} alt="Real Olímpico" />
             </div>
             <div className="note" style={{ justifyContent: 'center', textAlign: 'center' }}>
-              Você está em um ambiente de teste seguro. O Real Olímpico protege o que tem valor
-              para gerações.
+              O Real Olímpico protege o que tem valor para gerações.
             </div>
           </div>
         </div>

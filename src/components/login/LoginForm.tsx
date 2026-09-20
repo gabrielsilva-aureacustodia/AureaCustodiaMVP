@@ -177,7 +177,6 @@ export function LoginForm({
           {registrationOpen ? 'Ainda não tem conta?' : 'Novos cadastros estão fechados.'}{' '}
           <Link href="/cadastrar">Criar conta</Link>
         </p>
-        <p className="env-tag">Ambiente de teste · Pré-MVP · Dados fictícios</p>
       </section>
     </main>
   )
