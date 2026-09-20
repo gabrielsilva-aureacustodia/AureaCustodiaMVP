@@ -43,7 +43,12 @@ const url = fs.readFileSync('.env.local', 'utf8').match(/^POSTGRES_URL="?([^"\r\
 
     // O resíduo do mesmo envio de teste. Sem as moedas, cada um deles é uma
     // linha órfã que só confunde relatório e conciliação.
-    for (const t of ['planos_custodia', 'faturas_custodia', 'envios', 'ledger_entries', 'payment_intents', 'payment_events', 'eventos_uso']) {
+    // ORDEM DE FILHO PARA PAI. `faturas_custodia` tem chave estrangeira para
+    // `planos_custodia` (faturas_custodia_plano_id_fkey), então a fatura sai
+    // primeiro. Na primeira versão deste script a ordem estava invertida: o
+    // Postgres recusava, a transação inteira fazia rollback e nada acontecia —
+    // sem mensagem de erro visível para quem só olhava o resultado.
+    for (const t of ['faturas_custodia', 'planos_custodia', 'envios', 'ledger_entries', 'payment_events', 'payment_intents', 'eventos_uso']) {
       const r = await c.query('delete from aurea.' + t)
       if (r.rowCount) console.log('  ' + String(r.rowCount).padStart(4) + ' linhas apagadas de ' + t)
     }
