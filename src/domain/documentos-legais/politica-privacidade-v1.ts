@@ -9,7 +9,12 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
   chave: 'politica_privacidade',
-  versao: '1.0',
+  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
+  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
+  // aponta para a versão — reciclar o número faria o registro de consentimento
+  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
+  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
+  versao: '2.0',
   titulo: 'POLÍTICA DE PRIVACIDADE',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -24,7 +29,7 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
         {
           numero: '1.1',
           texto:
-            'A Aurea Custodia LTDA atua como controladora dos dados coletados, adotando medidas rígidas de segurança técnica e governança para a estrita finalidade operacional.',
+            'A AUREA CUSTODIA LTDA atua como controladora dos dados coletados, adotando medidas rígidas de segurança técnica e governança para a estrita finalidade operacional.',
         },
       ],
     },
@@ -35,7 +40,7 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
         {
           numero: '2.1',
           texto:
-            'A Áurea adota o modelo de cadastro progressivo. Dados adicionais somente são solicitados no momento exato em que uma funcionalidade patrimonial específica for acionada pelo usuário:',
+            'O Real Olímpico adota o modelo de cadastro progressivo. Dados adicionais somente são solicitados no momento exato em que uma funcionalidade patrimonial específica for acionada pelo usuário:',
           alineas: [
             {
               letra: 'a)',

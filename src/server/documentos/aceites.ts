@@ -44,11 +44,11 @@ export interface OpcoesRegistroAceite {
 
 export const TEXTOS_EXIBIDOS_PADRAO: Record<ChaveDocumento, string> = {
   termos_de_uso:
-    'Ao criar sua conta ou confirmar, você concorda com os Termos de Uso (versão 1.0) da Áurea Custódia.',
+    'Ao criar sua conta ou confirmar, você concorda com os Termos de Uso (versão 2.0) do Real Olímpico.',
   politica_privacidade:
-    'Ao criar sua conta ou confirmar, você concorda com a Política de Privacidade (versão 1.0) da Áurea Custódia.',
+    'Ao criar sua conta ou confirmar, você concorda com a Política de Privacidade (versão 2.0) do Real Olímpico.',
   tabela_de_taxas:
-    'Ao criar sua conta ou confirmar, você concorda com a Tabela de Taxas vigente da Áurea Custódia.',
+    'Ao criar sua conta ou confirmar, você concorda com a Tabela de Taxas vigente do Real Olímpico.',
   clausula_arbitragem:
     'Declaro que li e concordo expressamente com a Cláusula Compromissória de Arbitragem (Capítulo 14.4 dos Termos de Uso), instituindo o juízo arbitral para resolução de controvérsias.',
 }
@@ -76,9 +76,9 @@ export async function registrarAceitesFormais(
   )
   const infoDe = (chave: ChaveDocumento): { versao: string; hash: string } =>
     vigentes.get(chave) ?? DOCUMENTOS_VIGENTES[chave]
-  // O texto padrão cita a versão 1.0; com versão nova publicada, a frase gravada cita a vigente.
+  // O texto padrão cita a versão 2.0; com versão nova publicada, a frase gravada cita a vigente.
   const textoPadrao = (chave: ChaveDocumento): string =>
-    TEXTOS_EXIBIDOS_PADRAO[chave].replace('(versão 1.0)', `(versão ${infoDe(chave).versao})`)
+    TEXTOS_EXIBIDOS_PADRAO[chave].replace('(versão 2.0)', `(versão ${infoDe(chave).versao})`)
 
   for (const chave of chavesDesejadas) {
     const docInfo = infoDe(chave)

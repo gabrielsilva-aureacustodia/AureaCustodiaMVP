@@ -13,16 +13,21 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
   chave: 'termos_de_uso',
-  versao: '1.0',
+  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
+  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
+  // aponta para a versão — reciclar o número faria o registro de consentimento
+  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
+  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
+  versao: '2.0',
   titulo: 'TERMOS DE USO',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
-    'Estes termos constituem um acordo vinculativo entre o usuário da plataforma Áurea Custódia ("Usuário" ou "você" ou "seu/sua") e Áurea Custodia LTDA., pessoa jurídica de direito privado, CNPJ nº 68.071.452/0001-06, com endereço na Rua dos Tabaiares, nº 12, sala 210, bairro Floresta, Belo Horizonte/MG, Brasil, CEP 30.150-040 ("Áurea").',
-    'Este Termos de Uso rege o uso da sua Conta Áurea e quaisquer outros Serviços Áurea disponibilizados a você na ou através da Plataforma Áurea.',
-    'Ao registrar-se para uma Conta Áurea, você reconhece que lhe foi fornecido o Termos de Uso antes da prestação dos Serviços Áurea.',
-    'Ao acessar a Plataforma Áurea e/ou usar os Serviços Áurea, você: (i) concorda que leu, entendeu e aceitou o Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá o Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar o Termos de Uso.',
-    'Se você não entender e aceitar os termos do Termos de Uso em sua totalidade, não deve registrar uma Conta Áurea, nem acessar ou usar a Plataforma Áurea ou qualquer serviço Áurea.',
-    'A Áurea não é uma corretora de investimentos ou Criptomoedas. A Áurea não fornece aconselhamento de investimento regulado, recomendações pessoais em relação a decisões de investimento ou valorização nem qualquer outro tipo de consultoria e nenhuma comunicação ou informação fornecida por nós é destinada a ser, ou deve ser interpretada como, recomendação ou aconselhamento de qualquer tipo.',
+    'Estes termos constituem um acordo vinculativo entre o usuário da plataforma Real Olímpico ("Usuário" ou "você" ou "seu/sua") e AUREA CUSTODIA LTDA., que opera sob o nome fantasia Real Olímpico, pessoa jurídica de direito privado, CNPJ nº 68.071.452/0001-06, com endereço na Rua dos Tabaiares, nº 12, sala 210, bairro Floresta, Belo Horizonte/MG, Brasil, CEP 30.150-040 ("Real Olímpico").',
+    'Este Termos de Uso rege o uso da sua Conto Real Olímpico e quaisquer outros Serviços Real Olímpico disponibilizados a você na ou através da Plataformo Real Olímpico.',
+    'Ao registrar-se para uma Conto Real Olímpico, você reconhece que lhe foi fornecido o Termos de Uso antes da prestação dos Serviços Real Olímpico.',
+    'Ao acessar a Plataformo Real Olímpico e/ou usar os Serviços Real Olímpico, você: (i) concorda que leu, entendeu e aceitou o Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá o Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar o Termos de Uso.',
+    'Se você não entender e aceitar os termos do Termos de Uso em sua totalidade, não deve registrar uma Conto Real Olímpico, nem acessar ou usar a Plataformo Real Olímpico ou qualquer serviço Real Olímpico.',
+    'O Real Olímpico não é uma corretora de investimentos ou Criptomoedas. O Real Olímpico não fornece aconselhamento de investimento regulado, recomendações pessoais em relação a decisões de investimento ou valorização nem qualquer outro tipo de consultoria e nenhuma comunicação ou informação fornecida por nós é destinada a ser, ou deve ser interpretada como, recomendação ou aconselhamento de qualquer tipo.',
   ],
   capitulos: [
     {
@@ -33,7 +38,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '1.1',
           titulo: 'Informações de Contato',
           texto:
-            'Você pode nos contatar utilizando os detalhes fornecidos na Cláusula 3 ou por meio dos canais de suporte ao cliente disponíveis na Plataforma Áurea.',
+            'Você pode nos contatar utilizando os detalhes fornecidos na Cláusula 3 ou por meio dos canais de suporte ao cliente disponíveis na Plataformo Real Olímpico.',
         },
         {
           numero: '1.2',
@@ -62,14 +67,14 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '2.1',
           titulo: 'Critérios de Elegibilidade',
           texto:
-            'Para ser elegível para registrar uma Conta Áurea e usar os Serviços Áurea, você deve:',
+            'Para ser elegível para registrar uma Conto Real Olímpico e usar os Serviços Real Olímpico, você deve:',
           alineas: [
             {
               letra: 'a)',
               texto:
                 'ser uma pessoa física, corporação, pessoa jurídica, entidade ou outro empreendimento com plenos poderes, autoridade e capacidade para:',
               subalineas: [
-                { letra: '(i)', texto: 'acessar e usar a Plataforma Áurea; e' },
+                { letra: '(i)', texto: 'acessar e usar a Plataformo Real Olímpico; e' },
                 {
                   letra: '(ii)',
                   texto:
@@ -89,7 +94,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: 'd)',
-              texto: 'não ter sido previamente suspenso ou removido do uso da Plataforma Áurea.',
+              texto: 'não ter sido previamente suspenso ou removido do uso da Plataformo Real Olímpico.',
             },
           ],
         },
@@ -97,7 +102,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '2.2',
           titulo: 'Alteração dos Critérios de Elegibilidade',
           texto:
-            'Os critérios de elegibilidade podem ser alterados a qualquer momento, a critério exclusivo da Áurea. Sempre que possível, avisaremos com antecedência sobre a mudança. Contudo, poderão ser feitas alterações sem aviso prévio. Isso pode ocorrer quando:',
+            'Os critérios de elegibilidade podem ser alterados a qualquer momento, a critério exclusivo do Real Olímpico. Sempre que possível, avisaremos com antecedência sobre a mudança. Contudo, poderão ser feitas alterações sem aviso prévio. Isso pode ocorrer quando:',
           alineas: [
             {
               letra: 'a)',
@@ -124,13 +129,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '3.1',
           titulo: 'Como você pode nos contatar',
           texto:
-            'Para mais informações sobre a Áurea, você pode consultar as informações disponíveis em nossa Plataforma. Se você tiver dúvidas, sugestões ou reclamações, pode nos contatar através do nosso suporte ao cliente em SAC.',
+            'Para mais informações sobre o Real Olímpico, você pode consultar as informações disponíveis em nossa Plataforma. Se você tiver dúvidas, sugestões ou reclamações, pode nos contatar através do nosso suporte ao cliente em SAC.',
         },
         {
           numero: '3.2',
           titulo: 'Como entraremos em contato com você',
           texto:
-            'Entraremos em contato utilizando os dados fornecidos na Plataforma Áurea. Isso pode incluir contato por e-mail, SMS, WhatsApp, ligação telefônica e via Plataforma Áurea. É importante que os dados de contato sejam mantidos corretos e atualizados na Plataforma Áurea. Qualquer alteração nos dados de contato deve ser informada imediatamente. Caso contrário, não seremos responsáveis se você deixar de receber informações, notificações ou outras comunicações importantes. Esteja ciente de que fraudadores podem tentar se passar por funcionários ou comunicações oficiais da Áurea.',
+            'Entraremos em contato utilizando os dados fornecidos na Plataformo Real Olímpico. Isso pode incluir contato por e-mail, SMS, WhatsApp, ligação telefônica e via Plataformo Real Olímpico. É importante que os dados de contato sejam mantidos corretos e atualizados na Plataformo Real Olímpico. Qualquer alteração nos dados de contato deve ser informada imediatamente. Caso contrário, não seremos responsáveis se você deixar de receber informações, notificações ou outras comunicações importantes. Esteja ciente de que fraudadores podem tentar se passar por funcionários ou comunicações oficiais do Real Olímpico.',
         },
       ],
     },
@@ -142,7 +147,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '4.1',
           titulo: 'Termos Específicos de Serviço',
           texto:
-            'Após abrir uma Conta Áurea, você poderá acessar e usar a Plataforma Áurea. Este Contrato constitui uma aceitação a todos os serviços disponíveis na Plataforma. Ao acessar ou usar a Plataforma Áurea, você confirma que leu, entendeu e concorda com os Termos de Serviço referentes a esse Serviço Áurea (conforme alterados periodicamente).',
+            'Após abrir uma Conto Real Olímpico, você poderá acessar e usar a Plataformo Real Olímpico. Este Contrato constitui uma aceitação a todos os serviços disponíveis na Plataforma. Ao acessar ou usar a Plataformo Real Olímpico, você confirma que leu, entendeu e concorda com os Termos de Serviço referentes a esse Serviço Real Olímpico (conforme alterados periodicamente).',
         },
       ],
     },
@@ -154,7 +159,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '5.1',
           titulo: 'Pagamento de Taxas',
           texto:
-            'Ao criar uma Conta Áurea você concorda em pagar todas as taxas aplicáveis relacionadas ao acesso e uso dos Serviços Áurea, conforme estabelecido na Tabela de Taxas em nossa Plataforma. Ao aceitar esses Termos você autoriza e instrui a Áurea a deduzir todas as taxas, comissões, juros, encargos e outros valores devidos nos termos de uso e em decorrência das operações realizadas, de acordo com o método de cálculo estabelecido na Tabela de Taxas em nossa Plataforma.',
+            'Ao criar uma Conto Real Olímpico você concorda em pagar todas as taxas aplicáveis relacionadas ao acesso e uso dos Serviços Real Olímpico, conforme estabelecido na Tabela de Taxas em nossa Plataforma. Ao aceitar esses Termos você autoriza e instrui o Real Olímpico a deduzir todas as taxas, comissões, juros, encargos e outros valores devidos nos termos de uso e em decorrência das operações realizadas, de acordo com o método de cálculo estabelecido na Tabela de Taxas em nossa Plataforma.',
         },
         {
           numero: '5.2',
@@ -166,19 +171,19 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '5.3',
           titulo: 'Cálculos',
           texto:
-            'Quaisquer cálculos efetuados pela Áurea relacionados aos Serviços Áurea são finais e vinculantes, exceto em caso de Erro Manifesto.',
+            'Quaisquer cálculos efetuados pelo Real Olímpico relacionados aos Serviços Real Olímpico são finais e vinculantes, exceto em caso de Erro Manifesto.',
         },
       ],
     },
     {
       numero: 6,
-      titulo: 'Conta Áurea',
+      titulo: 'Conto Real Olímpico',
       paragrafos: [
         {
           numero: '6.1',
           titulo: 'Discricionariedade',
           texto:
-            'Todas as Contas Áurea são oferecidas a nosso critério. Reservamo-nos o direito de recusar qualquer solicitação de abertura de Conta Áurea, incluindo, sem limitação, quando:',
+            'Todas as Contas Real Olímpico são oferecidas a nosso critério. Reservamo-nos o direito de recusar qualquer solicitação de abertura de Conto Real Olímpico, incluindo, sem limitação, quando:',
           alineas: [
             {
               letra: 'a)',
@@ -191,7 +196,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: 'c)',
-              texto: 'o Usuário já ter possuído Conta Áurea suspensa ou encerrada; e/ou',
+              texto: 'o Usuário já ter possuído Conto Real Olímpico suspensa ou encerrada; e/ou',
             },
             {
               letra: 'd)',
@@ -203,18 +208,18 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '6.2',
           texto:
-            'A Áurea não estará obrigada a fornecer razões para a recusa de uma solicitação de abertura de conta.',
+            'O Real Olímpico não estará obrigada a fornecer razões para a recusa de uma solicitação de abertura de conta.',
         },
         {
           numero: '6.3',
           texto:
-            'Você não deve fornecer acesso a quaisquer Serviços Áurea a terceiros por meio de sua Conta Áurea.',
+            'Você não deve fornecer acesso a quaisquer Serviços Real Olímpico a terceiros por meio de sua Conto Real Olímpico.',
         },
         {
           numero: '6.4',
           titulo: 'Verificação de Identidade e Conheça seu Cliente',
           texto:
-            'Antes de poder abrir uma Conta Áurea ou acessar qualquer Serviço Áurea, você deve concluir nossos procedimentos de verificação de identidade, que podem incluir (sem limitação):',
+            'Antes de poder abrir uma Conto Real Olímpico ou acessar qualquer Serviço Real Olímpico, você deve concluir nossos procedimentos de verificação de identidade, que podem incluir (sem limitação):',
           alineas: [
             {
               letra: 'a)',
@@ -231,16 +236,16 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '6.5',
           texto:
-            'Todas as informações fornecidas à Áurea devem ser completas, precisas, verdadeiras e atualizadas em todos os aspectos.',
+            'Todas as informações fornecidas ao Real Olímpico devem ser completas, precisas, verdadeiras e atualizadas em todos os aspectos.',
         },
         {
           numero: '6.6',
           texto:
-            'É obrigação do Usuário informar a Áurea qualquer alteração nas informações fornecidas.',
+            'É obrigação do Usuário informar o Real Olímpico qualquer alteração nas informações fornecidas.',
         },
         {
           numero: '6.7',
-          texto: 'Ao aceitar esses Termos você autoriza a Áurea a:',
+          texto: 'Ao aceitar esses Termos você autoriza o Real Olímpico a:',
           alineas: [
             {
               letra: 'a)',
@@ -250,19 +255,19 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'b)',
               texto:
-                'tomar quaisquer medidas que julgarmos necessárias com base nos resultados dessas investigações, incluindo recusar sua solicitação ou suspender ou encerrar sua Conta Áurea.',
+                'tomar quaisquer medidas que julgarmos necessárias com base nos resultados dessas investigações, incluindo recusar sua solicitação ou suspender ou encerrar sua Conto Real Olímpico.',
             },
           ],
         },
         {
           numero: '6.8',
           texto:
-            'A Áurea poderá solicitar novas informações a qualquer momento para fins de cumprimento de qualquer obrigação legal ou regulatória aplicável, incluindo requisitos de verificação de identidade, ou em conexão com a detecção de lavagem de dinheiro, financiamento ao terrorismo, fraude ou qualquer outro crime financeiro, bem como condutas proibidas ou qualquer violação real ou potencial deste Contrato ou por qualquer outro motivo válido.',
+            'O Real Olímpico poderá solicitar novas informações a qualquer momento para fins de cumprimento de qualquer obrigação legal ou regulatória aplicável, incluindo requisitos de verificação de identidade, ou em conexão com a detecção de lavagem de dinheiro, financiamento ao terrorismo, fraude ou qualquer outro crime financeiro, bem como condutas proibidas ou qualquer violação real ou potencial deste Contrato ou por qualquer outro motivo válido.',
         },
         {
           numero: '6.9',
           texto:
-            'A falha ou recusa em fornecer as informações solicitadas dentro do prazo especificado poderá resultar na suspensão ou restrição da Conta Áurea e/ou qualquer serviço Áurea, com efeito imediato e sem aviso prévio.',
+            'A falha ou recusa em fornecer as informações solicitadas dentro do prazo especificado poderá resultar na suspensão ou restrição da Conto Real Olímpico e/ou qualquer serviço Real Olímpico, com efeito imediato e sem aviso prévio.',
         },
       ],
     },
@@ -274,13 +279,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.1',
           titulo: 'Transações',
           texto:
-            'São consideradas transações as ações de (i) envio de moeda para custódia; (ii) venda de moeda custodiada; (iii) compra de moeda; (iv) solicitação de retirada de moeda custodiada; (v) depósito de valor; e (vi) saque de valor ("Transações") realizadas na Plataforma Áurea.',
+            'São consideradas transações as ações de (i) envio de moeda para custódia; (ii) venda de moeda custodiada; (iii) compra de moeda; (iv) solicitação de retirada de moeda custodiada; (v) depósito de valor; e (vi) saque de valor ("Transações") realizadas na Plataformo Real Olímpico.',
         },
         {
           numero: '7.2',
           titulo: 'Envio de Moeda para Custódia',
           texto:
-            'O Envio de Moeda para Custódia será solicitado por meio da Plataforma Áurea e, após aprovado, deverá ser realizado pelo Usuário com base nas instruções disponíveis na Plataforma Áurea.',
+            'O Envio de Moeda para Custódia será solicitado por meio da Plataformo Real Olímpico e, após aprovado, deverá ser realizado pelo Usuário com base nas instruções disponíveis na Plataformo Real Olímpico.',
         },
         {
           numero: '7.2.1',
@@ -292,24 +297,24 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.2.2',
           titulo: 'Validação da Custódia',
           texto:
-            'A moeda submetida para custódia passará por análise para verificação da veracidade e do estado de conservação do objeto. Após análise a Áurea poderá (i) validar a custódia e proceder com a emissão do Recibo de Unicidade ou (ii) recusar, de forma discricionária, a custódia da moeda e proceder a devolução ao Usuário, o qual arcará com o trâmite devolutivo.',
+            'A moeda submetida para custódia passará por análise para verificação da veracidade e do estado de conservação do objeto. Após análise o Real Olímpico poderá (i) validar a custódia e proceder com a emissão do Recibo de Unicidade ou (ii) recusar, de forma discricionária, a custódia da moeda e proceder a devolução ao Usuário, o qual arcará com o trâmite devolutivo.',
         },
         {
           numero: '7.2.3',
           titulo: 'Instituições Parceiras',
           texto:
-            'O Usuário concorda que a custódia poderá ser realizada pela própria Áurea ou por instituições parceiras de notória confiabilidade e atuação no mercado.',
+            'O Usuário concorda que a custódia poderá ser realizada pela próprio Real Olímpico ou por instituições parceiras de notória confiabilidade e atuação no mercado.',
         },
         {
           numero: '7.2.4',
           titulo: 'Titularidade',
           texto:
-            'A Áurea e suas Instituições Parceiras funcionam como meras custodiantes e intermediadoras. A moeda custodiada e o Recibo de Unicidade correspondente permanecem parte de titularidade do Usuário e não passam a integrar o patrimônio da Áurea.',
+            'O Real Olímpico e suas Instituições Parceiras funcionam como meras custodiantes e intermediadoras. A moeda custodiada e o Recibo de Unicidade correspondente permanecem parte de titularidade do Usuário e não passam a integrar o patrimônio do Real Olímpico.',
         },
         {
           numero: '7.2.5',
           titulo: 'Recibo de Unicidade',
-          texto: `Após a validação da moeda submetida para custódia, será gerado para o Usuário na Plataforma Áurea o Recibo de Unicidade correspondente a uma moeda custodiada. O prazo para validação da custódia e emissão do Recibo de Unicidade é de ${PARAMETROS_LEGAIS.prazoValidacaoCustodia} após o recebimento e a aprovação da moeda.`,
+          texto: `Após a validação da moeda submetida para custódia, será gerado para o Usuário na Plataformo Real Olímpico o Recibo de Unicidade correspondente a uma moeda custodiada. O prazo para validação da custódia e emissão do Recibo de Unicidade é de ${PARAMETROS_LEGAIS.prazoValidacaoCustodia} após o recebimento e a aprovação da moeda.`,
           alineas: [
             {
               letra: 'a)',
@@ -328,13 +333,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.2.7',
           titulo: 'Envio da Moeda Custodiada',
           texto:
-            'Serão disponibilizadas opções de envio pela Plataforma Áurea. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário. A moeda somente será admitida em custódia após procedimento de análise e admissão pela Áurea.',
+            'Serão disponibilizadas opções de envio pela Plataformo Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário. A moeda somente será admitida em custódia após procedimento de análise e admissão pelo Real Olímpico.',
         },
         {
           numero: '7.3',
           titulo: 'Venda de Moeda Custodiada',
           texto:
-            'As moedas custodiadas na Plataforma Áurea poderão ser vendidas para outros usuários por meio da própria Plataforma Áurea.',
+            'As moedas custodiadas na Plataformo Real Olímpico poderão ser vendidas para outros usuários por meio da própria Plataformo Real Olímpico.',
         },
         {
           numero: '7.3.1',
@@ -351,13 +356,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.3.3',
           titulo: 'Prazo Recebimento Valores',
-          texto: `O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de ${PARAMETROS_LEGAIS.prazoRecebimentoVenda} após a conclusão da venda. Os valores poderão constar como "Saldo Disponível" na Plataforma Áurea ou serem destinados diretamente a conta bancária do Usuário, de acordo com as informações fornecidas pelo Usuário na Plataforma.`,
+          texto: `O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de ${PARAMETROS_LEGAIS.prazoRecebimentoVenda} após a conclusão da venda. Os valores poderão constar como "Saldo Disponível" na Plataformo Real Olímpico ou serem destinados diretamente a conta bancária do Usuário, de acordo com as informações fornecidas pelo Usuário na Plataforma.`,
         },
         {
           numero: '7.4',
           titulo: 'Compra de Moeda',
           texto:
-            'As moedas custodiadas poderão ser adquiridas por outros usuários por meio da Plataforma Áurea.',
+            'As moedas custodiadas poderão ser adquiridas por outros usuários por meio da Plataformo Real Olímpico.',
         },
         {
           numero: '7.4.1',
@@ -369,7 +374,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.4.2',
           titulo: 'Novo Código Criptografado',
           texto:
-            'A compra de moeda custodiada na Plataforma Áurea, por intermediação da plataforma, resultará na destruição do Código Criptografado correspondente do Usuário Vendedor e na emissão de um novo Código Criptografado ao Usuário Comprador.',
+            'A compra de moeda custodiada na Plataformo Real Olímpico, por intermediação da plataforma, resultará na destruição do Código Criptografado correspondente do Usuário Vendedor e na emissão de um novo Código Criptografado ao Usuário Comprador.',
         },
         {
           numero: '7.5',
@@ -399,7 +404,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.5.4',
           titulo: 'Envio da Moeda Custodiada',
           texto:
-            'Serão disponibilizadas opções de envio pela Plataforma Áurea. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário.',
+            'Serão disponibilizadas opções de envio pela Plataformo Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário.',
         },
         {
           numero: '7.5.5',
@@ -417,7 +422,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.6',
           titulo: 'Depósito de Valor',
           texto:
-            'O Usuário poderá realizar Depósito de Valor para realização de Transações na Plataforma Áurea. Os valores depositados constaram como "Saldo Disponível" na Plataforma Áurea.',
+            'O Usuário poderá realizar Depósito de Valor para realização de Transações na Plataformo Real Olímpico. Os valores depositados constaram como "Saldo Disponível" na Plataformo Real Olímpico.',
         },
         {
           numero: '7.6.1',
@@ -428,13 +433,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.6.2',
           titulo: 'Prazo',
-          texto: `O prazo para conversão do valor depositado em "Saldo Disponível" na Plataforma Áurea é de ${PARAMETROS_LEGAIS.prazoDisponibilizacaoDeposito} após a confirmação da Transação.`,
+          texto: `O prazo para conversão do valor depositado em "Saldo Disponível" na Plataformo Real Olímpico é de ${PARAMETROS_LEGAIS.prazoDisponibilizacaoDeposito} após a confirmação da Transação.`,
         },
         {
           numero: '7.7',
           titulo: 'Saque de Valor',
           texto:
-            'O Usuário poderá solicitar o saque do "Saldo Disponível" a qualquer tempo na Plataforma Áurea.',
+            'O Usuário poderá solicitar o saque do "Saldo Disponível" a qualquer tempo na Plataformo Real Olímpico.',
         },
         {
           numero: '7.7.1',
@@ -451,13 +456,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.8',
           texto:
-            'As Transações são irrevogáveis, portanto, uma vez realizada uma Transação na plataforma, não será possível rescindi-la ou retirá-la sem autorização extraordinária da Áurea.',
+            'As Transações são irrevogáveis, portanto, uma vez realizada uma Transação na plataforma, não será possível rescindi-la ou retirá-la sem autorização extraordinária do Real Olímpico.',
         },
         {
           numero: '7.9',
           titulo: 'Retenção de Informações das Transações',
           texto:
-            'Para fins de cumprimento dos padrões da indústria para retenção de dados, ao aceitar esses Termos você autoriza a Áurea a manter registro de todas as informações das Transações efetuadas na Plataforma Áurea, enquanto sua Conta Áurea estiver ativa ou pelo tempo necessário para cumprir os propósitos regulatórios.',
+            'Para fins de cumprimento dos padrões da indústria para retenção de dados, ao aceitar esses Termos você autoriza o Real Olímpico a manter registro de todas as informações das Transações efetuadas na Plataformo Real Olímpico, enquanto sua Conto Real Olímpico estiver ativa ou pelo tempo necessário para cumprir os propósitos regulatórios.',
         },
       ],
     },
@@ -469,7 +474,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '8.1',
           titulo: 'Responsabilidade',
           texto:
-            'Ao aceitar estes Termos de Uso o Usuário concorda que é responsável por tomar as medidas adequadas para proteger seu hardware e dados contra vírus, softwares maliciosos e qualquer material inadequado. A Áurea não se responsabiliza por quaisquer reclamações ou perdas decorrentes do seu descumprimento desta Cláusula.',
+            'Ao aceitar estes Termos de Uso o Usuário concorda que é responsável por tomar as medidas adequadas para proteger seu hardware e dados contra vírus, softwares maliciosos e qualquer material inadequado. O Real Olímpico não se responsabiliza por quaisquer reclamações ou perdas decorrentes do seu descumprimento desta Cláusula.',
         },
         {
           numero: '8.2',
@@ -485,21 +490,21 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'b)',
               texto:
-                'manter o endereço de e-mail e o número de telefone fornecidos à Plataforma Áurea atualizados para receber quaisquer avisos ou alertas;',
+                'manter o endereço de e-mail e o número de telefone fornecidos à Plataformo Real Olímpico atualizados para receber quaisquer avisos ou alertas;',
             },
             {
               letra: 'c)',
               texto:
-                'nunca permitir acesso remoto ou compartilhar seu computador e/ou tela do computador com outra pessoa enquanto estiver logado na sua Conta Áurea;',
+                'nunca permitir acesso remoto ou compartilhar seu computador e/ou tela do computador com outra pessoa enquanto estiver logado na sua Conto Real Olímpico;',
             },
             {
               letra: 'd)',
-              texto: 'sair dos Sites ou da Plataforma Áurea ao final de cada visita; e',
+              texto: 'sair dos Sites ou da Plataformo Real Olímpico ao final de cada visita; e',
             },
             {
               letra: 'e)',
               texto:
-                'acessar a Plataforma Áurea por meio de dispositivos seguros e utilizando redes privadas.',
+                'acessar a Plataformo Real Olímpico por meio de dispositivos seguros e utilizando redes privadas.',
             },
           ],
         },
@@ -507,13 +512,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '8.3',
           titulo: 'Atos de Terceiro',
           texto:
-            'A Áurea não se responsabiliza por Transações ou outras atividades efetuadas por terceiros que tiveram acesso aos dispositivos ou senhas do Usuário.',
+            'O Real Olímpico não se responsabiliza por Transações ou outras atividades efetuadas por terceiros que tiveram acesso aos dispositivos ou senhas do Usuário.',
         },
         {
           numero: '8.4',
           titulo: 'Indisponibilidade Tecnológica',
           texto:
-            'A Áurea é responsável pela manutenção e funcionamento do sistema da Plataforma Áurea, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que a Áurea comunicará aos clientes o ocorrido e envidará os melhores esforços para reestabelecer o funcionamento.',
+            'O Real Olímpico é responsável pela manutenção e funcionamento do sistema da Plataformo Real Olímpico, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que o Real Olímpico comunicará aos clientes o ocorrido e envidará os melhores esforços para reestabelecer o funcionamento.',
         },
       ],
     },
@@ -525,13 +530,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '9.1',
           titulo: 'Alterações',
           texto:
-            'Estes Termos de Uso podem ser alterados a qualquer tempo e o uso continuado dos Serviços Áurea constitui consentimento a tais alterações. As alterações serão publicadas na Plataforma Áurea e poderão também ser notificadas individualmente aos usuários por e-mail ou pela Plataforma Áurea.',
+            'Estes Termos de Uso podem ser alterados a qualquer tempo e o uso continuado dos Serviços Real Olímpico constitui consentimento a tais alterações. As alterações serão publicadas na Plataformo Real Olímpico e poderão também ser notificadas individualmente aos usuários por e-mail ou pela Plataformo Real Olímpico.',
         },
         {
           numero: '9.2',
           titulo: 'Entrada em Vigor',
           texto:
-            'Em regra, a Áurea notificará os usuários das Alterações antes da sua entrada em vigor. Entretanto, ocasionalmente as Alterações poderão entrar em vigor imediatamente, caso em que os usuários serão notificados posteriormente sobre as Alterações em vigor. Isso pode ocorrer, por exemplo, e sem limitação, quando:',
+            'Em regra, o Real Olímpico notificará os usuários das Alterações antes da sua entrada em vigor. Entretanto, ocasionalmente as Alterações poderão entrar em vigor imediatamente, caso em que os usuários serão notificados posteriormente sobre as Alterações em vigor. Isso pode ocorrer, por exemplo, e sem limitação, quando:',
           alineas: [
             {
               letra: 'a)',
@@ -547,34 +552,34 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '9.3',
           texto:
-            'Caso o Usuário não concorde com as Alterações, estará livre para encerrar sua Conta Áurea. O acesso continuado a Plataforma Áurea ou uso de quaisquer Serviços Áurea será considerado como aceitação das alterações.',
+            'Caso o Usuário não concorde com as Alterações, estará livre para encerrar sua Conto Real Olímpico. O acesso continuado a Plataformo Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das alterações.',
         },
         {
           numero: '9.4',
           titulo: 'Alterações nas Taxas',
           texto:
-            'A Áurea poderá fazer alterações nas taxas estabelecidas na Tabela de Taxas em nossa Plataforma, o que inclui a introdução de novas taxas e/ou encargos. Caso o Usuário não concorde com as novas taxas, estará livre para encerrar sua Conta Áurea. O acesso continuado a Plataforma Áurea ou uso de quaisquer Serviços Áurea será considerado como aceitação das novas taxas.',
+            'O Real Olímpico poderá fazer alterações nas taxas estabelecidas na Tabela de Taxas em nossa Plataforma, o que inclui a introdução de novas taxas e/ou encargos. Caso o Usuário não concorde com as novas taxas, estará livre para encerrar sua Conto Real Olímpico. O acesso continuado a Plataformo Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das novas taxas.',
         },
       ],
     },
     {
       numero: 10,
-      titulo: 'Encerramento da Conta Áurea',
+      titulo: 'Encerramento da Conto Real Olímpico',
       paragrafos: [
         {
           numero: '10.1',
           titulo: 'Encerramento',
           texto:
-            'O Usuário poderá encerrar a Conta Áurea a qualquer momento, seguindo os procedimentos de encerramento de conta previstos na Plataforma Áurea. Ao encerrar a conta o Usuário autoriza a Áurea a cancelar ou suspender quaisquer transações pendentes no momento do encerramento e a deduzir quaisquer valores em aberto.',
+            'O Usuário poderá encerrar a Conto Real Olímpico a qualquer momento, seguindo os procedimentos de encerramento de conta previstos na Plataformo Real Olímpico. Ao encerrar a conta o Usuário autoriza o Real Olímpico a cancelar ou suspender quaisquer transações pendentes no momento do encerramento e a deduzir quaisquer valores em aberto.',
         },
         {
           numero: '10.2',
-          texto: 'Não será possível encerrar a Conta Áurea quando:',
+          texto: 'Não será possível encerrar a Conto Real Olímpico quando:',
           alineas: [
             {
               letra: 'a)',
               texto:
-                'A Áurea tiver conhecimento que o Usuário esteja tentando evadir uma investigação por autoridades competentes;',
+                'O Real Olímpico tiver conhecimento que o Usuário esteja tentando evadir uma investigação por autoridades competentes;',
             },
             {
               letra: 'b)',
@@ -587,7 +592,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: 'd)',
-              texto: 'o Usuário tenha valores pendentes a serem pagos à Áurea.',
+              texto: 'o Usuário tenha valores pendentes a serem pagos ao Real Olímpico.',
             },
           ],
         },
@@ -600,12 +605,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '11.1',
           texto:
-            'A Áurea poderá, a qualquer momento, suspender, bloquear ou restringir um Usuário do uso da Plataforma Áurea. Em particular, a Áurea poderá (i) recusar-se a concluir, bloquear ou cancelar Transação solicitada pelo usuário; (ii) encerrar, suspender ou restringir o acesso do Usuário a qualquer ou a todos os Serviços Áurea; (iii) encerrar, suspender, fechar, bloquear ou restringir seu acesso a qualquer ou a todas as suas Conta(s) Áurea; e/ou (iv) tomar qualquer medida que considerar necessária, em cada caso com efeito imediato e por qualquer motivo, incluindo, mas não se limitando a quando:',
+            'O Real Olímpico poderá, a qualquer momento, suspender, bloquear ou restringir um Usuário do uso da Plataformo Real Olímpico. Em particular, o Real Olímpico poderá (i) recusar-se a concluir, bloquear ou cancelar Transação solicitada pelo usuário; (ii) encerrar, suspender ou restringir o acesso do Usuário a qualquer ou a todos os Serviços Real Olímpico; (iii) encerrar, suspender, fechar, bloquear ou restringir seu acesso a qualquer ou a todas as suas Conta(s) Real Olímpico; e/ou (iv) tomar qualquer medida que considerar necessária, em cada caso com efeito imediato e por qualquer motivo, incluindo, mas não se limitando a quando:',
           alineas: [
             {
               letra: 'a)',
               texto:
-                'o Usuário não é, ou não é mais, elegível para usar um ou mais Serviços Áurea;',
+                'o Usuário não é, ou não é mais, elegível para usar um ou mais Serviços Real Olímpico;',
             },
             {
               letra: 'b)',
@@ -614,12 +619,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '(i)',
                   texto:
-                    'a pessoa que acessou sua Conta Áurea não é você, ou suspeitar que a Conta Áurea tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados;',
+                    'a pessoa que acessou sua Conto Real Olímpico não é você, ou suspeitar que a Conto Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados;',
                 },
                 {
                   letra: '(ii)',
                   texto:
-                    'mais de uma pessoa natural tenha acesso e/ou realize transações usando a mesma Conta Áurea, ou suspeitar que a Conta Áurea tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados; ou',
+                    'mais de uma pessoa natural tenha acesso e/ou realize transações usando a mesma Conto Real Olímpico, ou suspeitar que a Conto Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados; ou',
                 },
                 {
                   letra: '(iii)',
@@ -650,24 +655,24 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '(ii)',
                   texto:
-                    'o Usuário violou qualquer lei, regra ou regulamento aplicável aos Serviços Áurea ou ao uso dos Serviços Áurea; ou',
+                    'o Usuário violou qualquer lei, regra ou regulamento aplicável aos Serviços Real Olímpico ou ao uso dos Serviços Real Olímpico; ou',
                 },
                 {
                   letra: '(iii)',
                   texto:
-                    'a Conta Áurea ou os Serviços Áurea estão sujeitos a qualquer litígio, investigação ou processo judicial pendente, em andamento ou ameaçado;',
+                    'a Conto Real Olímpico ou os Serviços Real Olímpico estão sujeitos a qualquer litígio, investigação ou processo judicial pendente, em andamento ou ameaçado;',
                 },
               ],
             },
             {
               letra: 'f)',
               texto:
-                'o Usuário tomar qualquer atitude que possa contornar os controles e procedimentos de segurança da Áurea; ou',
+                'o Usuário tomar qualquer atitude que possa contornar os controles e procedimentos de segurança do Real Olímpico; ou',
             },
             {
               letra: 'g)',
               texto:
-                'houver qualquer outra razão válida que justifique a suspensão, bloqueio ou restrição da Conta Áurea.',
+                'houver qualquer outra razão válida que justifique a suspensão, bloqueio ou restrição da Conto Real Olímpico.',
             },
           ],
         },
@@ -680,12 +685,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '12.1',
           texto:
-            'Ao abrir uma Conta Áurea e utilizar os Serviços Áurea, você declara e garante que:',
+            'Ao abrir uma Conto Real Olímpico e utilizar os Serviços Real Olímpico, você declara e garante que:',
           alineas: [
             {
               letra: 'a)',
               texto:
-                'todas as decisões relativas a este Contrato e aos Serviços Áurea foram tomadas de forma independente, com base em seu próprio julgamento e sem qualquer consultoria, assessoria ou recomendação da Áurea;',
+                'todas as decisões relativas a este Contrato e aos Serviços Real Olímpico foram tomadas de forma independente, com base em seu próprio julgamento e sem qualquer consultoria, assessoria ou recomendação do Real Olímpico;',
             },
             {
               letra: 'b)',
@@ -700,12 +705,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'todos os recursos e ativos mantidos em sua Conta Áurea têm origem lícita e não decorrem de qualquer atividade ilegal ou ilícita; e',
+                'todos os recursos e ativos mantidos em sua Conto Real Olímpico têm origem lícita e não decorrem de qualquer atividade ilegal ou ilícita; e',
             },
             {
               letra: 'e)',
               texto:
-                'nenhuma pessoa além de você possui qualquer direito, título ou garantia sobre sua Conta Áurea, as moedas custodiadas ou os Recibos de Unicidade a ela associados, exceto conforme expressamente autorizado por nós por escrito.',
+                'nenhuma pessoa além de você possui qualquer direito, título ou garantia sobre sua Conto Real Olímpico, as moedas custodiadas ou os Recibos de Unicidade a ela associados, exceto conforme expressamente autorizado por nós por escrito.',
             },
           ],
         },
@@ -719,7 +724,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.1',
           titulo: 'Escopo e Aplicação',
           texto:
-            'Esta Cláusula estabelece as regras e diretrizes aplicáveis ao tratamento de Dados Pessoais de Pessoas Naturais ("Titulares") no âmbito da prestação dos Serviços Áurea, incluindo o acesso, cadastro e utilização da Plataforma Áurea, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e com as demais normas aplicáveis à proteção de dados e privacidade.',
+            'Esta Cláusula estabelece as regras e diretrizes aplicáveis ao tratamento de Dados Pessoais de Pessoas Naturais ("Titulares") no âmbito da prestação dos Serviços Real Olímpico, incluindo o acesso, cadastro e utilização da Plataformo Real Olímpico, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e com as demais normas aplicáveis à proteção de dados e privacidade.',
         },
         {
           numero: '13.2',
@@ -730,18 +735,18 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.3',
           titulo: 'Papéis no Tratamento de Dados',
           texto:
-            'Na medida em que determinar as finalidades e os meios de tratamento de Dados Pessoais no contexto dos Serviços Áurea, a Áurea atuará como Controladora dos Dados Pessoais tratados no âmbito da Plataforma Áurea.',
+            'Na medida em que determinar as finalidades e os meios de tratamento de Dados Pessoais no contexto dos Serviços Real Olímpico, o Real Olímpico atuará como Controladora dos Dados Pessoais tratados no âmbito da Plataformo Real Olímpico.',
         },
         {
           numero: '13.4',
           texto:
-            'Nas hipóteses em que a Áurea tratar Dados Pessoais em nome de terceiros ou em decorrência de integrações com parceiros comerciais, prestadores de serviços ou instituições financeiras, os papéis de cada agente de tratamento serão definidos conforme a legislação aplicável e os respectivos instrumentos contratuais celebrados entre as partes.',
+            'Nas hipóteses em que o Real Olímpico tratar Dados Pessoais em nome de terceiros ou em decorrência de integrações com parceiros comerciais, prestadores de serviços ou instituições financeiras, os papéis de cada agente de tratamento serão definidos conforme a legislação aplicável e os respectivos instrumentos contratuais celebrados entre as partes.',
         },
         {
           numero: '13.5',
           titulo: 'Categorias de Dados Tratados',
           texto:
-            'A Áurea poderá coletar e tratar diferentes categorias de Dados Pessoais para a prestação dos Serviços Áurea, cumprimento de obrigações legais ou regulatórias, proteção ao crédito e exercício regular de direitos, incluindo, conforme aplicável:',
+            'O Real Olímpico poderá coletar e tratar diferentes categorias de Dados Pessoais para a prestação dos Serviços Real Olímpico, cumprimento de obrigações legais ou regulatórias, proteção ao crédito e exercício regular de direitos, incluindo, conforme aplicável:',
           alineas: [
             {
               letra: 'a)',
@@ -761,12 +766,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'dados financeiros e bancários, incluindo dados de contas bancárias ou de pagamento, chaves Pix, informações de pagamento, histórico de depósitos, saques e pagamentos realizados na ou através da Plataforma Áurea;',
+                'dados financeiros e bancários, incluindo dados de contas bancárias ou de pagamento, chaves Pix, informações de pagamento, histórico de depósitos, saques e pagamentos realizados na ou através da Plataformo Real Olímpico;',
             },
             {
               letra: 'e)',
               texto:
-                'dados de Transações, incluindo informações sobre moedas enviadas para custódia, valores de compra e venda, emissão, transferência e cancelamento de Recibos de Unicidade, ordens registradas, ofertas de compra e venda e histórico operacional na Plataforma Áurea;',
+                'dados de Transações, incluindo informações sobre moedas enviadas para custódia, valores de compra e venda, emissão, transferência e cancelamento de Recibos de Unicidade, ordens registradas, ofertas de compra e venda e histórico operacional na Plataformo Real Olímpico;',
             },
             {
               letra: 'f)',
@@ -781,7 +786,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'h)',
               texto:
-                'dados de atendimento e comunicação, incluindo registros de solicitações, reclamações, mensagens, chamadas e demais interações entre o Usuário e os canais de atendimento da Áurea.',
+                'dados de atendimento e comunicação, incluindo registros de solicitações, reclamações, mensagens, chamadas e demais interações entre o Usuário e os canais de atendimento do Real Olímpico.',
             },
           ],
         },
@@ -789,16 +794,16 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.6',
           titulo: 'Finalidades do Tratamento',
           texto:
-            'A Áurea poderá tratar Dados Pessoais para as seguintes finalidades, conforme aplicável:',
+            'O Real Olímpico poderá tratar Dados Pessoais para as seguintes finalidades, conforme aplicável:',
           alineas: [
             {
               letra: 'a)',
-              texto: 'criar, manter, autenticar e administrar a Conta Áurea;',
+              texto: 'criar, manter, autenticar e administrar a Conto Real Olímpico;',
             },
             {
               letra: 'b)',
               texto:
-                'verificar a identidade, elegibilidade e capacidade do Usuário para utilização dos Serviços Áurea;',
+                'verificar a identidade, elegibilidade e capacidade do Usuário para utilização dos Serviços Real Olímpico;',
             },
             {
               letra: 'c)',
@@ -808,7 +813,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'permitir a execução, liquidação, registro e acompanhamento das Transações realizadas na Plataforma Áurea;',
+                'permitir a execução, liquidação, registro e acompanhamento das Transações realizadas na Plataformo Real Olímpico;',
             },
             {
               letra: 'e)',
@@ -818,7 +823,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'f)',
               texto:
-                'viabilizar depósitos, saques e demais movimentações financeiras relacionadas à utilização da Plataforma Áurea;',
+                'viabilizar depósitos, saques e demais movimentações financeiras relacionadas à utilização da Plataformo Real Olímpico;',
             },
             {
               letra: 'g)',
@@ -833,7 +838,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'i)',
               texto:
-                'proteger a segurança da Plataforma Áurea, dos Usuários, da Áurea e de terceiros;',
+                'proteger a segurança da Plataformo Real Olímpico, dos Usuários, do Real Olímpico e de terceiros;',
             },
             {
               letra: 'j)',
@@ -843,17 +848,17 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'k)',
               texto:
-                'exercer regularmente direitos da Áurea ou de terceiros em processos judiciais, administrativos, arbitrais ou pré-litigiosos;',
+                'exercer regularmente direitos do Real Olímpico ou de terceiros em processos judiciais, administrativos, arbitrais ou pré-litigiosos;',
             },
             {
               letra: 'l)',
               texto:
-                'realizar auditorias, controles internos, gestão de riscos, elaboração de relatórios e atividades necessárias para a governança corporativa da Áurea;',
+                'realizar auditorias, controles internos, gestão de riscos, elaboração de relatórios e atividades necessárias para a governança corporativa do Real Olímpico;',
             },
             {
               letra: 'm)',
               texto:
-                'aperfeiçoar, desenvolver, testar e manter a Plataforma Áurea e os Serviços Áurea, inclusive por meio de análises estatísticas e estudos de uso; e',
+                'aperfeiçoar, desenvolver, testar e manter a Plataformo Real Olímpico e os Serviços Real Olímpico, inclusive por meio de análises estatísticas e estudos de uso; e',
             },
             {
               letra: 'n)',
@@ -866,18 +871,18 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.7',
           titulo: 'Bases Legais',
           texto:
-            'O tratamento de Dados Pessoais pela Áurea será realizado com fundamento em uma ou mais bases legais previstas na LGPD, incluindo (i) execução de contrato ou de procedimentos preliminares relacionados ao Contrato; (ii) cumprimento de obrigação legal ou regulatória; (iii) exercício regular de direitos em processo judicial, administrativo ou arbitral; (iv) proteção da vida ou da incolumidade física do Titular ou de terceiro; (v) legítimo interesse da Áurea ou de terceiros, observados os limites legais e a proteção dos direitos e liberdades fundamentais do Titular; (vi) proteção do crédito; e (vii) quando exigido pela legislação aplicável, o consentimento do Titular.',
+            'O tratamento de Dados Pessoais pelo Real Olímpico será realizado com fundamento em uma ou mais bases legais previstas na LGPD, incluindo (i) execução de contrato ou de procedimentos preliminares relacionados ao Contrato; (ii) cumprimento de obrigação legal ou regulatória; (iii) exercício regular de direitos em processo judicial, administrativo ou arbitral; (iv) proteção da vida ou da incolumidade física do Titular ou de terceiro; (v) legítimo interesse do Real Olímpico ou de terceiros, observados os limites legais e a proteção dos direitos e liberdades fundamentais do Titular; (vi) proteção do crédito; e (vii) quando exigido pela legislação aplicável, o consentimento do Titular.',
         },
         {
           numero: '13.8',
           texto:
-            'Quando o tratamento depender do consentimento do Usuário, este será solicitado de forma livre, informada e inequívoca, e o Usuário poderá revogá-lo a qualquer momento, mediante solicitação expressa pelos canais indicados na Plataforma, ficando ciente de que a revogação poderá impossibilitar a continuidade da prestação de determinados Serviços Áurea.',
+            'Quando o tratamento depender do consentimento do Usuário, este será solicitado de forma livre, informada e inequívoca, e o Usuário poderá revogá-lo a qualquer momento, mediante solicitação expressa pelos canais indicados na Plataforma, ficando ciente de que a revogação poderá impossibilitar a continuidade da prestação de determinados Serviços Real Olímpico.',
         },
         {
           numero: '13.9',
           titulo: 'Compartilhamento de Dados Pessoais',
           texto:
-            'A Áurea poderá compartilhar Dados Pessoais, na medida necessária para as finalidades previstas nesta Cláusula e com observância das salvaguardas cabíveis, com: (i) instituições parceiras de custódia, transporte e logística envolvidas na prestação dos Serviços Áurea; (ii) instituições financeiras, prestadores de serviços de pagamento e parceiros bancários para processamento de depósitos, saques e Transações; (iii) prestadores de serviços de tecnologia, armazenamento em nuvem, segurança da informação, suporte, auditoria e assessoria jurídica ou contábil; (iv) fornecedores especializados em prevenção à fraude, análise de risco, biometria e verificação de identidade; e (v) autoridades policiais, governamentais, fiscais, judiciais, arbitrais ou regulatórias competentes, sempre que houver obrigação legal, regulatória ou ordem válida emanada de autoridade competente.',
+            'O Real Olímpico poderá compartilhar Dados Pessoais, na medida necessária para as finalidades previstas nesta Cláusula e com observância das salvaguardas cabíveis, com: (i) instituições parceiras de custódia, transporte e logística envolvidas na prestação dos Serviços Real Olímpico; (ii) instituições financeiras, prestadores de serviços de pagamento e parceiros bancários para processamento de depósitos, saques e Transações; (iii) prestadores de serviços de tecnologia, armazenamento em nuvem, segurança da informação, suporte, auditoria e assessoria jurídica ou contábil; (iv) fornecedores especializados em prevenção à fraude, análise de risco, biometria e verificação de identidade; e (v) autoridades policiais, governamentais, fiscais, judiciais, arbitrais ou regulatórias competentes, sempre que houver obrigação legal, regulatória ou ordem válida emanada de autoridade competente.',
         },
         {
           numero: '13.10',
@@ -888,41 +893,41 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.11',
           titulo: 'Dados Biométricos e Outros Dados Pessoais Sensíveis',
           texto:
-            'Quando necessário para identificação, autenticação, prevenção a fraudes e segurança do Usuário e da Plataforma Áurea, a Áurea poderá coletar e tratar dados biométricos faciais e cópias de documentos de identificação, observadas as disposições do artigo 11 da LGPD.',
+            'Quando necessário para identificação, autenticação, prevenção a fraudes e segurança do Usuário e da Plataformo Real Olímpico, o Real Olímpico poderá coletar e tratar dados biométricos faciais e cópias de documentos de identificação, observadas as disposições do artigo 11 da LGPD.',
         },
         {
           numero: '13.12',
           titulo: 'Fontes de Dados',
           texto:
-            'Além dos Dados Pessoais fornecidos diretamente pelo Usuário, a Áurea poderá obter informações sobre o Usuário a partir de fontes públicas, registros oficiais, birôs de dados e de crédito, parceiros de verificação de identidade e ferramentas de prevenção à fraude, observadas as normas de proteção de dados aplicáveis.',
+            'Além dos Dados Pessoais fornecidos diretamente pelo Usuário, o Real Olímpico poderá obter informações sobre o Usuário a partir de fontes públicas, registros oficiais, birôs de dados e de crédito, parceiros de verificação de identidade e ferramentas de prevenção à fraude, observadas as normas de proteção de dados aplicáveis.',
         },
         {
           numero: '13.13',
           titulo: 'Decisões Automatizadas',
           texto:
-            'A Áurea poderá utilizar processos automatizados para auxiliar atividades de validação cadastral, análise de risco, prevenção a fraudes e cumprimento de normas de prevenção à lavagem de dinheiro. Nesses casos, o Usuário terá direito de solicitar a revisão de decisões tomadas unicamente com base em tratamento automatizado de Dados Pessoais que afetem seus interesses, nos termos da legislação aplicável.',
+            'O Real Olímpico poderá utilizar processos automatizados para auxiliar atividades de validação cadastral, análise de risco, prevenção a fraudes e cumprimento de normas de prevenção à lavagem de dinheiro. Nesses casos, o Usuário terá direito de solicitar a revisão de decisões tomadas unicamente com base em tratamento automatizado de Dados Pessoais que afetem seus interesses, nos termos da legislação aplicável.',
         },
         {
           numero: '13.14',
           titulo: 'Armazenamento e Retenção',
           texto:
-            'A Áurea conservará os Dados Pessoais durante o período necessário para cumprir as finalidades para as quais foram coletados, executar este Contrato e observar os prazos legais, regulatórios e prescricionais aplicáveis.',
+            'O Real Olímpico conservará os Dados Pessoais durante o período necessário para cumprir as finalidades para as quais foram coletados, executar este Contrato e observar os prazos legais, regulatórios e prescricionais aplicáveis.',
         },
         {
           numero: '13.15',
           texto:
-            'O encerramento da Conta Áurea não implicará necessariamente a eliminação imediata de todos os Dados Pessoais relacionados ao Usuário. A Áurea poderá conservar Dados Pessoais após o encerramento da Conta quando a conservação for necessária ou permitida pela legislação, incluindo para cumprimento de obrigações legais ou regulatórias, exercício regular de direitos, prevenção e investigação de fraudes e atendimento a determinações de autoridades competentes.',
+            'O encerramento da Conto Real Olímpico não implicará necessariamente a eliminação imediata de todos os Dados Pessoais relacionados ao Usuário. O Real Olímpico poderá conservar Dados Pessoais após o encerramento da Conta quando a conservação for necessária ou permitida pela legislação, incluindo para cumprimento de obrigações legais ou regulatórias, exercício regular de direitos, prevenção e investigação de fraudes e atendimento a determinações de autoridades competentes.',
         },
         {
           numero: '13.16',
           titulo: 'Segurança da Informação',
           texto:
-            'A Áurea adotará medidas técnicas, administrativas e organizacionais razoáveis e compatíveis com a natureza dos Dados Pessoais tratados e com os riscos envolvidos, destinadas a protegê-los contra acessos não autorizados e situações acidentais ou ilícitas de destruição, perda, alteração, divulgação, comunicação ou qualquer forma de tratamento inadequado ou ilícito.',
+            'O Real Olímpico adotará medidas técnicas, administrativas e organizacionais razoáveis e compatíveis com a natureza dos Dados Pessoais tratados e com os riscos envolvidos, destinadas a protegê-los contra acessos não autorizados e situações acidentais ou ilícitas de destruição, perda, alteração, divulgação, comunicação ou qualquer forma de tratamento inadequado ou ilícito.',
         },
         {
           numero: '13.17',
           texto:
-            'As medidas de segurança poderão incluir, conforme aplicável, controles de acesso, autenticação, criptografia, registro de atividades, segregação de ambientes, procedimentos de backup, monitoramento de segurança, gestão de vulnerabilidades e mecanismos de prevenção e resposta a incidentes. Nenhum sistema é completamente imune a riscos de segurança. A presente disposição não deverá ser interpretada como garantia absoluta de inexistência de incidentes, sem prejuízo das obrigações legais da Áurea relativas à segurança e proteção dos Dados Pessoais.',
+            'As medidas de segurança poderão incluir, conforme aplicável, controles de acesso, autenticação, criptografia, registro de atividades, segregação de ambientes, procedimentos de backup, monitoramento de segurança, gestão de vulnerabilidades e mecanismos de prevenção e resposta a incidentes. Nenhum sistema é completamente imune a riscos de segurança. A presente disposição não deverá ser interpretada como garantia absoluta de inexistência de incidentes, sem prejuízo das obrigações legais do Real Olímpico relativas à segurança e proteção dos Dados Pessoais.',
         },
         {
           numero: '13.18',
@@ -940,7 +945,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.1',
           titulo: 'Notificação de Conflito',
           texto:
-            'Na hipótese de o problema não poder ser resolvido por meio dos canais de atendimento da Plataforma Áurea, o Usuário deverá enviar Notificação de Conflito à Áurea, que deverá conter:',
+            'Na hipótese de o problema não poder ser resolvido por meio dos canais de atendimento da Plataformo Real Olímpico, o Usuário deverá enviar Notificação de Conflito ao Real Olímpico, que deverá conter:',
           alineas: [
             { letra: 'a)', texto: 'a descrição da natureza do problema;' },
             { letra: 'b)', texto: 'o pedido específico de reparação;' },
@@ -951,12 +956,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.2',
           titulo: 'Negociação',
           texto:
-            'O recebimento da Notificação de Conflito pela Áurea inicia o procedimento de resolução de conflitos. O Usuário e Áurea concordam em negociar de boa-fé por um período de 90 (noventa) dias corridos após o recebimento da Notificação de Conflito, com o objetivo de resolver amigavelmente a disputa.',
+            'O recebimento da Notificação de Conflito pelo Real Olímpico inicia o procedimento de resolução de conflitos. O Usuário e Real Olímpico concordam em negociar de boa-fé por um período de 90 (noventa) dias corridos após o recebimento da Notificação de Conflito, com o objetivo de resolver amigavelmente a disputa.',
         },
         {
           numero: '14.3',
           texto:
-            'O envio da Notificação de Conflito à Áurea constitui requisito obrigatório para o início de qualquer arbitragem ou processo judicial.',
+            'O envio da Notificação de Conflito ao Real Olímpico constitui requisito obrigatório para o início de qualquer arbitragem ou processo judicial.',
         },
         {
           numero: '14.4',
@@ -969,7 +974,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.5',
           titulo: 'Acordo de Arbitragem',
           texto:
-            'O Usuário e a Áurea concordam que os conflitos oriundos ou relacionados a este Termos de Uso e ao uso dos Serviços Áurea, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
+            'O Usuário e o Real Olímpico concordam que os conflitos oriundos ou relacionados a este Termos de Uso e ao uso dos Serviços Real Olímpico, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
           negrito: true,
           alineas: [
             {
@@ -1033,19 +1038,19 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.1',
           titulo: 'Notificações',
           texto:
-            'A Áurea pode enviar notificações por e-mail. É sua responsabilidade garantir que o endereço de e-mail esteja atualizado e correto. As notificações serão consideradas recebidas e enviadas para seu e-mail, independentemente de ocorrer falha na entrega.',
+            'O Real Olímpico pode enviar notificações por e-mail. É sua responsabilidade garantir que o endereço de e-mail esteja atualizado e correto. As notificações serão consideradas recebidas e enviadas para seu e-mail, independentemente de ocorrer falha na entrega.',
         },
         {
           numero: '16.2',
           titulo: 'Acordo Integral',
           texto:
-            'O Acordo constitui o acordo completo entre você e nós com respeito aos Serviços Áurea. Cada parte reconhece que não se baseou, e não terá direito a nenhum recurso contra a outra por qualquer declaração, representação, garantia (seja negligente ou inocente) que não esteja expressamente prevista no Acordo.',
+            'O Acordo constitui o acordo completo entre você e nós com respeito aos Serviços Real Olímpico. Cada parte reconhece que não se baseou, e não terá direito a nenhum recurso contra a outra por qualquer declaração, representação, garantia (seja negligente ou inocente) que não esteja expressamente prevista no Acordo.',
         },
         {
           numero: '16.3',
           titulo: 'Cessão e Novação',
           texto:
-            'O Usuário não pode ceder ou transferir quaisquer direitos ou obrigações sob os Termos de Uso sem o consentimento prévio por escrito, que poderá exigir informações adicionais ou diligência reforçada. Contudo, a Áurea poderá ceder ou transferir direitos ou obrigações a qualquer momento, inclusive em conexão com fusões, aquisições ou reorganizações corporativas envolvendo a Áurea.',
+            'O Usuário não pode ceder ou transferir quaisquer direitos ou obrigações sob os Termos de Uso sem o consentimento prévio por escrito, que poderá exigir informações adicionais ou diligência reforçada. Contudo, o Real Olímpico poderá ceder ou transferir direitos ou obrigações a qualquer momento, inclusive em conexão com fusões, aquisições ou reorganizações corporativas envolvendo o Real Olímpico.',
         },
         {
           numero: '16.4',
@@ -1057,7 +1062,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.5',
           titulo: 'Força Maior',
           texto:
-            'A Áurea por quaisquer atrasos ou falhas decorrentes de evento de Força Maior.',
+            'O Real Olímpico por quaisquer atrasos ou falhas decorrentes de evento de Força Maior.',
         },
         {
           numero: '16.6',
@@ -1069,7 +1074,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.7',
           titulo: 'Impostos',
           texto:
-            'É responsabilidade do Usuário determinar quais impostos, se houver, se aplicam aos pagamentos que você realiza ou recebe, bem como coletar, declarar e recolher corretamente esses impostos à autoridade fiscal competente. Você concorda que a Áurea não é responsável por determinar a aplicação de impostos ao seu uso dos Serviços Áurea, nem pela coleta, declaração ou recolhimento de quaisquer impostos decorrentes de qualquer Transação ou uso dos Serviços Áurea.',
+            'É responsabilidade do Usuário determinar quais impostos, se houver, se aplicam aos pagamentos que você realiza ou recebe, bem como coletar, declarar e recolher corretamente esses impostos à autoridade fiscal competente. Você concorda que o Real Olímpico não é responsável por determinar a aplicação de impostos ao seu uso dos Serviços Real Olímpico, nem pela coleta, declaração ou recolhimento de quaisquer impostos decorrentes de qualquer Transação ou uso dos Serviços Real Olímpico.',
         },
       ],
     },
@@ -1117,17 +1122,17 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '"Erro Manifesto"',
                   texto:
-                    'significa qualquer erro ou omissão (seja erro da Áurea ou de terceiros) que seja manifesto ou palpável, incluindo erro em qualquer informação, fonte, oficial, resultado oficial ou pronúncia.',
+                    'significa qualquer erro ou omissão (seja erro do Real Olímpico ou de terceiros) que seja manifesto ou palpável, incluindo erro em qualquer informação, fonte, oficial, resultado oficial ou pronúncia.',
                 },
                 {
                   letra: '"IDs de Acesso"',
                   texto:
-                    'significa os dados da sua Conta Áurea, nome de usuário, senhas, números de identificação pessoal ou quaisquer outros códigos ou formas de autenticação que você utilize para acessar sua Conta Áurea ou os Serviços Áurea.',
+                    'significa os dados da sua Conto Real Olímpico, nome de usuário, senhas, números de identificação pessoal ou quaisquer outros códigos ou formas de autenticação que você utilize para acessar sua Conto Real Olímpico ou os Serviços Real Olímpico.',
                 },
                 {
-                  letra: '"Serviços Áurea"',
+                  letra: '"Serviços Real Olímpico"',
                   texto:
-                    'significa os serviços oferecidos a você através da Plataforma Áurea.',
+                    'significa os serviços oferecidos a você através da Plataformo Real Olímpico.',
                 },
                 {
                   letra: '"Força Maior"',
@@ -1140,12 +1145,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '"Recibo de Unicidade"',
                   texto:
-                    'significa o código gerado a partir do envio de moeda para custódia. O código é gerado pelo próprio sistema da Plataforma Áurea com emprego de Inteligência Artificial.',
+                    'significa o código gerado a partir do envio de moeda para custódia. O código é gerado pelo próprio sistema da Plataformo Real Olímpico com emprego de Inteligência Artificial.',
                 },
                 {
                   letra: '"Transação"',
                   texto:
-                    'significa vender, comprar ou realizar qualquer outro tipo de transação, ou concordar em vender, comprar ou realizar qualquer outro tipo de transação por intermédio da Plataforma Áurea.',
+                    'significa vender, comprar ou realizar qualquer outro tipo de transação, ou concordar em vender, comprar ou realizar qualquer outro tipo de transação por intermédio da Plataformo Real Olímpico.',
                 },
               ],
             },

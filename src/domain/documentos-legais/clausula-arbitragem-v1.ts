@@ -10,11 +10,16 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const CLAUSULA_ARBITRAGEM_V1: DocumentoLegalEstruturado = {
   chave: 'clausula_arbitragem',
-  versao: '1.0',
+  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
+  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
+  // aponta para a versão — reciclar o número faria o registro de consentimento
+  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
+  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
+  versao: '2.0',
   titulo: 'CLÁUSULA DE ARBITRAGEM',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
-    'Cláusula de compromisso e convenção de arbitragem estipulada em destaque nos Termos de Uso da Plataforma Áurea Custódia.',
+    'Cláusula de compromisso e convenção de arbitragem estipulada em destaque nos Termos de Uso da Plataformo Real Olímpico.',
   ],
   capitulos: [
     {
@@ -33,7 +38,7 @@ export const CLAUSULA_ARBITRAGEM_V1: DocumentoLegalEstruturado = {
           numero: '14.5',
           titulo: 'Acordo de Arbitragem',
           texto:
-            'O Usuário e a Áurea concordam que os conflitos oriundos ou relacionados a este Termos de Uso e ao uso dos Serviços Áurea, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
+            'O Usuário e o Real Olímpico concordam que os conflitos oriundos ou relacionados a este Termos de Uso e ao uso dos Serviços Real Olímpico, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
           negrito: true,
           alineas: [
             {

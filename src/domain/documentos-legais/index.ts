@@ -1,5 +1,5 @@
 /**
- * DOMÍNIO — Catálogo oficial de Documentos Legais Vigentes da Áurea Custódia.
+ * DOMÍNIO — Catálogo oficial de Documentos Legais Vigentes do Real Olímpico.
  *
  * Ponto de entrada unificado para leitura, canonicidade e cálculo de hash.
  */

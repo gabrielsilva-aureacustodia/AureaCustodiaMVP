@@ -32,7 +32,7 @@ describe('números no texto dos documentos', () => {
 })
 
 describe('Tabela de Taxas gerada pela configuração', () => {
-  it('com TAXAS_PADRAO, o texto canônico é idêntico ao da versão 1.0', () => {
+  it('com TAXAS_PADRAO, o texto canônico é idêntico ao da versão 2.0', () => {
     const doc = documentoTabelaDeTaxas(TAXAS_PADRAO, PARAMETROS_LEGAIS.vigencia)
     expect(textoCanonico(doc)).toBe(textoCanonico(TABELA_DE_TAXAS_V1))
     expect(hashDoDocumento(doc)).toBe(DOCUMENTOS_VIGENTES.tabela_de_taxas.hash)
@@ -53,7 +53,7 @@ describe('Tabela de Taxas gerada pela configuração', () => {
     expect(linhas).toHaveLength(linhasV1.length)
   })
 
-  it('gerar não altera o documento da versão 1.0', () => {
+  it('gerar não altera o documento da versão 2.0', () => {
     const antes = textoCanonico(TABELA_DE_TAXAS_V1)
     documentoTabelaDeTaxas({ ...TAXAS_PADRAO, taxaSaqueFixa: 1 }, '01/01/2030')
     expect(textoCanonico(TABELA_DE_TAXAS_V1)).toBe(antes)
@@ -61,8 +61,8 @@ describe('Tabela de Taxas gerada pela configuração', () => {
 })
 
 describe('Termos de Uso gerados pelos parâmetros', () => {
-  it('com os parâmetros de parametros.ts, o hash é o vetor congelado da versão 1.0', () => {
-    expect(hashDoDocumento(documentoTermosDeUso(TERMOS_PADRAO))).toBe('eeffba3c0218116aedc8b559d82003c0584a1060e12d344ce5d74d72be855421')
+  it('com os parâmetros de parametros.ts, o hash é o vetor congelado da versão 2.0', () => {
+    expect(hashDoDocumento(documentoTermosDeUso(TERMOS_PADRAO))).toBe('97521d13fc2052d531df8de3c10edd4d4df61d86fb1effcee5806ee626bd11b2')
   })
 
   it('troca o prazo dentro da cláusula certa, mesmo com dois prazos de texto igual', () => {

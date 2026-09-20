@@ -1030,10 +1030,10 @@ function suite(alvo: Alvo): void {
       const termos = await executar((tx) => buscarDocumentoVigente(tx, 'termos_de_uso'))
       expect(termos).not.toBeNull()
       expect(termos?.chave).toBe('termos_de_uso')
-      expect(termos?.versao).toBe('1.0')
-      expect(termos?.hashConteudo).toBe('eeffba3c0218116aedc8b559d82003c0584a1060e12d344ce5d74d72be855421')
+      expect(termos?.versao).toBe('2.0')
+      expect(termos?.hashConteudo).toBe('97521d13fc2052d531df8de3c10edd4d4df61d86fb1effcee5806ee626bd11b2')
 
-      const arbitragem = await executar((tx) => buscarDocumentoPorChaveEVersao(tx, 'clausula_arbitragem', '1.0'))
+      const arbitragem = await executar((tx) => buscarDocumentoPorChaveEVersao(tx, 'clausula_arbitragem', '2.0'))
       expect(arbitragem).not.toBeNull()
       expect(arbitragem?.chave).toBe('clausula_arbitragem')
 

@@ -9,11 +9,16 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
   chave: 'tabela_de_taxas',
-  versao: '1.0',
+  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
+  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
+  // aponta para a versão — reciclar o número faria o registro de consentimento
+  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
+  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
+  versao: '2.0',
   titulo: 'TABELA DE TAXAS',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
-    'Esta Tabela de Taxas integra o Contrato celebrado entre o Usuário e a Áurea Custódia LTDA., estabelecendo todas as tarifas, comissões e encargos operacionais vigentes na plataforma.',
+    'Esta Tabela de Taxas integra o Contrato celebrado entre o Usuário e a AUREA CUSTODIA LTDA., estabelecendo todas as tarifas, comissões e encargos operacionais vigentes na plataforma.',
   ],
   capitulos: [
     {
@@ -26,12 +31,10 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
           texto: 'R$ 24,00 por moeda pelos 12 meses, em até 12x no cartão de crédito.',
         },
         {
+          // Era 1.3 enquanto existia o plano de 24 meses na 1.2. O plano foi
+          // aposentado em 20/09/2026 e a cláusula saiu: documento publicado não
+          // pode oferecer prazo que a plataforma não vende.
           numero: '1.2',
-          titulo: 'Plano de 24 Meses de Custódia',
-          texto: 'R$ 36,00 por moeda pelos 24 meses, em até 12x no cartão de crédito.',
-        },
-        {
-          numero: '1.3',
           titulo: 'Frete de Envio para Custódia',
           texto:
             'O frete postal de envio da moeda até a central de custódia é escolhido e pago diretamente pelo cliente nos Correios.',
@@ -83,7 +86,7 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
         {
           numero: '4.1',
           titulo: 'Depósito de Recursos',
-          texto: 'Sem taxa de processamento cobrada pela Áurea.',
+          texto: 'Sem taxa de processamento cobrada pelo Real Olímpico.',
         },
         {
           numero: '4.2',
