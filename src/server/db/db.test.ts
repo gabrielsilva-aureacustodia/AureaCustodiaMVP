@@ -291,7 +291,10 @@ function suite(alvo: Alvo): void {
       expect(res.rows[0]).toMatchObject({ fee: 500, fee_comprador: 250, fee_vendedor: 250 })
     })
 
-    it('migration 026: planos_custodia aceita bienal e recusa modalidade desconhecida', async () => {
+    // A constraint do banco continua aceitando 'bienal' — linha gravada antes de
+    // 20/09/2026 não pode virar inválida de repente. O que mudou é que o domínio
+    // não emite mais essa modalidade.
+    it('migration 026: planos_custodia ainda aceita bienal gravado antes e recusa modalidade desconhecida', async () => {
       const S = alvo.schema
       const semeado = await lerEstado(executar)
       const [dono] = Object.keys(semeado.users)

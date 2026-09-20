@@ -58,33 +58,6 @@ describe('descricaoDaFaturaDeCustodia', () => {
     expect(texto).not.toMatch(/faixa/i)
   })
 
-  it('formata contratação com plano de 24 meses', () => {
-    const fatura: FaturaCustodia = { ...faturaBase, origem: 'contratacao' }
-    const plano: PlanoCustodia = {
-      id: 'PLC-002',
-      userEmail: 'cliente@exemplo.com.br',
-      protocoloEnvio: 'RO-ENV-0002',
-      modalidade: 'bienal',
-      quantidadeContratada: 15,
-      moedaIds: [],
-      valorPorMoedaCents: 3600,
-      valorTotalCents: 54000,
-      parcelasMax: 12,
-      inicioCompetencia: '2026-09',
-      pagoAteCompetencia: '2028-08',
-      status: 'vigente',
-      formaPagamento: 'saldo',
-      paymentIntentRef: null,
-      assinaturaId: null,
-      estornadoCents: 0,
-      criadoEm: 1757894400000,
-      atualizadoEm: 1757894400000,
-    }
-    const texto = descricaoDaFaturaDeCustodia(fatura, plano)
-    expect(texto).toBe('Plano de 24 meses de custódia a partir de 2026-09 · 15 moeda(s) — paga')
-    expect(texto).toContain('Plano de 24 meses')
-    expect(texto).not.toMatch(/faixa/i)
-  })
 
   it('formata contratação sem plano encontrado', () => {
     const fatura: FaturaCustodia = { ...faturaBase, origem: 'contratacao' }
@@ -171,34 +144,4 @@ describe('custodiaDoEnvio', () => {
     expect(Number.isInteger(res.valorCents)).toBe(true)
   })
 
-  it('calcula valor para plano de 24 meses pelo total congelado', () => {
-    const envio3 = { ...envioBase, quantidade: 3 }
-    const plano: PlanoCustodia = {
-      id: 'PLC-002',
-      userEmail: 'cliente@exemplo.com.br',
-      protocoloEnvio: 'RO-ENV-0001',
-      modalidade: 'bienal',
-      quantidadeContratada: 3,
-      moedaIds: [],
-      valorPorMoedaCents: 3600,
-      valorTotalCents: 10800,
-      parcelasMax: 12,
-      inicioCompetencia: '2026-09',
-      pagoAteCompetencia: null,
-      status: 'aguardando_pagamento',
-      formaPagamento: null,
-      paymentIntentRef: null,
-      assinaturaId: null,
-      estornadoCents: 0,
-      criadoEm: 1757894400000,
-      atualizadoEm: 1757894400000,
-    }
-    const res = custodiaDoEnvio(envio3, plano, TAXAS_PADRAO)
-    expect(res).toEqual({
-      rotulo: 'Plano de 24 meses destas moedas',
-      valorCents: 10800,
-      periodo: '24 meses',
-    })
-    expect(Number.isInteger(res.valorCents)).toBe(true)
-  })
 })

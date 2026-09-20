@@ -80,8 +80,8 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(res.error).toBe('Modalidade de plano inválida.')
   })
 
-  it('contrata plano de 24 meses: cria plano aguardando_pagamento e fatura de contratação', async () => {
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'bienal')
+  it('contrata plano anual: cria plano aguardando_pagamento e fatura de contratação', async () => {
+    const res = await contratarPlanoCustodia(PROTOCOLO, 'anual')
     expect(res.ok).toBe(true)
     expect(res.data?.planoId).toMatch(/^PLC-/)
     expect(res.data?.faturaId).toMatch(/^FAT-/)
@@ -90,10 +90,10 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     const plano = (s.planosCustodia || []).find((p) => p.id === res.data?.planoId)
     expect(plano).toBeDefined()
     expect(plano?.status).toBe('aguardando_pagamento')
-    expect(plano?.modalidade).toBe('bienal')
+    expect(plano?.modalidade).toBe('anual')
     expect(plano?.quantidadeContratada).toBe(2)
-    expect(plano?.valorPorMoedaCents).toBe(3600)
-    expect(plano?.valorTotalCents).toBe(7200) // 2 moedas * R$ 36,00
+    expect(plano?.valorPorMoedaCents).toBe(2400)
+    expect(plano?.valorTotalCents).toBe(4800) // 2 moedas * R$ 24,00
     expect(plano?.parcelasMax).toBe(12)
     expect(plano?.pagoAteCompetencia).toBeNull()
 
@@ -101,7 +101,7 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(fatura).toBeDefined()
     expect(fatura?.origem).toBe('contratacao')
     expect(fatura?.planoId).toBe(plano?.id)
-    expect(fatura?.valorCents).toBe(7200)
+    expect(fatura?.valorCents).toBe(4800)
     expect(fatura?.status).toBe('pendente')
   })
 
@@ -117,8 +117,11 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(plano?.parcelasMax).toBe(12)
   })
 
-  it('se cliente alterar a modalidade antes de pagar, recalcula a fatura e o plano existentes', async () => {
-    const res1 = await contratarPlanoCustodia(PROTOCOLO, 'bienal')
+  // Com um prazo só, não há modalidade para trocar. O que este caso protege
+  // continua valendo: contratar duas vezes o mesmo protocolo antes de pagar
+  // recalcula o plano e a fatura que já existem, em vez de criar um segundo par.
+  it('contratar de novo antes de pagar recalcula a fatura e o plano existentes', async () => {
+    const res1 = await contratarPlanoCustodia(PROTOCOLO, 'anual')
     expect(res1.ok).toBe(true)
 
     // Troca para anual

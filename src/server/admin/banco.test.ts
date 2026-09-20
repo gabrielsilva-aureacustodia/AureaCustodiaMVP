@@ -148,12 +148,12 @@ describe('migrations 020 e 021', () => {
 })
 
 describe('catálogo de papéis e permissões', () => {
-  it('semeia as 22 permissões e os três papéis com as concessões iniciais', async () => {
+  it('semeia as 23 permissões e os três papéis com as concessões iniciais', async () => {
     await executar((tx) => garantirCatalogosAdmin(tx))
     const papeis = await executar((tx) => listarPapeis(tx))
     expect(papeis.map((p) => [p.slug, p.permissoes.length, p.sistema])).toEqual([
-      ['dev', 22, true],
-      ['socio', 20, true],
+      ['dev', 23, true],
+      ['socio', 21, true],
       ['operacao', 5, true],
     ])
   })
@@ -249,7 +249,7 @@ describe('papéis', () => {
     expect(socio.ok).toBe(true)
     const equipe = await carregarEquipe(executar, SEM_LISTA)
     expect(equipe.papeis.find((p) => p.slug === 'socio')?.permissoes).toEqual(['resultados.ver', 'resultados.exportar'])
-    expect(equipe.papeis.find((p) => p.slug === 'dev')?.permissoes).toHaveLength(22)
+    expect(equipe.papeis.find((p) => p.slug === 'dev')?.permissoes).toHaveLength(23)
     expect(await acoesNaTrilha()).toEqual(['admin.papeis.alterar'])
   })
 

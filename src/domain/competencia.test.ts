@@ -192,37 +192,9 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(4800)
       expect(apropriacaoDoPlano(plano, periodoMensal(2026, 1))).toBe(400)
     })
-    it('apropria plano de 24 meses a 1/24 por mês, somando R$ 36,00 nos dois anos', () => {
-      const plano: PlanoCustodia = {
-        id: 'PLC-BIENAL',
-        userEmail: 'user@teste.com',
-        protocoloEnvio: 'ENV-BIENAL',
-        modalidade: 'bienal',
-        quantidadeContratada: 1,
-        moedaIds: [],
-        valorPorMoedaCents: 3600,
-        valorTotalCents: 3600,
-        parcelasMax: 12,
-        inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2027-12',
-        status: 'vigente',
-        formaPagamento: 'cartao',
-        paymentIntentRef: null,
-        assinaturaId: null,
-        estornadoCents: 0,
-        criadoEm: Date.now(),
-        atualizadoEm: Date.now(),
-      }
-
-      // R$ 1,50 por mês, nos 24 meses — e nenhum centavo no 25º
-      for (let mes = 1; mes <= 12; mes++) {
-        expect(apropriacaoDoPlano(plano, periodoMensal(2026, mes))).toBe(150)
-        expect(apropriacaoDoPlano(plano, periodoMensal(2027, mes))).toBe(150)
-      }
-      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(1800)
-      expect(apropriacaoDoPlano(plano, periodoAnual(2027))).toBe(1800)
-      expect(apropriacaoDoPlano(plano, periodoAnual(2028))).toBe(0)
-    })
+    // O caso do plano de 24 meses saiu em 20/09/2026 junto com o plano. O que
+    // ele protegia — a apropriação ser linear pelos meses que o plano cobre, e
+    // não por um 12 fixo — continua coberto pelo caso do anual logo acima.
   })
 
   describe('receitaDeCustodiaNoPeriodo', () => {

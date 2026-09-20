@@ -24,6 +24,11 @@ import { CHAVES_PERMISSAO } from '@/domain/admin/permissoes'
 
 import { SESSAO_EXPIRADA, SO_EQUIPE, carregarMembro, exigirPermissao, membroDaPagina, permissaoParaAcao, podeAbrirPainelAdmin } from './acesso'
 
+// Desde 20/09/2026 a lista fixa da equipe tem só o e-mail institucional: as
+// outras três entradas eram contas de demonstração, excluídas do banco. Um
+// teste que precisa de uma conta DO SEED agindo como equipe declara isso por
+// AUREA_ADMIN_EMAILS, que é o mecanismo de verdade — em vez de depender de um
+// e-mail estar numa lista fixa que pode encolher de novo.
 const SOCIO = 'rogeriopena@testeaurea.com.br'
 const CLIENTE = 'cliente@exemplo.com.br'
 
@@ -32,7 +37,8 @@ const salvo = { POSTGRES_URL: process.env.POSTGRES_URL, DATABASE_URL: process.en
 beforeEach(() => {
   delete process.env.POSTGRES_URL
   delete process.env.DATABASE_URL
-  delete process.env.AUREA_ADMIN_EMAILS
+  // Ver a nota no topo: o ator da equipe é declarado, não herdado da lista fixa.
+  process.env.AUREA_ADMIN_EMAILS = SOCIO
   getSessionEmail.mockReset()
 })
 
@@ -60,9 +66,14 @@ describe('carregarMembro sem banco', () => {
     // Conta de teste fora da lista e fora dos fixos: não é membro.
     expect(await carregarMembro('alex@testeaurea.com.br')).toBeNull()
     expect(await podeAbrirPainelAdmin('alex@testeaurea.com.br')).toBe(false)
-    // SOCIO continua entrando: está entre os EMAILS_FIXOS_DA_EQUIPE, que valem
-    // com ou sem a variável, para a equipe nunca ficar trancada fora (RA-40).
-    expect(await podeAbrirPainelAdmin(SOCIO)).toBe(true)
+    // SOCIO é conta do seed e NÃO está mais na lista fixa: com a variável
+    // apontando só para o institucional, ele fica de fora. É a prova de que a
+    // variável manda de verdade.
+    expect(await podeAbrirPainelAdmin(SOCIO)).toBe(false)
+    // O institucional entra com ou sem a variável, para a equipe nunca ficar
+    // trancada fora (RA-40).
+    delete process.env.AUREA_ADMIN_EMAILS
+    expect(await podeAbrirPainelAdmin('gabriel.silva@aureacustodia.com.br')).toBe(true)
   })
 })
 

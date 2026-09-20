@@ -35,9 +35,9 @@ function papel(slug: string, permissoes: readonly string[], id = 7): PapelGravad
 }
 
 describe('catálogo de permissões', () => {
-  it('tem as 22 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
-    expect(CHAVES_PERMISSAO).toHaveLength(22)
-    expect(new Set(CHAVES_PERMISSAO).size).toBe(22)
+  it('tem as 23 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
+    expect(CHAVES_PERMISSAO).toHaveLength(23)
+    expect(new Set(CHAVES_PERMISSAO).size).toBe(23)
     for (const p of PERMISSOES) expect(p.chave.startsWith(`${p.modulo}.`)).toBe(true)
   })
 
@@ -57,7 +57,7 @@ describe('papéis de sistema', () => {
   it('dev nasce com tudo; sócio com tudo menos papéis e membros; operação só bancada e logística', () => {
     expect(papelDeSistema('dev')?.permissoesIniciais).toEqual(CHAVES_PERMISSAO)
     const socio = papelDeSistema('socio')?.permissoesIniciais ?? []
-    expect(socio).toHaveLength(20)
+    expect(socio).toHaveLength(21)
     expect(socio).not.toContain('admin.papeis')
     expect(socio).not.toContain('admin.membros')
     expect(socio).toContain('admin.auditoria')
@@ -87,12 +87,15 @@ describe('bootstrap pelo ambiente — a mesma regra de ehAdmin', () => {
     expect(emailsDeBootstrap('', SEED)).toEqual([...new Set([...Object.keys(SEED), ...EMAILS_FIXOS_DA_EQUIPE])])
   })
 
-  it('Rogério e Rozane entram no painel como dev mesmo com uma lista do ambiente sem eles', () => {
+  it('a lista fixa da equipe vale mesmo com uma lista do ambiente sem ela', () => {
     const lista = 'contador@exemplo.com.br'
-    for (const e of ['rogerio@aureacustodia.com.br', 'RogerioPena@testeaurea.com.br', 'rozane@testeaurea.com.br']) {
-      expect(ehEmailDeBootstrap(e, lista, SEED)).toBe(true)
+    // Em 20/09/2026 a lista fixa foi reduzida ao e-mail institucional: os outros
+    // três eram contas de demonstração, excluídas do banco no mesmo dia, e
+    // e-mail de conta que não existe mais não pode continuar dando acesso de dev.
+    expect(ehEmailDeBootstrap('Gabriel.Silva@AureaCustodia.com.br', lista, SEED)).toBe(true)
+    for (const e of ['rogerio@aureacustodia.com.br', 'rogeriopena@testeaurea.com.br', 'rozane@testeaurea.com.br']) {
+      expect(ehEmailDeBootstrap(e, lista, SEED)).toBe(false)
     }
-    // Quem não está na lista fixa continua dependendo da lista do ambiente.
     expect(ehEmailDeBootstrap('alex@testeaurea.com.br', lista, SEED)).toBe(false)
   })
 

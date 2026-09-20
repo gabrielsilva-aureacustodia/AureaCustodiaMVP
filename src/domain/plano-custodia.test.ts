@@ -62,17 +62,11 @@ function criarPlano(parciais: Partial<PlanoCustodia> = {}): PlanoCustodia {
 
 describe('plano-custodia (B2.3)', () => {
   describe('valorDoPlano', () => {
-    it('calcula plano de 24 meses padrão (R$ 36,00 por moeda, até 12 parcelas)', () => {
-      const v1 = valorDoPlano('bienal', 1)
-      expect(v1).toEqual({ porMoeda: 3600, total: 3600, parcelasMax: 12 })
+    // Os dois testes do plano de 24 meses saíram em 20/09/2026 com o próprio
+    // plano: passou a existir um prazo só.
 
-      const v5 = valorDoPlano('bienal', 5)
-      expect(v5).toEqual({ porMoeda: 3600, total: 18000, parcelasMax: 12 })
-    })
-
-    it('o de 24 meses sai a R$ 1,50 por mês, contra R$ 2,00 do anual', () => {
+    it('o anual sai a R$ 2,00 por moeda por mês', () => {
       expect(valorDoPlano('anual', 1).total / 12).toBe(200)
-      expect(valorDoPlano('bienal', 1).total / 24).toBe(150)
     })
 
     it('calcula plano anual padrão (R$ 24,00 por moeda, até 12 parcelas)', () => {
@@ -92,7 +86,7 @@ describe('plano-custodia (B2.3)', () => {
     })
 
     it('quantidade zero ou negativa resulta em total zero', () => {
-      expect(valorDoPlano('bienal', 0).total).toBe(0)
+      expect(valorDoPlano('anual', 0).total).toBe(0)
       expect(valorDoPlano('anual', -2).total).toBe(0)
     })
   })
@@ -133,14 +127,8 @@ describe('plano-custodia (B2.3)', () => {
       expect(calcularPagoAte('2026-12', 'anual')).toBe('2027-11')
     })
 
-    it('o de 24 meses cobre 24 meses (+23 meses)', () => {
-      expect(calcularPagoAte('2026-09', 'bienal')).toBe('2028-08')
-      expect(calcularPagoAte('2026-12', 'bienal')).toBe('2028-11')
-    })
-
-    it('mesesCobertos diz o prazo de cada modalidade', () => {
+    it('mesesCobertos diz o prazo da modalidade', () => {
       expect(mesesCobertos('anual')).toBe(12)
-      expect(mesesCobertos('bienal')).toBe(24)
     })
   })
 
@@ -301,21 +289,9 @@ describe('plano-custodia (B2.3)', () => {
       expect(renovacaoDevida(planoAnual, '2027-10')).toBe(false)
     })
 
-    it('o plano de 24 meses só renova no 25º mês', () => {
-      const planoBienal = criarPlano({
-        modalidade: 'bienal',
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: calcularPagoAte('2026-09', 'bienal'),
-        status: 'vigente',
-        valorPorMoedaCents: 3600,
-        valorTotalCents: 3600,
-      })
-
-      // No 13º mês, onde o anual renovaria, este ainda está coberto.
-      expect(renovacaoDevida(planoBienal, '2027-09')).toBe(false)
-      expect(renovacaoDevida(planoBienal, '2028-08')).toBe(false)
-      expect(renovacaoDevida(planoBienal, '2028-09')).toBe(true)
-    })
+    // O caso do plano de 24 meses saiu em 20/09/2026 junto com o plano. O que
+    // ele protegia — a renovação respeitar o prazo coberto em vez de um 12 fixo
+    // no código — continua coberto pelo teste do anual logo acima.
   })
 
   describe('alimentarPlanoNaAnalise (B2.5)', () => {
@@ -367,7 +343,7 @@ describe('plano-custodia (B2.3)', () => {
       const user: User = { name: 'Cliente', balance: 5000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-BIENAL-1',
-        modalidade: 'bienal',
+        modalidade: 'anual',
         quantidadeContratada: 3,
         valorPorMoedaCents: 3600,
         valorTotalCents: 10800,
@@ -410,7 +386,7 @@ describe('plano-custodia (B2.3)', () => {
       const user: User = { name: 'Cliente', balance: 5000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-PEND-1',
-        modalidade: 'bienal',
+        modalidade: 'anual',
         quantidadeContratada: 3,
         valorPorMoedaCents: 3600,
         valorTotalCents: 10800,
@@ -455,7 +431,7 @@ describe('plano-custodia (B2.3)', () => {
       const user: User = { name: 'Cliente', balance: 1000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-CANCEL-1',
-        modalidade: 'bienal',
+        modalidade: 'anual',
         quantidadeContratada: 2,
         valorPorMoedaCents: 3600,
         valorTotalCents: 7200,

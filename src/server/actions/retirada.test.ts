@@ -48,6 +48,10 @@ const ENDERECO_VALIDO: EnderecoEntrega = {
   telefone: '(31) 98888-7777',
 }
 
+// Quem é equipe passa a ser declarado: a lista fixa foi reduzida ao e-mail
+// institucional em 20/09/2026, e as contas do seed deixaram de ser equipe.
+process.env.AUREA_ADMIN_EMAILS = USER_EMAIL
+
 beforeEach(() => {
   state = seedState()
   _limparRetiradasMemoriaParaTestes()

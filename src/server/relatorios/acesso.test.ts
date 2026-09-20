@@ -14,6 +14,9 @@ vi.mock('@/server/admin/acesso', () => ({ carregarMembro }))
 
 import { autorizarRelatorioNoPainel, ehAdmin, tokenDeIntegracaoValido } from './acesso'
 
+// A lista fixa foi reduzida ao e-mail institucional em 20/09/2026. Uma conta do
+// seed só é administradora se AUREA_ADMIN_EMAILS disser, que é o mecanismo real.
+const INSTITUCIONAL = 'gabriel.silva@aureacustodia.com.br'
 const SOCIO = 'rogeriopena@testeaurea.com.br'
 const VISITANTE = 'visitante@exemplo.com.br'
 const TOKEN = 'token-de-integracao-com-mais-de-16-chars'
@@ -43,8 +46,9 @@ describe('ehAdmin', () => {
     // Antes de 20/09/2026 qualquer conta do catálogo local era administradora.
     // Com o catálogo esvaziado, quem entra pelo ambiente são só os e-mails fixos
     // da equipe — uma conta de teste comum não abre a DRE.
-    expect(ehAdmin(SOCIO)).toBe(true)
-    expect(ehAdmin('RogerioPena@TesteAurea.com.br ')).toBe(true)
+    expect(ehAdmin(INSTITUCIONAL)).toBe(true)
+    expect(ehAdmin(' Gabriel.Silva@AureaCustodia.com.br ')).toBe(true)
+    expect(ehAdmin(SOCIO)).toBe(false)
     expect(ehAdmin('alex@testeaurea.com.br')).toBe(false)
     expect(ehAdmin(VISITANTE)).toBe(false)
     expect(ehAdmin(null)).toBe(false)
@@ -56,9 +60,11 @@ describe('ehAdmin', () => {
     expect(ehAdmin('contador@exemplo.com.br')).toBe(true)
     // Quem não está nem na lista nem entre os fixos fica de fora.
     expect(ehAdmin('alex@testeaurea.com.br')).toBe(false)
-    // O e-mail fixo da equipe vale nos dois casos, por desenho: é o que impede
+    // O e-mail institucional vale nos dois casos, por desenho: é o que impede
     // uma variável mal preenchida de trancar a equipe fora do painel (RA-40).
-    expect(ehAdmin(SOCIO)).toBe(true)
+    expect(ehAdmin(INSTITUCIONAL)).toBe(true)
+    // Conta do seed fora da lista fica de fora.
+    expect(ehAdmin(SOCIO)).toBe(false)
   })
 })
 

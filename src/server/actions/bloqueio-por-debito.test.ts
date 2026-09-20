@@ -58,9 +58,10 @@ const BANDEIRA = COIN.name
 const CLIENTE = 'cliente.novo@exemplo.com.br'
 const ROGERIO = 'rogeriopena@testeaurea.com.br'
 const GABRIEL = 'gabrielsilva@testeaurea.com.br'
-// Conta da equipe pelo bootstrap: está em EMAILS_FIXOS_DA_EQUIPE, que valem com
-// ou sem AUREA_ADMIN_EMAILS. Antes de 20/09/2026 qualquer conta do catálogo
-// local servia; com o catálogo vazio, o ator da equipe tem de ser explícito.
+// Contas da equipe neste arquivo. Antes de 20/09/2026 qualquer conta do catálogo
+// local era equipe; com o catálogo vazio e a lista fixa reduzida ao e-mail
+// institucional, quem é equipe passa a ser declarado por AUREA_ADMIN_EMAILS —
+// que é o mecanismo real do bootstrap, e não um efeito colateral do seed.
 const EQUIPE = 'rozane@testeaurea.com.br'
 const MENSAGEM_PENDENCIA = 'fatura de custódia vencida'
 
@@ -141,7 +142,7 @@ async function publicarComo(email: string, coinIds: string[], preco: number): Pr
 }
 
 beforeEach(async () => {
-  vi.stubEnv('AUREA_ADMIN_EMAILS', '')
+  vi.stubEnv('AUREA_ADMIN_EMAILS', `${EQUIPE},${ROGERIO}`)
   getSessionEmail.mockReset()
   getSessionEmail.mockResolvedValue(CLIENTE)
   vi.mocked(getState).mockReset()

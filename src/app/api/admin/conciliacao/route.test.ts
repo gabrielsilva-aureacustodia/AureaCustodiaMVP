@@ -12,7 +12,9 @@ import { GET } from './route'
 describe('Admin Conciliação Route — GET /api/admin/conciliacao', () => {
   beforeEach(() => {
     getSessionEmail.mockReset()
-    delete process.env.AUREA_ADMIN_EMAILS
+    // O e-mail fixo da equipe é o institucional; uma conta do seed precisa ser
+    // declarada administradora, que é o mecanismo real do bootstrap.
+    process.env.AUREA_ADMIN_EMAILS = 'rogeriopena@testeaurea.com.br'
   })
 
   it('rejeita com 401 sem sessão', async () => {

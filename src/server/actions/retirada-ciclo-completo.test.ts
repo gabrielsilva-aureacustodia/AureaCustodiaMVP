@@ -47,6 +47,10 @@ const ENDERECO_COMPLETO: EnderecoEntrega = {
   telefone: '(31) 99999-8888',
 }
 
+// Quem é equipe passa a ser declarado: a lista fixa foi reduzida ao e-mail
+// institucional em 20/09/2026, e as contas do seed deixaram de ser equipe.
+process.env.AUREA_ADMIN_EMAILS = OPERADOR
+
 beforeEach(() => {
   state = seedState()
   _limparRetiradasMemoriaParaTestes()
@@ -91,8 +95,10 @@ describe('Ciclo Completo de Retirada Física de Moedas (E2E Integration)', () =>
     expect(tentativaBloqueado.ok).toBe(false)
     expect(tentativaBloqueado.error).toContain('bloqueado por pendência')
 
-    // Desbloqueia após regularização
+    // Desbloqueia após regularização — também é ação da equipe.
+    getSessionEmailMock.mockResolvedValue(OPERADOR)
     await desbloquearRecibo(moeda.id)
+    getSessionEmailMock.mockResolvedValue(CLIENTE)
     expect(moeda.recibo.status).toBe('Ativo')
 
     // -------------------------------------------------------------------------
