@@ -84,14 +84,26 @@ ignorado pelo Git. Nunca incluir valores reais em arquivo commitado.
 
 Em **Authentication → URL Configuration**:
 
+Desde a publicação no domínio oficial, em 20/09/2026, o endereço canônico é
+`realolimpico.com.br`. As entradas do `vercel.app` **permanecem na lista**: o site
+continua respondendo nos dois endereços e removê-las quebraria quem ainda usa o antigo.
+
 ```text
 Site URL:
-https://aurea-custodia-mvp.vercel.app
+https://realolimpico.com.br
 
 Redirect URLs:
+https://realolimpico.com.br/entrar/callback
+https://www.realolimpico.com.br/entrar/callback
 https://aurea-custodia-mvp.vercel.app/entrar/callback
 http://localhost:3000/entrar/callback
 ```
+
+O que decide para onde o Supabase manda a pessoa é a variável `AUREA_SITE_URL` da Vercel,
+lida em `src/server/auth/origin.ts:13-24` **antes** do header da requisição. Ela já está
+com `https://realolimpico.com.br` em Production. Se o endereço não estiver na lista de
+Redirect URLs acima, o Supabase recusa o retorno e o cadastro trava — por isso as duas
+coisas andam juntas.
 
 Se o desenvolvimento usar outra porta, adicionar a URL correspondente. Para
 Preview da Vercel, adicionar cada callback de preview usado no teste ou um
@@ -119,9 +131,15 @@ amplo em Produção.
 8. Em **Authorized JavaScript origins**, adicionar:
 
 ```text
+https://realolimpico.com.br
+https://www.realolimpico.com.br
 https://aurea-custodia-mvp.vercel.app
 http://localhost:3000
 ```
+
+O campo **Authorized redirect URIs** continua apontando para o callback do Supabase,
+`https://vjbqikfamqdttbmaqrxf.supabase.co/auth/v1/callback`, e **não muda** com a troca de
+domínio — o retorno do Google passa pelo Supabase, não pelo site.
 
 9. Em **Authorized redirect URIs**, adicionar o callback do próprio Supabase:
 
