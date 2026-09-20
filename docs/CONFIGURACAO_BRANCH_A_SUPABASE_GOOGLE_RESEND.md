@@ -114,7 +114,10 @@ amplo em Produção.
 
 ### 4.1 Criar o cliente no Google Cloud
 
-1. Abrir <https://console.cloud.google.com/> com a conta institucional.
+1. Abrir a lista de credenciais OAuth **direto no link**, com a conta institucional:
+   <https://console.cloud.google.com/apis/credentials>
+   (endereço confirmado na documentação do Google em 20/09/2026; o console guarda o
+   último projeto selecionado, então confira o nome do projeto no seletor do topo).
 2. Criar ou selecionar o projeto da Áurea Custódia.
 3. Abrir **Google Auth Platform**.
 4. Em **Branding**, configurar:
