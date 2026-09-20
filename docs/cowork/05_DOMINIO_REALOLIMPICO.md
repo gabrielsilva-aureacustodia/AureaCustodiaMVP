@@ -58,25 +58,32 @@ realolimpico.com.br
 6. Quando ela perguntar qual dos dois é o principal, escolher **`realolimpico.com.br`**
    (sem o `www`), para bater com o que vai nas variáveis de ambiente do passo 3.
 
-### 1.1 Anotar os valores que a tela mostrar
+### 1.1 Os valores deste projeto — já levantados
 
-Terminado o passo acima, a Vercel exibe os registros de DNS que **este projeto** precisa. Ela
-vai mostrar algo como:
+**Feito em 20/09/2026.** Os dois domínios já estão cadastrados no projeto `aurea-custodia-mvp`
+(time `aurea-custodia`, plano Hobby), e os valores abaixo foram lidos da **API da Vercel para
+esta conta**, não de tutorial:
 
-| Para | Tipo | Nome | Valor |
-|---|---|---|---|
-| `realolimpico.com.br` | `A` | `@` | *um endereço IP que a tela mostra* |
-| `www.realolimpico.com.br` | `CNAME` | `www` | *um nome terminado em `.vercel-dns-0XX.com`* |
+```
+GET https://api.vercel.com/v6/domains/realolimpico.com.br/config
+```
 
-> **Não use valor de tutorial, nem o que você viu em outro projeto.** A documentação oficial da
-> Vercel diz, com todas as letras: *"In your Project Settings under the Domain page, you'll find
-> the precise CNAME or A record values tailored to your project and plan."* Desde 2025 o CNAME é
-> **único por projeto** — algo como `d1d4fc829fe7bc7c.vercel-dns-017.com`, e não o antigo
-> `cname.vercel-dns.com` que ainda circula em tutoriais velhos. Copiar o valor errado dá
-> "Invalid Configuration" e o certificado não sai.
+| Campo da resposta | Valor |
+|---|---|
+| `recommendedIPv4` rank 1 | `216.198.79.1` e `64.29.17.1` |
+| `recommendedIPv4` rank 2 (legado) | `76.76.21.21` |
+| `recommendedCNAME` rank 1 | `bbe173b69c996296.vercel-dns-017.com.` |
+| `recommendedCNAME` rank 2 (legado) | `cname.vercel-dns.com.` |
 
-**Copie os dois valores exatamente como aparecem na tela, inteiros, e cole no chat antes de ir
-para o passo 2.** São eles que vão para a HostGator, e digitar de memória é como se erra isso.
+> **Atenção a uma pegadinha do CLI.** `vercel domains inspect` imprime, no texto de aviso,
+> *"Set the following record: `A realolimpico.com.br 76.76.21.21`"* — que é o valor **rank 2,
+> legado**. Funciona, mas não é o recomendado hoje. O valor atual é o **rank 1**, e ele só
+> aparece na resposta da API (ou no painel). Use o rank 1.
+
+> **O CNAME é único deste projeto.** `bbe173b69c996296.vercel-dns-017.com.` não serve para
+> nenhum outro projeto, e o antigo `cname.vercel-dns.com` que circula em tutorial é o legado.
+> A documentação da Vercel confirma: *"In your Project Settings under the Domain page, you'll
+> find the precise CNAME or A record values tailored to your project and plan."*
 
 ---
 
@@ -120,12 +127,17 @@ Tem que responder `162.240.81.81`. Só então ir para o passo 2.2.
 
 ### 2.2 Agora sim, os registros do site
 
-Criar **dois registros**, com os valores que você copiou no passo 1.1:
+Com os valores levantados no passo 1.1:
 
 | Tipo | Nome / Host | Valor | TTL |
 |---|---|---|---|
-| `A` | `@` (ou `realolimpico.com.br`, conforme o campo pedir) | *o IP que a Vercel mostrou* | o padrão |
-| `CNAME` | `www` | *o `...vercel-dns-0XX.com` que a Vercel mostrou* | o padrão |
+| `A` | `@` (ou `realolimpico.com.br`, conforme o campo pedir) | `216.198.79.1` | o padrão |
+| `A` | `@` (segundo registro, mesma entrada) | `64.29.17.1` | o padrão |
+| `CNAME` | `www` | `bbe173b69c996296.vercel-dns-017.com.` | o padrão |
+
+Os dois IPs do `A` são o par de redundância que a Vercel entrega no rank 1 — um só já sobe o
+site, os dois é o recomendado. O `www` **deixa de ser apelido da raiz** e passa a ser CNAME
+próprio; se o painel não aceitar substituir, apagar o registro antigo do `www` e criar o CNAME.
 
 **Regras de segurança deste passo:**
 
