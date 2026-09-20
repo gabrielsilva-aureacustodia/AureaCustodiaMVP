@@ -1,0 +1,122 @@
+{
+  "src/server/admin/cs.ts": [
+    "S"
+  ],
+  "src/server/admin/rbac.ts": [
+    "S"
+  ],
+  "src/server/db/migrar.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/account.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/aceites.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/admin-rbac.ts": [
+    "S",
+    "colunasPapel(S)"
+  ],
+  "src/server/db/repositories/admin-usuarios.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/analises.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/auditoria.ts": [
+    "S",
+    "condicoes.join(' AND ')",
+    "limit",
+    "param(filtro.limite ?? 500)",
+    "where"
+  ],
+  "src/server/db/repositories/caixas.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/coins.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/config.ts": [
+    "COLUNAS_TIPO",
+    "S",
+    "seNaoExistir ? ' ON CONFLICT (chave) DO NOTHING' : ''"
+  ],
+  "src/server/db/repositories/contabil.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/cs.ts": [
+    "S",
+    "SELECT_CONVERSA(S)",
+    "condicoes.join(' AND ')",
+    "param(filtro.etiqueta)",
+    "param(limite)",
+    "where"
+  ],
+  "src/server/db/repositories/documentos.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/envios.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/eventos-uso.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/faturas.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/ledger.ts": [
+    "COLUNAS",
+    "S",
+    "condicoes.join(' AND ')",
+    "limit",
+    "param(filtro.limite)",
+    "where"
+  ],
+  "src/server/db/repositories/ofertas-historico.ts": [
+    "S",
+    "conds.join(' AND ')",
+    "where"
+  ],
+  "src/server/db/repositories/offers.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/painel-leituras.ts": [
+    "S",
+    "condicoes.join(' AND ')",
+    "param(filtro.limite)",
+    "where"
+  ],
+  "src/server/db/repositories/payments.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/planos.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/rastreios.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/retiradas.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/saques.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/seq.ts": [
+    "S",
+    "opcoes.travar ? ' FOR UPDATE' : ''"
+  ],
+  "src/server/db/repositories/trades.ts": [
+    "S"
+  ],
+  "src/server/db/repositories/users.ts": [
+    "S"
+  ],
+  "src/server/payments/recebimentos.ts": [
+    "S"
+  ],
+  "src/server/store/postgres.ts": [
+    "SCHEMA",
+    "TABLE"
+  ]
+}
