@@ -692,16 +692,16 @@ function relatorioPlanosCustodia(fontes: Fontes): Relatorio {
 function relatorioReceitaDiferida(fontes: Fontes): Relatorio {
   const r = base('receita-diferida', fontes, null)
   r.observacoes.push('Demonstrativo de apropriação futura dos planos de custódia (receita diferida).')
-  // Desde 18/09/2026 há dois prazos, e o de 24 meses difere receita por 24 meses. A
+  // Desde 20/09/2026 há um prazo só, e o anual difere receita por 12 meses. A
   // coluna se chamava `Plano_Anual` e passou a `Plano` + `Modalidade`: mantê-la com o
-  // nome antigo carregando um plano de 24 meses é o tipo de rótulo que o contador lê
+  // nome antigo carregando outro prazo seria o tipo de rótulo que o contador lê
   // errado uma vez e nunca mais confia.
   const planos = fontes.state.planosCustodia ?? []
   const linhas = planos.map((p) => {
     const dif = calcularReceitaDiferida(p)
     return {
       Plano: p.id,
-      Modalidade: p.modalidade === 'bienal' ? '24 meses' : 'anual',
+      Modalidade: 'anual',
       Valor_Pago: reais(dif.valorPago),
       Ja_Apropriado: reais(dif.jaApropriado),
       A_Apropriar: reais(dif.aApropriar),

@@ -46,6 +46,7 @@ import { brl } from '@/domain/money'
 import { valorDoPlano } from '@/domain/plano-custodia'
 import type { AppState, Cents, Envio, UserEmail } from '@/domain/types'
 import { temCadastroCompleto } from '@/domain/cadastro'
+import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { useModal } from '@/components/ui/Modal'
@@ -138,9 +139,10 @@ interface EstadoWizard {
 /**
  * Um cartão de plano de custódia no passo 3.
  *
- * Existe porque os dois planos — anual e 24 meses — são o mesmo cartão com outros
- * números, e manter dois blocos de JSX gêmeos foi o que deixou o antigo cartão
- * mensal com selo e o anual sem, na mesma tela.
+ * Nasceu quando havia dois planos — anual e 24 meses — e manter dois blocos de
+ * JSX gêmeos foi o que deixou o antigo cartão mensal com selo e o anual sem, na
+ * mesma tela. O plano de 24 meses saiu em 20/09/2026; o componente fica, porque
+ * é ele que mantém o cartão coerente se outro prazo voltar a existir.
  */
 function CartaoDePlano({
   titulo,
@@ -577,6 +579,10 @@ export default function EnviosPage(): ReactNode {
           {/* A coluna direita do .cols-rev existe como <div> avulsa também no
               original — é ela que o responsive.css empilha abaixo no celular. */}
           <div>
+            {/* Antes das instruções: quem chega aqui para enviar outra moeda
+                precisa ver primeiro que a custódia da anterior está em aberto. */}
+            <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
+
             <div className="panel">
               <h3>
                 <svg viewBox="0 0 24 24">
@@ -716,7 +722,7 @@ export default function EnviosPage(): ReactNode {
             </h3>
             <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
               Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
-              Escolha por quanto tempo quer contratar a guarda. Os dois planos podem ser parcelados em até 12x no cartão.
+              A guarda é contratada por 12 meses e pode ser parcelada em até 12x no cartão.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 20 }}>
@@ -736,21 +742,6 @@ export default function EnviosPage(): ReactNode {
                 ]}
               />
 
-              <CartaoDePlano
-                titulo="Plano de 24 Meses"
-                selecionado={modalidadePlano === 'bienal'}
-                aoEscolher={() => setModalidadePlano('bienal')}
-                total={envio.quantidade * taxas.custodiaBienalPorMoeda}
-                periodo="pelos 24 meses"
-                porMoeda={`${brl(Math.round(taxas.custodiaBienalPorMoeda / 24))} por moeda / mês`}
-                parcela={`ou ${taxas.custodiaBienalParcelasMax}x de ${brl(Math.round((envio.quantidade * taxas.custodiaBienalPorMoeda) / taxas.custodiaBienalParcelasMax))} no cartão`}
-                selos={['Melhor preço', `${taxas.custodiaBienalParcelasMax}x sem juros`]}
-                vantagens={[
-                  '24 meses de guarda garantida',
-                  `Parcelamento em até ${taxas.custodiaBienalParcelasMax}x no cartão`,
-                  'Proteção contra reajustes no período',
-                ]}
-              />
             </div>
 
             <div className="note" style={{ marginBottom: 16 }}>

@@ -25,6 +25,7 @@ import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
 import { ReciboCard } from '@/components/recibo/ReciboCard'
+import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 
 export default function RecibosPage(): ReactNode {
@@ -64,6 +65,11 @@ export default function RecibosPage(): ReactNode {
           </svg>
           Moedas em custódia
         </h3>
+
+        {/* A custódia é paga depois de a moeda já estar guardada: sem este aviso,
+            o débito só apareceria em Faturas de custódia, tela que o cliente não
+            tem motivo para abrir. */}
+        <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
         {/* O estado vazio fica DENTRO da .recibo-grid, como no original (linha
             1879): o `cardsHtml` era ou os cartões, ou o .empty, e os dois
             entravam no mesmo contêiner de grade. */}

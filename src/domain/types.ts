@@ -481,6 +481,21 @@ export interface CoinType {
   negociavel: boolean
   /** Ficha técnica curta, exibida no cartão do lote e no seletor de tipo. */
   detail: string
+  /**
+   * Peso de catálogo da moeda, em MILIGRAMAS INTEIROS. Nunca gramas com vírgula —
+   * '7.0' e '7' são o mesmo peso e são textos diferentes, e texto diferente é
+   * hash diferente (mesma razão do `Cents` para dinheiro).
+   *
+   * Serve de padrão ao cadastro direto, em que a moeda já está no armazém e não
+   * passa pela balança da bancada: registrar 0 ali seria dizer no laudo que a
+   * moeda não pesa nada. Quando a bancada pesa de verdade, vale o valor aferido,
+   * não este.
+   *
+   * Só preenchido onde a ficha técnica declara o peso. Tipo sem peso publicado
+   * fica sem o campo, e aí o formulário pede o número a quem registra — melhor
+   * pedir do que inventar especificação de moeda num documento de custódia.
+   */
+  pesoPadraoMg?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -679,7 +694,19 @@ export interface UserSettings {
  * continua existindo como `origem: 'ciclo_mensal'` da fatura, que é outra coisa —
  * é o que se cobra de moeda sem plano vigente, não um plano que se escolhe.
  */
-export type ModalidadePlanoCustodia = 'anual' | 'bienal'
+/**
+ * Modalidade do plano de custódia.
+ *
+ * UM PLANO SÓ, desde 20/09/2026. Existia também 'bienal' — 24 meses por R$ 36,00
+ * a moeda —, aposentado por decisão do Gabriel. Quem guarda moeda contrata um
+ * prazo, e o prazo é de um ano. O que continua mensal é o CICLO
+ * (`origem: 'ciclo_mensal'`), a cobrança de quem está sem plano vigente, que
+ * nunca foi plano.
+ *
+ * O tipo continua sendo um union de um membro só, em vez de sumir: `modalidade`
+ * segue gravada em cada plano e nos relatórios, e um dia pode haver outro prazo.
+ */
+export type ModalidadePlanoCustodia = 'anual'
 export type StatusPlanoCustodia = 'aguardando_pagamento' | 'vigente' | 'encerrado' | 'cancelado'
 
 export interface PlanoCustodia {

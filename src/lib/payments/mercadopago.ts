@@ -232,7 +232,7 @@ export interface DebitoAutomaticoResult {
  * Ativa assinatura recorrente mensal via endpoint POST /preapproval do Mercado Pago (B2.8).
  * Opera em modo simulado caso não haja token do gateway configurado.
  *
- * Nenhum plano usa isto hoje: desde 18/09/2026 os planos são o anual e o de 24 meses,
+ * Nenhum plano usa isto hoje: desde 20/09/2026 o plano é o de 24 meses,
  * cobrados de uma vez (à vista ou parcelados em até 12x), e quem não tem plano cai no
  * ciclo mensal, que é fatura e não assinatura. A função fica de pé para a cobrança
  * recorrente do ciclo, se um dia for ligada.

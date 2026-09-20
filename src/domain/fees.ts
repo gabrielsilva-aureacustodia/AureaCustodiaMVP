@@ -1,5 +1,5 @@
 /**
- * Taxas: custódia (ciclo mensal, plano anual e plano de 24 meses), corretagem dos
+ * Taxas: custódia (ciclo mensal e plano anual), corretagem dos
  * dois lados e saque.
  *
  * Tabela única de taxas da Áurea Custódia (Decisão F-1, 13/09/2026).
@@ -7,7 +7,7 @@
  * Substitui os valores dispersos pelo objeto `TAXAS_PADRAO`.
  * Valores monetários em centavos (Cents), percentuais em pontos-base (bp).
  *
- * OS PLANOS SÃO DOIS (18/09/2026): anual e 24 meses. O plano mensal foi
+ * O PLANO É UM SÓ (20/09/2026): o anual. O de 24 meses foi aposentado, e o mensal já tinha sido
  * aposentado — a moeda entra em custódia já dentro de um dos dois. O valor
  * `custodiaMensalPorMoeda` continua existindo porque NÃO é plano: é o preço do
  * ciclo mensal, a cobrança de quem tem moeda guardada sem plano vigente (plano
@@ -26,8 +26,6 @@ export interface TabelaDeTaxas {
   custodiaMensalPorMoeda: Cents
   custodiaAnualPorMoeda: Cents
   custodiaAnualParcelasMax: number
-  custodiaBienalPorMoeda: Cents
-  custodiaBienalParcelasMax: number
   taxaSaqueFixa: Cents
   taxaRetiradaComum: Cents
   taxaRetiradaSegura: Cents
@@ -42,8 +40,6 @@ export const TAXAS_PADRAO: TabelaDeTaxas = {
   custodiaMensalPorMoeda: 200,
   custodiaAnualPorMoeda: 2400,
   custodiaAnualParcelasMax: 12,
-  custodiaBienalPorMoeda: 3600,
-  custodiaBienalParcelasMax: 12,
   taxaSaqueFixa: 500,
   taxaRetiradaComum: 5000,
   taxaRetiradaSegura: 18000,
@@ -105,7 +101,6 @@ export function tradeFee(price: Cents, lado: 'comprador' | 'vendedor' = 'vendedo
  */
 export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaMensalPorMoeda
 export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaAnualPorMoeda
-export const CUSTODIA_BIENAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaBienalPorMoeda
 
 /**
  * Calcula a taxa mensal de custódia pela quantidade de moedas ativas sob guarda.

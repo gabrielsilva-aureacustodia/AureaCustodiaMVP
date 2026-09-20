@@ -321,7 +321,7 @@ function liquidarAssinaturaCustodia(
     }
     plano.status = 'vigente'
     // Um mês por cobrança: a assinatura do gateway é recorrente mensal. Nenhum plano
-    // entra por aqui hoje — anual e 24 meses são pagos de uma vez (B2.8 continua de pé
+    // entra por aqui hoje — o plano anual é pago de uma vez (B2.8 continua de pé
     // para a cobrança recorrente do ciclo, se um dia for ligada).
     plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
     plano.formaPagamento = 'cartao'

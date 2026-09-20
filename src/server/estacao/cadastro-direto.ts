@@ -24,15 +24,18 @@
  * os hashes seguintes da corrente. Uma auditoria distingue moeda de bancada de
  * moeda de cadastro direto sem depender de boa-fé.
  *
- * `pesoMg` vai 0 quando ninguém pesou, e é honesto que vá: zero num laudo de
- * cadastro direto se lê como "não aferido aqui", enquanto um peso inventado se
- * leria como medição que nunca houve.
+ * O PESO VEM DO CATÁLOGO, NÃO ZERO. A moeda do cadastro direto não passa pela
+ * balança da bancada, e gravar 0 no laudo seria afirmar que ela não pesa nada —
+ * pior do que não dizer. Então vale o `pesoPadraoMg` do tipo (7000 mg na Entrega
+ * da Bandeira Olímpica, 7840 na de Direitos Humanos), e quem registrar pode
+ * informar um peso aferido, que vence o padrão. Tipo sem peso publicado no
+ * catálogo continua exigindo o número de quem registra.
  *
  * QUEM PODE
  * ---------
  * Não há checagem de permissão nesta função, de propósito: ela é o serviço, e
  * quem cobra a permissão é a Server Action que a chama
- * (`src/server/actions/admin/cadastro-direto.ts`), do mesmo jeito que o resto do
+ * (`cadastrarMoedaDiretaNoPainel`, em src/server/actions/admin/bancada.ts), do mesmo jeito que o resto do
  * painel. Chamar este módulo de outro lugar sem conferir permissão é bug.
  * ==========================================================================*/
 
@@ -60,7 +63,11 @@ export interface EntradaCadastroDireto {
   quantidade: number
   /** E-mail de quem está registrando — vai para `operador` e `aprovador` da análise. */
   operador: string
-  /** Peso aferido, em miligramas inteiros. 0 quando não houve pesagem aqui. */
+  /**
+   * Peso em miligramas inteiros. Quando não vem, vale o `pesoPadraoMg` do tipo
+   * no catálogo — a moeda do cadastro direto não passa pela balança da bancada, e
+   * gravar 0 no laudo seria afirmar que ela não pesa nada.
+   */
   pesoMg?: number
   /** Caixa física onde as cápsulas estão, quando se sabe. */
   caixa?: string | null
@@ -126,7 +133,8 @@ export async function cadastrarMoedasDiretamente(
   }
 
   const email = entrada.userEmail.trim().toLowerCase()
-  const pesoMg = Number.isFinite(entrada.pesoMg) ? Math.max(0, Math.round(entrada.pesoMg as number)) : 0
+  const informado = Number.isFinite(entrada.pesoMg) ? Math.max(0, Math.round(entrada.pesoMg as number)) : 0
+  const pesoMg = informado > 0 ? informado : (catalogo.find((t) => t.key === entrada.tipoMoeda)?.pesoPadraoMg ?? 0)
   const caixa = entrada.caixa?.trim() || null
   const observacao = entrada.observacao?.trim() || null
 

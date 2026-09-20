@@ -67,7 +67,8 @@ export function documentoTabelaDeTaxas(taxas: TabelaDeTaxas, vigencia: string, v
   doc.vigenteDesde = vigencia
 
   paragrafo(doc, '1.1').texto = `${reaisNoTexto(taxas.custodiaAnualPorMoeda)} por moeda pelos 12 meses, em até ${taxas.custodiaAnualParcelasMax}x no cartão de crédito.`
-  paragrafo(doc, '1.2').texto = `${reaisNoTexto(taxas.custodiaBienalPorMoeda)} por moeda pelos 24 meses, em até ${taxas.custodiaBienalParcelasMax}x no cartão de crédito.`
+  // A cláusula 1.2 era o plano de 24 meses, aposentado em 20/09/2026: existe um
+  // prazo só, e a Tabela de Taxas publicada não pode oferecer o que não se vende.
   paragrafo(doc, '2.1').texto = `${percentualNoTexto(taxas.comissaoCompradorBp)} sobre o valor da negociação + ${reaisNoTexto(taxas.comissaoCompradorFixa)} fixo por moeda comprada.`
   paragrafo(doc, '2.2').texto = `${percentualNoTexto(taxas.comissaoVendedorBp)} sobre o valor da negociação + ${reaisNoTexto(taxas.comissaoVendedorFixa)} fixo por moeda vendida.`
 

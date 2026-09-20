@@ -131,16 +131,6 @@ export default async function FeesPage(): Promise<ReactNode> {
             </tr>
             <tr>
               <td>
-                <strong>Plano de 24 Meses</strong>
-              </td>
-              <td>{brl(taxas.custodiaBienalPorMoeda)} pelos 24 meses</td>
-              <td>
-                Equivale a {brl(Math.round(taxas.custodiaBienalPorMoeda / 24))} por mês. Parcelamento em até{' '}
-                {taxas.custodiaBienalParcelasMax}x no cartão de crédito
-              </td>
-            </tr>
-            <tr>
-              <td>
                 <strong>Ciclo mensal (sem plano)</strong>
               </td>
               <td>{brl(taxas.custodiaMensalPorMoeda)} / mês</td>

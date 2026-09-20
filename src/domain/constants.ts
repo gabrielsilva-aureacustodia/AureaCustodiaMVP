@@ -153,6 +153,7 @@ export const COIN_TYPES: CoinType[] = [
     categoria: CATEGORIA_OLIMPICAS,
     negociavel: true,
     detail: 'Londres 2012 – Rio 2016 · Tiragem 2.016.000 · Bimetálica 27mm · 7g',
+    pesoPadraoMg: 7000,
   },
   {
     // Tiragem de 600.000 — a menor do Plano Real, e o motivo de ela valer
@@ -164,6 +165,7 @@ export const COIN_TYPES: CoinType[] = [
     categoria: CATEGORIA_DIREITOS_HUMANOS,
     negociavel: true,
     detail: 'Cinquentenário da Declaração — 1998 · Tiragem 600.000 · Bimetálica 27mm · 7,84g',
+    pesoPadraoMg: 7840,
   },
   {
     key: 'Bandeira Olímpica',

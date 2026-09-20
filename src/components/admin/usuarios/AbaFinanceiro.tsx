@@ -254,7 +254,7 @@ export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: D
             )}
           </div>
         ) : (
-          <Indisponivel titulo="Planos de custódia (anual e 24 meses)" quando="Disponível depois da B2." />
+          <Indisponivel titulo="Planos de custódia" quando="Disponível depois da B2." />
         )}
         {dados.recebimentos ? (
           <div className="adm-cartao">

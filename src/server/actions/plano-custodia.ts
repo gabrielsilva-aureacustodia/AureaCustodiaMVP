@@ -51,7 +51,7 @@ export type RespostaPagarFatura =
   | (CobrancaCartao & { forma: 'cartao' })
 
 /**
- * Contrata um plano de custódia (anual ou de 24 meses) associado a um envio.
+ * Contrata o plano de custódia (anual) associado a um envio.
  * Cria o plano com status 'aguardando_pagamento' e a fatura correspondente de origem 'contratacao'.
  */
 export async function contratarPlanoCustodia(

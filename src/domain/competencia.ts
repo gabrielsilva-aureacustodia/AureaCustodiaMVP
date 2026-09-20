@@ -6,7 +6,7 @@
  *
  * REGRAS CONTÁBEIS:
  *  - Ciclo mensal: receita na competência da fatura paga.
- *  - Plano: linear pelos meses que ele cobre — 1/12 no anual, 1/24 no de 24 meses;
+ *  - Plano: linear pelos meses que ele cobre — 1/12 no plano anual;
  *    a sobra do arredondamento vai para o último mês, para todos somarem exatamente
  *    o valor pago.
  *  - Não conta duas vezes: faturas de plano não somam na receita de fatura do ciclo,
@@ -30,9 +30,9 @@ export function mesNoPeriodo(competencia: string, periodo: Periodo): boolean {
 
 /**
  * Receita de um plano de custódia dentro de um período contábil, apropriada
- * linearmente pelos meses que o plano cobre: 1/12 no anual, 1/24 no de 24 meses.
+ * linearmente pelos meses que o plano cobre: 1/12 no plano anual.
  * A sobra do arredondamento vai para o último mês, para as parcelas somarem
- * exatamente o valor líquido pago — R$ 36,00 em 24 meses dá R$ 1,50 redondo, mas
+ * exatamente o valor líquido pago — R$ 24,00 em 12 meses dá R$ 2,00 redondo, mas
  * uma tabela de taxas editada no painel pode gerar valor que não divide.
  */
 export function apropriacaoDoPlano(plano: PlanoCustodia, periodo: Periodo): Cents {

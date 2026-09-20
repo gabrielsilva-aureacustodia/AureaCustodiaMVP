@@ -8,7 +8,7 @@
  * 2. `custodiaDoEnvio`: evita que o passo 5 do fluxo de envios calcule a
  *    taxa com base no campo do formulário do passo 1 (que volta a '1' ao recarregar
  *    a página), congelando a quantidade real pelo protocolo do envio e
- *    respeitando o prazo do plano contratado (12 ou 24 meses, desde 18/09/2026).
+ *    respeitando o prazo do plano contratado (12 meses).
  */
 
 import type { Cents, Envio, FaturaCustodia, PlanoCustodia } from '@/domain/types'
@@ -27,15 +27,13 @@ export function descricaoDaFaturaDeCustodia(
     if (plano?.modalidade === 'anual') {
       return `Plano anual de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
     }
-    if (plano?.modalidade === 'bienal') {
-      return `Plano de 24 meses de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
-    }
     return `Contratação de plano de custódia ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   if (origem === 'renovacao_anual') {
-    // A origem no banco ainda se chama 'renovacao_anual' (migration 018), mas hoje
-    // renova plano de 12 ou de 24 meses — o texto não promete prazo que não sabe.
+    // A origem no banco se chama 'renovacao_anual' (migration 018) e o prazo hoje
+    // é um só, de 12 meses. O texto continua sem prometer prazo: se outro prazo
+    // voltar a existir, esta linha não vira mentira.
     return `Renovação do plano de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
@@ -50,7 +48,7 @@ export function custodiaDoEnvio(
   envio: Envio,
   plano: PlanoCustodia | undefined,
   taxas: TabelaDeTaxas,
-): { rotulo: string; valorCents: Cents; periodo: 'mês' | 'ano' | '24 meses' } {
+): { rotulo: string; valorCents: Cents; periodo: 'mês' | 'ano' } {
   const quantidade = envio.quantidade
 
   if (plano?.modalidade === 'anual') {
@@ -58,14 +56,6 @@ export function custodiaDoEnvio(
       rotulo: 'Plano anual destas moedas',
       valorCents: plano.valorTotalCents,
       periodo: 'ano',
-    }
-  }
-
-  if (plano?.modalidade === 'bienal') {
-    return {
-      rotulo: 'Plano de 24 meses destas moedas',
-      valorCents: plano.valorTotalCents,
-      periodo: '24 meses',
     }
   }
 

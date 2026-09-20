@@ -34,6 +34,7 @@ import {
   ModalNotificacoes,
   ModalSaque,
 } from '@/components/account/AccountModals'
+import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { useModal } from '@/components/ui/Modal'
@@ -294,6 +295,8 @@ export default function ContaPage(): ReactNode {
             </svg>
             Minhas moedas
           </h3>
+
+          <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
 
           {shown.length ? (
             shown.map((c) => <LinhaMoeda key={c.id} coin={c} valor={valOf(c)} />)
