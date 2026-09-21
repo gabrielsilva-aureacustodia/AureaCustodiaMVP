@@ -36,6 +36,11 @@ import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecib
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
+import {
+  normalizarRastreio,
+  RASTREIO_INVALIDO,
+  rastreioValido,
+} from '@/domain/rastreio'
 import { getSessionEmail } from '@/server/session'
 import { mutateState, getState } from '@/server/state'
 import {
@@ -190,15 +195,29 @@ export async function createProtocol(
  * ------------------------------------------------------------------------- */
 
 /**
- * Carimba a postagem e gera o código de rastreio — `markPostado` (2153-2163).
+ * Carimba a postagem com o código de rastreio REAL — `markPostado` (2153-2163).
  *
- * O código é SIMULADO, com a mesma fórmula do original: 'BR' + um inteiro entre
- * 400.000.000 e 498.999.999 + 'BR'. Não consulta os Correios e não deve ser
- * confundido com um objeto real.
+ * O CÓDIGO NÃO É MAIS GERADO PELO SISTEMA (21/09/2026). Até esta data a ação
+ * gravava `'BR' + Math.random() + 'BR'` e respondia "Código de rastreio
+ * gerado" — um número que passava por rastreio de verdade e que, colado no site
+ * dos Correios, dá objeto não encontrado. Emitir código válido exige contrato e
+ * a API de pré-postagem (CWS), que o projeto não tem.
+ *
+ * Agora o cliente posta no balcão e digita o código impresso no comprovante. É
+ * o mesmo desenho que a RETIRADA sempre teve: `avancarStatusRetirada` exige o
+ * código do operador e recusa a postagem sem ele.
+ *
+ * O formato é conferido aqui, e não só na tela: Server Action é endpoint HTTP.
  */
-export async function markPosted(protocolo: string): Promise<ActionResult> {
+export async function markPosted(
+  protocolo: string,
+  codigoRastreio: string,
+): Promise<ActionResult> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const codigo = normalizarRastreio(codigoRastreio ?? '')
+  if (!rastreioValido(codigo)) return { ok: false, error: RASTREIO_INVALIDO }
 
   try {
     const { result } = await mutateState((state) => {
@@ -216,7 +235,7 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
         return 'ja-postado' as const
       }
 
-      envio.codigoRastreio = 'BR' + Math.floor(400000000 + Math.random() * 99000000) + 'BR'
+      envio.codigoRastreio = codigo
       envio.dataPostagem = Date.now()
       envio.etapaAtual = 'Envio postado'
       return 'ok' as const
@@ -224,8 +243,7 @@ export async function markPosted(protocolo: string): Promise<ActionResult> {
 
     if (result === 'nao-encontrado') return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
     if (result === 'ja-postado') return { ok: false, error: JA_POSTADO }
-    // Texto exato da linha 2162.
-    return { ok: true, message: 'Envio marcado como postado. Código de rastreio gerado.' }
+    return { ok: true, message: `Envio marcado como postado com o rastreio ${codigo}.` }
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
   }

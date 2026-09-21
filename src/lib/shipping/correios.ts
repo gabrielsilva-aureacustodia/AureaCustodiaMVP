@@ -158,15 +158,19 @@ export async function calcularFreteCorreios(
   }
 }
 
-/**
- * Gera um número de rastreio no padrão oficial SRO dos Correios.
- * Formato: 2 letras + 9 dígitos + 'BR' (ex: 'SL123456789BR' ou 'PB123456789BR')
+/*
+ * REMOVIDO em 21/09/2026: `gerarCodigoRastreioSimulado(modalidade)`.
+ *
+ * Ela montava `SL`/`PB` + 9 dígitos aleatórios + `BR` — um código com a cara do
+ * padrão SRO e que não existe nos Correios. Saía impresso no campo "Código de
+ * Rastreamento" da etiqueta, então o cliente ia embora da agência com um número
+ * que nunca rastrearia nada.
+ *
+ * Enquanto não houver contrato e pré-postagem pela API CWS, a etiqueta não
+ * mostra código de rastreio nenhum: mostra o protocolo do envio, que é
+ * identificador nosso e não promete o que não é. O código real entra depois da
+ * postagem, digitado pelo cliente (`markPosted`).
  */
-export function gerarCodigoRastreioSimulado(modalidade: ModalidadeEnvio): string {
-  const prefixo = modalidade === 'SEDEX' ? 'SL' : 'PB'
-  const numeros = Math.floor(100000000 + Math.random() * 900000000)
-  return `${prefixo}${numeros}BR`
-}
 
 /**
  * Gera solicitação de pré-postagem e dados de etiqueta para envio aos Correios.
@@ -194,12 +198,13 @@ export async function gerarPrePostagemCorreios(
     ...destinatario,
   }
 
-  const codigoRastreio = gerarCodigoRastreioSimulado(modalidade)
   const numeroPrePostagem = `PP-${Date.now()}-${Math.floor(Math.random() * 10000)}`
 
   return {
     numeroPrePostagem,
-    codigoRastreio,
+    // Vazio até a postagem acontecer de verdade. Quem preenche é o cliente, com
+    // o código do comprovante dos Correios.
+    codigoRastreio: '',
     modalidade,
     protocolo,
     declaracaoConteudo: {

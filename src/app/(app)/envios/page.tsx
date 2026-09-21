@@ -58,6 +58,7 @@ import { consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '
 import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
 import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
+import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido } from '@/domain/rastreio'
 // Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
 // `correios.ts`, que é `server-only` e derrubaria o build deste Client Component.
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
@@ -318,6 +319,8 @@ export default function EnviosPage(): ReactNode {
   const [foto, setFoto] = useState<string | null>(null)
   const [confirmOk, setConfirmOk] = useState<boolean>(false)
   const [modalidade, setModalidade] = useState<ModalidadeEnvio>('SEDEX')
+  const [rastreioDigitado, setRastreioDigitado] = useState('')
+  const [erroRastreio, setErroRastreio] = useState('')
   const [cepOrigem, setCepOrigem] = useState<string>('')
   const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
   const [cotacaoFrete, setCotacaoFrete] = useState<{ valorTotal: number; prazo: number } | null>(null)
@@ -401,8 +404,17 @@ export default function EnviosPage(): ReactNode {
     // assim o tipo já sai estreitado para string, sem asserção.
     const protocolo = wizard.protocolo
     if (!protocolo) return
-    await run(() => markPosted(protocolo))
-  }, [run, wizard.protocolo])
+
+    // O código vem do comprovante dos Correios, digitado pelo cliente. Até
+    // 21/09/2026 o servidor inventava um; ver a nota em src/domain/rastreio.ts.
+    const codigo = normalizarRastreio(rastreioDigitado)
+    if (!rastreioValido(codigo)) {
+      setErroRastreio(RASTREIO_INVALIDO)
+      return
+    }
+    setErroRastreio('')
+    await run(() => markPosted(protocolo, codigo))
+  }, [run, wizard.protocolo, rastreioDigitado])
 
   /**
    * "Novo envio" — o `go('send')` da linha 2196. Zera o formulário e refaz a
@@ -925,14 +937,46 @@ export default function EnviosPage(): ReactNode {
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                className="btn btn-gold"
-                style={{ width: '100%', marginTop: 16 }}
-                onClick={() => void marcarPostado()}
-              >
-                Marcar como postado
-              </button>
+              <>
+                <div className="field-lbl" style={{ marginTop: 16 }}>
+                  Código de rastreio dos Correios
+                </div>
+                <input
+                  type="text"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  placeholder="AA123456789BR"
+                  aria-label="Código de rastreio dos Correios"
+                  value={rastreioDigitado}
+                  onChange={(e) => {
+                    setRastreioDigitado(e.target.value)
+                    if (erroRastreio) setErroRastreio('')
+                  }}
+                  style={{ width: '100%', minHeight: 44 }}
+                />
+
+                {erroRastreio ? (
+                  <div className="note" style={{ marginTop: 8 }}>
+                    {erroRastreio}
+                  </div>
+                ) : (
+                  <div className="note" style={{ marginTop: 8 }}>
+                    Depois de postar na agência, digite aqui o código impresso no comprovante dos
+                    Correios. É com ele que você e a nossa equipe acompanham o pacote até a central
+                    de custódia.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="btn btn-gold"
+                  style={{ width: '100%', marginTop: 12 }}
+                  disabled={!rastreioValido(normalizarRastreio(rastreioDigitado))}
+                  onClick={() => void marcarPostado()}
+                >
+                  Confirmar postagem
+                </button>
+              </>
             )}
           </div>
         ))}
