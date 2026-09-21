@@ -165,7 +165,7 @@ const NAV: NavLink[] = [
   },
   {
     href: '/mercado',
-    label: 'Mercado',
+    label: 'Compras',
     icon: (
       <>
         <path d="M3 3h2l2 13h11l2-9H6" />
@@ -176,7 +176,7 @@ const NAV: NavLink[] = [
   },
   {
     href: '/vender',
-    label: 'Vender moeda',
+    label: 'Vendas',
     icon: (
       <>
         <path d="M20 12l-8 8-9-9V4h7z" />

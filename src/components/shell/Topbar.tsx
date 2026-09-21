@@ -61,15 +61,13 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   }
   if (pathname === '/mercado') {
     return {
-      // Era 'Comprar moeda olímpica'. Deixou de ser verdade quando a Moeda dos
-      // Direitos Humanos — que não é olímpica — entrou no marketplace.
-      h1: 'Comprar moedas',
+      h1: 'Compras',
       p: 'Veja as ofertas de venda e de compra ativas, ou publique a sua.',
     }
   }
   if (pathname === '/vender') {
     return {
-      h1: 'Colocar moeda à venda',
+      h1: 'Vendas',
       p: 'Selecione uma ou mais moedas em custódia e publique seu anúncio com transparência.',
     }
   }
