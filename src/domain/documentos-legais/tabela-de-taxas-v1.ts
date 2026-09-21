@@ -9,17 +9,20 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
   chave: 'tabela_de_taxas',
-  // 2.1 (21/09/2026): voltou o plano mensal de custódia (R$ 3,00 por moeda por
-  // mês) ao lado do anual, e passou a existir cobrança proporcional quando a
-  // moeda muda de dono no meio do prazo. O depósito virou Pix direto, mas
-  // continua SEM TAXA — a tarifa fixa de R$ 5,00 é do saque (cláusula 4.2), e
-  // por algumas horas ela apareceu por engano também na 4.1.
+  // 2.2 (21/09/2026): a 2.1 saiu publicada dizendo que o depósito tinha tarifa
+  // fixa de R$ 5,00. Não tem — aquela tarifa é do saque (cláusula 4.2). A 4.1
+  // voltou a dizer "sem taxa de processamento", e o número da versão sobe junto
+  // porque o texto publicado mudou: o aceite aponta para a versão, e reciclar o
+  // número faria o registro de consentimento deixar de dizer o que a pessoa leu.
+  //
+  // A 2.1 trouxe o plano mensal de custódia ao lado do anual e a cobrança
+  // proporcional quando a moeda muda de dono no meio do prazo.
   //
   // Texto diferente é hash diferente, e o aceite gravado aponta para a versão —
   // reciclar o número faria o registro de consentimento deixar de dizer o que a
   // pessoa leu. O arquivo mantém o sufixo `-v1` de propósito: ele guarda o
   // documento VIGENTE, qualquer que seja o número.
-  versao: '2.1',
+  versao: '2.2',
   titulo: 'TABELA DE TAXAS',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
