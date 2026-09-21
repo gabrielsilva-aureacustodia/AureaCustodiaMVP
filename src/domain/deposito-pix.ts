@@ -8,13 +8,13 @@
  * dinheiro na própria conta, então a taxa do intermediário sairia inteira do
  * caixa da empresa.
  *
- * COMO A TAXA É COBRADA
- * ---------------------
- * O cliente transfere o valor desejado MAIS R$ 5,00. Quem deposita R$ 500,00
- * envia R$ 505,00 e recebe R$ 500,00 de saldo; os R$ 5,00 ficam com a empresa e
- * cobrem o custo operacional da conciliação manual. É o inverso de descontar a
- * taxa do valor depositado, e é deliberado: o cliente pediu R$ 500,00 de saldo
- * e é R$ 500,00 que ele precisa ver na conta, sem arredondamento surpresa.
+ * DEPÓSITO NÃO TEM TAXA (correção do Gabriel em 21/09/2026).
+ * ----------------------------------------------------------
+ * Por algumas horas esta tela somou R$ 5,00 ao valor depositado. Era erro de
+ * leitura minha: a tarifa fixa de R$ 5,00 da Tabela de Taxas é do SAQUE, não do
+ * depósito. Quem deposita R$ 500,00 transfere R$ 500,00 e recebe R$ 500,00 de
+ * saldo. Quem saca é que recebe R$ 5,00 a menos (`taxaSaqueFixa` em
+ * `src/domain/fees.ts`, cláusula 4.2 da Tabela de Taxas).
  *
  * O QUE ESTE MÓDULO NÃO FAZ
  * -------------------------
@@ -41,33 +41,13 @@ export const CHAVE_PIX_DEPOSITO = '76df3c5c-6137-43d0-b922-2fb2c3a04284'
 /** Nome que o cliente vê no aplicativo do banco ao confirmar a transferência. */
 export const FAVORECIDO_PIX_DEPOSITO = 'AUREA CUSTODIA LTDA'
 
-/** Taxa fixa somada ao valor depositado — R$ 5,00 por solicitação. */
-export const TAXA_DEPOSITO_PIX_CENTS: Cents = 500
-
-/** O que o cliente recebe de saldo e o que ele transfere, no par certo. */
-export interface ValoresDoDepositoPix {
-  /** O que entra no saldo depois da confirmação. */
-  creditoCents: Cents
-  /** A taxa fixa retida pela empresa. */
-  taxaCents: Cents
-  /** O que precisa ser transferido no Pix: crédito + taxa. */
-  totalCents: Cents
-}
-
 /**
- * Monta os três valores do depósito a partir do que o cliente digitou.
+ * O valor do depósito, saneado.
  *
- * Trunca para inteiro e nunca devolve negativo: a Server Action é um endpoint
- * HTTP, e `NaN`, `Infinity` e valores fracionários chegam aqui se alguém quiser
- * mandá-los.
+ * A função continua existindo mesmo devolvendo um campo só: é ela que trunca
+ * para inteiro e barra negativo, `NaN` e `Infinity` — e a Server Action é um
+ * endpoint HTTP, então esses chegam se alguém quiser mandá-los.
  */
-export function valoresDoDepositoPix(
-  creditoDesejadoCents: number,
-  taxaCents: Cents = TAXA_DEPOSITO_PIX_CENTS,
-): ValoresDoDepositoPix {
-  const credito = Number.isFinite(creditoDesejadoCents)
-    ? Math.max(0, Math.floor(creditoDesejadoCents))
-    : 0
-  const taxa = Number.isFinite(taxaCents) ? Math.max(0, Math.floor(taxaCents)) : 0
-  return { creditoCents: credito, taxaCents: taxa, totalCents: credito + taxa }
+export function valorDoDepositoPix(valorCents: number): Cents {
+  return Number.isFinite(valorCents) ? Math.max(0, Math.floor(valorCents)) : 0
 }

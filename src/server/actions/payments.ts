@@ -27,7 +27,7 @@ import { temCadastroCompleto } from '@/domain/cadastro'
 import {
   CHAVE_PIX_DEPOSITO,
   FAVORECIDO_PIX_DEPOSITO,
-  valoresDoDepositoPix,
+  valorDoDepositoPix,
 } from '@/domain/deposito-pix'
 import { custoDeCompraPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
@@ -179,8 +179,8 @@ export async function iniciarDeposito(
  * seria reabrir o buraco que o `deposit()` simulado tinha: qualquer pessoa
  * declarando um Pix que nunca aconteceu e sacando dinheiro que não existe.
  *
- * O cliente transfere o valor desejado MAIS a taxa fixa de R$ 5,00, e recebe de
- * saldo exatamente o que pediu (`src/domain/deposito-pix.ts`).
+ * Depósito NÃO tem taxa: o cliente transfere o que pediu e recebe de saldo o
+ * mesmo valor. A tarifa fixa de R$ 5,00 da Tabela de Taxas é do saque.
  */
 export async function solicitarDepositoPix(
   valorCents: Cents,
@@ -190,12 +190,12 @@ export async function solicitarDepositoPix(
 
   // As mesmas validações da cobrança por gateway, pelo mesmo motivo: uma Server
   // Action é um endpoint HTTP e o formulário é só a porta educada.
-  const { creditoCents, taxaCents, totalCents } = valoresDoDepositoPix(valorCents)
-  if (creditoCents <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
+  const valor = valorDoDepositoPix(valorCents)
+  if (valor <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
 
   // Teto da configuração do painel (C3); sem banco, o DEPOSITO_MAX do código.
   const { depositoMaxCents } = await carregarRegrasDoMercado()
-  if (creditoCents > depositoMaxCents) {
+  if (valor > depositoMaxCents) {
     return { ok: false, error: `O depósito máximo por operação é ${brl(depositoMaxCents)}.` }
   }
 
@@ -207,21 +207,18 @@ export async function solicitarDepositoPix(
   const referencia = `DEP-${randomUUID()}`
   const agora = Date.now()
 
-  // `valor` é o CRÉDITO, não o total transferido: é esse número que a equipe
-  // vai lançar no saldo. A taxa e o total ficam no metadata para a conferência
-  // do extrato bater com o que o cliente viu na tela.
+  // `valor` é o que a equipe vai lançar no saldo e é também o que o cliente
+  // transfere: depósito não tem taxa.
   await repositorioIntencoes().criar({
     externalReference: referencia,
     userEmail: email,
-    valor: creditoCents,
+    valor,
     metodo: 'pix',
     status: 'pendente',
     tipoOperacao: 'deposito',
     metadata: {
       pixDireto: true,
       chavePix: CHAVE_PIX_DEPOSITO,
-      taxaCents,
-      totalCents,
     },
     paymentId: null,
     motivoRecusa: null,
@@ -235,9 +232,7 @@ export async function solicitarDepositoPix(
       referencia,
       chavePix: CHAVE_PIX_DEPOSITO,
       favorecido: FAVORECIDO_PIX_DEPOSITO,
-      creditoCents,
-      taxaCents,
-      totalCents,
+      valorCents: valor,
     },
   }
 }

@@ -39,7 +39,6 @@ import type { ReactNode } from 'react'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { calcularDataLimiteSaque } from '@/domain/dates'
-import { valoresDoDepositoPix } from '@/domain/deposito-pix'
 import type { DepositoPixDireto } from '@/server/payments/tipos'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
@@ -300,8 +299,9 @@ export function ModalNotificacoes(): ReactNode {
  * cliente pondo o próprio dinheiro na própria conta. A `iniciarDeposito`
  * continua inteira no servidor, apenas sem nenhuma tela chamando.
  *
- * O cliente transfere o valor que quer depositar MAIS R$ 5,00 de taxa fixa, e
- * recebe de saldo exatamente o que pediu.
+ * DEPÓSITO NÃO TEM TAXA. Esta tela chegou a somar R$ 5,00 ao valor, por leitura
+ * errada da Tabela de Taxas: aquela tarifa fixa é do SAQUE (cláusula 4.2). Quem
+ * deposita transfere o valor que pediu e recebe o mesmo em saldo.
  *
  * O SALDO NÃO SOBE AQUI. Pix direto não tem webhook: ninguém do lado do sistema
  * fica sabendo que o dinheiro entrou. A equipe confere o extrato e lança o
@@ -363,7 +363,6 @@ export function ModalDeposito(): ReactNode {
   }
 
   const cents = parsePrice(valorTexto)
-  const { taxaCents, totalCents } = valoresDoDepositoPix(cents)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX
 
   async function gerarChave(): Promise<void> {
@@ -400,8 +399,8 @@ export function ModalDeposito(): ReactNode {
       <>
         <h3 className="serif">Transferência Pix</h3>
         <p style={{ marginBottom: 12 }}>
-          Faça um Pix de <b>{brl(pedido.totalCents)}</b> para a chave abaixo. Assim que a
-          transferência for conferida, <b>{brl(pedido.creditoCents)}</b> entram no seu saldo.
+          Faça um Pix de <b>{brl(pedido.valorCents)}</b> para a chave abaixo. Assim que a
+          transferência for conferida, esse mesmo valor entra no seu saldo.
         </p>
 
         <div className="field-lbl">Chave Pix ({pedido.favorecido})</div>
@@ -423,18 +422,10 @@ export function ModalDeposito(): ReactNode {
           </button>
         </div>
 
-        <div className="summary-row" style={{ marginTop: 12 }}>
-          <span className="k">Valor que entra no saldo</span>
-          <span className="v">{brl(pedido.creditoCents)}</span>
-        </div>
-        <div className="summary-row">
-          <span className="k">Taxa de depósito</span>
-          <span className="v">{brl(pedido.taxaCents)}</span>
-        </div>
-        <div className="summary-row total">
+        <div className="summary-row total" style={{ marginTop: 12 }}>
           <span className="k">Valor a transferir</span>
           <span className="v" style={{ fontSize: 19 }}>
-            {brl(pedido.totalCents)}
+            {brl(pedido.valorCents)}
           </span>
         </div>
 
@@ -492,18 +483,8 @@ export function ModalDeposito(): ReactNode {
         />
       </div>
 
-      {/* A taxa é somada, não descontada: quem pede R$ 500,00 de saldo precisa
-          ver R$ 500,00 na conta, e transfere R$ 505,00. */}
-      <div className="summary-row">
-        <span className="k">Taxa de depósito</span>
-        <span className="v">{brl(taxaCents)}</span>
-      </div>
-
-      <div className="summary-row">
-        <span className="k">Valor a transferir por Pix</span>
-        <span className="v">{cents > 0 ? brl(totalCents) : '—'}</span>
-      </div>
-
+      {/* Sem linha de taxa: depósito não tem. O que o cliente transfere é o que
+          ele recebe de saldo. A tarifa fixa de R$ 5,00 é do saque. */}
       <div className="summary-row total">
         <span className="k">Saldo após o depósito</span>
         <span className="v" style={{ fontSize: 19 }}>

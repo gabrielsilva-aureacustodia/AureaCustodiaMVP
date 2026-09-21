@@ -66,10 +66,6 @@ export interface DepositoPixDireto {
   chavePix: string
   /** Nome que aparece no aplicativo do banco. */
   favorecido: string
-  /** O que entra no saldo depois da conferência. */
-  creditoCents: Cents
-  /** A taxa fixa retida pela empresa. */
-  taxaCents: Cents
-  /** O valor exato a transferir: crédito + taxa. */
-  totalCents: Cents
+  /** O valor a transferir, que é o mesmo que entra no saldo: depósito não tem taxa. */
+  valorCents: Cents
 }

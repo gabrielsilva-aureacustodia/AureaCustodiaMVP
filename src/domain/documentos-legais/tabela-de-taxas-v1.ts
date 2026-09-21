@@ -9,11 +9,11 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
   chave: 'tabela_de_taxas',
-  // 2.1 (21/09/2026): três mudanças de preço decididas pelo Gabriel. Voltou o
-  // plano mensal de custódia (R$ 3,00 por moeda por mês) ao lado do anual;
-  // passou a existir cobrança proporcional quando a moeda muda de dono no meio
-  // do prazo; e o depósito em conta passou a ter tarifa fixa de R$ 5,00, porque
-  // deixou de passar pelo gateway e virou Pix direto.
+  // 2.1 (21/09/2026): voltou o plano mensal de custódia (R$ 3,00 por moeda por
+  // mês) ao lado do anual, e passou a existir cobrança proporcional quando a
+  // moeda muda de dono no meio do prazo. O depósito virou Pix direto, mas
+  // continua SEM TAXA — a tarifa fixa de R$ 5,00 é do saque (cláusula 4.2), e
+  // por algumas horas ela apareceu por engano também na 4.1.
   //
   // Texto diferente é hash diferente, e o aceite gravado aponta para a versão —
   // reciclar o número faria o registro de consentimento deixar de dizer o que a
@@ -107,7 +107,7 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
           numero: '4.1',
           titulo: 'Depósito de Recursos',
           texto:
-            'Tarifa fixa de R$ 5,00 por depósito, acrescida ao valor depositado. O depósito é realizado por transferência Pix para a conta do Real Olímpico, e o saldo é creditado no valor solicitado pelo usuário após a confirmação do recebimento. Exemplo: para depositar R$ 500,00, o usuário transfere R$ 505,00 e recebe R$ 500,00 de saldo.',
+            'Sem taxa de processamento cobrada pelo Real Olímpico. O depósito é realizado por transferência Pix para a conta do Real Olímpico, e o saldo é creditado no mesmo valor transferido, após a confirmação do recebimento.',
         },
         {
           numero: '4.2',
