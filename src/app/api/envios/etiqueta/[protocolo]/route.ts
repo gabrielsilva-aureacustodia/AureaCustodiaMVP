@@ -232,8 +232,12 @@ export async function GET(
     </div>
 
     <div class="barcode-box">
-      <div style="font-size: 11px; text-transform: uppercase; color: #666;">Código de Rastreamento / Pré-Postagem</div>
-      <div class="barcode">${envio.codigoRastreio || prePostagem.codigoRastreio}</div>
+      <div style="font-size: 11px; text-transform: uppercase; color: #666;">${envio.codigoRastreio ? 'Código de Rastreamento dos Correios' : 'Protocolo do Envio'}</div>
+      <!-- Sem código dos Correios, imprime o PROTOCOLO. Até 21/09/2026 saía aqui
+           um código inventado com cara de rastreio, que o cliente levava para
+           casa achando que rastreava o pacote. O rastreio real aparece depois
+           da postagem, quando o cliente digita o que veio no comprovante. -->
+      <div class="barcode">${envio.codigoRastreio || envio.protocolo}</div>
       <div style="font-size: 11px; color: #888; margin-top: 4px;">*${envio.protocolo}*</div>
     </div>
 

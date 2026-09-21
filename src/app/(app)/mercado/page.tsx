@@ -43,6 +43,8 @@ import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPend
 import { Folder } from '@/components/market/Folder'
 import { LotCard } from '@/components/market/LotCard'
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
+import { ComoPrecoEFormado } from '@/components/market/ComoPrecoEFormado'
+import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAcontece'
 import { ModalEditarBid } from '@/components/market/ModalEditarBid'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
@@ -112,9 +114,7 @@ export default function MercadoPage(): ReactNode {
   const [tipoAtivo, setTipoAtivo] = useState<string>(primeiroTipo)
 
   /** Pastas abertas na vitrine. Ver a nota em components/market/Folder. */
-  const [abertas, setAbertas] = useState<ReadonlySet<string>>(
-    () => new Set([coinTypeInfo(primeiroTipo, catalogo).categoria]),
-  )
+  const [abertas, setAbertas] = useState<ReadonlySet<string>>(() => new Set())
 
   /* ---------- recortes do estado ---------- */
 
@@ -241,10 +241,9 @@ export default function MercadoPage(): ReactNode {
 
   return (
     <>
-      <MinhasOfertas />
       <div className="cols">
         <div>
-          <div className="panel">
+          <div className="panel" style={{ marginBottom: 18 }}>
             <h3>
               <svg viewBox="0 0 24 24">
                 <path d="M3 5h18l-7 8v6l-4 2v-8z" />
@@ -302,9 +301,89 @@ export default function MercadoPage(): ReactNode {
               ))}
             </div>
           </div>
+
+          <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
+          <ComoNegociacaoAcontece />
         </div>
 
         <div>
+          <div className="panel" style={{ marginBottom: '18px' }}>
+            <h3>
+              <svg viewBox="0 0 24 24">
+                <path d="M6 7h12l1.5 13h-15zM9 7a3 3 0 016 0" />
+              </svg>
+              Fazer oferta de compra
+            </h3>
+
+            {/* Mesmo `tipoAtivo` do painel de indicadores, de propósito: são a
+                mesma pergunta ("qual moeda?") feita uma vez só. Dois seletores
+                independentes deixariam publicar um bid de um ativo enquanto se
+                olha o preço de outro. */}
+            <TipoSelector
+              name="tipo-bid"
+              titulo="Moeda que deseja comprar"
+              tipos={NEGOCIAVEIS}
+              valor={tipoAtivo}
+              onChange={trocarTipo}
+            />
+
+            <div className="field-lbl">Quantidade desejada</div>
+            <input
+              id="bidQty"
+              type="number"
+              min="1"
+              className="tinput"
+              value={bidQty}
+              onChange={(e) => setBidQty(e.target.value)}
+            />
+
+            <div className="field-lbl">Preço unitário máximo</div>
+            <div className="price-input">
+              <span>R$</span>
+              <input
+                id="bidPrice"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={bidPrice}
+                onChange={(e) => setBidPrice(e.target.value)}
+              />
+            </div>
+
+            <div className="summary-row">
+              <span className="k">Subtotal das moedas</span>
+              <span className="v">{bidSubtotal > 0 ? brl(bidSubtotal) : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span className="k">Comissão de compra (estimada no seu preço máximo)</span>
+              <span className="v">{bidComissaoTotal > 0 ? `+ ${brl(bidComissaoTotal)}` : '—'}</span>
+            </div>
+            <div className="summary-row total">
+              <span className="k">Total com comissão</span>
+              <span className="v" style={{ fontSize: '19px' }}>
+                {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
+              </span>
+            </div>
+            {bidPriceCents > 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 12px' }}>
+                Seu saldo permite até {bidMaxMoedasSaldo} moeda(s) neste preço.
+              </div>
+            )}
+
+            <button type="button" className="btn btn-gold" onClick={() => void publicarBid()}>
+              Publicar oferta de compra
+            </button>
+
+            <div className="note">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5M12 16.5v.5" />
+              </svg>
+              Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
+              acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
+              consideradas — cada tipo de moeda tem seu próprio livro.
+            </div>
+          </div>
+
           <div className="panel" style={{ marginBottom: '18px' }}>
             <h3>
               <svg viewBox="0 0 24 24">
@@ -389,13 +468,13 @@ export default function MercadoPage(): ReactNode {
               })
             ) : (
               <div className="empty">
-                Nenhuma oferta de venda encontrada. Use &quot;Vender moeda&quot; em outra conta para
+                Nenhuma oferta de venda encontrada. Use &quot;Vendas&quot; em outra conta para
                 publicar um anúncio e vê-lo aqui.
               </div>
             )}
           </div>
 
-          <div className="panel" style={{ marginBottom: '18px' }}>
+          <div className="panel">
             <h3>
               <svg viewBox="0 0 24 24">
                 <path d="M12 19V5M5 12l7-7 7 7" />
@@ -416,84 +495,11 @@ export default function MercadoPage(): ReactNode {
               <div className="empty">Nenhuma oferta de compra encontrada para este filtro.</div>
             )}
           </div>
-
-          <div className="panel">
-            <h3>
-              <svg viewBox="0 0 24 24">
-                <path d="M6 7h12l1.5 13h-15zM9 7a3 3 0 016 0" />
-              </svg>
-              Fazer oferta de compra
-            </h3>
-
-            {/* Mesmo `tipoAtivo` do painel de indicadores, de propósito: são a
-                mesma pergunta ("qual moeda?") feita uma vez só. Dois seletores
-                independentes deixariam publicar um bid de um ativo enquanto se
-                olha o preço de outro. */}
-            <TipoSelector
-              name="tipo-bid"
-              titulo="Moeda que deseja comprar"
-              tipos={NEGOCIAVEIS}
-              valor={tipoAtivo}
-              onChange={trocarTipo}
-            />
-
-            <div className="field-lbl">Quantidade desejada</div>
-            <input
-              id="bidQty"
-              type="number"
-              min="1"
-              className="tinput"
-              value={bidQty}
-              onChange={(e) => setBidQty(e.target.value)}
-            />
-
-            <div className="field-lbl">Preço unitário máximo</div>
-            <div className="price-input">
-              <span>R$</span>
-              <input
-                id="bidPrice"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={bidPrice}
-                onChange={(e) => setBidPrice(e.target.value)}
-              />
-            </div>
-
-            <div className="summary-row">
-              <span className="k">Subtotal das moedas</span>
-              <span className="v">{bidSubtotal > 0 ? brl(bidSubtotal) : '—'}</span>
-            </div>
-            <div className="summary-row">
-              <span className="k">Comissão de compra (estimada no seu preço máximo)</span>
-              <span className="v">{bidComissaoTotal > 0 ? `+ ${brl(bidComissaoTotal)}` : '—'}</span>
-            </div>
-            <div className="summary-row total">
-              <span className="k">Total com comissão</span>
-              <span className="v" style={{ fontSize: '19px' }}>
-                {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
-              </span>
-            </div>
-            {bidPriceCents > 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 12px' }}>
-                Seu saldo permite até {bidMaxMoedasSaldo} moeda(s) neste preço.
-              </div>
-            )}
-
-            <button type="button" className="btn btn-gold" onClick={() => void publicarBid()}>
-              Publicar oferta de compra
-            </button>
-
-            <div className="note">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16.5v.5" />
-              </svg>
-              Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
-              acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
-              consideradas — cada tipo de moeda tem seu próprio livro.
-            </div>
-          </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <MinhasOfertas />
       </div>
 
       <div className="note" style={{ justifyContent: 'center', marginTop: '14px' }}>

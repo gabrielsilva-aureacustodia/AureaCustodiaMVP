@@ -89,7 +89,12 @@ describe('Correios — Cálculo de Frete e Pré-Postagem', () => {
     expect(prePostagem.declaracaoConteudo.item).toBe('Moeda comemorativa / colecionável')
     expect(prePostagem.declaracaoConteudo.quantidade).toBe(2)
     expect(prePostagem.declaracaoConteudo.valorTotalCents).toBe(60000)
-    expect(prePostagem.codigoRastreio).toMatch(/^(SL|PB)\d{9}BR$/)
+    // A pré-postagem NÃO traz mais código de rastreio (21/09/2026): o que saía
+    // aqui era `SL`/`PB` + 9 dígitos aleatórios + `BR`, um número com cara de
+    // rastreio que não existe nos Correios. Quem preenche o campo é o cliente,
+    // com o código do comprovante, em `markPosted`. O formato aceito está
+    // coberto por src/domain/rastreio.test.ts.
+    expect(prePostagem.codigoRastreio).toBe('')
     expect(prePostagem.destinatario.nome).toContain('AUREA CUSTODIA LTDA')
   })
 })
