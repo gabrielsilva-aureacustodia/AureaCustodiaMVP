@@ -18,11 +18,14 @@
  */
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { tiposNegociaveis } from '@/domain/constants'
+import { fdate } from '@/domain/dates'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
+import { allCoinsFlat } from '@/domain/selectors'
 import type { Cents, Coin } from '@/domain/types'
 import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
@@ -30,6 +33,7 @@ import { useApp } from '@/components/providers/AppProvider'
 
 export default function RecibosPage(): ReactNode {
   const { state, me, catalogo } = useApp()
+  const router = useRouter()
 
   // Mediana das ofertas abertas nas últimas 24h (domain/market.ts), uma por
   // tipo negociável. É a referência de mercado de cada ativo; as moedas de
@@ -55,42 +59,109 @@ export default function RecibosPage(): ReactNode {
   const totalVal = coins.reduce<Cents>((s, c) => s + valOf(c), 0)
   const recibosAtivos = coins.filter((c) => c.recibo.status === 'Ativo').length
 
+  /* ---- auditoria de estoque (resumo por tipo) ---- */
+  const porTipo = new Map<string, number>()
+  allCoinsFlat(state).forEach(({ coin }) => {
+    porTipo.set(coin.tipoMoeda, (porTipo.get(coin.tipoMoeda) ?? 0) + 1)
+  })
+  const linhasAuditoria = [...porTipo.entries()].sort((a, b) => b[1] - a[1])
+  const hoje = fdate(Date.now())
+
   return (
     <div className="cols-rev">
-      <div className="panel">
-        <h3>
-          <svg viewBox="0 0 24 24">
-            <path d="M6 3h9l4 4v14H6z" />
-            <path d="M9 10h7M9 13.5h7M9 17h4" />
-          </svg>
-          Moedas em custódia
-        </h3>
+      <div>
+        <div className="panel" style={{ marginBottom: 18 }}>
+          <h3>
+            <svg viewBox="0 0 24 24">
+              <path d="M6 3h9l4 4v14H6z" />
+              <path d="M9 10h7M9 13.5h7M9 17h4" />
+            </svg>
+            Moedas em custódia
+          </h3>
 
-        {/* A custódia é paga depois de a moeda já estar guardada: sem este aviso,
-            o débito só apareceria em Faturas de custódia, tela que o cliente não
-            tem motivo para abrir. */}
-        <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
-        {/* O estado vazio fica DENTRO da .recibo-grid, como no original (linha
-            1879): o `cardsHtml` era ou os cartões, ou o .empty, e os dois
-            entravam no mesmo contêiner de grade. */}
-        <div className="recibo-grid">
-          {coins.length ? (
-            coins.map((c) => (
-              // A chave é o código do ativo: sequencial, único e estável mesmo
-              // quando a moeda troca de dono ou muda de status.
-              <ReciboCard
-                key={c.id}
-                coin={c}
-                valor={valOf(c)}
-                listed={state.sellOffers.some((o) => o.coinId === c.id)}
-              />
-            ))
-          ) : (
-            <div className="empty">
-              Você ainda não possui moedas custodiadas nesta conta de teste. Use &quot;Enviar moeda
-              para custódia&quot; para começar.
-            </div>
-          )}
+          {/* A custódia é paga depois de a moeda já estar guardada: sem este aviso,
+              o débito só apareceria em Faturas de custódia, tela que o cliente não
+              tem motivo para abrir. */}
+          <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
+          {/* O estado vazio fica DENTRO da .recibo-grid, como no original (linha
+              1879): o `cardsHtml` era ou os cartões, ou o .empty, e os dois
+              entravam no mesmo contêiner de grade. */}
+          <div className="recibo-grid">
+            {coins.length ? (
+              coins.map((c) => (
+                // A chave é o código do ativo: sequencial, único e estável mesmo
+                // quando a moeda troca de dono ou muda de status.
+                <ReciboCard
+                  key={c.id}
+                  coin={c}
+                  valor={valOf(c)}
+                  listed={state.sellOffers.some((o) => o.coinId === c.id)}
+                />
+              ))
+            ) : (
+              <div className="empty">
+                Você ainda não possui moedas custodiadas nesta conta de teste. Use &quot;Enviar moeda
+                para custódia&quot; para começar.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ---------- auditoria de estoque ---------- */}
+        <div className="panel">
+          <h3>
+            <svg viewBox="0 0 24 24">
+              <path d="M4 21h16M5 21V10h3v11M10.5 21V10h3v11M16 21V10h3v11M3 9l9-6 9 6z" />
+            </svg>
+            Auditoria de estoque
+          </h3>
+
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: 12 }}>
+            Auditoria transparente de todas as moedas no nosso sistema, suas e de outros
+            usuários (nenhum nome será exposto).
+          </p>
+
+          <div className="table-scroll">
+            <table className="audit-table">
+              <thead>
+                <tr>
+                  <th>Moeda</th>
+                  <th>Quantidade custodiada</th>
+                  <th>Status</th>
+                  <th>Última auditoria</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhasAuditoria.map(([tipo, qtd]) => (
+                  <tr key={tipo}>
+                    <td>{tipo}</td>
+                    <td>{qtd}</td>
+                    <td>
+                      <span className="pill g">auditado</span>
+                    </td>
+                    <td>{hoje}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="note">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            Estoque auditado periodicamente pelo Real Olímpico.
+          </div>
+
+          <button
+            className="btn btn-gold"
+            type="button"
+            style={{ marginTop: 14 }}
+            onClick={() => router.push('/recibos/auditoria')}
+          >
+            Ver auditoria completa
+          </button>
         </div>
       </div>
 

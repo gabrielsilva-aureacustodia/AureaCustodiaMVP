@@ -59,17 +59,27 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: `Olá, ${primeiroNome} — seu acervo em custódia e o mercado do dia.`,
     }
   }
+  if (pathname === '/mercado/comparacoes') {
+    return {
+      h1: 'Comparação de referência',
+      p: 'Acompanhe o Real Olímpico ao lado de ativos digitais conhecidos.',
+    }
+  }
   if (pathname === '/mercado') {
     return {
-      // Era 'Comprar moeda olímpica'. Deixou de ser verdade quando a Moeda dos
-      // Direitos Humanos — que não é olímpica — entrou no marketplace.
-      h1: 'Comprar moedas',
+      h1: 'Mercado',
+      p: 'Ofertas em aberto, cotações e gráficos do Real Olímpico.',
+    }
+  }
+  if (pathname === '/compras') {
+    return {
+      h1: 'Compras',
       p: 'Veja as ofertas de venda e de compra ativas, ou publique a sua.',
     }
   }
   if (pathname === '/vender') {
     return {
-      h1: 'Colocar moeda à venda',
+      h1: 'Vendas',
       p: 'Selecione uma ou mais moedas em custódia e publique seu anúncio com transparência.',
     }
   }
@@ -86,9 +96,15 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: 'Certificado digital de custódia vinculado ao banco de dados fictício.',
     }
   }
+  if (pathname === '/recibos/auditoria') {
+    return {
+      h1: 'Auditoria de estoque custodiado',
+      p: 'Moedas físicas recebidas, conferidas e vinculadas aos recibos digitais.',
+    }
+  }
   if (pathname === '/recibos') {
     return {
-      h1: 'Meus recibos',
+      h1: 'Recibos',
       p: 'Recibos digitais de validação e recebimento de custódia.',
     }
   }
@@ -96,24 +112,6 @@ function tituloDaRota(pathname: string, me: User): Titulo {
     return {
       h1: 'Retiradas físicas',
       p: 'Acompanhe a saída e expedição física de moedas da custódia.',
-    }
-  }
-  if (pathname === '/graficos/auditoria') {
-    return {
-      h1: 'Auditoria de estoque custodiado',
-      p: 'Moedas físicas recebidas, conferidas e vinculadas aos recibos digitais.',
-    }
-  }
-  if (pathname === '/graficos/comparacoes') {
-    return {
-      h1: 'Comparação de referência',
-      p: 'Acompanhe o Real Olímpico ao lado de ativos digitais conhecidos.',
-    }
-  }
-  if (pathname === '/graficos') {
-    return {
-      h1: 'Mercado e auditoria',
-      p: 'Evolução de preços, estoque custodiado e comparações.',
     }
   }
   if (pathname === '/conta/extrato') {
