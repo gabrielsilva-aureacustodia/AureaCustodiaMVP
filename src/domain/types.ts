@@ -689,25 +689,34 @@ export interface UserSettings {
 /* === Finalizações · Frente B === */
 
 /**
- * As duas modalidades de plano de custódia (18/09/2026). O plano mensal foi
- * aposentado: quem guarda moeda contrata 12 ou 24 meses. A cobrança mês a mês
- * continua existindo como `origem: 'ciclo_mensal'` da fatura, que é outra coisa —
- * é o que se cobra de moeda sem plano vigente, não um plano que se escolhe.
- */
-/**
  * Modalidade do plano de custódia.
  *
- * UM PLANO SÓ, desde 20/09/2026. Existia também 'bienal' — 24 meses por R$ 36,00
- * a moeda —, aposentado por decisão do Gabriel. Quem guarda moeda contrata um
- * prazo, e o prazo é de um ano. O que continua mensal é o CICLO
- * (`origem: 'ciclo_mensal'`), a cobrança de quem está sem plano vigente, que
- * nunca foi plano.
+ * DUAS, desde 21/09/2026: `mensal` (R$ 3,00 por moeda por mês, sem prazo) e
+ * `anual` (R$ 24,00 por moeda pelos 12 meses, ou R$ 2,00/mês, em até 12x no
+ * cartão). O anual é mais barato por mês porque o cliente se compromete com o
+ * prazo — é o desconto de quem contrata o ano inteiro.
  *
- * O tipo continua sendo um union de um membro só, em vez de sumir: `modalidade`
- * segue gravada em cada plano e nos relatórios, e um dia pode haver outro prazo.
+ * Histórico, porque o nome `mensal` já significou outra coisa neste código:
+ * existiu um plano `bienal` de 24 meses, aposentado em 20/09/2026, e por dois
+ * dias `anual` foi a única modalidade. Durante esse período o que se cobrava
+ * mês a mês era só o CICLO (`origem: 'ciclo_mensal'` da fatura), que continua
+ * existindo e continua sendo outra coisa: ciclo é o que se cobra de moeda SEM
+ * plano vigente, e plano mensal é um plano que o cliente escolhe. Os dois saem
+ * pelo mesmo preço de R$ 3,00 por moeda — quem não contrata prazo paga a tarifa
+ * mensal —, mas só o plano aparece em `planosCustodia`.
  */
-export type ModalidadePlanoCustodia = 'anual'
+export type ModalidadePlanoCustodia = 'mensal' | 'anual'
 export type StatusPlanoCustodia = 'aguardando_pagamento' | 'vigente' | 'encerrado' | 'cancelado'
+
+/**
+ * Como o plano nasceu.
+ *
+ * `contratacao` é o caminho normal: o cliente enviou moeda e escolheu um prazo.
+ * `transferencia` é o plano que o sistema cria sozinho para o COMPRADOR quando
+ * uma moeda em custódia muda de dono — a obrigação de guarda acompanha a moeda,
+ * não a pessoa, e quem comprou passa a dever os meses que faltam.
+ */
+export type OrigemPlanoCustodia = 'contratacao' | 'transferencia'
 
 export interface PlanoCustodia {
   id: string                          // 'PLC-000001'
@@ -728,11 +737,22 @@ export interface PlanoCustodia {
   estornadoCents: Cents
   criadoEm: Timestamp
   atualizadoEm: Timestamp
+  /**
+   * Quantos meses este plano cobre. Ausente vale `mesesCobertos(modalidade)` —
+   * 12 no anual, 1 no mensal —, que é o caso de todo plano contratado na tela.
+   * Só o plano de transferência grava um número diferente: quem comprou uma
+   * moeda no 2º mês de um anual deve 11 meses, não 12.
+   */
+  mesesContratados?: number
+  /** Ver `OrigemPlanoCustodia`. Ausente significa `contratacao`. */
+  origem?: OrigemPlanoCustodia
+  /** No plano de transferência, o plano do vendedor de onde a moeda veio. */
+  planoOrigemId?: string | null
 }
 
 export interface FaturaCustodia {
   planoId?: string | null
-  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'
+  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'transferencia'
 }
 
 export interface Envio {

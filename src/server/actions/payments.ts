@@ -24,6 +24,11 @@
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
+import {
+  CHAVE_PIX_DEPOSITO,
+  FAVORECIDO_PIX_DEPOSITO,
+  valoresDoDepositoPix,
+} from '@/domain/deposito-pix'
 import { custoDeCompraPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
@@ -37,6 +42,7 @@ import { repositorioIntencoes } from '@/server/payments/repositorios'
 import type {
   CompraDiretaIniciada,
   DepositoIniciado,
+  DepositoPixDireto,
   MetodoDeposito,
   StatusCobrancaInfo,
 } from '@/server/payments/tipos'
@@ -150,6 +156,89 @@ export async function iniciarDeposito(
     // sequência de falhas do gateway não deixaria rastro nenhum para diagnóstico.
     await intencoes.recusar(externalReference, 'falha ao abrir a cobrança no gateway')
     return { ok: false, error: FALHA_GATEWAY }
+  }
+}
+
+/**
+ * Registra uma solicitação de depósito por PIX DIRETO na conta da empresa.
+ *
+ * É esta que a tela usa desde 21/09/2026. A `iniciarDeposito` acima continua
+ * inteira e testada, mas CONGELADA: nenhuma tela a chama. Decisão do Gabriel —
+ * o Mercado Pago cobra percentual sobre cada entrada, e depósito não é venda,
+ * é o cliente pondo o próprio dinheiro na própria conta. Mandar o Pix direto
+ * para a chave da empresa economiza essa taxa inteira. Quando a integração
+ * voltar a valer a pena, o caminho já está pronto e é só a tela voltar a
+ * chamá-lo.
+ *
+ * NÃO CREDITA SALDO, E ISSO É A FUNCIONALIDADE.
+ * -------------------------------------------
+ * Pix direto não tem webhook: o sistema não fica sabendo que o dinheiro entrou.
+ * O que esta ação grava é uma INTENÇÃO pendente — o mesmo registro que a
+ * cobrança de gateway grava —, e o saldo só sobe quando alguém da equipe
+ * confere o extrato bancário e lança o ajuste em /admin/usuarios. Creditar aqui
+ * seria reabrir o buraco que o `deposit()` simulado tinha: qualquer pessoa
+ * declarando um Pix que nunca aconteceu e sacando dinheiro que não existe.
+ *
+ * O cliente transfere o valor desejado MAIS a taxa fixa de R$ 5,00, e recebe de
+ * saldo exatamente o que pediu (`src/domain/deposito-pix.ts`).
+ */
+export async function solicitarDepositoPix(
+  valorCents: Cents,
+): Promise<ActionResult<DepositoPixDireto>> {
+  const email = await getSessionEmail()
+  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // As mesmas validações da cobrança por gateway, pelo mesmo motivo: uma Server
+  // Action é um endpoint HTTP e o formulário é só a porta educada.
+  const { creditoCents, taxaCents, totalCents } = valoresDoDepositoPix(valorCents)
+  if (creditoCents <= 0) return { ok: false, error: 'Informe um valor de depósito válido.' }
+
+  // Teto da configuração do painel (C3); sem banco, o DEPOSITO_MAX do código.
+  const { depositoMaxCents } = await carregarRegrasDoMercado()
+  if (creditoCents > depositoMaxCents) {
+    return { ok: false, error: `O depósito máximo por operação é ${brl(depositoMaxCents)}.` }
+  }
+
+  // A conta precisa existir no estado: a intenção tem chave estrangeira para
+  // `aurea.users`, e uma sessão antiga pode apontar para um usuário que sumiu.
+  const state = await getState()
+  if (!state.users[email]) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const referencia = `DEP-${randomUUID()}`
+  const agora = Date.now()
+
+  // `valor` é o CRÉDITO, não o total transferido: é esse número que a equipe
+  // vai lançar no saldo. A taxa e o total ficam no metadata para a conferência
+  // do extrato bater com o que o cliente viu na tela.
+  await repositorioIntencoes().criar({
+    externalReference: referencia,
+    userEmail: email,
+    valor: creditoCents,
+    metodo: 'pix',
+    status: 'pendente',
+    tipoOperacao: 'deposito',
+    metadata: {
+      pixDireto: true,
+      chavePix: CHAVE_PIX_DEPOSITO,
+      taxaCents,
+      totalCents,
+    },
+    paymentId: null,
+    motivoRecusa: null,
+    createdAt: agora,
+    updatedAt: agora,
+  })
+
+  return {
+    ok: true,
+    data: {
+      referencia,
+      chavePix: CHAVE_PIX_DEPOSITO,
+      favorecido: FAVORECIDO_PIX_DEPOSITO,
+      creditoCents,
+      taxaCents,
+      totalCents,
+    },
   }
 }
 

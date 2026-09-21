@@ -93,11 +93,11 @@ describe('custodiaDoEnvio', () => {
     codigosAtivosGerados: [],
   }
 
-  it('calcula custódia mensal sem plano com TAXAS_PADRAO (15 moedas = R$ 30,00)', () => {
+  it('calcula custódia mensal sem plano com TAXAS_PADRAO (15 moedas = R$ 45,00)', () => {
     const res = custodiaDoEnvio(envioBase, undefined, TAXAS_PADRAO)
     expect(res).toEqual({
       rotulo: 'Custódia mensal destas moedas',
-      valorCents: 3000,
+      valorCents: 4500,
       periodo: 'mês',
     })
     expect(Number.isInteger(res.valorCents)).toBe(true)

@@ -69,12 +69,25 @@ describe('plano-custodia (B2.3)', () => {
       expect(valorDoPlano('anual', 1).total / 12).toBe(200)
     })
 
-    it('calcula plano anual padrão (R$ 24,00 por moeda, até 12 parcelas)', () => {
+    it('calcula plano anual padrão (R$ 24,00 por moeda, até 12 parcelas, 12 meses)', () => {
       const v1 = valorDoPlano('anual', 1)
-      expect(v1).toEqual({ porMoeda: 2400, total: 2400, parcelasMax: 12 })
+      expect(v1).toEqual({ porMoeda: 2400, total: 2400, parcelasMax: 12, meses: 12 })
 
       const v3 = valorDoPlano('anual', 3)
-      expect(v3).toEqual({ porMoeda: 2400, total: 7200, parcelasMax: 12 })
+      expect(v3).toEqual({ porMoeda: 2400, total: 7200, parcelasMax: 12, meses: 12 })
+    })
+
+    it('calcula plano mensal (R$ 3,00 por moeda, sem parcelamento, 1 mês)', () => {
+      const v1 = valorDoPlano('mensal', 1)
+      expect(v1).toEqual({ porMoeda: 300, total: 300, parcelasMax: 1, meses: 1 })
+
+      const v3 = valorDoPlano('mensal', 3)
+      expect(v3).toEqual({ porMoeda: 300, total: 900, parcelasMax: 1, meses: 1 })
+    })
+
+    it('calcula proporcional com mesesForcados para transferência', () => {
+      const v11 = valorDoPlano('anual', 1, undefined, 11)
+      expect(v11).toEqual({ porMoeda: 2200, total: 2200, parcelasMax: 11, meses: 11 })
     })
 
     it('aceita sobrescrita de taxas e limite de parcelamento', () => {
@@ -82,7 +95,7 @@ describe('plano-custodia (B2.3)', () => {
         custodiaAnualPorMoeda: 3000,
         custodiaAnualParcelasMax: 6,
       })
-      expect(v).toEqual({ porMoeda: 3000, total: 6000, parcelasMax: 6 })
+      expect(v).toEqual({ porMoeda: 3000, total: 6000, parcelasMax: 6, meses: 12 })
     })
 
     it('quantidade zero ou negativa resulta em total zero', () => {
@@ -239,7 +252,7 @@ describe('plano-custodia (B2.3)', () => {
       expect(fatura).not.toBeNull()
       expect(fatura?.quantidadeMoedas).toBe(1)
       expect(fatura?.moedaIds).toEqual(['M-3'])
-      expect(fatura?.valorCents).toBe(200) // R$ 2,00
+      expect(fatura?.valorCents).toBe(300) // R$ 3,00
       expect(fatura?.origem).toBe('ciclo_mensal')
       expect(fatura?.planoId).toBeNull()
       expect(fatura?.status).toBe('pendente')
@@ -257,7 +270,7 @@ describe('plano-custodia (B2.3)', () => {
       const fatura = gerarFaturaDoCiclo(userComExtinta, 'cliente@teste.com', '2026-10', [])
       expect(fatura?.quantidadeMoedas).toBe(1)
       expect(fatura?.moedaIds).toEqual(['M-1'])
-      expect(fatura?.valorCents).toBe(200)
+      expect(fatura?.valorCents).toBe(300)
     })
   })
 

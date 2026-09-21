@@ -141,8 +141,9 @@ interface EstadoWizard {
  *
  * Nasceu quando havia dois planos — anual e 24 meses — e manter dois blocos de
  * JSX gêmeos foi o que deixou o antigo cartão mensal com selo e o anual sem, na
- * mesma tela. O plano de 24 meses saiu em 20/09/2026; o componente fica, porque
- * é ele que mantém o cartão coerente se outro prazo voltar a existir.
+ * mesma tela. O plano de 24 meses saiu em 20/09/2026 e o mensal voltou em
+ * 21/09/2026: são dois cartões de novo, e é o componente que garante que os
+ * dois digam as coisas no mesmo lugar.
  */
 function CartaoDePlano({
   titulo,
@@ -722,10 +723,30 @@ export default function EnviosPage(): ReactNode {
             </h3>
             <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
               Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
-              A guarda é contratada por 12 meses e pode ser parcelada em até 12x no cartão.
+              Escolha entre pagar mês a mês ou contratar o ano inteiro, que sai mais barato por mês
+              e pode ser parcelado em até {taxas.custodiaAnualParcelasMax}x no cartão.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 20 }}>
+              {/* Os dois cartões usam o MESMO componente de propósito: foi manter
+                  dois blocos de JSX gêmeos que deixou um com selo e o outro sem,
+                  na primeira vez que esta tela teve duas opções. */}
+              <CartaoDePlano
+                titulo="Plano Mensal"
+                selecionado={modalidadePlano === 'mensal'}
+                aoEscolher={() => setModalidadePlano('mensal')}
+                total={envio.quantidade * taxas.custodiaMensalPorMoeda}
+                periodo="por mês"
+                porMoeda={`${brl(taxas.custodiaMensalPorMoeda)} por moeda / mês`}
+                parcela="Cobrado todo mês enquanto a moeda estiver guardada"
+                selos={['Sem prazo']}
+                vantagens={[
+                  'Sem compromisso de permanência',
+                  'Cancela quando quiser, retirando a moeda',
+                  'Cobrança renovada a cada mês',
+                ]}
+              />
+
               <CartaoDePlano
                 titulo="Plano Anual"
                 selecionado={modalidadePlano === 'anual'}
@@ -734,14 +755,13 @@ export default function EnviosPage(): ReactNode {
                 periodo="pelos 12 meses"
                 porMoeda={`${brl(Math.round(taxas.custodiaAnualPorMoeda / 12))} por moeda / mês`}
                 parcela={`ou ${taxas.custodiaAnualParcelasMax}x de ${brl(Math.round((envio.quantidade * taxas.custodiaAnualPorMoeda) / taxas.custodiaAnualParcelasMax))} no cartão`}
-                selos={[`${taxas.custodiaAnualParcelasMax}x sem juros`]}
+                selos={[`${taxas.custodiaAnualParcelasMax}x sem juros`, 'Mais barato por mês']}
                 vantagens={[
                   '12 meses de guarda garantida',
                   `Parcelamento em até ${taxas.custodiaAnualParcelasMax}x no cartão`,
                   'Proteção contra reajustes no período',
                 ]}
               />
-
             </div>
 
             <div className="note" style={{ marginBottom: 16 }}>

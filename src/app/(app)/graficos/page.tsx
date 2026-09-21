@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
+import { COIN, LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { fmtTrade, lastTrade } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -146,6 +146,8 @@ interface LinhaComparacao {
   name: string
   color: string
   points: ChartPoint[]
+  /** Só o Real Olímpico tem: o emblema oficial no lugar do quadradinho de cor. */
+  logo?: string
 }
 
 /* ------------------------------------------------------------------------- */
@@ -186,12 +188,14 @@ export default function GraficosPage(): ReactNode {
   // não um recorte. Divergência do gráfico principal que vem do original.
   const ro30 = roDailySeries(state, 30, COIN.name)
   const linhas: LinhaComparacao[] = [
-    { name: 'RO', color: 'var(--gold)', points: ro30 },
+    { name: 'Real Olímpico', color: 'var(--gold)', points: ro30, logo: LOGO_REAL_EMBLEMA },
     // Cores literais, como no MVP (linhas 2386-2388). Não viraram token porque
     // não são cor de tema: identificam a série e são as mesmas nos dois modos.
-    { name: 'BTC', color: '#b9c3d4', points: cs.map((x) => ({ t: x.t, v: x.btc })) },
-    { name: 'ETH', color: '#8fa0bd', points: cs.map((x) => ({ t: x.t, v: x.eth })) },
-    { name: 'USDT', color: '#6b7c9c', points: cs.map((x) => ({ t: x.t, v: x.usdt })) },
+    // São as cores de marca de cada ativo: os três cinza-azulados de antes
+    // ficavam indistinguíveis num traço de 26px de altura.
+    { name: 'BTC', color: '#f7931a', points: cs.map((x) => ({ t: x.t, v: x.btc })) },
+    { name: 'ETH', color: '#627eea', points: cs.map((x) => ({ t: x.t, v: x.eth })) },
+    { name: 'USDT', color: '#26a17b', points: cs.map((x) => ({ t: x.t, v: x.usdt })) },
   ]
 
   /* ---- indicadores ---- */
@@ -385,7 +389,21 @@ export default function GraficosPage(): ReactNode {
                   if (e.key === 'Enter') router.push('/graficos/comparacoes')
                 }}
               >
-                <span className="cname">{linha.name}</span>
+                <span className="cname">
+                  {/* O Real Olímpico se identifica pelo emblema oficial de
+                      /brand/, não por uma sigla: numa lista em que as outras
+                      três linhas são siglas de mercado, "RO" não dizia nada. */}
+                  {linha.logo ? (
+                    <img
+                      src={linha.logo}
+                      alt=""
+                      width={20}
+                      height={20}
+                      style={{ borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }}
+                    />
+                  ) : null}
+                  {linha.name}
+                </span>
                 <Sparkline points={linha.points} color={linha.color} width={140} height={26} />
                 {/* pctChange() hoje recebe só os VALORES, não os pares {t,v}. */}
                 <CompChip pct={pctChange(linha.points.map((p) => p.v))} />

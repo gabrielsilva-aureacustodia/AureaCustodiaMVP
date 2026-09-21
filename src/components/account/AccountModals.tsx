@@ -39,13 +39,14 @@ import type { ReactNode } from 'react'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { calcularDataLimiteSaque } from '@/domain/dates'
+import { valoresDoDepositoPix } from '@/domain/deposito-pix'
+import type { DepositoPixDireto } from '@/server/payments/tipos'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { changePassword, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
-import { iniciarDeposito } from '@/server/actions/payments'
+import { solicitarDepositoPix } from '@/server/actions/payments'
 import { ModalCadastro } from './ModalCadastro'
-import { PainelPagamento } from '@/components/pagamento'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -291,10 +292,21 @@ export function ModalNotificacoes(): ReactNode {
  * NÃO É PORT — funcionalidade nova. O monolito não tinha como aumentar saldo:
  * cada conta nascia com o valor do seed e só o perdia comprando.
  *
- * O AVISO DE "SIMULADO" É PARTE DA FUNCIONALIDADE, não um rodapé opcional.
- * Não há Pix, cartão, boleto nem conciliação bancária por trás disto; a ação
- * soma um número ao saldo. Uma tela que parecesse um caixa eletrônico de
- * verdade seria enganosa mesmo num ambiente onde só entram sócios.
+ * DEPÓSITO É PIX DIRETO, SEM GATEWAY (21/09/2026).
+ * ------------------------------------------------
+ * A tela não oferece mais cartão e não abre cobrança no Mercado Pago: mostra a
+ * chave Pix da empresa e o valor exato a transferir. O motivo é o custo — o
+ * gateway cobra percentual sobre cada entrada, e depósito não é venda, é o
+ * cliente pondo o próprio dinheiro na própria conta. A `iniciarDeposito`
+ * continua inteira no servidor, apenas sem nenhuma tela chamando.
+ *
+ * O cliente transfere o valor que quer depositar MAIS R$ 5,00 de taxa fixa, e
+ * recebe de saldo exatamente o que pediu.
+ *
+ * O SALDO NÃO SOBE AQUI. Pix direto não tem webhook: ninguém do lado do sistema
+ * fica sabendo que o dinheiro entrou. A equipe confere o extrato e lança o
+ * crédito em /admin/usuarios. A tela diz isso com todas as letras, porque uma
+ * barra de "aguardando confirmação" que nunca vai virar sozinha seria mentira.
  *
  * A modal NÃO fecha quando o valor é recusado, pelo mesmo motivo das outras
  * desta tela: a pessoa precisa continuar vendo o campo para corrigi-lo.
@@ -305,6 +317,10 @@ export function ModalDeposito(): ReactNode {
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
+  const [pedido, setPedido] = useState<DepositoPixDireto | null>(null)
+  const [gerando, setGerando] = useState(false)
+  const [erro, setErro] = useState('')
+  const [copiado, setCopiado] = useState(false)
 
   // Defesa em profundidade (Agente B): se a modal de depósito for invocada diretamente
   // sem cadastro completo, orienta a pessoa a preencher antes de continuar.
@@ -347,14 +363,116 @@ export function ModalDeposito(): ReactNode {
   }
 
   const cents = parsePrice(valorTexto)
+  const { taxaCents, totalCents } = valoresDoDepositoPix(cents)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX
 
+  async function gerarChave(): Promise<void> {
+    setErro('')
+    setGerando(true)
+    try {
+      const res = await solicitarDepositoPix(cents)
+      if (!res.ok || !res.data) {
+        setErro(res.error ?? 'Não foi possível registrar a solicitação de depósito.')
+        return
+      }
+      setPedido(res.data)
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  async function copiarChave(): Promise<void> {
+    if (!pedido) return
+    try {
+      await navigator.clipboard.writeText(pedido.chavePix)
+      setCopiado(true)
+      window.setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      // Navegador sem permissão de área de transferência: o campo continua
+      // visível e selecionável, então a cópia manual ainda funciona.
+      setErro('Não foi possível copiar automaticamente. Selecione a chave e copie à mão.')
+    }
+  }
+
+  // ---- segunda tela: a chave, o valor exato e o que acontece depois ----
+  if (pedido) {
+    return (
+      <>
+        <h3 className="serif">Transferência Pix</h3>
+        <p style={{ marginBottom: 12 }}>
+          Faça um Pix de <b>{brl(pedido.totalCents)}</b> para a chave abaixo. Assim que a
+          transferência for conferida, <b>{brl(pedido.creditoCents)}</b> entram no seu saldo.
+        </p>
+
+        <div className="field-lbl">Chave Pix ({pedido.favorecido})</div>
+        <div className="pagamento-copia-cola">
+          <input
+            type="text"
+            readOnly
+            value={pedido.chavePix}
+            className="pagamento-input-code"
+            aria-label="Chave Pix do Real Olímpico"
+          />
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ minHeight: 44 }}
+            onClick={() => void copiarChave()}
+          >
+            {copiado ? 'Copiado!' : 'Copiar'}
+          </button>
+        </div>
+
+        <div className="summary-row" style={{ marginTop: 12 }}>
+          <span className="k">Valor que entra no saldo</span>
+          <span className="v">{brl(pedido.creditoCents)}</span>
+        </div>
+        <div className="summary-row">
+          <span className="k">Taxa de depósito</span>
+          <span className="v">{brl(pedido.taxaCents)}</span>
+        </div>
+        <div className="summary-row total">
+          <span className="k">Valor a transferir</span>
+          <span className="v" style={{ fontSize: 19 }}>
+            {brl(pedido.totalCents)}
+          </span>
+        </div>
+
+        <div className="summary-row" style={{ marginTop: 10 }}>
+          <span className="k">Referência</span>
+          <span className="v" style={{ fontSize: 12 }}>
+            {pedido.referencia}
+          </span>
+        </div>
+
+        <div className="note" style={{ marginTop: 14 }}>
+          O saldo é liberado depois que a equipe confere a entrada no extrato bancário — não é
+          automático. Se puder, escreva a referência acima na descrição do Pix: é ela que liga a
+          transferência à sua conta.
+        </div>
+
+        {erro ? (
+          <div className="note" style={{ marginTop: 10 }}>
+            {erro}
+          </div>
+        ) : null}
+
+        <div className="m-actions" style={{ marginTop: 14 }}>
+          <button className="btn btn-gold" type="button" onClick={close}>
+            Concluir
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  // ---- primeira tela: quanto depositar ----
   return (
     <>
       <h3 className="serif">Depositar em conta</h3>
       <p style={{ marginBottom: 10 }}>
-        O saldo entra na sua conta <b>depois</b> que o pagamento for confirmado pelo banco ou pela
-        operadora do cartão, o que pode levar alguns segundos.
+        O depósito é feito por <b>Pix</b> direto para a conta do Real Olímpico. O saldo entra na sua
+        conta <b>depois</b> que a transferência for conferida pela nossa equipe.
       </p>
 
       <div className="summary-row">
@@ -374,6 +492,18 @@ export function ModalDeposito(): ReactNode {
         />
       </div>
 
+      {/* A taxa é somada, não descontada: quem pede R$ 500,00 de saldo precisa
+          ver R$ 500,00 na conta, e transfere R$ 505,00. */}
+      <div className="summary-row">
+        <span className="k">Taxa de depósito</span>
+        <span className="v">{brl(taxaCents)}</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="k">Valor a transferir por Pix</span>
+        <span className="v">{cents > 0 ? brl(totalCents) : '—'}</span>
+      </div>
+
       <div className="summary-row total">
         <span className="k">Saldo após o depósito</span>
         <span className="v" style={{ fontSize: 19 }}>
@@ -387,38 +517,31 @@ export function ModalDeposito(): ReactNode {
         </div>
       ) : null}
 
-      {podeDepositar ? (
-        <div style={{ marginTop: 16 }}>
-          <PainelPagamento
-            valorCents={cents}
-            iniciarPix={async () => {
-              const res = await iniciarDeposito(cents, 'pix')
-              if (!res.ok || !res.data) {
-                throw new Error(res.error ?? 'Não foi possível abrir a cobrança Pix.')
-              }
-              return res.data
-            }}
-            iniciarCartao={async () => {
-              const res = await iniciarDeposito(cents, 'checkout_pro')
-              if (!res.ok || !res.data) {
-                throw new Error(res.error ?? 'Não foi possível abrir o checkout do cartão.')
-              }
-              return res.data
-            }}
-            aoConcluir={close}
-          />
+      {erro ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          {erro}
         </div>
-      ) : (
+      ) : null}
+
+      {!podeDepositar ? (
         <div className="note" style={{ marginTop: 14 }}>
           {cents > DEPOSITO_MAX
             ? `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.`
-            : 'Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.'}
+            : 'Informe o valor desejado acima para gerar a chave Pix.'}
         </div>
-      )}
+      ) : null}
 
       <div className="m-actions" style={{ marginTop: 14 }}>
         <button className="btn btn-outline" type="button" onClick={close}>
           Cancelar
+        </button>
+        <button
+          className="btn btn-gold"
+          type="button"
+          disabled={!podeDepositar || gerando}
+          onClick={() => void gerarChave()}
+        >
+          {gerando ? 'Gerando…' : 'Gerar chave Pix'}
         </button>
       </div>
     </>

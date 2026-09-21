@@ -11,7 +11,7 @@ import 'server-only'
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
 import { competenciaAtual } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
-import { transferCoin } from '@/domain/market'
+import { transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { calcularPagoAte, mesesCobertos, somarMeses } from '@/domain/plano-custodia'
 import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
@@ -133,7 +133,8 @@ function liquidarCompraDireta(
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferCoin(seller, buyer, o.coinId)) continue
+      if (!transferirMoedaVendida(s, seller, buyer, sellerId, reivindicada.userEmail, o.coinId, regras.taxas))
+        continue
       seller.balance += price - feeVendedorUnit
       compradas += 1
     }

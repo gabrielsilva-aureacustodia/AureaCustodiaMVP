@@ -30,7 +30,7 @@
 
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
-import { transferCoin } from '@/domain/market'
+import { transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, UserEmail } from '@/domain/types'
 import {
@@ -220,7 +220,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferCoin(seller, buyer, o.coinId)) continue
+      if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, taxas)) continue
       buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
       seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1

@@ -53,7 +53,7 @@ function linhaParaFatura(r: LinhaFatura): FaturaCustodia {
     formaPagamento: (r.forma_pagamento as FormaPagamentoFatura) ?? null,
     paymentIntentId: r.payment_intent_id ?? null,
     planoId: r.plano_id ?? null,
-    origem: (r.origem as 'ciclo_mensal' | 'contratacao' | 'renovacao_anual') ?? 'ciclo_mensal',
+    origem: (r.origem as FaturaCustodia['origem']) ?? 'ciclo_mensal',
   }
 }
 

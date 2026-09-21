@@ -73,11 +73,23 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(res.error).toBe('Sessão expirada.')
   })
 
-  it('recusa modalidade que não existe mais: o plano mensal saiu em 18/09/2026', async () => {
-    // A tela só oferece anual e 24 meses; uma aba velha ainda mandaria 'mensal'.
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'mensal' as never)
+  it('recusa modalidade que não existe mais: o plano bienal foi aposentado em 20/09/2026', async () => {
+    const res = await contratarPlanoCustodia(PROTOCOLO, 'bienal' as never)
     expect(res.ok).toBe(false)
     expect(res.error).toBe('Modalidade de plano inválida.')
+  })
+
+  it('contrata plano mensal: 2 moedas a R$ 3,00 = R$ 6,00 em 1 parcela', async () => {
+    const res = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
+    expect(res.ok).toBe(true)
+
+    const s = await getState()
+    const plano = (s.planosCustodia || []).find((p) => p.id === res.data?.planoId)
+    expect(plano?.modalidade).toBe('mensal')
+    expect(plano?.quantidadeContratada).toBe(2)
+    expect(plano?.valorPorMoedaCents).toBe(300)
+    expect(plano?.valorTotalCents).toBe(600)
+    expect(plano?.parcelasMax).toBe(1)
   })
 
   it('contrata plano anual: cria plano aguardando_pagamento e fatura de contratação', async () => {
@@ -117,25 +129,22 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(plano?.parcelasMax).toBe(12)
   })
 
-  // Com um prazo só, não há modalidade para trocar. O que este caso protege
-  // continua valendo: contratar duas vezes o mesmo protocolo antes de pagar
-  // recalcula o plano e a fatura que já existem, em vez de criar um segundo par.
   it('contratar de novo antes de pagar recalcula a fatura e o plano existentes', async () => {
     const res1 = await contratarPlanoCustodia(PROTOCOLO, 'anual')
     expect(res1.ok).toBe(true)
 
-    // Troca para anual
-    const res2 = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    // Troca para mensal
+    const res2 = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     expect(res2.ok).toBe(true)
     expect(res2.data?.planoId).toBe(res1.data?.planoId)
 
     const s = await getState()
     const plano = (s.planosCustodia || []).find((p) => p.id === res1.data?.planoId)
-    expect(plano?.modalidade).toBe('anual')
-    expect(plano?.valorTotalCents).toBe(4800)
+    expect(plano?.modalidade).toBe('mensal')
+    expect(plano?.valorTotalCents).toBe(600)
 
     const fatura = (s.faturasCustodia || []).find((f) => f.planoId === plano?.id)
-    expect(fatura?.valorCents).toBe(4800)
+    expect(fatura?.valorCents).toBe(600)
   })
 
   it('paga fatura com saldo: debita saldo, marca paga e torna o plano vigente', async () => {

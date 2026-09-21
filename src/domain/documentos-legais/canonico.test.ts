@@ -54,7 +54,7 @@ describe('Documentos Legais · Canonicidade e Hashes Criptográficos', () => {
     for (const chave of chaves) {
       const doc = DOCUMENTOS_VIGENTES[chave]
       expect(doc).toBeDefined()
-      expect(doc.versao).toBe('2.0')
+      expect(doc.versao).toBe(chave === 'politica_privacidade' ? '2.0' : '2.1')
       expect(doc.vigenteDesde).toBe(PARAMETROS_LEGAIS.vigencia)
       expect(doc.hash).toMatch(/^[0-9a-f]{64}$/)
       expect(doc.textoCanonico.length).toBeGreaterThan(100)
@@ -62,13 +62,13 @@ describe('Documentos Legais · Canonicidade e Hashes Criptográficos', () => {
     }
   })
 
-  it('vetor congelado de hash dos Termos de Uso v2.0', () => {
+  it('vetor congelado de hash dos Termos de Uso v2.1', () => {
     const doc = DOCUMENTOS_VIGENTES.termos_de_uso
     // Congelamento do hash: se alguém alterar qualquer caractere do texto,
     // o hash muda e este teste exige atualização explícita com justificativa.
-    expect(doc.hash).toBe('97521d13fc2052d531df8de3c10edd4d4df61d86fb1effcee5806ee626bd11b2')
+    expect(doc.hash).toBe('2cf7ee937b92f3242ce13c46bd1b9b1865da569fceb60c18c8dcecaaf53f2ac6')
     expect(hashDoDocumento(TERMOS_DE_USO_V1)).toBe(
-      '97521d13fc2052d531df8de3c10edd4d4df61d86fb1effcee5806ee626bd11b2',
+      '2cf7ee937b92f3242ce13c46bd1b9b1865da569fceb60c18c8dcecaaf53f2ac6',
     )
   })
 })

@@ -137,13 +137,13 @@ describe('domain/custody', () => {
       const fatura = gerarFaturaParaUsuario(user, 'cli@teste.com', '2026-09', 1000)
       expect(fatura).not.toBeNull()
       expect(fatura?.quantidadeMoedas).toBe(1)
-      expect(fatura?.valorCents).toBe(200) // R$ 2,00 para a moeda ativa
+      expect(fatura?.valorCents).toBe(300) // R$ 3,00 para a moeda ativa
       expect(fatura?.moedaIds).toEqual(['RO-000001'])
       expect(fatura?.status).toBe('pendente')
       expect(fatura?.dataVencimento).toBe(1000 + DIAS_TOLERANCIA_FATURA * 86400000)
     })
 
-    it('calcula valor correto para múltiplas moedas (R$ 2,00 cada)', () => {
+    it('calcula valor correto para múltiplas moedas (R$ 3,00 cada)', () => {
       const user: User = {
         name: 'Investidor',
         balance: 5000,
@@ -186,7 +186,7 @@ describe('domain/custody', () => {
       const fatura = gerarFaturaParaUsuario(user, 'inv@teste.com', '2026-09', 5000)
       expect(fatura).not.toBeNull()
       expect(fatura?.quantidadeMoedas).toBe(3)
-      expect(fatura?.valorCents).toBe(600) // 3 * R$ 2,00 = R$ 6,00
+      expect(fatura?.valorCents).toBe(900) // 3 * R$ 3,00 = R$ 9,00
     })
   })
 

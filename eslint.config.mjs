@@ -40,6 +40,7 @@ const config = [
       'build/**',
       'estacao/**',
       'next-env.d.ts',
+      '*.cjs',
     ],
   },
 ]

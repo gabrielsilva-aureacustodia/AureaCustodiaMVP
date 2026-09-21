@@ -9,8 +9,22 @@
  * volta e a ordem de execução define quem compra de quem e por quanto.
  */
 
-import type { AppState, Cents, Coin, CoinType, Lot, MatchResult, Trade, User } from '@/domain/types'
+import type {
+  AppState,
+  Cents,
+  Coin,
+  CoinType,
+  Lot,
+  MatchResult,
+  Timestamp,
+  Trade,
+  User,
+  UserEmail,
+} from '@/domain/types'
+import { nextPlanoCode } from '@/domain/codes'
 import { isNegociavel } from '@/domain/constants'
+import { competenciaAtual } from '@/domain/custody'
+import { transferirCustodiaDaMoeda } from '@/domain/custodia-transferencia'
 import { DAY_MS, fdate } from '@/domain/dates'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
@@ -178,6 +192,55 @@ export function transferCoin(seller: User, buyer: User, coinId: string): Coin | 
   return coin
 }
 
+/**
+ * Move a moeda E a obrigação de custódia dela, numa chamada só.
+ *
+ * É esta que todo caminho de VENDA usa — casamento do livro, compra de lote,
+ * compra direta e conciliação de pagamento. A `transferCoin` acima continua
+ * existindo para movimentação que não é venda (e para os testes que só querem
+ * o inventário), mas quem chama a nua num fluxo de venda deixa o vendedor
+ * pagando custódia de moeda que não é mais dele e o comprador guardando de
+ * graça — foi exatamente o que acontecia até 21/09/2026.
+ *
+ * O `state` é pedido inteiro, e não só os dois usuários, porque planos, faturas
+ * e o contador de códigos vivem nele. A custódia só se move se a moeda se
+ * mover: transferência órfã não cria cobrança nenhuma.
+ */
+export function transferirMoedaVendida(
+  state: AppState,
+  seller: User,
+  buyer: User,
+  sellerEmail: UserEmail,
+  buyerEmail: UserEmail,
+  coinId: string,
+  taxas: TabelaDeTaxas = TAXAS_PADRAO,
+  agora: Timestamp = Date.now(),
+): Coin | null {
+  const coin = transferCoin(seller, buyer, coinId)
+  if (!coin) return null
+
+  state.planosCustodia = state.planosCustodia ?? []
+  state.faturasCustodia = state.faturasCustodia ?? []
+
+  transferirCustodiaDaMoeda({
+    planos: state.planosCustodia,
+    faturas: state.faturasCustodia,
+    coinId,
+    vendedorEmail: sellerEmail,
+    compradorEmail: buyerEmail,
+    competencia: competenciaAtual(agora),
+    agora,
+    // Espalhado, e não passado direto: `TabelaDeTaxas` é uma interface sem
+    // assinatura de índice, e o tipo do domínio de custódia tem uma. O objeto
+    // literal ganha a assinatura implícita — é o mesmo espalhamento que as
+    // Server Actions já fazem ao chamar `valorDoPlano`.
+    taxas: { ...taxas },
+    novoPlanoId: () => nextPlanoCode(state.seq),
+  })
+
+  return coin
+}
+
 /* ---------- motor de casamento de ordens (bid x ask) ---------- */
 
 /**
@@ -269,7 +332,15 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
         // Agora a oferta órfã é removida do livro e a rodada recomeça, sem
         // mover saldo e sem gravar negociação. Remover é o que também impede o
         // laço de reencontrar a mesma oferta para sempre.
-        const coin = transferCoin(seller, buyer, so.coinId)
+        const coin = transferirMoedaVendida(
+          state,
+          seller,
+          buyer,
+          so.seller,
+          bo.buyer,
+          so.coinId,
+          taxas,
+        )
         if (!coin) {
           state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
           progress = true

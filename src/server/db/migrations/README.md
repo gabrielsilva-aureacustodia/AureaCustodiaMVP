@@ -82,6 +82,8 @@ tabela de outra frente, então entram na ordem em que as sub-branches chegarem �
 |---|---|
 | `026_plano_bienal.sql` | Amplia o CHECK de `planos_custodia.modalidade` para aceitar `bienal`, o plano de 24 meses criado em 18/09/2026. `mensal` continua aceito porque está gravado nos planos antigos: tirar o valor do CHECK travaria qualquer UPDATE neles. O código não cria mais plano mensal |
 | `030_rastreio_da_retirada.sql` | E8: `rastreios` ganha `retirada_id` e `protocolo` deixa de ser `NOT NULL`. A restrição `rastreios_um_dono_check` garante um dono por linha — um envio OU uma retirada, nunca os dois. Aditiva: a gravação antiga (protocolo preenchido, `retirada_id` nulo) continua passando, e por isso pode ser aplicada antes do deploy |
+| `031_cadastro_direto.sql` | Origem da análise (`envio` ou `cadastro_direto`) e coluna de observação na tabela `analises` |
+| `032_custodia_transferida.sql` | Adiciona `meses_contratados`, `origem` e `plano_origem_id` em `planos_custodia`; adiciona `transferencia` ao CHECK de `faturas_custodia.origem` |
 
 Sem ela, a primeira contratação de plano de 24 meses falha por violação de constraint no meio
 do fluxo de envio — o plano anual e o ciclo mensal continuam funcionando.

@@ -97,13 +97,15 @@ cold start.
   (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
   derivados em `constants.ts`). Em uma negociação de R$ 200,00: o comprador paga R$ 202,00, o
   vendedor recebe R$ 198,00 e a Áurea retém R$ 4,00.
-- Custódia: **dois planos, e só dois** (decisão de 18/09/2026). **Anual**, R$ 24,00 por moeda
-  pelos 12 meses (`custodiaAnualPorMoeda: 2400`), e **de 24 meses**, R$ 36,00 por moeda
-  (`custodiaBienalPorMoeda: 3600`) — ou seja R$ 2,00 e R$ 1,50 por mês. Os dois parcelam em
-  até 12x no cartão. **Não existe plano mensal**: quem guarda moeda contrata um prazo.
-  O que continua mensal é o **ciclo** (`origem: 'ciclo_mensal'`), a cobrança de R$ 2,00 por
-  moeda de quem está sem plano vigente (`custodiaMensalPorMoeda: 200`, decisão D-3 de
-  11/09/2026). A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
+- Custódia: **dois planos** (decisão de 21/09/2026). **Mensal**, R$ 3,00 por moeda por mês
+  (`custodiaMensalPorMoeda: 300`), sem prazo mínimo e sem parcelamento; e **anual**, R$ 24,00 por moeda
+  pelos 12 meses (`custodiaAnualPorMoeda: 2400`), parcelado em até 12x no cartão (R$ 2,00 por mês).
+  O antigo plano de 24 meses foi aposentado em 20/09/2026. O **ciclo mensal** (`origem: 'ciclo_mensal'`)
+  cobra o mesmo preço do plano mensal (R$ 3,00 por moeda) de quem guarda moeda sem plano vigente.
+  **A custódia acompanha a moeda vendida:** na venda, o plano do vendedor é encerrado (ou a moeda é
+  desvinculada dele) e o comprador assume os meses restantes em plano de transferência proporcional
+  (ex.: 11 meses restantes = R$ 22,00 em até 11x), podendo optar por 12 meses novos ou mensal.
+  A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
 - Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
   **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
   nunca casa com oferta de outro).

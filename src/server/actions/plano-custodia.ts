@@ -21,10 +21,11 @@ import {
 import { brl } from '@/domain/money'
 import {
   calcularPagoAte,
-  mesesCobertos,
+  mesesDoPlano,
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
+import { reescolherPlanoDaTransferencia } from '@/domain/custodia-transferencia'
 import type {
   ActionResult,
   FaturaCustodia,
@@ -61,9 +62,10 @@ export async function contratarPlanoCustodia(
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
-  // O plano mensal foi aposentado em 18/09/2026; a tela manda só estes dois, e uma
-  // chamada com 'mensal' vinda de aba velha ou de cliente antigo para aqui.
-  if (modalidade !== 'anual' && modalidade !== 'bienal') {
+  // São duas modalidades desde 21/09/2026: mensal (R$ 3,00/moeda/mês) e anual
+  // (R$ 24,00/moeda pelos 12 meses). Uma chamada com 'bienal', vinda de aba
+  // velha, para aqui — aquele plano foi aposentado em 20/09/2026.
+  if (modalidade !== 'anual' && modalidade !== 'mensal') {
     return { ok: false, error: 'Modalidade de plano inválida.' }
   }
 
@@ -92,8 +94,11 @@ export async function contratarPlanoCustodia(
       if (planoExistente) {
         if (planoExistente.status === 'aguardando_pagamento' && planoExistente.modalidade !== modalidade) {
           // O cliente trocou a modalidade antes de pagar: recalcula valores
-          const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade, { ...taxas })
+          const { porMoeda, total, parcelasMax, meses } = valorDoPlano(modalidade, quantidade, {
+            ...taxas,
+          })
           planoExistente.modalidade = modalidade
+          planoExistente.mesesContratados = meses
           planoExistente.valorPorMoedaCents = porMoeda
           planoExistente.valorTotalCents = total
           planoExistente.parcelasMax = parcelasMax
@@ -119,7 +124,9 @@ export async function contratarPlanoCustodia(
 
       // Cria novo plano
       const planoId = nextPlanoCode(s.seq)
-      const { porMoeda, total, parcelasMax } = valorDoPlano(modalidade, quantidade, { ...taxas })
+      const { porMoeda, total, parcelasMax, meses } = valorDoPlano(modalidade, quantidade, {
+        ...taxas,
+      })
       const inicioCompetencia = competenciaAtual(agora)
 
       const novoPlano: PlanoCustodia = {
@@ -141,6 +148,9 @@ export async function contratarPlanoCustodia(
         estornadoCents: 0,
         criadoEm: agora,
         atualizadoEm: agora,
+        mesesContratados: meses,
+        origem: 'contratacao',
+        planoOrigemId: null,
       }
 
       const sanitizeEmail = session.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
@@ -178,6 +188,78 @@ export async function contratarPlanoCustodia(
     return result
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Falha ao contratar plano de custódia.'
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Troca a forma de pagar a custódia que veio junto com uma moeda comprada.
+ *
+ * Quando alguém compra uma moeda em custódia, o sistema cria sozinho um plano
+ * `aguardando_pagamento` com os meses que faltavam do plano do vendedor — é o
+ * aviso de débito que aparece em Meus Recibos, Minha Conta e Envios. Esta ação
+ * existe para as outras duas escolhas que o Gabriel pediu na mesma tela:
+ *
+ *  - `proporcional`: só os meses restantes (o padrão, como o plano nasce);
+ *  - `anual`: 12 meses cheios a partir de agora, e não retroativos;
+ *  - `mensal`: R$ 3,00 por moeda por mês.
+ *
+ * Só mexe em plano de transferência que ainda não foi pago, e só do dono da
+ * sessão: um plano vigente já tem dinheiro associado e cobertura contada.
+ */
+export async function escolherPlanoDaTransferencia(
+  planoId: string,
+  opcao: 'proporcional' | 'anual' | 'mensal',
+): Promise<ActionResult<{ planoId: string; faturaId: string; valorCents: number }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  if (opcao !== 'proporcional' && opcao !== 'anual' && opcao !== 'mensal') {
+    return { ok: false, error: 'Opção de custódia inválida.' }
+  }
+
+  const { taxas } = await carregarRegrasDoMercado()
+
+  try {
+    const { result } = await mutateState((s) => {
+      s.planosCustodia = s.planosCustodia ?? []
+      s.faturasCustodia = s.faturasCustodia ?? []
+
+      const plano = s.planosCustodia.find((p) => p.id === planoId)
+      if (!plano) return { ok: false, error: 'Plano de custódia não encontrado.' }
+      if (plano.userEmail !== session) {
+        return { ok: false, error: 'Este plano pertence a outro usuário.' }
+      }
+
+      const fatura = s.faturasCustodia.find(
+        (f) => f.planoId === plano.id && f.status === 'pendente',
+      )
+
+      const trocou = reescolherPlanoDaTransferencia(
+        plano,
+        fatura,
+        opcao,
+        competenciaAtual(Date.now()),
+        Date.now(),
+        { ...taxas },
+      )
+      if (!trocou) {
+        return { ok: false, error: 'Este plano não aceita mais troca de modalidade.' }
+      }
+
+      return {
+        ok: true,
+        data: {
+          planoId: plano.id,
+          faturaId: fatura?.id ?? '',
+          valorCents: plano.valorTotalCents,
+        },
+      }
+    })
+
+    return result
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Falha ao ajustar o plano de custódia.'
     return { ok: false, error: msg }
   }
 }
@@ -247,7 +329,13 @@ export async function pagarFaturaComSaldo(
         const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
         if (plano) {
           plano.status = 'vigente'
-          plano.pagoAteCompetencia = calcularPagoAte(plano.inicioCompetencia, plano.modalidade)
+          // O prazo é o DO PLANO, não o da modalidade: o plano de
+          // transferência é um anual que cobre só os meses que faltavam.
+          plano.pagoAteCompetencia = calcularPagoAte(
+            plano.inicioCompetencia,
+            plano.modalidade,
+            plano.mesesContratados,
+          )
           plano.formaPagamento = 'saldo'
           plano.atualizadoEm = agora
         }
@@ -255,8 +343,12 @@ export async function pagarFaturaComSaldo(
         s.planosCustodia = s.planosCustodia ?? []
         const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
         if (plano) {
-          // A renovação estende pelo prazo do próprio plano: 12 meses no anual, 24 no de 24 meses.
-          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
+          // A renovação estende pelo prazo do próprio plano: 12 meses no anual,
+          // 1 no mensal, e o que estiver gravado no plano de transferência.
+          plano.pagoAteCompetencia = somarMeses(
+            plano.pagoAteCompetencia ?? plano.inicioCompetencia,
+            mesesDoPlano(plano),
+          )
           plano.formaPagamento = 'saldo'
           plano.atualizadoEm = agora
         }

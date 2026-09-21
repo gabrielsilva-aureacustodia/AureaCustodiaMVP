@@ -7,12 +7,22 @@
  * Substitui os valores dispersos pelo objeto `TAXAS_PADRAO`.
  * Valores monetários em centavos (Cents), percentuais em pontos-base (bp).
  *
- * O PLANO É UM SÓ (20/09/2026): o anual. O de 24 meses foi aposentado, e o mensal já tinha sido
- * aposentado — a moeda entra em custódia já dentro de um dos dois. O valor
- * `custodiaMensalPorMoeda` continua existindo porque NÃO é plano: é o preço do
- * ciclo mensal, a cobrança de quem tem moeda guardada sem plano vigente (plano
- * vencido, moeda que sobrou de um plano cancelado). R$ 2,00/mês é exatamente
- * 1/12 do plano anual, então a conta fecha nos dois caminhos.
+ * DOIS PLANOS (21/09/2026): mensal e anual. O mensal custa R$ 3,00 por moeda por
+ * mês e não tem prazo; o anual custa R$ 24,00 por moeda pelos 12 meses, ou seja
+ * R$ 2,00/mês, em até 12x no cartão. A diferença é o desconto de quem se
+ * compromete com o ano inteiro. O plano de 24 meses foi aposentado em
+ * 20/09/2026 e não volta.
+ *
+ * `custodiaMensalPorMoeda` serve a DOIS papéis com o mesmo preço: é a
+ * mensalidade do plano mensal e é o preço do ciclo — a cobrança de quem tem
+ * moeda guardada sem plano vigente (plano vencido, moeda que sobrou de plano
+ * cancelado). Mesmo preço de propósito: quem não contrata prazo paga a tarifa
+ * mensal cheia, e não haveria como justificar cobrar diferente das duas
+ * situações, que do ponto de vista do serviço são idênticas.
+ *
+ * Era R$ 2,00 até 20/09/2026, quando o mensal não existia como plano e o ciclo
+ * saía por 1/12 do anual. Com o plano mensal de volta, o anual precisa ser o
+ * mais barato por mês — senão ninguém contrata prazo nenhum.
  */
 
 import type { Cents } from '@/domain/types'
@@ -37,7 +47,7 @@ export const TAXAS_PADRAO: TabelaDeTaxas = {
   comissaoCompradorFixa: 100,
   comissaoVendedorBp: 50,
   comissaoVendedorFixa: 100,
-  custodiaMensalPorMoeda: 200,
+  custodiaMensalPorMoeda: 300,
   custodiaAnualPorMoeda: 2400,
   custodiaAnualParcelasMax: 12,
   taxaSaqueFixa: 500,
@@ -92,12 +102,13 @@ export function tradeFee(price: Cents, lado: 'comprador' | 'vendedor' = 'vendedo
 }
 
 /**
- * Taxa de custódia por moeda (Decisão D-3, 10/09/2026; planos revistos em 18/09/2026).
- * Apelidos para TAXAS_PADRAO.
+ * Taxa de custódia por moeda (Decisão D-3, 10/09/2026; planos revistos em
+ * 21/09/2026). Apelidos para TAXAS_PADRAO.
  *
- * Mensal é o ciclo (R$ 2,00/mês). Anual é R$ 24,00 pelos 12 meses — os mesmos
- * R$ 2,00 por mês. Bienal é R$ 36,00 pelos 24 meses, ou seja R$ 1,50 por mês:
- * o desconto de quem contrata o dobro de tempo.
+ * Mensal é R$ 3,00 por moeda por mês — preço do plano mensal e também do ciclo,
+ * que é a cobrança de moeda sem plano vigente. Anual é R$ 24,00 pelos 12 meses,
+ * ou seja R$ 2,00 por mês: o desconto de quem contrata o ano inteiro em vez de
+ * mês a mês.
  */
 export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaMensalPorMoeda
 export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaAnualPorMoeda

@@ -18,6 +18,7 @@
  * topo de components/shell/Topbar.tsx). Os textos são os mesmos, ao caractere.
  */
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -400,6 +401,63 @@ export default function ContaPage(): ReactNode {
               </div>
               <span className="arr">›</span>
             </div>
+          </div>
+
+          {/* ------------------------------------------------------------------
+              Documentos legais sempre à mão.
+
+              As três páginas já existiam e só eram alcançáveis pelo rodapé e
+              pelo fluxo de aceite do cadastro — ou seja, quem já tinha aceitado
+              não achava mais o texto que aceitou. Pedido do Gabriel em
+              21/09/2026: os Termos e a Tabela de Taxas ficam disponíveis para
+              leitura a qualquer momento aqui na Minha Conta.
+
+              São links de verdade (<Link>), e não .qk-row com onClick como os
+              atalhos acima: documento jurídico precisa abrir em aba nova, ser
+              copiável e ter endereço próprio.
+              ------------------------------------------------------------- */}
+          <div className="panel" style={{ marginBottom: 16 }}>
+            <h3>
+              <svg viewBox="0 0 24 24">
+                <path d="M6 3h8l4 4v14H6z" />
+                <path d="M14 3v4h4M9 12h6M9 16h6" />
+              </svg>
+              Documentos legais
+            </h3>
+
+            <Link href="/termos" className="qk-row" style={{ textDecoration: 'none' }}>
+              <svg viewBox="0 0 24 24">
+                <path d="M6 3h8l4 4v14H6z" />
+                <path d="M14 3v4h4" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Termos de Uso</div>
+                <div className="qk-sub">O contrato que rege a sua conta e as transações</div>
+              </div>
+              <span className="arr">›</span>
+            </Link>
+
+            <Link href="/taxas" className="qk-row" style={{ textDecoration: 'none' }}>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 7h16M4 12h16M4 17h10" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Tabela de Taxas</div>
+                <div className="qk-sub">Custódia, comissões do mercado, retirada e saque</div>
+              </div>
+              <span className="arr">›</span>
+            </Link>
+
+            <Link href="/privacidade" className="qk-row" style={{ textDecoration: 'none' }}>
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Política de Privacidade</div>
+                <div className="qk-sub">Quais dados tratamos e por quanto tempo</div>
+              </div>
+              <span className="arr">›</span>
+            </Link>
           </div>
 
           <div className="panel" style={{ textAlign: 'center' }}>

@@ -92,9 +92,9 @@ describe('server/custodia/faturamento', () => {
     expect(rel.faturasLiquidadasComSaldo).toBe(1)
     expect(rel.faturasPendentes).toBe(1)
 
-    // Cliente com saldo: 2 moedas = R$ 4,00 (400 cents)
+    // Cliente com saldo: 2 moedas = R$ 6,00 (600 cents)
     const userComSaldo = estadoSimulado.users['com_saldo@teste.com']
-    expect(userComSaldo.balance).toBe(10_000 - 400) // 9600
+    expect(userComSaldo.balance).toBe(10_000 - 600) // 9400
     // Desde a E8 o ciclo não grava user.inadimplente: essa coluna é só a marca manual do painel.
     expect(userComSaldo.inadimplente).toBeFalsy()
 
@@ -102,9 +102,9 @@ describe('server/custodia/faturamento', () => {
     expect(faturaComSaldo).toBeDefined()
     expect(faturaComSaldo?.status).toBe('paga')
     expect(faturaComSaldo?.formaPagamento).toBe('saldo')
-    expect(faturaComSaldo?.valorCents).toBe(400)
+    expect(faturaComSaldo?.valorCents).toBe(600)
 
-    // Cliente sem saldo: 1 moeda = R$ 2,00 (200 cents), saldo permanece 100
+    // Cliente sem saldo: 1 moeda = R$ 3,00 (300 cents), saldo permanece 100
     const userSemSaldo = estadoSimulado.users['sem_saldo@teste.com']
     expect(userSemSaldo.balance).toBe(100)
     expect(userSemSaldo.inadimplente).toBeFalsy() // o ciclo não grava a coluna (E8)
@@ -251,7 +251,7 @@ describe('server/custodia/faturamento', () => {
     // Roda o faturamento do ciclo para 2026-09
     await processarCicloFaturamento('2026-09', 1726000000000)
 
-    // Deve ter a fatura de contratacao (200) E uma nova fatura de ciclo_mensal cobrindo apenas RO-000002 (200 cents)
+    // Deve ter a fatura de contratacao (200) E uma nova fatura de ciclo_mensal cobrindo apenas RO-000002 (300 cents)
     const faturasComSaldo = estadoSimulado.faturasCustodia.filter((f) => f.userEmail === 'com_saldo@teste.com')
     expect(faturasComSaldo).toHaveLength(2)
 
@@ -259,7 +259,7 @@ describe('server/custodia/faturamento', () => {
     expect(faturaCiclo).toBeDefined()
     expect(faturaCiclo?.quantidadeMoedas).toBe(1)
     expect(faturaCiclo?.moedaIds).toEqual(['RO-000002'])
-    expect(faturaCiclo?.valorCents).toBe(200)
+    expect(faturaCiclo?.valorCents).toBe(300)
     expect(faturaCiclo?.status).toBe('paga') // debitada com saldo
   })
 

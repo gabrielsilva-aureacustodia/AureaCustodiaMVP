@@ -23,7 +23,37 @@ import {
   listarMeusPlanos,
   listarMinhasFaturas,
   pagarFaturaComSaldo,
+  escolherPlanoDaTransferencia,
 } from '@/server/actions/plano-custodia'
+
+/**
+ * As três formas de quitar a custódia que veio junto com uma moeda comprada.
+ *
+ * Pedido do Gabriel em 21/09/2026: o comprador vê o valor já atualizado com o
+ * resto da custódia e pode, em vez disso, contratar 12 meses cheios a partir de
+ * agora — "e não retroativamente do mês anterior" — ou cair no mensal.
+ */
+const OPCOES_DA_TRANSFERENCIA: {
+  chave: 'proporcional' | 'anual' | 'mensal'
+  titulo: string
+  detalhe: string
+}[] = [
+  {
+    chave: 'proporcional',
+    titulo: 'Só os meses restantes',
+    detalhe: 'Você assume a custódia até o fim do prazo que já estava contratado para esta moeda.',
+  },
+  {
+    chave: 'anual',
+    titulo: '12 meses completos',
+    detalhe: 'Um plano anual novo, contado a partir deste mês — não retroativo.',
+  },
+  {
+    chave: 'mensal',
+    titulo: 'Mês a mês',
+    detalhe: 'Sem prazo: a custódia é cobrada todo mês enquanto a moeda estiver guardada.',
+  },
+]
 
 export function FaturasCustodia(): ReactNode {
   const { me } = useApp()
@@ -33,6 +63,7 @@ export function FaturasCustodia(): ReactNode {
   const [carregando, setCarregando] = useState(true)
   const [faturaEmPagamento, setFaturaEmPagamento] = useState<string | null>(null)
   const [abaAtiva, setAbaAtiva] = useState<'faturas' | 'planos'>('faturas')
+  const [trocandoPlano, setTrocandoPlano] = useState(false)
 
   const carregar = useCallback(async () => {
     try {
@@ -192,6 +223,90 @@ export function FaturasCustodia(): ReactNode {
                 </div>
               </div>
 
+              {/* ------------------------------------------------------------
+                  Custódia herdada: o comprador escolhe como pagar.
+
+                  Só aparece em plano de transferência ainda não pago. Num plano
+                  comum não há o que escolher — a modalidade foi decidida no
+                  envio —, e num plano já pago a cobertura já está contada.
+                  ------------------------------------------------------- */}
+              {planoDaFatura?.origem === 'transferencia' &&
+              planoDaFatura.status === 'aguardando_pagamento' ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: 4 }}>
+                    Esta custódia veio junto com a moeda que você comprou
+                  </div>
+                  <div
+                    style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: 10 }}
+                  >
+                    A guarda já estava contratada pelo dono anterior. Você assume daqui em diante —
+                    e escolhe como quer pagar.
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    {OPCOES_DA_TRANSFERENCIA.map((o) => {
+                      const atual =
+                        o.chave === 'proporcional'
+                          ? planoDaFatura.modalidade === 'anual' &&
+                            (planoDaFatura.mesesContratados ?? 12) < 12
+                          : o.chave === 'mensal'
+                            ? planoDaFatura.modalidade === 'mensal'
+                            : planoDaFatura.modalidade === 'anual' &&
+                              (planoDaFatura.mesesContratados ?? 12) === 12
+
+                      return (
+                        <button
+                          key={o.chave}
+                          type="button"
+                          disabled={trocandoPlano}
+                          onClick={async () => {
+                            setTrocandoPlano(true)
+                            try {
+                              const res = await escolherPlanoDaTransferencia(
+                                planoDaFatura.id,
+                                o.chave,
+                              )
+                              if (res.ok) await carregar()
+                            } finally {
+                              setTrocandoPlano(false)
+                            }
+                          }}
+                          style={{
+                            textAlign: 'left',
+                            padding: 12,
+                            minHeight: 44,
+                            borderRadius: 8,
+                            cursor: trocandoPlano ? 'progress' : 'pointer',
+                            border: atual
+                              ? '2px solid var(--gold)'
+                              : '1px solid var(--line-soft)',
+                            background: atual ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, fontSize: '13px' }}>{o.titulo}</div>
+                          <div
+                            style={{
+                              fontSize: '11.5px',
+                              color: 'var(--text-muted)',
+                              marginTop: 4,
+                            }}
+                          >
+                            {o.detalhe}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <PainelPagamento
                 valorCents={faturaSelecionada.valorCents}
                 parcelasMax={planoDaFatura?.parcelasMax ?? (faturaSelecionada.origem === 'renovacao_anual' ? 12 : 1)}
@@ -243,7 +358,9 @@ export function FaturasCustodia(): ReactNode {
                         ? 'Contratação'
                         : f.origem === 'renovacao_anual'
                           ? 'Renovação do plano'
-                          : 'Ciclo mensal'
+                          : f.origem === 'transferencia'
+                            ? 'Custódia da moeda comprada'
+                            : 'Ciclo mensal'
 
                     return (
                       <tr key={f.id}>

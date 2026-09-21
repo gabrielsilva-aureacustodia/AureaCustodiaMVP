@@ -320,6 +320,56 @@ function suite(alvo: Alvo): void {
       await executar((tx) => tx.query(`DELETE FROM ${S}.planos_custodia WHERE protocolo_envio = 'ENV-CHECK'`))
     })
 
+    it('migration 032: planos_custodia e faturas_custodia aceitam campos e constraint de transferência', async () => {
+      const S = alvo.schema
+      const semeado = await lerEstado(executar)
+      const [dono] = Object.keys(semeado.users)
+
+      // 1. Inserir plano de transferência com meses_contratados e plano_origem_id
+      await executar((tx) =>
+        tx.query(
+          `INSERT INTO ${S}.planos_custodia
+             (id, user_email, protocolo_envio, modalidade, quantidade_contratada,
+              valor_por_moeda, valor_total, parcelas_max, inicio_competencia, status,
+              criado_em, atualizado_em, meses_contratados, origem, plano_origem_id)
+           VALUES ('PLC-TR-TEST', $1, 'ENV-TR', 'anual', 1, 2200, 2200, 11, '2026-10', 'aguardando_pagamento',
+                   1, 1, 11, 'transferencia', 'PLC-ORIGEM')`,
+          [dono],
+        ),
+      )
+
+      // Recusa origem inválida em planos_custodia
+      await expect(
+        executar((tx) =>
+          tx.query(
+            `INSERT INTO ${S}.planos_custodia
+               (id, user_email, protocolo_envio, modalidade, quantidade_contratada,
+                valor_por_moeda, valor_total, parcelas_max, inicio_competencia, status,
+                criado_em, atualizado_em, origem)
+             VALUES ('PLC-TR-ERR', $1, 'ENV-TR', 'anual', 1, 2200, 2200, 11, '2026-10', 'aguardando_pagamento',
+                     1, 1, 'invalida')`,
+            [dono],
+          ),
+        ),
+      ).rejects.toThrow()
+
+      // 2. Inserir fatura com origem 'transferencia'
+      await executar((tx) =>
+        tx.query(
+          `INSERT INTO ${S}.faturas_custodia
+             (id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
+              status, data_emissao, data_vencimento, plano_id, origem)
+           VALUES ('FAT-TR-TEST', $1, '2026-10', 1, '{}', 2200,
+                   'pendente', 1, 2, 'PLC-TR-TEST', 'transferencia')`,
+          [dono],
+        ),
+      )
+
+      // Limpeza
+      await executar((tx) => tx.query(`DELETE FROM ${S}.faturas_custodia WHERE id = 'FAT-TR-TEST'`))
+      await executar((tx) => tx.query(`DELETE FROM ${S}.planos_custodia WHERE protocolo_envio = 'ENV-TR'`))
+    })
+
     it('banco vazio semeia na primeira leitura, e a segunda leitura é idêntica à primeira', async () => {
       const primeira = await lerEstado(executar)
       expect(Object.keys(primeira.users)).toHaveLength(7)
@@ -1030,10 +1080,10 @@ function suite(alvo: Alvo): void {
       const termos = await executar((tx) => buscarDocumentoVigente(tx, 'termos_de_uso'))
       expect(termos).not.toBeNull()
       expect(termos?.chave).toBe('termos_de_uso')
-      expect(termos?.versao).toBe('2.0')
-      expect(termos?.hashConteudo).toBe('97521d13fc2052d531df8de3c10edd4d4df61d86fb1effcee5806ee626bd11b2')
+      expect(termos?.versao).toBe('2.1')
+      expect(termos?.hashConteudo).toBe('2cf7ee937b92f3242ce13c46bd1b9b1865da569fceb60c18c8dcecaaf53f2ac6')
 
-      const arbitragem = await executar((tx) => buscarDocumentoPorChaveEVersao(tx, 'clausula_arbitragem', '2.0'))
+      const arbitragem = await executar((tx) => buscarDocumentoPorChaveEVersao(tx, 'clausula_arbitragem', '2.1'))
       expect(arbitragem).not.toBeNull()
       expect(arbitragem?.chave).toBe('clausula_arbitragem')
 

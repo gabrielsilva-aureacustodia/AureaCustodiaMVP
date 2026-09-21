@@ -41,6 +41,10 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
   const moedas = abertas.reduce((soma, f) => soma + f.quantidadeMoedas, 0)
   const agora = Date.now()
   const vencida = abertas.some((f) => f.status === 'atrasada' || f.dataVencimento < agora)
+  // Custódia que veio junto com moeda comprada tem explicação própria: a pessoa
+  // não contratou plano nenhum e, sem uma frase dizendo de onde saiu a cobrança,
+  // ela abre a tela de faturas achando que é engano.
+  const herdada = abertas.some((f) => f.origem === 'transferencia')
 
   return (
     <div className={vencida ? 'warn-box' : 'note'} style={{ marginTop: 16, ...estilo }}>
@@ -54,6 +58,9 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
         </b>
         <div style={{ marginTop: 4 }}>
           {moedas} moeda(s) sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}
+          {herdada
+            ? 'Parte da cobrança é a custódia que acompanha moeda comprada de outro usuário: você paga apenas os meses que faltam do prazo já contratado. '
+            : ''}
           {vencida
             ? 'Enquanto estiver vencida, os recibos ficam bloqueados para venda e para retirada física.'
             : 'A guarda já está ativa; o pagamento libera o plano e mantém os recibos livres para negociar.'}{' '}

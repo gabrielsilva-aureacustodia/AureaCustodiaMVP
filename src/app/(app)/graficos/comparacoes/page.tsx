@@ -27,7 +27,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { COIN } from '@/domain/constants'
+import { COIN, LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { roDailySeries, toIndex } from '@/domain/selectors'
 import type { CryptoData } from '@/domain/types'
@@ -40,15 +40,22 @@ import type { ChartPoint } from '@/lib/charts'
 const DIAS = 30
 
 /**
- * Cores das três linhas de cripto, literais como no MVP (linhas 2538-2540 e
- * 2550-2552). Não são tokens de tema de propósito: são cinza-azulados neutros
- * que valem igual no claro e no escuro, e existem para NÃO competir com o
- * dourado do Real Olímpico, que é a linha que a tela quer destacar. Ficam aqui
- * em constantes para que a legenda e o gráfico nunca saiam de sincronia.
+ * Cores das três linhas de cripto. Literais de propósito, como no MVP (linhas
+ * 2538-2540 e 2550-2552): não são cor de tema, identificam a série e precisam
+ * valer igual no claro e no escuro. Ficam aqui em constantes para que a legenda
+ * e o gráfico nunca saiam de sincronia.
+ *
+ * Eram três cinza-azulados (#b9c3d4, #8fa0bd, #6b7c9c) escolhidos para não
+ * competir com o dourado do Real Olímpico. O efeito colateral é que também não
+ * competiam entre si: em linha de 1.6px as três viravam a mesma faixa cinza e a
+ * legenda deixava de servir para alguma coisa. Agora cada uma usa a cor de marca
+ * do próprio ativo — laranja do Bitcoin, violeta do Ethereum, verde do Tether —,
+ * que são reconhecíveis, distantes entre si no círculo cromático e nenhuma delas
+ * é dourada, então o destaque do Real Olímpico continua de pé.
  */
-const COR_BTC = '#b9c3d4'
-const COR_ETH = '#8fa0bd'
-const COR_USDT = '#6b7c9c'
+const COR_BTC = '#f7931a'
+const COR_ETH = '#627eea'
+const COR_USDT = '#26a17b'
 /** A linha do RO é a única que segue o tema — e a única mais grossa (2.6). */
 const COR_RO = 'var(--gold)'
 
@@ -136,7 +143,15 @@ export default function ComparacoesPage(): ReactNode {
 
           <div className="legend-row">
             <span className="li">
-              <span className="sw" style={{ background: COR_RO }} />
+              {/* Emblema oficial de /brand/ no lugar do quadradinho dourado:
+                  aqui o Real Olímpico é a marca, não mais uma série de cor. */}
+              <img
+                src={LOGO_REAL_EMBLEMA}
+                alt=""
+                width={18}
+                height={18}
+                style={{ borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }}
+              />
               Real Olímpico
             </span>
             <span className="li">

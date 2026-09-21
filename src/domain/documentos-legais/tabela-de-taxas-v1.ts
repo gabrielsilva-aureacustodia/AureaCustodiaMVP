@@ -9,12 +9,17 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
   chave: 'tabela_de_taxas',
-  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
-  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
-  // aponta para a versão — reciclar o número faria o registro de consentimento
-  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
-  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
-  versao: '2.0',
+  // 2.1 (21/09/2026): três mudanças de preço decididas pelo Gabriel. Voltou o
+  // plano mensal de custódia (R$ 3,00 por moeda por mês) ao lado do anual;
+  // passou a existir cobrança proporcional quando a moeda muda de dono no meio
+  // do prazo; e o depósito em conta passou a ter tarifa fixa de R$ 5,00, porque
+  // deixou de passar pelo gateway e virou Pix direto.
+  //
+  // Texto diferente é hash diferente, e o aceite gravado aponta para a versão —
+  // reciclar o número faria o registro de consentimento deixar de dizer o que a
+  // pessoa leu. O arquivo mantém o sufixo `-v1` de propósito: ele guarda o
+  // documento VIGENTE, qualquer que seja o número.
+  versao: '2.1',
   titulo: 'TABELA DE TAXAS',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -27,14 +32,29 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
       paragrafos: [
         {
           numero: '1.1',
-          titulo: 'Plano Anual de Custódia',
-          texto: 'R$ 24,00 por moeda pelos 12 meses, em até 12x no cartão de crédito.',
+          titulo: 'Plano Mensal de Custódia',
+          texto:
+            'R$ 3,00 por moeda por mês, sem prazo mínimo, cobrado enquanto a moeda permanecer sob guarda.',
         },
         {
-          // Era 1.3 enquanto existia o plano de 24 meses na 1.2. O plano foi
-          // aposentado em 20/09/2026 e a cláusula saiu: documento publicado não
-          // pode oferecer prazo que a plataforma não vende.
           numero: '1.2',
+          titulo: 'Plano Anual de Custódia',
+          texto:
+            'R$ 24,00 por moeda pelos 12 meses, equivalente a R$ 2,00 por moeda por mês, em até 12x no cartão de crédito.',
+        },
+        {
+          // Cláusula nova em 21/09/2026. O texto precisa existir porque a
+          // cobrança nasce sozinha, sem o comprador contratar nada: uma cobrança
+          // que aparece na conta sem previsão no contrato é cobrança indevida.
+          numero: '1.3',
+          titulo: 'Transferência da Custódia na Compra de Moeda',
+          texto:
+            'A obrigação de custódia acompanha a moeda. Quando uma moeda custodiada é adquirida por outro usuário, o plano do vendedor é encerrado quanto a essa moeda e o comprador assume a guarda pelos meses restantes do prazo já contratado, pagando o valor proporcional a esses meses. O comprador pode optar, em substituição, por contratar um novo plano anual ou mensal, contado a partir do mês da aquisição.',
+        },
+        {
+          // Era 1.3 enquanto existia o plano de 24 meses na 1.2, e 1.2 entre
+          // 20/09 e 21/09/2026. Renumerada de novo com a volta do plano mensal.
+          numero: '1.4',
           titulo: 'Frete de Envio para Custódia',
           texto:
             'O frete postal de envio da moeda até a central de custódia é escolhido e pago diretamente pelo cliente nos Correios.',
@@ -86,7 +106,8 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
         {
           numero: '4.1',
           titulo: 'Depósito de Recursos',
-          texto: 'Sem taxa de processamento cobrada pelo Real Olímpico.',
+          texto:
+            'Tarifa fixa de R$ 5,00 por depósito, acrescida ao valor depositado. O depósito é realizado por transferência Pix para a conta do Real Olímpico, e o saldo é creditado no valor solicitado pelo usuário após a confirmação do recebimento. Exemplo: para depositar R$ 500,00, o usuário transfere R$ 505,00 e recebe R$ 500,00 de saldo.',
         },
         {
           numero: '4.2',

@@ -50,3 +50,26 @@ export interface StatusCobrancaInfo {
   motivo?: string | null
 }
 
+
+/**
+ * O que a tela mostra depois de registrada uma solicitação de depósito por Pix
+ * direto — transferência para a chave da empresa, sem gateway no meio.
+ *
+ * Não há `qrCode` nem `initPoint`: não existe cobrança aberta em lugar nenhum.
+ * O que o cliente recebe é a chave, o valor exato a transferir e a referência
+ * que a equipe usa para conferir o extrato e liberar o saldo.
+ */
+export interface DepositoPixDireto {
+  /** Referência gerada pela plataforma, colada pelo cliente na descrição do Pix. */
+  referencia: string
+  /** Chave Pix da empresa, para copiar e colar. */
+  chavePix: string
+  /** Nome que aparece no aplicativo do banco. */
+  favorecido: string
+  /** O que entra no saldo depois da conferência. */
+  creditoCents: Cents
+  /** A taxa fixa retida pela empresa. */
+  taxaCents: Cents
+  /** O valor exato a transferir: crédito + taxa. */
+  totalCents: Cents
+}

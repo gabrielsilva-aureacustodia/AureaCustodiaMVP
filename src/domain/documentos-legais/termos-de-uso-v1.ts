@@ -13,20 +13,22 @@ import type { DocumentoLegalEstruturado } from './types'
 
 export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
   chave: 'termos_de_uso',
-  // 2.0 (20/09/2026): a marca do site passou a ser Real Olímpico e o plano de 24
-  // meses foi aposentado. Texto diferente é hash diferente, e o aceite gravado
-  // aponta para a versão — reciclar o número faria o registro de consentimento
-  // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
-  // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
-  versao: '2.0',
+  // 2.1 (21/09/2026): correção de concordância — a troca da marca feminina
+  // "Áurea Custódia" pelo masculino "Real Olímpico" masculinizou por tabela
+  // substantivos que não eram a marca ("Conto Real Olímpico", "Plataformo Real
+  // Olímpico"). Texto diferente é hash diferente, e o aceite gravado aponta
+  // para a versão — reciclar o número faria o registro de consentimento deixar
+  // de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de propósito:
+  // ele guarda o documento VIGENTE, qualquer que seja o número.
+  versao: '2.1',
   titulo: 'TERMOS DE USO',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
     'Estes termos constituem um acordo vinculativo entre o usuário da plataforma Real Olímpico ("Usuário" ou "você" ou "seu/sua") e AUREA CUSTODIA LTDA., que opera sob o nome fantasia Real Olímpico, pessoa jurídica de direito privado, CNPJ nº 68.071.452/0001-06, com endereço na Rua dos Tabaiares, nº 12, sala 210, bairro Floresta, Belo Horizonte/MG, Brasil, CEP 30.150-040 ("Real Olímpico").',
-    'Este Termos de Uso rege o uso da sua Conto Real Olímpico e quaisquer outros Serviços Real Olímpico disponibilizados a você na ou através da Plataformo Real Olímpico.',
-    'Ao registrar-se para uma Conto Real Olímpico, você reconhece que lhe foi fornecido o Termos de Uso antes da prestação dos Serviços Real Olímpico.',
-    'Ao acessar a Plataformo Real Olímpico e/ou usar os Serviços Real Olímpico, você: (i) concorda que leu, entendeu e aceitou o Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá o Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar o Termos de Uso.',
-    'Se você não entender e aceitar os termos do Termos de Uso em sua totalidade, não deve registrar uma Conto Real Olímpico, nem acessar ou usar a Plataformo Real Olímpico ou qualquer serviço Real Olímpico.',
+    'Este Termos de Uso rege o uso da sua Conta Real Olímpico e quaisquer outros Serviços Real Olímpico disponibilizados a você na ou através da Plataforma Real Olímpico.',
+    'Ao registrar-se para uma Conta Real Olímpico, você reconhece que lhe foi fornecido o Termos de Uso antes da prestação dos Serviços Real Olímpico.',
+    'Ao acessar a Plataforma Real Olímpico e/ou usar os Serviços Real Olímpico, você: (i) concorda que leu, entendeu e aceitou o Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá o Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar o Termos de Uso.',
+    'Se você não entender e aceitar os termos do Termos de Uso em sua totalidade, não deve registrar uma Conta Real Olímpico, nem acessar ou usar a Plataforma Real Olímpico ou qualquer serviço Real Olímpico.',
     'O Real Olímpico não é uma corretora de investimentos ou Criptomoedas. O Real Olímpico não fornece aconselhamento de investimento regulado, recomendações pessoais em relação a decisões de investimento ou valorização nem qualquer outro tipo de consultoria e nenhuma comunicação ou informação fornecida por nós é destinada a ser, ou deve ser interpretada como, recomendação ou aconselhamento de qualquer tipo.',
   ],
   capitulos: [
@@ -38,7 +40,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '1.1',
           titulo: 'Informações de Contato',
           texto:
-            'Você pode nos contatar utilizando os detalhes fornecidos na Cláusula 3 ou por meio dos canais de suporte ao cliente disponíveis na Plataformo Real Olímpico.',
+            'Você pode nos contatar utilizando os detalhes fornecidos na Cláusula 3 ou por meio dos canais de suporte ao cliente disponíveis na Plataforma Real Olímpico.',
         },
         {
           numero: '1.2',
@@ -67,14 +69,14 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '2.1',
           titulo: 'Critérios de Elegibilidade',
           texto:
-            'Para ser elegível para registrar uma Conto Real Olímpico e usar os Serviços Real Olímpico, você deve:',
+            'Para ser elegível para registrar uma Conta Real Olímpico e usar os Serviços Real Olímpico, você deve:',
           alineas: [
             {
               letra: 'a)',
               texto:
                 'ser uma pessoa física, corporação, pessoa jurídica, entidade ou outro empreendimento com plenos poderes, autoridade e capacidade para:',
               subalineas: [
-                { letra: '(i)', texto: 'acessar e usar a Plataformo Real Olímpico; e' },
+                { letra: '(i)', texto: 'acessar e usar a Plataforma Real Olímpico; e' },
                 {
                   letra: '(ii)',
                   texto:
@@ -94,7 +96,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: 'd)',
-              texto: 'não ter sido previamente suspenso ou removido do uso da Plataformo Real Olímpico.',
+              texto: 'não ter sido previamente suspenso ou removido do uso da Plataforma Real Olímpico.',
             },
           ],
         },
@@ -135,7 +137,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '3.2',
           titulo: 'Como entraremos em contato com você',
           texto:
-            'Entraremos em contato utilizando os dados fornecidos na Plataformo Real Olímpico. Isso pode incluir contato por e-mail, SMS, WhatsApp, ligação telefônica e via Plataformo Real Olímpico. É importante que os dados de contato sejam mantidos corretos e atualizados na Plataformo Real Olímpico. Qualquer alteração nos dados de contato deve ser informada imediatamente. Caso contrário, não seremos responsáveis se você deixar de receber informações, notificações ou outras comunicações importantes. Esteja ciente de que fraudadores podem tentar se passar por funcionários ou comunicações oficiais do Real Olímpico.',
+            'Entraremos em contato utilizando os dados fornecidos na Plataforma Real Olímpico. Isso pode incluir contato por e-mail, SMS, WhatsApp, ligação telefônica e via Plataforma Real Olímpico. É importante que os dados de contato sejam mantidos corretos e atualizados na Plataforma Real Olímpico. Qualquer alteração nos dados de contato deve ser informada imediatamente. Caso contrário, não seremos responsáveis se você deixar de receber informações, notificações ou outras comunicações importantes. Esteja ciente de que fraudadores podem tentar se passar por funcionários ou comunicações oficiais do Real Olímpico.',
         },
       ],
     },
@@ -147,7 +149,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '4.1',
           titulo: 'Termos Específicos de Serviço',
           texto:
-            'Após abrir uma Conto Real Olímpico, você poderá acessar e usar a Plataformo Real Olímpico. Este Contrato constitui uma aceitação a todos os serviços disponíveis na Plataforma. Ao acessar ou usar a Plataformo Real Olímpico, você confirma que leu, entendeu e concorda com os Termos de Serviço referentes a esse Serviço Real Olímpico (conforme alterados periodicamente).',
+            'Após abrir uma Conta Real Olímpico, você poderá acessar e usar a Plataforma Real Olímpico. Este Contrato constitui uma aceitação a todos os serviços disponíveis na Plataforma. Ao acessar ou usar a Plataforma Real Olímpico, você confirma que leu, entendeu e concorda com os Termos de Serviço referentes a esse Serviço Real Olímpico (conforme alterados periodicamente).',
         },
       ],
     },
@@ -159,7 +161,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '5.1',
           titulo: 'Pagamento de Taxas',
           texto:
-            'Ao criar uma Conto Real Olímpico você concorda em pagar todas as taxas aplicáveis relacionadas ao acesso e uso dos Serviços Real Olímpico, conforme estabelecido na Tabela de Taxas em nossa Plataforma. Ao aceitar esses Termos você autoriza e instrui o Real Olímpico a deduzir todas as taxas, comissões, juros, encargos e outros valores devidos nos termos de uso e em decorrência das operações realizadas, de acordo com o método de cálculo estabelecido na Tabela de Taxas em nossa Plataforma.',
+            'Ao criar uma Conta Real Olímpico você concorda em pagar todas as taxas aplicáveis relacionadas ao acesso e uso dos Serviços Real Olímpico, conforme estabelecido na Tabela de Taxas em nossa Plataforma. Ao aceitar esses Termos você autoriza e instrui o Real Olímpico a deduzir todas as taxas, comissões, juros, encargos e outros valores devidos nos termos de uso e em decorrência das operações realizadas, de acordo com o método de cálculo estabelecido na Tabela de Taxas em nossa Plataforma.',
         },
         {
           numero: '5.2',
@@ -177,13 +179,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
     },
     {
       numero: 6,
-      titulo: 'Conto Real Olímpico',
+      titulo: 'Conta Real Olímpico',
       paragrafos: [
         {
           numero: '6.1',
           titulo: 'Discricionariedade',
           texto:
-            'Todas as Contas Real Olímpico são oferecidas a nosso critério. Reservamo-nos o direito de recusar qualquer solicitação de abertura de Conto Real Olímpico, incluindo, sem limitação, quando:',
+            'Todas as Contas Real Olímpico são oferecidas a nosso critério. Reservamo-nos o direito de recusar qualquer solicitação de abertura de Conta Real Olímpico, incluindo, sem limitação, quando:',
           alineas: [
             {
               letra: 'a)',
@@ -196,7 +198,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: 'c)',
-              texto: 'o Usuário já ter possuído Conto Real Olímpico suspensa ou encerrada; e/ou',
+              texto: 'o Usuário já ter possuído Conta Real Olímpico suspensa ou encerrada; e/ou',
             },
             {
               letra: 'd)',
@@ -208,18 +210,18 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '6.2',
           texto:
-            'O Real Olímpico não estará obrigada a fornecer razões para a recusa de uma solicitação de abertura de conta.',
+            'O Real Olímpico não estará obrigado a fornecer razões para a recusa de uma solicitação de abertura de conta.',
         },
         {
           numero: '6.3',
           texto:
-            'Você não deve fornecer acesso a quaisquer Serviços Real Olímpico a terceiros por meio de sua Conto Real Olímpico.',
+            'Você não deve fornecer acesso a quaisquer Serviços Real Olímpico a terceiros por meio de sua Conta Real Olímpico.',
         },
         {
           numero: '6.4',
           titulo: 'Verificação de Identidade e Conheça seu Cliente',
           texto:
-            'Antes de poder abrir uma Conto Real Olímpico ou acessar qualquer Serviço Real Olímpico, você deve concluir nossos procedimentos de verificação de identidade, que podem incluir (sem limitação):',
+            'Antes de poder abrir uma Conta Real Olímpico ou acessar qualquer Serviço Real Olímpico, você deve concluir nossos procedimentos de verificação de identidade, que podem incluir (sem limitação):',
           alineas: [
             {
               letra: 'a)',
@@ -255,7 +257,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'b)',
               texto:
-                'tomar quaisquer medidas que julgarmos necessárias com base nos resultados dessas investigações, incluindo recusar sua solicitação ou suspender ou encerrar sua Conto Real Olímpico.',
+                'tomar quaisquer medidas que julgarmos necessárias com base nos resultados dessas investigações, incluindo recusar sua solicitação ou suspender ou encerrar sua Conta Real Olímpico.',
             },
           ],
         },
@@ -267,7 +269,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '6.9',
           texto:
-            'A falha ou recusa em fornecer as informações solicitadas dentro do prazo especificado poderá resultar na suspensão ou restrição da Conto Real Olímpico e/ou qualquer serviço Real Olímpico, com efeito imediato e sem aviso prévio.',
+            'A falha ou recusa em fornecer as informações solicitadas dentro do prazo especificado poderá resultar na suspensão ou restrição da Conta Real Olímpico e/ou qualquer serviço Real Olímpico, com efeito imediato e sem aviso prévio.',
         },
       ],
     },
@@ -279,13 +281,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.1',
           titulo: 'Transações',
           texto:
-            'São consideradas transações as ações de (i) envio de moeda para custódia; (ii) venda de moeda custodiada; (iii) compra de moeda; (iv) solicitação de retirada de moeda custodiada; (v) depósito de valor; e (vi) saque de valor ("Transações") realizadas na Plataformo Real Olímpico.',
+            'São consideradas transações as ações de (i) envio de moeda para custódia; (ii) venda de moeda custodiada; (iii) compra de moeda; (iv) solicitação de retirada de moeda custodiada; (v) depósito de valor; e (vi) saque de valor ("Transações") realizadas na Plataforma Real Olímpico.',
         },
         {
           numero: '7.2',
           titulo: 'Envio de Moeda para Custódia',
           texto:
-            'O Envio de Moeda para Custódia será solicitado por meio da Plataformo Real Olímpico e, após aprovado, deverá ser realizado pelo Usuário com base nas instruções disponíveis na Plataformo Real Olímpico.',
+            'O Envio de Moeda para Custódia será solicitado por meio da Plataforma Real Olímpico e, após aprovado, deverá ser realizado pelo Usuário com base nas instruções disponíveis na Plataforma Real Olímpico.',
         },
         {
           numero: '7.2.1',
@@ -303,7 +305,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.2.3',
           titulo: 'Instituições Parceiras',
           texto:
-            'O Usuário concorda que a custódia poderá ser realizada pela próprio Real Olímpico ou por instituições parceiras de notória confiabilidade e atuação no mercado.',
+            'O Usuário concorda que a custódia poderá ser realizada pelo próprio Real Olímpico ou por instituições parceiras de notória confiabilidade e atuação no mercado.',
         },
         {
           numero: '7.2.4',
@@ -314,7 +316,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.2.5',
           titulo: 'Recibo de Unicidade',
-          texto: `Após a validação da moeda submetida para custódia, será gerado para o Usuário na Plataformo Real Olímpico o Recibo de Unicidade correspondente a uma moeda custodiada. O prazo para validação da custódia e emissão do Recibo de Unicidade é de ${PARAMETROS_LEGAIS.prazoValidacaoCustodia} após o recebimento e a aprovação da moeda.`,
+          texto: `Após a validação da moeda submetida para custódia, será gerado para o Usuário na Plataforma Real Olímpico o Recibo de Unicidade correspondente a uma moeda custodiada. O prazo para validação da custódia e emissão do Recibo de Unicidade é de ${PARAMETROS_LEGAIS.prazoValidacaoCustodia} após o recebimento e a aprovação da moeda.`,
           alineas: [
             {
               letra: 'a)',
@@ -333,13 +335,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.2.7',
           titulo: 'Envio da Moeda Custodiada',
           texto:
-            'Serão disponibilizadas opções de envio pela Plataformo Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário. A moeda somente será admitida em custódia após procedimento de análise e admissão pelo Real Olímpico.',
+            'Serão disponibilizadas opções de envio pela Plataforma Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário. A moeda somente será admitida em custódia após procedimento de análise e admissão pelo Real Olímpico.',
         },
         {
           numero: '7.3',
           titulo: 'Venda de Moeda Custodiada',
           texto:
-            'As moedas custodiadas na Plataformo Real Olímpico poderão ser vendidas para outros usuários por meio da própria Plataformo Real Olímpico.',
+            'As moedas custodiadas na Plataforma Real Olímpico poderão ser vendidas para outros usuários por meio da própria Plataforma Real Olímpico.',
         },
         {
           numero: '7.3.1',
@@ -356,13 +358,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.3.3',
           titulo: 'Prazo Recebimento Valores',
-          texto: `O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de ${PARAMETROS_LEGAIS.prazoRecebimentoVenda} após a conclusão da venda. Os valores poderão constar como "Saldo Disponível" na Plataformo Real Olímpico ou serem destinados diretamente a conta bancária do Usuário, de acordo com as informações fornecidas pelo Usuário na Plataforma.`,
+          texto: `O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de ${PARAMETROS_LEGAIS.prazoRecebimentoVenda} após a conclusão da venda. Os valores poderão constar como "Saldo Disponível" na Plataforma Real Olímpico ou serem destinados diretamente a conta bancária do Usuário, de acordo com as informações fornecidas pelo Usuário na Plataforma.`,
         },
         {
           numero: '7.4',
           titulo: 'Compra de Moeda',
           texto:
-            'As moedas custodiadas poderão ser adquiridas por outros usuários por meio da Plataformo Real Olímpico.',
+            'As moedas custodiadas poderão ser adquiridas por outros usuários por meio da Plataforma Real Olímpico.',
         },
         {
           numero: '7.4.1',
@@ -374,7 +376,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.4.2',
           titulo: 'Novo Código Criptografado',
           texto:
-            'A compra de moeda custodiada na Plataformo Real Olímpico, por intermediação da plataforma, resultará na destruição do Código Criptografado correspondente do Usuário Vendedor e na emissão de um novo Código Criptografado ao Usuário Comprador.',
+            'A compra de moeda custodiada na Plataforma Real Olímpico, por intermediação da plataforma, resultará na destruição do Código Criptografado correspondente do Usuário Vendedor e na emissão de um novo Código Criptografado ao Usuário Comprador.',
         },
         {
           numero: '7.5',
@@ -404,7 +406,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.5.4',
           titulo: 'Envio da Moeda Custodiada',
           texto:
-            'Serão disponibilizadas opções de envio pela Plataformo Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário.',
+            'Serão disponibilizadas opções de envio pela Plataforma Real Olímpico. A escolha do método de envio ficará à escolha e responsabilidade do Usuário. Os riscos decorrentes do transporte da moeda serão de responsabilidade do Usuário.',
         },
         {
           numero: '7.5.5',
@@ -422,7 +424,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.6',
           titulo: 'Depósito de Valor',
           texto:
-            'O Usuário poderá realizar Depósito de Valor para realização de Transações na Plataformo Real Olímpico. Os valores depositados constaram como "Saldo Disponível" na Plataformo Real Olímpico.',
+            'O Usuário poderá realizar Depósito de Valor para realização de Transações na Plataforma Real Olímpico. Os valores depositados constarão como "Saldo Disponível" na Plataforma Real Olímpico.',
         },
         {
           numero: '7.6.1',
@@ -433,13 +435,13 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '7.6.2',
           titulo: 'Prazo',
-          texto: `O prazo para conversão do valor depositado em "Saldo Disponível" na Plataformo Real Olímpico é de ${PARAMETROS_LEGAIS.prazoDisponibilizacaoDeposito} após a confirmação da Transação.`,
+          texto: `O prazo para conversão do valor depositado em "Saldo Disponível" na Plataforma Real Olímpico é de ${PARAMETROS_LEGAIS.prazoDisponibilizacaoDeposito} após a confirmação da Transação.`,
         },
         {
           numero: '7.7',
           titulo: 'Saque de Valor',
           texto:
-            'O Usuário poderá solicitar o saque do "Saldo Disponível" a qualquer tempo na Plataformo Real Olímpico.',
+            'O Usuário poderá solicitar o saque do "Saldo Disponível" a qualquer tempo na Plataforma Real Olímpico.',
         },
         {
           numero: '7.7.1',
@@ -462,7 +464,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '7.9',
           titulo: 'Retenção de Informações das Transações',
           texto:
-            'Para fins de cumprimento dos padrões da indústria para retenção de dados, ao aceitar esses Termos você autoriza o Real Olímpico a manter registro de todas as informações das Transações efetuadas na Plataformo Real Olímpico, enquanto sua Conto Real Olímpico estiver ativa ou pelo tempo necessário para cumprir os propósitos regulatórios.',
+            'Para fins de cumprimento dos padrões da indústria para retenção de dados, ao aceitar esses Termos você autoriza o Real Olímpico a manter registro de todas as informações das Transações efetuadas na Plataforma Real Olímpico, enquanto sua Conta Real Olímpico estiver ativa ou pelo tempo necessário para cumprir os propósitos regulatórios.',
         },
       ],
     },
@@ -490,21 +492,21 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'b)',
               texto:
-                'manter o endereço de e-mail e o número de telefone fornecidos à Plataformo Real Olímpico atualizados para receber quaisquer avisos ou alertas;',
+                'manter o endereço de e-mail e o número de telefone fornecidos à Plataforma Real Olímpico atualizados para receber quaisquer avisos ou alertas;',
             },
             {
               letra: 'c)',
               texto:
-                'nunca permitir acesso remoto ou compartilhar seu computador e/ou tela do computador com outra pessoa enquanto estiver logado na sua Conto Real Olímpico;',
+                'nunca permitir acesso remoto ou compartilhar seu computador e/ou tela do computador com outra pessoa enquanto estiver logado na sua Conta Real Olímpico;',
             },
             {
               letra: 'd)',
-              texto: 'sair dos Sites ou da Plataformo Real Olímpico ao final de cada visita; e',
+              texto: 'sair dos Sites ou da Plataforma Real Olímpico ao final de cada visita; e',
             },
             {
               letra: 'e)',
               texto:
-                'acessar a Plataformo Real Olímpico por meio de dispositivos seguros e utilizando redes privadas.',
+                'acessar a Plataforma Real Olímpico por meio de dispositivos seguros e utilizando redes privadas.',
             },
           ],
         },
@@ -518,7 +520,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '8.4',
           titulo: 'Indisponibilidade Tecnológica',
           texto:
-            'O Real Olímpico é responsável pela manutenção e funcionamento do sistema da Plataformo Real Olímpico, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que o Real Olímpico comunicará aos clientes o ocorrido e envidará os melhores esforços para reestabelecer o funcionamento.',
+            'O Real Olímpico é responsável pela manutenção e funcionamento do sistema da Plataforma Real Olímpico, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que o Real Olímpico comunicará aos clientes o ocorrido e envidará os melhores esforços para reestabelecer o funcionamento.',
         },
       ],
     },
@@ -530,7 +532,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '9.1',
           titulo: 'Alterações',
           texto:
-            'Estes Termos de Uso podem ser alterados a qualquer tempo e o uso continuado dos Serviços Real Olímpico constitui consentimento a tais alterações. As alterações serão publicadas na Plataformo Real Olímpico e poderão também ser notificadas individualmente aos usuários por e-mail ou pela Plataformo Real Olímpico.',
+            'Estes Termos de Uso podem ser alterados a qualquer tempo e o uso continuado dos Serviços Real Olímpico constitui consentimento a tais alterações. As alterações serão publicadas na Plataforma Real Olímpico e poderão também ser notificadas individualmente aos usuários por e-mail ou pela Plataforma Real Olímpico.',
         },
         {
           numero: '9.2',
@@ -552,29 +554,29 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '9.3',
           texto:
-            'Caso o Usuário não concorde com as Alterações, estará livre para encerrar sua Conto Real Olímpico. O acesso continuado a Plataformo Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das alterações.',
+            'Caso o Usuário não concorde com as Alterações, estará livre para encerrar sua Conta Real Olímpico. O acesso continuado a Plataforma Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das alterações.',
         },
         {
           numero: '9.4',
           titulo: 'Alterações nas Taxas',
           texto:
-            'O Real Olímpico poderá fazer alterações nas taxas estabelecidas na Tabela de Taxas em nossa Plataforma, o que inclui a introdução de novas taxas e/ou encargos. Caso o Usuário não concorde com as novas taxas, estará livre para encerrar sua Conto Real Olímpico. O acesso continuado a Plataformo Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das novas taxas.',
+            'O Real Olímpico poderá fazer alterações nas taxas estabelecidas na Tabela de Taxas em nossa Plataforma, o que inclui a introdução de novas taxas e/ou encargos. Caso o Usuário não concorde com as novas taxas, estará livre para encerrar sua Conta Real Olímpico. O acesso continuado a Plataforma Real Olímpico ou uso de quaisquer Serviços Real Olímpico será considerado como aceitação das novas taxas.',
         },
       ],
     },
     {
       numero: 10,
-      titulo: 'Encerramento da Conto Real Olímpico',
+      titulo: 'Encerramento da Conta Real Olímpico',
       paragrafos: [
         {
           numero: '10.1',
           titulo: 'Encerramento',
           texto:
-            'O Usuário poderá encerrar a Conto Real Olímpico a qualquer momento, seguindo os procedimentos de encerramento de conta previstos na Plataformo Real Olímpico. Ao encerrar a conta o Usuário autoriza o Real Olímpico a cancelar ou suspender quaisquer transações pendentes no momento do encerramento e a deduzir quaisquer valores em aberto.',
+            'O Usuário poderá encerrar a Conta Real Olímpico a qualquer momento, seguindo os procedimentos de encerramento de conta previstos na Plataforma Real Olímpico. Ao encerrar a conta o Usuário autoriza o Real Olímpico a cancelar ou suspender quaisquer transações pendentes no momento do encerramento e a deduzir quaisquer valores em aberto.',
         },
         {
           numero: '10.2',
-          texto: 'Não será possível encerrar a Conto Real Olímpico quando:',
+          texto: 'Não será possível encerrar a Conta Real Olímpico quando:',
           alineas: [
             {
               letra: 'a)',
@@ -605,7 +607,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '11.1',
           texto:
-            'O Real Olímpico poderá, a qualquer momento, suspender, bloquear ou restringir um Usuário do uso da Plataformo Real Olímpico. Em particular, o Real Olímpico poderá (i) recusar-se a concluir, bloquear ou cancelar Transação solicitada pelo usuário; (ii) encerrar, suspender ou restringir o acesso do Usuário a qualquer ou a todos os Serviços Real Olímpico; (iii) encerrar, suspender, fechar, bloquear ou restringir seu acesso a qualquer ou a todas as suas Conta(s) Real Olímpico; e/ou (iv) tomar qualquer medida que considerar necessária, em cada caso com efeito imediato e por qualquer motivo, incluindo, mas não se limitando a quando:',
+            'O Real Olímpico poderá, a qualquer momento, suspender, bloquear ou restringir um Usuário do uso da Plataforma Real Olímpico. Em particular, o Real Olímpico poderá (i) recusar-se a concluir, bloquear ou cancelar Transação solicitada pelo usuário; (ii) encerrar, suspender ou restringir o acesso do Usuário a qualquer ou a todos os Serviços Real Olímpico; (iii) encerrar, suspender, fechar, bloquear ou restringir seu acesso a qualquer ou a todas as suas Conta(s) Real Olímpico; e/ou (iv) tomar qualquer medida que considerar necessária, em cada caso com efeito imediato e por qualquer motivo, incluindo, mas não se limitando a quando:',
           alineas: [
             {
               letra: 'a)',
@@ -619,12 +621,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '(i)',
                   texto:
-                    'a pessoa que acessou sua Conto Real Olímpico não é você, ou suspeitar que a Conto Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados;',
+                    'a pessoa que acessou sua Conta Real Olímpico não é você, ou suspeitar que a Conta Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados;',
                 },
                 {
                   letra: '(ii)',
                   texto:
-                    'mais de uma pessoa natural tenha acesso e/ou realize transações usando a mesma Conto Real Olímpico, ou suspeitar que a Conto Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados; ou',
+                    'mais de uma pessoa natural tenha acesso e/ou realize transações usando a mesma Conta Real Olímpico, ou suspeitar que a Conta Real Olímpico tenha sido ou será usada para quaisquer propósitos ilegais, fraudulentos ou não autorizados; ou',
                 },
                 {
                   letra: '(iii)',
@@ -641,7 +643,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'considerar razoavelmente que é obrigada a fazê-lo por ordem judicial ou determinação regulatória.',
+                'considerar razoavelmente que é obrigado a fazê-lo por ordem judicial ou determinação regulatória.',
             },
             {
               letra: 'e)',
@@ -660,7 +662,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '(iii)',
                   texto:
-                    'a Conto Real Olímpico ou os Serviços Real Olímpico estão sujeitos a qualquer litígio, investigação ou processo judicial pendente, em andamento ou ameaçado;',
+                    'a Conta Real Olímpico ou os Serviços Real Olímpico estão sujeitos a qualquer litígio, investigação ou processo judicial pendente, em andamento ou ameaçado;',
                 },
               ],
             },
@@ -672,7 +674,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'g)',
               texto:
-                'houver qualquer outra razão válida que justifique a suspensão, bloqueio ou restrição da Conto Real Olímpico.',
+                'houver qualquer outra razão válida que justifique a suspensão, bloqueio ou restrição da Conta Real Olímpico.',
             },
           ],
         },
@@ -685,7 +687,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '12.1',
           texto:
-            'Ao abrir uma Conto Real Olímpico e utilizar os Serviços Real Olímpico, você declara e garante que:',
+            'Ao abrir uma Conta Real Olímpico e utilizar os Serviços Real Olímpico, você declara e garante que:',
           alineas: [
             {
               letra: 'a)',
@@ -705,12 +707,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'todos os recursos e ativos mantidos em sua Conto Real Olímpico têm origem lícita e não decorrem de qualquer atividade ilegal ou ilícita; e',
+                'todos os recursos e ativos mantidos em sua Conta Real Olímpico têm origem lícita e não decorrem de qualquer atividade ilegal ou ilícita; e',
             },
             {
               letra: 'e)',
               texto:
-                'nenhuma pessoa além de você possui qualquer direito, título ou garantia sobre sua Conto Real Olímpico, as moedas custodiadas ou os Recibos de Unicidade a ela associados, exceto conforme expressamente autorizado por nós por escrito.',
+                'nenhuma pessoa além de você possui qualquer direito, título ou garantia sobre sua Conta Real Olímpico, as moedas custodiadas ou os Recibos de Unicidade a ela associados, exceto conforme expressamente autorizado por nós por escrito.',
             },
           ],
         },
@@ -724,7 +726,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.1',
           titulo: 'Escopo e Aplicação',
           texto:
-            'Esta Cláusula estabelece as regras e diretrizes aplicáveis ao tratamento de Dados Pessoais de Pessoas Naturais ("Titulares") no âmbito da prestação dos Serviços Real Olímpico, incluindo o acesso, cadastro e utilização da Plataformo Real Olímpico, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e com as demais normas aplicáveis à proteção de dados e privacidade.',
+            'Esta Cláusula estabelece as regras e diretrizes aplicáveis ao tratamento de Dados Pessoais de Pessoas Naturais ("Titulares") no âmbito da prestação dos Serviços Real Olímpico, incluindo o acesso, cadastro e utilização da Plataforma Real Olímpico, em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - "LGPD") e com as demais normas aplicáveis à proteção de dados e privacidade.',
         },
         {
           numero: '13.2',
@@ -735,7 +737,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.3',
           titulo: 'Papéis no Tratamento de Dados',
           texto:
-            'Na medida em que determinar as finalidades e os meios de tratamento de Dados Pessoais no contexto dos Serviços Real Olímpico, o Real Olímpico atuará como Controladora dos Dados Pessoais tratados no âmbito da Plataformo Real Olímpico.',
+            'Na medida em que determinar as finalidades e os meios de tratamento de Dados Pessoais no contexto dos Serviços Real Olímpico, o Real Olímpico atuará como Controlador dos Dados Pessoais tratados no âmbito da Plataforma Real Olímpico.',
         },
         {
           numero: '13.4',
@@ -766,12 +768,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'dados financeiros e bancários, incluindo dados de contas bancárias ou de pagamento, chaves Pix, informações de pagamento, histórico de depósitos, saques e pagamentos realizados na ou através da Plataformo Real Olímpico;',
+                'dados financeiros e bancários, incluindo dados de contas bancárias ou de pagamento, chaves Pix, informações de pagamento, histórico de depósitos, saques e pagamentos realizados na ou através da Plataforma Real Olímpico;',
             },
             {
               letra: 'e)',
               texto:
-                'dados de Transações, incluindo informações sobre moedas enviadas para custódia, valores de compra e venda, emissão, transferência e cancelamento de Recibos de Unicidade, ordens registradas, ofertas de compra e venda e histórico operacional na Plataformo Real Olímpico;',
+                'dados de Transações, incluindo informações sobre moedas enviadas para custódia, valores de compra e venda, emissão, transferência e cancelamento de Recibos de Unicidade, ordens registradas, ofertas de compra e venda e histórico operacional na Plataforma Real Olímpico;',
             },
             {
               letra: 'f)',
@@ -798,7 +800,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           alineas: [
             {
               letra: 'a)',
-              texto: 'criar, manter, autenticar e administrar a Conto Real Olímpico;',
+              texto: 'criar, manter, autenticar e administrar a Conta Real Olímpico;',
             },
             {
               letra: 'b)',
@@ -813,7 +815,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'permitir a execução, liquidação, registro e acompanhamento das Transações realizadas na Plataformo Real Olímpico;',
+                'permitir a execução, liquidação, registro e acompanhamento das Transações realizadas na Plataforma Real Olímpico;',
             },
             {
               letra: 'e)',
@@ -823,7 +825,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'f)',
               texto:
-                'viabilizar depósitos, saques e demais movimentações financeiras relacionadas à utilização da Plataformo Real Olímpico;',
+                'viabilizar depósitos, saques e demais movimentações financeiras relacionadas à utilização da Plataforma Real Olímpico;',
             },
             {
               letra: 'g)',
@@ -838,7 +840,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'i)',
               texto:
-                'proteger a segurança da Plataformo Real Olímpico, dos Usuários, do Real Olímpico e de terceiros;',
+                'proteger a segurança da Plataforma Real Olímpico, dos Usuários, do Real Olímpico e de terceiros;',
             },
             {
               letra: 'j)',
@@ -858,7 +860,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'm)',
               texto:
-                'aperfeiçoar, desenvolver, testar e manter a Plataformo Real Olímpico e os Serviços Real Olímpico, inclusive por meio de análises estatísticas e estudos de uso; e',
+                'aperfeiçoar, desenvolver, testar e manter a Plataforma Real Olímpico e os Serviços Real Olímpico, inclusive por meio de análises estatísticas e estudos de uso; e',
             },
             {
               letra: 'n)',
@@ -893,7 +895,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '13.11',
           titulo: 'Dados Biométricos e Outros Dados Pessoais Sensíveis',
           texto:
-            'Quando necessário para identificação, autenticação, prevenção a fraudes e segurança do Usuário e da Plataformo Real Olímpico, o Real Olímpico poderá coletar e tratar dados biométricos faciais e cópias de documentos de identificação, observadas as disposições do artigo 11 da LGPD.',
+            'Quando necessário para identificação, autenticação, prevenção a fraudes e segurança do Usuário e da Plataforma Real Olímpico, o Real Olímpico poderá coletar e tratar dados biométricos faciais e cópias de documentos de identificação, observadas as disposições do artigo 11 da LGPD.',
         },
         {
           numero: '13.12',
@@ -916,7 +918,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
         {
           numero: '13.15',
           texto:
-            'O encerramento da Conto Real Olímpico não implicará necessariamente a eliminação imediata de todos os Dados Pessoais relacionados ao Usuário. O Real Olímpico poderá conservar Dados Pessoais após o encerramento da Conta quando a conservação for necessária ou permitida pela legislação, incluindo para cumprimento de obrigações legais ou regulatórias, exercício regular de direitos, prevenção e investigação de fraudes e atendimento a determinações de autoridades competentes.',
+            'O encerramento da Conta Real Olímpico não implicará necessariamente a eliminação imediata de todos os Dados Pessoais relacionados ao Usuário. O Real Olímpico poderá conservar Dados Pessoais após o encerramento da Conta quando a conservação for necessária ou permitida pela legislação, incluindo para cumprimento de obrigações legais ou regulatórias, exercício regular de direitos, prevenção e investigação de fraudes e atendimento a determinações de autoridades competentes.',
         },
         {
           numero: '13.16',
@@ -945,7 +947,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.1',
           titulo: 'Notificação de Conflito',
           texto:
-            'Na hipótese de o problema não poder ser resolvido por meio dos canais de atendimento da Plataformo Real Olímpico, o Usuário deverá enviar Notificação de Conflito ao Real Olímpico, que deverá conter:',
+            'Na hipótese de o problema não poder ser resolvido por meio dos canais de atendimento da Plataforma Real Olímpico, o Usuário deverá enviar Notificação de Conflito ao Real Olímpico, que deverá conter:',
           alineas: [
             { letra: 'a)', texto: 'a descrição da natureza do problema;' },
             { letra: 'b)', texto: 'o pedido específico de reparação;' },
@@ -1062,7 +1064,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.5',
           titulo: 'Força Maior',
           texto:
-            'O Real Olímpico por quaisquer atrasos ou falhas decorrentes de evento de Força Maior.',
+            'O Real Olímpico não será responsabilizado por quaisquer atrasos ou falhas decorrentes de evento de Força Maior.',
         },
         {
           numero: '16.6',
@@ -1127,12 +1129,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '"IDs de Acesso"',
                   texto:
-                    'significa os dados da sua Conto Real Olímpico, nome de usuário, senhas, números de identificação pessoal ou quaisquer outros códigos ou formas de autenticação que você utilize para acessar sua Conto Real Olímpico ou os Serviços Real Olímpico.',
+                    'significa os dados da sua Conta Real Olímpico, nome de usuário, senhas, números de identificação pessoal ou quaisquer outros códigos ou formas de autenticação que você utilize para acessar sua Conta Real Olímpico ou os Serviços Real Olímpico.',
                 },
                 {
                   letra: '"Serviços Real Olímpico"',
                   texto:
-                    'significa os serviços oferecidos a você através da Plataformo Real Olímpico.',
+                    'significa os serviços oferecidos a você através da Plataforma Real Olímpico.',
                 },
                 {
                   letra: '"Força Maior"',
@@ -1145,12 +1147,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
                 {
                   letra: '"Recibo de Unicidade"',
                   texto:
-                    'significa o código gerado a partir do envio de moeda para custódia. O código é gerado pelo próprio sistema da Plataformo Real Olímpico com emprego de Inteligência Artificial.',
+                    'significa o código gerado a partir do envio de moeda para custódia. O código é gerado pelo próprio sistema da Plataforma Real Olímpico com emprego de Inteligência Artificial.',
                 },
                 {
                   letra: '"Transação"',
                   texto:
-                    'significa vender, comprar ou realizar qualquer outro tipo de transação, ou concordar em vender, comprar ou realizar qualquer outro tipo de transação por intermédio da Plataformo Real Olímpico.',
+                    'significa vender, comprar ou realizar qualquer outro tipo de transação, ou concordar em vender, comprar ou realizar qualquer outro tipo de transação por intermédio da Plataforma Real Olímpico.',
                 },
               ],
             },

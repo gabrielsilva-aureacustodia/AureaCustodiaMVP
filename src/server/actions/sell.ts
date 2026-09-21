@@ -33,7 +33,7 @@
 
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
-import { availableCoinsForSell, transferCoin } from '@/domain/market'
+import { availableCoinsForSell, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
 import { apelidoComprador } from '@/domain/contraparte'
@@ -448,7 +448,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         const price = bo.price
         buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
         seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
-        transferCoin(seller, buyer, coin.id)
+        transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, taxas)
       }
 
       const feeComprador = feeCompradorUnit * execN
