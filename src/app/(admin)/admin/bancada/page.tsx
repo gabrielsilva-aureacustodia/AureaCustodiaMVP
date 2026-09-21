@@ -56,17 +56,20 @@ export default async function BancadaPage(): Promise<ReactNode> {
           aqui. Só sócio e desenvolvimento veem — `operacao` recebe apenas
           bancada.* e logistica.*, e esta permissão é do módulo acervo. */}
       {temPermissao(membro, 'acervo.cadastro_direto') ? (
-        <CadastroDiretoDeMoeda catalogo={catalogoVigente} />
+        <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="direto" />
       ) : null}
-    <BancadaWeb
-      filaInicial={fila}
-      caixasIniciais={ocupacaoDasCaixas(caixas ?? [], ocupantesDoCofre({ ...state, retiradas }))}
-      caixasCadastradas={caixas !== null}
-      podeAnalisar={temPermissao(membro, 'bancada.analisar')}
-      operador={membro.email}
-      videoConfigurado={videoConfigurado()}
-      videoFaltando={variaveisDoVideoFaltando()}
-    />
+      {temPermissao(membro, 'acervo.cadastro_sem_envio') ? (
+        <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="sem_envio" />
+      ) : null}
+      <BancadaWeb
+        filaInicial={fila}
+        caixasIniciais={ocupacaoDasCaixas(caixas ?? [], ocupantesDoCofre({ ...state, retiradas }))}
+        caixasCadastradas={caixas !== null}
+        podeAnalisar={temPermissao(membro, 'bancada.analisar')}
+        operador={membro.email}
+        videoConfigurado={videoConfigurado()}
+        videoFaltando={variaveisDoVideoFaltando()}
+      />
     </>
   )
 }

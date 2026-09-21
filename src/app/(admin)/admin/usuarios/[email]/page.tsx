@@ -100,7 +100,10 @@ export default async function FichaDoUsuarioPage({
             {/* Cadastro direto: moeda que já está no armazém entra por aqui, sem
                 envio postal nem fila de bancada. Só sócio e desenvolvimento veem. */}
             {temPermissao(membro, 'acervo.cadastro_direto') ? (
-              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} />
+              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="direto" />
+            ) : null}
+            {temPermissao(membro, 'acervo.cadastro_sem_envio') ? (
+              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="sem_envio" />
             ) : null}
             <AbaAcervo dados={conteudo} />
           </>

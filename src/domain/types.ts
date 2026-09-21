@@ -250,6 +250,12 @@ export interface Envio {
   createdAt: Timestamp
   /** IDs das moedas criadas quando a etapa chega a 'Recibo emitido'. */
   codigosAtivosGerados: string[]
+  /** Ausente em registros antigos equivale a envio postal. */
+  origem?: 'envio_postal' | 'cadastro_sem_envio'
+  /** Dados informados no cadastro sem envio, usados para iniciar a bancada. */
+  pesoInicialMg?: number | null
+  caixaInicial?: string | null
+  observacao?: string | null
 }
 
 // ---------------------------------------------------------------------------

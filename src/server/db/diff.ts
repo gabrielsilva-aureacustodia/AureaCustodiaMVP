@@ -226,6 +226,10 @@ export function normalizarEnvio(e: Envio): Envio {
     createdAt: e.createdAt,
     codigosAtivosGerados: [...e.codigosAtivosGerados],
     ...(e.modalidadeEnvio ? { modalidadeEnvio: e.modalidadeEnvio } : {}),
+    origem: e.origem ?? 'envio_postal',
+    pesoInicialMg: e.pesoInicialMg ?? null,
+    caixaInicial: e.caixaInicial ?? null,
+    observacao: e.observacao ?? null,
   }
 }
 

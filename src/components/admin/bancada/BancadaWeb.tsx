@@ -31,6 +31,15 @@ function vazia(): MoedaDigitada {
   return { veredito: 'aprovada', gramas: '', caixa: '', posicao: '', motivoRecusa: '' }
 }
 
+function inicialDoEnvio(item: ItemDaFilaBancada): MoedaDigitada {
+  const peso = item.pesoInicialMg
+  return {
+    ...vazia(),
+    gramas: peso && peso > 0 ? String(peso / 1000).replace('.', ',') : '',
+    caixa: item.caixaInicial ?? '',
+  }
+}
+
 export function BancadaWeb({
   filaInicial,
   caixasIniciais,
@@ -77,7 +86,7 @@ export function BancadaWeb({
       return
     }
     setEnvio(item)
-    setMoedas(Array.from({ length: item.quantidade }, vazia))
+    setMoedas(Array.from({ length: item.quantidade }, () => inicialDoEnvio(item)))
     setErros([])
     setResultado(null)
     if (!podeAnalisar) return
@@ -140,6 +149,7 @@ export function BancadaWeb({
                   {item.cliente} · {numero(item.quantidade)} × {item.tipoMoeda} ({item.ano})
                 </span>
                 <span className="adm-fraco">{item.etapaAtual}</span>
+                {item.origem === 'cadastro_sem_envio' ? <span className="adm-fraco">Cadastro sem envio</span> : null}
               </button>
             ))}
           </div>
@@ -173,6 +183,7 @@ export function BancadaWeb({
                   {envio.cliente} · {numero(envio.quantidade)} {envio.quantidade === 1 ? 'moeda' : 'moedas'} · {envio.tipoMoeda} {envio.ano}
                   {envio.codigoRastreio ? ` · rastreio ${envio.codigoRastreio}` : ''}
                 </p>
+                {envio.observacao ? <p className="adm-fraco">Observação: {envio.observacao}</p> : null}
               </div>
               <span className="adm-fraco">Operador: {operador}</span>
             </div>

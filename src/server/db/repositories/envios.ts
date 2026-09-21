@@ -27,6 +27,10 @@ type LinhaEnvio = {
   created_at: unknown
   codigos_ativos_gerados: unknown
   modalidade_envio: string | null
+  origem: string
+  peso_inicial_mg: unknown
+  caixa_inicial: string | null
+  observacao: string | null
 }
 
 export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
@@ -34,7 +38,7 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
   const { rows } = await tx.query<LinhaEnvio>(
     `SELECT protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
             data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
-            modalidade_envio
+            modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao
        FROM ${S}.envios
       ORDER BY ord`,
   )
@@ -51,6 +55,10 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     createdAt: num(r.created_at),
     codigosAtivosGerados: json<string[]>(r.codigos_ativos_gerados) ?? [],
     ...(r.modalidade_envio ? { modalidadeEnvio: r.modalidade_envio as 'PAC' | 'SEDEX' } : {}),
+    origem: r.origem as 'envio_postal' | 'cadastro_sem_envio',
+    pesoInicialMg: numOuNulo(r.peso_inicial_mg),
+    caixaInicial: r.caixa_inicial,
+    observacao: r.observacao,
   }))
 }
 
@@ -60,8 +68,8 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
     `INSERT INTO ${S}.envios
        (protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
         data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
-        modalidade_envio)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12)`,
+        modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, $16)`,
     [
       e.protocolo,
       e.userEmail,
@@ -75,6 +83,10 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.createdAt,
       JSON.stringify(e.codigosAtivosGerados),
       e.modalidadeEnvio ?? null,
+      e.origem ?? 'envio_postal',
+      e.pesoInicialMg ?? null,
+      e.caixaInicial ?? null,
+      e.observacao ?? null,
     ],
   )
 }
@@ -85,7 +97,8 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
     `UPDATE ${S}.envios
         SET user_email = $2, tipo_moeda = $3, ano = $4, quantidade = $5, codigo_rastreio = $6,
             data_postagem = $7, data_recebimento = $8, etapa_atual = $9, created_at = $10,
-            codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12
+            codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12, origem = $13,
+            peso_inicial_mg = $14, caixa_inicial = $15, observacao = $16
       WHERE protocolo = $1`,
     [
       e.protocolo,
@@ -100,6 +113,10 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.createdAt,
       JSON.stringify(e.codigosAtivosGerados),
       e.modalidadeEnvio ?? null,
+      e.origem ?? 'envio_postal',
+      e.pesoInicialMg ?? null,
+      e.caixaInicial ?? null,
+      e.observacao ?? null,
     ],
   )
 }

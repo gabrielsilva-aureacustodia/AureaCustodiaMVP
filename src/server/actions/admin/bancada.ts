@@ -29,6 +29,7 @@ import { caixasCadastradas, ehTabelaAusente, executorOuNulo, portaDaBancadaDoSer
 import { urlDeLeituraDoVideo, VideoNaoConfigurado } from '@/server/admin/video'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { cadastrarMoedasDiretamente, MAX_POR_CADASTRO_DIRETO } from '@/server/estacao/cadastro-direto'
+import { cadastrarMoedasSemEnvio } from '@/server/estacao/cadastro-sem-envio'
 import type { SaidaFechamento } from '@/server/estacao/analise'
 import { filaDeAnalise } from '@/server/estacao/analise'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
@@ -252,4 +253,69 @@ export async function cadastrarMoedaDiretaNoPainel(entrada: {
 
 export async function limiteDoCadastroDireto(): Promise<number> {
   return MAX_POR_CADASTRO_DIRETO
+}
+
+/* ---------- cadastro sem envio ---------- */
+
+/** Cria o lote já recebido e o deixa na fila normal da bancada. */
+export async function cadastrarMoedaSemEnvioNoPainel(entrada: {
+  userEmail: string
+  tipoMoeda: string
+  ano: number
+  quantidade: number
+  pesoMg?: number
+  caixa?: string | null
+  observacao?: string | null
+}): Promise<ActionResult<{ protocolo: string }>> {
+  return comPermissao('acervo.cadastro_sem_envio', async (membro) => {
+    const e = entrada ?? { userEmail: '', tipoMoeda: '', ano: 0, quantidade: 0 }
+    const r = await cadastrarMoedasSemEnvio({
+      userEmail: texto(e.userEmail),
+      tipoMoeda: texto(e.tipoMoeda),
+      ano: Number(e.ano),
+      quantidade: Number(e.quantidade),
+      pesoMg: typeof e.pesoMg === 'number' ? e.pesoMg : 0,
+      caixa: typeof e.caixa === 'string' ? e.caixa : null,
+      observacao: typeof e.observacao === 'string' ? e.observacao : null,
+    })
+
+    if (r.tipo === 'usuario-nao-encontrado') return { ok: false, erro: 'Não existe conta com este e-mail.' }
+    if (r.tipo === 'tipo-invalido') {
+      return { ok: false, erro: `"${r.tipoMoeda}" não está no catálogo vigente de tipos de moeda.` }
+    }
+    if (r.tipo === 'quantidade-invalida') {
+      return { ok: false, erro: `Informe uma quantidade de 1 a ${r.max} moedas.` }
+    }
+    if (r.tipo === 'peso-invalido') {
+      return { ok: false, erro: 'Informe o peso, pois este tipo não tem peso padrão no catálogo.' }
+    }
+
+    const executar = executorOuNulo()
+    if (executar) {
+      await executar((tx) =>
+        registrarAcaoAdmin(tx, {
+          ator: membro.email,
+          area: 'acervo',
+          verbo: 'cadastro_sem_envio',
+          entidade: 'envio',
+          entidadeId: r.protocolo,
+          usuariosAfetados: [texto(e.userEmail).trim().toLowerCase()],
+          detalhes: {
+            quantidade: Number(e.quantidade),
+            tipoMoeda: texto(e.tipoMoeda),
+            ano: Number(e.ano),
+            pesoMg: typeof e.pesoMg === 'number' ? e.pesoMg : null,
+            caixa: typeof e.caixa === 'string' ? e.caixa : null,
+            observacao: typeof e.observacao === 'string' ? e.observacao : null,
+          },
+        }),
+      )
+    }
+
+    return {
+      ok: true,
+      mensagem: `${Number(e.quantidade)} moeda(s) colocadas na fila da bancada, protocolo ${r.protocolo}.`,
+      dados: { protocolo: r.protocolo },
+    }
+  })
 }

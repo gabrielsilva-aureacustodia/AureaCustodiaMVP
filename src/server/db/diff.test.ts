@@ -297,6 +297,43 @@ describe('planejarDiff — envios e custódia', () => {
     expect(tipos(ops)).toEqual(['envio.atualizar'])
     expect(ops[0]).toMatchObject({ envio: { etapaAtual: 'Envio postado', codigoRastreio: 'BR1BR' } })
   })
+
+  it('preserva a origem e os dados iniciais do cadastro sem envio', () => {
+    const { antes, depois } = cenario()
+    const email = Object.keys(depois.users)[2]
+    const envio: Envio = {
+      protocolo: 'RO-ENV-9998',
+      userEmail: email,
+      tipoMoeda: BANDEIRA,
+      ano: 2016,
+      quantidade: 2,
+      codigoRastreio: null,
+      dataPostagem: null,
+      dataRecebimento: Date.now(),
+      etapaAtual: 'Recebido pela custódia',
+      createdAt: Date.now(),
+      codigosAtivosGerados: [],
+    }
+    antes.envios.push(structuredClone(envio))
+    depois.envios.push({
+      ...envio,
+      origem: 'cadastro_sem_envio',
+      pesoInicialMg: 7000,
+      caixaInicial: 'EB-001',
+      observacao: 'Entrega em mãos',
+    })
+
+    const ops = planejarDiff(antes, depois)
+    expect(tipos(ops)).toEqual(['envio.atualizar'])
+    expect(ops[0]).toMatchObject({
+      envio: {
+        origem: 'cadastro_sem_envio',
+        pesoInicialMg: 7000,
+        caixaInicial: 'EB-001',
+        observacao: 'Entrega em mãos',
+      },
+    })
+  })
 })
 
 describe('planejarDiff — histórico é append-only', () => {

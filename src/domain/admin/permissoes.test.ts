@@ -35,9 +35,9 @@ function papel(slug: string, permissoes: readonly string[], id = 7): PapelGravad
 }
 
 describe('catálogo de permissões', () => {
-  it('tem as 23 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
-    expect(CHAVES_PERMISSAO).toHaveLength(23)
-    expect(new Set(CHAVES_PERMISSAO).size).toBe(23)
+  it('tem as 24 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
+    expect(CHAVES_PERMISSAO).toHaveLength(24)
+    expect(new Set(CHAVES_PERMISSAO).size).toBe(24)
     for (const p of PERMISSOES) expect(p.chave.startsWith(`${p.modulo}.`)).toBe(true)
   })
 
@@ -57,10 +57,12 @@ describe('papéis de sistema', () => {
   it('dev nasce com tudo; sócio com tudo menos papéis e membros; operação só bancada e logística', () => {
     expect(papelDeSistema('dev')?.permissoesIniciais).toEqual(CHAVES_PERMISSAO)
     const socio = papelDeSistema('socio')?.permissoesIniciais ?? []
-    expect(socio).toHaveLength(21)
+    expect(socio).toHaveLength(22)
     expect(socio).not.toContain('admin.papeis')
     expect(socio).not.toContain('admin.membros')
     expect(socio).toContain('admin.auditoria')
+    expect(socio).toContain('acervo.cadastro_direto')
+    expect(socio).toContain('acervo.cadastro_sem_envio')
     expect(papelDeSistema('operacao')?.permissoesIniciais).toEqual([
       'bancada.ver',
       'bancada.analisar',

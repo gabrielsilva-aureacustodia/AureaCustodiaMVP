@@ -42,6 +42,10 @@ export interface ItemDaFilaBancada {
   etapaAtual: string
   codigoRastreio: string | null
   recebidoEm: number | null
+  origem: 'envio_postal' | 'cadastro_sem_envio'
+  pesoInicialMg: number | null
+  caixaInicial: string | null
+  observacao: string | null
 }
 
 /** Uma moeda como o operador preenche na tela: texto cru, do jeito que foi digitado. */

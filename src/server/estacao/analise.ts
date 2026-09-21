@@ -50,6 +50,10 @@ export interface ItemDaFila {
   etapaAtual: string
   codigoRastreio: string | null
   recebidoEm: number | null
+  origem: 'envio_postal' | 'cadastro_sem_envio'
+  pesoInicialMg: number | null
+  caixaInicial: string | null
+  observacao: string | null
 }
 
 /** Etapas em que a bancada pode pegar um envio para trabalhar. */
@@ -77,6 +81,10 @@ export async function filaDeAnalise(): Promise<ItemDaFila[]> {
     etapaAtual: e.etapaAtual,
     codigoRastreio: e.codigoRastreio,
     recebidoEm: e.dataRecebimento,
+    origem: e.origem ?? 'envio_postal',
+    pesoInicialMg: e.pesoInicialMg ?? null,
+    caixaInicial: e.caixaInicial ?? null,
+    observacao: e.observacao ?? null,
   }))
 }
 
@@ -276,7 +284,7 @@ export async function fecharAnalise(
           validadoEm: agora,
           caminhoVideo: textoOuNulo(m.caminhoVideo),
           origem: 'bancada',
-          observacao: null,
+          observacao: textoOuNulo(envio.observacao),
         }
 
         const analise = encadearAnalise(pendente, anterior)

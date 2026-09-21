@@ -1,19 +1,19 @@
 'use client'
 
 /**
- * Cadastro direto de moeda — o caminho para o acervo que NÃO passou pelo site.
+ * Formulário dos dois caminhos internos de entrada de moeda no acervo.
  *
  * Registra no acervo de um cliente moeda que já está no armazém e já foi
  * conferida fora do sistema: acervo recebido antes de a plataforma existir,
  * moeda entregue em mãos, acervo próprio da empresa. Não há envio postal para
- * rastrear nem fila de bancada para percorrer — as duas coisas já aconteceram
- * no mundo real.
+ * rastrear. No modo direto ela já foi conferida; no modo sem envio ela entra na
+ * fila normal da bancada e só nasce como ativo depois da aprovação.
  *
  * O formulário aparece em dois lugares, com o mesmo componente: na aba Acervo da
  * ficha do cliente, com o e-mail já preenchido e travado, e na bancada, onde o
- * e-mail é digitado. Quem decide se ele aparece é `acervo.cadastro_direto`,
- * permissão que só sócio e desenvolvimento recebem — o papel `operacao` recebe
- * automaticamente apenas `bancada.*` e `logistica.*`.
+ * e-mail é digitado. Cada modo exige sua permissão no módulo `acervo`, que só
+ * sócio e desenvolvimento recebem — o papel `operacao` recebe automaticamente
+ * apenas `bancada.*` e `logistica.*`.
  *
  * A MOEDA NASCE IGUAL À DA BANCADA. Código da mesma série, recibo derivado do
  * código e hash vindo de uma análise encadeada na mesma corrente SHA-256. O que
@@ -28,17 +28,19 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import type { CoinType } from '@/domain/types'
-import { cadastrarMoedaDiretaNoPainel } from '@/server/actions/admin/bancada'
+import { cadastrarMoedaDiretaNoPainel, cadastrarMoedaSemEnvioNoPainel } from '@/server/actions/admin/bancada'
 
 import { useAdmin } from '../AdminProvider'
 
 export function CadastroDiretoDeMoeda({
   catalogo,
   emailFixo,
+  modo,
 }: {
   catalogo: readonly CoinType[]
   /** Quando vem preenchido, o campo de e-mail some: a ficha já sabe de quem é. */
   emailFixo?: string
+  modo: 'direto' | 'sem_envio'
 }): ReactNode {
   const { run } = useAdmin()
   const router = useRouter()
@@ -52,14 +54,17 @@ export function CadastroDiretoDeMoeda({
   const [caixa, setCaixa] = useState('')
   const [observacao, setObservacao] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  const direto = modo === 'direto'
+  const prefixoId = direto ? 'cd' : 'cse'
 
   return (
     <details className="adm-detalhes adm-secao">
-      <summary>Cadastrar moeda sem envio</summary>
+      <summary>{direto ? 'Cadastro direto' : 'Cadastro sem envio'}</summary>
       <div className="adm-detalhes-corpo">
         <p className="adm-fraco" style={{ marginBottom: 12 }}>
-          Para moeda que já está no armazém e já foi conferida fora do sistema. A moeda nasce com
-          recibo e hash na mesma corrente da bancada, e fica negociável como qualquer outra.
+          {direto
+            ? 'Para moeda que já está no armazém e já foi conferida fora do sistema. A moeda nasce com recibo e hash sem passar pela bancada.'
+            : 'Para moeda que já está no armazém, mas ainda precisa ser analisada. O lote entra na fila da bancada sem criar um envio postal.'}
         </p>
 
         <form
@@ -67,7 +72,7 @@ export function CadastroDiretoDeMoeda({
             e.preventDefault()
             setOcupado(true)
             const r = await run(() =>
-              cadastrarMoedaDiretaNoPainel({
+              (direto ? cadastrarMoedaDiretaNoPainel : cadastrarMoedaSemEnvioNoPainel)({
                 userEmail: emailFixo ?? email,
                 tipoMoeda,
                 ano: Number(ano),
@@ -88,9 +93,9 @@ export function CadastroDiretoDeMoeda({
           <div className="adm-form">
             {emailFixo ? null : (
               <div className="field adm-campo-largo">
-                <label htmlFor="cd-email">E-mail do cliente</label>
+                <label htmlFor={`${prefixoId}-email`}>E-mail do cliente</label>
                 <input
-                  id="cd-email"
+                  id={`${prefixoId}-email`}
                   className="tinput"
                   type="email"
                   value={email}
@@ -102,9 +107,9 @@ export function CadastroDiretoDeMoeda({
             )}
 
             <div className="field adm-campo-largo">
-              <label htmlFor="cd-tipo">Tipo de moeda</label>
+              <label htmlFor={`${prefixoId}-tipo`}>Tipo de moeda</label>
               <select
-                id="cd-tipo"
+                id={`${prefixoId}-tipo`}
                 className="tinput"
                 value={tipoMoeda}
                 onChange={(ev) => {
@@ -123,14 +128,14 @@ export function CadastroDiretoDeMoeda({
             </div>
 
             <div className="field">
-              <label htmlFor="cd-ano">Ano</label>
-              <input id="cd-ano" className="tinput" type="number" value={ano} onChange={(ev) => setAno(ev.target.value)} />
+              <label htmlFor={`${prefixoId}-ano`}>Ano</label>
+              <input id={`${prefixoId}-ano`} className="tinput" type="number" value={ano} onChange={(ev) => setAno(ev.target.value)} />
             </div>
 
             <div className="field">
-              <label htmlFor="cd-qtd">Quantidade</label>
+              <label htmlFor={`${prefixoId}-qtd`}>Quantidade</label>
               <input
-                id="cd-qtd"
+                id={`${prefixoId}-qtd`}
                 className="tinput"
                 type="number"
                 min={1}
@@ -141,9 +146,9 @@ export function CadastroDiretoDeMoeda({
             </div>
 
             <div className="field">
-              <label htmlFor="cd-peso">Peso aferido, em miligramas (opcional)</label>
+              <label htmlFor={`${prefixoId}-peso`}>Peso aferido, em miligramas (opcional)</label>
               <input
-                id="cd-peso"
+                id={`${prefixoId}-peso`}
                 className="tinput"
                 type="number"
                 min={0}
@@ -154,14 +159,14 @@ export function CadastroDiretoDeMoeda({
             </div>
 
             <div className="field">
-              <label htmlFor="cd-caixa">Caixa física (opcional)</label>
-              <input id="cd-caixa" className="tinput" value={caixa} onChange={(ev) => setCaixa(ev.target.value)} placeholder="EB-001" />
+              <label htmlFor={`${prefixoId}-caixa`}>Caixa física (opcional)</label>
+              <input id={`${prefixoId}-caixa`} className="tinput" value={caixa} onChange={(ev) => setCaixa(ev.target.value)} placeholder="EB-001" />
             </div>
 
             <div className="field adm-campo-largo">
-              <label htmlFor="cd-obs">Motivo do cadastro direto</label>
+              <label htmlFor={`${prefixoId}-obs`}>Motivo do {direto ? 'cadastro direto' : 'cadastro sem envio'}</label>
               <input
-                id="cd-obs"
+                id={`${prefixoId}-obs`}
                 className="tinput"
                 value={observacao}
                 onChange={(ev) => setObservacao(ev.target.value)}
@@ -171,15 +176,15 @@ export function CadastroDiretoDeMoeda({
           </div>
 
           <div className="adm-acoes" style={{ marginTop: 10 }}>
-            <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso="acervo-cadastro-direto">
-              {ocupado ? 'Registrando…' : 'Registrar no acervo'}
+            <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso={direto ? 'acervo-cadastro-direto' : 'acervo-cadastro-sem-envio'}>
+              {ocupado ? 'Registrando…' : direto ? 'Registrar no acervo' : 'Enviar para a bancada'}
             </button>
           </div>
 
           <p className="adm-fraco" style={{ marginTop: 10 }}>
-            Cada moeda registrada aqui emite um recibo de custódia válido, negociável no
-            marketplace, sem passar pela pesagem da bancada. O seu e-mail fica gravado como
-            operador e aprovador de cada uma, e a ação inteira entra na trilha de auditoria.
+            {direto
+              ? 'Cada moeda registrada aqui emite recibo sem passar pela pesagem da bancada. O seu e-mail fica gravado como operador e aprovador.'
+              : 'Nenhuma moeda nem recibo é criado agora. A bancada fará a análise normal e emitirá os recibos apenas para as unidades aprovadas.'}
           </p>
         </form>
       </div>
