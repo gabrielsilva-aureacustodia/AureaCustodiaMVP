@@ -4,6 +4,7 @@
  * 2.2 — Auditoria de estoque custodiado.
  *
  * Port de aurea-mvp-teste.html, linhas 2456-2525 (`renderAudit` + `exportAuditXlsx`).
+ * Migrada na AG3 para subpágina de Recibos (/recibos/auditoria).
  *
  * POR QUE ESTA PÁGINA É CLIENT COMPONENT
  * --------------------------------------
@@ -109,8 +110,8 @@ export default function AuditoriaPage(): ReactNode {
 
   return (
     <>
-      <Link href="/graficos" className="back-link">
-        ‹ Voltar para mercado e auditoria
+      <Link href="/recibos" className="back-link">
+        ‹ Voltar para recibos
       </Link>
 
       <div className="cols-rev">

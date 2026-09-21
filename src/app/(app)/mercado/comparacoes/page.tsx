@@ -4,6 +4,7 @@
  * 2.3 — Comparação de referência (Real Olímpico × BTC/ETH/USDT).
  *
  * Port de aurea-mvp-teste.html, linhas 2527-2574 (`renderCompare`).
+ * Migrada na AG3 para subpágina de Mercado (/mercado/comparacoes).
  *
  * DE ONDE VÊM AS COTAÇÕES
  * -----------------------
@@ -128,8 +129,8 @@ export default function ComparacoesPage(): ReactNode {
 
   return (
     <>
-      <Link href="/graficos" className="back-link">
-        ‹ Voltar para mercado e auditoria
+      <Link href="/mercado" className="back-link">
+        ‹ Voltar para mercado
       </Link>
 
       <div className="cols-rev">
@@ -145,6 +146,7 @@ export default function ComparacoesPage(): ReactNode {
             <span className="li">
               {/* Emblema oficial de /brand/ no lugar do quadradinho dourado:
                   aqui o Real Olímpico é a marca, não mais uma série de cor. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={LOGO_REAL_EMBLEMA}
                 alt=""

@@ -165,6 +165,11 @@ const NAV: NavLink[] = [
   },
   {
     href: '/mercado',
+    label: 'Mercado',
+    icon: <path d="M3 17l5-6 4 4 6-8 3 4" />,
+  },
+  {
+    href: '/compras',
     label: 'Compras',
     icon: (
       <>
@@ -191,18 +196,13 @@ const NAV: NavLink[] = [
   },
   {
     href: '/recibos',
-    label: 'Meus recibos',
+    label: 'Recibos',
     icon: (
       <>
         <path d="M6 3h9l4 4v14H6z" />
         <path d="M9 10h7M9 13.5h7M9 17h4" />
       </>
     ),
-  },
-  {
-    href: '/graficos',
-    label: 'Gráficos',
-    icon: <path d="M3 17l5-6 4 4 6-8 3 4" />,
   },
   {
     href: '/conta',
