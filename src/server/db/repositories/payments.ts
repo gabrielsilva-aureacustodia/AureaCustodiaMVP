@@ -44,6 +44,9 @@ export type TipoOperacaoPagamento =
   | 'fatura_custodia'
   | 'assinatura_custodia'
   | 'retirada'
+  // 22/09/2026, oferta de compra sem saldo:
+  | 'oferta_prepaga'
+  | 'reserva_compra'
 
 /** Ciclo de vida da intenção: nasce pendente e termina creditada ou recusada. */
 export type StatusIntencao = 'pendente' | 'creditando' | 'creditado' | 'recusado'

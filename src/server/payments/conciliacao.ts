@@ -456,6 +456,117 @@ function liquidarRetirada(
   return { sucesso: true, motivo: 'retirada_liquidada' }
 }
 
+/**
+ * Liquidador da oferta de compra PRÉ-PAGA (22/09/2026).
+ *
+ * A oferta pré-paga nasce com `pagoAntecipadoCents: 0` e não casa com nada
+ * enquanto isso — `fundosDoBid` devolve zero e o motor a pula. É este
+ * liquidador que a coloca no mercado, creditando o valor confirmado pelo
+ * gateway.
+ *
+ * O dinheiro NÃO vai para `User.balance`: ele fica preso ao bid. Se fosse
+ * para o caixa, a pessoa poderia gastá-lo em outra compra e a oferta ficaria
+ * anunciada sem lastro — que é exatamente o que a modalidade existe para
+ * evitar.
+ */
+function liquidarOfertaPrepaga(s: AppState, reivindicada: IntencaoDeposito): ResultadoLiquidacao {
+  const bidId = (reivindicada.metadata?.bidId as string) || ''
+  const bo = s.buyOrders.find((b) => b.id === bidId)
+
+  if (!bo) {
+    // A oferta sumiu entre a cobrança e a confirmação (cancelada pelo dono,
+    // por exemplo). O dinheiro entrou de verdade, então vira saldo — devolver
+    // ao gateway é estorno, e isso é decisão de quem opera, não deste código.
+    const u = s.users[reivindicada.userEmail]
+    if (u) u.balance += reivindicada.valor
+    return { sucesso: true, motivo: 'oferta_prepaga_inexistente_creditado_em_saldo' }
+  }
+
+  bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) + reivindicada.valor
+  return { sucesso: true, motivo: 'oferta_prepaga_financiada' }
+}
+
+/**
+ * Liquidador da RESERVA de compra pós-paga (22/09/2026).
+ *
+ * Entrega a moeda que estava reservada — se o prazo ainda não tiver vencido.
+ *
+ * O PRAZO É CONFERIDO DE NOVO AQUI, e é o ponto que dá sentido ao pós-pago:
+ * abrir um Pix não para o relógio. Se o dinheiro chega depois dos dez minutos,
+ * a moeda já voltou ao mercado e pode até ter sido vendida a outra pessoa —
+ * então o valor é creditado como saldo, e o comprador decide o que fazer com
+ * ele. Entregar a moeda fora do prazo desfaria a fila que o prazo existe para
+ * organizar.
+ */
+function liquidarReservaCompra(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+  _detalhes: DetalhesPagamento,
+  regras: RegrasDaLiquidacao,
+): ResultadoLiquidacao {
+  const agora = Date.now()
+  const comprador = s.users[reivindicada.userEmail]
+  if (!comprador) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  const reservaId = (reivindicada.metadata?.reservaId as string) || ''
+  const r = (s.reservas ?? []).find((x) => x.id === reservaId)
+
+  const devolverComoSaldo = (motivo: string): ResultadoLiquidacao => {
+    comprador.balance += reivindicada.valor
+    s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+    return { sucesso: true, motivo }
+  }
+
+  if (!r) return devolverComoSaldo('reserva_inexistente_creditado_em_saldo')
+  if (r.status !== 'aguardando_pagamento' || r.expiraEm <= agora) {
+    return devolverComoSaldo('reserva_vencida_creditado_em_saldo')
+  }
+
+  const vendedor = s.users[r.vendedor]
+  if (!vendedor) return devolverComoSaldo('vendedor_inexistente_creditado_em_saldo')
+
+  const moeda = transferirMoedaVendida(
+    s,
+    vendedor,
+    comprador,
+    r.vendedor,
+    r.comprador,
+    r.coinId,
+    regras.taxas,
+    agora,
+  )
+  if (!moeda) {
+    r.status = 'cancelada'
+    return devolverComoSaldo('moeda_indisponivel_creditado_em_saldo')
+  }
+
+  const feeVendedor = comissaoPorMoeda(r.precoCents, 'vendedor', regras.taxas)
+  vendedor.balance += r.precoCents - feeVendedor
+  r.status = 'paga'
+
+  s.trades.push({
+    price: r.precoCents,
+    qty: 1,
+    date: agora,
+    buyer: r.comprador,
+    seller: r.vendedor,
+    feeComprador: r.comissaoCompradorCents,
+    feeVendedor,
+    fee: r.comissaoCompradorCents + feeVendedor,
+    tipoMoeda: r.tipoMoeda,
+  })
+
+  // A unidade do bid só é consumida agora: no casamento ela ficou reservada
+  // justamente porque a compra ainda podia não se concretizar.
+  const bo = s.buyOrders.find((b) => b.id === r.bidId)
+  if (bo) {
+    bo.qty -= 1
+    if (bo.qty <= 0) s.buyOrders = s.buyOrders.filter((b) => b.id !== bo.id)
+  }
+
+  return { sucesso: true, motivo: 'reserva_liquidada', compraConcluida: true }
+}
+
 export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
   deposito: liquidarDeposito,
   compra_direta: liquidarCompraDireta,
@@ -463,6 +574,8 @@ export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
   plano_custodia: liquidarFaturaCustodia,
   assinatura_custodia: liquidarAssinaturaCustodia,
   retirada: liquidarRetirada,
+  oferta_prepaga: liquidarOfertaPrepaga,
+  reserva_compra: liquidarReservaCompra,
 }
 
 /**

@@ -32,7 +32,7 @@ import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
-import type { ActionResult, AppState, Cents, UserEmail } from '@/domain/types'
+import type { ActionResult, AppState, Cents, ModalidadeOfertaCompra, UserEmail } from '@/domain/types'
 import {
   casarOrdensRespeitandoPendencia,
   contaComPendenciaNoEstado,
@@ -40,6 +40,7 @@ import {
   moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
 import { vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
+import { notificarReservasPendentes } from '@/server/mercado/aviso-de-reserva'
 import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
@@ -306,9 +307,15 @@ export async function publishBid(
   qtyPedida: number,
   precoUnit: Cents,
   tipoMoeda: string,
+  modalidade: ModalidadeOfertaCompra = 'saldo',
 ): Promise<ActionResult> {
   const bloqueaveis = await vendedoresBloqueaveis()
-  return executar((state, session, { taxas, catalogo }) => {
+
+  if (modalidade !== 'saldo' && modalidade !== 'prepago' && modalidade !== 'pospago') {
+    return { ok: false, error: 'Forma de pagamento da oferta desconhecida.' }
+  }
+
+  const res = await executar((state, session, { taxas, catalogo }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
     if (qtyRaw <= 0 || cents <= 0) return { ok: false, error: BID_INVALIDO_PUBLICAR }
@@ -317,11 +324,28 @@ export async function publishBid(
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-    // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite (inclui comissão de compra).
-    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
-    if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
+    /*
+     * O SALDO SÓ LIMITA A QUANTIDADE NA MODALIDADE 'saldo' (22/09/2026).
+     *
+     * Até aqui, publicar oferta de compra exigia dinheiro em conta, e a
+     * quantidade era cortada ao que o caixa aguentava. A regra era coerente com
+     * o casamento automático — o débito acontece sozinho, então o dinheiro
+     * precisa existir —, mas trancava quem não quer deixar dinheiro parado na
+     * plataforma esperando uma venda aparecer.
+     *
+     * Nas outras duas o caixa não manda: no pré-pago o dinheiro entra preso à
+     * oferta, pelo gateway, antes de ela poder casar; no pós-pago ele é
+     * buscado depois, dentro da janela da reserva. Nos dois casos o motor já
+     * sabe disso (`fundosDoBid`), então aqui é só não cortar a quantidade.
+     */
+    let qty = qtyRaw
+    if (modalidade === 'saldo') {
+      // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite (inclui comissão de compra).
+      const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
+      if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
+      qty = Math.min(qtyRaw, maxAfford)
+    }
 
-    const qty = Math.min(qtyRaw, maxAfford)
     const agora = Date.now()
     state.buyOrders.push({
       id: novoBidId(),
@@ -331,6 +355,10 @@ export async function publishBid(
       createdAt: agora,
       prioridadeEm: agora,
       tipoMoeda,
+      modalidade,
+      // Pré-pago nasce com zero: quem credita é a conciliação do pagamento,
+      // nunca a tela. Enquanto for zero, o motor não casa esta oferta.
+      pagoAntecipadoCents: modalidade === 'prepago' ? 0 : undefined,
     })
 
     const { matched } = casarOrdensRespeitandoPendencia(state, taxas, agora, bloqueaveis)
@@ -338,9 +366,21 @@ export async function publishBid(
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
     if (qty < qtyRaw) msg += ' (ajustada ao seu saldo disponível)'
+    if (modalidade === 'prepago') {
+      msg += ` Pague ${brl(custoDeCompraPorMoeda(cents, taxas) * qty)} para a oferta entrar no mercado.`
+    }
+    if (modalidade === 'pospago') {
+      msg += ' Você paga quando ela for aceita, e terá 10 minutos para concluir.'
+    }
     if (matched) msg += ' Parte já foi executada automaticamente com ofertas de venda existentes.'
     return { ok: true, message: msg }
   })
+
+  // Fora da transação: o casamento pode ter aberto reserva pós-paga, e quem
+  // tem dez minutos para pagar precisa saber disso por e-mail. Falha de envio
+  // não desfaz a publicação — ver o cabeçalho de aviso-de-reserva.ts.
+  if (res.ok) await notificarReservasPendentes()
+  return res
 }
 
 /**

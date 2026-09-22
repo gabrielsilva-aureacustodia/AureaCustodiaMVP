@@ -23,6 +23,8 @@ import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { publishBid } from '@/server/actions/market'
+import type { ModalidadeOfertaCompra } from '@/domain/types'
+import { ReservasEmAberto } from '@/components/market/ReservasEmAberto'
 
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
@@ -57,6 +59,8 @@ export default function ComprasPage(): ReactNode {
     .reverse()
 
   const bidQtyNum = parseInt(bidQty, 10) || 0
+  const [modalidadeBid, setModalidadeBid] = useState<ModalidadeOfertaCompra>('saldo')
+
   const bidPriceCents = parsePrice(bidPrice)
   const bidCustoUnit = bidPriceCents > 0 ? custoDeCompraPorMoeda(bidPriceCents, taxas) : 0
   const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador', taxas) : 0
@@ -75,7 +79,7 @@ export default function ComprasPage(): ReactNode {
       toast(BID_INVALIDO_PUBLICAR)
       return
     }
-    const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo))
+    const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo, modalidadeBid))
     if (res.ok) {
       setBidQty('1')
       setBidPrice('')
@@ -84,6 +88,10 @@ export default function ComprasPage(): ReactNode {
 
   return (
     <>
+      {/* Reserva pós-paga em aberto é o mais urgente da tela: são dez minutos.
+          Por isso vem antes de tudo, inclusive do formulário. */}
+      <ReservasEmAberto />
+
       <div className="cols">
         <div>
           <div className="panel" style={{ marginBottom: 18 }}>
@@ -198,9 +206,84 @@ export default function ComprasPage(): ReactNode {
                 {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
               </span>
             </div>
-            {bidPriceCents > 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 12px' }}>
-                Seu saldo permite até {bidMaxMoedasSaldo} moeda(s) neste preço.
+            {/* -----------------------------------------------------------
+                Como o comprador banca a oferta (22/09/2026).
+
+                Antes desta data o saldo era a única forma, e a quantidade era
+                cortada ao que o caixa aguentava. Continuar exigindo dinheiro
+                parado na plataforma trancava quem não quer deixá-lo lá.
+                ------------------------------------------------------- */}
+            <div className="field-lbl" style={{ marginTop: 10 }}>
+              Como você quer pagar
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              {(
+                [
+                  {
+                    chave: 'saldo' as const,
+                    titulo: 'Com saldo',
+                    detalhe: `Debitado da conta quando a oferta casar. Permite até ${bidMaxMoedasSaldo} moeda(s) neste preço.`,
+                  },
+                  {
+                    chave: 'prepago' as const,
+                    titulo: 'Pré-pago',
+                    detalhe: 'Você paga agora e a compra acontece sozinha quando alguém vender.',
+                  },
+                  {
+                    chave: 'pospago' as const,
+                    titulo: 'Pós-pago',
+                    detalhe: 'Não paga nada agora. Quando a oferta casar, você tem 10 minutos para pagar.',
+                  },
+                ]
+              ).map((o) => {
+                const ativa = modalidadeBid === o.chave
+                const semSaldo = o.chave === 'saldo' && bidMaxMoedasSaldo <= 0 && bidPriceCents > 0
+                return (
+                  <button
+                    key={o.chave}
+                    type="button"
+                    onClick={() => setModalidadeBid(o.chave)}
+                    style={{
+                      textAlign: 'left',
+                      padding: 10,
+                      minHeight: 44,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      border: ativa ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
+                      background: ativa ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
+                      color: 'var(--text-main)',
+                      opacity: semSaldo && !ativa ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{o.titulo}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
+                      {semSaldo ? 'Seu saldo não cobre nenhuma moeda neste preço.' : o.detalhe}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {modalidadeBid === 'prepago' && bidTotalComComissao > 0 && (
+              <div className="note" style={{ marginBottom: 10 }}>
+                A oferta só entra no mercado depois que o pagamento de{' '}
+                <b>{brl(bidTotalComComissao)}</b> for confirmado. Publique e o botão de pagamento
+                aparece na lista das suas ofertas.
+              </div>
+            )}
+
+            {modalidadeBid === 'pospago' && (
+              <div className="note" style={{ marginBottom: 10 }}>
+                Quando alguém aceitar a sua oferta, a moeda fica reservada no seu nome e você recebe
+                um e-mail com <b>10 minutos</b> para pagar. Passado o prazo, ela volta ao mercado e a
+                sua oferta vai para o fim da fila do mesmo preço.
               </div>
             )}
 

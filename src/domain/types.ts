@@ -158,6 +158,23 @@ export interface SellOffer {
 }
 
 /** Oferta de compra (bid), com preço-limite e quantidade restante. */
+/**
+ * Como o comprador banca a oferta de compra (22/09/2026).
+ *
+ * Até aqui só existia `saldo`: publicar um bid exigia dinheiro na conta, e a
+ * quantidade era reduzida ao que o caixa aguentava. Era coerente — o débito
+ * acontece sozinho no casamento — mas trancava quem não quis deixar dinheiro
+ * parado na plataforma.
+ *
+ * - `saldo`    dinheiro já em conta, debitado no casamento. O comportamento antigo.
+ * - `prepago`  o comprador paga a oferta ANTES, e o valor fica preso a ela. No
+ *              casamento a compra acontece sozinha, como no saldo.
+ * - `pospago`  nada é pago na publicação. Quando a oferta casa, nasce uma
+ *              `ReservaDeCompra` com prazo: pagou dentro do prazo, a moeda é
+ *              dele; não pagou, a fila anda e a moeda vai para o próximo.
+ */
+export type ModalidadeOfertaCompra = 'saldo' | 'prepago' | 'pospago'
+
 export interface BuyOrder {
   id: string
   buyer: UserEmail
@@ -166,6 +183,16 @@ export interface BuyOrder {
   /** Quantidade ainda não preenchida. Chega a 0 e a ordem é removida. */
   qty: number
   createdAt: Timestamp
+  /** Ausente vale `saldo`: é o que todo bid publicado antes de 22/09/2026 era. */
+  modalidade?: ModalidadeOfertaCompra
+  /**
+   * Pré-pago: quanto já entrou de verdade para esta oferta, confirmado pelo
+   * gateway. É dinheiro preso a ESTE bid, e não saldo da conta — por isso não
+   * fica em `User.balance`, onde seria gasto em qualquer outra compra.
+   *
+   * Nunca é escrito por tela: só pela conciliação do pagamento.
+   */
+  pagoAntecipadoCents?: Cents
   /**
    * Momento que define a vez na fila. Nasce igual a `createdAt` e é reescrito
    * quando o preço muda ou a quantidade aumenta (decisão F-3, 13/09/2026).
@@ -744,6 +771,55 @@ export interface FaturaCustodia {
   origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'
 }
 
+/**
+ * A janela de pagamento de uma oferta pós-paga que acabou de casar.
+ *
+ * Quando um bid `pospago` encontra uma oferta de venda, a moeda NÃO troca de
+ * dono na hora: ela sai do livro e fica reservada, com prazo. É a diferença
+ * entre o pós-pago e os outros dois — nos outros o dinheiro já existe, aqui
+ * ele ainda vai ser buscado.
+ *
+ * A moeda continua sendo do VENDEDOR enquanto a reserva está aberta. Transferir
+ * antes de receber criaria a possibilidade de o comprador vender adiante uma
+ * moeda que ele nunca pagou.
+ *
+ * Expirada, a moeda volta ao livro e o bid perde a vez: `prioridadeEm` é
+ * reescrito para agora, o que o joga para o fim da fila do próprio preço. É o
+ * "a fila anda" do pedido — quem não pagou não bloqueia quem está atrás.
+ */
+export type StatusReservaDeCompra = 'aguardando_pagamento' | 'paga' | 'expirada' | 'cancelada'
+
+export interface ReservaDeCompra {
+  id: string
+  bidId: string
+  comprador: UserEmail
+  vendedor: UserEmail
+  coinId: string
+  tipoMoeda: string
+  /** Preço unitário acertado, congelado no casamento. */
+  precoCents: Cents
+  /** Comissão de compra, congelada junto — a tabela pode mudar no meio do prazo. */
+  comissaoCompradorCents: Cents
+  /** O que o comprador paga: preço + comissão. */
+  totalCents: Cents
+  /**
+   * A oferta de venda que saiu do livro, guardada inteira para poder voltar
+   * exatamente como era se a reserva expirar.
+   *
+   * Cópia e não referência: a oferta é removida de `sellOffers` no casamento, e
+   * remontá-la campo a campo na expiração já errou uma vez — `obs` e `lotId`
+   * ficavam de fora, o que quebrava o agrupamento por lote da vitrine.
+   */
+  oferta: SellOffer
+  criadaEm: Timestamp
+  expiraEm: Timestamp
+  status: StatusReservaDeCompra
+  /** Referência da cobrança no gateway, quando o comprador começa a pagar. */
+  paymentIntentRef?: string | null
+  /** Quando o aviso de prazo foi enviado — evita mandar duas vezes. */
+  avisadoEm?: Timestamp | null
+}
+
 export interface Envio {
   modalidadeEnvio?: 'PAC' | 'SEDEX'
 }
@@ -755,6 +831,8 @@ export interface Seq {
 export interface AppState {
   planosCustodia?: PlanoCustodia[]
   retiradas?: Retirada[]
+  /** Reservas de compra pós-paga em aberto e o histórico delas. */
+  reservas?: ReservaDeCompra[]
 }
 
 /* === Finalizações · Frente C === */

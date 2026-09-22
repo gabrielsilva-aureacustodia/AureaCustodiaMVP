@@ -42,6 +42,7 @@ import { atualizarUser, carregarUsers, inserirUser, removerUser } from './users'
 import { atualizarSaque, carregarSaques, inserirSaque } from './saques'
 import { atualizarFatura, carregarFaturas, inserirFatura } from './faturas'
 import { atualizarPlano, carregarPlanos, inserirPlano } from './planos'
+import { atualizarReserva, carregarReservas, inserirReserva } from './reservas'
 
 export interface OpcoesCarregar {
   /**
@@ -61,7 +62,7 @@ export interface OpcoesCarregar {
 export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}): Promise<AppState> {
   const seq = await carregarSeq(tx, { travar: opcoes.travar === true })
 
-  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, analises, saques, faturas, planos] =
+  const [usersRows, coins, sellOffers, buyOrders, trades, envios, deposits, analises, saques, faturas, planos, reservas] =
     await Promise.all([
       carregarUsers(tx),
       carregarCoins(tx),
@@ -74,6 +75,7 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
       carregarSaques(tx),
       carregarFaturas(tx),
       carregarPlanos(tx),
+      carregarReservas(tx),
     ])
 
   const users: Record<UserEmail, User> = {}
@@ -110,6 +112,11 @@ export async function carregarEstado(tx: Consulta, opcoes: OpcoesCarregar = {}):
     saques,
     faturasCustodia: faturas,
     planosCustodia: planos,
+    // Ausente quando vazio, e não `[]`: o AppState vai para o cliente em JSON
+    // no polling, e acrescentar uma chave a todo estado mudaria a forma que o
+    // resto do sistema compara. É a mesma regra dos campos opcionais do
+    // usuário, algumas linhas acima.
+    ...(reservas.length > 0 ? { reservas } : {}),
   }
 }
 
@@ -177,6 +184,10 @@ export async function executarOperacao(tx: Consulta, op: Operacao): Promise<void
       return inserirSaque(tx, op.saque)
     case 'saque.atualizar':
       return atualizarSaque(tx, op.saque)
+    case 'reserva.inserir':
+      return inserirReserva(tx, op.reserva)
+    case 'reserva.atualizar':
+      return atualizarReserva(tx, op.reserva)
     case 'plano.inserir':
       return inserirPlano(tx, op.plano)
     case 'plano.atualizar':

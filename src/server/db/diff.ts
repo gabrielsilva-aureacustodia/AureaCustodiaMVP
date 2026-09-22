@@ -41,6 +41,7 @@ import type {
   Envio,
   FaturaCustodia,
   PlanoCustodia,
+  ReservaDeCompra,
   Saque,
   SellOffer,
   Seq,
@@ -186,6 +187,37 @@ export function normalizarBuyOrder(b: BuyOrder): BuyOrder {
     createdAt: b.createdAt,
     tipoMoeda: b.tipoMoeda,
     prioridadeEm: b.prioridadeEm ?? b.createdAt,
+    // Campos de 22/09/2026 (oferta sem saldo). Precisam estar AQUI, e não só no
+    // repositório: é esta função que o diff compara para decidir se a ordem
+    // mudou, e campo que ela não copia é campo que nunca gera
+    // `buyOrder.atualizar`. Foi assim que a `origem` de 60 análises ficou
+    // gravada errada — o valor mudava em memória e o diff não via diferença.
+    modalidade: b.modalidade ?? 'saldo',
+    pagoAntecipadoCents: b.pagoAntecipadoCents ?? 0,
+  }
+}
+
+/**
+ * A reserva, comparável. `oferta` entra inteira: ela é o que devolve a moeda ao
+ * livro na expiração, e uma reserva cuja oferta mudou é uma reserva diferente.
+ */
+export function normalizarReserva(r: ReservaDeCompra): ReservaDeCompra {
+  return {
+    id: r.id,
+    bidId: r.bidId,
+    comprador: r.comprador,
+    vendedor: r.vendedor,
+    coinId: r.coinId,
+    tipoMoeda: r.tipoMoeda,
+    precoCents: r.precoCents,
+    comissaoCompradorCents: r.comissaoCompradorCents,
+    totalCents: r.totalCents,
+    oferta: { ...r.oferta },
+    criadaEm: r.criadaEm,
+    expiraEm: r.expiraEm,
+    status: r.status,
+    paymentIntentRef: r.paymentIntentRef ?? null,
+    avisadoEm: r.avisadoEm ?? null,
   }
 }
 
@@ -387,6 +419,8 @@ export type Operacao =
   | { tipo: 'analise.inserir'; posicao: number; analise: Analise }
   | { tipo: 'saque.inserir'; saque: Saque }
   | { tipo: 'saque.atualizar'; saque: Saque }
+  | { tipo: 'reserva.inserir'; reserva: ReservaDeCompra }
+  | { tipo: 'reserva.atualizar'; reserva: ReservaDeCompra }
   | { tipo: 'plano.inserir'; plano: PlanoCustodia }
   | { tipo: 'plano.atualizar'; plano: PlanoCustodia }
   | { tipo: 'fatura.inserir'; fatura: FaturaCustodia }
@@ -540,6 +574,13 @@ export function planejarDiff(antes: AppState, depois: AppState): Operacao[] {
   }
   for (const saque of saquesNovos) ops.push({ tipo: 'saque.inserir', saque })
   for (const saque of saquesAtualizados) ops.push({ tipo: 'saque.atualizar', saque })
+  const reservas = diffPorChave(
+    indexar((antes.reservas ?? []).map(normalizarReserva), (r) => r.id),
+    indexar((depois.reservas ?? []).map(normalizarReserva), (r) => r.id),
+  )
+  for (const reserva of reservas.inseridos) ops.push({ tipo: 'reserva.inserir', reserva })
+  for (const reserva of reservas.atualizados) ops.push({ tipo: 'reserva.atualizar', reserva })
+
   for (const plano of planos.inseridos) ops.push({ tipo: 'plano.inserir', plano })
   for (const plano of planos.atualizados) ops.push({ tipo: 'plano.atualizar', plano })
   for (const fatura of faturas.inseridos) ops.push({ tipo: 'fatura.inserir', fatura })

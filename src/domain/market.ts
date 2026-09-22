@@ -26,6 +26,13 @@ import { DAY_MS, fdate } from '@/domain/dates'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import { moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import {
+  abrirReserva,
+  bidJaFalhouComAMoeda,
+  expirarReservasVencidas,
+  fundosDoBid,
+  modalidadeDoBid,
+} from '@/domain/reserva-de-compra'
 
 /* ---------- indicadores derivados das negociações ---------- */
 
@@ -295,6 +302,13 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       feeVendedor: Cents
     }
   >()
+  // Dez minutos são curtos demais para depender de rotina agendada, e a
+  // plataforma não tem uma rodando nesse ritmo. Quem faz a fila andar é esta
+  // varredura, no começo de todo casamento — ou seja, exatamente quando alguém
+  // tenta usar o mercado, que é quando a vaga importa. Moeda de reserva vencida
+  // volta ao livro AQUI, e por isso já pode casar nesta mesma passagem.
+  expirarReservasVencidas(state, Date.now())
+
   let progress = true
   while (progress) {
     progress = false
@@ -320,7 +334,14 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       // `s.seller !== bo.buyer` impede que alguém compre da própria oferta e
       // fabrique volume artificial no histórico.
       const so = state.sellOffers.find(
-        (s) => s.tipoMoeda === bo.tipoMoeda && s.price <= bo.price && s.seller !== bo.buyer,
+        (s) =>
+          s.tipoMoeda === bo.tipoMoeda &&
+          s.price <= bo.price &&
+          s.seller !== bo.buyer &&
+          // Uma chance por par (oferta, moeda): quem deixou a reserva vencer
+          // não volta a segurar a MESMA moeda. Sem isto, um bid pós-pago
+          // sozinho na fila travaria o item para sempre, dez minutos por vez.
+          !bidJaFalhouComAMoeda(state, bo.id, s.coinId),
       )
       if (!so) continue
 
@@ -332,9 +353,34 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       }
 
       const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
-      // Sem saldo suficiente para o preço + comissão de compra, a ordem é apenas PULADA
+
+      // PÓS-PAGO: a moeda sai do livro e fica RESERVADA, sem trocar de dono.
+      //
+      // Quem continua dono é o vendedor. Transferir antes de receber deixaria o
+      // comprador com um recibo que ele não pagou — e livre para revendê-lo
+      // dentro da própria janela de dez minutos, o que transformaria o prazo
+      // num jeito de comprar sem dinheiro nenhum.
+      //
+      // O bid NÃO tem `qty` decrementado aqui: ele só consome a unidade quando
+      // a reserva for paga. Enquanto isso, esta volta do laço precisa terminar
+      // (`break`) para o livro ser reordenado sem a oferta reservada.
+      if (modalidadeDoBid(bo) === 'pospago') {
+        state.reservas = state.reservas ?? []
+        state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
+        state.reservas.push(
+          abrirReserva({ bo, oferta: so, comissaoCompradorCents: feeComprador, agora: Date.now() }),
+        )
+        progress = true
+        break
+      }
+
+      // Sem dinheiro suficiente para o preço + comissão de compra, a ordem é apenas PULADA
       // — não se cancela um bid por falta de caixa momentânea; ele volta a ser tentado na próxima rodada.
-      if (buyer.balance >= so.price + feeComprador) {
+      //
+      // O que conta como dinheiro depende da modalidade: no saldo é o caixa da
+      // conta; no pré-pago é o valor que já entrou preso a ESTE bid, e que por
+      // isso não pode ser gasto em outra compra.
+      if (fundosDoBid(bo, buyer.balance) >= so.price + feeComprador) {
         const seller = state.users[so.seller]
         const price = so.price
 
@@ -365,7 +411,13 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
           break
         }
 
-        buyer.balance -= price + feeComprador // comprador paga preço + comissão de compra
+        // O pré-pago consome o que está preso à oferta; o saldo, o caixa da
+        // conta. Nunca os dois: dinheiro de pré-pago entrou para esta compra.
+        if (modalidadeDoBid(bo) === 'prepago') {
+          bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) - (price + feeComprador)
+        } else {
+          buyer.balance -= price + feeComprador // comprador paga preço + comissão de compra
+        }
         seller.balance += price - feeVendedor // vendedor recebe preço líquido da comissão
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         bo.qty -= 1

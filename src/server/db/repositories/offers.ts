@@ -86,12 +86,15 @@ type LinhaBuyOrder = {
   created_at: unknown
   tipo_moeda: string
   prioridade_em?: unknown
+  modalidade?: string | null
+  pago_antecipado?: unknown
 }
 
 export async function carregarBuyOrders(tx: Consulta): Promise<BuyOrder[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaBuyOrder>(
-    `SELECT id, buyer, price, qty, created_at, tipo_moeda, prioridade_em
+    `SELECT id, buyer, price, qty, created_at, tipo_moeda, prioridade_em,
+            modalidade, pago_antecipado
        FROM ${S}.buy_orders
       ORDER BY created_at, ord`,
   )
@@ -103,15 +106,30 @@ export async function carregarBuyOrders(tx: Consulta): Promise<BuyOrder[]> {
     createdAt: num(r.created_at),
     tipoMoeda: r.tipo_moeda,
     prioridadeEm: r.prioridade_em !== null && r.prioridade_em !== undefined ? num(r.prioridade_em) : num(r.created_at),
+    // Colunas novas (036): linha antiga vem com o DEFAULT 'saldo', que é o que
+    // toda ordem publicada antes de 22/09/2026 sempre foi.
+    modalidade: (r.modalidade as BuyOrder['modalidade']) ?? 'saldo',
+    pagoAntecipadoCents: num(r.pago_antecipado),
   }))
 }
 
 export async function inserirBuyOrder(tx: Consulta, b: BuyOrder): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
-    `INSERT INTO ${S}.buy_orders (id, buyer, price, qty, created_at, tipo_moeda, prioridade_em)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda, b.prioridadeEm ?? b.createdAt],
+    `INSERT INTO ${S}.buy_orders (id, buyer, price, qty, created_at, tipo_moeda, prioridade_em,
+                                  modalidade, pago_antecipado)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      b.id,
+      b.buyer,
+      b.price,
+      b.qty,
+      b.createdAt,
+      b.tipoMoeda,
+      b.prioridadeEm ?? b.createdAt,
+      b.modalidade ?? 'saldo',
+      b.pagoAntecipadoCents ?? 0,
+    ],
   )
 }
 
@@ -119,9 +137,23 @@ export async function atualizarBuyOrder(tx: Consulta, b: BuyOrder): Promise<void
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.buy_orders
-        SET buyer = $2, price = $3, qty = $4, created_at = $5, tipo_moeda = $6, prioridade_em = $7
+        SET buyer = $2, price = $3, qty = $4, created_at = $5, tipo_moeda = $6, prioridade_em = $7,
+            modalidade = $8, pago_antecipado = $9
       WHERE id = $1`,
-    [b.id, b.buyer, b.price, b.qty, b.createdAt, b.tipoMoeda, b.prioridadeEm ?? b.createdAt],
+    [
+      b.id,
+      b.buyer,
+      b.price,
+      b.qty,
+      b.createdAt,
+      b.tipoMoeda,
+      b.prioridadeEm ?? b.createdAt,
+      b.modalidade ?? 'saldo',
+      // O pré-pago é consumido no casamento, então este campo MUDA e precisa
+      // estar no UPDATE. Sem ele, o dinheiro preso à oferta reapareceria a cada
+      // recarga do estado e a mesma oferta compraria para sempre.
+      b.pagoAntecipadoCents ?? 0,
+    ],
   )
 }
 

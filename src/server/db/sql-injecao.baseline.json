@@ -96,6 +96,10 @@
   "src/server/db/repositories/rastreios.ts": [
     "S"
   ],
+  "src/server/db/repositories/reservas.ts": [
+    "COLUNAS",
+    "S"
+  ],
   "src/server/db/repositories/retiradas.ts": [
     "S"
   ],

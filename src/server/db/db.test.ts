@@ -245,6 +245,8 @@ function suite(alvo: Alvo): void {
         'recebimentos_gateway',
         // Migration 005 — `nfts` renomeada para `recibos` (D-4, 10/09/2026).
         'recibos',
+        // Migration 036 — oferta de compra sem saldo (pré-pago e pós-pago).
+        'reservas_compra',
         // Migration 011 — retiradas físicas da custódia (frente C).
         'retiradas',
         // Migration 009 — saques de recursos (Sessão B-4).
