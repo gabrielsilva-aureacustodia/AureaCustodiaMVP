@@ -22,6 +22,7 @@ import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { mutateState } from '@/server/state'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
+import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
 
 import { gravarRecebimento } from './recebimentos'
 import { repositorioIntencoes } from './repositorios'
@@ -643,6 +644,16 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
   }
 
   await intencoes.concluir(ref, paymentId)
+
+  // Sincroniza assinaturas recorrentes no gateway conforme a nova quantidade de moedas
+  if (tipo === 'compra_direta' && resLiquidacao.compraConcluida) {
+    const sellerId = String(reivindicada.metadata?.sellerEmail || '')
+    void sincronizarAssinaturaCustodia(sellerId)
+    void sincronizarAssinaturaCustodia(reivindicada.userEmail)
+  } else if (tipo === 'retirada' && resLiquidacao.sucesso) {
+    void sincronizarAssinaturaCustodia(reivindicada.userEmail)
+  }
+
   return {
     creditado: true,
     motivo: resLiquidacao.motivo,

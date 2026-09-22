@@ -108,6 +108,8 @@ export type StatusRastreioCorreios =
   | 'devolvido'
   | 'extraviado'
   | 'aguardando_postagem'
+  | 'indisponivel'
+  | 'nao_encontrado'
 
 /** Evento individual na linha do tempo de rastreamento. */
 export interface EventoRastreio {
@@ -132,6 +134,7 @@ export interface RastreioObjetoResult {
   dataUltimaAtualizacao: Timestamp
   eventos: EventoRastreio[]
   entregue: boolean
+  erro?: string
 }
 
 /** Dados retornados na consulta de CEP. */

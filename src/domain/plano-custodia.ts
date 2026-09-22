@@ -24,7 +24,6 @@
  */
 
 import {
-  CUSTODIA_ANUAL_POR_MOEDA_CENTS,
   CUSTODIA_MENSAL_POR_MOEDA_CENTS,
 } from '@/domain/fees'
 import {
@@ -57,8 +56,6 @@ import type {
  */
 export interface TabelaDeTaxasPlano {
   custodiaMensalPorMoeda?: Cents
-  custodiaAnualPorMoeda?: Cents
-  custodiaAnualParcelasMax?: number
   [key: string]: number | undefined
 }
 
@@ -66,82 +63,32 @@ export type TabelaDeTaxas = TabelaDeTaxasPlano
 
 /**
  * Quantos meses de guarda a modalidade cobre.
- *
- * É daqui que saem a competência final do plano, a apropriação contábil e o mês
- * da renovação. Foi justamente o 12 e o 24 soltos pelo código que quase fizeram
- * o plano de 24 meses renovar no 13º mês; nada de prazo se escreve literal fora
- * desta função.
+ * Apenas modalidade mensal (1 mês).
  */
-export function mesesCobertos(modalidade: ModalidadePlanoCustodia): number {
-  return modalidade === 'mensal' ? 1 : 12
+export function mesesCobertos(_modalidade?: ModalidadePlanoCustodia): number {
+  return 1
 }
 
 /**
- * Quantos meses ESTE plano cobre — que nem sempre é o prazo da modalidade.
- *
- * O plano de transferência nasce com um número próprio em `mesesContratados`:
- * quem comprou uma moeda no 2º mês de um anual deve os 11 que faltam, e é esse
- * 11 que precisa valer no `pagoAteCompetencia` e na renovação. Plano contratado
- * na tela não grava o campo e cai no prazo da modalidade.
+ * Quantos meses este plano cobre (1 mês no plano mensal).
  */
-export function mesesDoPlano(plano: {
-  modalidade: ModalidadePlanoCustodia
-  mesesContratados?: number
+export function mesesDoPlano(_plano?: {
+  modalidade?: ModalidadePlanoCustodia
 }): number {
-  const proprios = plano.mesesContratados
-  if (typeof proprios === 'number' && Number.isFinite(proprios) && proprios > 0) {
-    return Math.floor(proprios)
-  }
-  return mesesCobertos(plano.modalidade)
+  return 1
 }
 
 /**
- * Calcula os valores unitário, total e limite de parcelamento do plano de custódia.
- *
- * O total é o preço do PERÍODO inteiro, não uma mensalidade: R$ 24,00 por moeda
- * pelos 12 meses do anual, parcelável em até 12x no cartão; R$ 3,00 por moeda
- * no mensal, que não tem o que parcelar.
- *
- * `mesesForcados` existe para o plano de transferência, e só para ele: quando a
- * moeda muda de dono no meio de um anual, o comprador paga a mensalidade do
- * anual (R$ 2,00) vezes os meses que faltam, e parcela em tantas vezes quantos
- * forem esses meses. Sem esse parâmetro a única conta possível seria o prazo
- * cheio, e o comprador pagaria 12 meses por uma guarda de 11.
+ * Calcula os valores unitário, total e limite de parcelamento do plano de custódia mensal.
  */
 export function valorDoPlano(
-  modalidade: ModalidadePlanoCustodia,
+  _modalidade: ModalidadePlanoCustodia,
   quantidade: number,
   taxas?: TabelaDeTaxasPlano,
-  mesesForcados?: number
 ): { porMoeda: Cents; total: Cents; parcelasMax: number; meses: number } {
   const qtd = Math.max(0, Math.floor(quantidade))
-
-  if (modalidade === 'mensal') {
-    const mensal = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
-    // Mensal não parcela: parcelar R$ 3,00 em 12x daria R$ 0,25 de parcela.
-    return { porMoeda: mensal, total: mensal * qtd, parcelasMax: 1, meses: 1 }
-  }
-
-  const anualCheio = taxas?.custodiaAnualPorMoeda ?? CUSTODIA_ANUAL_POR_MOEDA_CENTS
-  const parcelasCheias = taxas?.custodiaAnualParcelasMax ?? 12
-  const mesesCheios = mesesCobertos('anual')
-
-  const meses =
-    typeof mesesForcados === 'number' && Number.isFinite(mesesForcados) && mesesForcados > 0
-      ? Math.min(Math.floor(mesesForcados), mesesCheios)
-      : mesesCheios
-
-  if (meses === mesesCheios) {
-    return { porMoeda: anualCheio, total: anualCheio * qtd, parcelasMax: parcelasCheias, meses }
-  }
-
-  // Proporcional: a mensalidade do anual vezes os meses restantes. A divisão é
-  // exata com os valores vigentes (2400/12 = 200), mas arredonda para cima por
-  // segurança — cobrar um centavo a menos por mês abriria um rombo silencioso
-  // no dia em que o anual deixar de ser múltiplo de 12.
-  const mensalidadeDoAnual = Math.ceil(anualCheio / mesesCheios)
-  const porMoeda = mensalidadeDoAnual * meses
-  return { porMoeda, total: porMoeda * qtd, parcelasMax: Math.max(1, meses), meses }
+  const mensal = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
+  return { porMoeda: mensal, total: mensal * qtd, parcelasMax: 1, meses: 1 }
 }
 
 /**
@@ -165,20 +112,13 @@ export function somarMeses(competencia: string, meses: number): string {
 
 /**
  * Calcula até qual competência um plano recém-pago cobre a custódia.
- * O mês de início conta, por isso é `meses - 1`: o anual contratado em 2026-09
- * cobre até 2027-08, e o mensal contratado em 2026-09 cobre só 2026-09.
- *
- * O terceiro parâmetro é o prazo próprio do plano de transferência. Sem ele a
- * conta usa o prazo da modalidade, que é o caso de todo plano contratado na
- * tela.
+ * No plano mensal cobre apenas o mês corrente (inicioCompetencia).
  */
 export function calcularPagoAte(
   inicioCompetencia: string,
-  modalidade: ModalidadePlanoCustodia,
-  mesesProprios?: number
+  _modalidade?: ModalidadePlanoCustodia,
 ): string {
-  const meses = mesesDoPlano({ modalidade, mesesContratados: mesesProprios })
-  return somarMeses(inicioCompetencia, meses - 1)
+  return inicioCompetencia
 }
 
 /**

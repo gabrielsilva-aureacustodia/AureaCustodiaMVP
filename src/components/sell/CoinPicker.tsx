@@ -46,8 +46,12 @@ export interface CoinPickerProps {
   tipoAtivo: string
   /** Categorias abertas agora. A tela controla — ver a nota do topo. */
   abertas: ReadonlySet<string>
+  /** AG8: moedas do usuário cuja custódia não foi paga — inerte, com badge vermelha. */
+  semCustodia?: ReadonlySet<string>
   onToggleFolder(categoria: string): void
   onToggle(coinId: string): void
+  /** AG8: chamado ao clicar na badge de custódia não paga. Abre modal de pagamento. */
+  onMoedaSemCustodia?(coinId: string): void
 }
 
 export function CoinPicker({
@@ -56,8 +60,10 @@ export function CoinPicker({
   selecionadas,
   tipoAtivo,
   abertas,
+  semCustodia,
   onToggleFolder,
   onToggle,
+  onMoedaSemCustodia,
 }: CoinPickerProps): ReactNode {
   // A pasta de cada tipo vem do catálogo vigente, editado no painel (C3).
   const { catalogo } = useApp()
@@ -121,7 +127,10 @@ export function CoinPicker({
                   // aqui é o que evita o usuário montar a seleção para depois
                   // levar uma recusa que ele não tinha como prever.
                   const outroTipo = c.tipoMoeda !== tipoAtivo
-                  const inerte = listed || outroTipo
+                  // AG8: moeda com custódia não paga fica inerte na lista — não
+                  // pode ser selecionada para venda.
+                  const custodiaPendente = semCustodia?.has(c.id) ?? false
+                  const inerte = listed || outroTipo || custodiaPendente
 
                   return (
                     <div
@@ -154,7 +163,17 @@ export function CoinPicker({
                         <div className="c-meta">
                           Código {c.id} · Entrada {c.entrada}
                         </div>
-                        {listed ? (
+                        {custodiaPendente ? (
+                          <span
+                            className="badge-red"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMoedaSemCustodia?.(c.id)
+                            }}
+                          >
+                            ⚠ CUSTÓDIA NÃO PAGA
+                          </span>
+                        ) : listed ? (
                           <span className="badge-gold">JÁ ANUNCIADA</span>
                         ) : outroTipo ? (
                           <span className="badge-gold">OUTRO TIPO SELECIONADO</span>

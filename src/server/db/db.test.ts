@@ -320,54 +320,39 @@ function suite(alvo: Alvo): void {
       await executar((tx) => tx.query(`DELETE FROM ${S}.planos_custodia WHERE protocolo_envio = 'ENV-CHECK'`))
     })
 
-    it('migration 032: planos_custodia e faturas_custodia aceitam campos e constraint de transferência', async () => {
+    it('migration 035: desmonta a transferência proporcional (colunas removidas e origem transferencia rejeitada)', async () => {
       const S = alvo.schema
       const semeado = await lerEstado(executar)
       const [dono] = Object.keys(semeado.users)
 
-      // 1. Inserir plano de transferência com meses_contratados e plano_origem_id
-      await executar((tx) =>
-        tx.query(
-          `INSERT INTO ${S}.planos_custodia
-             (id, user_email, protocolo_envio, modalidade, quantidade_contratada,
-              valor_por_moeda, valor_total, parcelas_max, inicio_competencia, status,
-              criado_em, atualizado_em, meses_contratados, origem, plano_origem_id)
-           VALUES ('PLC-TR-TEST', $1, 'ENV-TR', 'anual', 1, 2200, 2200, 11, '2026-10', 'aguardando_pagamento',
-                   1, 1, 11, 'transferencia', 'PLC-ORIGEM')`,
-          [dono],
-        ),
-      )
-
-      // Recusa origem inválida em planos_custodia
+      // 1. Tentar inserir com meses_contratados deve falhar (coluna não existe mais)
       await expect(
         executar((tx) =>
           tx.query(
             `INSERT INTO ${S}.planos_custodia
                (id, user_email, protocolo_envio, modalidade, quantidade_contratada,
                 valor_por_moeda, valor_total, parcelas_max, inicio_competencia, status,
-                criado_em, atualizado_em, origem)
-             VALUES ('PLC-TR-ERR', $1, 'ENV-TR', 'anual', 1, 2200, 2200, 11, '2026-10', 'aguardando_pagamento',
-                     1, 1, 'invalida')`,
+                criado_em, atualizado_em, meses_contratados)
+             VALUES ('PLC-TR-TEST', $1, 'ENV-TR', 'mensal', 1, 200, 200, 1, '2026-10', 'aguardando_pagamento',
+                     1, 1, 11)`,
             [dono],
           ),
         ),
       ).rejects.toThrow()
 
-      // 2. Inserir fatura com origem 'transferencia'
-      await executar((tx) =>
-        tx.query(
-          `INSERT INTO ${S}.faturas_custodia
-             (id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
-              status, data_emissao, data_vencimento, plano_id, origem)
-           VALUES ('FAT-TR-TEST', $1, '2026-10', 1, '{}', 2200,
-                   'pendente', 1, 2, 'PLC-TR-TEST', 'transferencia')`,
-          [dono],
+      // 2. Tentar inserir fatura com origem 'transferencia' deve falhar (CHECK faturas_origem_check)
+      await expect(
+        executar((tx) =>
+          tx.query(
+            `INSERT INTO ${S}.faturas_custodia
+               (id, user_email, competencia, quantidade_moedas, moeda_ids, valor_cents,
+                status, data_emissao, data_vencimento, origem)
+             VALUES ('FAT-TR-TEST', $1, '2026-10', 1, '{}', 200,
+                     'pendente', 1, 2, 'transferencia')`,
+            [dono],
+          ),
         ),
-      )
-
-      // Limpeza
-      await executar((tx) => tx.query(`DELETE FROM ${S}.faturas_custodia WHERE id = 'FAT-TR-TEST'`))
-      await executar((tx) => tx.query(`DELETE FROM ${S}.planos_custodia WHERE protocolo_envio = 'ENV-TR'`))
+      ).rejects.toThrow()
     })
 
     it('banco vazio semeia na primeira leitura, e a segunda leitura é idêntica à primeira', async () => {

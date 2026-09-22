@@ -234,7 +234,7 @@ describe('montarDre', () => {
     expect(dre.totais.despesasOperacionais).toBe(500)
   })
 
-  it('apropria plano anual de custódia na DRE mês a mês (1/12) sem contagem dupla', () => {
+  it('apropria plano de custódia na DRE no mês correspondente sem contagem dupla', () => {
     const dre = montarDre({
       ledger: [],
       manuais: [],
@@ -245,14 +245,14 @@ describe('montarDre', () => {
           id: 'PLC-001',
           userEmail: 'user@teste.com',
           protocoloEnvio: 'ENV-001',
-          modalidade: 'anual',
+          modalidade: 'mensal',
           quantidadeContratada: 3,
           moedaIds: [],
-          valorPorMoedaCents: 2400,
-          valorTotalCents: 7200,
-          parcelasMax: 12,
+          valorPorMoedaCents: 200,
+          valorTotalCents: 600,
+          parcelasMax: 1,
           inicioCompetencia: '2026-08',
-          pagoAteCompetencia: '2027-07',
+          pagoAteCompetencia: '2026-08',
           status: 'vigente',
           formaPagamento: 'cartao',
           paymentIntentRef: null,
@@ -277,14 +277,14 @@ describe('montarDre', () => {
           dataPagamento: new Date(2026, 7, 2).getTime(),
           origem: 'ciclo_mensal',
         },
-        // Fatura de contratação do plano anual: R$ 72,00 (não deve somar duplicado)
+        // Fatura de contratação do plano mensal: R$ 6,00 (não deve somar duplicado)
         {
           id: 'FAT-002',
           userEmail: 'user@teste.com',
           competencia: '2026-08',
           quantidadeMoedas: 3,
           moedaIds: [],
-          valorCents: 7200,
+          valorCents: 600,
           status: 'paga',
           dataEmissao: new Date(2026, 7, 5).getTime(),
           dataVencimento: new Date(2026, 7, 15).getTime(),

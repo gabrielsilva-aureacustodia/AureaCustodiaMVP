@@ -9,6 +9,7 @@
 import 'server-only'
 
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
+import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 
 import type { IdentidadeResumo, PortaDeIdentidade, RespostaIdentidade } from './usuarios'
 
@@ -39,6 +40,16 @@ function configuracao(): { url: string; chave: string } | { faltando: string[] }
 
 function resumo(u: User): IdentidadeResumo {
   const banida = (u as User & { banned_until?: string | null }).banned_until ?? null
+  const identProvedores = (u.identities ?? []).map((i) => i.provider)
+  const metaProvedores = ((u.app_metadata?.providers as string[]) ?? [])
+  const metaProvedor = (u.app_metadata?.provider as string) ?? null
+  const todosProvedores = Array.from(
+    new Set([
+      ...identProvedores,
+      ...metaProvedores,
+      ...(metaProvedor ? [metaProvedor] : []),
+    ]),
+  )
   return {
     id: u.id,
     email: (u.email ?? '').toLowerCase(),
@@ -47,7 +58,7 @@ function resumo(u: User): IdentidadeResumo {
     ultimoLogin: u.last_sign_in_at ?? null,
     // O Supabase devolve a data do fim do bloqueio; no passado, a conta já está livre.
     bloqueadaAte: banida && new Date(banida).getTime() > Date.now() ? banida : null,
-    provedores: (u.identities ?? []).map((i) => i.provider),
+    provedores: todosProvedores,
   }
 }
 
@@ -67,6 +78,7 @@ export function portaDeIdentidadeDoAmbiente(): PortaDeIdentidade {
       definirSenha: recusa,
       bloquear: recusa,
       enviarLinkDeSenha: recusa,
+      atualizarLogin: recusa,
     }
   }
 
@@ -120,6 +132,34 @@ export function portaDeIdentidadeDoAmbiente(): PortaDeIdentidade {
       // SMTP próprio exigido.
       const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: redirecionarPara })
       return error ? falha(error) : { ok: true, dados: undefined }
+    },
+
+    async atualizarLogin(id, dados) {
+      const attributes: Record<string, unknown> = {}
+      if (dados.email) {
+        attributes.email = dados.email.trim().toLowerCase()
+        attributes.email_confirm = true
+      }
+      if (dados.senha) {
+        attributes.password = dados.senha
+      }
+      if (dados.removerVinculoGoogle) {
+        attributes.app_metadata = { provider: 'email', providers: ['email'] }
+      }
+      const { error } = await supabase().auth.admin.updateUserById(id, attributes)
+      if (error) return falha(error)
+
+      if (dados.removerVinculoGoogle && bancoConfigurado()) {
+        try {
+          await executarNoBanco(async (tx) => {
+            await tx.query('DELETE FROM auth.identities WHERE user_id = $1 AND provider = $2', [id, 'google'])
+          })
+        } catch (err) {
+          console.warn('[identidade] aviso ao limpar identidade google em auth.identities:', err)
+        }
+      }
+
+      return { ok: true, dados: undefined }
     },
   }
 }

@@ -37,11 +37,13 @@ import {
   casarOrdensRespeitandoPendencia,
   contaComPendenciaNoEstado,
   MENSAGEM_ANUNCIO_PAUSADO,
+  moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
 import { vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
+import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
 
 /* ---------- mensagens (texto exato do monolito, salvo onde anotado) ---------- */
 
@@ -168,7 +170,8 @@ function novoBidId(): string {
  */
 export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionResult> {
   const bloqueaveis = await vendedoresBloqueaveis()
-  return executar((state, session, { taxas }) => {
+  let sellerIdParaSync: string | null = null
+  const res = await executar((state, session, { taxas }) => {
     // Ordem natural do array, como na linha 1413 — as ofertas de um lote têm
     // todas o mesmo preço e o mesmo vendedor, então qual vem primeiro só decide
     // QUAIS moedas saem, não por quanto.
@@ -177,6 +180,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     const price = offers[0].price
     const sellerId = offers[0].seller
+    sellerIdParaSync = sellerId
     // Todas as ofertas de um lote compartilham tipo, preço e vendedor — o tipo
     // é gravado na publicação e nunca é reescrito.
     const tipoMoeda = offers[0].tipoMoeda
@@ -190,6 +194,21 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     if (!buyer || !seller) return { ok: false, error: ANUNCIO_INDISPONIVEL }
 
     if (bloqueaveis.has(sellerId) && contaComPendenciaNoEstado(state, sellerId, Date.now())) {
+      return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }
+    }
+
+    // AG8: oferta de moeda cuja custódia não foi paga sai do livro na hora.
+    // O comprador vê "pausado" — é o mesmo texto de pendência de conta,
+    // porque da perspectiva dele o efeito é o mesmo.
+    const ofertaComCustodiaNaoPaga = offers.some(
+      (o) => moedaComCustodiaNaoPagaNoEstado(state, sellerId, o.coinId),
+    )
+    if (ofertaComCustodiaNaoPaga) {
+      // Limpa as ofertas afetadas do livro para que não voltem a aparecer
+      const idsDoLote = new Set(offers.filter(
+        (o) => moedaComCustodiaNaoPagaNoEstado(state, sellerId, o.coinId),
+      ).map((o) => o.id))
+      state.sellOffers = state.sellOffers.filter((o) => !idsDoLote.has(o.id))
       return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }
     }
 
@@ -256,6 +275,15 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
       message: `Compra concluída: ${compradas} ${tipoMoeda} por ${brl(total)}.`,
     }
   })
+
+  if (res.ok && sellerIdParaSync) {
+    const { taxas } = await carregarRegrasDoMercado()
+    const session = await getSessionEmail()
+    if (session) void sincronizarAssinaturaCustodia(session, taxas)
+    void sincronizarAssinaturaCustodia(sellerIdParaSync, taxas)
+  }
+
+  return res
 }
 
 /**

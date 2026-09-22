@@ -29,20 +29,20 @@ describe('descricaoDaFaturaDeCustodia', () => {
     expect(texto).not.toMatch(/faixa/i)
   })
 
-  it('formata contratação com plano anual sem mencionar mensal', () => {
-    const fatura: FaturaCustodia = { ...faturaBase, origem: 'contratacao', valorCents: 36000 }
+  it('formata contratação com plano mensal', () => {
+    const fatura: FaturaCustodia = { ...faturaBase, origem: 'contratacao', valorCents: 3000 }
     const plano: PlanoCustodia = {
       id: 'PLC-001',
       userEmail: 'cliente@exemplo.com.br',
       protocoloEnvio: 'RO-ENV-0001',
-      modalidade: 'anual',
+      modalidade: 'mensal',
       quantidadeContratada: 15,
       moedaIds: [],
-      valorPorMoedaCents: 2400,
-      valorTotalCents: 36000,
-      parcelasMax: 12,
+      valorPorMoedaCents: 200,
+      valorTotalCents: 3000,
+      parcelasMax: 1,
       inicioCompetencia: '2026-09',
-      pagoAteCompetencia: '2027-08',
+      pagoAteCompetencia: '2026-09',
       status: 'vigente',
       formaPagamento: 'saldo',
       paymentIntentRef: null,
@@ -52,23 +52,13 @@ describe('descricaoDaFaturaDeCustodia', () => {
       atualizadoEm: 1757894400000,
     }
     const texto = descricaoDaFaturaDeCustodia(fatura, plano)
-    expect(texto).toBe('Plano anual de custódia a partir de 2026-09 · 15 moeda(s) — paga')
-    expect(texto).toContain('Plano anual')
-    expect(texto).not.toContain('mensal')
-    expect(texto).not.toMatch(/faixa/i)
-  })
-
-
-  it('formata contratação sem plano encontrado', () => {
-    const fatura: FaturaCustodia = { ...faturaBase, origem: 'contratacao' }
-    const texto = descricaoDaFaturaDeCustodia(fatura, undefined)
-    expect(texto).toBe('Contratação de plano de custódia 2026-09 · 15 moeda(s) — paga')
-    expect(texto).toContain('Contratação de plano')
+    expect(texto).toBe('Plano mensal de custódia a partir de 2026-09 · 15 moeda(s) — paga')
+    expect(texto).toContain('Plano mensal')
     expect(texto).not.toMatch(/faixa/i)
   })
 
   it('formata renovação de plano sem prometer prazo', () => {
-    // A origem no banco continua 'renovacao_anual', mas renova plano de 12 ou de 24 meses.
+    // A origem no banco continua 'renovacao_anual', mas renova plano mensal.
     const fatura: FaturaCustodia = { ...faturaBase, origem: 'renovacao_anual' }
     const texto = descricaoDaFaturaDeCustodia(fatura, undefined)
     expect(texto).toBe('Renovação do plano de custódia a partir de 2026-09 · 15 moeda(s) — paga')
@@ -93,11 +83,11 @@ describe('custodiaDoEnvio', () => {
     codigosAtivosGerados: [],
   }
 
-  it('calcula custódia mensal sem plano com TAXAS_PADRAO (15 moedas = R$ 45,00)', () => {
+  it('calcula custódia mensal sem plano com TAXAS_PADRAO (15 moedas = R$ 30,00)', () => {
     const res = custodiaDoEnvio(envioBase, undefined, TAXAS_PADRAO)
     expect(res).toEqual({
-      rotulo: 'Custódia mensal destas moedas',
-      valorCents: 4500,
+      rotulo: 'Plano mensal destas moedas',
+      valorCents: 3000,
       periodo: 'mês',
     })
     expect(Number.isInteger(res.valorCents)).toBe(true)
@@ -107,24 +97,24 @@ describe('custodiaDoEnvio', () => {
     const taxasCustom = { ...TAXAS_PADRAO, custodiaMensalPorMoeda: 250 }
     const res = custodiaDoEnvio(envioBase, undefined, taxasCustom)
     expect(res).toEqual({
-      rotulo: 'Custódia mensal destas moedas',
+      rotulo: 'Plano mensal destas moedas',
       valorCents: 3750,
       periodo: 'mês',
     })
     expect(Number.isInteger(res.valorCents)).toBe(true)
   })
 
-  it('retorna valorTotalCents congelado e período ano para plano anual', () => {
+  it('retorna valorTotalCents congelado para plano mensal', () => {
     const plano: PlanoCustodia = {
       id: 'PLC-001',
       userEmail: 'cliente@exemplo.com.br',
       protocoloEnvio: 'RO-ENV-0001',
-      modalidade: 'anual',
+      modalidade: 'mensal',
       quantidadeContratada: 15,
       moedaIds: [],
-      valorPorMoedaCents: 2400,
-      valorTotalCents: 36000,
-      parcelasMax: 12,
+      valorPorMoedaCents: 200,
+      valorTotalCents: 3000,
+      parcelasMax: 1,
       inicioCompetencia: '2026-09',
       pagoAteCompetencia: null,
       status: 'aguardando_pagamento',
@@ -137,11 +127,10 @@ describe('custodiaDoEnvio', () => {
     }
     const res = custodiaDoEnvio(envioBase, plano, TAXAS_PADRAO)
     expect(res).toEqual({
-      rotulo: 'Plano anual destas moedas',
-      valorCents: 36000,
-      periodo: 'ano',
+      rotulo: 'Plano mensal destas moedas',
+      valorCents: 3000,
+      periodo: 'mês',
     })
     expect(Number.isInteger(res.valorCents)).toBe(true)
   })
-
 })

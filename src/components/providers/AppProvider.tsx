@@ -156,8 +156,13 @@ interface Props {
   children: ReactNode
 }
 
-export function AppProvider({ initialState, session, admin = false, config: configInicial = CONFIG_DO_CLIENTE_PADRAO, aceitesPendentes: pendentesIniciais = null, children }: Props): ReactNode {
+export function AppProvider({ initialState, session: sessionProp, admin = false, config: configInicial = CONFIG_DO_CLIENTE_PADRAO, aceitesPendentes: pendentesIniciais = null, children }: Props): ReactNode {
   const toast = useToast()
+
+  const [session, setSession] = useState<UserEmail>(sessionProp)
+  useEffect(() => {
+    setSession(sessionProp)
+  }, [sessionProp])
 
   const [state, setState] = useState<AppState>(initialState)
   // Configuração e pendência de aceite chegam junto com o estado a cada ciclo: uma taxa mudada no
@@ -215,7 +220,10 @@ export function AppProvider({ initialState, session, admin = false, config: conf
       }
       if (!r.ok) return
 
-      const body = (await r.json()) as { state: AppState; config?: ConfigDoCliente; aceitesPendentes?: string[] | null }
+      const body = (await r.json()) as { state: AppState; session?: UserEmail; config?: ConfigDoCliente; aceitesPendentes?: string[] | null }
+      if (body?.session) {
+        setSession((atual) => (body.session && body.session !== atual ? body.session : atual))
+      }
       if (body && body.state) aplicar(body.state)
       if (body?.config) {
         const json = JSON.stringify(body.config)

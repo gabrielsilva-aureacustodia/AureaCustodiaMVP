@@ -20,6 +20,7 @@
  * Regra pura: sem I/O, sem relógio.
  */
 
+import { COIN_TYPES } from '@/domain/constants'
 import type { VereditoAnalise } from '@/domain/types'
 
 import { chaveDeCaixa } from './caixas'
@@ -85,6 +86,16 @@ export function gramasParaMg(texto: string): number | null {
   const gramas = Number(limpo)
   if (!Number.isFinite(gramas) || gramas <= 0) return null
   return Math.round(gramas * 1000)
+}
+
+/**
+ * O peso pré-preenchido do envio na bancada: usa o peso inicial registrado no envio (se houver e > 0)
+ * ou o peso padrão do tipo de moeda no catálogo (7000 mg para Entrega da Bandeira, 7840 mg para Direitos Humanos).
+ * Devolve string em gramas com vírgula, pronta para o input (ex.: "7", "7,84").
+ */
+export function pesoPadraoOuInicial(tipoMoeda: string, pesoInicialMg: number | null | undefined): string {
+  const peso = pesoInicialMg && pesoInicialMg > 0 ? pesoInicialMg : COIN_TYPES.find((t) => t.key === tipoMoeda)?.pesoPadraoMg
+  return peso && peso > 0 ? String(peso / 1000).replace('.', ',') : ''
 }
 
 function textoOuNulo(v: unknown): string | null {

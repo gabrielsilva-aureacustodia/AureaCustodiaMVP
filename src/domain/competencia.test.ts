@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
   apropriacaoDoPlano,
@@ -28,19 +28,19 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
   })
 
   describe('apropriacaoDoPlano', () => {
-    it('apropria plano de R$ 24,00 em 12 meses somando exatamente R$ 24,00 no ano', () => {
+    it('apropria plano mensal no próprio mês somando exatamente o valor no ano', () => {
       const plano: PlanoCustodia = {
         id: 'PLC-001',
         userEmail: 'user@teste.com',
         protocoloEnvio: 'ENV-001',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 1,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 2400,
-        parcelasMax: 12,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 200,
+        parcelasMax: 1,
         inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2026-12',
+        pagoAteCompetencia: '2026-01',
         status: 'vigente',
         formaPagamento: 'cartao',
         paymentIntentRef: null,
@@ -50,30 +50,33 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
         atualizadoEm: Date.now(),
       }
 
-      // No ano de 2026 inteiro, deve somar exatamente 2400
+      // No ano de 2026 inteiro, deve somar exatamente 200
       const pAno = periodoAnual(2026)
-      expect(apropriacaoDoPlano(plano, pAno)).toBe(2400)
+      expect(apropriacaoDoPlano(plano, pAno)).toBe(200)
 
-      // Em cada mês individual, deve ser 200 cents (R$ 2,00)
-      for (let mes = 1; mes <= 12; mes++) {
+      // No mês 1 (janeiro), deve ser 200 cents (R$ 2,00)
+      expect(apropriacaoDoPlano(plano, periodoMensal(2026, 1))).toBe(200)
+
+      // Nos demais meses, 0
+      for (let mes = 2; mes <= 12; mes++) {
         const pMes = periodoMensal(2026, mes)
-        expect(apropriacaoDoPlano(plano, pMes)).toBe(200)
+        expect(apropriacaoDoPlano(plano, pMes)).toBe(0)
       }
     })
 
-    it('apropria plano de R$ 72,00 (3 moedas) somando exatamente R$ 72,00 no ano', () => {
+    it('apropria plano mensal de 3 moedas no próprio mês', () => {
       const plano: PlanoCustodia = {
         id: 'PLC-002',
         userEmail: 'user@teste.com',
         protocoloEnvio: 'ENV-002',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 3,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 7200,
-        parcelasMax: 12,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
+        parcelasMax: 1,
         inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2026-12',
+        pagoAteCompetencia: '2026-01',
         status: 'vigente',
         formaPagamento: 'cartao',
         paymentIntentRef: null,
@@ -84,86 +87,9 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       }
 
       const pAno = periodoAnual(2026)
-      expect(apropriacaoDoPlano(plano, pAno)).toBe(7200)
-
-      // R$ 6,00 por mês
-      for (let mes = 1; mes <= 12; mes++) {
-        const pMes = periodoMensal(2026, mes)
-        expect(apropriacaoDoPlano(plano, pMes)).toBe(600)
-      }
-    })
-
-    it('coloca a sobra do arredondamento no 12º mês para fechar a soma exata', () => {
-      // R$ 25,00 (2500 cents): 2500 / 12 = 208, sobra = 4 cents (208 * 11 = 2288, 12º mês = 212)
-      const plano: PlanoCustodia = {
-        id: 'PLC-003',
-        userEmail: 'user@teste.com',
-        protocoloEnvio: 'ENV-003',
-        modalidade: 'anual',
-        quantidadeContratada: 1,
-        moedaIds: [],
-        valorPorMoedaCents: 2500,
-        valorTotalCents: 2500,
-        parcelasMax: 12,
-        inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2026-12',
-        status: 'vigente',
-        formaPagamento: 'pix',
-        paymentIntentRef: null,
-        assinaturaId: null,
-        estornadoCents: 0,
-        criadoEm: Date.now(),
-        atualizadoEm: Date.now(),
-      }
-
-      let somaMeses = 0
-      for (let mes = 1; mes <= 11; mes++) {
-        const valorMes = apropriacaoDoPlano(plano, periodoMensal(2026, mes))
-        expect(valorMes).toBe(208)
-        somaMeses += valorMes
-      }
-
-      const mes12 = apropriacaoDoPlano(plano, periodoMensal(2026, 12))
-      expect(mes12).toBe(212) // 208 + 4 de sobra
-      somaMeses += mes12
-
-      expect(somaMeses).toBe(2500)
-      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(2500)
-    })
-
-    it('plano que começa em novembro divide receita entre os dois anos', () => {
-      const plano: PlanoCustodia = {
-        id: 'PLC-004',
-        userEmail: 'user@teste.com',
-        protocoloEnvio: 'ENV-004',
-        modalidade: 'anual',
-        quantidadeContratada: 1,
-        moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 2400,
-        parcelasMax: 12,
-        inicioCompetencia: '2026-11',
-        pagoAteCompetencia: '2027-10',
-        status: 'vigente',
-        formaPagamento: 'cartao',
-        paymentIntentRef: null,
-        assinaturaId: null,
-        estornadoCents: 0,
-        criadoEm: Date.now(),
-        atualizadoEm: Date.now(),
-      }
-
-      // Em 2026: nov e dez = 2 meses * 200 = 400
-      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(400)
-
-      // Em 2027: jan a out = 10 meses * 200 = 2000
-      expect(apropriacaoDoPlano(plano, periodoAnual(2027))).toBe(2000)
-
-      // Soma dos dois anos = 2400
-      expect(
-        apropriacaoDoPlano(plano, periodoAnual(2026)) +
-          apropriacaoDoPlano(plano, periodoAnual(2027)),
-      ).toBe(2400)
+      expect(apropriacaoDoPlano(plano, pAno)).toBe(600)
+      expect(apropriacaoDoPlano(plano, periodoMensal(2026, 1))).toBe(600)
+      expect(apropriacaoDoPlano(plano, periodoMensal(2026, 2))).toBe(0)
     })
 
     it('deduz valores estornados na apropriação', () => {
@@ -171,46 +97,43 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
         id: 'PLC-005',
         userEmail: 'user@teste.com',
         protocoloEnvio: 'ENV-005',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 3,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 7200,
-        parcelasMax: 12,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
+        parcelasMax: 1,
         inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2026-12',
+        pagoAteCompetencia: '2026-01',
         status: 'vigente',
         formaPagamento: 'cartao',
         paymentIntentRef: null,
         assinaturaId: null,
-        estornadoCents: 2400, // 1 moeda estornada
+        estornadoCents: 200, // 1 moeda estornada
         criadoEm: Date.now(),
         atualizadoEm: Date.now(),
       }
 
-      // Valor líquido = 4800 (400 por mês)
-      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(4800)
+      // Valor líquido = 400
+      expect(apropriacaoDoPlano(plano, periodoAnual(2026))).toBe(400)
       expect(apropriacaoDoPlano(plano, periodoMensal(2026, 1))).toBe(400)
     })
-    // O caso do plano de 24 meses saiu em 20/09/2026 junto com o plano. O que
-    // ele protegia — a apropriação ser linear pelos meses que o plano cobre, e
-    // não por um 12 fixo — continua coberto pelo caso do anual logo acima.
   })
 
   describe('receitaDeCustodiaNoPeriodo', () => {
-    it('soma faturas mensais e apropriação de planos anuais sem contagem dupla', () => {
-      const planoAnual: PlanoCustodia = {
+    it('soma faturas mensais e apropriação de planos sem contagem dupla', () => {
+      const planoMensal: PlanoCustodia = {
         id: 'PLC-010',
-        userEmail: 'anual@teste.com',
+        userEmail: 'mensal@teste.com',
         protocoloEnvio: 'ENV-010',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 1,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 2400,
-        parcelasMax: 12,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 200,
+        parcelasMax: 1,
         inicioCompetencia: '2026-08',
-        pagoAteCompetencia: '2027-07',
+        pagoAteCompetencia: '2026-08',
         status: 'vigente',
         formaPagamento: 'cartao',
         paymentIntentRef: null,
@@ -224,7 +147,7 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
         // Fatura do ciclo mensal de agosto paga: R$ 4,00 (2 moedas)
         {
           id: 'FAT-001',
-          userEmail: 'mensal@teste.com',
+          userEmail: 'outro@teste.com',
           competencia: '2026-08',
           quantidadeMoedas: 2,
           moedaIds: [],
@@ -235,14 +158,14 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
           dataPagamento: new Date(2026, 7, 2).getTime(),
           origem: 'ciclo_mensal',
         },
-        // Fatura de contratação do plano anual paga: R$ 24,00 (NÃO DEVE SOMAR DUPLICADA)
+        // Fatura de contratação do plano mensal paga: R$ 2,00 (NÃO DEVE SOMAR DUPLICADA)
         {
           id: 'FAT-002',
-          userEmail: 'anual@teste.com',
+          userEmail: 'mensal@teste.com',
           competencia: '2026-08',
           quantidadeMoedas: 1,
           moedaIds: [],
-          valorCents: 2400,
+          valorCents: 200,
           status: 'paga',
           dataEmissao: new Date(2026, 7, 5).getTime(),
           dataVencimento: new Date(2026, 7, 15).getTime(),
@@ -253,26 +176,26 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
       ]
 
       const pAgosto = periodoMensal(2026, 8)
-      // Receita esperada: R$ 4,00 (fatura mensal) + R$ 2,00 (1/12 do plano anual) = R$ 6,00 (600 cents)
-      const total = receitaDeCustodiaNoPeriodo(faturas, [planoAnual], pAgosto)
+      // Receita esperada: R$ 4,00 (fatura ciclo) + R$ 2,00 (apropriação do plano mensal) = R$ 6,00 (600 cents)
+      const total = receitaDeCustodiaNoPeriodo(faturas, [planoMensal], pAgosto)
       expect(total).toBe(600)
     })
   })
 
   describe('calcularReceitaDiferida', () => {
-    it('calcula corretamente o diferimento contábil de um plano anual', () => {
+    it('calcula corretamente o diferimento contábil de um plano mensal', () => {
       const plano: PlanoCustodia = {
         id: 'PLC-020',
         userEmail: 'user@teste.com',
         protocoloEnvio: 'ENV-020',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 1,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 2400,
-        parcelasMax: 12,
-        inicioCompetencia: '2026-01',
-        pagoAteCompetencia: '2026-12',
+        valorPorMoedaCents: 200,
+        valorTotalCents: 200,
+        parcelasMax: 1,
+        inicioCompetencia: '2026-03',
+        pagoAteCompetencia: '2026-03',
         status: 'vigente',
         formaPagamento: 'cartao',
         paymentIntentRef: null,
@@ -282,15 +205,25 @@ describe('Regime de Competência e Apropriação Contábil (competencia.ts)', ()
         atualizadoEm: Date.now(),
       }
 
-      // Em 15/03/2026: janeiro, fevereiro e março apropriados (3 meses = 600 cents)
+      // Em 15/03/2026: março apropriado (1 mês = 200 cents)
       const dataRefMar = new Date(2026, 2, 15).getTime()
       const difMar = calcularReceitaDiferida(plano, dataRefMar)
 
-      expect(difMar.valorPago).toBe(2400)
-      expect(difMar.jaApropriado).toBe(600)
-      expect(difMar.aApropriar).toBe(1800)
-      expect(difMar.mesesApropriados).toBe(3)
-      expect(difMar.mesesRestantes).toBe(9)
+      expect(difMar.valorPago).toBe(200)
+      expect(difMar.jaApropriado).toBe(200)
+      expect(difMar.aApropriar).toBe(0)
+      expect(difMar.mesesApropriados).toBe(1)
+      expect(difMar.mesesRestantes).toBe(0)
+
+      // Em 15/02/2026: antes do início do plano (março)
+      const dataRefFev = new Date(2026, 1, 15).getTime()
+      const difFev = calcularReceitaDiferida(plano, dataRefFev)
+
+      expect(difFev.valorPago).toBe(200)
+      expect(difFev.jaApropriado).toBe(0)
+      expect(difFev.aApropriar).toBe(200)
+      expect(difFev.mesesApropriados).toBe(0)
+      expect(difFev.mesesRestantes).toBe(1)
     })
   })
 })

@@ -566,6 +566,9 @@ function identidadeFalsa(): { porta: PortaDeIdentidade; contas: Map<string, { id
       links.push(email)
       return { ok: true, dados: undefined }
     },
+    atualizarLogin: async () => {
+      return { ok: true, dados: undefined }
+    },
   }
   return { porta, contas, links }
 }

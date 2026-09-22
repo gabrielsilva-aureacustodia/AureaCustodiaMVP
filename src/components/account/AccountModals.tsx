@@ -39,13 +39,13 @@ import type { ReactNode } from 'react'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { calcularDataLimiteSaque } from '@/domain/dates'
-import type { DepositoPixDireto } from '@/server/payments/tipos'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
-import { changePassword, solicitarSaque, toggleNotif, updatePersonal } from '@/server/actions/account'
-import { solicitarDepositoPix } from '@/server/actions/payments'
+import { changePassword, solicitarSaque, toggleNotif, updatePersonal, verificarTrocaEmail } from '@/server/actions/account'
+import { iniciarDeposito } from '@/server/actions/payments'
 import { ModalCadastro } from './ModalCadastro'
+import { PainelPagamento } from '@/components/pagamento'
 
 /**
  * As três preferências de notificação, na ordem em que o original as listava
@@ -71,29 +71,64 @@ export function ModalDadosPessoais(): ReactNode {
   const { me, session, run } = useApp()
   const { close, open } = useModal()
 
-  // O original lia o valor do input só na hora de salvar. Aqui o campo é
-  // controlado — é o que permite desabilitar o botão durante o envio sem
-  // perder o que foi digitado.
   const [nome, setNome] = useState(me.name)
+  const [email, setEmail] = useState(session)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
   const completo = temCadastroCompleto(me)
 
   async function salvar(): Promise<void> {
     setSalvando(true)
-    const res = await run(() => updatePersonal(nome))
-    // Fecha só no sucesso, como o original: a recusa ('Informe um nome válido.')
-    // deixava a modal aberta com o texto digitado à vista para correção.
-    if (res.ok) close()
-    else setSalvando(false)
+    setErro('')
+    const novoEmailLimpo = email.trim().toLowerCase()
+    const emailMudou = novoEmailLimpo !== session.trim().toLowerCase()
+
+    if (!emailMudou) {
+      const res = await run(() => updatePersonal(nome))
+      if (res.ok) {
+        close()
+      } else {
+        setSalvando(false)
+        if (res.error) setErro(res.error)
+      }
+      return
+    }
+
+    // Se o e-mail mudou, valida antes e verifica se requer definição de senha (conta Google)
+    const check = await verificarTrocaEmail(novoEmailLimpo)
+    if (!check.ok) {
+      setSalvando(false)
+      setErro(check.error ?? 'Não foi possível validar a troca de e-mail.')
+      return
+    }
+
+    if (check.data?.requerSenha) {
+      setSalvando(false)
+      open(
+        <ModalDefinirSenhaTrocaEmail
+          nome={nome}
+          novoEmail={novoEmailLimpo}
+          onVoltar={() => open(<ModalDadosPessoais />)}
+        />,
+      )
+      return
+    }
+
+    // Usuário já tinha senha (login por e-mail e senha)
+    const res = await run(() => updatePersonal(nome, novoEmailLimpo))
+    if (res.ok) {
+      close()
+      window.location.reload()
+    } else {
+      setSalvando(false)
+      if (res.error) setErro(res.error)
+    }
   }
 
   return (
     <>
       <h3 className="serif">Dados pessoais</h3>
 
-      {/* O original escapava as aspas do nome (`.replace(/"/g,'&quot;')`) porque
-          montava o atributo value dentro de uma template string. Em JSX o valor
-          nunca é interpretado como marcação e o escape deixa de existir. */}
       <div className="field-lbl">Nome completo</div>
       <input
         className="tinput"
@@ -102,10 +137,20 @@ export function ModalDadosPessoais(): ReactNode {
         aria-label="Nome completo"
       />
 
-      <div className="field-lbl">E-mail (não pode ser alterado)</div>
-      {/* `disabled` já basta para o React aceitar um campo sem onChange — e é
-          exatamente o atributo que o original usava (linha 2740). */}
-      <input className="tinput" value={session} disabled style={{ opacity: 0.6 }} />
+      <div className="field-lbl">E-mail</div>
+      <input
+        className="tinput"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        aria-label="E-mail"
+      />
+
+      {erro ? (
+        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+          {erro}
+        </div>
+      ) : null}
 
       {/* Identificação formal progressiva (Agente B) */}
       <div className="field-lbl" style={{ marginTop: 18 }}>
@@ -145,16 +190,115 @@ export function ModalDadosPessoais(): ReactNode {
       </div>
 
       <div className="m-actions">
-        <button className="btn btn-outline" type="button" onClick={close}>
+        <button className="btn btn-outline" type="button" onClick={close} disabled={salvando}>
           Cancelar
         </button>
         <button
           className="btn btn-gold"
           type="button"
-          disabled={salvando}
+          disabled={salvando || !nome.trim() || !email.trim()}
           onClick={() => void salvar()}
         >
-          Salvar
+          {salvando ? 'Salvando...' : 'Salvar'}
+        </button>
+      </div>
+    </>
+  )
+}
+
+/* -------------------------------------------------------------------------
+ * Definir senha ao trocar e-mail (para contas que usavam login com Google)
+ * ---------------------------------------------------------------------- */
+
+export function ModalDefinirSenhaTrocaEmail({
+  nome,
+  novoEmail,
+  onVoltar,
+}: {
+  nome: string
+  novoEmail: string
+  onVoltar?: () => void
+}): ReactNode {
+  const { run } = useApp()
+  const { close } = useModal()
+
+  const [novaSenha, setNovaSenha] = useState('')
+  const [confirmacao, setConfirmacao] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
+
+  async function confirmar(): Promise<void> {
+    if (novaSenha.length < 8) {
+      setErro('A nova senha precisa de pelo menos 8 caracteres.')
+      return
+    }
+    if (novaSenha !== confirmacao) {
+      setErro('A confirmação da nova senha não confere.')
+      return
+    }
+
+    setSalvando(true)
+    setErro('')
+    const res = await run(() => updatePersonal(nome, novoEmail, novaSenha))
+    if (res.ok) {
+      close()
+      window.location.reload()
+    } else {
+      setSalvando(false)
+      if (res.error) setErro(res.error)
+    }
+  }
+
+  return (
+    <>
+      <h3 className="serif">Definir senha de acesso</h3>
+      <p style={{ marginBottom: 12 }}>
+        Sua conta utilizava login com o Google. Ao alterar o e-mail para <b>{novoEmail}</b>,
+        o vínculo com o Google será removido e você precisará de uma senha para acessar sua conta.
+      </p>
+
+      <div className="field-lbl">Nova senha (mín. 8 caracteres)</div>
+      <input
+        type="password"
+        className="tinput"
+        value={novaSenha}
+        onChange={(e) => setNovaSenha(e.target.value)}
+        autoComplete="new-password"
+        aria-label="Nova senha"
+      />
+
+      <div className="field-lbl">Confirmar nova senha</div>
+      <input
+        type="password"
+        className="tinput"
+        value={confirmacao}
+        onChange={(e) => setConfirmacao(e.target.value)}
+        autoComplete="new-password"
+        aria-label="Confirmar nova senha"
+      />
+
+      {erro ? (
+        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+          {erro}
+        </div>
+      ) : null}
+
+      <div className="m-actions">
+        <button
+          className="btn btn-outline"
+          type="button"
+          disabled={salvando}
+          onClick={onVoltar ?? close}
+        >
+          {onVoltar ? 'Voltar' : 'Cancelar'}
+        </button>
+        <button
+          className="btn btn-gold"
+          type="button"
+          disabled={salvando || !novaSenha || !confirmacao}
+          onClick={() => void confirmar()}
+        >
+          {salvando ? 'Salvando...' : 'Confirmar e salvar'}
         </button>
       </div>
     </>
@@ -291,22 +435,10 @@ export function ModalNotificacoes(): ReactNode {
  * NÃO É PORT — funcionalidade nova. O monolito não tinha como aumentar saldo:
  * cada conta nascia com o valor do seed e só o perdia comprando.
  *
- * DEPÓSITO É PIX DIRETO, SEM GATEWAY (21/09/2026).
- * ------------------------------------------------
- * A tela não oferece mais cartão e não abre cobrança no Mercado Pago: mostra a
- * chave Pix da empresa e o valor exato a transferir. O motivo é o custo — o
- * gateway cobra percentual sobre cada entrada, e depósito não é venda, é o
- * cliente pondo o próprio dinheiro na própria conta. A `iniciarDeposito`
- * continua inteira no servidor, apenas sem nenhuma tela chamando.
- *
- * DEPÓSITO NÃO TEM TAXA. Esta tela chegou a somar R$ 5,00 ao valor, por leitura
- * errada da Tabela de Taxas: aquela tarifa fixa é do SAQUE (cláusula 4.2). Quem
- * deposita transfere o valor que pediu e recebe o mesmo em saldo.
- *
- * O SALDO NÃO SOBE AQUI. Pix direto não tem webhook: ninguém do lado do sistema
- * fica sabendo que o dinheiro entrou. A equipe confere o extrato e lança o
- * crédito em /admin/usuarios. A tela diz isso com todas as letras, porque uma
- * barra de "aguardando confirmação" que nunca vai virar sozinha seria mentira.
+ * O AVISO DE "SIMULADO" É PARTE DA FUNCIONALIDADE, não um rodapé opcional.
+ * Não há Pix, cartão, boleto nem conciliação bancária por trás disto; a ação
+ * soma um número ao saldo. Uma tela que parecesse um caixa eletrônico de
+ * verdade seria enganosa mesmo num ambiente onde só entram sócios.
  *
  * A modal NÃO fecha quando o valor é recusado, pelo mesmo motivo das outras
  * desta tela: a pessoa precisa continuar vendo o campo para corrigi-lo.
@@ -317,10 +449,6 @@ export function ModalDeposito(): ReactNode {
   const { close, open } = useModal()
 
   const [valorTexto, setValorTexto] = useState('')
-  const [pedido, setPedido] = useState<DepositoPixDireto | null>(null)
-  const [gerando, setGerando] = useState(false)
-  const [erro, setErro] = useState('')
-  const [copiado, setCopiado] = useState(false)
 
   // Defesa em profundidade (Agente B): se a modal de depósito for invocada diretamente
   // sem cadastro completo, orienta a pessoa a preencher antes de continuar.
@@ -365,105 +493,12 @@ export function ModalDeposito(): ReactNode {
   const cents = parsePrice(valorTexto)
   const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX
 
-  async function gerarChave(): Promise<void> {
-    setErro('')
-    setGerando(true)
-    try {
-      const res = await solicitarDepositoPix(cents)
-      if (!res.ok || !res.data) {
-        setErro(res.error ?? 'Não foi possível registrar a solicitação de depósito.')
-        return
-      }
-      setPedido(res.data)
-    } finally {
-      setGerando(false)
-    }
-  }
-
-  async function copiarChave(): Promise<void> {
-    if (!pedido) return
-    try {
-      await navigator.clipboard.writeText(pedido.chavePix)
-      setCopiado(true)
-      window.setTimeout(() => setCopiado(false), 2000)
-    } catch {
-      // Navegador sem permissão de área de transferência: o campo continua
-      // visível e selecionável, então a cópia manual ainda funciona.
-      setErro('Não foi possível copiar automaticamente. Selecione a chave e copie à mão.')
-    }
-  }
-
-  // ---- segunda tela: a chave, o valor exato e o que acontece depois ----
-  if (pedido) {
-    return (
-      <>
-        <h3 className="serif">Transferência Pix</h3>
-        <p style={{ marginBottom: 12 }}>
-          Faça um Pix de <b>{brl(pedido.valorCents)}</b> para a chave abaixo. Assim que a
-          transferência for conferida, esse mesmo valor entra no seu saldo.
-        </p>
-
-        <div className="field-lbl">Chave Pix ({pedido.favorecido})</div>
-        <div className="pagamento-copia-cola">
-          <input
-            type="text"
-            readOnly
-            value={pedido.chavePix}
-            className="pagamento-input-code"
-            aria-label="Chave Pix do Real Olímpico"
-          />
-          <button
-            type="button"
-            className="btn btn-outline"
-            style={{ minHeight: 44 }}
-            onClick={() => void copiarChave()}
-          >
-            {copiado ? 'Copiado!' : 'Copiar'}
-          </button>
-        </div>
-
-        <div className="summary-row total" style={{ marginTop: 12 }}>
-          <span className="k">Valor a transferir</span>
-          <span className="v" style={{ fontSize: 19 }}>
-            {brl(pedido.valorCents)}
-          </span>
-        </div>
-
-        <div className="summary-row" style={{ marginTop: 10 }}>
-          <span className="k">Referência</span>
-          <span className="v" style={{ fontSize: 12 }}>
-            {pedido.referencia}
-          </span>
-        </div>
-
-        <div className="note" style={{ marginTop: 14 }}>
-          O saldo é liberado depois que a equipe confere a entrada no extrato bancário — não é
-          automático. Se puder, escreva a referência acima na descrição do Pix: é ela que liga a
-          transferência à sua conta.
-        </div>
-
-        {erro ? (
-          <div className="note" style={{ marginTop: 10 }}>
-            {erro}
-          </div>
-        ) : null}
-
-        <div className="m-actions" style={{ marginTop: 14 }}>
-          <button className="btn btn-gold" type="button" onClick={close}>
-            Concluir
-          </button>
-        </div>
-      </>
-    )
-  }
-
-  // ---- primeira tela: quanto depositar ----
   return (
     <>
       <h3 className="serif">Depositar em conta</h3>
       <p style={{ marginBottom: 10 }}>
-        O depósito é feito por <b>Pix</b> direto para a conta do Real Olímpico. O saldo entra na sua
-        conta <b>depois</b> que a transferência for conferida pela nossa equipe.
+        O saldo entra na sua conta <b>depois</b> que o pagamento for confirmado pelo banco ou pela
+        operadora do cartão, o que pode levar alguns segundos.
       </p>
 
       <div className="summary-row">
@@ -483,8 +518,6 @@ export function ModalDeposito(): ReactNode {
         />
       </div>
 
-      {/* Sem linha de taxa: depósito não tem. O que o cliente transfere é o que
-          ele recebe de saldo. A tarifa fixa de R$ 5,00 é do saque. */}
       <div className="summary-row total">
         <span className="k">Saldo após o depósito</span>
         <span className="v" style={{ fontSize: 19 }}>
@@ -498,31 +531,38 @@ export function ModalDeposito(): ReactNode {
         </div>
       ) : null}
 
-      {erro ? (
-        <div className="note" style={{ marginTop: 10 }}>
-          {erro}
+      {podeDepositar ? (
+        <div style={{ marginTop: 16 }}>
+          <PainelPagamento
+            valorCents={cents}
+            iniciarPix={async () => {
+              const res = await iniciarDeposito(cents, 'pix')
+              if (!res.ok || !res.data) {
+                throw new Error(res.error ?? 'Não foi possível abrir a cobrança Pix.')
+              }
+              return res.data
+            }}
+            iniciarCartao={async () => {
+              const res = await iniciarDeposito(cents, 'checkout_pro')
+              if (!res.ok || !res.data) {
+                throw new Error(res.error ?? 'Não foi possível abrir o checkout do cartão.')
+              }
+              return res.data
+            }}
+            aoConcluir={close}
+          />
         </div>
-      ) : null}
-
-      {!podeDepositar ? (
+      ) : (
         <div className="note" style={{ marginTop: 14 }}>
           {cents > DEPOSITO_MAX
             ? `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.`
-            : 'Informe o valor desejado acima para gerar a chave Pix.'}
+            : 'Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.'}
         </div>
-      ) : null}
+      )}
 
       <div className="m-actions" style={{ marginTop: 14 }}>
         <button className="btn btn-outline" type="button" onClick={close}>
           Cancelar
-        </button>
-        <button
-          className="btn btn-gold"
-          type="button"
-          disabled={!podeDepositar || gerando}
-          onClick={() => void gerarChave()}
-        >
-          {gerando ? 'Gerando…' : 'Gerar chave Pix'}
         </button>
       </div>
     </>

@@ -42,9 +42,6 @@ export type LinhaPlano = {
   estornado: unknown
   criado_em: unknown
   atualizado_em: unknown
-  meses_contratados: unknown
-  origem: string | null
-  plano_origem_id: string | null
 }
 
 function linhaParaPlano(r: LinhaPlano): PlanoCustodia {
@@ -78,11 +75,6 @@ function linhaParaPlano(r: LinhaPlano): PlanoCustodia {
     estornadoCents: num(r.estornado),
     criadoEm: num(r.criado_em),
     atualizadoEm: num(r.atualizado_em),
-    // Coluna nova (032): linha antiga vem NULL e cai no prazo da modalidade,
-    // que é exatamente o que ela sempre significou.
-    mesesContratados: num(r.meses_contratados) || undefined,
-    origem: (r.origem as PlanoCustodia['origem']) ?? 'contratacao',
-    planoOrigemId: r.plano_origem_id ?? null,
   }
 }
 
@@ -93,8 +85,7 @@ export async function carregarPlanos(tx: Consulta): Promise<PlanoCustodia[]> {
     `SELECT id, user_email, protocolo_envio, modalidade, quantidade_contratada,
             moeda_ids, valor_por_moeda, valor_total, parcelas_max, inicio_competencia,
             pago_ate_competencia, status, forma_pagamento, payment_intent_ref,
-            assinatura_id, estornado, criado_em, atualizado_em,
-            meses_contratados, origem, plano_origem_id
+            assinatura_id, estornado, criado_em, atualizado_em
        FROM ${S}.planos_custodia
       ORDER BY criado_em ASC`,
   )
@@ -111,8 +102,7 @@ export async function buscarPlanosPorUsuario(
     `SELECT id, user_email, protocolo_envio, modalidade, quantidade_contratada,
             moeda_ids, valor_por_moeda, valor_total, parcelas_max, inicio_competencia,
             pago_ate_competencia, status, forma_pagamento, payment_intent_ref,
-            assinatura_id, estornado, criado_em, atualizado_em,
-            meses_contratados, origem, plano_origem_id
+            assinatura_id, estornado, criado_em, atualizado_em
        FROM ${S}.planos_custodia
       WHERE user_email = $1
       ORDER BY criado_em DESC`,
@@ -128,8 +118,7 @@ export async function buscarPlanoPorId(tx: Consulta, id: string): Promise<PlanoC
     `SELECT id, user_email, protocolo_envio, modalidade, quantidade_contratada,
             moeda_ids, valor_por_moeda, valor_total, parcelas_max, inicio_competencia,
             pago_ate_competencia, status, forma_pagamento, payment_intent_ref,
-            assinatura_id, estornado, criado_em, atualizado_em,
-            meses_contratados, origem, plano_origem_id
+            assinatura_id, estornado, criado_em, atualizado_em
        FROM ${S}.planos_custodia
       WHERE id = $1`,
     [id],
@@ -148,8 +137,7 @@ export async function buscarPlanoPorProtocolo(
     `SELECT id, user_email, protocolo_envio, modalidade, quantidade_contratada,
             moeda_ids, valor_por_moeda, valor_total, parcelas_max, inicio_competencia,
             pago_ate_competencia, status, forma_pagamento, payment_intent_ref,
-            assinatura_id, estornado, criado_em, atualizado_em,
-            meses_contratados, origem, plano_origem_id
+            assinatura_id, estornado, criado_em, atualizado_em
        FROM ${S}.planos_custodia
       WHERE protocolo_envio = $1`,
     [protocolo],
@@ -166,10 +154,8 @@ export async function inserirPlano(tx: Consulta, p: PlanoCustodia): Promise<void
        id, user_email, protocolo_envio, modalidade, quantidade_contratada,
        moeda_ids, valor_por_moeda, valor_total, parcelas_max, inicio_competencia,
        pago_ate_competencia, status, forma_pagamento, payment_intent_ref,
-       assinatura_id, estornado, criado_em, atualizado_em,
-       meses_contratados, origem, plano_origem_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-               $19, $20, $21)`,
+       assinatura_id, estornado, criado_em, atualizado_em
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
     [
       p.id,
       p.userEmail,
@@ -189,23 +175,12 @@ export async function inserirPlano(tx: Consulta, p: PlanoCustodia): Promise<void
       p.estornadoCents || 0,
       p.criadoEm,
       p.atualizadoEm,
-      p.mesesContratados ?? null,
-      p.origem ?? 'contratacao',
-      p.planoOrigemId ?? null,
     ],
   )
 }
 
 /**
  * Atualiza campos mutáveis de um plano de custódia.
- *
- * MODALIDADE, VALORES E COMPETÊNCIA DE INÍCIO TAMBÉM SÃO MUTÁVEIS, e não eram
- * gravados aqui até 21/09/2026. Parecia seguro enquanto só existia um plano:
- * nada podia mudar. Mas `contratarPlanoCustodia` recalcula tudo isso quando o
- * cliente troca de modalidade antes de pagar, e `escolherPlanoDaTransferencia`
- * troca de novo quando o comprador prefere 12 meses cheios aos meses restantes.
- * Sem estas colunas no UPDATE, o estado em memória dizia uma coisa e o banco
- * continuava com a outra — e o valor cobrado sairia do banco.
  */
 export async function atualizarPlano(tx: Consulta, p: PlanoCustodia): Promise<void> {
   const S = nomeDoSchema()
@@ -224,10 +199,7 @@ export async function atualizarPlano(tx: Consulta, p: PlanoCustodia): Promise<vo
        valor_por_moeda = $12,
        valor_total = $13,
        parcelas_max = $14,
-       inicio_competencia = $15,
-       meses_contratados = $16,
-       origem = $17,
-       plano_origem_id = $18
+       inicio_competencia = $15
      WHERE id = $10`,
     [
       p.quantidadeContratada,
@@ -245,9 +217,6 @@ export async function atualizarPlano(tx: Consulta, p: PlanoCustodia): Promise<vo
       p.valorTotalCents,
       p.parcelasMax || 1,
       p.inicioCompetencia,
-      p.mesesContratados ?? null,
-      p.origem ?? 'contratacao',
-      p.planoOrigemId ?? null,
     ],
   )
 }

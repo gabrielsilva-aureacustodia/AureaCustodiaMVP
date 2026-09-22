@@ -66,18 +66,8 @@ export function documentoTabelaDeTaxas(taxas: TabelaDeTaxas, vigencia: string, v
   doc.versao = versao
   doc.vigenteDesde = vigencia
 
-  // 1.1 é o plano mensal e 1.2 o anual desde 21/09/2026. Antes disso 1.1 era o
-  // anual — a numeração andou duas vezes em dois dias (o plano de 24 meses saiu
-  // em 20/09, o mensal voltou em 21/09). É por isso que `paragrafo()` busca pelo
-  // número e explode quando não acha: renumerar sem atualizar aqui geraria um
-  // documento com o preço do plano errado, em silêncio.
+  // 1.1 é o plano mensal. 1.2 é o frete postal (não configurável).
   paragrafo(doc, '1.1').texto = `${reaisNoTexto(taxas.custodiaMensalPorMoeda)} por moeda por mês, sem prazo mínimo, cobrado enquanto a moeda permanecer sob guarda.`
-  paragrafo(doc, '1.2').texto =
-    `${reaisNoTexto(taxas.custodiaAnualPorMoeda)} por moeda pelos 12 meses, equivalente a ` +
-    `${reaisNoTexto(Math.round(taxas.custodiaAnualPorMoeda / 12))} por moeda por mês, em até ` +
-    `${taxas.custodiaAnualParcelasMax}x no cartão de crédito.`
-  // 1.3 (transferência da custódia na venda) e 1.4 (frete) não têm número
-  // configurável: o texto delas é o mesmo qualquer que seja a tabela vigente.
   paragrafo(doc, '2.1').texto = `${percentualNoTexto(taxas.comissaoCompradorBp)} sobre o valor da negociação + ${reaisNoTexto(taxas.comissaoCompradorFixa)} fixo por moeda comprada.`
   paragrafo(doc, '2.2').texto = `${percentualNoTexto(taxas.comissaoVendedorBp)} sobre o valor da negociação + ${reaisNoTexto(taxas.comissaoVendedorFixa)} fixo por moeda vendida.`
 

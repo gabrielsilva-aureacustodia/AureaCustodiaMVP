@@ -131,19 +131,6 @@ export default function ConfiguracoesPage(): ReactNode {
             </button>
           </div>
 
-          <div className="cfg-card">
-            <h4>
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M8 12h8M12 8v8" />
-              </svg>
-              Login com Google
-            </h4>
-            <p>Gerencie sua conexão de login com a conta Google.</p>
-            <button className="btn btn-outline" type="button" disabled>
-              Gerenciar — EM BREVE
-            </button>
-          </div>
 
           <div className="cfg-card">
             <h4>

@@ -204,6 +204,17 @@ export const EMAILS_FIXOS_DA_EQUIPE: readonly string[] = [
 ]
 
 /**
+ * E-mails de bootstrap e institucionais protegidos contra alteração de login.
+ * Trocar um deles tira a equipe do painel (RA-40, RA-48).
+ */
+export function ehEmailProtegido(email: string | null | undefined): boolean {
+  if (!email) return false
+  const e = normalizarEmail(email)
+  return e.endsWith('@testeaurea.com.br') || EMAILS_FIXOS_DA_EQUIPE.includes(e)
+}
+
+
+/**
  * O bootstrap: quem entra como `dev` quando a tabela de membros não conhece o e-mail.
  *
  * A MESMA REGRA de `ehAdmin()` desde 03/09/2026, agora num lugar puro: com

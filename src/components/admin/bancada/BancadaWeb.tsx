@@ -16,8 +16,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { validarMoedasDaBancada, type ItemDaFilaBancada, type MoedaDigitada } from '@/domain/admin/bancada'
-import type { OcupacaoDaCaixa } from '@/domain/admin/caixas'
+import { pesoPadraoOuInicial, validarMoedasDaBancada, type ItemDaFilaBancada, type MoedaDigitada } from '@/domain/admin/bancada'
+import { caixaCorrente, chaveDeCaixa, proximasPosicoesDaCaixa, type OcupacaoDaCaixa } from '@/domain/admin/caixas'
 import type { ActionResult } from '@/domain/types'
 import { abrirAnaliseNoPainel, atualizarBancadaNoPainel, fecharAnaliseNoPainel } from '@/server/actions/admin/bancada'
 import type { SaidaFechamento } from '@/server/estacao/analise'
@@ -27,17 +27,47 @@ import { dataHora, numero } from '../formatos'
 import { GravadorDeVideo } from './GravadorDeVideo'
 import { QuadroDeCaixas } from './QuadroDeCaixas'
 
-function vazia(): MoedaDigitada {
-  return { veredito: 'aprovada', gramas: '', caixa: '', posicao: '', motivoRecusa: '' }
-}
+function recalcularPosicoes(
+  lista: MoedaDigitada[],
+  manuais: Set<number>,
+  caixas: OcupacaoDaCaixa[],
+): MoedaDigitada[] {
+  const porCaixa = new Map<string, number[]>()
+  lista.forEach((m, idx) => {
+    if (m.veredito !== 'aprovada') return
+    const chave = chaveDeCaixa(m.caixa)
+    const indices = porCaixa.get(chave) ?? []
+    indices.push(idx)
+    porCaixa.set(chave, indices)
+  })
 
-function inicialDoEnvio(item: ItemDaFilaBancada): MoedaDigitada {
-  const peso = item.pesoInicialMg
-  return {
-    ...vazia(),
-    gramas: peso && peso > 0 ? String(peso / 1000).replace('.', ',') : '',
-    caixa: item.caixaInicial ?? '',
+  const copia = [...lista]
+
+  for (const [chave, indices] of porCaixa.entries()) {
+    const cObj = caixas.find((c) => chaveDeCaixa(c.codigo) === chave)
+    const ignorar = new Set<number>()
+    const naoManuais: number[] = []
+
+    for (const idx of indices) {
+      if (manuais.has(idx)) {
+        const n = parseInt(copia[idx].posicao, 10)
+        if (Number.isInteger(n) && n > 0) {
+          ignorar.add(n)
+        }
+      } else {
+        naoManuais.push(idx)
+      }
+    }
+
+    if (naoManuais.length > 0) {
+      const posicoes = proximasPosicoesDaCaixa(cObj, naoManuais.length, ignorar)
+      naoManuais.forEach((idx, k) => {
+        copia[idx] = { ...copia[idx], posicao: posicoes[k] !== undefined ? String(posicoes[k]) : '' }
+      })
+    }
   }
+
+  return copia
 }
 
 export function BancadaWeb({
@@ -63,6 +93,7 @@ export function BancadaWeb({
   const [atualizando, setAtualizando] = useState(false)
   const [envio, setEnvio] = useState<ItemDaFilaBancada | null>(null)
   const [moedas, setMoedas] = useState<MoedaDigitada[]>([])
+  const [posicoesManuais, setPosicoesManuais] = useState<Set<number>>(new Set())
   const [video, setVideo] = useState<{ caminho: string | null; gravando: boolean }>({ caminho: null, gravando: false })
   const [erros, setErros] = useState<string[]>([])
   const [fechando, setFechando] = useState(false)
@@ -86,7 +117,21 @@ export function BancadaWeb({
       return
     }
     setEnvio(item)
-    setMoedas(Array.from({ length: item.quantidade }, () => inicialDoEnvio(item)))
+    const caixaSugerida = item.caixaInicial || caixaCorrente(caixas)
+    const pesoSugerido = pesoPadraoOuInicial(item.tipoMoeda, item.pesoInicialMg)
+    const cObj = caixas.find((c) => chaveDeCaixa(c.codigo) === chaveDeCaixa(caixaSugerida))
+    const posicoes = proximasPosicoesDaCaixa(cObj, item.quantidade)
+
+    setMoedas(
+      Array.from({ length: item.quantidade }, (_, i) => ({
+        veredito: 'aprovada',
+        gramas: pesoSugerido,
+        caixa: caixaSugerida,
+        posicao: posicoes[i] !== undefined ? String(posicoes[i]) : '',
+        motivoRecusa: '',
+      })),
+    )
+    setPosicoesManuais(new Set())
     setErros([])
     setResultado(null)
     if (!podeAnalisar) return
@@ -97,7 +142,62 @@ export function BancadaWeb({
   }
 
   function mudar(i: number, campo: keyof MoedaDigitada, valor: string): void {
+    if (campo === 'posicao') {
+      const novasManuais = new Set(posicoesManuais)
+      if (valor.trim() !== '') {
+        novasManuais.add(i)
+      } else {
+        novasManuais.delete(i)
+      }
+      setPosicoesManuais(novasManuais)
+
+      let novas = moedas.map((m, j) => (j === i ? { ...m, posicao: valor } : m))
+      if (valor.trim() === '') {
+        novas = recalcularPosicoes(novas, novasManuais, caixas)
+      }
+      setMoedas(novas)
+      return
+    }
+
+    if (campo === 'caixa') {
+      const caixaAnterior = moedas[i]?.caixa ?? ''
+      const todasIguais = moedas.every((m) => m.veredito !== 'aprovada' || chaveDeCaixa(m.caixa) === chaveDeCaixa(caixaAnterior))
+
+      let novas = moedas.map((m, j) => {
+        if (j === i || (i === 0 && todasIguais && m.veredito === 'aprovada')) {
+          return { ...m, caixa: valor }
+        }
+        return m
+      })
+      novas = recalcularPosicoes(novas, posicoesManuais, caixas)
+      setMoedas(novas)
+      return
+    }
+
+    if (campo === 'veredito') {
+      let novas = moedas.map((m, j) => {
+        if (j === i) {
+          const aprovada = valor === 'aprovada'
+          const caixaPadrao = m.caixa || (envio ? envio.caixaInicial || caixaCorrente(caixas) : '')
+          return {
+            ...m,
+            veredito: valor as MoedaDigitada['veredito'],
+            caixa: aprovada ? caixaPadrao : m.caixa,
+          }
+        }
+        return m
+      })
+      novas = recalcularPosicoes(novas, posicoesManuais, caixas)
+      setMoedas(novas)
+      return
+    }
+
     setMoedas((ms) => ms.map((m, j) => (j === i ? { ...m, [campo]: valor } : m)))
+  }
+
+  function aplicarCaixaEmTodas(caixaNome: string): void {
+    const novas = moedas.map((m) => (m.veredito === 'aprovada' ? { ...m, caixa: caixaNome } : m))
+    setMoedas(recalcularPosicoes(novas, posicoesManuais, caixas))
   }
 
   async function fechar(): Promise<void> {
@@ -215,11 +315,27 @@ export function BancadaWeb({
                       {m.veredito === 'aprovada' ? (
                         <>
                           <label className="field">
-                            <span>Caixa</span>
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>Caixa</span>
+                              {moedas.length > 1 && m.caixa ? (
+                                <button
+                                  type="button"
+                                  className="adm-fraco"
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: '0.85em' }}
+                                  onClick={() => aplicarCaixaEmTodas(m.caixa)}
+                                  title="Usar esta caixa em todas as moedas do envio"
+                                >
+                                  Replicar para todas
+                                </button>
+                              ) : null}
+                            </span>
                             <input className="tinput" type="text" list="adm-bancada-caixas" placeholder="EB-001" value={m.caixa} onChange={(e) => mudar(i, 'caixa', e.target.value)} />
                           </label>
                           <label className="field">
-                            <span>Posição</span>
+                            <span>
+                              Posição
+                              {posicoesManuais.has(i) ? <span className="adm-fraco"> (editada à mão)</span> : null}
+                            </span>
                             <input className="tinput" type="text" inputMode="numeric" placeholder="7" value={m.posicao} onChange={(e) => mudar(i, 'posicao', e.target.value)} />
                           </label>
                         </>

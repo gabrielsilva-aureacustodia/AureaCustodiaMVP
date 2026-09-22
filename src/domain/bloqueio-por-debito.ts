@@ -18,6 +18,7 @@ import type {
   AppState,
   FaturaCustodia,
   MatchResult,
+  PlanoCustodia,
   SellOffer,
   Timestamp,
   User,
@@ -32,6 +33,9 @@ export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
 
 export const MENSAGEM_ANUNCIO_PAUSADO =
   'Este anúncio está pausado no momento e não pode ser comprado.'
+
+export const MENSAGEM_CUSTODIA_NAO_PAGA =
+  'A custódia desta moeda não foi paga.'
 
 /**
  * Verifica se um usuário possui pendência de custódia no momento avaliado.
@@ -62,6 +66,92 @@ export function contaComPendenciaNoEstado(
 }
 
 /**
+ * Retorna as faturas em aberto (pendentes ou atrasadas) do usuário que cobrem uma moeda específica.
+ *
+ * Uma fatura de outro usuário (ex.: dono anterior) nunca é considerada:
+ * a dívida relevante é sempre a do dono atual sobre a moeda.
+ */
+export function faturasAbertasDaMoeda(
+  faturas: readonly FaturaCustodia[],
+  planos: readonly PlanoCustodia[] | undefined,
+  email: UserEmail,
+  coinId: string,
+): FaturaCustodia[] {
+  return faturas.filter((f) => {
+    if (f.userEmail !== email) return false
+    if (f.status === 'paga' || f.status === 'cancelada') return false
+    if (f.moedaIds && f.moedaIds.includes(coinId)) return true
+    if (f.planoId && planos) {
+      const plano = planos.find((p) => p.id === f.planoId)
+      if (plano && plano.moedaIds && plano.moedaIds.includes(coinId)) return true
+    }
+    return false
+  })
+}
+
+/**
+ * Verifica se a custódia de uma moeda específica não foi paga pelo usuário informado.
+ * Vale mesmo antes do vencimento: se a fatura estiver pendente ou atrasada, a guarda não foi quitada.
+ */
+export function moedaComCustodiaNaoPaga(
+  faturas: readonly FaturaCustodia[],
+  planos: readonly PlanoCustodia[] | undefined,
+  email: UserEmail,
+  coinId: string,
+): boolean {
+  return faturasAbertasDaMoeda(faturas, planos, email, coinId).length > 0
+}
+
+/**
+ * Retorna o conjunto de IDs de moedas do usuário que possuem custódia em aberto (não paga).
+ */
+export function moedasComCustodiaNaoPagaDoUsuario(
+  faturas: readonly FaturaCustodia[],
+  planos: readonly PlanoCustodia[] | undefined,
+  email: UserEmail,
+): Set<string> {
+  const ids = new Set<string>()
+  for (const f of faturas) {
+    if (f.userEmail !== email || f.status === 'paga' || f.status === 'cancelada') continue
+    for (const id of f.moedaIds ?? []) {
+      ids.add(id)
+    }
+    if (f.planoId && planos) {
+      const plano = planos.find((p) => p.id === f.planoId)
+      if (plano?.moedaIds) {
+        for (const id of plano.moedaIds) {
+          ids.add(id)
+        }
+      }
+    }
+  }
+  return ids
+}
+
+/**
+ * Avalia se uma moeda possui custódia não paga a partir do AppState.
+ */
+export function moedaComCustodiaNaoPagaNoEstado(
+  state: AppState,
+  email: UserEmail,
+  coinId: string,
+): boolean {
+  return moedaComCustodiaNaoPaga(state.faturasCustodia ?? [], state.planosCustodia, email, coinId)
+}
+
+/**
+ * Remove do livro de ofertas todas as ofertas cujas moedas estejam com custódia não quitada (AG8).
+ * Garante que ofertas publicadas antes da geração do débito saiam do livro imediatamente.
+ */
+export function expurgarOfertasSemCustodia(state: AppState): SellOffer[] {
+  if (!state.sellOffers.length) return state.sellOffers
+  state.sellOffers = state.sellOffers.filter(
+    (o) => !moedaComCustodiaNaoPagaNoEstado(state, o.seller, o.coinId),
+  )
+  return state.sellOffers
+}
+
+/**
  * Retorna os e-mails dos vendedores que possuem ofertas de venda abertas
  * e se encontram com pendência de custódia.
  */
@@ -81,6 +171,8 @@ export function vendedoresComPendencia(state: AppState, agora: Timestamp): Set<U
  * Executa o casamento de ordens pausando temporariamente as ofertas de vendedores
  * que possuem pendência e estão no conjunto de contas bloqueáveis (não isentas).
  *
+ * Ofertas de moedas com custódia não paga saem do livro definitivamente (AG8).
+ *
  * As ofertas pausadas não participam da rodada de execução, mas retornam ao livro
  * preservando exatamente seus objetos e prioridades originais.
  */
@@ -90,6 +182,9 @@ export function casarOrdensRespeitandoPendencia(
   agora: Timestamp,
   bloqueaveis: ReadonlySet<UserEmail>,
 ): MatchResult {
+  // Expurgar do livro qualquer oferta de moeda cuja custódia não foi paga (AG8)
+  expurgarOfertasSemCustodia(state)
+
   if (bloqueaveis.size === 0 || !state.sellOffers.length) {
     return matchOrders(state, taxas)
   }
@@ -122,3 +217,4 @@ export function casarOrdensRespeitandoPendencia(
 
   return resultado
 }
+

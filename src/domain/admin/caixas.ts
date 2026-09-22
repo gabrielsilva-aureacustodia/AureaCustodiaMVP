@@ -178,3 +178,102 @@ export function ocupacaoDasCaixas(caixas: readonly CaixaCadastrada[], ocupantes:
   for (const l of linhas) l.cheia = l.capacidade !== null && l.moedas.length >= l.capacidade
   return linhas.sort((a, b) => Number(b.cadastrada) - Number(a.cadastrada) || chaveDeCaixa(a.codigo).localeCompare(chaveDeCaixa(b.codigo)))
 }
+
+function extrairNumero(str: string): number {
+  const match = str.match(/\d+/)
+  return match ? parseInt(match[0], 10) : 0
+}
+
+/**
+ * Retorna a caixa corrente para pré-seleção na bancada:
+ * aquela onde a última moeda foi guardada, enquanto houver vaga.
+ * Se cheia (ou inativa), passa para a próxima caixa cadastrada e ativa (EB-001 lotada → EB-002).
+ */
+export function caixaCorrente(caixas: readonly OcupacaoDaCaixa[]): string {
+  const cadastradasAtivas = caixas.filter((c) => c.cadastrada && c.ativa)
+  if (cadastradasAtivas.length === 0) {
+    return caixas[0]?.codigo ?? ''
+  }
+
+  const todosOcupantes: Ocupante[] = []
+  for (const c of caixas) {
+    for (const m of c.moedas) {
+      todosOcupantes.push(m)
+    }
+  }
+
+  if (todosOcupantes.length === 0) {
+    const primeiraComVaga = cadastradasAtivas.find((c) => !c.cheia)
+    return (primeiraComVaga ?? cadastradasAtivas[0]).codigo
+  }
+
+  let ultimo = todosOcupantes[0]
+  let maiorNum = extrairNumero(ultimo.codigoMoeda) || extrairNumero(ultimo.analise)
+
+  for (let i = 1; i < todosOcupantes.length; i++) {
+    const o = todosOcupantes[i]
+    const num = extrairNumero(o.codigoMoeda) || extrairNumero(o.analise)
+    if (num > maiorNum) {
+      maiorNum = num
+      ultimo = o
+    }
+  }
+
+  const chaveUltima = chaveDeCaixa(ultimo.caixa)
+  const caixaDaUltima = caixas.find((c) => chaveDeCaixa(c.codigo) === chaveUltima)
+
+  if (caixaDaUltima && caixaDaUltima.cadastrada && caixaDaUltima.ativa && !caixaDaUltima.cheia) {
+    return caixaDaUltima.codigo
+  }
+
+  const idx = cadastradasAtivas.findIndex((c) => chaveDeCaixa(c.codigo) === chaveUltima)
+  if (idx >= 0) {
+    for (let i = idx + 1; i < cadastradasAtivas.length; i++) {
+      if (!cadastradasAtivas[i].cheia) return cadastradasAtivas[i].codigo
+    }
+    for (let i = 0; i < idx; i++) {
+      if (!cadastradasAtivas[i].cheia) return cadastradasAtivas[i].codigo
+    }
+    return cadastradasAtivas[idx].codigo
+  }
+
+  const comVaga = cadastradasAtivas.find((c) => !c.cheia)
+  return (comVaga ?? cadastradasAtivas[0]).codigo
+}
+
+/**
+ * As próximas posições vagas da caixa selecionada para uma sequência de moedas.
+ * Se a caixa já tem 50 moedas, a próxima é 51, e 20 moedas saem 51, 52... 70.
+ * Respeita tanto posições numéricas ocupadas quanto posições marcadas para ignorar (ex.: editadas à mão).
+ */
+export function proximasPosicoesDaCaixa(
+  caixa: OcupacaoDaCaixa | undefined,
+  quantidade: number,
+  ignorar: ReadonlySet<number> = new Set(),
+): number[] {
+  if (quantidade <= 0) return []
+
+  const ocupadas = new Set<number>()
+  for (const m of caixa?.moedas ?? []) {
+    if (typeof m.posicao === 'number' && m.posicao > 0) {
+      ocupadas.add(m.posicao)
+    }
+  }
+
+  const count = caixa?.moedas.length ?? 0
+  const maxOcupada = ocupadas.size > 0 ? Math.max(...ocupadas) : 0
+  let candidata = Math.max(count, maxOcupada) + 1
+
+  const resultado: number[] = []
+  for (let i = 0; i < quantidade; i++) {
+    while (ocupadas.has(candidata) || ignorar.has(candidata)) {
+      candidata++
+    }
+    resultado.push(candidata)
+    ocupadas.add(candidata)
+    candidata++
+  }
+
+  return resultado
+}
+

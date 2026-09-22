@@ -25,7 +25,6 @@ import {
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
-import { reescolherPlanoDaTransferencia } from '@/domain/custodia-transferencia'
 import type {
   ActionResult,
   FaturaCustodia,
@@ -34,7 +33,7 @@ import type {
   PlanoCustodia,
 } from '@/domain/types'
 import {
-  criarCobrancaCartao,
+  ativarDebitoAutomatico,
   criarCobrancaPix,
   type CobrancaCartao,
   type CobrancaPix,
@@ -52,24 +51,20 @@ export type RespostaPagarFatura =
   | (CobrancaCartao & { forma: 'cartao' })
 
 /**
- * Contrata o plano de custódia (anual) associado a um envio.
+ * Contrata o plano de custódia mensal associado a um envio.
  * Cria o plano com status 'aguardando_pagamento' e a fatura correspondente de origem 'contratacao'.
  */
 export async function contratarPlanoCustodia(
   protocolo: string,
-  modalidade: ModalidadePlanoCustodia,
+  modalidade: ModalidadePlanoCustodia = 'mensal',
 ): Promise<ActionResult<{ faturaId: string; planoId: string }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
-  // São duas modalidades desde 21/09/2026: mensal (R$ 3,00/moeda/mês) e anual
-  // (R$ 24,00/moeda pelos 12 meses). Uma chamada com 'bienal', vinda de aba
-  // velha, para aqui — aquele plano foi aposentado em 20/09/2026.
-  if (modalidade !== 'anual' && modalidade !== 'mensal') {
+  if (modalidade !== 'mensal') {
     return { ok: false, error: 'Modalidade de plano inválida.' }
   }
 
-  // O preço por moeda vem da Tabela de Taxas vigente (C3) e fica congelado no plano.
   const { taxas } = await carregarRegrasDoMercado()
 
   try {
@@ -92,26 +87,6 @@ export async function contratarPlanoCustodia(
       )
 
       if (planoExistente) {
-        if (planoExistente.status === 'aguardando_pagamento' && planoExistente.modalidade !== modalidade) {
-          // O cliente trocou a modalidade antes de pagar: recalcula valores
-          const { porMoeda, total, parcelasMax, meses } = valorDoPlano(modalidade, quantidade, {
-            ...taxas,
-          })
-          planoExistente.modalidade = modalidade
-          planoExistente.mesesContratados = meses
-          planoExistente.valorPorMoedaCents = porMoeda
-          planoExistente.valorTotalCents = total
-          planoExistente.parcelasMax = parcelasMax
-          planoExistente.atualizadoEm = agora
-
-          const fatura = s.faturasCustodia.find(
-            (f) => f.planoId === planoExistente.id && f.status === 'pendente',
-          )
-          if (fatura) {
-            fatura.valorCents = total
-          }
-        }
-
         const fatura = s.faturasCustodia.find((f) => f.planoId === planoExistente.id)
         return {
           ok: true,
@@ -122,9 +97,9 @@ export async function contratarPlanoCustodia(
         }
       }
 
-      // Cria novo plano
+      // Cria novo plano mensal
       const planoId = nextPlanoCode(s.seq)
-      const { porMoeda, total, parcelasMax, meses } = valorDoPlano(modalidade, quantidade, {
+      const { porMoeda, total } = valorDoPlano(modalidade, quantidade, {
         ...taxas,
       })
       const inicioCompetencia = competenciaAtual(agora)
@@ -133,12 +108,12 @@ export async function contratarPlanoCustodia(
         id: planoId,
         userEmail: session,
         protocoloEnvio: protocolo,
-        modalidade,
+        modalidade: 'mensal',
         quantidadeContratada: quantidade,
         moedaIds: [],
         valorPorMoedaCents: porMoeda,
         valorTotalCents: total,
-        parcelasMax,
+        parcelasMax: 1,
         inicioCompetencia,
         pagoAteCompetencia: null,
         status: 'aguardando_pagamento',
@@ -148,9 +123,6 @@ export async function contratarPlanoCustodia(
         estornadoCents: 0,
         criadoEm: agora,
         atualizadoEm: agora,
-        mesesContratados: meses,
-        origem: 'contratacao',
-        planoOrigemId: null,
       }
 
       const sanitizeEmail = session.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
@@ -188,78 +160,6 @@ export async function contratarPlanoCustodia(
     return result
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Falha ao contratar plano de custódia.'
-    return { ok: false, error: msg }
-  }
-}
-
-/**
- * Troca a forma de pagar a custódia que veio junto com uma moeda comprada.
- *
- * Quando alguém compra uma moeda em custódia, o sistema cria sozinho um plano
- * `aguardando_pagamento` com os meses que faltavam do plano do vendedor — é o
- * aviso de débito que aparece em Meus Recibos, Minha Conta e Envios. Esta ação
- * existe para as outras duas escolhas que o Gabriel pediu na mesma tela:
- *
- *  - `proporcional`: só os meses restantes (o padrão, como o plano nasce);
- *  - `anual`: 12 meses cheios a partir de agora, e não retroativos;
- *  - `mensal`: R$ 3,00 por moeda por mês.
- *
- * Só mexe em plano de transferência que ainda não foi pago, e só do dono da
- * sessão: um plano vigente já tem dinheiro associado e cobertura contada.
- */
-export async function escolherPlanoDaTransferencia(
-  planoId: string,
-  opcao: 'proporcional' | 'anual' | 'mensal',
-): Promise<ActionResult<{ planoId: string; faturaId: string; valorCents: number }>> {
-  const session = await getSessionEmail()
-  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
-
-  if (opcao !== 'proporcional' && opcao !== 'anual' && opcao !== 'mensal') {
-    return { ok: false, error: 'Opção de custódia inválida.' }
-  }
-
-  const { taxas } = await carregarRegrasDoMercado()
-
-  try {
-    const { result } = await mutateState((s) => {
-      s.planosCustodia = s.planosCustodia ?? []
-      s.faturasCustodia = s.faturasCustodia ?? []
-
-      const plano = s.planosCustodia.find((p) => p.id === planoId)
-      if (!plano) return { ok: false, error: 'Plano de custódia não encontrado.' }
-      if (plano.userEmail !== session) {
-        return { ok: false, error: 'Este plano pertence a outro usuário.' }
-      }
-
-      const fatura = s.faturasCustodia.find(
-        (f) => f.planoId === plano.id && f.status === 'pendente',
-      )
-
-      const trocou = reescolherPlanoDaTransferencia(
-        plano,
-        fatura,
-        opcao,
-        competenciaAtual(Date.now()),
-        Date.now(),
-        { ...taxas },
-      )
-      if (!trocou) {
-        return { ok: false, error: 'Este plano não aceita mais troca de modalidade.' }
-      }
-
-      return {
-        ok: true,
-        data: {
-          planoId: plano.id,
-          faturaId: fatura?.id ?? '',
-          valorCents: plano.valorTotalCents,
-        },
-      }
-    })
-
-    return result
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Falha ao ajustar o plano de custódia.'
     return { ok: false, error: msg }
   }
 }
@@ -334,7 +234,6 @@ export async function pagarFaturaComSaldo(
           plano.pagoAteCompetencia = calcularPagoAte(
             plano.inicioCompetencia,
             plano.modalidade,
-            plano.mesesContratados,
           )
           plano.formaPagamento = 'saldo'
           plano.atualizadoEm = agora
@@ -427,7 +326,7 @@ export async function iniciarPixFatura(
 }
 
 /**
- * Inicia preferência de Checkout Pro no gateway para pagamento da fatura por cartão.
+ * Inicia cobrança recorrente no Mercado Pago (Preapproval) para pagamento da fatura por cartão.
  */
 export async function iniciarCartaoFatura(
   faturaId: string,
@@ -446,48 +345,61 @@ export async function iniciarCartaoFatura(
   const plano = fatura.planoId
     ? (state.planosCustodia || []).find((p) => p.id === fatura.planoId)
     : undefined
-  // Fatura de plano parcela no cartão pelo que o próprio plano congelou na contratação.
-  // Fatura do ciclo mensal, não: são R$ 2,00 por moeda, não há o que parcelar.
-  const deplano = plano !== undefined || fatura.origem === 'renovacao_anual'
-  const parcelasMax = deplano ? (plano?.parcelasMax || 12) : 1
 
-  const externalReference = `FAT-${randomUUID()}`
+  const planoId = plano?.id || fatura.id
+  const externalReference = `ASS-${planoId}`
   const agora = Date.now()
-  const intencoes = repositorioIntencoes()
-
-  await intencoes.criar({
-    externalReference,
-    userEmail: session,
-    valor: fatura.valorCents,
-    metodo: 'checkout_pro',
-    status: 'pendente',
-    tipoOperacao: 'fatura_custodia',
-    parcelasMax,
-    metadata: { faturaId },
-    paymentId: null,
-    motivoRecusa: null,
-    createdAt: agora,
-    updatedAt: agora,
-  })
 
   try {
-    const cartao = await criarCobrancaCartao({
-      externalReference,
+    const preapp = await ativarDebitoAutomatico({
+      planoId,
       userEmail: session,
       valorCents: fatura.valorCents,
-      titulo: `Fatura de Custódia — Real Olímpico (${fatura.competencia})`,
-      descricao: `Custódia ${fatura.quantidadeMoedas} moeda(s) - ${fatura.competencia}`,
-      parcelasMax,
-      voltarPara: {
-        sucesso: '/conta/faturas',
-        pendente: '/conta/faturas',
-        falha: '/conta/faturas',
-      },
+      descricao: `Custódia mensal — Real Olímpico (${fatura.quantidadeMoedas} moedas)`,
+      backUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/conta/faturas`,
     })
 
-    return { ok: true, data: { ...cartao, forma: 'cartao' } }
+    const intencoes = repositorioIntencoes()
+    await intencoes.criar({
+      externalReference,
+      userEmail: session,
+      valor: fatura.valorCents,
+      metodo: 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'assinatura_custodia',
+      parcelasMax: 1,
+      metadata: { faturaId, planoId, assinaturaId: preapp.id },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+
+    if (plano) {
+      await mutateState((s) => {
+        const p = (s.planosCustodia || []).find((x) => x.id === plano.id)
+        if (p) {
+          p.assinaturaId = preapp.id
+          p.atualizadoEm = agora
+        }
+      })
+    }
+
+    const cobranca: CobrancaCartao & { forma: 'cartao' } = {
+      id: preapp.id,
+      initPoint: preapp.initPoint,
+      sandboxInitPoint: preapp.initPoint,
+      externalReference,
+      valorCents: fatura.valorCents,
+      parcelasMax: 1,
+      createdAt: agora,
+      simulado: preapp.simulado,
+      forma: 'cartao',
+    }
+
+    return { ok: true, data: cobranca }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Falha ao gerar cobrança de cartão para fatura.'
+    const msg = err instanceof Error ? err.message : 'Falha ao gerar cobrança recorrente de cartão para fatura.'
     return { ok: false, error: msg }
   }
 }

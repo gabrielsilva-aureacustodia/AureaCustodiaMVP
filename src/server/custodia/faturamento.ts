@@ -31,6 +31,7 @@ import {
 } from '@/domain/plano-custodia'
 import type { ActionResult, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
+import { expurgarOfertasSemCustodia } from '@/domain/bloqueio-por-debito'
 import { mutateState } from '@/server/state'
 
 export interface RelatorioCicloFaturamento {
@@ -40,6 +41,13 @@ export interface RelatorioCicloFaturamento {
   faturasLiquidadasComSaldo: number
   faturasPendentes: number
   usuariosInadimplentes: number
+  /**
+   * Quantas ofertas de venda saíram do livro porque a custódia da moeda passou
+   * a estar em aberto neste ciclo (AG8). Fica no relatório para a equipe ver o
+   * efeito colateral da virada do mês em vez de descobrir por reclamação de
+   * cliente que teve o anúncio retirado.
+   */
+  ofertasRetiradasPorCustodia: number
 }
 
 /**
@@ -54,6 +62,8 @@ export async function processarCicloFaturamento(
   const competencia = competenciaAlvo ?? competenciaAtual(agora)
   // Valores por moeda da Tabela de Taxas vigente (C3); sem banco, TAXAS_PADRAO.
   const { taxas } = await carregarRegrasDoMercado()
+
+  let ofertasRetiradasPorCustodia = 0
 
   const { result } = await mutateState<RelatorioCicloFaturamento>((s) => {
     s.faturasCustodia = s.faturasCustodia ?? []
@@ -171,6 +181,16 @@ export async function processarCicloFaturamento(
       }
     }
 
+    // AG8: o ciclo acabou de criar dívida, então há moeda anunciada que deixou
+    // de poder ser vendida neste instante. Sem esta varredura a trava seria
+    // contornável só pela ordem dos acontecimentos: quem anunciasse ANTES da
+    // virada do mês continuaria com a oferta viva no livro, e a moeda sairia
+    // vendida com a guarda em aberto. `publishOffer` barra a publicação nova;
+    // é aqui que a oferta velha cai.
+    const ofertasAntes = s.sellOffers.length
+    expurgarOfertasSemCustodia(s)
+    ofertasRetiradasPorCustodia = ofertasAntes - s.sellOffers.length
+
     return {
       competencia,
       totalProcessados,
@@ -178,6 +198,7 @@ export async function processarCicloFaturamento(
       faturasLiquidadasComSaldo,
       faturasPendentes,
       usuariosInadimplentes,
+      ofertasRetiradasPorCustodia,
     }
   })
 

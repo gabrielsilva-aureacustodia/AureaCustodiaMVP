@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  CUSTODIA_ANUAL_POR_MOEDA_CENTS,
   CUSTODIA_MENSAL_POR_MOEDA_CENTS,
-  custodiaAnualPorMoeda,
   custodiaMensalPorMoeda,
   TAXA_SAQUE_FIXA_CENTS,
   TAXAS_PADRAO,
@@ -15,37 +13,22 @@ import {
 import { TAXAS_RETIRADA_PADRAO } from './retirada'
 
 describe('Regras de Taxas e Tarifas (fees.ts)', () => {
-  describe('Custódia Mensal e Anual (Decisão D-3)', () => {
-    it('constantes oficiais estão definidas corretamente', () => {
-      expect(CUSTODIA_MENSAL_POR_MOEDA_CENTS).toBe(300) // R$ 3,00 por moeda/mês
-      expect(CUSTODIA_ANUAL_POR_MOEDA_CENTS).toBe(2400) // R$ 24,00 por moeda/ano
+  describe('Custódia Mensal (Decisão 21/09/2026)', () => {
+    it('constante oficial está definida como R$ 2,00 por moeda/mês', () => {
+      expect(CUSTODIA_MENSAL_POR_MOEDA_CENTS).toBe(200) // R$ 2,00 por moeda/mês
     })
 
-    it('calcula a custódia mensal proporcional à quantidade de moedas (R$ 3,00 / moeda)', () => {
+    it('calcula a custódia mensal proporcional à quantidade de moedas (R$ 2,00 / moeda)', () => {
       expect(custodiaMensalPorMoeda(0)).toBe(0)
       expect(custodiaMensalPorMoeda(-1)).toBe(0)
-      expect(custodiaMensalPorMoeda(1)).toBe(300) // 1 moeda = R$ 3,00
-      expect(custodiaMensalPorMoeda(5)).toBe(1500) // 5 moedas = R$ 15,00
-      expect(custodiaMensalPorMoeda(18)).toBe(5400) // 18 moedas = R$ 54,00
+      expect(custodiaMensalPorMoeda(1)).toBe(200) // 1 moeda = R$ 2,00
+      expect(custodiaMensalPorMoeda(5)).toBe(1000) // 5 moedas = R$ 10,00
+      expect(custodiaMensalPorMoeda(18)).toBe(3600) // 18 moedas = R$ 36,00
     })
 
-    it('calcula o plano anual proporcional à quantidade de moedas (R$ 24,00 / moeda)', () => {
-      expect(custodiaAnualPorMoeda(0)).toBe(0)
-      expect(custodiaAnualPorMoeda(1)).toBe(2400) // 1 moeda = R$ 24,00
-      expect(custodiaAnualPorMoeda(18)).toBe(43200) // 18 moedas = R$ 432,00
-    })
-
-    it('plano anual: R$ 24,00 por moeda, que é R$ 2,00 por mês, em até 12x', () => {
-      expect(TAXAS_PADRAO.custodiaAnualPorMoeda).toBe(2400)
-      expect(TAXAS_PADRAO.custodiaAnualPorMoeda / 12).toBe(200)
-      expect(TAXAS_PADRAO.custodiaAnualParcelasMax).toBe(12)
-      // O plano de 24 meses saiu em 20/09/2026: existe um prazo só.
-      expect('custodiaBienalPorMoeda' in TAXAS_PADRAO).toBe(false)
-    })
-
-    it('não existe mais atalho para o modelo de faixas aposentado', () => {
-      expect(custodiaMensalPorMoeda(1)).toBe(300)
-      expect(custodiaAnualPorMoeda(1)).toBe(2400)
+    it('plano anual foi removido de TAXAS_PADRAO', () => {
+      expect('custodiaAnualPorMoeda' in TAXAS_PADRAO).toBe(false)
+      expect('custodiaAnualParcelasMax' in TAXAS_PADRAO).toBe(false)
     })
   })
 

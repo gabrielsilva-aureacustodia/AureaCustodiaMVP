@@ -36,5 +36,7 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
-  return NextResponse.json({ rastreios: saida })
+  const correiosConfigurado = Boolean(process.env.CORREIOS_TOKEN)
+
+  return NextResponse.json({ rastreios: saida, correiosConfigurado })
 }

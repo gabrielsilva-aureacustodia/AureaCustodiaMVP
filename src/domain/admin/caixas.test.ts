@@ -6,13 +6,16 @@ import { BAN, estado, moeda, usuario } from '@/domain/testing/fixtures'
 import type { AppState, Retirada } from '@/domain/types'
 
 import {
+  caixaCorrente,
   chaveDeCaixa,
   codigoDeCaixaParaGravar,
   ocupacaoDasCaixas,
   ocupantesDoCofre,
   posicoesJaOcupadas,
+  proximasPosicoesDaCaixa,
   validarCaixa,
   type CaixaCadastrada,
+  type OcupacaoDaCaixa,
 } from './caixas'
 
 function analise(n: number, codigoMoeda: string | null, caixa: string | null, posicao: number | null, anterior = GENESIS) {
@@ -133,3 +136,98 @@ describe('ocupação do cofre', () => {
     ])
   })
 })
+
+describe('caixa corrente e próximas posições na bancada (AG5)', () => {
+  it('caixa corrente: cofre vazio escolhe a primeira cadastrada e ativa', () => {
+    const caixas: OcupacaoDaCaixa[] = [
+      { codigo: 'EB-001', rotulo: '', local: '', capacidade: 50, ativa: true, cadastrada: true, moedas: [], semPosicao: 0, cheia: false },
+      { codigo: 'EB-002', rotulo: '', local: '', capacidade: 50, ativa: true, cadastrada: true, moedas: [], semPosicao: 0, cheia: false },
+    ]
+    expect(caixaCorrente(caixas)).toBe('EB-001')
+  })
+
+  it('caixa corrente: seleciona a caixa onde a última moeda foi guardada se ainda houver vaga', () => {
+    const caixas: OcupacaoDaCaixa[] = [
+      {
+        codigo: 'EB-001',
+        rotulo: '',
+        local: '',
+        capacidade: 50,
+        ativa: true,
+        cadastrada: true,
+        moedas: [{ caixa: 'EB-001', posicao: 1, codigoMoeda: 'RO-000001', tipoMoeda: BAN, dono: 'a@x.com', analise: 'RO-ANL-0001' }],
+        semPosicao: 0,
+        cheia: false,
+      },
+      { codigo: 'EB-002', rotulo: '', local: '', capacidade: 50, ativa: true, cadastrada: true, moedas: [], semPosicao: 0, cheia: false },
+    ]
+    expect(caixaCorrente(caixas)).toBe('EB-001')
+  })
+
+  it('caixa corrente: cheia, a seleção passa para a próxima cadastrada e ativa (EB-001 lotada -> EB-002)', () => {
+    const moedasLotadas = Array.from({ length: 50 }, (_, i) => ({
+      caixa: 'EB-001',
+      posicao: i + 1,
+      codigoMoeda: `RO-0000${String(i + 1).padStart(2, '0')}`,
+      tipoMoeda: BAN,
+      dono: 'a@x.com',
+      analise: `RO-ANL-000${i + 1}`,
+    }))
+    const caixas: OcupacaoDaCaixa[] = [
+      { codigo: 'EB-001', rotulo: '', local: '', capacidade: 50, ativa: true, cadastrada: true, moedas: moedasLotadas, semPosicao: 0, cheia: true },
+      { codigo: 'EB-002', rotulo: '', local: '', capacidade: 50, ativa: true, cadastrada: true, moedas: [], semPosicao: 0, cheia: false },
+    ]
+    expect(caixaCorrente(caixas)).toBe('EB-002')
+  })
+
+  it('próximas posições: caixa com 50 moedas devolve 51..70 para 20 moedas', () => {
+    const moedas = Array.from({ length: 50 }, (_, i) => ({
+      caixa: 'EB-001',
+      posicao: i + 1,
+      codigoMoeda: `RO-0000${String(i + 1).padStart(2, '0')}`,
+      tipoMoeda: BAN,
+      dono: 'a@x.com',
+      analise: `RO-ANL-000${i + 1}`,
+    }))
+    const caixa: OcupacaoDaCaixa = {
+      codigo: 'EB-001',
+      rotulo: '',
+      local: '',
+      capacidade: 100,
+      ativa: true,
+      cadastrada: true,
+      moedas,
+      semPosicao: 0,
+      cheia: false,
+    }
+    const pos = proximasPosicoesDaCaixa(caixa, 20)
+    expect(pos).toHaveLength(20)
+    expect(pos[0]).toBe(51)
+    expect(pos[19]).toBe(70)
+    expect(pos).toEqual(Array.from({ length: 20 }, (_, i) => 51 + i))
+  })
+
+  it('próximas posições: caixa vazia começa em 1', () => {
+    const pos = proximasPosicoesDaCaixa(undefined, 3)
+    expect(pos).toEqual([1, 2, 3])
+  })
+
+  it('próximas posições: respeita posições ignoradas (ex.: editadas à mão)', () => {
+    const caixa: OcupacaoDaCaixa = {
+      codigo: 'EB-001',
+      rotulo: '',
+      local: '',
+      capacidade: 50,
+      ativa: true,
+      cadastrada: true,
+      moedas: [{ caixa: 'EB-001', posicao: 1, codigoMoeda: 'RO-000001', tipoMoeda: BAN, dono: 'a@x.com', analise: 'RO-ANL-0001' }],
+      semPosicao: 0,
+      cheia: false,
+    }
+    // Suponha que o operador digitou a posição 2 manualmente em outra moeda
+    const ignorar = new Set([2])
+    const pos = proximasPosicoesDaCaixa(caixa, 3, ignorar)
+    expect(pos).toEqual([3, 4, 5])
+  })
+})
+

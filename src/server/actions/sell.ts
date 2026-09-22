@@ -37,10 +37,14 @@ import { availableCoinsForSell, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
 import { apelidoComprador } from '@/domain/contraparte'
+import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
 import {
   casarOrdensRespeitandoPendencia,
   contaComPendenciaNoEstado,
+  MENSAGEM_ANUNCIO_PAUSADO,
+  MENSAGEM_CUSTODIA_NAO_PAGA,
   MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+  moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
 import { contaBloqueavel, vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
@@ -148,6 +152,19 @@ export async function publishOffer(
             ok: false,
             error: 'As moedas selecionadas não estão mais disponíveis.',
             data: { limparSelecao: true },
+          }
+        }
+
+        // AG8: moeda com custódia em aberto não pode ser publicada para venda,
+        // mesmo que ainda não tenha vencido. A recusa é por moeda, não por conta.
+        const comCustodiaDevida = validas.filter(
+          (c) => moedaComCustodiaNaoPagaNoEstado(s, email, c.id),
+        )
+        if (comCustodiaDevida.length) {
+          return {
+            ok: false,
+            error: MENSAGEM_CUSTODIA_NAO_PAGA,
+            data: { limparSelecao: false },
           }
         }
 
@@ -401,9 +418,11 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
   const bloqueavel = await contaBloqueavel(email)
 
   try {
+    let buyerParaSync: string | null = null
     const { result } = await mutateState((s: AppState): ActionResult => {
       const bo = s.buyOrders.find((b) => b.id === bidId)
       if (!bo || bo.qty <= 0) return { ok: false, error: BID_SUMIU }
+      buyerParaSync = bo.buyer
 
       // Venda para a própria oferta: ver a divergência anotada no topo. A recusa
       // reaproveita o texto de "não está mais disponível" de propósito — é um
@@ -429,11 +448,20 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       const availableCoins = availableCoinsForSell(s, seller, bo.tipoMoeda, catalogo)
       const pedido = Number.isFinite(qtyWanted) ? Math.floor(qtyWanted) : 0
       const n = Math.min(pedido, bo.qty, availableCoins.length)
-      if (n <= 0)
+      if (n <= 0) {
+        // AG8: se o vendedor tem moedas do tipo mas todas estão bloqueadas por
+        // custódia não paga, a mensagem precisa dizer o motivo real.
+        const temDoTipoNoCofre = seller.coins.some(
+          (c) => c.tipoMoeda === bo.tipoMoeda && c.recibo.status === 'Ativo',
+        )
+        if (temDoTipoNoCofre) {
+          return { ok: false, error: MENSAGEM_CUSTODIA_NAO_PAGA }
+        }
         return {
           ok: false,
           error: `Você não possui ${bo.tipoMoeda} disponível para esta venda.`,
         }
+      }
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
@@ -476,6 +504,12 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         message: `Venda concluída: ${execN} ${bo.tipoMoeda} vendida(s) diretamente a ${apelidoComprador(bo.id)} por ${brl(bo.price)} cada.`,
       }
     })
+
+    if (result.ok) {
+      void sincronizarAssinaturaCustodia(email, taxas)
+      if (buyerParaSync) void sincronizarAssinaturaCustodia(buyerParaSync, taxas)
+    }
+
     return result
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }

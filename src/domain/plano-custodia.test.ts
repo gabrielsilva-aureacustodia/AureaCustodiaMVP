@@ -41,14 +41,14 @@ function criarPlano(parciais: Partial<PlanoCustodia> = {}): PlanoCustodia {
     id: 'PLC-000001',
     userEmail: 'cliente@teste.com',
     protocoloEnvio: 'ENV-2026-0001',
-    modalidade: 'anual',
+    modalidade: 'mensal',
     quantidadeContratada: 1,
     moedaIds: ['MOE-001'],
-    valorPorMoedaCents: 2400,
-    valorTotalCents: 2400,
-    parcelasMax: 12,
+    valorPorMoedaCents: 200,
+    valorTotalCents: 200,
+    parcelasMax: 1,
     inicioCompetencia: '2026-09',
-    pagoAteCompetencia: '2027-08',
+    pagoAteCompetencia: '2026-09',
     status: 'vigente',
     formaPagamento: 'saldo',
     paymentIntentRef: null,
@@ -62,45 +62,28 @@ function criarPlano(parciais: Partial<PlanoCustodia> = {}): PlanoCustodia {
 
 describe('plano-custodia (B2.3)', () => {
   describe('valorDoPlano', () => {
-    // Os dois testes do plano de 24 meses saíram em 20/09/2026 com o próprio
-    // plano: passou a existir um prazo só.
-
-    it('o anual sai a R$ 2,00 por moeda por mês', () => {
-      expect(valorDoPlano('anual', 1).total / 12).toBe(200)
+    it('o mensal sai a R$ 2,00 por moeda por mês', () => {
+      expect(valorDoPlano('mensal', 1).total).toBe(200)
     })
 
-    it('calcula plano anual padrão (R$ 24,00 por moeda, até 12 parcelas, 12 meses)', () => {
-      const v1 = valorDoPlano('anual', 1)
-      expect(v1).toEqual({ porMoeda: 2400, total: 2400, parcelasMax: 12, meses: 12 })
-
-      const v3 = valorDoPlano('anual', 3)
-      expect(v3).toEqual({ porMoeda: 2400, total: 7200, parcelasMax: 12, meses: 12 })
-    })
-
-    it('calcula plano mensal (R$ 3,00 por moeda, sem parcelamento, 1 mês)', () => {
+    it('calcula plano mensal padrão (R$ 2,00 por moeda, 1 parcela, 1 mês)', () => {
       const v1 = valorDoPlano('mensal', 1)
-      expect(v1).toEqual({ porMoeda: 300, total: 300, parcelasMax: 1, meses: 1 })
+      expect(v1).toEqual({ porMoeda: 200, total: 200, parcelasMax: 1, meses: 1 })
 
       const v3 = valorDoPlano('mensal', 3)
-      expect(v3).toEqual({ porMoeda: 300, total: 900, parcelasMax: 1, meses: 1 })
+      expect(v3).toEqual({ porMoeda: 200, total: 600, parcelasMax: 1, meses: 1 })
     })
 
-    it('calcula proporcional com mesesForcados para transferência', () => {
-      const v11 = valorDoPlano('anual', 1, undefined, 11)
-      expect(v11).toEqual({ porMoeda: 2200, total: 2200, parcelasMax: 11, meses: 11 })
-    })
-
-    it('aceita sobrescrita de taxas e limite de parcelamento', () => {
-      const v = valorDoPlano('anual', 2, {
-        custodiaAnualPorMoeda: 3000,
-        custodiaAnualParcelasMax: 6,
+    it('aceita sobrescrita de taxas', () => {
+      const v = valorDoPlano('mensal', 2, {
+        custodiaMensalPorMoeda: 500,
       })
-      expect(v).toEqual({ porMoeda: 3000, total: 6000, parcelasMax: 6, meses: 12 })
+      expect(v).toEqual({ porMoeda: 500, total: 1000, parcelasMax: 1, meses: 1 })
     })
 
     it('quantidade zero ou negativa resulta em total zero', () => {
-      expect(valorDoPlano('anual', 0).total).toBe(0)
-      expect(valorDoPlano('anual', -2).total).toBe(0)
+      expect(valorDoPlano('mensal', 0).total).toBe(0)
+      expect(valorDoPlano('mensal', -2).total).toBe(0)
     })
   })
 
@@ -135,13 +118,13 @@ describe('plano-custodia (B2.3)', () => {
   })
 
   describe('calcularPagoAte', () => {
-    it('anual cobre 12 meses (+11 meses)', () => {
-      expect(calcularPagoAte('2026-09', 'anual')).toBe('2027-08')
-      expect(calcularPagoAte('2026-12', 'anual')).toBe('2027-11')
+    it('mensal cobre 1 mês (+0 meses)', () => {
+      expect(calcularPagoAte('2026-09', 'mensal')).toBe('2026-09')
+      expect(calcularPagoAte('2026-12', 'mensal')).toBe('2026-12')
     })
 
     it('mesesCobertos diz o prazo da modalidade', () => {
-      expect(mesesCobertos('anual')).toBe(12)
+      expect(mesesCobertos('mensal')).toBe(1)
     })
   })
 
@@ -161,18 +144,16 @@ describe('plano-custodia (B2.3)', () => {
     })
 
     it('valida cobertura de competências para plano vigente', () => {
-      const planoAnual = criarPlano({
-        modalidade: 'anual',
+      const planoMensal = criarPlano({
+        modalidade: 'mensal',
         inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        pagoAteCompetencia: '2026-09',
         status: 'vigente',
       })
 
-      expect(competenciaCoberta(planoAnual, '2026-08')).toBe(false)
-      expect(competenciaCoberta(planoAnual, '2026-09')).toBe(true)
-      expect(competenciaCoberta(planoAnual, '2027-01')).toBe(true)
-      expect(competenciaCoberta(planoAnual, '2027-08')).toBe(true)
-      expect(competenciaCoberta(planoAnual, '2027-09')).toBe(false)
+      expect(competenciaCoberta(planoMensal, '2026-08')).toBe(false)
+      expect(competenciaCoberta(planoMensal, '2026-09')).toBe(true)
+      expect(competenciaCoberta(planoMensal, '2026-10')).toBe(false)
     })
   })
 
@@ -182,15 +163,15 @@ describe('plano-custodia (B2.3)', () => {
         id: 'PLC-001',
         moedaIds: ['M-1', 'M-2'],
         inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        pagoAteCompetencia: '2026-09',
         status: 'vigente',
       })
-      // Anual que acabou em 2026-08: em 2026-09 a renovacao esta devida, e uma moeda
+      // Mensal que acabou em 2026-08: em 2026-09 a renovacao esta devida, e uma moeda
       // esperando fatura de renovacao segue coberta para o ciclo nao cobrar em dobro.
       const p2 = criarPlano({
         id: 'PLC-002',
         moedaIds: ['M-3'],
-        inicioCompetencia: '2025-09',
+        inicioCompetencia: '2026-08',
         pagoAteCompetencia: '2026-08',
         status: 'vigente',
       })
@@ -230,8 +211,8 @@ describe('plano-custodia (B2.3)', () => {
     it('retorna null se todas as moedas estiverem cobertas por plano', () => {
       const plano = criarPlano({
         moedaIds: ['M-1', 'M-2', 'M-3'],
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        inicioCompetencia: '2026-10',
+        pagoAteCompetencia: '2026-10',
         status: 'vigente',
       })
       const fatura = gerarFaturaDoCiclo(userBase, 'cliente@teste.com', '2026-10', [plano])
@@ -241,8 +222,8 @@ describe('plano-custodia (B2.3)', () => {
     it('fatura apenas moedas não cobertas, descontando as cobertas', () => {
       const plano = criarPlano({
         moedaIds: ['M-1', 'M-2'],
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        inicioCompetencia: '2026-10',
+        pagoAteCompetencia: '2026-10',
         status: 'vigente',
       })
       // M-1 e M-2 estão cobertas; M-3 não está coberta
@@ -252,7 +233,7 @@ describe('plano-custodia (B2.3)', () => {
       expect(fatura).not.toBeNull()
       expect(fatura?.quantidadeMoedas).toBe(1)
       expect(fatura?.moedaIds).toEqual(['M-3'])
-      expect(fatura?.valorCents).toBe(300) // R$ 3,00
+      expect(fatura?.valorCents).toBe(200) // R$ 2,00
       expect(fatura?.origem).toBe('ciclo_mensal')
       expect(fatura?.planoId).toBeNull()
       expect(fatura?.status).toBe('pendente')
@@ -270,54 +251,50 @@ describe('plano-custodia (B2.3)', () => {
       const fatura = gerarFaturaDoCiclo(userComExtinta, 'cliente@teste.com', '2026-10', [])
       expect(fatura?.quantidadeMoedas).toBe(1)
       expect(fatura?.moedaIds).toEqual(['M-1'])
-      expect(fatura?.valorCents).toBe(300)
+      expect(fatura?.valorCents).toBe(200)
     })
   })
 
   describe('renovacaoDevida', () => {
     it('retorna false se o plano não estiver vigente', () => {
       const planoInativo = criarPlano({
-        modalidade: 'anual',
-        pagoAteCompetencia: '2027-08',
+        modalidade: 'mensal',
+        pagoAteCompetencia: '2026-09',
         status: 'encerrado',
       })
-      expect(renovacaoDevida(planoInativo, '2027-09')).toBe(false)
+      expect(renovacaoDevida(planoInativo, '2026-10')).toBe(false)
     })
 
-    it('identifica renovação do anual exatamente no 13º mês (pagoAteCompetencia === mesAnterior)', () => {
-      const planoAnual = criarPlano({
-        modalidade: 'anual',
+    it('identifica renovação do mensal exatamente no mês seguinte (pagoAteCompetencia === mesAnterior)', () => {
+      const planoMensal = criarPlano({
+        modalidade: 'mensal',
         inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        pagoAteCompetencia: '2026-09',
         status: 'vigente',
       })
 
-      // Mês 12: ainda coberto
-      expect(renovacaoDevida(planoAnual, '2027-08')).toBe(false)
+      // Mês 1: ainda coberto
+      expect(renovacaoDevida(planoMensal, '2026-09')).toBe(false)
 
-      // Mês 13: venceu em 2027-08, logo em 2027-09 a renovação é devida!
-      expect(renovacaoDevida(planoAnual, '2027-09')).toBe(true)
+      // Mês 2: venceu em 2026-09, logo em 2026-10 a renovação é devida!
+      expect(renovacaoDevida(planoMensal, '2026-10')).toBe(true)
 
-      // Mês 14: posterior
-      expect(renovacaoDevida(planoAnual, '2027-10')).toBe(false)
+      // Mês 3: posterior
+      expect(renovacaoDevida(planoMensal, '2026-11')).toBe(false)
     })
-
-    // O caso do plano de 24 meses saiu em 20/09/2026 junto com o plano. O que
-    // ele protegia — a renovação respeitar o prazo coberto em vez de um 12 fixo
-    // no código — continua coberto pelo teste do anual logo acima.
   })
 
   describe('alimentarPlanoNaAnalise (B2.5)', () => {
-    it('3 moedas contratadas e pagas no plano anual, 1 recusada: plano com 2 moedas e R$ 24,00 estornados ao saldo', () => {
+    it('3 moedas contratadas e pagas no plano mensal, 1 recusada: plano com 2 moedas e R$ 2,00 estornados ao saldo', () => {
       const user: User = { name: 'Cliente', balance: 10000, coins: [] }
       const plano = criarPlano({
-        id: 'PLC-ANUAL-1',
-        modalidade: 'anual',
+        id: 'PLC-MENSAL-1',
+        modalidade: 'mensal',
         quantidadeContratada: 3,
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 7200,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
         status: 'vigente',
-        pagoAteCompetencia: '2027-08',
+        pagoAteCompetencia: '2026-09',
         moedaIds: [],
         estornadoCents: 0,
       })
@@ -327,7 +304,7 @@ describe('plano-custodia (B2.3)', () => {
         competencia: '2026-09',
         quantidadeMoedas: 3,
         moedaIds: [],
-        valorCents: 7200,
+        valorCents: 600,
         status: 'paga',
         dataEmissao: 1000,
         dataVencimento: 2000,
@@ -347,62 +324,19 @@ describe('plano-custodia (B2.3)', () => {
       })
 
       expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
-      expect(plano.estornadoCents).toBe(2400) // R$ 24,00 de estorno
-      expect(user.balance).toBe(10000 + 2400) // Saldo sobe R$ 24,00
+      expect(plano.estornadoCents).toBe(200) // R$ 2,00 de estorno
+      expect(user.balance).toBe(10000 + 200) // Saldo sobe R$ 2,00
       expect(plano.status).toBe('vigente')
-    })
-
-    it('3 moedas contratadas e pagas no plano de 24 meses, 1 recusada: plano com 2 moedas e R$ 36,00 estornados ao saldo', () => {
-      const user: User = { name: 'Cliente', balance: 5000, coins: [] }
-      const plano = criarPlano({
-        id: 'PLC-BIENAL-1',
-        modalidade: 'anual',
-        quantidadeContratada: 3,
-        valorPorMoedaCents: 3600,
-        valorTotalCents: 10800,
-        status: 'vigente',
-        pagoAteCompetencia: '2028-08',
-        moedaIds: [],
-        estornadoCents: 0,
-      })
-      const fatura: FaturaCustodia = {
-        id: 'FAT-2',
-        userEmail: 'cliente@teste.com',
-        competencia: '2026-09',
-        quantidadeMoedas: 3,
-        moedaIds: [],
-        valorCents: 10800,
-        status: 'paga',
-        dataEmissao: 1000,
-        dataVencimento: 2000,
-        dataPagamento: 1500,
-        formaPagamento: 'saldo',
-        paymentIntentId: null,
-        planoId: plano.id,
-        origem: 'contratacao',
-      }
-
-      alimentarPlanoNaAnalise({
-        plano,
-        faturas: [fatura],
-        user,
-        moedaIdsAprovadas: ['RO-001', 'RO-002'],
-        quantidadeRecusadas: 1,
-      })
-
-      expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
-      expect(plano.estornadoCents).toBe(3600) // R$ 36,00 de estorno
-      expect(user.balance).toBe(5000 + 3600) // Saldo sobe R$ 36,00
     })
 
     it('3 moedas contratadas e NÃO pagas, 1 recusada: fatura de contratação passa a valer só as aprovadas', () => {
       const user: User = { name: 'Cliente', balance: 5000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-PEND-1',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 3,
-        valorPorMoedaCents: 3600,
-        valorTotalCents: 10800,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
         status: 'aguardando_pagamento',
         pagoAteCompetencia: null,
         moedaIds: [],
@@ -413,7 +347,7 @@ describe('plano-custodia (B2.3)', () => {
         competencia: '2026-09',
         quantidadeMoedas: 3,
         moedaIds: [],
-        valorCents: 10800,
+        valorCents: 600,
         status: 'pendente',
         dataEmissao: 1000,
         dataVencimento: 2000,
@@ -433,8 +367,8 @@ describe('plano-custodia (B2.3)', () => {
       })
 
       expect(plano.moedaIds).toEqual(['RO-001', 'RO-002'])
-      expect(plano.valorTotalCents).toBe(7200)
-      expect(fatura.valorCents).toBe(7200)
+      expect(plano.valorTotalCents).toBe(400)
+      expect(fatura.valorCents).toBe(400)
       expect(fatura.quantidadeMoedas).toBe(2)
       expect(fatura.moedaIds).toEqual(['RO-001', 'RO-002'])
       expect(user.balance).toBe(5000) // Sem alteração de saldo
@@ -444,12 +378,12 @@ describe('plano-custodia (B2.3)', () => {
       const user: User = { name: 'Cliente', balance: 1000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-CANCEL-1',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 2,
-        valorPorMoedaCents: 3600,
-        valorTotalCents: 7200,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 400,
         status: 'vigente',
-        pagoAteCompetencia: '2028-08',
+        pagoAteCompetencia: '2026-09',
       })
       const fatura: FaturaCustodia = {
         id: 'FAT-4',
@@ -457,7 +391,7 @@ describe('plano-custodia (B2.3)', () => {
         competencia: '2026-09',
         quantidadeMoedas: 2,
         moedaIds: [],
-        valorCents: 7200,
+        valorCents: 400,
         status: 'paga',
         dataEmissao: 1000,
         dataVencimento: 2000,
@@ -478,18 +412,18 @@ describe('plano-custodia (B2.3)', () => {
 
       expect(plano.status).toBe('cancelado')
       expect(plano.moedaIds).toEqual([])
-      expect(plano.estornadoCents).toBe(7200)
-      expect(user.balance).toBe(1000 + 7200)
+      expect(plano.estornadoCents).toBe(400)
+      expect(user.balance).toBe(1000 + 400)
     })
 
     it('todas as moedas recusadas com plano não pago: cancela plano e cancela fatura pendente', () => {
       const user: User = { name: 'Cliente', balance: 1000, coins: [] }
       const plano = criarPlano({
         id: 'PLC-CANCEL-2',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 2,
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 4800,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 400,
         status: 'aguardando_pagamento',
       })
       const fatura: FaturaCustodia = {
@@ -498,7 +432,7 @@ describe('plano-custodia (B2.3)', () => {
         competencia: '2026-09',
         quantidadeMoedas: 2,
         moedaIds: [],
-        valorCents: 4800,
+        valorCents: 400,
         status: 'pendente',
         dataEmissao: 1000,
         dataVencimento: 2000,

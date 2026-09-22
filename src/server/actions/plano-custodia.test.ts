@@ -68,18 +68,22 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
 
   it('rejeita contratação sem sessão autenticada', async () => {
     getSessionEmail.mockResolvedValue(null)
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    const res = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     expect(res.ok).toBe(false)
     expect(res.error).toBe('Sessão expirada.')
   })
 
-  it('recusa modalidade que não existe mais: o plano bienal foi aposentado em 20/09/2026', async () => {
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'bienal' as never)
-    expect(res.ok).toBe(false)
-    expect(res.error).toBe('Modalidade de plano inválida.')
+  it('recusa modalidade que não existe mais: anual e bienal saíram', async () => {
+    const res1 = await contratarPlanoCustodia(PROTOCOLO, 'anual' as never)
+    expect(res1.ok).toBe(false)
+    expect(res1.error).toBe('Modalidade de plano inválida.')
+
+    const res2 = await contratarPlanoCustodia(PROTOCOLO, 'bienal' as never)
+    expect(res2.ok).toBe(false)
+    expect(res2.error).toBe('Modalidade de plano inválida.')
   })
 
-  it('contrata plano mensal: 2 moedas a R$ 3,00 = R$ 6,00 em 1 parcela', async () => {
+  it('contrata plano mensal: 2 moedas a R$ 2,00 = R$ 4,00 em 1 parcela', async () => {
     const res = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     expect(res.ok).toBe(true)
 
@@ -87,13 +91,13 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     const plano = (s.planosCustodia || []).find((p) => p.id === res.data?.planoId)
     expect(plano?.modalidade).toBe('mensal')
     expect(plano?.quantidadeContratada).toBe(2)
-    expect(plano?.valorPorMoedaCents).toBe(300)
-    expect(plano?.valorTotalCents).toBe(600)
+    expect(plano?.valorPorMoedaCents).toBe(200)
+    expect(plano?.valorTotalCents).toBe(400)
     expect(plano?.parcelasMax).toBe(1)
   })
 
-  it('contrata plano anual: cria plano aguardando_pagamento e fatura de contratação', async () => {
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+  it('contrata plano mensal: cria plano aguardando_pagamento e fatura de contratação', async () => {
+    const res = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     expect(res.ok).toBe(true)
     expect(res.data?.planoId).toMatch(/^PLC-/)
     expect(res.data?.faturaId).toMatch(/^FAT-/)
@@ -102,53 +106,23 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     const plano = (s.planosCustodia || []).find((p) => p.id === res.data?.planoId)
     expect(plano).toBeDefined()
     expect(plano?.status).toBe('aguardando_pagamento')
-    expect(plano?.modalidade).toBe('anual')
+    expect(plano?.modalidade).toBe('mensal')
     expect(plano?.quantidadeContratada).toBe(2)
-    expect(plano?.valorPorMoedaCents).toBe(2400)
-    expect(plano?.valorTotalCents).toBe(4800) // 2 moedas * R$ 24,00
-    expect(plano?.parcelasMax).toBe(12)
+    expect(plano?.valorPorMoedaCents).toBe(200)
+    expect(plano?.valorTotalCents).toBe(400) // 2 moedas * R$ 2,00
+    expect(plano?.parcelasMax).toBe(1)
     expect(plano?.pagoAteCompetencia).toBeNull()
 
     const fatura = (s.faturasCustodia || []).find((f) => f.id === res.data?.faturaId)
     expect(fatura).toBeDefined()
     expect(fatura?.origem).toBe('contratacao')
     expect(fatura?.planoId).toBe(plano?.id)
-    expect(fatura?.valorCents).toBe(4800)
+    expect(fatura?.valorCents).toBe(400)
     expect(fatura?.status).toBe('pendente')
   })
 
-  it('contrata plano anual com 12 parcelas e valor de R$ 24,00 por moeda', async () => {
-    const res = await contratarPlanoCustodia(PROTOCOLO, 'anual')
-    expect(res.ok).toBe(true)
-
-    const s = await getState()
-    const plano = (s.planosCustodia || []).find((p) => p.id === res.data?.planoId)
-    expect(plano?.modalidade).toBe('anual')
-    expect(plano?.valorPorMoedaCents).toBe(2400)
-    expect(plano?.valorTotalCents).toBe(4800) // 2 moedas * R$ 24,00 = R$ 48,00
-    expect(plano?.parcelasMax).toBe(12)
-  })
-
-  it('contratar de novo antes de pagar recalcula a fatura e o plano existentes', async () => {
-    const res1 = await contratarPlanoCustodia(PROTOCOLO, 'anual')
-    expect(res1.ok).toBe(true)
-
-    // Troca para mensal
-    const res2 = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
-    expect(res2.ok).toBe(true)
-    expect(res2.data?.planoId).toBe(res1.data?.planoId)
-
-    const s = await getState()
-    const plano = (s.planosCustodia || []).find((p) => p.id === res1.data?.planoId)
-    expect(plano?.modalidade).toBe('mensal')
-    expect(plano?.valorTotalCents).toBe(600)
-
-    const fatura = (s.faturasCustodia || []).find((f) => f.planoId === plano?.id)
-    expect(fatura?.valorCents).toBe(600)
-  })
-
   it('paga fatura com saldo: debita saldo, marca paga e torna o plano vigente', async () => {
-    const contr = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    const contr = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     const faturaId = contr.data!.faturaId
 
     const sAntes = await getState()
@@ -158,7 +132,7 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     expect(res.ok).toBe(true)
 
     const sDepois = await getState()
-    expect(sDepois.users[EMAIL_TESTE].balance).toBe(saldoAntes - 4800)
+    expect(sDepois.users[EMAIL_TESTE].balance).toBe(saldoAntes - 400)
 
     const fatura = (sDepois.faturasCustodia || []).find((f) => f.id === faturaId)
     expect(fatura?.status).toBe('paga')
@@ -166,7 +140,7 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
 
     const plano = (sDepois.planosCustodia || []).find((p) => p.id === contr.data!.planoId)
     expect(plano?.status).toBe('vigente')
-    expect(plano?.pagoAteCompetencia).toBe(calcularPagoAte(plano!.inicioCompetencia, 'anual'))
+    expect(plano?.pagoAteCompetencia).toBe(calcularPagoAte(plano!.inicioCompetencia, 'mensal'))
   })
 
   it('recusa pagamento com saldo se saldo for insuficiente', async () => {
@@ -174,30 +148,30 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
       s.users[EMAIL_TESTE].balance = 100 // Apenas R$ 1,00
     })
 
-    const contr = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    const contr = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     const res = await pagarFaturaComSaldo(contr.data!.faturaId)
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/Saldo insuficiente/)
   })
 
-  it('inicia pagamento Pix e Checkout Pro retornando cobrança', async () => {
-    const contr = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+  it('inicia pagamento Pix e Cartão recorrente retornando cobrança', async () => {
+    const contr = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     const faturaId = contr.data!.faturaId
 
     const resPix = await iniciarPixFatura(faturaId)
     expect(resPix.ok).toBe(true)
     expect(resPix.data?.forma).toBe('pix')
-    expect(resPix.data?.valorCents).toBe(4800)
+    expect(resPix.data?.valorCents).toBe(400)
 
     const resCartao = await iniciarCartaoFatura(faturaId)
     expect(resCartao.ok).toBe(true)
     expect(resCartao.data?.forma).toBe('cartao')
-    expect(resCartao.data?.valorCents).toBe(4800)
-    expect(resCartao.data?.parcelasMax).toBe(12)
+    expect(resCartao.data?.valorCents).toBe(400)
+    expect(resCartao.data?.parcelasMax).toBe(1)
   })
 
   it('conciliação de fatura_custodia pelo gateway liquida a fatura e ativa o plano', async () => {
-    const contr = await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    const contr = await contratarPlanoCustodia(PROTOCOLO, 'mensal')
     const faturaId = contr.data!.faturaId
 
     const resPix = await iniciarPixFatura(faturaId)
@@ -207,12 +181,12 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
     consultarPagamentoMercadoPago.mockResolvedValueOnce({
       id: 'pay-fatura-1',
       status: 'approved',
-      valorCents: 4800,
-      valorLiquidoCents: 4600,
-      tarifaCents: 200,
-      totalPagoCents: 4800,
+      valorCents: 400,
+      valorLiquidoCents: 380,
+      tarifaCents: 20,
+      totalPagoCents: 400,
       parcelas: 1,
-      valorParcelaCents: 4800,
+      valorParcelaCents: 400,
       dataLiberacao: agora,
       externalReference: ref,
       paymentMethodId: 'pix',
@@ -236,7 +210,7 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
   })
 
   it('listarMinhasFaturas e listarMeusPlanos devolvem apenas dados do usuário logado', async () => {
-    await contratarPlanoCustodia(PROTOCOLO, 'anual')
+    await contratarPlanoCustodia(PROTOCOLO, 'mensal')
 
     const resFaturas = await listarMinhasFaturas()
     expect(resFaturas.ok).toBe(true)

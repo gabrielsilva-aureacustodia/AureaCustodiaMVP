@@ -92,9 +92,9 @@ describe('server/custodia/faturamento', () => {
     expect(rel.faturasLiquidadasComSaldo).toBe(1)
     expect(rel.faturasPendentes).toBe(1)
 
-    // Cliente com saldo: 2 moedas = R$ 6,00 (600 cents)
+    // Cliente com saldo: 2 moedas = R$ 4,00 (400 cents)
     const userComSaldo = estadoSimulado.users['com_saldo@teste.com']
-    expect(userComSaldo.balance).toBe(10_000 - 600) // 9400
+    expect(userComSaldo.balance).toBe(10_000 - 400) // 9600
     // Desde a E8 o ciclo não grava user.inadimplente: essa coluna é só a marca manual do painel.
     expect(userComSaldo.inadimplente).toBeFalsy()
 
@@ -102,9 +102,9 @@ describe('server/custodia/faturamento', () => {
     expect(faturaComSaldo).toBeDefined()
     expect(faturaComSaldo?.status).toBe('paga')
     expect(faturaComSaldo?.formaPagamento).toBe('saldo')
-    expect(faturaComSaldo?.valorCents).toBe(600)
+    expect(faturaComSaldo?.valorCents).toBe(400)
 
-    // Cliente sem saldo: 1 moeda = R$ 3,00 (300 cents), saldo permanece 100
+    // Cliente sem saldo: 1 moeda = R$ 2,00 (200 cents), saldo permanece 100
     const userSemSaldo = estadoSimulado.users['sem_saldo@teste.com']
     expect(userSemSaldo.balance).toBe(100)
     expect(userSemSaldo.inadimplente).toBeFalsy() // o ciclo não grava a coluna (E8)
@@ -113,6 +113,7 @@ describe('server/custodia/faturamento', () => {
     expect(faturaSemSaldo).toBeDefined()
     expect(faturaSemSaldo?.status).toBe('pendente')
     expect(faturaSemSaldo?.formaPagamento).toBeNull()
+    expect(faturaSemSaldo?.valorCents).toBe(200)
 
     // Cliente sem moeda não ganha fatura
     const faturaSemMoeda = estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'sem_moeda@teste.com')
@@ -259,7 +260,7 @@ describe('server/custodia/faturamento', () => {
     expect(faturaCiclo).toBeDefined()
     expect(faturaCiclo?.quantidadeMoedas).toBe(1)
     expect(faturaCiclo?.moedaIds).toEqual(['RO-000002'])
-    expect(faturaCiclo?.valorCents).toBe(300)
+    expect(faturaCiclo?.valorCents).toBe(200)
     expect(faturaCiclo?.status).toBe('paga') // debitada com saldo
   })
 
@@ -330,14 +331,14 @@ describe('server/custodia/faturamento', () => {
       (f) => f.userEmail === 'com_saldo@teste.com' && f.origem === 'renovacao_anual',
     )
     expect(faturaRenovacao).toBeDefined()
-    expect(faturaRenovacao?.valorCents).toBe(4800) // 2 moedas * 2400
+    expect(faturaRenovacao?.valorCents).toBe(400) // 2 moedas * 200
     expect(faturaRenovacao?.status).toBe('paga')
 
     // Saldo debitado
-    expect(estadoSimulado.users['com_saldo@teste.com'].balance).toBe(saldoInicial - 4800)
+    expect(estadoSimulado.users['com_saldo@teste.com'].balance).toBe(saldoInicial - 400)
 
-    // Plano atualizado para mais 12 meses: de 2026-08 para 2027-08
+    // Plano atualizado para o próximo mês: de 2026-08 para 2026-09
     const plano = estadoSimulado.planosCustodia[0]
-    expect(plano.pagoAteCompetencia).toBe('2027-08')
+    expect(plano.pagoAteCompetencia).toBe('2026-09')
   })
 })

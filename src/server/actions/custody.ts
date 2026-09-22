@@ -41,6 +41,7 @@ import {
   RASTREIO_INVALIDO,
   rastreioValido,
 } from '@/domain/rastreio'
+import { isEnvioDesconsiderado } from '@/domain/envios'
 import { getSessionEmail } from '@/server/session'
 import { mutateState, getState } from '@/server/state'
 import {
@@ -51,6 +52,7 @@ import {
 import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { carregarMembro } from '@/server/admin/acesso'
 import { temPermissao } from '@/domain/admin/permissoes'
+import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
 
 /* ---------------------------------------------------------------------------
  * Mensagens
@@ -79,6 +81,9 @@ const PROTOCOLO_NAO_ENCONTRADO = 'Protocolo não encontrado.'
 
 /** Guarda de reentrância da postagem. Texto novo (ver "issues" do relatório). */
 const JA_POSTADO = 'Este envio já foi marcado como postado.'
+
+/** Protocolo desconsiderado após 3 dias sem postagem. */
+const PROTOCOLO_EXPIRADO = 'Este protocolo foi desconsiderado após 3 dias sem postagem. Gere um novo protocolo.'
 
 /** Guarda de reentrância do avanço de etapa. Texto novo. */
 const JA_CONCLUIDO = 'Este envio já foi concluído.'
@@ -228,6 +233,15 @@ export async function markPosted(
       )
       if (!envio) return 'nao-encontrado' as const
 
+      // Envio não postado é desconsiderado em até 3 dias.
+      if (isEnvioDesconsiderado(envio)) {
+        if (!envio.desconsideradoEm) {
+          envio.desconsideradoEm = Date.now()
+          envio.motivoDesconsideracao = 'Prazo limite de 3 dias para postagem expirado.'
+        }
+        return 'expirado' as const
+      }
+
       // Reentrância: o botão só aparece antes da postagem, mas um duplo clique
       // (ou um F5 no meio) mandaria a ação duas vezes, e a segunda sobrescreveria
       // o rastreio que o usuário já anotou.
@@ -243,6 +257,7 @@ export async function markPosted(
 
     if (result === 'nao-encontrado') return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
     if (result === 'ja-postado') return { ok: false, error: JA_POSTADO }
+    if (result === 'expirado') return { ok: false, error: PROTOCOLO_EXPIRADO }
     return { ok: true, message: `Envio marcado como postado com o rastreio ${codigo}.` }
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -672,6 +687,8 @@ export async function pagarRetiradaComSaldo(
     }
 
     await repositorioRetiradas().atualizar(result.retirada)
+
+    void sincronizarAssinaturaCustodia(session)
 
     return {
       ok: true,

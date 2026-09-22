@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { PESO_MAX_MG, PESO_MIN_MG, gramasParaMg, lerPosicao, nomeDoArquivoDeVideo, validarMoedasDaBancada, type MoedaDigitada } from './bancada'
+import { PESO_MAX_MG, PESO_MIN_MG, gramasParaMg, lerPosicao, nomeDoArquivoDeVideo, pesoPadraoOuInicial, validarMoedasDaBancada, type MoedaDigitada } from './bancada'
 
 function aprovada(gramas: string, caixa = 'EB-001', posicao = '7'): MoedaDigitada {
   return { veredito: 'aprovada', gramas, caixa, posicao, motivoRecusa: '' }
@@ -21,6 +21,13 @@ describe('peso digitado na bancada web', () => {
     expect(gramasParaMg('27,0,5')).toBeNull()
     expect(gramasParaMg('-3')).toBeNull()
     expect(gramasParaMg('abc')).toBeNull()
+  })
+
+  it('peso padrão do tipo no catálogo ou peso inicial registrado (AG5)', () => {
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', null)).toBe('7')
+    expect(pesoPadraoOuInicial('Direitos Humanos', null)).toBe('7,84')
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', 7050)).toBe('7,05')
+    expect(pesoPadraoOuInicial('Tipo Sem Padrão Nem Inicial', null)).toBe('')
   })
 
   it('posição vazia é nula; posição que não é inteiro positivo é erro', () => {

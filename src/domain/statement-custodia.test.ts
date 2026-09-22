@@ -10,18 +10,18 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     coins: [],
   }
 
-  const planoAnual: PlanoCustodia = {
-    id: 'PLC-ANUAL-1',
+  const planoMensal: PlanoCustodia = {
+    id: 'PLC-MENSAL-1',
     userEmail: email,
     protocoloEnvio: 'RO-ENV-001',
-    modalidade: 'anual',
+    modalidade: 'mensal',
     quantidadeContratada: 3,
     moedaIds: [],
-    valorPorMoedaCents: 2400,
-    valorTotalCents: 7200,
-    parcelasMax: 12,
+    valorPorMoedaCents: 200,
+    valorTotalCents: 600,
+    parcelasMax: 1,
     inicioCompetencia: '2026-09',
-    pagoAteCompetencia: '2027-08',
+    pagoAteCompetencia: '2026-09',
     status: 'vigente',
     formaPagamento: 'saldo',
     paymentIntentRef: null,
@@ -31,7 +31,7 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     atualizadoEm: 1757894400000,
   }
 
-  function criarEstadoComFaturas(faturas: FaturaCustodia[], planos: PlanoCustodia[] = [planoAnual]): AppState {
+  function criarEstadoComFaturas(faturas: FaturaCustodia[], planos: PlanoCustodia[] = [planoMensal]): AppState {
     return {
       users: { [email]: user },
       sellOffers: [],
@@ -46,21 +46,21 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     }
   }
 
-  it('fatura de contratação com plano anual descreve "Plano anual" e taxa com valor total', () => {
+  it('fatura de contratação com plano mensal descreve "Plano mensal" e taxa com valor total', () => {
     const faturaContratacao: FaturaCustodia = {
       id: 'FAT-CONTRATACAO',
       userEmail: email,
       competencia: '2026-09',
       quantidadeMoedas: 3,
       moedaIds: [],
-      valorCents: 7200,
+      valorCents: 600,
       status: 'paga',
       formaPagamento: 'saldo',
       dataEmissao: 1757894400000,
       dataVencimento: 1758758400000,
       dataPagamento: 1757894400000,
       origem: 'contratacao',
-      planoId: planoAnual.id,
+      planoId: planoMensal.id,
     }
 
     const state = criarEstadoComFaturas([faturaContratacao])
@@ -69,10 +69,9 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     expect(rows).toHaveLength(1)
     const row = rows[0]
     expect(row.kind).toBe('Taxa de custódia')
-    expect(row.descricao).toContain('Plano anual')
-    expect(row.descricao).not.toContain('mensal')
-    expect(row.taxa).toBe(7200)
-    expect(row.impacto).toBe(-7200)
+    expect(row.descricao).toContain('Plano mensal')
+    expect(row.taxa).toBe(600)
+    expect(row.impacto).toBe(-600)
   })
 
   it('fatura de renovação descreve "Renovação do plano"', () => {
@@ -82,14 +81,14 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
       competencia: '2027-09',
       quantidadeMoedas: 3,
       moedaIds: [],
-      valorCents: 7200,
+      valorCents: 600,
       status: 'paga',
       formaPagamento: 'saldo',
       dataEmissao: 1789430400000,
       dataVencimento: 1790294400000,
       dataPagamento: 1789430400000,
       origem: 'renovacao_anual',
-      planoId: planoAnual.id,
+      planoId: planoMensal.id,
     }
 
     const state = criarEstadoComFaturas([faturaRenovacao])
@@ -99,8 +98,8 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     const row = rows[0]
     expect(row.kind).toBe('Taxa de custódia')
     expect(row.descricao).toContain('Renovação do plano')
-    expect(row.taxa).toBe(7200)
-    expect(row.impacto).toBe(-7200)
+    expect(row.taxa).toBe(600)
+    expect(row.impacto).toBe(-600)
   })
 
   it('fatura de ciclo mensal descreve "Custódia mensal"', () => {

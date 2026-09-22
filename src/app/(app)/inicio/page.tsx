@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * 1.0 — Painel Real Olímpico. Port de aurea-mvp-teste.html, renderHome
  * (linhas 1187-1233).
@@ -15,13 +17,11 @@
  * esse papel agora é o App Router. O conteúdo entra direto no <main class="main">
  * do layout.
  *
- * SERVER COMPONENT, DE PROPÓSITO
- * ------------------------------
- * A tela é composição: um filete e dois pedaços. Só HomeStats precisa do estado
- * vivo (é 'use client' e lê o AppProvider); o resto é texto fixo. Deixar a
- * página no servidor mantém os quatro cartões de navegação — o requisito central
- * desta tela — no HTML da primeira resposta, visíveis e clicáveis antes de
- * qualquer JavaScript hidratar.
+ * CLIENT COMPONENT
+ * ----------------
+ * Client Component integrado aos providers do layout (AppProvider e ModalProvider),
+ * permitindo que os indicadores e os blocos de ação (incluindo o atalho de depósito
+ * via modal) operem em sintonia com o estado da aplicação.
  */
 
 import type { ReactNode } from 'react'

@@ -121,20 +121,10 @@ export default async function FeesPage(): Promise<ReactNode> {
           <tbody>
             <tr>
               <td>
-                <strong>Plano Anual</strong>
-              </td>
-              <td>{brl(taxas.custodiaAnualPorMoeda)} pelos 12 meses</td>
-              <td>
-                Equivale a {brl(Math.round(taxas.custodiaAnualPorMoeda / 12))} por mês. Parcelamento em até{' '}
-                {taxas.custodiaAnualParcelasMax}x no cartão de crédito
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <strong>Ciclo mensal (sem plano)</strong>
+                <strong>Custódia Mensal</strong>
               </td>
               <td>{brl(taxas.custodiaMensalPorMoeda)} / mês</td>
-              <td>Cobrança pós-paga das moedas sob custódia que não estejam cobertas por um plano vigente</td>
+              <td>Cobrança mensal por moeda sob guarda em cofre. No cartão de crédito, cobrança recorrente automática mês a mês; no saldo ou Pix, renovação mensal.</td>
             </tr>
           </tbody>
         </table>

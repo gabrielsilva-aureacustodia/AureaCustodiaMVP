@@ -230,6 +230,8 @@ export function normalizarEnvio(e: Envio): Envio {
     pesoInicialMg: e.pesoInicialMg ?? null,
     caixaInicial: e.caixaInicial ?? null,
     observacao: e.observacao ?? null,
+    desconsideradoEm: e.desconsideradoEm ?? null,
+    motivoDesconsideracao: e.motivoDesconsideracao ?? null,
   }
 }
 
@@ -338,14 +340,6 @@ export function normalizarPlano(p: PlanoCustodia): PlanoCustodia {
     estornadoCents: p.estornadoCents || 0,
     criadoEm: p.criadoEm,
     atualizadoEm: p.atualizadoEm,
-    // Campos de 21/09/2026. Precisam estar AQUI, e não só no repositório: esta
-    // função é o que o diff compara para decidir se o plano mudou, e campo que
-    // ela não copia é campo que nunca gera `plano.atualizar`. Foi assim que a
-    // `origem` das análises ficou gravada errada em 60 moedas — o valor mudava
-    // em memória e o diff não via diferença nenhuma.
-    mesesContratados: p.mesesContratados,
-    origem: p.origem ?? 'contratacao',
-    planoOrigemId: p.planoOrigemId ?? null,
   }
 }
 

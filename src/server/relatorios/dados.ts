@@ -701,7 +701,7 @@ function relatorioReceitaDiferida(fontes: Fontes): Relatorio {
     const dif = calcularReceitaDiferida(p)
     return {
       Plano: p.id,
-      Modalidade: 'anual',
+      Modalidade: p.modalidade,
       Valor_Pago: reais(dif.valorPago),
       Ja_Apropriado: reais(dif.jaApropriado),
       A_Apropriar: reais(dif.aApropriar),

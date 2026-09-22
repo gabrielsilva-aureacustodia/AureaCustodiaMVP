@@ -22,7 +22,6 @@
  *    provisionamento do login (src/server/auth/provisioning.ts), passados por parâmetro.
  */
 
-import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import { validarTexto } from '@/domain/admin/cs'
 import {
@@ -94,6 +93,10 @@ export interface PortaDeIdentidade {
   definirSenha(id: string, senha: string): Promise<RespostaIdentidade>
   bloquear(id: string, bloquear: boolean): Promise<RespostaIdentidade>
   enviarLinkDeSenha(email: string, redirecionarPara: string): Promise<RespostaIdentidade>
+  atualizarLogin(
+    id: string,
+    dados: { email?: string; senha?: string; removerVinculoGoogle?: boolean },
+  ): Promise<RespostaIdentidade>
 }
 
 type Recusa = { ok: false; erro: string }

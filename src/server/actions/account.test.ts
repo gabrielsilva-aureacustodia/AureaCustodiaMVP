@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
-vi.mock('@/server/session', () => ({ getSessionEmail }))
+const { getSessionEmail, setSession } = vi.hoisted(() => ({
+  getSessionEmail: vi.fn(),
+  setSession: vi.fn(),
+}))
+vi.mock('@/server/session', () => ({ getSessionEmail, setSession }))
 
-import { obterCadastro, salvarCadastro, type CadastroInput } from './account'
+import { obterCadastro, salvarCadastro, updatePersonal, verificarTrocaEmail, type CadastroInput } from './account'
 
 describe('Server Actions de Cadastro (account.ts)', () => {
   beforeEach(() => {
@@ -131,3 +134,68 @@ describe('Server Actions de Cadastro (account.ts)', () => {
     expect(consulta.data?.dadosBancarios.conta).toBe('45678-9')
   })
 })
+
+describe('Server Actions de Dados Pessoais e Troca de E-mail (account.ts)', () => {
+  beforeEach(() => {
+    getSessionEmail.mockReset()
+    setSession.mockReset()
+    getSessionEmail.mockResolvedValue('cliente@teste.com')
+  })
+
+  it('rejeita chamada sem sessão autenticada', async () => {
+    getSessionEmail.mockResolvedValue(null)
+    const res = await updatePersonal('Novo Nome')
+    expect(res).toEqual({ ok: false, error: 'Sessão expirada.' })
+  })
+
+  it('rejeita nome com menos de 2 caracteres', async () => {
+    const res = await updatePersonal('A')
+    expect(res).toEqual({ ok: false, error: 'Informe um nome válido.' })
+  })
+
+  it('rejeita troca de e-mail se a conta atual for protegida da equipe', async () => {
+    getSessionEmail.mockResolvedValue('gabrielsilva@testeaurea.com.br')
+    const res = await updatePersonal('Gabriel', 'novo@gmail.com')
+    expect(res).toEqual({ ok: false, error: 'Este e-mail é protegido e não pode ser alterado.' })
+
+    const check = await verificarTrocaEmail('novo@gmail.com')
+    expect(check).toEqual({ ok: false, error: 'Este e-mail é protegido e não pode ser alterado.' })
+  })
+
+  it('rejeita troca de e-mail se o novo e-mail for inválido', async () => {
+    const res = await updatePersonal('Cliente', 'invalido')
+    expect(res).toEqual({ ok: false, error: 'Informe um e-mail válido.' })
+
+    const check = await verificarTrocaEmail('invalido')
+    expect(check).toEqual({ ok: false, error: 'Informe um e-mail válido.' })
+  })
+
+  it('rejeita troca se o novo e-mail for do domínio institucional reservado', async () => {
+    const res = await updatePersonal('Cliente', 'novo@testeaurea.com.br')
+    expect(res).toEqual({
+      ok: false,
+      error: 'Este e-mail é reservado para uso institucional da plataforma.',
+    })
+
+    const check = await verificarTrocaEmail('novo@testeaurea.com.br')
+    expect(check).toEqual({
+      ok: false,
+      error: 'Este e-mail é reservado para uso institucional da plataforma.',
+    })
+  })
+
+  it('verificarTrocaEmail retorna requerSenha: false quando o e-mail não muda', async () => {
+    const check = await verificarTrocaEmail('cliente@teste.com')
+    expect(check).toEqual({ ok: true, data: { requerSenha: false } })
+  })
+
+  it('exige senha mínima de 8 caracteres para conta que usava Google', async () => {
+    // Conta criada sem senha (como as de login com Google)
+    const res = await updatePersonal('Cliente', 'novo.email@gmail.com')
+    expect(res).toEqual({
+      ok: false,
+      error: 'A nova senha precisa de pelo menos 8 caracteres.',
+    })
+  })
+})
+

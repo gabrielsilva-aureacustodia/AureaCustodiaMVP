@@ -40,7 +40,10 @@ import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import { apelidoComprador } from '@/domain/contraparte'
-import { MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA } from '@/domain/bloqueio-por-debito'
+import {
+  MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+  moedasComCustodiaNaoPagaDoUsuario,
+} from '@/domain/bloqueio-por-debito'
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
@@ -52,6 +55,7 @@ import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { ComoPrecoEFormado } from '@/components/market/ComoPrecoEFormado'
 import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAcontece'
 import { CoinPicker } from '@/components/sell/CoinPicker'
+import { ModalCustodiaNaoPaga } from '@/components/sell/ModalCustodiaNaoPaga'
 import { SellerBidRow } from '@/components/sell/SellerBidRow'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'

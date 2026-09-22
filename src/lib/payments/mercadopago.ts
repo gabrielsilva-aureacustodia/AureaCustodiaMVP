@@ -290,3 +290,85 @@ export async function ativarDebitoAutomatico(
   }
 }
 
+/**
+ * Atualiza o valor de uma assinatura recorrente no Mercado Pago via PUT /preapproval/{id}.
+ */
+export async function atualizarAssinaturaRecorrente(
+  assinaturaId: string,
+  novoValorCents: number,
+): Promise<{ ok: boolean; status?: string; simulado?: boolean; error?: string }> {
+  const token = getMercadoPagoAccessToken()
+
+  if (!token) {
+    return { ok: true, status: 'authorized', simulado: true }
+  }
+
+  try {
+    const payload = {
+      auto_recurring: {
+        transaction_amount: novoValorCents / 100,
+        currency_id: 'BRL',
+      },
+    }
+
+    const res = await fetch(`${MP_API_BASE}/preapproval/${assinaturaId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.text()
+      return { ok: false, error: `Erro ${res.status}: ${errBody}` }
+    }
+
+    const data = (await res.json()) as { status?: string }
+    return { ok: true, status: data.status }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Cancela uma assinatura recorrente no Mercado Pago via PUT /preapproval/{id} com status 'cancelled'.
+ */
+export async function cancelarAssinaturaRecorrente(
+  assinaturaId: string,
+): Promise<{ ok: boolean; status?: string; simulado?: boolean; error?: string }> {
+  const token = getMercadoPagoAccessToken()
+
+  if (!token) {
+    return { ok: true, status: 'cancelled', simulado: true }
+  }
+
+  try {
+    const payload = {
+      status: 'cancelled',
+    }
+
+    const res = await fetch(`${MP_API_BASE}/preapproval/${assinaturaId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      const errBody = await res.text()
+      return { ok: false, error: `Erro ${res.status}: ${errBody}` }
+    }
+
+    const data = (await res.json()) as { status?: string }
+    return { ok: true, status: data.status }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: msg }
+  }
+}
+

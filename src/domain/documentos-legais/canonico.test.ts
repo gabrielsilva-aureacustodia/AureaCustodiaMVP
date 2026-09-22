@@ -58,7 +58,7 @@ describe('Documentos Legais · Canonicidade e Hashes Criptográficos', () => {
       // 2.0, e a Tabela de Taxas foi para a 2.2 quando a cláusula de depósito
       // voltou a dizer "sem taxa". Versão é por documento, nunca do conjunto.
       const esperada =
-        chave === 'politica_privacidade' ? '2.0' : chave === 'tabela_de_taxas' ? '2.2' : '2.1'
+        chave === 'politica_privacidade' ? '2.0' : chave === 'tabela_de_taxas' ? '2.3' : '2.1'
       expect(doc.versao).toBe(esperada)
       expect(doc.vigenteDesde).toBe(PARAMETROS_LEGAIS.vigencia)
       expect(doc.hash).toMatch(/^[0-9a-f]{64}$/)

@@ -21,13 +21,11 @@ import type {
   User,
   UserEmail,
 } from '@/domain/types'
-import { nextPlanoCode } from '@/domain/codes'
 import { isNegociavel } from '@/domain/constants'
-import { competenciaAtual } from '@/domain/custody'
-import { transferirCustodiaDaMoeda } from '@/domain/custodia-transferencia'
 import { DAY_MS, fdate } from '@/domain/dates'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
+import { moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
 
 /* ---------- indicadores derivados das negociações ---------- */
 
@@ -114,11 +112,15 @@ export function medianSellPrice(state: AppState, tipo: string): Cents | null {
  * `catalogo` é o catálogo vigente (C3: editável no painel); omitido, vale o do código.
  */
 export function availableCoinsForSell(state: AppState, u: User, tipo?: string, catalogo?: readonly CoinType[]): Coin[] {
+  const email =
+    (u as { email?: string }).email ??
+    (state.users ? Object.keys(state.users).find((k) => state.users[k] === u) : undefined)
   return u.coins.filter(
     (c) =>
       c.recibo.status === 'Ativo' &&
       (tipo === undefined ? isNegociavel(c.tipoMoeda, catalogo) : c.tipoMoeda === tipo && isNegociavel(tipo, catalogo)) &&
       !state.sellOffers.some((o) => o.coinId === c.id) &&
+      (email ? !moedaComCustodiaNaoPagaNoEstado(state, email, c.id) : true) &&
       !(state.retiradas ?? []).some(
         (r) =>
           r.coinId === c.id &&
@@ -145,6 +147,7 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
   const map = new Map<string, Lot>()
   state.sellOffers
     .filter((o) => tipo === undefined || o.tipoMoeda === tipo)
+    .filter((o) => !moedaComCustodiaNaoPagaNoEstado(state, o.seller, o.coinId))
     .forEach((o) => {
       const prioridade = o.prioridadeEm ?? o.createdAt
       const lot = map.get(o.lotId)
@@ -213,7 +216,7 @@ export function transferirMoedaVendida(
   sellerEmail: UserEmail,
   buyerEmail: UserEmail,
   coinId: string,
-  taxas: TabelaDeTaxas = TAXAS_PADRAO,
+  _taxas: TabelaDeTaxas = TAXAS_PADRAO,
   agora: Timestamp = Date.now(),
 ): Coin | null {
   const coin = transferCoin(seller, buyer, coinId)
@@ -222,22 +225,29 @@ export function transferirMoedaVendida(
   state.planosCustodia = state.planosCustodia ?? []
   state.faturasCustodia = state.faturasCustodia ?? []
 
-  transferirCustodiaDaMoeda({
-    planos: state.planosCustodia,
-    faturas: state.faturasCustodia,
-    coinId,
-    vendedorEmail: sellerEmail,
-    compradorEmail: buyerEmail,
-    competencia: competenciaAtual(agora),
-    agora,
-    // Espalhado, e não passado direto: `TabelaDeTaxas` é uma interface sem
-    // assinatura de índice, e o tipo do domínio de custódia tem uma. O objeto
-    // literal ganha a assinatura implícita — é o mesmo espalhamento que as
-    // Server Actions já fazem ao chamar `valorDoPlano`.
-    taxas: { ...taxas },
-    novoPlanoId: () => nextPlanoCode(state.seq),
-  })
+  // Vendedor para de ser cobrado pela moeda vendida:
+  const doVendedor = state.planosCustodia.find(
+    (p) =>
+      p.userEmail === sellerEmail &&
+      p.moedaIds.includes(coinId) &&
+      (p.status === 'vigente' || p.status === 'aguardando_pagamento'),
+  )
 
+  if (doVendedor) {
+    doVendedor.moedaIds = doVendedor.moedaIds.filter((id) => id !== coinId)
+    doVendedor.atualizadoEm = agora
+
+    if (doVendedor.moedaIds.length === 0) {
+      doVendedor.status = doVendedor.status === 'vigente' ? 'encerrado' : 'cancelado'
+      for (const f of state.faturasCustodia) {
+        if (f.planoId === doVendedor.id && f.status === 'pendente') {
+          f.status = 'cancelada'
+        }
+      }
+    }
+  }
+
+  // O comprador recebe a moeda e pagará normalmente no próximo ciclo mensal
   return coin
 }
 
@@ -313,6 +323,14 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
         (s) => s.tipoMoeda === bo.tipoMoeda && s.price <= bo.price && s.seller !== bo.buyer,
       )
       if (!so) continue
+
+      // Oferta com custódia não quitada sai do livro imediatamente (AG8)
+      if (moedaComCustodiaNaoPagaNoEstado(state, so.seller, so.coinId)) {
+        state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
+        progress = true
+        break
+      }
+
       const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
       // Sem saldo suficiente para o preço + comissão de compra, a ordem é apenas PULADA
       // — não se cancela um bid por falta de caixa momentânea; ele volta a ser tentado na próxima rodada.

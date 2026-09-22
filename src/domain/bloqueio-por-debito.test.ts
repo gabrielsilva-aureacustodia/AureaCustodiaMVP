@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   casarOrdensRespeitandoPendencia,
   contaComPendenciaDeCustodia,
@@ -420,29 +420,35 @@ describe('casarOrdensRespeitandoPendencia', () => {
   })
 
   it('sem pendência ou com bloqueaveis vazio, estado e resultado são idênticos a matchOrders', () => {
-    const { state, comprador } = setupState()
-    // Todos sem pendência
-    Object.values(state.users).forEach((u) => {
-      u.inadimplente = false
-    })
-    const bid: BuyOrder = {
-      id: 'BO-1',
-      buyer: comprador.email,
-      price: 20000,
-      qty: 2,
-      tipoMoeda,
-      createdAt: agora,
+    vi.useFakeTimers()
+    vi.setSystemTime(agora)
+    try {
+      const { state, comprador } = setupState()
+      // Todos sem pendência
+      Object.values(state.users).forEach((u) => {
+        u.inadimplente = false
+      })
+      const bid: BuyOrder = {
+        id: 'BO-1',
+        buyer: comprador.email,
+        price: 20000,
+        qty: 2,
+        tipoMoeda,
+        createdAt: agora,
+      }
+      state.buyOrders = [bid]
+
+      const stateClone = structuredClone(state)
+      const resDireto = matchOrders(stateClone, TAXAS_PADRAO)
+
+      const bloqueaveisVazio = new Set<string>()
+      const resPendente = casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, bloqueaveisVazio)
+
+      expect(resPendente).toEqual(resDireto)
+      expect(state).toEqual(stateClone)
+    } finally {
+      vi.useRealTimers()
     }
-    state.buyOrders = [bid]
-
-    const stateClone = structuredClone(state)
-    const resDireto = matchOrders(stateClone, TAXAS_PADRAO)
-
-    const bloqueaveisVazio = new Set<string>()
-    const resPendente = casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, bloqueaveisVazio)
-
-    expect(resPendente).toEqual(resDireto)
-    expect(state).toEqual(stateClone)
   })
 
   it('depois que a fatura vira paga, a mesma oferta volta a casar', () => {

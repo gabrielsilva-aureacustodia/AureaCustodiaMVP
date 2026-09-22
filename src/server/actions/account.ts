@@ -29,10 +29,14 @@ import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
 import { limparCpf, validarCpf } from '@/domain/cpf'
 import type { ActionResult, Cadastro, Cents, Saque } from '@/domain/types'
+import { emailValido, ehEmailProtegido, normalizarEmail } from '@/domain/admin/permissoes'
 import { createAuthClient } from '@/server/auth/client'
 import { AuthConfigurationError } from '@/server/auth/config'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
-import { getSessionEmail } from '@/server/session'
+import { portaDeIdentidadeDoAmbiente } from '@/server/admin/portas'
+import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { renomearEmailNoAppState, renomearEmailUsuarioNoBanco } from '@/server/db/repositories/users'
+import { getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
 /** Cookie ausente, expirado ou com assinatura que não bate. */
@@ -143,34 +147,172 @@ export async function changePassword(
   }
 }
 
+export interface InfoTrocaEmail {
+  requerSenha: boolean
+}
+
 /**
- * Atualiza os dados cadastrais (savePersonal, linhas 2747-2756).
- *
- * O `trim()` e o mínimo de 2 caracteres rodavam no navegador; aqui rodam no
- * servidor, porque o nome digitado é a única coisa que o cliente manda e
- * aparece em toda a interface (topbar, auditoria pública, recibo). A mensagem
- * de recusa é a mesma da linha 2749.
- *
- * O e-mail continua imutável: no original o campo já vinha `disabled` e nem era
- * lido de volta. Aqui ele nem chega como parâmetro — a chave do usuário é a da
- * sessão, então não há como renomear a conta de outra pessoa.
+ * Valida a intenção de troca de e-mail antes de abrir o pop-up de senha (para login Google)
+ * ou de confirmar a alteração.
  */
-export async function updatePersonal(nome: string): Promise<ActionResult> {
+export async function verificarTrocaEmail(
+  novoEmail: string,
+): Promise<ActionResult<InfoTrocaEmail>> {
+  const antigo = await getSessionEmail()
+  if (!antigo) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const de = normalizarEmail(antigo)
+  const para = normalizarEmail(novoEmail)
+  if (de === para) return { ok: true, data: { requerSenha: false } }
+
+  if (ehEmailProtegido(de)) {
+    return { ok: false, error: 'Este e-mail é protegido e não pode ser alterado.' }
+  }
+
+  if (!emailValido(para)) {
+    return { ok: false, error: 'Informe um e-mail válido.' }
+  }
+
+  if (ehEmailProtegido(para)) {
+    return { ok: false, error: 'Este e-mail é reservado para uso institucional da plataforma.' }
+  }
+
+  const s = await getState()
+  if (s.users[para]) {
+    return { ok: false, error: 'Já existe uma conta com este e-mail.' }
+  }
+
+  const porta = portaDeIdentidadeDoAmbiente()
+  if (porta.configurada) {
+    const existenteAuth = await porta.buscar(para).catch(() => null)
+    if (existenteAuth) {
+      return { ok: false, error: 'Já existe uma conta com este e-mail.' }
+    }
+    const identAtual = await porta.buscar(de).catch(() => null)
+    const ehGoogle = identAtual?.provedores.includes('google') ?? false
+    return { ok: true, data: { requerSenha: ehGoogle } }
+  }
+
+  // Contingência sem Supabase Auth: conta sem senha definida é tratada como Google
+  const u = s.users[de]
+  const semSenha = !u?.pass && !(de in ACCOUNTS)
+  return { ok: true, data: { requerSenha: semSenha } }
+}
+
+/**
+ * Atualiza os dados cadastrais (nome e opcionalmente e-mail).
+ *
+ * Se o e-mail mudar:
+ *  1. Valida proteções institucionais e unicidade;
+ *  2. Se a conta usava Google, exige definição de senha e desvincula o Google;
+ *  3. Atualiza o e-mail no Supabase Auth;
+ *  4. Atualiza o registro em cascata no banco de dados / estado em memória;
+ *  5. Atualiza o cookie de sessão para manter a pessoa conectada.
+ */
+export async function updatePersonal(
+  nome: string,
+  novoEmail?: string,
+  senha?: string,
+): Promise<ActionResult<{ emailAlterado: boolean; novoEmail?: string }>> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
   const nv = nome.trim()
   if (nv.length < 2) return { ok: false, error: 'Informe um nome válido.' }
 
-  try {
-    const { result } = await mutateState<ActionResult>((s) => {
-      const u = s.users[email]
-      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
-      u.name = nv
-      return { ok: true, message: 'Dados pessoais atualizados.' }
+  const de = normalizarEmail(email)
+  const para = novoEmail ? normalizarEmail(novoEmail) : de
+  const mudouEmail = para !== de
+
+  if (!mudouEmail) {
+    try {
+      const { result } = await mutateState<ActionResult<{ emailAlterado: boolean }>>((s) => {
+        const u = s.users[de]
+        if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+        u.name = nv
+        return { ok: true, message: 'Dados pessoais atualizados.', data: { emailAlterado: false } }
+      })
+      return result
+    } catch {
+      return { ok: false, error: FALHA_GRAVACAO }
+    }
+  }
+
+  // Mudança de e-mail
+  if (ehEmailProtegido(de)) {
+    return { ok: false, error: 'Este e-mail é protegido e não pode ser alterado.' }
+  }
+  if (!emailValido(para)) {
+    return { ok: false, error: 'Informe um e-mail válido.' }
+  }
+  if (ehEmailProtegido(para)) {
+    return { ok: false, error: 'Este e-mail é reservado para uso institucional da plataforma.' }
+  }
+
+  const s = await getState()
+  if (s.users[para]) {
+    return { ok: false, error: 'Já existe uma conta com este e-mail.' }
+  }
+
+  const porta = portaDeIdentidadeDoAmbiente()
+  let ehGoogle = false
+  let identidadeId: string | null = null
+
+  if (porta.configurada) {
+    const existenteAuth = await porta.buscar(para).catch(() => null)
+    if (existenteAuth) {
+      return { ok: false, error: 'Já existe uma conta com este e-mail.' }
+    }
+    const identAtual = await porta.buscar(de).catch(() => null)
+    if (identAtual) {
+      identidadeId = identAtual.id
+      ehGoogle = identAtual.provedores.includes('google')
+    }
+  } else {
+    const u = s.users[de]
+    ehGoogle = !u?.pass && !(de in ACCOUNTS)
+  }
+
+  if (ehGoogle) {
+    if (!senha || senha.length < 8) {
+      return { ok: false, error: 'A nova senha precisa de pelo menos 8 caracteres.' }
+    }
+  }
+
+  // Atualiza no Supabase Auth se configurado
+  if (porta.configurada && identidadeId) {
+    const resp = await porta.atualizarLogin(identidadeId, {
+      email: para,
+      senha: senha ? senha : undefined,
+      removerVinculoGoogle: ehGoogle,
     })
-    return result
-  } catch {
+    if (!resp.ok) {
+      return { ok: false, error: resp.erro }
+    }
+  }
+
+  // Atualiza no banco de dados e/ou estado da aplicação
+  try {
+    if (bancoConfigurado()) {
+      await executarNoBanco(async (tx) => {
+        await renomearEmailUsuarioNoBanco(tx, de, para, nv, senha)
+      })
+    } else {
+      await mutateState((st) => {
+        renomearEmailNoAppState(st, de, para, nv, senha)
+      })
+    }
+
+    // Atualiza o cookie de sessão para manter o usuário conectado com o novo e-mail
+    await setSession(para)
+
+    return {
+      ok: true,
+      message: 'Dados pessoais atualizados com sucesso.',
+      data: { emailAlterado: true, novoEmail: para },
+    }
+  } catch (err) {
+    console.error('[account] erro ao renomear e-mail:', err)
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }

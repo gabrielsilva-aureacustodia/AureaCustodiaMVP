@@ -277,7 +277,7 @@ describe('fecharAnalise', () => {
     expect(state.analises[0].validadoEm).toBeLessThanOrEqual(Date.now())
   })
 
-  it('B2.5: 3 moedas contratadas e pagas no plano anual, 1 recusada: plano fica com 2 moedas e R$ 24,00 voltam ao saldo', async () => {
+  it('B2.5: 3 moedas contratadas e pagas no plano mensal, 1 recusada: plano fica com 2 moedas e R$ 2,00 voltam ao saldo', async () => {
     const saldoAntes = state.users[CLIENTE].balance
     state.envios = [envio({ quantidade: 3 })]
     state.planosCustodia = [
@@ -285,14 +285,14 @@ describe('fecharAnalise', () => {
         id: 'PLC-000001',
         userEmail: CLIENTE,
         protocoloEnvio: 'RO-ENV-0001',
-        modalidade: 'anual',
+        modalidade: 'mensal',
         quantidadeContratada: 3,
         moedaIds: [],
-        valorPorMoedaCents: 2400,
-        valorTotalCents: 7200,
-        parcelasMax: 12,
+        valorPorMoedaCents: 200,
+        valorTotalCents: 600,
+        parcelasMax: 1,
         inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2027-08',
+        pagoAteCompetencia: '2026-09',
         status: 'vigente',
         formaPagamento: 'saldo',
         paymentIntentRef: null,
@@ -309,7 +309,7 @@ describe('fecharAnalise', () => {
         competencia: '2026-09',
         quantidadeMoedas: 3,
         moedaIds: [],
-        valorCents: 7200,
+        valorCents: 600,
         status: 'paga',
         dataEmissao: Date.now(),
         dataVencimento: Date.now() + 864000000,
@@ -334,7 +334,7 @@ describe('fecharAnalise', () => {
     expect(r.ok).toBe(true)
     const plano = state.planosCustodia[0]
     expect(plano.moedaIds).toHaveLength(2)
-    expect(plano.estornadoCents).toBe(2400) // R$ 24,00
-    expect(state.users[CLIENTE].balance).toBe(saldoAntes + 2400) // Saldo sobe R$ 24,00
+    expect(plano.estornadoCents).toBe(200) // R$ 2,00
+    expect(state.users[CLIENTE].balance).toBe(saldoAntes + 200) // Saldo sobe R$ 2,00
   })
 })

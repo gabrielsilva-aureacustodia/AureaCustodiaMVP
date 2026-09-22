@@ -256,6 +256,10 @@ export interface Envio {
   pesoInicialMg?: number | null
   caixaInicial?: string | null
   observacao?: string | null
+  /** Data em que o envio foi desconsiderado após 3 dias sem postagem. */
+  desconsideradoEm?: Timestamp | null
+  /** Motivo da desconsideração / cancelamento do envio. */
+  motivoDesconsideracao?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -714,16 +718,6 @@ export interface UserSettings {
 export type ModalidadePlanoCustodia = 'mensal' | 'anual'
 export type StatusPlanoCustodia = 'aguardando_pagamento' | 'vigente' | 'encerrado' | 'cancelado'
 
-/**
- * Como o plano nasceu.
- *
- * `contratacao` é o caminho normal: o cliente enviou moeda e escolheu um prazo.
- * `transferencia` é o plano que o sistema cria sozinho para o COMPRADOR quando
- * uma moeda em custódia muda de dono — a obrigação de guarda acompanha a moeda,
- * não a pessoa, e quem comprou passa a dever os meses que faltam.
- */
-export type OrigemPlanoCustodia = 'contratacao' | 'transferencia'
-
 export interface PlanoCustodia {
   id: string                          // 'PLC-000001'
   userEmail: UserEmail
@@ -743,22 +737,11 @@ export interface PlanoCustodia {
   estornadoCents: Cents
   criadoEm: Timestamp
   atualizadoEm: Timestamp
-  /**
-   * Quantos meses este plano cobre. Ausente vale `mesesCobertos(modalidade)` —
-   * 12 no anual, 1 no mensal —, que é o caso de todo plano contratado na tela.
-   * Só o plano de transferência grava um número diferente: quem comprou uma
-   * moeda no 2º mês de um anual deve 11 meses, não 12.
-   */
-  mesesContratados?: number
-  /** Ver `OrigemPlanoCustodia`. Ausente significa `contratacao`. */
-  origem?: OrigemPlanoCustodia
-  /** No plano de transferência, o plano do vendedor de onde a moeda veio. */
-  planoOrigemId?: string | null
 }
 
 export interface FaturaCustodia {
   planoId?: string | null
-  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'transferencia'
+  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'
 }
 
 export interface Envio {

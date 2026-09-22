@@ -19,21 +19,15 @@ import { custodiaMensalPorMoeda, type TabelaDeTaxas } from '@/domain/fees'
  */
 export function descricaoDaFaturaDeCustodia(
   fatura: FaturaCustodia,
-  plano: PlanoCustodia | undefined,
+  _plano: PlanoCustodia | undefined,
 ): string {
   const { competencia, quantidadeMoedas, status, origem } = fatura
 
   if (origem === 'contratacao') {
-    if (plano?.modalidade === 'anual') {
-      return `Plano anual de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
-    }
-    return `Contratação de plano de custódia ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    return `Plano mensal de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   if (origem === 'renovacao_anual') {
-    // A origem no banco se chama 'renovacao_anual' (migration 018) e o prazo hoje
-    // é um só, de 12 meses. O texto continua sem prometer prazo: se outro prazo
-    // voltar a existir, esta linha não vira mentira.
     return `Renovação do plano de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
@@ -48,21 +42,12 @@ export function custodiaDoEnvio(
   envio: Envio,
   plano: PlanoCustodia | undefined,
   taxas: TabelaDeTaxas,
-): { rotulo: string; valorCents: Cents; periodo: 'mês' | 'ano' } {
+): { rotulo: string; valorCents: Cents; periodo: 'mês' } {
   const quantidade = envio.quantidade
 
-  if (plano?.modalidade === 'anual') {
-    return {
-      rotulo: 'Plano anual destas moedas',
-      valorCents: plano.valorTotalCents,
-      periodo: 'ano',
-    }
-  }
-
-  // Sem plano contratado, o que vale é o ciclo mensal.
   return {
-    rotulo: 'Custódia mensal destas moedas',
-    valorCents: custodiaMensalPorMoeda(quantidade, taxas),
+    rotulo: 'Plano mensal destas moedas',
+    valorCents: plano ? plano.valorTotalCents : custodiaMensalPorMoeda(quantidade, taxas),
     periodo: 'mês',
   }
 }

@@ -62,6 +62,8 @@ import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido } from '@/domain/
 // Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
 // `correios.ts`, que é `server-only` e derrubaria o build deste Client Component.
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
+import { isEnvioDesconsiderado, prazoPostagemEnvio } from '@/domain/envios'
+import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
 
 /** Os cinco passos da tela. */
 type Passo = 1 | 2 | 3 | 4 | 5
@@ -86,6 +88,7 @@ interface RastreioNaTela {
  */
 function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
   const [rastreio, setRastreio] = useState<RastreioNaTela | null>(null)
+  const [correiosConfigurado, setCorreiosConfigurado] = useState<boolean>(true)
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -94,8 +97,16 @@ function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
       try {
         const res = await fetch('/api/rastreios')
         if (!res.ok) return
-        const dados = (await res.json()) as { rastreios: Record<string, RastreioNaTela> }
-        if (ativo) setRastreio(dados.rastreios[protocolo] ?? null)
+        const dados = (await res.json()) as {
+          rastreios: Record<string, RastreioNaTela>
+          correiosConfigurado?: boolean
+        }
+        if (ativo) {
+          setRastreio(dados.rastreios[protocolo] ?? null)
+          if (dados.correiosConfigurado !== undefined) {
+            setCorreiosConfigurado(dados.correiosConfigurado)
+          }
+        }
       } finally {
         if (ativo) setCarregando(false)
       }
@@ -108,6 +119,24 @@ function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
   }, [protocolo])
 
   if (carregando) return null
+
+  if (!correiosConfigurado || rastreio?.statusAtual === 'indisponivel') {
+    return (
+      <div className="note" style={{ marginTop: 14 }}>
+        <b>Correios:</b> não foi possível consultar os Correios agora. A consulta é feita por rotina
+        agendada quando a integração postal estiver disponível.
+      </div>
+    )
+  }
+
+  if (rastreio?.statusAtual === 'nao_encontrado') {
+    return (
+      <div className="note" style={{ marginTop: 14 }}>
+        <b>Correios:</b> o objeto ainda não consta na base de dados dos Correios. Pode levar algumas
+        horas após a postagem para a agência registrar o pacote.
+      </div>
+    )
+  }
 
   return (
     <div className="note" style={{ marginTop: 14 }}>
@@ -272,7 +301,7 @@ const ANOS: number[] = (() => {
  */
 function retomada(state: AppState, session: UserEmail): EstadoWizard {
   const pendente = state.envios
-    .filter((e) => e.userEmail === session && e.etapaAtual !== 'Recibo emitido')
+    .filter((e) => e.userEmail === session && e.etapaAtual !== 'Recibo emitido' && !isEnvioDesconsiderado(e))
     .sort((a, b) => b.createdAt - a.createdAt)[0]
 
   if (!pendente) return { passo: 1, protocolo: null }
@@ -325,6 +354,44 @@ export default function EnviosPage(): ReactNode {
   const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
   const [cotacaoFrete, setCotacaoFrete] = useState<{ valorTotal: number; prazo: number } | null>(null)
   const [buscandoCep, setBuscandoCep] = useState<boolean>(false)
+  const [todosRastreios, setTodosRastreios] = useState<Record<string, RastreioNaTela>>({})
+
+  // Carrega o retrato de rastreio de todos os envios do cliente
+  useEffect(() => {
+    let ativo = true
+    void (async () => {
+      try {
+        const res = await fetch('/api/rastreios')
+        if (!res.ok) return
+        const dados = (await res.json()) as { rastreios: Record<string, RastreioNaTela> }
+        if (ativo && dados.rastreios) {
+          setTodosRastreios(dados.rastreios)
+        }
+      } catch {
+        /* silencioso */
+      }
+    })()
+    return () => {
+      ativo = false
+    }
+  }, [wizard.passo, wizard.protocolo])
+
+  const handleContinuarEnvio = useCallback(
+    (protocoloAlvo: string) => {
+      const eAlvo = state.envios.find((e) => e.protocolo === protocoloAlvo)
+      if (!eAlvo) return
+      if (eAlvo.etapaAtual === 'Protocolo gerado') {
+        const temPlano = (state.planosCustodia || []).some((p) => p.protocoloEnvio === protocoloAlvo)
+        setWizard({ passo: temPlano ? 4 : 3, protocolo: protocoloAlvo })
+      } else {
+        setWizard({ passo: 5, protocolo: protocoloAlvo })
+      }
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    [state.envios, state.planosCustodia],
+  )
 
   /** `Math.max(1, parseInt(...)||1)` da linha 2077. */
   const quantidade = Math.max(1, parseInt(qtdTexto, 10) || 1)
@@ -353,7 +420,7 @@ export default function EnviosPage(): ReactNode {
   }, [cepOrigem, modalidade, quantidade])
 
   /* ---------- plano de custódia (passo 3) ---------- */
-  const [modalidadePlano, setModalidadePlano] = useState<ModalidadePlanoCustodia>('anual')
+  const [modalidadePlano, setModalidadePlano] = useState<ModalidadePlanoCustodia>('mensal')
   const [faturaId, setFaturaId] = useState<string | null>(null)
 
   // Quando o usuário entra no passo 3 ou troca a modalidade, garante que o plano/fatura está inicializado
@@ -731,47 +798,54 @@ export default function EnviosPage(): ReactNode {
               <svg viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-              Escolha seu plano de custódia
+              Plano de custódia
             </h3>
             <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
               Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
-              Escolha entre pagar mês a mês ou contratar o ano inteiro, que sai mais barato por mês
-              e pode ser parcelado em até {taxas.custodiaAnualParcelasMax}x no cartão.
+              A custódia no Real Olímpico é de {brl(taxas.custodiaMensalPorMoeda)} por moeda / mês.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 20 }}>
-              {/* Os dois cartões usam o MESMO componente de propósito: foi manter
-                  dois blocos de JSX gêmeos que deixou um com selo e o outro sem,
-                  na primeira vez que esta tela teve duas opções. */}
+            {(() => {
+              const prazo = prazoPostagemEnvio(envio)
+              if (!envio.dataPostagem && prazo.mensagemAlerta && !prazo.expirado) {
+                return (
+                  <div
+                    className="warn-box"
+                    style={{
+                      marginBottom: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ flexShrink: 0, width: 20, height: 20 }}>
+                      <path d="M12 8v5M12 16.5v.5" />
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                    <div>
+                      <b>Prazo de postagem:</b> {prazo.mensagemAlerta}
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
+
+            <div style={{ maxWidth: 380, margin: '0 auto 20px' }}>
               <CartaoDePlano
                 titulo="Plano Mensal"
-                selecionado={modalidadePlano === 'mensal'}
+                selecionado={true}
                 aoEscolher={() => setModalidadePlano('mensal')}
                 total={envio.quantidade * taxas.custodiaMensalPorMoeda}
                 periodo="por mês"
                 porMoeda={`${brl(taxas.custodiaMensalPorMoeda)} por moeda / mês`}
-                parcela="Cobrado todo mês enquanto a moeda estiver guardada"
-                selos={['Sem prazo']}
+                parcela="Cobrança mensal enquanto a moeda estiver guardada"
+                selos={['Sem fidelidade']}
                 vantagens={[
-                  'Sem compromisso de permanência',
+                  'Sem fidelidade ou carência',
                   'Cancela quando quiser, retirando a moeda',
-                  'Cobrança renovada a cada mês',
-                ]}
-              />
-
-              <CartaoDePlano
-                titulo="Plano Anual"
-                selecionado={modalidadePlano === 'anual'}
-                aoEscolher={() => setModalidadePlano('anual')}
-                total={envio.quantidade * taxas.custodiaAnualPorMoeda}
-                periodo="pelos 12 meses"
-                porMoeda={`${brl(Math.round(taxas.custodiaAnualPorMoeda / 12))} por moeda / mês`}
-                parcela={`ou ${taxas.custodiaAnualParcelasMax}x de ${brl(Math.round((envio.quantidade * taxas.custodiaAnualPorMoeda) / taxas.custodiaAnualParcelasMax))} no cartão`}
-                selos={[`${taxas.custodiaAnualParcelasMax}x sem juros`, 'Mais barato por mês']}
-                vantagens={[
-                  '12 meses de guarda garantida',
-                  `Parcelamento em até ${taxas.custodiaAnualParcelasMax}x no cartão`,
-                  'Proteção contra reajustes no período',
+                  'No cartão: cobrança recorrente mensal automática',
+                  'No saldo ou Pix: renovação mensal',
                 ]}
               />
             </div>
@@ -914,6 +988,32 @@ export default function EnviosPage(): ReactNode {
                 Abrir Correios Online ↗
               </a>
             </div>
+
+            {(() => {
+              const prazo = prazoPostagemEnvio(envio)
+              if (!envio.dataPostagem && prazo.mensagemAlerta && !prazo.expirado) {
+                return (
+                  <div
+                    className="warn-box"
+                    style={{
+                      marginTop: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ flexShrink: 0, width: 20, height: 20 }}>
+                      <path d="M12 8v5M12 16.5v.5" />
+                      <circle cx="12" cy="12" r="9" />
+                    </svg>
+                    <div>
+                      <b>Prazo de postagem:</b> {prazo.mensagemAlerta}
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
 
             {envio.dataPostagem ? (
               <>
@@ -1060,6 +1160,13 @@ export default function EnviosPage(): ReactNode {
             )}
           </div>
         ))}
+
+      {/* ============================ HISTÓRICO DE ENVIOS ============================ */}
+      <HistoricoEnvios
+        envios={state.envios.filter((e) => e.userEmail === session)}
+        rastreios={todosRastreios}
+        onContinuarEnvio={handleContinuarEnvio}
+      />
     </>
   )
 }

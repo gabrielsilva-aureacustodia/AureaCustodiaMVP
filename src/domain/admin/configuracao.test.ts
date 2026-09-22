@@ -49,12 +49,12 @@ describe('catálogo de configuração', () => {
   })
 
   it('valor gravado inválido cai no padrão — banco editado à mão não zera comissão', () => {
-    const v = valoresVigentes({ comissaoVendedorBp: 'muito', comissaoCompradorBp: 75, taxaSaqueFixa: -5, custodiaAnualParcelasMax: 13, sacEmail: 'x' })
+    const v = valoresVigentes({ comissaoVendedorBp: 'muito', comissaoCompradorBp: 75, taxaSaqueFixa: -5, retiradaSeguraParcelasMax: 13, sacEmail: 'x' })
     const t = tabelaDeTaxasDe(v)
     expect(t.comissaoVendedorBp).toBe(50)
     expect(t.comissaoCompradorBp).toBe(75)
     expect(t.taxaSaqueFixa).toBe(500)
-    expect(t.custodiaAnualParcelasMax).toBe(12)
+    expect(t.retiradaSeguraParcelasMax).toBe(2)
     expect(canaisDe(v).email).toBe('suporte@aureacustodia.com.br')
   })
 })
@@ -81,7 +81,7 @@ describe('leitura do que foi digitado', () => {
   it('intervalo é anteparo de digitação; formato de texto é conferido', () => {
     expect(lerValorDigitado(def('comissaoCompradorBp'), '0')).toEqual({ ok: true, valor: 0 })
     expect(lerValorDigitado(def('comissaoCompradorBp'), '50').ok).toBe(false)
-    expect(lerValorDigitado(def('custodiaAnualParcelasMax'), '12')).toEqual({ ok: true, valor: 12 })
+    expect(lerValorDigitado(def('retiradaSeguraParcelasMax'), '2')).toEqual({ ok: true, valor: 2 })
     expect(lerValorDigitado(def('termosVigencia'), '31/02/2026').ok).toBe(false)
     expect(lerValorDigitado(def('termosVigencia'), '01/10/2026')).toEqual({ ok: true, valor: '01/10/2026' })
     expect(lerValorDigitado(def('sacWhatsapp'), '')).toEqual({ ok: true, valor: '' })
@@ -91,7 +91,7 @@ describe('leitura do que foi digitado', () => {
 
   it('exibição e campo de edição', () => {
     expect(formatarValor(def('comissaoCompradorBp'), 50)).toBe('0,5%')
-    expect(formatarValor(def('custodiaAnualParcelasMax'), 12)).toBe('12x')
+    expect(formatarValor(def('retiradaSeguraParcelasMax'), 2)).toBe('2x')
     expect(valorParaCampo(def('comissaoCompradorBp'), 125)).toBe('1,25')
     expect(valorParaCampo(def('depositoMaxCents'), 10_000_000)).toBe('100000,00')
   })

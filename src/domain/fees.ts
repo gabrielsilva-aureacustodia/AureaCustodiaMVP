@@ -34,8 +34,6 @@ export interface TabelaDeTaxas {
   comissaoVendedorBp: number
   comissaoVendedorFixa: Cents
   custodiaMensalPorMoeda: Cents
-  custodiaAnualPorMoeda: Cents
-  custodiaAnualParcelasMax: number
   taxaSaqueFixa: Cents
   taxaRetiradaComum: Cents
   taxaRetiradaSegura: Cents
@@ -47,9 +45,7 @@ export const TAXAS_PADRAO: TabelaDeTaxas = {
   comissaoCompradorFixa: 100,
   comissaoVendedorBp: 50,
   comissaoVendedorFixa: 100,
-  custodiaMensalPorMoeda: 300,
-  custodiaAnualPorMoeda: 2400,
-  custodiaAnualParcelasMax: 12,
+  custodiaMensalPorMoeda: 200,
   taxaSaqueFixa: 500,
   taxaRetiradaComum: 5000,
   taxaRetiradaSegura: 18000,
@@ -102,16 +98,11 @@ export function tradeFee(price: Cents, lado: 'comprador' | 'vendedor' = 'vendedo
 }
 
 /**
- * Taxa de custódia por moeda (Decisão D-3, 10/09/2026; planos revistos em
- * 21/09/2026). Apelidos para TAXAS_PADRAO.
+ * Taxa de custódia por moeda (Decisão D-3, 10/09/2026; atualizado em 21/09/2026).
  *
- * Mensal é R$ 3,00 por moeda por mês — preço do plano mensal e também do ciclo,
- * que é a cobrança de moeda sem plano vigente. Anual é R$ 24,00 pelos 12 meses,
- * ou seja R$ 2,00 por mês: o desconto de quem contrata o ano inteiro em vez de
- * mês a mês.
+ * Modalidade única: mensal a R$ 2,00 por moeda por mês.
  */
 export const CUSTODIA_MENSAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaMensalPorMoeda
-export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaAnualPorMoeda
 
 /**
  * Calcula a taxa mensal de custódia pela quantidade de moedas ativas sob guarda.
@@ -119,14 +110,6 @@ export const CUSTODIA_ANUAL_POR_MOEDA_CENTS: Cents = TAXAS_PADRAO.custodiaAnualP
 export function custodiaMensalPorMoeda(qtdMoedas: number, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
   if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
   return Math.floor(qtdMoedas) * t.custodiaMensalPorMoeda
-}
-
-/**
- * Calcula a taxa anual de custódia pela quantidade de moedas ativas sob guarda.
- */
-export function custodiaAnualPorMoeda(qtdMoedas: number, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
-  if (!Number.isFinite(qtdMoedas) || qtdMoedas <= 0) return 0
-  return Math.floor(qtdMoedas) * t.custodiaAnualPorMoeda
 }
 
 /**
