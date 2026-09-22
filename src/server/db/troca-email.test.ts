@@ -40,7 +40,11 @@ describe('Renomeação de e-mail no banco de dados (PGlite)', () => {
     pg = new PGlite()
     executar = executorDe(pg)
     await aplicarMigrations(executar)
-  })
+    // 60 s, e não o padrão de 30: subir o PGlite e aplicar as 35 migrations
+    // passa disso com a suíte inteira em paralelo — isolado, o mesmo hook leva
+    // 6 s. É o mesmo prazo que db.test.ts já precisou dar ao hook dele pelo
+    // mesmo motivo; sem ele, a suíte fica vermelha só quando roda completa.
+  }, 60_000)
 
   afterAll(async () => {
     await pg.close()

@@ -97,14 +97,18 @@ cold start.
   (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
   derivados em `constants.ts`). Em uma negociação de R$ 200,00: o comprador paga R$ 202,00, o
   vendedor recebe R$ 198,00 e a Áurea retém R$ 4,00.
-- Custódia: **dois planos** (decisão de 21/09/2026). **Mensal**, R$ 3,00 por moeda por mês
-  (`custodiaMensalPorMoeda: 300`), sem prazo mínimo e sem parcelamento; e **anual**, R$ 24,00 por moeda
-  pelos 12 meses (`custodiaAnualPorMoeda: 2400`), parcelado em até 12x no cartão (R$ 2,00 por mês).
-  O antigo plano de 24 meses foi aposentado em 20/09/2026. O **ciclo mensal** (`origem: 'ciclo_mensal'`)
-  cobra o mesmo preço do plano mensal (R$ 3,00 por moeda) de quem guarda moeda sem plano vigente.
-  **A custódia acompanha a moeda vendida:** na venda, o plano do vendedor é encerrado (ou a moeda é
-  desvinculada dele) e o comprador assume os meses restantes em plano de transferência proporcional
-  (ex.: 11 meses restantes = R$ 22,00 em até 11x), podendo optar por 12 meses novos ou mensal.
+- Custódia: **um plano só, mensal**, R$ 2,00 por moeda por mês
+  (`custodiaMensalPorMoeda: 200`), sem prazo mínimo e sem parcelamento — decisão dos sócios de
+  21/09/2026, que substituiu a de horas antes. O **ciclo mensal** (`origem: 'ciclo_mensal'`) cobra
+  o mesmo preço de quem guarda moeda sem plano vigente. No cartão a cobrança é **recorrente**
+  (Preapproval do Mercado Pago, `PlanoCustodia.assinaturaId`), renovada todo mês sem o cliente
+  voltar à tela; zerado o acervo, a assinatura é cancelada.
+  **Histórico, porque a regra mudou quatro vezes em quatro dias e o código guarda cicatrizes:**
+  existiram o plano de 24 meses (aposentado em 20/09), o anual de R$ 24,00 e um mensal de R$ 3,00
+  (ambos em 21/09), e a transferência proporcional da custódia na venda — em que o comprador
+  herdava os meses restantes. **Nada disso vale mais.** Quem compra moeda em custódia simplesmente
+  paga o próximo mês, como qualquer outra moeda que guarde. `ModalidadePlanoCustodia` ainda aceita
+  `'anual'` no union por causa de linhas antigas no banco; nenhum caminho de código cria uma.
   A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
 - Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
   **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
