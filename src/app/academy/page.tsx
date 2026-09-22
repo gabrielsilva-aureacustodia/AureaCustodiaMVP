@@ -33,7 +33,7 @@ export default function AcademyPage(): ReactNode {
         <h2>1. Nosso posicionamento institucional</h2>
         <p>
           Para assegurar total clareza perante os colecionadores e os órgãos reguladores,
-          definimos nossa atuação através do seguinte compromisso formal:
+          definimos nossa atuação por meio do seguinte compromisso formal:
         </p>
         <blockquote className="legal-quote">
           &ldquo;O Real Olímpico <strong>não é corretora</strong> e não está sujeito à regulação da CVM
@@ -87,8 +87,7 @@ export default function AcademyPage(): ReactNode {
         <ul>
           <li>
             <strong>Custódia física especializada:</strong> Armazenamos as moedas em cofre de alta
-            segurança, sob rigoroso controle de acesso, condições adequadas de climatização e
-            cobertura por apólice de seguro patrimonial.
+            segurança, sob rigoroso controle de acesso e condições adequadas de climatização.
           </li>
           <li>
             <strong>Recibos de custódia autênticos:</strong> Para cada moeda inspecionada, pesada e
@@ -110,10 +109,10 @@ export default function AcademyPage(): ReactNode {
       </section>
 
       <section>
-        <h2>4. A história de origem: Da coleção do Rogério à criação do Real Olímpico</h2>
+        <h2>4. A história de origem: da coleção de Rogério Siqueira à criação do Real Olímpico</h2>
         <p>
           O Real Olímpico nasceu da experiência genuína de quem vivencia o colecionismo no dia a dia.
-          Rogério Pena, um dos fundadores da plataforma, é colecionador dedicado da série de moedas
+          Rogério Siqueira, um dos fundadores da plataforma, é colecionador dedicado da série de moedas
           comemorativas Real Olímpico.
         </p>
         <p>
@@ -135,7 +134,7 @@ export default function AcademyPage(): ReactNode {
         </ol>
         <p>
           Diante dessas dificuldades, surgiu o modelo do Real Olímpico: centralizar a guarda física em um
-          ambiente seguro e segurado, emitir comprovantes digitais confiáveis de custódia e criar um
+          ambiente de guarda especializado, emitir comprovantes digitais confiáveis de custódia e criar um
           mercado onde colecionadores possam negociar a posse das moedas entre si sem a obrigação de
           movimentar o metal físico a cada transação comercial.
         </p>
@@ -196,8 +195,9 @@ export default function AcademyPage(): ReactNode {
         </p>
         <p>
           <strong>Existe seguro contratado para o acervo?</strong><br />
-          Sim. A operação prevê a proteção do acervo custodiado em cofre por meio de cobertura securitária
-          contra riscos de roubo, furto e sinistros patrimoniais.
+          A operação prevê cobertura securitária do acervo custodiado em cofre contra riscos de
+          roubo, furto e sinistros patrimoniais. Os detalhes da apólice serão publicados aqui
+          quando a contratação estiver concluída.
         </p>
       </section>
 

@@ -127,14 +127,14 @@ três frentes, e as três escreveram tipos umas das outras ali.
 - Primeiro artigo educativo completo: **"O que a Áurea é e o que a Áurea não é"**, transcrevendo e aprofundando o texto da seção 1.3 do plano executivo em linguagem acessível e didática para o público leigo:
   - Posicionamento institucional negativo formal (não é corretora CVM, não é instituição financeira, não é plataforma de cripto/ativos virtuais e não promete rentabilidade).
   - O que a Áurea é (serviço de guarda física especializada, emissão de recibos digitais auditáveis e marketplace de colecionadores com resgate físico garantido sob demanda).
-  - A história de origem (a coleção particular de moedas da série Real Olímpico do cofundador Rogério Pena, as dores de armazenamento residencial e atrito de fretes sucessivos).
+  - A história de origem (a coleção particular de moedas da série Real Olímpico do cofundador Rogério Siqueira, as dores de armazenamento residencial e atrito de fretes sucessivos).
   - Ciclo da custódia na prática (do envio pelos Correios com seguro à entrada em cofre, negociação de recibos e resgate físico).
   - FAQ do colecionador com explicação da equiparabilidade numismática das moedas e prazos operacionais (D+3 para saques em reais, D+30 para resgate físico).
 
 ### Posicionamento e História de Origem na Landing (`src/components/landing/LandingPage.tsx`)
 - Inserido link para `Academy` na navegação pública do cabeçalho (`.landing-nav`) com alvo de toque $\ge 44\text{px}$.
 - Atualizado texto de etapas de "Sócios negociam..." para "Colecionadores negociam moedas elegíveis dentro da plataforma, com histórico e transparência."
-- Inserida nova seção `landing-origin` ("Nossa história — De colecionador para colecionador"): narrativa institucional de Rogério Pena e a solução da Áurea Custódia para segurança e liquidez numismática.
+- Inserida nova seção `landing-origin` ("Nossa história — De colecionador para colecionador"): narrativa institucional de Rogério Siqueira e a solução da Áurea Custódia para segurança e liquidez numismática.
 - Inserida nova seção `landing-positioning` ("Transparência e conformidade — Nosso posicionamento institucional"): citação formal da Seção 1.3 do Plano Executivo com link direto para o Áurea Academy.
 - Inserido link para `Academy` no rodapé da landing (`.landing-footer nav`).
 - Remoção de qualquer terminologia de investimento, retorno ou promessa de valorização garantida.
@@ -513,7 +513,7 @@ Em [`PENDENCIAS_MANUAIS_AGENTE_A.md`](PENDENCIAS_MANUAIS_AGENTE_A.md):
 - **D-6** 🔴 — endereço real dos Correios. Dono: **Gabriel**. Enquanto não vier, nenhuma
   etiqueta pode ser gerada de verdade, nem para teste.
 - **A-2** 🟡 — **o extrato da conta ainda escreve o nome da contraparte**
-  (`src/domain/statement.ts:113` e `:131`): "Compra de Rozane", "Venda para Rogério Pena", e
+  (`src/domain/statement.ts:113` e `:131`): "Compra de Rozane", "Venda para Rogério Siqueira", e
   o mesmo na planilha exportada. A D-5 falou da *vitrine*, e a vitrine está resolvida — mas
   basta concluir uma compra para descobrir quem era o `#D829`. **Não mexi**: é extensão da
   decisão dos sócios, e há argumento honesto dos dois lados, já que o extrato é o registro

@@ -32,7 +32,7 @@ Todas usam a **mesma senha: `12345678`**.
 
 | E-mail | Nome | Saldo inicial | Moedas | Entrada em custódia |
 |---|---|---|---|---|
-| `rogeriopena@testeaurea.com.br` | Rogério Pena | R$ 62.000,00 | 15 | 18/06/2026 |
+| `rogeriopena@testeaurea.com.br` | Rogério Siqueira | R$ 62.000,00 | 15 | 18/06/2026 |
 | `gabrielsilva@testeaurea.com.br` | Gabriel Silva | R$ 54.000,00 | 13 | 20/06/2026 |
 | `alex@testeaurea.com.br` | Alex | R$ 38.000,00 | 9 | 22/06/2026 |
 | `pegge@testeaurea.com.br` | Pegge | R$ 41.000,00 | 10 | 22/06/2026 |

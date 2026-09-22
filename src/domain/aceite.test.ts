@@ -85,7 +85,7 @@ describe('Módulo de Domínio · Aceite como Prova Legal (aceite.ts)', () => {
       canal: 'cadastro_email',
       metodo: 'caixa_e_nome_digitado',
       textoExibido: 'Texto 3',
-      nomeDigitado: 'Rogério Pena',
+      nomeDigitado: 'Rogério Siqueira',
       ip: '1.1.1.1',
       userAgent: 'UA1',
     }

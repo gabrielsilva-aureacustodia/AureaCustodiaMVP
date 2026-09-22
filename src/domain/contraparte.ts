@@ -2,7 +2,7 @@
  * Código anônimo da contraparte na vitrine — 'Vendedor #A93F'.
  *
  * NÃO É PORT. No monolito, e neste port até 10/09/2026, a vitrine escrevia o
- * nome real de quem vendia e de quem comprava: `Vendedor: Rogério Pena`. Isso
+ * nome real de quem vendia e de quem comprava: `Vendedor: Rogério Siqueira`. Isso
  * expunha dado pessoal de um cliente para todos os outros, sem finalidade e sem
  * política de retenção — e a decisão D-5 dos sócios, de 10/09/2026, trocou o
  * nome por um código derivado do id da OFERTA.

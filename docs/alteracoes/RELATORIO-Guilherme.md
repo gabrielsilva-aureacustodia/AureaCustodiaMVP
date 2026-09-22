@@ -62,7 +62,7 @@ escrito monta um cookie com o código antigo e exige que o novo o aceite.
 | `/`, `/termos`, `/taxas`, `/api/crypto` | 200 | 200 |
 | `/api/webhooks/mercadopago` | 405 | 405 (passou; a rota é que recusa GET) |
 
-Login completo refeito no navegador: entrou como Rogério Pena, saldo correto, e as nove
+Login completo refeito no navegador: entrou como Rogério Siqueira, saldo correto, e as nove
 rotas protegidas seguem em 200 para quem tem sessão.
 
 ### 2. Guarda de regressão contra SQL injection

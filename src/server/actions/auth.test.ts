@@ -84,7 +84,7 @@ describe('login() — portas 1 e 2 (P-C2-04)', () => {
     vi.mocked(getState).mockResolvedValue({
       users: {
         'rogeriopena@testeaurea.com.br': {
-          name: 'Rogério Pena',
+          name: 'Rogério Siqueira',
           balance: 6200000,
           pass: '12345678',
           coins: [],

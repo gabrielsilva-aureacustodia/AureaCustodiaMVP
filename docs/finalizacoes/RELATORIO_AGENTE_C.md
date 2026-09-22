@@ -298,7 +298,7 @@ estilos computados e cliques pelo DOM. Três rodadas.
 - A sessão que estava aberta era a da Rozane (papel Contador, da C1): `/admin/usuarios` → "Seu papel no
   painel não inclui esta área — Ver usuários". Entrei como `gabrielsilva@testeaurea.com.br`.
 - `/admin/usuarios`: 7 contas, criada em 17/08/2026 (abertura do seed no ledger). `?busca=ro&saldo=1&cadastro=sem`
-  → "2 de 7 contas" (Rogério Pena e Rozane), com os campos do filtro preenchidos.
+  → "2 de 7 contas" (Rogério Siqueira e Rozane), com os campos do filtro preenchidos.
 - **Criar conta** `Teste.Painel@Exemplo.com.br`, sem senha, com demonstração → toast "Conta criada. Sem
   chave de serviço do Supabase: a pessoa cria a senha em /cadastrar com este e-mail." e a ficha abriu
   com R$ 5.000,00, 6 moedas e "conta criada em 14/09/2026".

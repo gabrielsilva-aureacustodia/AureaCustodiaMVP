@@ -62,7 +62,7 @@ export function nextPlanoCode(seq: Seq): string {
 }
 
 /**
- * Iniciais do nome para o avatar: 'Rogério Pena' -> 'RP'.
+ * Iniciais do nome para o avatar: 'Rogério Siqueira' -> 'RS'.
  * No máximo duas letras, porque é o que cabe no círculo.
  */
 export function initials(n: string): string {

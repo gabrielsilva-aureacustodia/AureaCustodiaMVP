@@ -63,7 +63,7 @@ describe('filaDeAnalise', () => {
   it('traz o nome do cliente, não só o e-mail — é o que o operador confere no pacote', async () => {
     state.envios = [envio()]
     const [item] = await filaDeAnalise()
-    expect(item.cliente).toBe('Rogério Pena')
+    expect(item.cliente).toBe('Rogério Siqueira')
     expect(item.quantidade).toBe(2)
   })
 })

@@ -10,7 +10,7 @@ const etapas = [
   {
     number: '01',
     title: 'Custódia física',
-    text: 'A moeda é recebida, identificada e mantida em acervo custodiado e segurado.',
+    text: 'A moeda é recebida, identificada e mantida em acervo custodiado, em cofre especializado.',
   },
   {
     number: '02',
@@ -103,14 +103,14 @@ export function LandingPage(): ReactNode {
         <div className="landing-origin-grid">
           <p>
             O Real Olímpico nasceu da experiência direta de quem vivencia o colecionismo.
-            Rogério Pena, um dos fundadores da empresa, começou a reunir sua coleção particular
+            Rogério Siqueira, um dos fundadores da empresa, começou a reunir sua coleção particular
             da série de moedas comemorativas Real Olímpico e logo se deparou com desafios que todo
             colecionador conhece: a preocupação com a guarda segura em domicílio e o alto custo
-            e atrito de fretes com declaração de valor a cada negociação entre estados.
+            e o atrito dos fretes com declaração de valor a cada negociação entre estados.
           </p>
           <p>
             A solução foi estruturar um serviço de custódia profissional: guarda física em cofre
-            especializado com cobertura securitária, comprovação digital por meio de recibos de custódia
+            especializado, comprovação digital por meio de recibos de custódia
             auditáveis e um marketplace onde a posse das moedas pode ser negociada instantaneamente
             entre colecionadores, sem a necessidade de despachar o item físico a cada transação comercial.
           </p>
@@ -120,7 +120,7 @@ export function LandingPage(): ReactNode {
       <section className="landing-assurance" aria-labelledby="assurance-title">
         <div>
           <p className="landing-eyebrow">Cuidado em cada etapa</p>
-          <h2 id="assurance-title">Acervo físico com seguro confirmado</h2>
+          <h2 id="assurance-title">Acervo físico em cofre especializado</h2>
         </div>
         <p>
           A operação prevê seguro para o acervo custodiado. Detalhes de cobertura e apólice

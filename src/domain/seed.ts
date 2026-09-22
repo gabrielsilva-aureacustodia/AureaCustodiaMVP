@@ -221,7 +221,7 @@ export function genHistoryTrades(emails: UserEmail[]): Trade[] {
 export function seedState(): AppState {
   const seq: Seq = { coin: 0, envio: 0, analise: 0, planoCustodia: 0 }
   const usersDef: readonly SeedUserDef[] = [
-    ['rogeriopena@testeaurea.com.br', 'Rogério Pena', 6200000, 15, '18/06/2026'],
+    ['rogeriopena@testeaurea.com.br', 'Rogério Siqueira', 6200000, 15, '18/06/2026'],
     ['gabrielsilva@testeaurea.com.br', 'Gabriel Silva', 5400000, 13, '20/06/2026'],
     ['alex@testeaurea.com.br', 'Alex', 3800000, 9, '22/06/2026'],
     ['pegge@testeaurea.com.br', 'Pegge', 4100000, 10, '22/06/2026'],

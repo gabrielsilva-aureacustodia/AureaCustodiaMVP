@@ -81,7 +81,7 @@ import {
 
 const SEED: Ambiente['contasDoSeed'] = {
   'gabrielsilva@testeaurea.com.br': { name: 'Gabriel Silva' },
-  'rogeriopena@testeaurea.com.br': { name: 'Rogério Pena' },
+  'rogeriopena@testeaurea.com.br': { name: 'Rogério Siqueira' },
 }
 const SEM_LISTA: Ambiente = { listaDoAmbiente: undefined, contasDoSeed: SEED }
 const SO_GABRIEL: Ambiente = { listaDoAmbiente: 'gabriel.silva@aureacustodia.com.br', contasDoSeed: SEED }
