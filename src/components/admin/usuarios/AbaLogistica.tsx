@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { AbaLogistica as DadosAbaLogistica } from '@/server/admin/ficha'
 
+import { AcoesDoEnvio } from '../registros'
 import { data, dataHora, dinheiro, numero } from '../formatos'
 
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
@@ -51,6 +52,7 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
                 <th>Etapa</th>
                 <th>Postagem e recebimento</th>
                 <th>Rastreio</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -71,6 +73,9 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
                   <td>
                     {e.codigoRastreio ? <div className="adm-mono">{e.codigoRastreio}</div> : null}
                     <Rastreio rastreio={dados.rastreios[e.protocolo]} />
+                  </td>
+                  <td>
+                    <AcoesDoEnvio protocolo={e.protocolo} quantidade={e.quantidade} />
                   </td>
                 </tr>
               ))}

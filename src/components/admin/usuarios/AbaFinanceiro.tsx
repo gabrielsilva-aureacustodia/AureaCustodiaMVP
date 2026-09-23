@@ -13,6 +13,7 @@ import type { ReactNode } from 'react'
 import { quitarFaturaComSaldoNoPainel } from '@/server/actions/admin/usuarios'
 import type { AbaFinanceiro as DadosAbaFinanceiro } from '@/server/admin/ficha'
 
+import { AcoesDoPlano } from '../registros'
 import { BotaoAcao } from '../BotaoAcao'
 import { Cartao, Indisponivel } from '../Blocos'
 import { data, dataHora, dinheiro, nomeDoMes, numero } from '../formatos'
@@ -246,6 +247,7 @@ export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: D
                   <li key={p.id}>
                     <b>{p.id}</b> — {p.modalidade} · {numero(p.quantidadeContratada)} moeda(s) · {dinheiro(p.valorTotalCents)} · {p.status}
                     {p.pagoAteCompetencia ? <span className="adm-fraco"> · pago até {nomeDoMes(p.pagoAteCompetencia)}</span> : null}
+                    <AcoesDoPlano planoId={p.id} cancelado={p.status === 'cancelado'} />
                   </li>
                 ))}
               </ul>

@@ -148,12 +148,14 @@ describe('migrations 020 e 021', () => {
 })
 
 describe('catálogo de papéis e permissões', () => {
-  it('semeia as 24 permissões e os três papéis com as concessões iniciais', async () => {
+  it('semeia as 26 permissões e os três papéis com as concessões iniciais', async () => {
     await executar((tx) => garantirCatalogosAdmin(tx))
     const papeis = await executar((tx) => listarPapeis(tx))
     expect(papeis.map((p) => [p.slug, p.permissoes.length, p.sistema])).toEqual([
-      ['dev', 24, true],
-      ['socio', 22, true],
+      // 26 e 24 desde 23/09/2026: a gestão de registros trouxe duas chaves, e
+      // o papel `operacao` não as recebe — só bancada e logística.
+      ['dev', 26, true],
+      ['socio', 24, true],
       ['operacao', 5, true],
     ])
   })
@@ -249,7 +251,7 @@ describe('papéis', () => {
     expect(socio.ok).toBe(true)
     const equipe = await carregarEquipe(executar, SEM_LISTA)
     expect(equipe.papeis.find((p) => p.slug === 'socio')?.permissoes).toEqual(['resultados.ver', 'resultados.exportar'])
-    expect(equipe.papeis.find((p) => p.slug === 'dev')?.permissoes).toHaveLength(24)
+    expect(equipe.papeis.find((p) => p.slug === 'dev')?.permissoes).toHaveLength(26)
     expect(await acoesNaTrilha()).toEqual(['admin.papeis.alterar'])
   })
 

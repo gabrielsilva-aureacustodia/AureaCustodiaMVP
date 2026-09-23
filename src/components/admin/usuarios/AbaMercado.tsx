@@ -15,6 +15,7 @@ import type { AbaMercado as DadosAbaMercado } from '@/server/admin/ficha'
 
 import type { InfoPosicaoFila } from '@/domain/market'
 
+import { AcoesDaOrdemDeCompra, AcoesDoLote } from '../registros'
 import { Indisponivel } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
@@ -46,6 +47,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                 <th className="adm-num">Preço por moeda</th>
                 <th>Publicado em</th>
                 <th>Posição na fila</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -58,6 +60,9 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td>{dataHora(l.createdAt)}</td>
                   <td>
                     <Posicao p={l.posicao} />
+                  </td>
+                  <td>
+                    <AcoesDoLote lotId={l.lotId} precoCents={l.preco} />
                   </td>
                 </tr>
               ))}
@@ -80,6 +85,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                 <th className="adm-num">Preço-limite</th>
                 <th>Cadastrada em</th>
                 <th>Posição na fila</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -92,6 +98,9 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td>{dataHora(b.createdAt)}</td>
                   <td>
                     <Posicao p={b.posicao} />
+                  </td>
+                  <td>
+                    <AcoesDaOrdemDeCompra bidId={b.id} />
                   </td>
                 </tr>
               ))}

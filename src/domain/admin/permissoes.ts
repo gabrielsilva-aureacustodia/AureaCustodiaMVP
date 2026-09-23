@@ -48,6 +48,16 @@ export const PERMISSOES = [
   { chave: 'bancada.auditoria', modulo: 'bancada', rotulo: 'Auditar moedas', descricao: 'Auditoria do acervo e verificação da corrente de hashes.' },
   { chave: 'acervo.cadastro_direto', modulo: 'acervo', rotulo: 'Cadastro direto', descricao: 'Registrar no acervo moeda já conferida, pulando o envio postal e a análise da bancada. Restrito a sócios e desenvolvimento.' },
   { chave: 'acervo.cadastro_sem_envio', modulo: 'acervo', rotulo: 'Cadastro sem envio', descricao: 'Colocar na fila da bancada moeda que já está no armazém, pulando somente o envio postal. Restrito a sócios e desenvolvimento.' },
+  // 23/09/2026: gestão de registros pelo painel. Nasceu de uma limpeza que só
+  // dava para fazer por script — apagar oferta publicada por engano e envio que
+  // o cliente desistiu de fazer. Pedido de cliente, erro de sistema e teste de
+  // função são as três razões que o Gabriel citou, e as três recorrem.
+  //
+  // Separadas em editar e excluir de propósito: corrigir o preço de um anúncio
+  // é rotina de atendimento; apagar o registro é irreversível e tem outra
+  // gravidade. Quem pode uma coisa não precisa poder a outra.
+  { chave: 'registros.editar', modulo: 'registros', rotulo: 'Editar registros', descricao: 'Corrigir ofertas do mercado, envios e planos de custódia de qualquer conta.' },
+  { chave: 'registros.excluir', modulo: 'registros', rotulo: 'Excluir registros', descricao: 'Apagar ofertas, envios e planos de custódia. Irreversível — restrito a sócios e desenvolvimento.' },
   { chave: 'logistica.ver', modulo: 'logistica', rotulo: 'Ver logística', descricao: 'Envios, retiradas e rastreio de todas as contas.' },
   { chave: 'logistica.etiquetas', modulo: 'logistica', rotulo: 'Emitir etiquetas', descricao: 'Reimprimir etiquetas de envio e de retirada.' },
   { chave: 'config.ver', modulo: 'config', rotulo: 'Ver configuração', descricao: 'Taxas, catálogo, parâmetros operacionais e integrações.' },
@@ -74,6 +84,7 @@ export const MODULOS: ReadonlyArray<{ modulo: ModuloPermissao; rotulo: string }>
   { modulo: 'cs', rotulo: 'Atendimento (CS)' },
   { modulo: 'bancada', rotulo: 'Bancada e moedas' },
   { modulo: 'acervo', rotulo: 'Acervo' },
+  { modulo: 'registros', rotulo: 'Registros (ofertas, envios e planos)' },
   { modulo: 'logistica', rotulo: 'Logística' },
   { modulo: 'config', rotulo: 'Configuração do site' },
   { modulo: 'admin', rotulo: 'Equipe e auditoria' },

@@ -12,6 +12,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_STATUS_RETIRADA, type FiltroLogistica } from '@/domain/admin/logistica'
+import { AcoesDoEnvio } from '../registros'
 import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { DadosDaLogistica } from '@/server/admin/logistica'
 
@@ -134,11 +135,17 @@ export function PainelLogistica({ dados, filtro, podeEtiqueta }: { dados: DadosD
                         <Rastreio rastreio={dados.rastreios[e.protocolo]} />
                       </td>
                       <td>
-                        {podeEtiqueta ? (
-                          <a className="btn btn-outline adm-btn-compacto" href={`/api/envios/etiqueta/${encodeURIComponent(e.protocolo)}`} target="_blank" rel="noreferrer">
-                            Etiqueta
-                          </a>
-                        ) : null}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {podeEtiqueta ? (
+                            <a className="btn btn-outline adm-btn-compacto" href={`/api/envios/etiqueta/${encodeURIComponent(e.protocolo)}`} target="_blank" rel="noreferrer">
+                              Etiqueta
+                            </a>
+                          ) : null}
+                          {/* Gestão do registro (23/09/2026): corrigir a
+                              quantidade declarada ou apagar o envio. Apagar
+                              recusa se o envio já virou acervo. */}
+                          <AcoesDoEnvio protocolo={e.protocolo} quantidade={e.quantidade} />
+                        </div>
                       </td>
                     </tr>
                   ))}
