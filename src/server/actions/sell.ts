@@ -44,6 +44,7 @@ import {
   MENSAGEM_ANUNCIO_PAUSADO,
   MENSAGEM_CUSTODIA_NAO_PAGA,
   MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
+  custodiaNaoComprovadaNoEstado,
   moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
 import { contaBloqueavel, vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
@@ -157,9 +158,7 @@ export async function publishOffer(
 
         // AG8: moeda com custódia em aberto não pode ser publicada para venda,
         // mesmo que ainda não tenha vencido. A recusa é por moeda, não por conta.
-        const comCustodiaDevida = validas.filter(
-          (c) => moedaComCustodiaNaoPagaNoEstado(s, email, c.id),
-        )
+        const comCustodiaDevida = validas.filter((c) => custodiaNaoComprovadaNoEstado(s, c.id))
         if (comCustodiaDevida.length) {
           return {
             ok: false,

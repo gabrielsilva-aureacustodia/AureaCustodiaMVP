@@ -6,6 +6,7 @@ const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
 vi.mock('@/server/session', () => ({ getSessionEmail }))
 
 import { COIN } from '@/domain/constants'
+import { competenciaAtual } from '@/domain/custody'
 import { getState, mutateState } from '@/server/state'
 import { publishBid, editBid } from './market'
 import { publishOffer, editLot } from './sell'
@@ -28,6 +29,33 @@ describe('Ações de ordens — prioridade, edição e fila justa (A2, Decisão 
       }
       if (s.users[GABRIEL]) {
         s.users[GABRIEL].balance = 100_000
+      }
+
+      // Custódia em dia no mês corrente. Desde 23/09/2026 publicar venda exige
+      // PROVA de pagamento, e não mais só ausência de dívida: moeda nunca
+      // cobrada deixou de ser vendável, porque nunca cobrada é o mesmo que
+      // nunca paga. Sem esta linha de base, este arquivo — que é sobre
+      // prioridade e fila, não sobre custódia — não conseguiria publicar nada.
+      s.faturasCustodia = []
+      const competencia = competenciaAtual(Date.now())
+      for (const [email, u] of Object.entries(s.users)) {
+        if (u.coins.length === 0) continue
+        s.faturasCustodia.push({
+          id: `FAT-EM-DIA-${email}`,
+          userEmail: email,
+          competencia,
+          quantidadeMoedas: u.coins.length,
+          moedaIds: u.coins.map((c) => c.id),
+          valorCents: 200 * u.coins.length,
+          status: 'paga',
+          dataEmissao: Date.now() - 86_400_000,
+          dataVencimento: Date.now() + 9 * 86_400_000,
+          dataPagamento: Date.now() - 86_400_000,
+          formaPagamento: 'saldo',
+          paymentIntentId: null,
+          planoId: null,
+          origem: 'ciclo_mensal',
+        })
       }
     })
   })

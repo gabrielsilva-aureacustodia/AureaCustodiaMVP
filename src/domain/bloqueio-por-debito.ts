@@ -25,7 +25,7 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
-import { isInadimplente } from '@/domain/custody'
+import { competenciaAtual, isInadimplente } from '@/domain/custody'
 import { matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
@@ -90,6 +90,42 @@ export function faturasAbertasDaMoeda(
 }
 
 /**
+ * Até que competência a custódia DESTA moeda está paga — ou `null` se nunca foi.
+ *
+ * A resposta vem de duas fontes, e vale a mais adiantada delas:
+ *
+ *  - plano vigente que cobre a moeda, por `pagoAteCompetencia`;
+ *  - fatura PAGA que lista a moeda, pela competência dela.
+ *
+ * NÃO FILTRA POR DONO, e isso é deliberado. Quando uma moeda é vendida no meio
+ * do mês, a custódia daquele mês já foi paga — pelo vendedor. Cobrar o
+ * comprador de novo pelo mesmo mês seria cobrar duas vezes pela mesma guarda.
+ * Do mês seguinte em diante o ciclo cobra o dono novo, que é o certo.
+ */
+export function custodiaPagaAteCompetencia(
+  state: AppState,
+  coinId: string,
+): string | null {
+  let maisAdiantada: string | null = null
+
+  for (const p of state.planosCustodia ?? []) {
+    if (p.status !== 'vigente') continue
+    if (!p.moedaIds?.includes(coinId)) continue
+    if (p.pagoAteCompetencia && (!maisAdiantada || p.pagoAteCompetencia > maisAdiantada)) {
+      maisAdiantada = p.pagoAteCompetencia
+    }
+  }
+
+  for (const f of state.faturasCustodia ?? []) {
+    if (f.status !== 'paga') continue
+    if (!f.moedaIds?.includes(coinId)) continue
+    if (!maisAdiantada || f.competencia > maisAdiantada) maisAdiantada = f.competencia
+  }
+
+  return maisAdiantada
+}
+
+/**
  * Verifica se a custódia de uma moeda específica não foi paga pelo usuário informado.
  * Vale mesmo antes do vencimento: se a fatura estiver pendente ou atrasada, a guarda não foi quitada.
  */
@@ -129,7 +165,23 @@ export function moedasComCustodiaNaoPagaDoUsuario(
 }
 
 /**
- * Avalia se uma moeda possui custódia não paga a partir do AppState.
+ * A moeda tem custódia em aberto? É esta que a venda consulta.
+ *
+ * A PERGUNTA MUDOU EM 23/09/2026, E ERA O BURACO DA TRAVA.
+ * -------------------------------------------------------
+ * Antes ela perguntava "existe fatura EM ABERTO para esta moeda?". Moeda que
+ * nunca foi cobrada não tem fatura nenhuma, então a resposta era "sem dívida"
+ * e a venda passava — e toda moeda recém-cadastrada fica exatamente assim até
+ * o ciclo mensal rodar. Foi como onze moedas sem cobrança nenhuma chegaram ao
+ * livro de ofertas.
+ *
+ * Agora pergunta "a custódia desta moeda está paga ATÉ o mês corrente?".
+ * Ausência de prova de pagamento passou a significar dívida, que é a leitura
+ * certa de "nunca vender moeda própria que enviou sem pagar a custódia antes".
+ *
+ * O efeito colateral bom: não depende mais de o ciclo de faturamento ter
+ * rodado. Moeda cadastrada hoje já nasce bloqueada para venda, e destrava no
+ * instante em que a custódia dela é paga.
  */
 export function moedaComCustodiaNaoPagaNoEstado(
   state: AppState,
@@ -137,6 +189,38 @@ export function moedaComCustodiaNaoPagaNoEstado(
   coinId: string,
 ): boolean {
   return moedaComCustodiaNaoPaga(state.faturasCustodia ?? [], state.planosCustodia, email, coinId)
+}
+
+/**
+ * A custódia desta moeda está COMPROVADAMENTE paga até o mês corrente?
+ *
+ * É a pergunta que a PUBLICAÇÃO de venda faz, e ela é mais dura do que a de
+ * cima de propósito.
+ *
+ * `moedaComCustodiaNaoPagaNoEstado` pergunta "existe dívida conhecida?" —
+ * serve para tirar do livro uma oferta cuja fatura venceu, e é uma pergunta
+ * sobre um fato registrado. Mas moeda que NUNCA foi cobrada não tem fatura
+ * nenhuma, então ela respondia "sem dívida" e liberava a venda. Foi assim que
+ * onze moedas sem cobrança alguma chegaram ao livro de ofertas em 23/09/2026.
+ *
+ * Aqui a pergunta é invertida: sem prova de pagamento, a moeda não sai. É a
+ * leitura certa de "nunca vender moeda própria que enviou sem pagar a custódia
+ * antes" — e não depende de o ciclo mensal ter rodado, o que era a condição
+ * silenciosa de que a trava antiga dependia.
+ *
+ * A assimetria entre as duas é deliberada: publicar é o dono afirmando que a
+ * moeda está em ordem, e aí se exige comprovação; já retirar do livro uma
+ * oferta existente age sobre dívida registrada, sem invalidar o livro inteiro
+ * por ausência de registro.
+ */
+export function custodiaNaoComprovadaNoEstado(
+  state: AppState,
+  coinId: string,
+  agora: Timestamp = Date.now(),
+): boolean {
+  const pagaAte = custodiaPagaAteCompetencia(state, coinId)
+  if (!pagaAte) return true
+  return pagaAte < competenciaAtual(agora)
 }
 
 /**

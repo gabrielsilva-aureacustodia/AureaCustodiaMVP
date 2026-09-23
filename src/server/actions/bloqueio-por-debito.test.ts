@@ -38,6 +38,8 @@ import type { AppState, Coin, EnderecoEntrega, FaturaCustodia } from '@/domain/t
 import { carregarMembro } from '@/server/admin/acesso'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from '@/server/payments/repositorios'
 import { _limparRetiradasMemoriaParaTestes } from '@/server/shipping/retiradas'
+import { MENSAGEM_CUSTODIA_NAO_PAGA } from '@/domain/bloqueio-por-debito'
+import { competenciaAtual } from '@/domain/custody'
 import { getState, mutateState } from '@/server/state'
 import { salvarCadastro } from './account'
 import { situacaoDoBloqueioPorPendencia } from './bloqueio-por-debito'
@@ -105,6 +107,41 @@ async function moedasDoCliente(): Promise<Coin[]> {
   return s.users[CLIENTE].coins.filter((c) => c.tipoMoeda === BANDEIRA)
 }
 
+/**
+ * Deixa a custódia de TODAS as moedas em dia, no mês corrente.
+ *
+ * Desde 23/09/2026 publicar venda exige prova de pagamento da custódia, e não
+ * mais só ausência de dívida — moeda nunca cobrada deixou de ser vendável,
+ * porque nunca cobrada é o mesmo que nunca paga. Sem esta linha de base, o
+ * fixture parte de um acervo que ninguém pode vender, e os casos abaixo
+ * deixariam de testar o que querem: cada um deles cria a SUA pendência.
+ */
+async function custodiaEmDia(): Promise<void> {
+  await mutateState((s) => {
+    s.faturasCustodia = s.faturasCustodia ?? []
+    const competencia = competenciaAtual(Date.now())
+    for (const [email, u] of Object.entries(s.users)) {
+      if (u.coins.length === 0) continue
+      s.faturasCustodia.push({
+        id: `FAT-EM-DIA-${email}`,
+        userEmail: email,
+        competencia,
+        quantidadeMoedas: u.coins.length,
+        moedaIds: u.coins.map((c) => c.id),
+        valorCents: 200 * u.coins.length,
+        status: 'paga',
+        dataEmissao: Date.now() - 86_400_000,
+        dataVencimento: Date.now() + 9 * 86_400_000,
+        dataPagamento: Date.now() - 86_400_000,
+        formaPagamento: 'saldo',
+        paymentIntentId: null,
+        planoId: null,
+        origem: 'ciclo_mensal',
+      })
+    }
+  })
+}
+
 /** Fatura pendente vencida ontem — a pendência que o bloqueio lê. */
 async function criarPendencia(email: string, id = `FAT-${email}`): Promise<void> {
   await mutateState((s) => {
@@ -164,6 +201,8 @@ beforeEach(async () => {
     })
     s.users[GABRIEL].balance = 1_000_000
   })
+
+  await custodiaEmDia()
 })
 
 describe('retirada com pendência de custódia', () => {
@@ -447,5 +486,48 @@ describe('bloquear e desbloquear recibo são da equipe', () => {
     const desbloq = await desbloquearRecibo(moeda.id)
     expect(desbloq.ok).toBe(true)
     expect((await moedasDoCliente()).find((c) => c.id === moeda.id)?.recibo.status).toBe('Ativo')
+  })
+})
+
+/**
+ * O buraco que o Gabriel encontrou em 23/09/2026: onze moedas sem cobrança
+ * alguma foram publicadas à venda. A trava perguntava "existe fatura em
+ * aberto?", e moeda nunca cobrada não tem fatura nenhuma — respondia "sem
+ * dívida" e liberava.
+ */
+describe('moeda que nunca foi cobrada não pode ser vendida', () => {
+  it('publishOffer recusa quando não há prova de pagamento da custódia', async () => {
+    // Sem nenhuma fatura: é o estado de toda moeda recém-cadastrada, entre o
+    // cadastro e a primeira passagem do ciclo mensal.
+    await mutateState((s) => {
+      s.faturasCustodia = []
+      s.planosCustodia = []
+    })
+
+    const moedas = await moedasDoCliente()
+    getSessionEmail.mockResolvedValue(CLIENTE)
+    const res = await publishOffer([moedas[0].id], 20_000, '')
+
+    expect(res.ok).toBe(false)
+    expect(res.error).toBe(MENSAGEM_CUSTODIA_NAO_PAGA)
+
+    const s = await getState()
+    expect(s.sellOffers).toHaveLength(0)
+  })
+
+  it('paga a custódia do mês corrente, a mesma moeda passa a ser vendável', async () => {
+    await mutateState((s) => {
+      s.faturasCustodia = []
+      s.planosCustodia = []
+    })
+    await custodiaEmDia()
+
+    const moedas = await moedasDoCliente()
+    getSessionEmail.mockResolvedValue(CLIENTE)
+    const res = await publishOffer([moedas[0].id], 20_000, '')
+
+    expect(res.ok).toBe(true)
+    const s = await getState()
+    expect(s.sellOffers).toHaveLength(1)
   })
 })
