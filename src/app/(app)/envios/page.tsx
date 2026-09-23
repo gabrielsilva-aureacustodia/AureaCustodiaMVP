@@ -298,10 +298,31 @@ const ANOS: number[] = (() => {
  *   - Se ainda não tem plano de custódia contratado -> Passo 3 (Plano de custódia).
  *   - Se já tem plano contratado (pago ou pagar depois) -> Passo 4 (Postagem Correios).
  * - Qualquer etapa posterior ('Objeto postado' etc.) -> Passo 5 (Acompanhamento / Análise).
+ *
+ * A EXCEÇÃO DO SEGUNDO ENVIO EM DIANTE (22/09/2026)
+ * ------------------------------------------------
+ * Abrir direto no acompanhamento tranquiliza quem acabou de mandar a PRIMEIRA
+ * moeda: a pessoa clica em "Envios" e vê em que etapa está, se a postagem foi
+ * reconhecida, se entrou em análise. A partir do segundo envio isso se inverte
+ * — quem já conhece o fluxo quer mandar outra moeda, e cair no acompanhamento
+ * do envio anterior vira obstáculo.
+ *
+ * Então, com mais de um envio na conta, a tela abre no passo 1. O
+ * acompanhamento de qualquer envio continua a um clique, no bloco
+ * "Acompanhamento de todos os seus envios" no rodapé da página.
+ *
+ * A exceção da exceção: envio ainda INCOMPLETO (protocolo gerado, sem plano ou
+ * sem postagem) continua retomando de onde parou, quantos envios a pessoa
+ * tenha. Mandá-la para o passo 1 aí abandonaria um envio pela metade — e o
+ * pedido do Gabriel foi sobre "a última etapa", que é o acompanhamento.
  */
 function retomada(state: AppState, session: UserEmail): EstadoWizard {
-  const pendente = state.envios
-    .filter((e) => e.userEmail === session && e.etapaAtual !== 'Recibo emitido' && !isEnvioDesconsiderado(e))
+  const doUsuario = state.envios.filter(
+    (e) => e.userEmail === session && !isEnvioDesconsiderado(e),
+  )
+
+  const pendente = doUsuario
+    .filter((e) => e.etapaAtual !== 'Recibo emitido')
     .sort((a, b) => b.createdAt - a.createdAt)[0]
 
   if (!pendente) return { passo: 1, protocolo: null }
@@ -313,6 +334,9 @@ function retomada(state: AppState, session: UserEmail): EstadoWizard {
       protocolo: pendente.protocolo,
     }
   }
+
+  // Envio já postado, esperando análise: só o primeiro abre no acompanhamento.
+  if (doUsuario.length > 1) return { passo: 1, protocolo: null }
 
   return {
     passo: 5,
@@ -494,8 +518,14 @@ export default function EnviosPage(): ReactNode {
     setQtdTexto('1')
     setFoto(null)
     setConfirmOk(false)
-    setWizard(retomada(state, session))
-  }, [state, session, primeiroTipoEnvio])
+    setRastreioDigitado('')
+    setErroRastreio('')
+    // VAI PARA O PASSO 1, SEMPRE. Chamava `retomada(...)`, que devolve ao
+    // acompanhamento enquanto houver envio pendente — ou seja, o botão "Novo
+    // envio" não fazia nada e a pessoa ficava presa na tela de espera. Quem
+    // clicou aqui disse o que quer.
+    setWizard({ passo: 1, protocolo: null })
+  }, [primeiroTipoEnvio])
 
   /* ---------- envio em foco (passos 3 e 4) ---------- */
   const envio: Envio | null =
@@ -900,6 +930,18 @@ export default function EnviosPage(): ReactNode {
               <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 8 }}>
                 Você pode enviar a moeda agora e quitar a fatura a qualquer momento em <b>Minha conta › Faturas</b>.
               </div>
+
+              {/* Voltar para a conferência dos dados. O protocolo JÁ FOI
+                  GERADO e continua valendo — voltar aqui é rever o que foi
+                  declarado, não desfazer o envio. Por isso o passo 2, e não o 1. */}
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ width: '100%', minHeight: 44, marginTop: 10 }}
+                onClick={() => setWizard((w) => ({ ...w, passo: 2 }))}
+              >
+                ‹ Voltar para os dados do envio
+              </button>
             </div>
           </div>
         ))}
@@ -1035,6 +1077,14 @@ export default function EnviosPage(): ReactNode {
                 >
                   Continuar para acompanhamento
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
+                >
+                  ‹ Voltar para o plano de custódia
+                </button>
               </>
             ) : (
               <>
@@ -1075,6 +1125,16 @@ export default function EnviosPage(): ReactNode {
                   onClick={() => void marcarPostado()}
                 >
                   Confirmar postagem
+                </button>
+                {/* Ainda dá para rever o plano antes de postar: nada foi
+                    entregue aos Correios até o código de rastreio existir. */}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
+                >
+                  ‹ Voltar para o plano de custódia
                 </button>
               </>
             )}
@@ -1155,6 +1215,29 @@ export default function EnviosPage(): ReactNode {
                   </svg>
                   Cada etapa avança conforme a equipe de custódia confirma o recebimento e
                   conclui a análise física na bancada. Você acompanha por aqui.
+                </div>
+
+                {/* O botão existia só depois do recibo emitido, então quem
+                    estava esperando a análise não tinha saída nenhuma desta
+                    tela. Esperar a bancada não impede mandar outra moeda. */}
+                <button
+                  type="button"
+                  className="btn btn-gold"
+                  style={{ width: '100%', marginTop: 14, minHeight: 44 }}
+                  onClick={novoEnvio}
+                >
+                  Fazer outro envio
+                </button>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: 'var(--text-muted)',
+                    marginTop: 8,
+                    textAlign: 'center',
+                  }}
+                >
+                  Este envio continua em andamento — acompanhe por ele no bloco abaixo, em
+                  &ldquo;Acompanhamento de todos os seus envios&rdquo;.
                 </div>
               </>
             )}
