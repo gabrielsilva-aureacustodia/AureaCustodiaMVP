@@ -120,6 +120,18 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: 'Tudo o que você movimentou nesta conta desde o primeiro acesso.',
     }
   }
+  if (pathname === '/conta/custodia') {
+    return {
+      h1: 'Minha custódia',
+      p: 'Seu plano, o que já foi pago e a próxima cobrança da guarda.',
+    }
+  }
+  if (pathname === '/conta/faturas') {
+    return {
+      h1: 'Faturas e planos de custódia',
+      p: 'Cobranças da guarda das suas moedas e formas de pagamento.',
+    }
+  }
   if (pathname === '/conta/configuracoes') {
     return {
       h1: 'Configurações e segurança',

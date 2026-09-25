@@ -112,7 +112,25 @@ export function catalogoDasLinhas(linhas: readonly TipoMoedaValidado[]): CoinTyp
   if (linhas.length === 0) return COIN_TYPES.map((t) => ({ ...t, ativo: true }))
   return [...linhas]
     .sort((a, b) => a.ord - b.ord || a.chave.localeCompare(b.chave, 'pt-BR'))
-    .map((l) => ({ key: l.chave, anoPadrao: l.anoPadrao, tiragem: l.tiragem, categoria: l.categoria, negociavel: l.negociavel, detail: l.detail, ativo: l.ativo }))
+    .map((l) => ({
+      key: l.chave,
+      anoPadrao: l.anoPadrao,
+      tiragem: l.tiragem,
+      categoria: l.categoria,
+      negociavel: l.negociavel,
+      detail: l.detail,
+      ativo: l.ativo,
+      // O PESO DE CATÁLOGO VEM DO CÓDIGO, PORQUE A TABELA NÃO O GUARDA.
+      //
+      // `aurea.tipos_moeda` não tem coluna de peso, e sem este resgate o
+      // catálogo vindo do banco chegava sem `pesoPadraoMg` nenhum. O estrago
+      // aparecia longe daqui: o cadastro direto gravava peso 0 no laudo — dez
+      // moedas ficaram assim — e o cadastro sem envio recusava o registro com
+      // 'peso-invalido' sempre que quem registrava não digitava o peso à mão.
+      ...(COIN_TYPES.find((t) => t.key === l.chave)?.pesoPadraoMg
+        ? { pesoPadraoMg: COIN_TYPES.find((t) => t.key === l.chave)!.pesoPadraoMg }
+        : {}),
+    }))
 }
 
 /** Os campos que mudaram, para a trilha e o histórico. */

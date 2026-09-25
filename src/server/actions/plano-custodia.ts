@@ -34,6 +34,7 @@ import type {
 } from '@/domain/types'
 import {
   ativarDebitoAutomatico,
+  cancelarAssinaturaRecorrente,
   criarCobrancaPix,
   type CobrancaCartao,
   type CobrancaPix,
@@ -432,4 +433,81 @@ export async function listarMeusPlanos(): Promise<ActionResult<PlanoCustodia[]>>
     .sort((a, b) => b.criadoEm - a.criadoEm)
 
   return { ok: true, data: planos }
+}
+
+/**
+ * Cancela a cobrança automática do plano de custódia, a pedido do próprio dono.
+ *
+ * O QUE ISTO CANCELA E O QUE NÃO CANCELA
+ * --------------------------------------
+ * Cancela a COBRANÇA RECORRENTE — a assinatura no cartão, quando existe — e
+ * encerra o plano. NÃO tira a moeda da custódia: ela continua no armazém, e a
+ * guarda continua sendo um serviço prestado. Do mês seguinte em diante quem
+ * cobra é o ciclo mensal, pelo mesmo preço, com fatura para pagar na mão.
+ *
+ * Isso precisa estar escrito na tela, porque "cancelar o plano" soa como
+ * "encerrar a custódia" e não é. Quem quer encerrar a guarda de verdade pede a
+ * retirada física da moeda, e é ali que a obrigação termina.
+ *
+ * Fatura já paga não é estornada: o mês corrente foi guardado de verdade. O que
+ * for pendente e ainda não vencido é cancelado junto.
+ */
+export async function cancelarMinhaAssinaturaCustodia(
+  planoId: string,
+): Promise<ActionResult<{ assinaturaCancelada: boolean }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  const state = await getState()
+  const plano = (state.planosCustodia || []).find((p) => p.id === planoId)
+  if (!plano) return { ok: false, error: 'Plano de custódia não encontrado.' }
+  if (plano.userEmail !== session) return { ok: false, error: 'Este plano pertence a outra conta.' }
+  if (plano.status === 'cancelado' || plano.status === 'encerrado') {
+    return { ok: false, error: 'Este plano já está encerrado.' }
+  }
+
+  // O GATEWAY VEM ANTES DO BANCO, E A ORDEM IMPORTA.
+  //
+  // Marcar o plano como cancelado primeiro e falhar no Mercado Pago depois
+  // deixaria o pior dos dois mundos: plano encerrado na tela e cartão sendo
+  // debitado todo mês, sem ninguém para notar. Sem token configurado a função
+  // devolve `simulado`, e aí não há assinatura a cancelar mesmo.
+  let assinaturaCancelada = false
+  if (plano.assinaturaId) {
+    const res = await cancelarAssinaturaRecorrente(plano.assinaturaId)
+    if (!res.ok) {
+      console.error(
+        `[cancelarMinhaAssinaturaCustodia] falha ao cancelar ${plano.assinaturaId} de ${session}: ${res.error}`,
+      )
+      return {
+        ok: false,
+        error:
+          'Não foi possível cancelar a cobrança no cartão agora. Nada foi alterado — tente de novo em alguns minutos ou fale com o atendimento.',
+      }
+    }
+    assinaturaCancelada = !res.simulado
+  }
+
+  try {
+    const { result } = await mutateState((s) => {
+      const p = (s.planosCustodia ?? []).find((x) => x.id === planoId)
+      if (!p) return { ok: false, error: 'Plano de custódia não encontrado.' }
+
+      const agora = Date.now()
+      p.status = 'cancelado'
+      p.assinaturaId = null
+      p.atualizadoEm = agora
+
+      for (const f of s.faturasCustodia ?? []) {
+        if (f.planoId === planoId && f.status !== 'paga') f.status = 'cancelada'
+      }
+
+      return { ok: true, data: { assinaturaCancelada } }
+    })
+
+    return result
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Falha ao cancelar o plano de custódia.'
+    return { ok: false, error: msg }
+  }
 }

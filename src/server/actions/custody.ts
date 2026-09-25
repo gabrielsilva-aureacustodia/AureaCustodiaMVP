@@ -34,6 +34,7 @@ import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
+import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import {
@@ -299,7 +300,7 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
     return { ok: false, error: 'Ação restrita à equipe do Real Olímpico.' }
   }
 
-  const { catalogo } = await carregarRegrasDoMercado()
+  const { catalogo, taxas } = await carregarRegrasDoMercado()
 
   try {
     const { result } = await mutateState((state) => {
@@ -371,10 +372,12 @@ export async function advanceAnalysis(protocolo: string): Promise<ActionResult> 
           agora: Date.now(),
         })
 
-        // A custódia NÃO é cobrada aqui desde 11/09/2026. Quem cobra é o ciclo
-        // mensal (`src/server/custodia/faturamento.ts`), que conta as moedas sob
-        // guarda na virada da competência. Cobrar também na emissão do recibo
-        // cobraria duas vezes pela mesma moeda.
+        // A guarda começa aqui, então a cobrança também. Quem contratou o
+        // plano na tela de Envios já pagou pela contratação, e
+        // `cobrarEntradaNoAcervo` reconhece isso e não cobra de novo — a função
+        // só emite fatura para a moeda que não tem a competência resolvida.
+        // Ver src/domain/cobranca-de-entrada.ts.
+        cobrarEntradaNoAcervo(state, session, envio.codigosAtivosGerados, { ...taxas }, Date.now())
       }
 
       return 'ok' as const

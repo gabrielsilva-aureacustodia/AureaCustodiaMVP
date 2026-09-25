@@ -28,6 +28,8 @@ Java acontecer.
 | `statement.ts` | O extrato de UMA conta (não confundir com a auditoria pública) | |
 | `custodia-texto.ts` | Textos e valores da custódia para extrato e envio pelo plano e protocolo | |
 | `bloqueio-por-debito.ts` | Regras de bloqueio por pendência de custódia e casamento com ofertas pausadas | |
+| `cobranca-de-entrada.ts` | A fatura que sai quando a moeda ENTRA na guarda — fecha o buraco da moeda registrada pelo painel, que ficava sem cobrança até o ciclo do dia 1º | |
+| `custodia-do-cliente.ts` | O retrato da custódia de uma conta: mensalidade do acervo, próximo vencimento e extrato do que já foi pago | |
 | `seed.ts` | As 7 contas fictícias, o acervo e ~1 mês de negociações | |
 | `hash.ts` | SHA-256 puro e a fórmula **congelada** do hash encadeado do ledger (M4) | ⚠️ |
 | `ledger.ts` | Os lançamentos do livro-razão: derivação, encadeamento, verificação da cadeia (M4) | ⚠️ |

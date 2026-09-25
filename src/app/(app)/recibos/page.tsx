@@ -29,6 +29,7 @@ import { allCoinsFlat } from '@/domain/selectors'
 import type { Cents, Coin } from '@/domain/types'
 import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
+import { ResumoDaCustodia } from '@/components/custody/ResumoDaCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 
 export default function RecibosPage(): ReactNode {
@@ -100,12 +101,17 @@ export default function RecibosPage(): ReactNode {
               ))
             ) : (
               <div className="empty">
-                Você ainda não possui moedas custodiadas nesta conta de teste. Use &quot;Enviar moeda
-                para custódia&quot; para começar.
+                Você ainda não tem moedas em custódia. Use &quot;Enviar moeda para custódia&quot;
+                para começar.
               </div>
             )}
           </div>
         </div>
+
+        {/* A custódia do cliente fica na mesma coluna do acervo, logo abaixo
+            dele: é a tela em que ele olha as moedas guardadas, e é ali que a
+            pergunta "quanto isso me custa por mês?" aparece. */}
+        <ResumoDaCustodia estilo={{ marginBottom: 18 }} />
 
         {/* ---------- auditoria de estoque ---------- */}
         <div className="panel">

@@ -226,18 +226,24 @@ describe('fecharAnalise', () => {
     expect(state.analises).toHaveLength(1)
   })
 
-  it('recalcula a custódia pela faixa do acervo inteiro e a deixa pendente', async () => {
+  it('a guarda começa aqui, então a fatura de entrada sai aqui (25/09/2026)', async () => {
     state.envios = [envio({ quantidade: 1 })]
+    state.faturasCustodia = []
     await fecharAnalise({
       protocolo: 'RO-ENV-0001',
       operador: OPERADOR,
       moedas: [{ pesoMg: 27000, veredito: 'aprovada' }],
     })
-    // A bancada NÃO cobra custódia desde 11/09/2026: quem cobra é o ciclo
-    // mensal, que conta as moedas sob guarda na virada da competência. Cobrar
-    // nos dois lugares cobraria duas vezes.
-    expect(state.faturasCustodia ?? []).toHaveLength(0)
-    expect(state.users[CLIENTE].coins.length).toBeGreaterThan(0)
+
+    // Até 25/09/2026 a bancada não cobrava nada e quem cobrava era só o ciclo
+    // mensal. O envio sem plano contratado ficava então até 30 dias guardado
+    // sem cobrança nenhuma — e, desde a trava de 23/09, sem poder ser
+    // anunciado, porque anunciar exige prova de pagamento da guarda.
+    const novaMoeda = state.users[CLIENTE].coins[state.users[CLIENTE].coins.length - 1]!
+    const faturas = state.faturasCustodia ?? []
+    expect(faturas).toHaveLength(1)
+    expect(faturas[0]!.origem).toBe('entrada_no_acervo')
+    expect(faturas[0]!.moedaIds).toContain(novaMoeda.id)
   })
 
   it('envio 100% recusado não cria moeda nem fatura — não se guarda o que voltou', async () => {

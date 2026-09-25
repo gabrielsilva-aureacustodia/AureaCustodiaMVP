@@ -36,6 +36,7 @@ import {
   ModalSaque,
 } from '@/components/account/AccountModals'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
+import { ResumoDaCustodia } from '@/components/custody/ResumoDaCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { useModal } from '@/components/ui/Modal'
@@ -302,7 +303,7 @@ export default function ContaPage(): ReactNode {
           {shown.length ? (
             shown.map((c) => <LinhaMoeda key={c.id} coin={c} valor={valOf(c)} />)
           ) : (
-            <div className="empty">Nenhuma moeda nesta conta de teste ainda.</div>
+            <div className="empty">Você ainda não tem moedas em custódia.</div>
           )}
 
           {coins.length > VISIVEIS && (
@@ -315,6 +316,12 @@ export default function ContaPage(): ReactNode {
         </div>
 
         <div>
+          {/* A custódia abre a coluna lateral, acima das configurações rápidas:
+              é a informação do acervo que estava faltando ao lado do acervo. O
+              atalho "Faturas e planos" continua abaixo, para quem já sabe o que
+              procura. */}
+          <ResumoDaCustodia estilo={{ marginBottom: 16 }} />
+
           <div className="panel" style={{ marginBottom: 16 }}>
             <h3>Configurações rápidas</h3>
 
@@ -356,6 +363,20 @@ export default function ContaPage(): ReactNode {
               <div className="qk-t">
                 <div className="qk-name">Extrato da conta</div>
                 <div className="qk-sub">Suas movimentações e exportação</div>
+              </div>
+              <span className="arr">›</span>
+            </div>
+
+            {/* Plano de custódia: extrato do que já foi pago, preço e data da
+                próxima cobrança, e o cancelamento da assinatura. */}
+            <div className="qk-row" onClick={() => router.push('/conta/custodia')}>
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+              <div className="qk-t">
+                <div className="qk-name">Minha custódia</div>
+                <div className="qk-sub">Plano, extrato pago e próxima cobrança</div>
               </div>
               <span className="arr">›</span>
             </div>

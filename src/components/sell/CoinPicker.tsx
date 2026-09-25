@@ -73,7 +73,7 @@ export function CoinPicker({
   if (!moedas.length) {
     return (
       <div className="empty">
-        Você ainda não possui moedas negociáveis em custódia nesta conta de teste. Envie uma moeda em
+        Você ainda não tem moedas negociáveis em custódia. Envie uma moeda em
         &quot;Envios&quot; para poder anunciá-la aqui.
       </div>
     )

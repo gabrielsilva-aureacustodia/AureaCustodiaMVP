@@ -18,7 +18,19 @@ const { mutateStateMock, getStateMock, carregarCatalogo } = vi.hoisted(() => ({
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/server/state', () => ({ mutateState: mutateStateMock, getState: getStateMock }))
-vi.mock('@/server/config/carregar', () => ({ carregarCatalogo }))
+// `fecharAnalise` passou a ler a configuração inteira (25/09/2026): além do
+// catálogo, precisa da tarifa de custódia para emitir a fatura de entrada. Os
+// casos deste arquivo são todos sobre o catálogo, então a tarifa é fixa aqui —
+// e `carregarRegrasDoMercado` continua devolvendo o catálogo que cada caso
+// programou, inclusive a rejeição do caso do RA-47.
+vi.mock('@/server/config/carregar', () => ({
+  carregarCatalogo,
+  carregarRegrasDoMercado: async () => ({
+    catalogo: await carregarCatalogo(),
+    taxas: { custodiaMensalPorMoeda: 200 },
+    depositoMaxCents: 10_000_000,
+  }),
+}))
 
 import { COIN_TYPES } from '@/domain/constants'
 import { seedState } from '@/domain/seed'

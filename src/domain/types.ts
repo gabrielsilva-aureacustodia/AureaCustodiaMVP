@@ -768,7 +768,15 @@ export interface PlanoCustodia {
 
 export interface FaturaCustodia {
   planoId?: string | null
-  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual'
+  /**
+   * De onde veio a cobrança.
+   *
+   * `entrada_no_acervo` é a fatura emitida no instante em que a moeda entra na
+   * guarda pelo painel (cadastro direto, cadastro sem envio, ou envio cuja
+   * análise fechou sem plano contratado). Sem ela a moeda ficava sem cobrança
+   * nenhuma até a virada do mês — ver src/domain/cobranca-de-entrada.ts.
+   */
+  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'entrada_no_acervo'
 }
 
 /**

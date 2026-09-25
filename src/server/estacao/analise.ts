@@ -10,13 +10,15 @@ import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePend
 import { nextCodigoRecibo } from '@/domain/codes'
 import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
+import { TAXAS_PADRAO } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { Analise, AppState, Cents, Coin, CoinType, Envio, VereditoAnalise } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
-import { carregarCatalogo } from '@/server/config/carregar'
+import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getState, mutateState } from '@/server/state'
 
 /**
@@ -205,9 +207,9 @@ export async function fecharAnalise(
     // O catálogo editado no painel decide se o tipo tem mercado (C3 / P-C3-03). É lido antes da
     // transação, como em advanceAnalysis. Moeda que já está na bancada não pode deixar de nascer
     // porque a configuração não respondeu: na falha, vale o catálogo do código (RA-47).
-    const catalogo = await carregarCatalogo().catch((err: unknown) => {
-      console.error('[fecharAnalise] catálogo não leu; valendo o do código:', err)
-      return COIN_TYPES
+    const { catalogo, taxas } = await carregarRegrasDoMercado().catch((err: unknown) => {
+      console.error('[fecharAnalise] configuração não leu; valendo a do código:', err)
+      return { catalogo: [...COIN_TYPES], taxas: TAXAS_PADRAO, depositoMaxCents: 0 }
     })
 
     const { result } = await mutateState((state) => {
@@ -317,11 +319,21 @@ export async function fecharAnalise(
         agora,
       })
 
-      // A custódia NÃO é cobrada aqui desde 11/09/2026. O mecanismo antigo
-      // gravava uma cobrança por conta a cada envio aprovado; quem cobra agora
-      // é o ciclo mensal (`src/server/custodia/faturamento.ts`), que conta as
-      // moedas sob guarda na virada da competência. Cobrar nos dois lugares
-      // cobraria duas vezes.
+      // A GUARDA COMEÇOU AGORA, ENTÃO A COBRANÇA TAMBÉM.
+      //
+      // Quem contratou o plano na tela de Envios já foi cobrado pela
+      // contratação, e `cobrarEntradaNoAcervo` reconhece isso e não cobra de
+      // novo. Quem não contratou — o caso inteiro do cadastro sem envio, em que
+      // a moeda chega ao armazém sem o cliente passar pelo passo do plano —
+      // ficava sem fatura nenhuma até a virada do mês. Ver
+      // src/domain/cobranca-de-entrada.ts.
+      cobrarEntradaNoAcervo(
+        state,
+        envio.userEmail,
+        aprovadas.map((a) => a.codigoMoeda!).filter(Boolean),
+        { ...taxas },
+        agora,
+      )
 
       return {
         tipo: 'ok' as const,

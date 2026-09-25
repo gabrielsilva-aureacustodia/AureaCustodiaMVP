@@ -48,7 +48,9 @@ import { fdate } from '@/domain/dates'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import type { Analise, AppState, Cents, Coin, CoinType } from '@/domain/types'
-import { carregarCatalogo } from '@/server/config/carregar'
+import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
+import { TAXAS_PADRAO } from '@/domain/fees'
+import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { mutateState } from '@/server/state'
 
 /** Teto por operação. Não é regra de negócio: é freio contra zero a mais na digitação. */
@@ -124,9 +126,9 @@ export async function cadastrarMoedasDiretamente(
 
   // O catálogo editado no painel decide o tipo. Falha de leitura cai no catálogo
   // do código (RA-47) em vez de impedir um registro de moeda que já está na mão.
-  const catalogo = await carregarCatalogo().catch((err: unknown) => {
-    console.error('[cadastroDireto] catálogo não leu; valendo o do código:', err)
-    return COIN_TYPES
+  const { catalogo, taxas } = await carregarRegrasDoMercado().catch((err: unknown) => {
+    console.error('[cadastroDireto] configuração não leu; valendo a do código:', err)
+    return { catalogo: [...COIN_TYPES], taxas: TAXAS_PADRAO, depositoMaxCents: 0 }
   })
   if (!catalogo.some((t) => t.key === entrada.tipoMoeda)) {
     return { tipo: 'tipo-invalido', tipoMoeda: entrada.tipoMoeda }
@@ -207,6 +209,13 @@ export async function cadastrarMoedasDiretamente(
       moedas.push(coin.id)
       recibos.push(coin.recibo.codigo)
     }
+
+    // A moeda nasceu guardada, então a custódia dela nasce cobrada. Sem isto a
+    // moeda registrada pelo painel ficava sem fatura nenhuma até o ciclo mensal
+    // passar no dia 1º — e, desde a trava de 23/09, sem poder ser anunciada,
+    // porque anunciar exige prova de pagamento da guarda e não havia o que
+    // pagar. Ver src/domain/cobranca-de-entrada.ts.
+    cobrarEntradaNoAcervo(state, email, moedas, { ...taxas }, agora)
 
     return { tipo: 'ok', protocolo, moedas, recibos }
   })

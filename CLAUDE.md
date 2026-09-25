@@ -100,7 +100,11 @@ cold start.
 - Custódia: **um plano só, mensal**, R$ 2,00 por moeda por mês
   (`custodiaMensalPorMoeda: 200`), sem prazo mínimo e sem parcelamento — decisão dos sócios de
   21/09/2026, que substituiu a de horas antes. O **ciclo mensal** (`origem: 'ciclo_mensal'`) cobra
-  o mesmo preço de quem guarda moeda sem plano vigente. No cartão a cobrança é **recorrente**
+  o mesmo preço de quem guarda moeda sem plano vigente. **A cobrança começa quando a moeda entra
+  na guarda**, e não na virada do mês (`origem: 'entrada_no_acervo'`,
+  `src/domain/cobranca-de-entrada.ts`, 25/09/2026): moeda registrada pelo painel — cadastro direto
+  ou sem envio — nascia sem plano e sem fatura, ficava até 30 dias guardada de graça e, desde a
+  trava de 23/09, presa, porque anunciar exige prova de pagamento e não havia o que pagar. No cartão a cobrança é **recorrente**
   (Preapproval do Mercado Pago, `PlanoCustodia.assinaturaId`), renovada todo mês sem o cliente
   voltar à tela; zerado o acervo, a assinatura é cancelada.
   **Histórico, porque a regra mudou quatro vezes em quatro dias e o código guarda cicatrizes:**
