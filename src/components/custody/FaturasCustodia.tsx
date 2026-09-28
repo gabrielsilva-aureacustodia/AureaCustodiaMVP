@@ -11,6 +11,8 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
+import { fimDaCompetencia } from '@/domain/custody'
+import { rotuloDaOrigem } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
@@ -171,8 +173,11 @@ export function FaturasCustodia(): ReactNode {
                   <span className="v">{faturaSelecionada.id}</span>
                 </div>
                 <div className="sr">
-                  <span className="k">Competência</span>
-                  <span className="v">{faturaSelecionada.competencia}</span>
+                  <span className="k">Guarda coberta até</span>
+                  <span className="v">
+                    {fdate(fimDaCompetencia(faturaSelecionada.competencia))} (
+                    {faturaSelecionada.competencia})
+                  </span>
                 </div>
                 <div className="sr">
                   <span className="k">Quantidade de moedas</span>
@@ -185,7 +190,7 @@ export function FaturasCustodia(): ReactNode {
                   </span>
                 </div>
                 <div className="sr">
-                  <span className="k">Vencimento</span>
+                  <span className="k">Prazo para pagar</span>
                   <span className="v">{fdate(faturaSelecionada.dataVencimento)}</span>
                 </div>
               </div>
@@ -228,7 +233,12 @@ export function FaturasCustodia(): ReactNode {
                     <th>Origem</th>
                     <th>Moedas</th>
                     <th>Valor</th>
-                    <th>Vencimento</th>
+                    {/* "Vencimento" aqui era o PRAZO PARA PAGAR, e numa linha já
+                        paga isso lia-se como "a custódia expira nesta data" —
+                        ainda por cima numa data posterior ao fim da cobertura.
+                        Agora a coluna diz o que é, e some quando não há mais o
+                        que pagar. */}
+                    <th>Prazo para pagar</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Ação</th>
                   </tr>
@@ -236,17 +246,18 @@ export function FaturasCustodia(): ReactNode {
                 <tbody>
                   {faturas.map((f) => {
                     const aberta = f.status === 'pendente' || f.status === 'atrasada'
-                    const origemNome =
-                      f.origem === 'contratacao'
-                        ? 'Contratação'
-                        : f.origem === 'renovacao_anual'
-                          ? 'Renovação do plano'
-                          : 'Ciclo mensal'
+                    // A lista de origens vive em domain/custodia-do-cliente.ts.
+                    // Repetida aqui, ela não conhecia 'entrada_no_acervo' e
+                    // rotulava a fatura de entrada como "Ciclo mensal".
+                    const origemNome = rotuloDaOrigem(f.origem)
 
                     return (
                       <tr key={f.id}>
                         <td>
                           <b>{f.competencia}</b>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            guarda até {fdate(fimDaCompetencia(f.competencia))}
+                          </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{f.id}</div>
                         </td>
                         <td>
@@ -254,7 +265,7 @@ export function FaturasCustodia(): ReactNode {
                         </td>
                         <td>{f.quantidadeMoedas}</td>
                         <td style={{ fontWeight: 600 }}>{brl(f.valorCents)}</td>
-                        <td>{fdate(f.dataVencimento)}</td>
+                        <td>{aberta ? fdate(f.dataVencimento) : '—'}</td>
                         <td>
                           {f.status === 'paga' && (
                             <span

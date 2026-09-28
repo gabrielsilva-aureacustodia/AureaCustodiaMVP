@@ -3,6 +3,7 @@ import {
   calcularVencimentoFatura,
   competenciaAtual,
   DIAS_TOLERANCIA_FATURA,
+  fimDaCompetencia,
   gerarFaturaParaUsuario,
   isInadimplente,
   moedasFaturaveis,
@@ -240,8 +241,15 @@ describe('domain/custody', () => {
       expect(isInadimplente({ ...userNormal, inadimplente: true })).toBe(true)
     })
 
-    it('retorna true se houver fatura vencida', () => {
-      expect(isInadimplente(userNormal, [faturaVencida], 2050)).toBe(true)
+    // Vencimento em 2000; a carência de bloqueio é de 1 dia (86.400.000 ms).
+    const UM_DIA = 86_400_000
+
+    it('retorna true depois de vencida e passada a carência de 1 dia', () => {
+      expect(isInadimplente(userNormal, [faturaVencida], 2000 + UM_DIA + 1)).toBe(true)
+    })
+
+    it('vencida há pouco ainda não bloqueia — a carência é de 1 dia (27/09/2026)', () => {
+      expect(isInadimplente(userNormal, [faturaVencida], 2050)).toBe(false)
     })
 
     it('retorna false se fatura estiver dentro do prazo', () => {
@@ -249,7 +257,31 @@ describe('domain/custody', () => {
     })
 
     it('retorna false se fatura foi paga mesmo após a data de vencimento', () => {
-      expect(isInadimplente(userNormal, [{ ...faturaVencida, status: 'paga' }], 3000)).toBe(false)
+      expect(
+        isInadimplente(userNormal, [{ ...faturaVencida, status: 'paga' }], 2000 + 2 * UM_DIA),
+      ).toBe(false)
     })
+  })
+})
+
+describe('fimDaCompetencia', () => {
+  it('devolve o último dia do mês da competência', () => {
+    expect(new Date(fimDaCompetencia('2026-09')).getUTCDate()).toBe(30)
+    expect(new Date(fimDaCompetencia('2026-10')).getUTCDate()).toBe(31)
+    expect(new Date(fimDaCompetencia('2026-02')).getUTCDate()).toBe(28)
+  })
+
+  it('vira o ano em dezembro sem estourar', () => {
+    const fim = new Date(fimDaCompetencia('2026-12'))
+    expect(fim.getUTCFullYear()).toBe(2026)
+    expect(fim.getUTCMonth()).toBe(11)
+    expect(fim.getUTCDate()).toBe(31)
+  })
+
+  it('a cobertura termina ANTES do prazo de pagamento de uma fatura emitida no fim do mês', () => {
+    // O caso que confundiu a leitura da tela em 27/09/2026: a fatura de 25/09
+    // vence para pagamento em 05/10, mas a guarda que ela compra acaba em 30/09.
+    const emitida = Date.UTC(2026, 8, 25)
+    expect(fimDaCompetencia('2026-09')).toBeLessThan(calcularVencimentoFatura(emitida))
   })
 })

@@ -30,6 +30,12 @@ import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
 
+/** O primeiro dia da competência seguinte — quando o ciclo mensal passa de novo. */
+function inicioDaProximaCobranca(r: { proximaCompetencia: string }): number {
+  const [ano, mes] = r.proximaCompetencia.split('-').map(Number)
+  return Date.UTC(ano ?? 1970, (mes ?? 1) - 1, 1, 12)
+}
+
 export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactNode {
   const { state, session, taxas } = useApp()
   const r = resumoDaCustodia(state, session, taxas.custodiaMensalPorMoeda)
@@ -83,10 +89,20 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
             </span>
           </span>
         </div>
+        {/* COBERTURA E PRAZO SÃO COISAS DIFERENTES, e misturar as duas foi o
+            que fez a tela parecer dizer que a custódia expirava dez dias depois
+            de ser paga. "Guarda paga até" é o que o dinheiro comprou; "prazo
+            para pagar" só existe enquanto há fatura em aberto. */}
+        {r.cobertaAte && (
+          <div className="sr">
+            <span className="k">Guarda paga até</span>
+            <span className="v">{fdate(r.cobertaAte)}</span>
+          </div>
+        )}
         <div className="sr">
-          <span className="k">{r.emAberto.length > 0 ? 'Vence em' : 'Próxima cobrança'}</span>
+          <span className="k">{r.emAberto.length > 0 ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
           <span className="v">
-            {r.proximoVencimento ? fdate(r.proximoVencimento) : r.proximaCompetencia}
+            {r.proximoVencimento ? fdate(r.proximoVencimento) : fdate(inicioDaProximaCobranca(r))}
           </span>
         </div>
         {r.emAberto.length > 0 && (

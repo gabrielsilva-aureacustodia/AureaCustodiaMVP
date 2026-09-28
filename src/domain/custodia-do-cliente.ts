@@ -22,7 +22,7 @@
  * tarifa. Quem olhasse só os planos veria R$ 2,00 tendo 11 moedas guardadas.
  */
 
-import { competenciaAtual } from '@/domain/custody'
+import { competenciaAtual, fimDaCompetencia } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import { somarMeses } from '@/domain/plano-custodia'
 import type {
@@ -53,6 +53,17 @@ export interface ResumoDaCustodia {
   proximoVencimento: Timestamp | null
   /** Há fatura vencida — é o que bloqueia venda e retirada. */
   vencida: boolean
+  /**
+   * Até que competência a guarda está PAGA — `null` se nunca foi.
+   *
+   * É a resposta de "até quando estou coberto", e não tem nada a ver com o
+   * `dataVencimento` da fatura, que é o prazo para pagar. As duas datas se
+   * cruzam de um jeito que confunde: uma fatura emitida no dia 25 pode ter
+   * prazo até o dia 5 do mês seguinte e cobrir a guarda só até o dia 30.
+   */
+  pagaAteCompetencia: string | null
+  /** O último instante coberto pelo que já foi pago; `null` quando nada foi. */
+  cobertaAte: Timestamp | null
   /** Faturas pagas, da mais recente para a mais antiga. É o extrato. */
   pagas: FaturaCustodia[]
   /** Tudo o que a conta já pagou de custódia. */
@@ -87,6 +98,19 @@ export function resumoDaCustodia(
   const planos = (state.planosCustodia ?? []).filter((p) => p.userEmail === email)
   const competencia = competenciaAtual(agora)
 
+  // A competência mais adiantada entre o que já foi pago: fatura liquidada ou
+  // plano vigente com `pagoAteCompetencia` escrito.
+  let pagaAteCompetencia: string | null = null
+  for (const f of pagas) {
+    if (!pagaAteCompetencia || f.competencia > pagaAteCompetencia) pagaAteCompetencia = f.competencia
+  }
+  for (const p of planos) {
+    if (p.status !== 'vigente' || !p.pagoAteCompetencia) continue
+    if (!pagaAteCompetencia || p.pagoAteCompetencia > pagaAteCompetencia) {
+      pagaAteCompetencia = p.pagoAteCompetencia
+    }
+  }
+
   return {
     moedasGuardadas,
     porMoedaCents,
@@ -100,6 +124,8 @@ export function resumoDaCustodia(
     // quando alguma rotina passa pela fatura, e entre a virada do prazo e essa
     // passagem a tela mostraria "em dia" uma fatura que já bloqueia a venda.
     vencida: emAberto.some((f) => f.status === 'atrasada' || f.dataVencimento < agora),
+    pagaAteCompetencia,
+    cobertaAte: pagaAteCompetencia ? fimDaCompetencia(pagaAteCompetencia) : null,
     pagas,
     totalPagoCents: pagas.reduce((soma, f) => soma + f.valorCents, 0),
     planosAtivos: planos

@@ -115,6 +115,64 @@ describe('resumoDaCustodia', () => {
     expect(r.emAberto.map((f) => f.id)).toEqual(['F-ABERTA'])
   })
 
+  it('separa a COBERTURA do prazo de pagamento — a confusão de 27/09/2026', () => {
+    // Fatura emitida em 25/09 com 10 dias de tolerância: prazo para pagar em
+    // 05/10, guarda coberta só até 30/09. Ver as duas na mesma coluna fazia a
+    // custódia parecer expirar dez dias depois de ser paga.
+    const emitida = Date.UTC(2026, 8, 25, 15)
+    const s = estado(
+      [moeda('RO-000001')],
+      [
+        fatura({
+          id: 'F-PAGA',
+          status: 'paga',
+          competencia: '2026-09',
+          dataEmissao: emitida,
+          dataVencimento: emitida + 10 * DIA,
+          dataPagamento: emitida,
+        }),
+      ],
+    )
+    const r = resumoDaCustodia(s, DONO, 200, AGORA)
+
+    expect(r.pagaAteCompetencia).toBe('2026-09')
+    // 30/09/2026, e não 05/10 — o prazo de pagamento é cortesia, não guarda.
+    expect(new Date(r.cobertaAte!).getUTCMonth()).toBe(8)
+    expect(new Date(r.cobertaAte!).getUTCDate()).toBe(30)
+    expect(r.cobertaAte!).toBeLessThan(emitida + 10 * DIA)
+  })
+
+  it('plano vigente adianta a cobertura além das faturas pagas', () => {
+    const plano: PlanoCustodia = {
+      id: 'PLC-1',
+      userEmail: DONO,
+      protocoloEnvio: 'RO-ENV-0001',
+      modalidade: 'mensal',
+      quantidadeContratada: 1,
+      moedaIds: ['RO-000001'],
+      valorPorMoedaCents: 200,
+      valorTotalCents: 200,
+      parcelasMax: 1,
+      inicioCompetencia: '2026-09',
+      pagoAteCompetencia: '2026-11',
+      status: 'vigente',
+      formaPagamento: 'saldo',
+      paymentIntentRef: null,
+      assinaturaId: null,
+      estornadoCents: 0,
+      criadoEm: AGORA,
+      atualizadoEm: AGORA,
+    }
+    const r = resumoDaCustodia(estado([moeda('RO-000001')], [], [plano]), DONO, 200, AGORA)
+    expect(r.pagaAteCompetencia).toBe('2026-11')
+  })
+
+  it('sem nada pago, a cobertura é nula em vez de uma data inventada', () => {
+    const r = resumoDaCustodia(estado([moeda('RO-000001')]), DONO, 200, AGORA)
+    expect(r.pagaAteCompetencia).toBeNull()
+    expect(r.cobertaAte).toBeNull()
+  })
+
   it('não mistura a custódia de outra conta', () => {
     const s = estado([moeda('RO-000001')], [fatura({ id: 'F-ALHEIA', status: 'pendente', userEmail: 'outro@exemplo.com.br' })])
     expect(resumoDaCustodia(s, DONO, 200, AGORA).emAberto).toHaveLength(0)

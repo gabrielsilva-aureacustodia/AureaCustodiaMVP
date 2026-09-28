@@ -104,7 +104,14 @@ cold start.
   na guarda**, e não na virada do mês (`origem: 'entrada_no_acervo'`,
   `src/domain/cobranca-de-entrada.ts`, 25/09/2026): moeda registrada pelo painel — cadastro direto
   ou sem envio — nascia sem plano e sem fatura, ficava até 30 dias guardada de graça e, desde a
-  trava de 23/09, presa, porque anunciar exige prova de pagamento e não havia o que pagar. No cartão a cobrança é **recorrente**
+  trava de 23/09, presa, porque anunciar exige prova de pagamento e não havia o que pagar.
+- **Prazo de pagamento da fatura: 30 dias**, e a trava por débito só entra **um dia depois de
+  vencer** (`DIAS_TOLERANCIA_FATURA` e `DIAS_CARENCIA_BLOQUEIO` em `src/domain/custody.ts`,
+  decisão do Gabriel de 27/09/2026). **Fatura em aberto dentro do prazo NÃO é dívida** e não pode
+  bloquear venda, retirada, anúncio nem casamento — quem responde "isto bloqueia?" é
+  `faturaBloqueia()`, e é ela que todas as travas consultam. Entre 23 e 27/09 a publicação exigia
+  custódia *comprovadamente paga*, e somada à cobrança na entrada isso travou quem não devia nada.
+  O que ainda barra o anúncio é a moeda **sem nenhum rastro de cobrança** — nem fatura, nem plano. No cartão a cobrança é **recorrente**
   (Preapproval do Mercado Pago, `PlanoCustodia.assinaturaId`), renovada todo mês sem o cliente
   voltar à tela; zerado o acervo, a assinatura é cancelada.
   **Histórico, porque a regra mudou quatro vezes em quatro dias e o código guarda cicatrizes:**

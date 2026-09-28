@@ -63,7 +63,7 @@ describe('contaComPendenciaDeCustodia', () => {
       valorCents: 200,
       status: 'pendente',
       dataEmissao: agora - 200_000,
-      dataVencimento: agora - 100_000,
+      dataVencimento: agora - 2 * 86_400_000,
     }
     expect(contaComPendenciaDeCustodia(user, [fatura], agora)).toBe(true)
   })
@@ -79,9 +79,44 @@ describe('contaComPendenciaDeCustodia', () => {
       valorCents: 200,
       status: 'atrasada',
       dataEmissao: agora - 200_000,
-      dataVencimento: agora + 100_000,
+      dataVencimento: agora - 2 * 86_400_000,
     }
     expect(contaComPendenciaDeCustodia(user, [fatura], agora)).toBe(true)
+  })
+
+  it('quem manda é a DATA, não o rótulo: linha marcada "atrasada" antes do prazo não bloqueia', () => {
+    // O status é rótulo que uma rotina grava e pode estar velho; a data é o
+    // fato. Desde 27/09/2026 o bloqueio olha só para a data — assim uma linha
+    // desatualizada não tranca quem está em dia.
+    const user = criarUsuario('u1@exemplo.com.br')
+    const fatura: FaturaCustodia = {
+      id: 'FAT-1',
+      userEmail: user.email,
+      competencia: '2026-09',
+      quantidadeMoedas: 1,
+      moedaIds: [],
+      valorCents: 200,
+      status: 'atrasada',
+      dataEmissao: agora - 200_000,
+      dataVencimento: agora + 5 * 86_400_000,
+    }
+    expect(contaComPendenciaDeCustodia(user, [fatura], agora)).toBe(false)
+  })
+
+  it('vencida ontem ainda não bloqueia — a carência é de 1 dia (27/09/2026)', () => {
+    const user = criarUsuario('u1@exemplo.com.br')
+    const fatura: FaturaCustodia = {
+      id: 'FAT-1',
+      userEmail: user.email,
+      competencia: '2026-09',
+      quantidadeMoedas: 1,
+      moedaIds: [],
+      valorCents: 200,
+      status: 'pendente',
+      dataEmissao: agora - 30 * 86_400_000,
+      dataVencimento: agora - 3600_000,
+    }
+    expect(contaComPendenciaDeCustodia(user, [fatura], agora)).toBe(false)
   })
 
   it('retorna false para fatura paga ou cancelada mesmo vencida', () => {
@@ -95,7 +130,7 @@ describe('contaComPendenciaDeCustodia', () => {
       valorCents: 200,
       status: 'paga',
       dataEmissao: agora - 200_000,
-      dataVencimento: agora - 100_000,
+      dataVencimento: agora - 2 * 86_400_000,
       dataPagamento: agora - 50_000,
     }
     const faturaCancelada: FaturaCustodia = {
@@ -107,7 +142,7 @@ describe('contaComPendenciaDeCustodia', () => {
       valorCents: 200,
       status: 'cancelada',
       dataEmissao: agora - 200_000,
-      dataVencimento: agora - 100_000,
+      dataVencimento: agora - 2 * 86_400_000,
     }
     expect(contaComPendenciaDeCustodia(user, [faturaPaga, faturaCancelada], agora)).toBe(false)
   })
@@ -157,7 +192,7 @@ describe('contaComPendenciaNoEstado', () => {
           valorCents: 200,
           status: 'atrasada',
           dataEmissao: agora - 200_000,
-          dataVencimento: agora - 100_000,
+          dataVencimento: agora - 2 * 86_400_000,
         },
       ],
     }

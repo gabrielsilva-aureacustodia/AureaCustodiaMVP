@@ -25,7 +25,7 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
-import { competenciaAtual, isInadimplente } from '@/domain/custody'
+import { competenciaAtual, faturaBloqueia, isInadimplente } from '@/domain/custody'
 import { matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
@@ -76,10 +76,15 @@ export function faturasAbertasDaMoeda(
   planos: readonly PlanoCustodia[] | undefined,
   email: UserEmail,
   coinId: string,
+  agora: Timestamp = Date.now(),
 ): FaturaCustodia[] {
   return faturas.filter((f) => {
     if (f.userEmail !== email) return false
-    if (f.status === 'paga' || f.status === 'cancelada') return false
+    // SÓ FATURA QUE JÁ BLOQUEIA (27/09/2026). Antes bastava estar em aberto, e
+    // como esta lista alimenta o expurgo de ofertas e o filtro do motor, a
+    // fatura emitida hoje derrubava o anúncio da moeda hoje — sem o cliente ter
+    // tido um dia sequer para pagar. Conta a partir de um dia depois de vencer.
+    if (!faturaBloqueia(f, agora)) return false
     if (f.moedaIds && f.moedaIds.includes(coinId)) return true
     if (f.planoId && planos) {
       const plano = planos.find((p) => p.id === f.planoId)
@@ -134,8 +139,9 @@ export function moedaComCustodiaNaoPaga(
   planos: readonly PlanoCustodia[] | undefined,
   email: UserEmail,
   coinId: string,
+  agora: Timestamp = Date.now(),
 ): boolean {
-  return faturasAbertasDaMoeda(faturas, planos, email, coinId).length > 0
+  return faturasAbertasDaMoeda(faturas, planos, email, coinId, agora).length > 0
 }
 
 /**
@@ -187,40 +193,72 @@ export function moedaComCustodiaNaoPagaNoEstado(
   state: AppState,
   email: UserEmail,
   coinId: string,
+  agora: Timestamp = Date.now(),
 ): boolean {
-  return moedaComCustodiaNaoPaga(state.faturasCustodia ?? [], state.planosCustodia, email, coinId)
+  return moedaComCustodiaNaoPaga(
+    state.faturasCustodia ?? [],
+    state.planosCustodia,
+    email,
+    coinId,
+    agora,
+  )
 }
 
 /**
- * A custódia desta moeda está COMPROVADAMENTE paga até o mês corrente?
+ * A moeda está impedida de ser ANUNCIADA por causa da custódia?
  *
- * É a pergunta que a PUBLICAÇÃO de venda faz, e ela é mais dura do que a de
- * cima de propósito.
+ * Duas perguntas, e as duas precisam ser "não" para a moeda ir ao livro:
  *
- * `moedaComCustodiaNaoPagaNoEstado` pergunta "existe dívida conhecida?" —
- * serve para tirar do livro uma oferta cuja fatura venceu, e é uma pergunta
- * sobre um fato registrado. Mas moeda que NUNCA foi cobrada não tem fatura
- * nenhuma, então ela respondia "sem dívida" e liberava a venda. Foi assim que
- * onze moedas sem cobrança alguma chegaram ao livro de ofertas em 23/09/2026.
+ *  1. Existe fatura de custódia dela vencida há mais de um dia?
+ *  2. A moeda tem alguma cobrança registrada — fatura ou plano?
  *
- * Aqui a pergunta é invertida: sem prova de pagamento, a moeda não sai. É a
- * leitura certa de "nunca vender moeda própria que enviou sem pagar a custódia
- * antes" — e não depende de o ciclo mensal ter rodado, o que era a condição
- * silenciosa de que a trava antiga dependia.
+ * POR QUE A SEGUNDA, QUE PARECE REDUNDANTE (23/09/2026)
+ * -----------------------------------------------------
+ * Moeda que NUNCA foi cobrada não tem fatura nenhuma, então a primeira
+ * pergunta responde "sem dívida" e a venda passava. Foi assim que onze moedas
+ * sem cobrança alguma chegaram ao livro de ofertas. A segunda fecha esse
+ * buraco: sem rastro de custódia, a moeda não sai.
  *
- * A assimetria entre as duas é deliberada: publicar é o dono afirmando que a
- * moeda está em ordem, e aí se exige comprovação; já retirar do livro uma
- * oferta existente age sobre dívida registrada, sem invalidar o livro inteiro
- * por ausência de registro.
+ * POR QUE ELA DEIXOU DE EXIGIR PAGAMENTO EM DIA (27/09/2026)
+ * ----------------------------------------------------------
+ * Entre 23/09 e hoje esta função perguntava "a custódia está PAGA até o mês
+ * corrente?", e ausência de pagamento valia como dívida. Somada à cobrança na
+ * entrada da moeda, isso travou negociação de gente que não devia nada: a
+ * fatura nascia junto com a moeda, dentro do prazo, e a moeda já nascia
+ * impedida de ser anunciada.
+ *
+ * A regra do Gabriel é a que vale: trava só um dia depois de a data passar.
+ * Fatura em aberto dentro do prazo é conta a vencer, não dívida — e a moeda
+ * dela negocia normalmente.
  */
 export function custodiaNaoComprovadaNoEstado(
   state: AppState,
   coinId: string,
   agora: Timestamp = Date.now(),
 ): boolean {
-  const pagaAte = custodiaPagaAteCompetencia(state, coinId)
-  if (!pagaAte) return true
-  return pagaAte < competenciaAtual(agora)
+  const cobrada = temCobrancaRegistrada(state, coinId)
+  if (!cobrada) return true
+
+  return (state.faturasCustodia ?? []).some(
+    (f) => (f.moedaIds ?? []).includes(coinId) && faturaBloqueia(f, agora),
+  )
+}
+
+/**
+ * A moeda tem alguma cobrança de custódia registrada — paga, em aberto ou
+ * coberta por plano? É o rastro que prova que a guarda dela entrou no sistema.
+ */
+export function temCobrancaRegistrada(state: AppState, coinId: string): boolean {
+  if (custodiaPagaAteCompetencia(state, coinId)) return true
+
+  const emFatura = (state.faturasCustodia ?? []).some(
+    (f) => f.status !== 'cancelada' && (f.moedaIds ?? []).includes(coinId),
+  )
+  if (emFatura) return true
+
+  return (state.planosCustodia ?? []).some(
+    (p) => p.status !== 'cancelado' && (p.moedaIds ?? []).includes(coinId),
+  )
 }
 
 /**

@@ -137,8 +137,9 @@ describe('server/custodia/faturamento', () => {
     const fatura = estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'sem_saldo@teste.com')
     expect(fatura?.status).toBe('pendente')
 
-    // 2. Roda ciclo em t após vencimento (vencimento = 1000 + 10 dias)
-    const aposVencimento = 1000 + 11 * 86400000
+    // 2. Roda ciclo depois do vencimento, que desde 27/09/2026 é de 30 dias
+    //    (antes eram 10). O bloqueio ainda espera mais um dia de carência.
+    const aposVencimento = 1000 + 32 * 86400000
     const rel = await processarCicloFaturamento('2026-09', aposVencimento)
 
     expect(fatura?.status).toBe('atrasada')

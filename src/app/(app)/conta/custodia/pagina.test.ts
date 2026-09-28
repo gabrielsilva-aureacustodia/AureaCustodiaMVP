@@ -115,9 +115,40 @@ describe('Minha custódia', () => {
 
     expect(html).toContain('Preço por moeda')
     expect(html).toContain('Mensalidade do acervo')
-    expect(html).toContain('Próximo pagamento')
+    expect(html).toContain('Guarda paga até')
+    expect(html).toContain('Próxima cobrança')
     expect(html).toContain('Já pago em custódia')
     expect(html).toContain(brl(400))
+  })
+
+  it('cobertura e prazo de pagamento aparecem com nomes diferentes (27/09/2026)', () => {
+    // A fatura de 25/09 com 10 dias de tolerância vence para pagamento em
+    // 05/10 e cobre a guarda só até 30/09. As duas datas na mesma coluna
+    // faziam a custódia parecer expirar dez dias depois de paga.
+    const emitida = Date.UTC(2026, 8, 25, 15)
+    const html = montar(
+      [moeda('RO-000001')],
+      [
+        {
+          id: 'F-ABERTA',
+          userEmail: DONO,
+          competencia: '2026-09',
+          quantidadeMoedas: 1,
+          moedaIds: ['RO-000001'],
+          valorCents: 200,
+          status: 'pendente',
+          dataEmissao: emitida,
+          dataVencimento: emitida + 10 * DIA,
+          origem: 'entrada_no_acervo',
+        },
+      ],
+    )
+
+    expect(html).toContain('Prazo para pagar')
+    expect(html).toContain('05/10/2026')
+    // A cobertura da competência aparece como 30/09, não como 05/10.
+    expect(html).toContain('30/09/2026')
+    expect(html).not.toContain('Vence em')
   })
 
   it('o extrato mostra data, origem em português, forma e total pago', () => {

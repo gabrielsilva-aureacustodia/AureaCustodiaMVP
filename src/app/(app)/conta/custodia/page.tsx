@@ -25,6 +25,7 @@
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
+import { fimDaCompetencia } from '@/domain/custody'
 import { resumoDaCustodia, rotuloDaOrigem } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
@@ -221,10 +222,23 @@ export default function MinhaCustodiaPage(): ReactNode {
           </div>
           <div className="sr">
             <span className="k">Competência atual</span>
-            <span className="v">{r.competencia}</span>
+            <span className="v">
+              {r.competencia} (até {fdate(fimDaCompetencia(r.competencia))})
+            </span>
+          </div>
+          {/* A COBERTURA VEM ANTES DO PRAZO, e as duas ficam com nome próprio.
+              Uma fatura emitida no dia 25 tem prazo de pagamento até o dia 5 do
+              mês seguinte e cobre a guarda só até o dia 30 — as duas datas na
+              mesma coluna faziam a custódia parecer expirar dez dias depois de
+              ser paga. */}
+          <div className="sr">
+            <span className="k">Guarda paga até</span>
+            <span className="v">
+              {r.cobertaAte ? fdate(r.cobertaAte) : 'Nenhuma competência quitada'}
+            </span>
           </div>
           <div className="sr">
-            <span className="k">Próximo pagamento</span>
+            <span className="k">{r.proximoVencimento ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
             <span className="v">
               {r.proximoVencimento
                 ? `${fdate(r.proximoVencimento)} — ${brl(r.emAbertoCents)}`
@@ -306,7 +320,12 @@ export default function MinhaCustodiaPage(): ReactNode {
                 {r.pagas.map((f) => (
                   <tr key={f.id}>
                     <td>{fdate(f.dataPagamento ?? f.dataEmissao)}</td>
-                    <td>{f.competencia}</td>
+                    <td>
+                      {f.competencia}
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        guarda até {fdate(fimDaCompetencia(f.competencia))}
+                      </div>
+                    </td>
                     <td>{rotuloDaOrigem(f.origem)}</td>
                     <td>{f.quantidadeMoedas}</td>
                     <td>{FORMA[f.formaPagamento ?? 'saldo'] ?? f.formaPagamento}</td>
@@ -333,7 +352,7 @@ export default function MinhaCustodiaPage(): ReactNode {
               <table className="audit-table">
                 <thead>
                   <tr>
-                    <th>Vence em</th>
+                    <th>Prazo para pagar</th>
                     <th>Competência</th>
                     <th>Referente a</th>
                     <th>Moedas</th>

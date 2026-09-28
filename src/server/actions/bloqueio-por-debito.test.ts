@@ -155,7 +155,9 @@ async function criarPendencia(email: string, id = `FAT-${email}`): Promise<void>
       valorCents: 200,
       status: 'pendente',
       dataEmissao: Date.now() - 20 * 86_400_000,
-      dataVencimento: Date.now() - 86_400_000,
+      // Vencida há três dias: além do vencimento E da carência de 1 dia que
+      // o bloqueio passou a exigir em 27/09/2026.
+      dataVencimento: Date.now() - 3 * 86_400_000,
     }
     s.faturasCustodia.push(fatura)
   })
