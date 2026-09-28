@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { matchOrders } from './market'
+import { availableCoinsForSell, matchOrders } from './market'
 import {
   abrirReserva,
   expirarReservasVencidas,
@@ -225,5 +225,53 @@ describe('marcarReservaPaga', () => {
 
     // E não paga duas vezes.
     expect(marcarReservaPaga(r, AGORA + 2000).ok).toBe(false)
+  })
+})
+
+describe('moeda em reserva aberta não volta ao livro por reanúncio (28/09/2026)', () => {
+  /**
+   * O caso real: a reserva pós-paga tira a moeda de `sellOffers` e a guarda
+   * dentro de si por dez minutos. Enquanto isso, `availableCoinsForSell` não
+   * via reserva nenhuma e a moeda parecia livre — a vendedora reanunciou a
+   * RO-000101 enquanto ela estava reservada. Se a reserva fosse paga logo
+   * depois, a moeda trocaria de dono ainda anunciada pela antiga dona.
+   */
+  function comReserva(status: 'aguardando_pagamento' | 'expirada'): AppState {
+    const s = estado()
+    // A oferta sai do livro quando a reserva nasce: é assim que `abrirReserva`
+    // a guarda, e é o que fazia a moeda parecer livre.
+    s.sellOffers = []
+    s.reservas = [
+      {
+        id: 'RSV-1',
+        bidId: 'B1',
+        comprador: 'caloteiro',
+        vendedor: 'vendedor',
+        coinId: 'RO-000001',
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        precoCents: 28500,
+        comissaoCompradorCents: 242,
+        totalCents: 28742,
+        oferta: oferta('OF-1', 'vendedor', 'RO-000001', 28500),
+        criadaEm: AGORA,
+        expiraEm: AGORA + PRAZO_DA_RESERVA_MS,
+        status,
+        paymentIntentRef: null,
+        avisadoEm: null,
+      },
+    ]
+    return s
+  }
+
+  it('reserva aguardando pagamento tira a moeda das vendáveis', () => {
+    const s = comReserva('aguardando_pagamento')
+    const ids = availableCoinsForSell(s, s.users.vendedor!).map((c) => c.id)
+    expect(ids).not.toContain('RO-000001')
+  })
+
+  it('reserva expirada devolve a moeda às vendáveis', () => {
+    const s = comReserva('expirada')
+    const ids = availableCoinsForSell(s, s.users.vendedor!).map((c) => c.id)
+    expect(ids).toContain('RO-000001')
   })
 })

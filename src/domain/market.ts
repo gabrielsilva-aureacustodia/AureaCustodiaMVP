@@ -127,6 +127,16 @@ export function availableCoinsForSell(state: AppState, u: User, tipo?: string, c
       c.recibo.status === 'Ativo' &&
       (tipo === undefined ? isNegociavel(c.tipoMoeda, catalogo) : c.tipoMoeda === tipo && isNegociavel(tipo, catalogo)) &&
       !state.sellOffers.some((o) => o.coinId === c.id) &&
+      // MOEDA EM RESERVA ABERTA NÃO SE ANUNCIA DE NOVO (28/09/2026).
+      //
+      // Quando uma oferta pós-paga casa, a moeda SAI do livro e fica guardada
+      // dentro da reserva por dez minutos. Sem esta linha, `sellOffers` não a
+      // continha e ela parecia livre: o vendedor a reanunciava, e se a reserva
+      // fosse paga em seguida a moeda trocava de dono ainda anunciada pelo
+      // antigo. Aconteceu de verdade com a RO-000101 em 28/09.
+      !(state.reservas ?? []).some(
+        (r) => r.coinId === c.id && r.status === 'aguardando_pagamento',
+      ) &&
       (email ? !moedaComCustodiaNaoPagaNoEstado(state, email, c.id) : true) &&
       !(state.retiradas ?? []).some(
         (r) =>
