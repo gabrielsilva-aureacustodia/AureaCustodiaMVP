@@ -28,6 +28,7 @@
  * isolado e sem nenhuma amarra com as ações de compra.
  */
 
+import { novoBidId } from '@/domain/codes'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { transferirMoedaVendida } from '@/domain/market'
@@ -143,11 +144,6 @@ async function executar<T = unknown>(
  */
 function inteiroSeguro(v: number): number {
   return Number.isFinite(v) ? Math.floor(v) : 0
-}
-
-/** Id de oferta de compra, no formato da linha 1720 do monolito. */
-function novoBidId(): string {
-  return 'BID-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
 }
 
 /* ===========================================================================
@@ -315,6 +311,34 @@ export async function publishBid(
     return { ok: false, error: 'Forma de pagamento da oferta desconhecida.' }
   }
 
+  /*
+   * A OFERTA PRÉ-PAGA NÃO NASCE AQUI (28/09/2026).
+   *
+   * Até ontem ela nascia: `publishBid` gravava a ordem com
+   * `pagoAntecipadoCents: 0`, e o motor a pulava enquanto fosse zero. O motor,
+   * sim — mas a ordem já estava no livro, e o livro é lido por oito telas que
+   * não sabiam nada de lastro. Resultado: a oferta aparecia publicada, para o
+   * dono e para todo mundo, antes de um centavo ter entrado. Foi o que o
+   * Gabriel viu com a oferta de R$ 200,00.
+   *
+   * Pôr um "rascunho" no livro e filtrá-lo em cada leitura seria repetir o
+   * erro da trava de venda: basta UM lugar esquecido para a oferta vazar. A
+   * ordem passa a ser CRIADA PELO PAGAMENTO — pelo liquidador da conciliação,
+   * quando o gateway confirma, ou pela ação de saldo, que debita e cria na
+   * mesma transação. Antes disso não existe linha nenhuma.
+   *
+   * Quem chama esta função com 'prepago' recebe uma recusa explicativa: a tela
+   * certa é `publicarOfertaPrePagaComSaldo` ou `iniciarOfertaPrePaga`, ambas em
+   * src/server/actions/reserva.ts.
+   */
+  if (modalidade === 'prepago') {
+    return {
+      ok: false,
+      error:
+        'A oferta pré-paga é publicada pelo pagamento. Use a tela de pagamento da oferta — ela entra no mercado assim que o valor for confirmado.',
+    }
+  }
+
   const res = await executar((state, session, { taxas, catalogo }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)
     const cents = inteiroSeguro(precoUnit)
@@ -357,9 +381,6 @@ export async function publishBid(
       prioridadeEm: agora,
       tipoMoeda,
       modalidade,
-      // Pré-pago nasce com zero: quem credita é a conciliação do pagamento,
-      // nunca a tela. Enquanto for zero, o motor não casa esta oferta.
-      pagoAntecipadoCents: modalidade === 'prepago' ? 0 : undefined,
     })
 
     const { matched } = casarOrdensRespeitandoPendencia(state, taxas, agora, bloqueaveis)
@@ -368,17 +389,10 @@ export async function publishBid(
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
     if (qty < qtyRaw) msg += ' (ajustada ao seu saldo disponível)'
     const aPagarCents = custoDeCompraPorMoeda(cents, taxas) * qty
-    if (modalidade === 'prepago') {
-      msg += ` Pague ${brl(aPagarCents)} para a oferta entrar no mercado.`
-    }
     if (modalidade === 'pospago') {
       msg += ' Você paga quando ela for aceita, e terá 10 minutos para concluir.'
     }
     if (matched) msg += ' Parte já foi executada automaticamente com ofertas de venda existentes.'
-    // O id volta para a tela porque o pré-pago precisa cobrar EM SEGUIDA, na
-    // mesma interação: a oferta nasce sem lastro e só entra no mercado quando
-    // o pagamento é confirmado. Sem o id, a tela publicava e não tinha como
-    // abrir a cobrança — era o beco sem saída de 27/09/2026.
     return { ok: true, message: msg, data: { bidId, qty, aPagarCents } }
   })
 

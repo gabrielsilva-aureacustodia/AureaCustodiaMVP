@@ -5,13 +5,19 @@
  *
  * POR QUE ESTE COMPONENTE EXISTE (27/09/2026)
  * -------------------------------------------
- * A oferta pré-paga nasce com `pagoAntecipadoCents: 0` e não casa com nada
- * enquanto estiver assim — é essa a definição da modalidade. O backend da
- * cobrança existia desde 22/09 (`financiarOfertaPrepaga`, com liquidador
- * próprio na conciliação), mas NENHUMA TELA o chamava: a pessoa escolhia
- * "pré-pago", publicava, lia "Pague R$ X para a oferta entrar no mercado" — e
- * não havia lugar nenhum para pagar. A oferta ficava no livro sem lastro, sem
- * casar, para sempre.
+ * O backend da cobrança existia desde 22/09, com liquidador próprio na
+ * conciliação, mas NENHUMA TELA o chamava: a pessoa escolhia "pré-pago",
+ * publicava, lia "Pague R$ X para a oferta entrar no mercado" — e não havia
+ * lugar nenhum para pagar.
+ *
+ * A OFERTA AINDA NÃO EXISTE QUANDO ESTE POP-UP ABRE (28/09/2026)
+ * --------------------------------------------------------------
+ * E é esse o ponto. Antes ela era gravada no livro sem lastro e só depois
+ * paga; o motor não a casava, mas ela aparecia publicada para todo mundo. Por
+ * isso aqui não há `bidId`: o pop-up recebe a oferta que a pessoa montou no
+ * formulário — quantidade, preço, tipo — e é o PAGAMENTO que a publica, pela
+ * ação de saldo ou pelo liquidador do gateway. Fechar este pop-up sem pagar
+ * não deixa rastro nenhum no livro.
  *
  * O desenho é deliberadamente o MESMO da compra direta na página de Mercado
  * (`ConfirmarCompraModal`): "Comprar com saldo" primeiro, "Comprar com Pix ou
@@ -31,12 +37,11 @@ import type { Cents } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import {
-  financiarOfertaPrepaga,
-  financiarOfertaPrepagaComSaldo,
+  iniciarOfertaPrePaga,
+  publicarOfertaPrePagaComSaldo,
 } from '@/server/actions/reserva'
 
 export interface ModalOfertaPrePagaProps {
-  bidId: string
   qty: number
   tipoMoeda: string
   precoUnit: Cents
@@ -45,7 +50,6 @@ export interface ModalOfertaPrePagaProps {
 }
 
 export function ModalOfertaPrePaga({
-  bidId,
   qty,
   tipoMoeda,
   precoUnit,
@@ -65,7 +69,7 @@ export function ModalOfertaPrePaga({
     setEnviando(true)
     setErro('')
     try {
-      const res = await run(() => financiarOfertaPrepagaComSaldo(bidId))
+      const res = await run(() => publicarOfertaPrePagaComSaldo(qty, precoUnit, tipoMoeda))
       if (res.ok) close()
     } finally {
       setEnviando(false)
@@ -76,7 +80,7 @@ export function ModalOfertaPrePaga({
     setEnviando(true)
     setErro('')
     try {
-      const res = await financiarOfertaPrepaga(bidId, forma)
+      const res = await iniciarOfertaPrePaga(qty, precoUnit, tipoMoeda, forma)
       if (!res.ok || !res.data) {
         setErro(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
         return
@@ -103,7 +107,7 @@ export function ModalOfertaPrePaga({
 
   return (
     <>
-      <h3 className="serif">Pagar a oferta de compra</h3>
+      <h3 className="serif">Pagar para publicar a oferta</h3>
       <p style={{ marginBottom: 12 }}>
         <b style={{ color: 'var(--gold)' }}>{tipoMoeda}</b> · {qty} unidade(s) a {brl(precoUnit)}
       </p>
@@ -128,9 +132,10 @@ export function ModalOfertaPrePaga({
       </div>
 
       <div className="note" style={{ marginTop: 12 }}>
-        A oferta já está publicada, mas <b>só entra no mercado depois do pagamento</b>. O valor
-        fica preso a ela: não volta para o saldo e não pode ser gasto em outra compra. Se você
-        cancelar a oferta antes de ela executar, o dinheiro volta como saldo em conta.
+        A oferta <b>só é publicada depois do pagamento</b> — até lá ela não aparece no mercado
+        para ninguém. O valor fica preso a ela: não volta para o saldo e não pode ser gasto em
+        outra compra. Se você cancelar a oferta antes de ela executar, o dinheiro volta como
+        saldo em conta.
       </div>
 
       {/* A mesma ordem e os mesmos títulos da compra direta do Mercado. O
@@ -151,8 +156,8 @@ export function ModalOfertaPrePaga({
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
           {temSaldo
-            ? `O total de ${brl(totalCents)} será debitado do seu saldo e ficará preso a esta oferta.`
-            : `Saldo insuficiente (faltam ${brl(totalCents - me.balance)}).`}
+            ? `O total de ${brl(totalCents)} será debitado do seu saldo e a oferta é publicada na hora.`
+            : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(totalCents - me.balance)}).`}
         </div>
         <button
           type="button"
@@ -161,7 +166,7 @@ export function ModalOfertaPrePaga({
           disabled={!temSaldo || enviando}
           onClick={() => void pagarComSaldo()}
         >
-          {temSaldo ? 'Pagar com saldo em conta' : 'Saldo insuficiente'}
+          {temSaldo ? 'Pagar e publicar a oferta' : 'Saldo insuficiente'}
         </button>
       </div>
 
@@ -179,8 +184,8 @@ export function ModalOfertaPrePaga({
           Comprar com Pix ou cartão
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Pague {brl(totalCents)} por Pix ou cartão, sem usar o saldo em conta. A oferta entra no
-          mercado assim que o pagamento for aprovado.
+          Pague {brl(totalCents)} por Pix ou cartão, sem usar o saldo em conta. A oferta é
+          publicada assim que o pagamento for aprovado.
         </div>
         <div className="m-actions" style={{ marginTop: 0 }}>
           <button
@@ -229,15 +234,19 @@ export function ModalOfertaPrePaga({
             />
           ) : null}
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Assim que o pagamento for confirmado, a oferta entra no mercado sozinha — não é preciso
+            Assim que o pagamento for confirmado, a oferta é publicada sozinha — não é preciso
             voltar aqui.
           </p>
         </div>
       ) : null}
 
+      {/* SEM "pagar depois" (28/09/2026). Ele fazia sentido quando a oferta já
+          estava no livro esperando lastro; agora não há nada para pagar depois
+          — fechar sem pagar simplesmente não publica a oferta. Manter o botão
+          prometeria uma pendência que não existe. */}
       <div className="m-actions" style={{ marginTop: 14 }}>
         <button type="button" className="btn btn-outline" style={{ minHeight: 44 }} onClick={close}>
-          Pagar depois
+          Fechar
         </button>
       </div>
     </>

@@ -9,6 +9,7 @@
 import 'server-only'
 
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
+import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
@@ -457,17 +458,22 @@ function liquidarRetirada(
 }
 
 /**
- * Liquidador da oferta de compra PRÉ-PAGA (22/09/2026).
+ * Liquidador da oferta de compra PRÉ-PAGA.
  *
- * A oferta pré-paga nasce com `pagoAntecipadoCents: 0` e não casa com nada
- * enquanto isso — `fundosDoBid` devolve zero e o motor a pula. É este
- * liquidador que a coloca no mercado, creditando o valor confirmado pelo
- * gateway.
+ * ELE É QUEM PUBLICA A OFERTA (28/09/2026)
+ * ----------------------------------------
+ * Até 27/09 a oferta já estava no livro com `pagoAntecipadoCents: 0` e este
+ * liquidador só a creditava. O motor não a casava, mas ela APARECIA publicada
+ * antes de qualquer pagamento — em oito telas que leem o livro e não sabiam
+ * nada de lastro. Agora a oferta não existe até aqui: a intenção carrega
+ * quantidade, preço e tipo, e a linha nasce com o dinheiro já dentro.
  *
- * O dinheiro NÃO vai para `User.balance`: ele fica preso ao bid. Se fosse
- * para o caixa, a pessoa poderia gastá-lo em outra compra e a oferta ficaria
- * anunciada sem lastro — que é exatamente o que a modalidade existe para
- * evitar.
+ * A prioridade na fila conta deste instante, que é quando a oferta passou a
+ * existir — oferta não paga não guarda lugar na fila.
+ *
+ * O dinheiro NÃO vai para `User.balance`: fica preso ao bid. No caixa, a
+ * pessoa poderia gastá-lo em outra compra e a oferta ficaria anunciada sem
+ * lastro, que é o que a modalidade existe para evitar.
  */
 function liquidarOfertaPrepaga(
   s: AppState,
@@ -475,28 +481,55 @@ function liquidarOfertaPrepaga(
   _detalhes: DetalhesPagamento,
   regras: RegrasDaLiquidacao,
 ): ResultadoLiquidacao {
-  const bidId = (reivindicada.metadata?.bidId as string) || ''
-  const bo = s.buyOrders.find((b) => b.id === bidId)
+  const agora = Date.now()
+  const meta = reivindicada.metadata ?? {}
 
-  if (!bo) {
-    // A oferta sumiu entre a cobrança e a confirmação (cancelada pelo dono,
-    // por exemplo). O dinheiro entrou de verdade, então vira saldo — devolver
-    // ao gateway é estorno, e isso é decisão de quem opera, não deste código.
-    const u = s.users[reivindicada.userEmail]
-    if (u) u.balance += reivindicada.valor
-    return { sucesso: true, motivo: 'oferta_prepaga_inexistente_creditado_em_saldo' }
+  // COMPATIBILIDADE COM AS INTENÇÕES ANTIGAS. As abertas antes de 28/09/2026
+  // referenciam um bid que já existia no livro; aquelas continuam só creditando.
+  const bidId = (meta.bidId as string) || ''
+  if (bidId) {
+    const bo = s.buyOrders.find((b) => b.id === bidId)
+    if (bo) {
+      bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) + reivindicada.valor
+      matchOrders(s, regras.taxas)
+      return { sucesso: true, motivo: 'oferta_prepaga_financiada' }
+    }
   }
 
-  bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) + reivindicada.valor
+  const qty = Math.floor(Number(meta.qty))
+  const price = Math.floor(Number(meta.price))
+  const tipoMoeda = typeof meta.tipoMoeda === 'string' ? meta.tipoMoeda : ''
+  const comprador = s.users[reivindicada.userEmail]
 
-  // O DINHEIRO ENTROU, ENTÃO A OFERTA PRECISA TENTAR CASAR AGORA.
-  //
-  // Sem esta rodada, a oferta recém-financiada ficava parada até alguém
-  // ANUNCIAR OU OFERTAR de novo — é só aí que o motor roda. O comprador pagava,
-  // via a oferta no livro com moeda compatível à venda, e nada acontecia. Quem
-  // pagou adiantado é justamente quem já fez a sua parte.
+  const devolverComoSaldo = (motivo: string): ResultadoLiquidacao => {
+    // O dinheiro entrou de verdade; devolver ao gateway é estorno, e isso é
+    // decisão de quem opera, não deste código.
+    if (comprador) {
+      comprador.balance += reivindicada.valor
+      s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+    }
+    return { sucesso: true, motivo }
+  }
+
+  if (!comprador) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+  if (!qty || qty <= 0 || !price || price <= 0 || !tipoMoeda) {
+    return devolverComoSaldo('oferta_prepaga_sem_dados_creditado_em_saldo')
+  }
+
+  s.buyOrders.push({
+    id: novoBidId(),
+    buyer: reivindicada.userEmail,
+    price,
+    qty,
+    createdAt: agora,
+    prioridadeEm: agora,
+    tipoMoeda,
+    modalidade: 'prepago',
+    pagoAntecipadoCents: reivindicada.valor,
+  })
+
   matchOrders(s, regras.taxas)
-  return { sucesso: true, motivo: 'oferta_prepaga_financiada' }
+  return { sucesso: true, motivo: 'oferta_prepaga_publicada' }
 }
 
 /**

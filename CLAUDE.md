@@ -121,6 +121,15 @@ cold start.
   paga o próximo mês, como qualquer outra moeda que guarde. `ModalidadePlanoCustodia` ainda aceita
   `'anual'` no union por causa de linhas antigas no banco; nenhum caminho de código cria uma.
   A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
+- **A oferta de compra pré-paga é criada PELO PAGAMENTO**, nunca antes (28/09/2026). `publishBid`
+  recusa a modalidade `prepago`: quem cria a ordem é `publicarOfertaPrePagaComSaldo` ou o
+  liquidador da conciliação, quando o gateway confirma. Até 27/09 ela era gravada com
+  `pagoAntecipadoCents: 0` — o motor a pulava, mas ela **aparecia publicada** nas oito telas que
+  leem `state.buyOrders`. Rascunho no livro com filtro em cada leitura não é opção: basta um lugar
+  esquecido para a oferta vazar.
+- A modalidade **pós-paga está OCULTA na tela** desde 28/09/2026, a pedido do Gabriel, até o
+  restante amadurecer. A feature continua inteira — reserva de 10 minutos, e-mail, liquidador,
+  testes; o que saiu foi a opção em `/compras`, num bloco comentado pronto para voltar.
 - Casamento de ordens por **prioridade preço-tempo**, uma unidade por volta,
   **dentro de cada tipo de moeda** (um livro de ordens por ativo — bid de um tipo
   nunca casa com oferta de outro).

@@ -19,7 +19,9 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { comissaoPorMoeda } from '@/domain/fees'
+import { novoBidId } from '@/domain/codes'
+import { isNegociavel } from '@/domain/constants'
+import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import {
@@ -248,18 +250,29 @@ export async function iniciarPagamentoReserva(
 }
 
 /**
- * Abre a cobrança que banca uma oferta de compra PRÉ-PAGA.
+ * Abre a cobrança que PUBLICA uma oferta de compra pré-paga.
  *
- * A oferta pré-paga nasce com `pagoAntecipadoCents: 0` e, por isso, não casa
- * com nada: `fundosDoBid` devolve zero e o motor a pula. Ela entra no mercado
- * de verdade quando a conciliação credita o valor confirmado.
+ * A ORDEM NÃO EXISTE AINDA, E É ESSE O PONTO (28/09/2026)
+ * -------------------------------------------------------
+ * Até 27/09 a oferta pré-paga era gravada no livro com `pagoAntecipadoCents: 0`
+ * e esta função só a financiava depois. O motor não a casava — `fundosDoBid`
+ * devolve zero —, mas ela APARECIA publicada, para o dono e para todo mundo,
+ * antes de qualquer pagamento. Era a queixa do Gabriel: "o sistema já publicou
+ * antes de eu pagar; só pode publicar após eu pagar".
  *
- * O valor é o custo cheio — preço mais comissão de compra — vezes a quantidade
- * ainda aberta. É o mesmo cálculo que decidiria se o saldo dá, na modalidade
- * de saldo (`custoDeCompraPorMoeda`).
+ * Agora a intenção de pagamento carrega a oferta INTEIRA (quantidade, preço,
+ * tipo) na metadata, e quem cria a linha no livro é o liquidador da
+ * conciliação, quando o gateway confirma o valor. Enquanto o pagamento não
+ * entra, não existe oferta nenhuma para ninguém ver.
+ *
+ * O valor é o custo cheio — preço mais taxa de compra — vezes a quantidade. É o
+ * mesmo cálculo que decidiria se o saldo dá, na modalidade de saldo
+ * (`custoDeCompraPorMoeda`).
  */
-export async function financiarOfertaPrepaga(
-  bidId: string,
+export async function iniciarOfertaPrePaga(
+  qtyPedida: number,
+  precoUnit: Cents,
+  tipoMoeda: string,
   forma: 'pix' | 'cartao',
 ): Promise<ActionResult<CobrancaDaReserva>> {
   const session = await getSessionEmail()
@@ -268,20 +281,19 @@ export async function financiarOfertaPrepaga(
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
   }
 
-  const { taxas } = await carregarRegrasDoMercado()
-  const state = await getState()
-  const bo = state.buyOrders.find((b) => b.id === bidId)
-  if (!bo) return { ok: false, error: 'Oferta de compra não encontrada.' }
-  if (bo.buyer !== session) return { ok: false, error: 'Esta oferta pertence a outro usuário.' }
-  if ((bo.modalidade ?? 'saldo') !== 'prepago') {
-    return { ok: false, error: 'Esta oferta não é pré-paga.' }
+  const qty = Math.floor(Number(qtyPedida))
+  const preco = Math.floor(Number(precoUnit))
+  if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(preco) || preco <= 0) {
+    return { ok: false, error: 'Informe quantidade e preço unitário válidos.' }
   }
 
-  const { comprador: fee } = comissaoPorMoeda(bo.price, taxas)
-  const unitario: Cents = bo.price + fee
-  const jaPago = bo.pagoAntecipadoCents ?? 0
-  const falta = unitario * bo.qty - jaPago
-  if (falta <= 0) return { ok: false, error: 'Esta oferta já está totalmente paga.' }
+  const { taxas, catalogo } = await carregarRegrasDoMercado()
+  if (!isNegociavel(tipoMoeda, catalogo)) {
+    return { ok: false, error: 'Este tipo de moeda não é negociável no mercado.' }
+  }
+
+  const total = custoDeCompraPorMoeda(preco, taxas) * qty
+  const { comprador: fee } = comissaoPorMoeda(preco, taxas)
 
   const externalReference = `PRE-${randomUUID()}`
   const agora = Date.now()
@@ -289,26 +301,27 @@ export async function financiarOfertaPrepaga(
   await intencoes.criar({
     externalReference,
     userEmail: session,
-    valor: falta,
+    valor: total,
     metodo: forma === 'pix' ? 'pix' : 'checkout_pro',
     status: 'pendente',
     tipoOperacao: 'oferta_prepaga',
-    metadata: { bidId: bo.id },
+    // A oferta inteira viaja aqui: é com isto que o liquidador a cria.
+    metadata: { qty, price: preco, tipoMoeda },
     paymentId: null,
     motivoRecusa: null,
     createdAt: agora,
     updatedAt: agora,
   })
 
-  const titulo = `Oferta de compra de ${bo.qty} ${bo.tipoMoeda} — Real Olímpico`
-  const descricao = `Pagamento antecipado · ${brl(bo.price)} por moeda + comissão de ${brl(fee)}`
+  const titulo = `Oferta de compra de ${qty} ${tipoMoeda} — Real Olímpico`
+  const descricao = `Pagamento antecipado · ${brl(preco)} por moeda + taxa de ${brl(fee)}`
 
   try {
     if (forma === 'pix') {
       const pix = await criarCobrancaPix({
         externalReference,
         userEmail: session,
-        valorCents: falta,
+        valorCents: total,
         titulo,
         descricao,
         parcelasMax: 1,
@@ -320,7 +333,7 @@ export async function financiarOfertaPrepaga(
     const cartao = await criarCobrancaCartao({
       externalReference,
       userEmail: session,
-      valorCents: falta,
+      valorCents: total,
       titulo,
       descricao,
       parcelasMax: 1,
@@ -335,64 +348,80 @@ export async function financiarOfertaPrepaga(
 }
 
 /**
- * Banca a oferta pré-paga com o SALDO em conta.
+ * Publica a oferta pré-paga PAGANDO COM O SALDO em conta, numa transação só.
  *
- * É a "Opção 1" do mesmo pop-up que a página de Mercado usa na compra direta.
- * O dinheiro sai do caixa e passa a ficar PRESO à oferta, em
- * `pagoAntecipadoCents` — não fica no saldo. Deixá-lo no caixa permitiria
- * gastá-lo em outra compra e a oferta ficaria anunciada sem lastro, que é
- * justamente o que a modalidade pré-paga existe para evitar.
+ * É a opção "Comprar com saldo" do mesmo pop-up da compra direta. Aqui o
+ * dinheiro já está na plataforma, então não há webhook a esperar: debita, cria
+ * a oferta já bancada e casa as ordens na mesma transação.
  *
- * Casa as ordens logo em seguida, pela mesma razão do liquidador do gateway: o
- * dinheiro entrou, então a oferta tem de tentar comprar agora, e não na próxima
- * vez que alguém mexer no livro.
+ * O dinheiro fica PRESO à oferta, em `pagoAntecipadoCents`, e não volta para o
+ * saldo. Deixá-lo no caixa permitiria gastá-lo em outra compra, e a oferta
+ * ficaria anunciada sem lastro — exatamente o que a modalidade pré-paga existe
+ * para evitar.
  */
-export async function financiarOfertaPrepagaComSaldo(
-  bidId: string,
-): Promise<ActionResult<{ pagoCents: Cents }>> {
+export async function publicarOfertaPrePagaComSaldo(
+  qtyPedida: number,
+  precoUnit: Cents,
+  tipoMoeda: string,
+): Promise<ActionResult<{ bidId: string; pagoCents: Cents }>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
-  const { taxas } = await carregarRegrasDoMercado()
+  const qty = Math.floor(Number(qtyPedida))
+  const preco = Math.floor(Number(precoUnit))
+  if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(preco) || preco <= 0) {
+    return { ok: false, error: 'Informe quantidade e preço unitário válidos.' }
+  }
+
+  const { taxas, catalogo } = await carregarRegrasDoMercado()
+  if (!isNegociavel(tipoMoeda, catalogo)) {
+    return { ok: false, error: 'Este tipo de moeda não é negociável no mercado.' }
+  }
+
+  const total = custoDeCompraPorMoeda(preco, taxas) * qty
 
   try {
-    const { result } = await mutateState<ActionResult<{ pagoCents: Cents }>>((s) => {
-      const bo = s.buyOrders.find((b) => b.id === bidId)
-      if (!bo) return { ok: false, error: 'Oferta de compra não encontrada.' }
-      if (bo.buyer !== session) return { ok: false, error: 'Esta oferta pertence a outro usuário.' }
-      if ((bo.modalidade ?? 'saldo') !== 'prepago') {
-        return { ok: false, error: 'Esta oferta não é pré-paga.' }
-      }
-
+    const { result } = await mutateState<ActionResult<{ bidId: string; pagoCents: Cents }>>((s) => {
       const u = s.users[session]
       if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-      const { comprador: fee } = comissaoPorMoeda(bo.price, taxas)
-      const falta = (bo.price + fee) * bo.qty - (bo.pagoAntecipadoCents ?? 0)
-      if (falta <= 0) return { ok: false, error: 'Esta oferta já está totalmente paga.' }
-
-      if (u.balance < falta) {
+      if (u.balance < total) {
         return {
           ok: false,
-          error: `Saldo insuficiente: faltam ${brl(falta - u.balance)} para bancar esta oferta.`,
+          error: `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - u.balance)}).`,
         }
       }
 
-      u.balance -= falta
-      bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) + falta
+      const agora = Date.now()
+      u.balance -= total
+
+      const bidId = novoBidId()
+      s.buyOrders.push({
+        id: bidId,
+        buyer: session,
+        price: preco,
+        qty,
+        createdAt: agora,
+        // A prioridade na fila conta do PAGAMENTO, que é quando a oferta passa
+        // a existir. Não há como uma oferta não paga guardar lugar na fila.
+        prioridadeEm: agora,
+        tipoMoeda,
+        modalidade: 'prepago',
+        pagoAntecipadoCents: total,
+      })
 
       matchOrders(s, taxas)
 
       return {
         ok: true,
-        message: `Oferta bancada com ${brl(falta)} do seu saldo. Ela já está valendo no mercado.`,
-        data: { pagoCents: falta },
+        message: `Oferta publicada: ${qty} ${tipoMoeda} a ${brl(preco)} cada, bancada com ${brl(total)} do seu saldo.`,
+        data: { bidId, pagoCents: total },
       }
     })
 
     return result
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Falha ao bancar a oferta pré-paga.'
+    const msg = err instanceof Error ? err.message : 'Falha ao publicar a oferta pré-paga.'
     return { ok: false, error: msg }
   }
 }

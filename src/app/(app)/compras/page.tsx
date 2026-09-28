@@ -82,28 +82,30 @@ export default function ComprasPage(): ReactNode {
       toast(BID_INVALIDO_PUBLICAR)
       return
     }
+    // PRÉ-PAGO NÃO PUBLICA NADA AQUI (28/09/2026).
+    //
+    // Até 27/09 a tela publicava a oferta e só depois cobrava — e a oferta
+    // aparecia no mercado sem lastro nenhum, que foi o que o Gabriel viu com a
+    // de R$ 200,00. Agora o botão só abre a cobrança com o que está no
+    // formulário; quem cria a ordem é o pagamento, pela ação de saldo ou pelo
+    // liquidador do gateway. Fechar o pop-up sem pagar não deixa rastro.
+    if (modalidadeBid === 'prepago') {
+      open(
+        <ModalOfertaPrePaga
+          qty={qtyRaw}
+          tipoMoeda={tipoAtivo}
+          precoUnit={bidPriceCents}
+          totalCents={custoDeCompraPorMoeda(bidPriceCents, taxas) * qtyRaw}
+        />,
+      )
+      return
+    }
+
     const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo, modalidadeBid))
     if (!res.ok) return
 
     setBidQty('1')
     setBidPrice('')
-
-    // PRÉ-PAGO COBRA AGORA, no mesmo pop-up da compra direta do Mercado.
-    //
-    // A oferta pré-paga nasce sem lastro e não casa com nada até o pagamento
-    // ser confirmado. Até 27/09/2026 a tela publicava, dizia "pague X" e não
-    // oferecia lugar nenhum para pagar — a oferta ficava parada no livro.
-    if (modalidadeBid === 'prepago' && res.data) {
-      open(
-        <ModalOfertaPrePaga
-          bidId={res.data.bidId}
-          qty={res.data.qty}
-          tipoMoeda={tipoAtivo}
-          precoUnit={bidPriceCents}
-          totalCents={res.data.aPagarCents}
-        />,
-      )
-    }
   }
 
   return (
@@ -201,11 +203,24 @@ export default function ComprasPage(): ReactNode {
                     titulo: 'Pré-pago',
                     detalhe: 'Você paga agora e a compra acontece sozinha quando alguém vender.',
                   },
-                  {
-                    chave: 'pospago' as const,
-                    titulo: 'Pós-pago',
-                    detalhe: 'Não paga nada agora. Quando a oferta casar, você tem 10 minutos para pagar.',
-                  },
+                  /*
+                   * PÓS-PAGO OCULTO (28/09/2026, decisão do Gabriel).
+                   *
+                   * "Não precisa excluir a feature, só não mostra ela no site,
+                   * acho inseguro usar ela por enquanto até outros aspectos
+                   * estarem mais seguros e testados entre os usuários."
+                   *
+                   * Tudo continua de pé — a reserva de dez minutos, o e-mail, o
+                   * liquidador, a fila que anda quando o prazo vence, os testes.
+                   * O que sai é a OPÇÃO NA TELA. Para voltar, basta
+                   * descomentar este bloco: nada foi removido.
+                   *
+                   * {
+                   *   chave: 'pospago' as const,
+                   *   titulo: 'Pós-pago',
+                   *   detalhe: 'Não paga nada agora. Quando a oferta casar, você tem 10 minutos para pagar.',
+                   * },
+                   */
                 ]
               ).map((o) => {
                 const ativa = modalidadeBid === o.chave
@@ -238,22 +253,13 @@ export default function ComprasPage(): ReactNode {
 
             {modalidadeBid === 'prepago' && bidTotalComComissao > 0 && (
               <div className="note" style={{ marginBottom: 10 }}>
-                A oferta só entra no mercado depois que o pagamento de{' '}
-                <b>{brl(bidTotalComComissao)}</b> for confirmado. Publique e o botão de pagamento
-                aparece na lista das suas ofertas.
-              </div>
-            )}
-
-            {modalidadeBid === 'pospago' && (
-              <div className="note" style={{ marginBottom: 10 }}>
-                Quando alguém aceitar a sua oferta, a moeda fica reservada no seu nome e você recebe
-                um e-mail com <b>10 minutos</b> para pagar. Passado o prazo, ela volta ao mercado e a
-                sua oferta vai para o fim da fila do mesmo preço.
+                O pagamento de <b>{brl(bidTotalComComissao)}</b> vem primeiro: a oferta é publicada
+                quando ele for confirmado, e até lá não aparece no mercado para ninguém.
               </div>
             )}
 
             <button type="button" className="btn btn-gold" onClick={() => void publicarBid()}>
-              Publicar oferta de compra
+              {modalidadeBid === 'prepago' ? 'Pagar e publicar oferta' : 'Publicar oferta de compra'}
             </button>
 
             <div className="note">

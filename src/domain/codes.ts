@@ -73,3 +73,16 @@ export function initials(n: string): string {
     .join('')
     .toUpperCase()
 }
+
+/**
+ * Id de oferta de compra, no formato da linha 1720 do monolito.
+ *
+ * Mora aqui, e não em `server/actions/market.ts`, desde 28/09/2026: três
+ * lugares criam ordem de compra agora — a publicação comum, a publicação
+ * pré-paga com saldo e o liquidador da conciliação, que cria a ordem quando o
+ * gateway confirma o pagamento. Um arquivo `'use server'` só exporta função
+ * assíncrona, então a cópia privada de lá não podia ser compartilhada.
+ */
+export function novoBidId(): string {
+  return 'BID-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)
+}
