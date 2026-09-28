@@ -98,8 +98,13 @@ export function ModalOfertaPrePaga({
       } else {
         setErro('Não foi possível abrir a tela de pagamento. Tente novamente.')
       }
-    } catch {
-      setErro('Não foi possível falar com o meio de pagamento. Tente novamente.')
+    } catch (err) {
+      // Nem toda falha aqui é do meio de pagamento — a ação faz várias coisas
+      // antes de chamá-lo. O texto genérico foi o que escondeu, por seis dias,
+      // uma constraint de banco desatualizada: a tela culpava o gateway, e o
+      // gateway funcionava na tela ao lado.
+      console.error('[ModalOfertaPrePaga] falha ao abrir a cobrança:', err)
+      setErro('Não foi possível abrir a cobrança agora. Tente de novo; se persistir, avise o suporte.')
     } finally {
       setEnviando(false)
     }

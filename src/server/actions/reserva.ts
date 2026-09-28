@@ -195,19 +195,31 @@ export async function iniciarPagamentoReserva(
 
   const externalReference = `RSV-${randomUUID()}`
   const intencoes = repositorioIntencoes()
-  await intencoes.criar({
-    externalReference,
-    userEmail: session,
-    valor: r.totalCents,
-    metodo: forma === 'pix' ? 'pix' : 'checkout_pro',
-    status: 'pendente',
-    tipoOperacao: 'reserva_compra',
-    metadata: { reservaId: r.id },
-    paymentId: null,
-    motivoRecusa: null,
-    createdAt: agora,
-    updatedAt: agora,
-  })
+
+  // Mesmo cuidado de `iniciarOfertaPrePaga`: falha ao gravar a intenção é erro
+  // desta etapa, não do gateway, e o texto precisa dizer isso. Aqui o motivo é
+  // mais grave do que lá — o relógio da reserva está correndo.
+  try {
+    await intencoes.criar({
+      externalReference,
+      userEmail: session,
+      valor: r.totalCents,
+      metodo: forma === 'pix' ? 'pix' : 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'reserva_compra',
+      metadata: { reservaId: r.id },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+  } catch (err) {
+    console.error('[iniciarPagamentoReserva] falha ao gravar a intenção de pagamento:', err)
+    return {
+      ok: false,
+      error: 'Não foi possível registrar a cobrança desta reserva. Nada foi cobrado — avise o suporte.',
+    }
+  }
 
   await mutateState((s) => {
     const alvo = (s.reservas ?? []).find((x) => x.id === reservaId)
@@ -298,20 +310,38 @@ export async function iniciarOfertaPrePaga(
   const externalReference = `PRE-${randomUUID()}`
   const agora = Date.now()
   const intencoes = repositorioIntencoes()
-  await intencoes.criar({
-    externalReference,
-    userEmail: session,
-    valor: total,
-    metodo: forma === 'pix' ? 'pix' : 'checkout_pro',
-    status: 'pendente',
-    tipoOperacao: 'oferta_prepaga',
-    // A oferta inteira viaja aqui: é com isto que o liquidador a cria.
-    metadata: { qty, price: preco, tipoMoeda },
-    paymentId: null,
-    motivoRecusa: null,
-    createdAt: agora,
-    updatedAt: agora,
-  })
+
+  /*
+   * GRAVAR A INTENÇÃO É UM PASSO QUE PODE FALHAR SOZINHO, E PRECISA DIZER ISSO.
+   *
+   * Ficava fora do try: qualquer falha aqui subia como exceção crua, a tela a
+   * tratava no catch genérico e dizia "erro de comunicação com o gateway" —
+   * mesmo sem o gateway ter sido chamado. Foi o que escondeu, de 22 a 28/09,
+   * uma constraint de banco desatualizada (migration 038): o tipo
+   * 'oferta_prepaga' existia no código e não existia no CHECK da tabela.
+   */
+  try {
+    await intencoes.criar({
+      externalReference,
+      userEmail: session,
+      valor: total,
+      metodo: forma === 'pix' ? 'pix' : 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'oferta_prepaga',
+      // A oferta inteira viaja aqui: é com isto que o liquidador a cria.
+      metadata: { qty, price: preco, tipoMoeda },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+  } catch (err) {
+    console.error('[iniciarOfertaPrePaga] falha ao gravar a intenção de pagamento:', err)
+    return {
+      ok: false,
+      error: 'Não foi possível registrar a cobrança desta oferta. Nada foi cobrado — avise o suporte.',
+    }
+  }
 
   const titulo = `Oferta de compra de ${qty} ${tipoMoeda} — Real Olímpico`
   const descricao = `Pagamento antecipado · ${brl(preco)} por moeda + taxa de ${brl(fee)}`
