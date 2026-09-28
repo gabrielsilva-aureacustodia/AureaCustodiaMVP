@@ -243,6 +243,13 @@ describe('moeda em reserva aberta não volta ao livro por reanúncio (28/09/2026
     // A oferta sai do livro quando a reserva nasce: é assim que `abrirReserva`
     // a guarda, e é o que fazia a moeda parecer livre.
     s.sellOffers = []
+    // `availableCoinsForSell` olha o RELÓGIO DE VERDADE para decidir se a
+    // reserva ainda vale (28/09/2026: o prazo conta, não só o status — ver
+    // `moedaEmReservaAberta`). Como `AGORA` aqui é um carimbo fixo no passado,
+    // `expiraEm` precisa ser calculado a partir de `Date.now()` para o caso
+    // 'aguardando_pagamento' realmente valer como "ainda dentro do prazo".
+    const expiraEm =
+      status === 'aguardando_pagamento' ? Date.now() + PRAZO_DA_RESERVA_MS : AGORA + PRAZO_DA_RESERVA_MS
     s.reservas = [
       {
         id: 'RSV-1',
@@ -256,7 +263,7 @@ describe('moeda em reserva aberta não volta ao livro por reanúncio (28/09/2026
         totalCents: 28742,
         oferta: oferta('OF-1', 'vendedor', 'RO-000001', 28500),
         criadaEm: AGORA,
-        expiraEm: AGORA + PRAZO_DA_RESERVA_MS,
+        expiraEm,
         status,
         paymentIntentRef: null,
         avisadoEm: null,

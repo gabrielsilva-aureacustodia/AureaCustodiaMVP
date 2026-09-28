@@ -168,6 +168,39 @@ export function reservasEmAberto(
 }
 
 /**
+ * A moeda está presa numa reserva ainda em aberto?
+ *
+ * ESTA É A CHECAGEM QUE `publishOffer` NUNCA FEZ (28/09/2026, achado do
+ * Gabriel). Quando uma oferta pós-paga casa, a moeda SAI de `sellOffers` e
+ * fica guardada dentro da reserva por dez minutos — o vendedor continua dono
+ * dela, mas ela não está mais anunciada. `publishOffer` só recusava moeda que
+ * já estivesse EM `sellOffers`; uma moeda reservada não está, então parecia
+ * livre para anunciar de novo. Foi assim que a Rozâne conseguiu publicar a
+ * RO-000101 a R$ 400,00 enquanto ela ainda estava reservada para o comprador
+ * do bid de R$ 200,00 — dezenove segundos depois de casar.
+ *
+ * `availableCoinsForSell` (src/domain/market.ts) já usava esta regra desde a
+ * primeira correção do dia; esta função existe para que `publishOffer`, que
+ * tem o próprio filtro de moedas e nunca chamava `availableCoinsForSell`,
+ * passe a checar exatamente a mesma coisa.
+ */
+export function moedaEmReservaAberta(
+  state: AppState,
+  coinId: string,
+  agora: Timestamp = Date.now(),
+): boolean {
+  // O PRAZO CONTA, NÃO Só O STATUS. `expirarReservasVencidas` é quem muda o
+  // status para 'expirada' — e ela só roda dentro de `matchOrders`. Uma
+  // reserva com o prazo já vencido mas ainda marcada 'aguardando_pagamento'
+  // (porque a varredura ainda não passou nesta transação) precisa contar como
+  // LIVRE aqui, senão `publishOffer` recusaria republicar uma moeda cujo
+  // comprador já perdeu o prazo há muito tempo.
+  return (state.reservas ?? []).some(
+    (r) => r.coinId === coinId && r.status === 'aguardando_pagamento' && r.expiraEm > agora,
+  )
+}
+
+/**
  * Fecha as reservas cujo prazo venceu e devolve as moedas ao mercado.
  *
  * Devolve as reservas que expiraram nesta passagem, para quem chamou poder

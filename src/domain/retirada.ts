@@ -16,6 +16,7 @@
  */
 
 import type {
+  AppState,
   Cents,
   EnderecoEntrega,
   EventoHistoricoRetirada,
@@ -24,6 +25,28 @@ import type {
   StatusRetirada,
   Timestamp,
 } from './types'
+
+/**
+ * A moeda tem uma retirada física em andamento?
+ *
+ * ESTA É A CHECAGEM QUE `publishOffer` NUNCA FEZ (28/09/2026, achado do
+ * Gabriel, mesma família do buraco da reserva em aberto). `availableCoinsForSell`
+ * (src/domain/market.ts) já recusa moeda com retirada `solicitada`, `paga`,
+ * `separacao` ou `postada` — mas `publishOffer` mantém o próprio filtro de
+ * moedas, que nunca perguntava isso. Sem esta trava, dava para anunciar para
+ * venda uma moeda que já está a caminho dos Correios para outro endereço.
+ *
+ * `entregue` e `extraviada` NÃO contam: a etapa acabou (entregue = já saiu do
+ * Real Olímpico; extraviada é caso raro tratado à parte), e a moeda ali já tem
+ * `recibo.status: 'Extinto'`, que outra checagem já barra.
+ */
+export function moedaComRetiradaEmAndamento(state: AppState, coinId: string): boolean {
+  return (state.retiradas ?? []).some(
+    (r) =>
+      r.coinId === coinId &&
+      (r.status === 'solicitada' || r.status === 'paga' || r.status === 'separacao' || r.status === 'postada'),
+  )
+}
 
 /** Interface da tabela de taxas para retiradas físicas (compatível com TabelaDeTaxas da Frente A). */
 export interface TabelaDeTaxasRetirada {

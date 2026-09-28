@@ -30,6 +30,7 @@ import { nextEnvioCode } from '@/domain/codes'
 import { faixaValor, isNegociavel, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { medianSellPrice } from '@/domain/market'
+import { moedaEmReservaAberta } from '@/domain/reserva-de-compra'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
@@ -530,6 +531,21 @@ export async function solicitarRetirada(
         return {
           ok: false,
           error: 'Esta moeda está anunciada no mercado. Cancele o anúncio antes de solicitar a retirada.',
+        } as const
+      }
+
+      // MOEDA EM RESERVA ABERTA NÃO SAI PARA RETIRADA (28/09/2026, achado do
+      // Gabriel na mesma família do buraco da RO-000101). Uma oferta pós-paga
+      // que casou tira a moeda de `sellOffers` — ela some do mercado, mas
+      // continua prometida a um comprador que pode pagar a qualquer segundo
+      // dentro dos dez minutos. Sem esta trava, o dono podia pedir a retirada
+      // física dessa mesma moeda nesse intervalo: se o comprador pagasse
+      // depois, a transferência encontraria uma moeda que já tinha saído do
+      // Real Olímpico pelos Correios.
+      if (moedaEmReservaAberta(state, coinId)) {
+        return {
+          ok: false,
+          error: 'Esta moeda está reservada para um comprador que pode confirmar o pagamento a qualquer momento. Aguarde a reserva vencer ou ser paga antes de solicitar a retirada.',
         } as const
       }
 

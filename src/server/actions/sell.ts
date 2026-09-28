@@ -35,6 +35,8 @@ import { temCadastroCompleto } from '@/domain/cadastro'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, transferirMoedaVendida } from '@/domain/market'
+import { moedaEmReservaAberta } from '@/domain/reserva-de-compra'
+import { moedaComRetiradaEmAndamento } from '@/domain/retirada'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, SellOffer } from '@/domain/types'
 import { apelidoComprador } from '@/domain/contraparte'
@@ -161,6 +163,21 @@ export async function publishOffer(
           .filter((c): c is NonNullable<typeof c> => !!c)
           .filter((c) => c.recibo.status === 'Ativo')
           .filter((c) => !s.sellOffers.some((o) => o.coinId === c.id))
+          // MOEDA EM RESERVA ABERTA NÃO SE ANUNCIA DE NOVO (28/09/2026, achado
+          // do Gabriel). Quando uma oferta pós-paga casa, a moeda sai de
+          // `sellOffers` e fica guardada na reserva por dez minutos — o filtro
+          // acima ("já tem oferta aberta?") não via nada, porque a moeda
+          // literalmente não estava mais lá. Foi assim que a Rozâne conseguiu
+          // publicar a RO-000101 de novo, a R$ 400,00, dezenove segundos depois
+          // de ela ter casado com um comprador a R$ 200,00 — e quando a
+          // reserva original venceu sem pagamento, a oferta de R$ 200,00 não
+          // pôde voltar (a trava contra anúncio duplicado da mesma moeda
+          // bloqueou, corretamente), e a vaga dela simplesmente sumiu.
+          .filter((c) => !moedaEmReservaAberta(s, c.id))
+          // MESMA FAMÍLIA DE BURACO: moeda com retirada física em andamento
+          // também não se anuncia — sem isto dava para publicar uma moeda que
+          // já está a caminho dos Correios para outro endereço.
+          .filter((c) => !moedaComRetiradaEmAndamento(s, c.id))
 
         if (!validas.length) {
           return {
