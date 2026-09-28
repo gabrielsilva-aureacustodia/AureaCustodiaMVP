@@ -71,9 +71,15 @@ function cenario(): FontesKpi {
   const recebida = moeda('RO-000002', DH)
   recebida.statusFisico = 'Recebido'
 
+  // `usuario()` passou a dar cadastro COMPLETO por padrão (28/09/2026, para
+  // que os testes do motor de mercado não percam ofertas pela nova trava de
+  // cadastro). Este teste testa `comCadastro`, que conta a PRESENÇA do objeto
+  // (Boolean(u.cadastro)), não a completude — então os três cenários de
+  // cadastro (nenhum, iniciado e incompleto, completo) precisam ser
+  // explicitados aqui, em vez de herdados do padrão da fixture.
   const a = { ...usuario('A', 10000, [moeda('RO-000001', BAN), recebida]), lastAccess: AGORA - 2 * DIA, cadastro: {} as NonNullable<AppState['users'][string]['cadastro']> }
-  const b = { ...usuario('B', 0, [extinta]), lastAccess: AGORA - 40 * DIA }
-  const c = usuario('C', 500, [])
+  const b = { ...usuario('B', 0, [extinta]), lastAccess: AGORA - 40 * DIA, cadastro: undefined }
+  const c = { ...usuario('C', 500, []), cadastro: undefined }
   const s = estado({ 'a@x.com': a, 'b@x.com': b, 'c@x.com': c })
 
   const doisLados = { price: 20000, qty: 1, date: SET(2), buyer: 'b@x.com', seller: 'a@x.com', fee: 400, feeComprador: 200, feeVendedor: 200, tipoMoeda: BAN } as Trade

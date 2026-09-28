@@ -26,7 +26,7 @@ import type {
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
 import { faturaBloqueia, isInadimplente } from '@/domain/custody'
-import { matchOrders } from '@/domain/market'
+import { expurgarOfertasSemCadastro, matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
   'Esta conta tem fatura de custódia vencida. Enquanto ela estiver em aberto, os recibos ficam bloqueados para venda e retirada. Pague em Minha conta › Faturas de custódia para liberar na hora.'
@@ -304,6 +304,10 @@ export function casarOrdensRespeitandoPendencia(
   agora: Timestamp,
   bloqueaveis: ReadonlySet<UserEmail>,
 ): MatchResult {
+  // NINGUÉM SEM CADASTRO COMPLETO NEGOCIA (28/09/2026, decisão do Gabriel).
+  // Ver o cabeçalho de `expurgarOfertasSemCadastro` em src/domain/market.ts.
+  expurgarOfertasSemCadastro(state)
+
   // Expurgar do livro qualquer oferta de moeda cuja custódia não foi paga (AG8)
   expurgarOfertasSemCustodia(state)
 

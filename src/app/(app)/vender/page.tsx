@@ -39,7 +39,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
-import { apelidoComprador } from '@/domain/contraparte'
 import {
   MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
   moedasComCustodiaNaoPagaDoUsuario,
@@ -47,7 +46,6 @@ import {
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
-import type { BuyOrder } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { TipoSelector } from '@/components/market/TipoSelector'
@@ -56,16 +54,11 @@ import { ComoPrecoEFormado } from '@/components/market/ComoPrecoEFormado'
 import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAcontece'
 import { CoinPicker } from '@/components/sell/CoinPicker'
 import { ModalCustodiaNaoPaga } from '@/components/sell/ModalCustodiaNaoPaga'
-import { SellerBidRow } from '@/components/sell/SellerBidRow'
-import { useModal } from '@/components/ui/Modal'
-import { useToast } from '@/components/ui/Toast'
-import { publishOffer, sellToBid } from '@/server/actions/sell'
+import { publishOffer } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
-  const { state, session, me, run, taxas, catalogo } = useApp()
+  const { state, me, run, taxas, catalogo } = useApp()
   const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
-  const modal = useModal()
-  const toast = useToast()
 
   useEffect(() => {
     void consultar()
@@ -110,13 +103,6 @@ export default function VenderPage(): ReactNode {
   const anunciadas = new Set(state.sellOffers.map((o) => o.coinId))
   // Livres DO TIPO ATIVO — é o teto do campo de quantidade e da seleção.
   const avail = availableCoinsForSell(state, me, tipoAtivo, catalogo)
-  // Ofertas de compra das OUTRAS contas, da mais alta para a mais baixa: quem
-  // vende quer ver primeiro quem paga mais. De TODOS os tipos, de propósito —
-  // o vendedor pode ter moedas de mais de um ativo, e esconder os bids dos
-  // outros tipos esconderia dinheiro que está na mesa para ele.
-  const bidsDeTerceiros = state.buyOrders
-    .filter((b) => b.buyer !== session)
-    .sort((a, b) => b.price - a.price)
   const media7 = avg7(state, tipoAtivo)
 
   /** Quantas moedas livres o usuário tem de cada tipo — alimenta o seletor. */
@@ -266,23 +252,6 @@ export default function VenderPage(): ReactNode {
       setPrecoTexto('')
       setObs('')
     }
-  }
-
-  /* ---------- modais --------------------------------------------------------- */
-  function abrirVendaDireta(bid: BuyOrder): void {
-    // Limite calculado ANTES de abrir, como em openSellToBidModal (linha 1735):
-    // não faz sentido abrir um stepper que não pode passar de zero.
-    //
-    // O estoque conferido é o DO TIPO DO BID, e não o do tipo ativo no seletor:
-    // a lista de ofertas recebidas mostra todos os ativos, então dá para vender
-    // uma Direitos Humanos com a tela apontada para a Bandeira.
-    const livresDoTipo = availableCoinsForSell(state, me, bid.tipoMoeda, catalogo).length
-    const maxQ = Math.min(bid.qty, livresDoTipo)
-    if (maxQ <= 0) {
-      toast(`Você não possui ${bid.tipoMoeda} disponível para vender agora.`)
-      return
-    }
-    modal.open(<ModalVenderParaBid bidId={bid.id} maxQ={maxQ} />)
   }
 
   /* ---------- desenho -------------------------------------------------------- */
@@ -458,32 +427,13 @@ export default function VenderPage(): ReactNode {
 
       {/* ================= coluna 3 — bids recebidos e formação de preço ====== */}
       <div>
-        <div className="panel" style={{ marginBottom: 18 }}>
-          <h3>
-            <svg viewBox="0 0 24 24">
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-            Ofertas de compra recebidas
-          </h3>
-          {bidsDeTerceiros.length ? (
-            bidsDeTerceiros.map((b) => (
-              <SellerBidRow
-                key={b.id}
-                bid={b}
-                // Quantas moedas DESTE tipo o vendedor tem livres agora. O botão
-                // fica apagado quando é zero, em vez de abrir a modal só para
-                // recusar em seguida.
-                livres={
-                  pendencia ? 0 : availableCoinsForSell(state, me, b.tipoMoeda, catalogo).length
-                }
-                onSellDirect={() => abrirVendaDireta(b)}
-              />
-            ))
-          ) : (
-            <div className="empty">Nenhuma oferta de compra no momento.</div>
-          )}
-        </div>
-
+        {/* O painel "Ofertas de compra recebidas" saiu daqui em 28/09/2026, a
+            pedido do Gabriel: ficava sempre desatualizado (o ciclo de
+            sincronização de 10s não é rápido o bastante para uma lista que o
+            comprador também está mexendo) e a venda direta a partir dela não
+            era usada. Quem quiser vender continua publicando o anúncio à
+            esquerda — é o motor de casamento automático que encontra o
+            comprador, sem precisar que o vendedor escolha um da lista. */}
         <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
         <ComoNegociacaoAcontece />
       </div>
@@ -492,104 +442,6 @@ export default function VenderPage(): ReactNode {
     <div style={{ marginTop: 24 }}>
       <MinhasOfertas />
     </div>
-    </>
-  )
-}
-
-/* ========================================================================== */
-/* Modal — vender direto para um bid (renderSellToBidModal, linhas 1741-1763)  */
-/* ========================================================================== */
-
-/**
- * `maxQ` chega congelado do momento da abertura, como no original (linha 1735).
- * Já o bid é lido do estado VIVO a cada render: o ciclo de sincronização de 10s
- * pode derrubá-lo enquanto a modal está aberta, e nesse caso a modal se fecha
- * sozinha — é o `if(!bo){ closeModal(); return; }` da linha 1743.
- */
-function ModalVenderParaBid({ bidId, maxQ }: { bidId: string; maxQ: number }): ReactNode {
-  const { state, run, taxas } = useApp()
-  const { close } = useModal()
-  const [qty, setQty] = useState(1)
-
-  const bo = state.buyOrders.find((b) => b.id === bidId)
-
-  // O fechamento vai para um efeito porque mudar estado de outro componente
-  // durante a renderização deste é proibido pelo React.
-  useEffect(() => {
-    if (!bo) close()
-  }, [bo, close])
-
-  if (!bo) return null
-
-  const total = bo.price * qty
-
-  function ajustar(d: number): void {
-    setQty((atual) => Math.min(maxQ, Math.max(1, atual + d)))
-  }
-
-  function confirmar(): void {
-    // Fecha ANTES de disparar, como execSellToBid (linha 1766): a confirmação já
-    // foi dada, e deixar a modal aberta durante a ida ao servidor convidaria a um
-    // segundo clique.
-    close()
-    void run(() => sellToBid(bidId, qty))
-  }
-
-  return (
-    <>
-      <h3 className="serif">Vender direto para esta oferta</h3>
-      <p>
-        Moeda: <b style={{ color: 'var(--gold)' }}>{bo.tipoMoeda}</b>
-      </p>
-      {/* O nome do comprador saiu daqui em 10/09/2026 (D-5). Quem decide
-          vender precisa saber o preço e a quantidade, não de quem é a oferta. */}
-      <p>
-        <b>{apelidoComprador(bo.id)}</b> · Preço: <b>{brl(bo.price)}</b> por unidade
-      </p>
-
-      <div className="stepper" style={{ justifyContent: 'center', margin: '18px 0' }}>
-        <button type="button" disabled={qty <= 1} onClick={() => ajustar(-1)} aria-label="Diminuir">
-          −
-        </button>
-        <span className="n" style={{ fontSize: 20 }}>
-          {qty}
-        </span>
-        <button
-          type="button"
-          disabled={qty >= maxQ}
-          onClick={() => ajustar(1)}
-          aria-label="Aumentar"
-        >
-          +
-        </button>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>de {maxQ} disponíveis</span>
-      </div>
-
-      <div className="summary-row" style={{ marginTop: 12 }}>
-        <span className="k">Subtotal bruto</span>
-        <span className="v">{brl(total)}</span>
-      </div>
-      <div className="summary-row">
-        <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
-        <span className="v">- {brl(comissaoPorMoeda(bo.price, 'vendedor', taxas) * qty)}</span>
-      </div>
-      <div className="summary-row total" style={{ marginBottom: 16 }}>
-        <span className="k">Você recebe</span>
-        <span className="v" style={{ fontSize: 17 }}>
-          {qty > 1
-            ? `${brl(liquidoDeVendaPorMoeda(bo.price, taxas) * qty)} (${brl(liquidoDeVendaPorMoeda(bo.price, taxas))}/moeda)`
-            : brl(liquidoDeVendaPorMoeda(bo.price, taxas) * qty)}
-        </span>
-      </div>
-
-      <div className="m-actions">
-        <button className="btn btn-outline" type="button" onClick={close}>
-          Cancelar
-        </button>
-        <button className="btn btn-gold" type="button" onClick={confirmar}>
-          Confirmar venda
-        </button>
-      </div>
     </>
   )
 }

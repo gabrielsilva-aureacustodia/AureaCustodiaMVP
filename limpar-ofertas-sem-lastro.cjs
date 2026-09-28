@@ -167,7 +167,27 @@ function reais(cents) {
       )
     }
 
-    // 3. As ordens saem do livro. A tabela de reservas não tem FK para
+    // 3. O HISTÓRICO REGISTRA A SAÍDA, ANTES DE APAGAR.
+    //
+    // `aurea.ofertas_historico` é preenchido automaticamente por
+    // `src/server/db/derivar.ts`, que compara o estado antes e depois de cada
+    // `mutateState`. Um script como este fala SQL direto com o banco e passa
+    // longe dessa derivação — então a ordem simplesmente sumia, sem evento
+    // nenhum. Foi o que fez as ordens parecerem ter "desaparecido sozinhas"
+    // quando o Gabriel comparou o que os clientes diziam ter publicado com o
+    // que o site mostrava. Toda limpeza por fora do aplicativo precisa deixar
+    // o mesmo rastro que o aplicativo deixaria.
+    for (const b of alvos) {
+      await c.query(
+        `INSERT INTO aurea.ofertas_historico
+           (created_at, lado, oferta_id, lot_id, conta, tipo_moeda, evento,
+            preco_antes, preco_depois, qtd_antes, qtd_depois, perdeu_a_vez)
+         VALUES ($1, 'compra', $2, NULL, $3, $4, 'cancelada', $5, NULL, $6, 0, false)`,
+        [String(agora), b.id, b.buyer, b.tipo_moeda, String(b.price), b.qty],
+      )
+    }
+
+    // 4. As ordens saem do livro. A tabela de reservas não tem FK para
     //    buy_orders (rastro, decisão da migration 036), então as reservas
     //    antigas continuam registradas com o bid_id que já não existe.
     await c.query(`DELETE FROM aurea.buy_orders WHERE id = ANY($1)`, [ids])

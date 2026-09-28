@@ -40,6 +40,7 @@ import { _limparRepositoriosEmMemoria, repositorioIntencoes } from '@/server/pay
 import { _limparRetiradasMemoriaParaTestes } from '@/server/shipping/retiradas'
 import { MENSAGEM_CUSTODIA_NAO_PAGA } from '@/domain/bloqueio-por-debito'
 import { competenciaAtual } from '@/domain/custody'
+import { cadastroCompleto } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 import { salvarCadastro } from './account'
 import { situacaoDoBloqueioPorPendencia } from './bloqueio-por-debito'
@@ -202,6 +203,15 @@ beforeEach(async () => {
       if (c.recibo.status === 'Bloqueado') c.recibo.status = 'Ativo'
     })
     s.users[GABRIEL].balance = 1_000_000
+
+    // Cadastro formal completo (28/09/2026): publicar oferta, vender direto
+    // para um bid e comprar direto passaram a exigir cadastro completo, e
+    // este arquivo testa pendência de custódia, não cadastro. GABRIEL segue
+    // completando o próprio cadastro mais abaixo, num teste específico —
+    // redundante com isto, e inofensivo.
+    s.users[CLIENTE].cadastro = cadastroCompleto()
+    s.users[ROGERIO].cadastro = cadastroCompleto()
+    s.users[GABRIEL].cadastro = cadastroCompleto()
   })
 
   await custodiaEmDia()

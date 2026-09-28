@@ -7,6 +7,7 @@ vi.mock('@/server/session', () => ({ getSessionEmail }))
 
 import { COIN } from '@/domain/constants'
 import { competenciaAtual } from '@/domain/custody'
+import { cadastroCompleto } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 import { publishBid, editBid } from './market'
 import { publishOffer, editLot } from './sell'
@@ -26,9 +27,14 @@ describe('Ações de ordens — prioridade, edição e fila justa (A2, Decisão 
       s.trades = []
       if (s.users[ROGERIO]) {
         s.users[ROGERIO].balance = 100_000
+        // Cadastro formal completo (28/09/2026): publicar oferta de venda ou
+        // de compra passou a exigir cadastro completo, e este arquivo testa
+        // prioridade e fila, não cadastro.
+        s.users[ROGERIO].cadastro = cadastroCompleto()
       }
       if (s.users[GABRIEL]) {
         s.users[GABRIEL].balance = 100_000
+        s.users[GABRIEL].cadastro = cadastroCompleto()
       }
 
       // Custódia em dia no mês corrente. Desde 23/09/2026 publicar venda exige

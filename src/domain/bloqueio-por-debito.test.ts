@@ -9,7 +9,8 @@ import {
 } from '@/domain/bloqueio-por-debito'
 import { matchOrders } from '@/domain/market'
 import { TAXAS_PADRAO } from '@/domain/fees'
-import type { AppState, BuyOrder, FaturaCustodia, SellOffer, User } from '@/domain/types'
+import { cadastroCompleto } from '@/domain/testing/fixtures'
+import type { AppState, BuyOrder, Coin, FaturaCustodia, SellOffer, User } from '@/domain/types'
 
 function criarUsuario(email: string, inadimplente = false): User & { email: string } {
   return {
@@ -18,6 +19,11 @@ function criarUsuario(email: string, inadimplente = false): User & { email: stri
     balance: 100000,
     coins: [],
     inadimplente,
+    // Cadastro completo por padrão (28/09/2026): este arquivo testa pendência
+    // de custódia, não cadastro, e `casarOrdensRespeitandoPendencia` passou a
+    // expurgar quem não tem cadastro completo. Sem isto, os testes de
+    // casamento perderiam as ofertas antes mesmo de checar a pendência.
+    cadastro: cadastroCompleto(),
   }
 }
 
@@ -511,5 +517,110 @@ describe('casarOrdensRespeitandoPendencia', () => {
     expect(res2.matched).toBe(true)
     expect(res2.trades.length).toBe(1)
     expect(res2.trades[0].seller).toBe(vendedorBloqueado.email)
+  })
+})
+
+describe('cadastro incompleto tira a oferta do livro (28/09/2026)', () => {
+  const agora = 1790600000000
+  const tipoMoeda = 'Entrega da Bandeira Olímpica'
+
+  function moedaDe(id: string, dono: string): Coin {
+    return {
+      id,
+      tipoMoeda,
+      ano: 2016,
+      entrada: '28/09/2026',
+      statusFisico: 'Armazenado',
+      statusDigital: 'Validado',
+      valorEstimado: 20000,
+      protocolo: `RO-ENV-${dono}`,
+      recibo: { codigo: `REC-${id}`, hash: 'h', dataEmissao: '28/09/2026', status: 'Ativo' },
+    }
+  }
+
+  it('oferta de venda de conta SEM cadastro completo some do livro; a de quem tem cadastro fica', () => {
+    const semCadastro = criarUsuario('semcadastro@exemplo.com.br', false)
+    delete (semCadastro as { cadastro?: unknown }).cadastro
+    semCadastro.coins = [moedaDe('RO-SC1', 'semcadastro')]
+
+    const comCadastro = criarUsuario('comcadastro@exemplo.com.br', false)
+    comCadastro.coins = [moedaDe('RO-CC1', 'comcadastro')]
+
+    const state: AppState = {
+      users: { [semCadastro.email]: semCadastro, [comCadastro.email]: comCadastro },
+      sellOffers: [
+        { id: 'SO-SC1', lotId: 'LOT-SC1', seller: semCadastro.email, coinId: 'RO-SC1', price: 20000, tipoMoeda, createdAt: agora, prioridadeEm: agora, obs: '' },
+        { id: 'SO-CC1', lotId: 'LOT-CC1', seller: comCadastro.email, coinId: 'RO-CC1', price: 20000, tipoMoeda, createdAt: agora, prioridadeEm: agora, obs: '' },
+      ],
+      buyOrders: [],
+      trades: [],
+      envios: [],
+      seq: { coin: 0, envio: 0 },
+      deposits: [],
+      analises: [],
+    }
+
+    casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, new Set())
+
+    expect(state.sellOffers.map((o) => o.id)).toEqual(['SO-CC1'])
+  })
+
+  it('ordem de compra de conta SEM cadastro completo some do livro e devolve o dinheiro preso', () => {
+    const semCadastro = criarUsuario('semcadastro2@exemplo.com.br', false)
+    delete (semCadastro as { cadastro?: unknown }).cadastro
+    semCadastro.balance = 1000
+
+    const state: AppState = {
+      users: { [semCadastro.email]: semCadastro },
+      sellOffers: [],
+      buyOrders: [
+        {
+          id: 'BO-SC1',
+          buyer: semCadastro.email,
+          price: 20000,
+          qty: 1,
+          tipoMoeda,
+          createdAt: agora,
+          modalidade: 'prepago',
+          pagoAntecipadoCents: 20200,
+        },
+      ],
+      trades: [],
+      envios: [],
+      seq: { coin: 0, envio: 0 },
+      deposits: [],
+      analises: [],
+    }
+
+    casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, new Set())
+
+    expect(state.buyOrders).toHaveLength(0)
+    // O dinheiro que estava preso à oferta pré-paga volta para o saldo — não
+    // some junto com a ordem.
+    expect(state.users[semCadastro.email].balance).toBe(1000 + 20200)
+  })
+
+  it('cadastro incompleto (objeto presente, campo faltando) também some do livro', () => {
+    const incompleto = criarUsuario('incompleto@exemplo.com.br', false)
+    // CPF ausente: `temCadastroCompleto` recusa mesmo com o resto preenchido.
+    incompleto.cadastro = { ...incompleto.cadastro!, cpf: '' }
+    incompleto.coins = [moedaDe('RO-IN1', 'incompleto')]
+
+    const state: AppState = {
+      users: { [incompleto.email]: incompleto },
+      sellOffers: [
+        { id: 'SO-IN1', lotId: 'LOT-IN1', seller: incompleto.email, coinId: 'RO-IN1', price: 20000, tipoMoeda, createdAt: agora, prioridadeEm: agora, obs: '' },
+      ],
+      buyOrders: [],
+      trades: [],
+      envios: [],
+      seq: { coin: 0, envio: 0 },
+      deposits: [],
+      analises: [],
+    }
+
+    casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, new Set())
+
+    expect(state.sellOffers).toHaveLength(0)
   })
 })

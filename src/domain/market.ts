@@ -26,9 +26,11 @@ import { DAY_MS, fdate } from '@/domain/dates'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import { moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import { temCadastroCompleto } from '@/domain/cadastro'
 import {
   abrirReserva,
   bidJaFalhouComAMoeda,
+  devolverLastroDoBid,
   expirarReservasVencidas,
   expurgarOrdensSemLastro,
   fundosDoBid,
@@ -270,6 +272,63 @@ export function transferirMoedaVendida(
 }
 
 /* ---------- motor de casamento de ordens (bid x ask) ---------- */
+
+/**
+ * Tira do livro toda oferta de venda e ordem de compra de conta SEM cadastro
+ * formal completo — decisão do Gabriel de 28/09/2026: "deveria travar
+ * qualquer negociação sem ela ter cadastro completo".
+ *
+ * POR QUE ISTO PRECISOU EXISTIR
+ * ------------------------------
+ * `temCadastroCompleto` (src/domain/cadastro.ts) já existia e já travava
+ * depósito, compra direta e envio — mas nunca foi ligado a PUBLICAR uma
+ * oferta de venda ou de compra. A conta da Rozâne, com cadastro incompleto,
+ * conseguiu anunciar moeda normalmente: o botão de publicar no cliente não
+ * checava nada, e a Server Action por trás dele também não. Uma trava
+ * checada só na hora de comprar (`iniciarCompraDireta`, em payments.ts) é
+ * meia trava — o resto do mercado inteiro ficava do lado de fora.
+ *
+ * DUAS CAMADAS, NÃO UMA
+ * ----------------------
+ * As Server Actions que publicam oferta (`publishOffer`, `publishBid`,
+ * `sellToBid`, `iniciarOfertaPrePaga`, `publicarOfertaPrePagaComSaldo`) agora
+ * recusam de cara, com mensagem explicando o motivo — é o que dá ao usuário
+ * uma resposta imediata em vez de uma oferta que silenciosamente nunca
+ * executa. Esta função é a segunda camada: chamada de dentro de
+ * `casarOrdensRespeitandoPendencia` (src/domain/bloqueio-por-debito.ts), ela
+ * expurga qualquer oferta que já esteja no livro (as antigas, de antes desta
+ * correção, e qualquer uma que escape por um caminho novo que ninguém pensou
+ * em travar na entrada).
+ *
+ * MORA AQUI, MAS NÃO É CHAMADA DE DENTRO DE `matchOrders`, DE PROPÓSITO. É o
+ * mesmo desenho de `expurgarOfertasSemCustodia` (AG8): as duas vivem fora do
+ * motor puro, porque `matchOrders` é chamado direto, sem o embrulho, pelos
+ * testes de CD-03 (a rede que protege preço-tempo e a aritmética da
+ * comissão) — e por reserva.ts/conciliacao.ts, cujos pontos de entrada
+ * (`iniciarOfertaPrePaga`, `publicarOfertaPrePagaComSaldo`) já têm a
+ * própria checagem antes de criar qualquer ordem, então não dependem deste
+ * expurgo para ficar seguros.
+ *
+ * O dinheiro preso numa oferta pré-paga volta ao saldo antes de a ordem sair
+ * — mesma regra de `expurgarOrdensSemLastro`, nunca deixar dinheiro sumir com
+ * a ordem que o carregava.
+ */
+export function expurgarOfertasSemCadastro(state: AppState): { sellOffers: number; buyOrders: number } {
+  const semCadastro = (email: string): boolean => !temCadastroCompleto(state.users[email])
+
+  const sellOffersAntes = state.sellOffers.length
+  state.sellOffers = state.sellOffers.filter((o) => !semCadastro(o.seller))
+
+  let buyOrdersRemovidas = 0
+  state.buyOrders = state.buyOrders.filter((bo) => {
+    if (!semCadastro(bo.buyer)) return true
+    devolverLastroDoBid(state, bo)
+    buyOrdersRemovidas++
+    return false
+  })
+
+  return { sellOffers: sellOffersAntes - state.sellOffers.length, buyOrders: buyOrdersRemovidas }
+}
 
 /**
  * Executa o livro de ordens por prioridade preço-tempo: compras da mais alta

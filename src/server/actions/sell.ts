@@ -31,6 +31,7 @@
  *    negociação que não moveu moeda nenhuma.
  */
 
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, transferirMoedaVendida } from '@/domain/market'
@@ -126,6 +127,19 @@ export async function publishOffer(
       (s: AppState): ActionResult<{ limparSelecao: boolean }> => {
         const u = s.users[email]
         if (!u) return { ok: false, error: SESSAO_EXPIRADA, data: { limparSelecao: false } }
+
+        // TODA NEGOCIAÇÃO EXIGE CADASTRO COMPLETO (28/09/2026, decisão do
+        // Gabriel). Até aqui a checagem só existia na compra direta — publicar
+        // um anúncio de venda nunca passava por nenhuma trava de verdade, nem
+        // no cliente nem no servidor. É como a conta da Rozâne, com cadastro
+        // incompleto, conseguiu anunciar moeda normalmente.
+        if (!temCadastroCompleto(u)) {
+          return {
+            ok: false,
+            error: 'Complete seu cadastro formal em Minha conta antes de publicar um anúncio.',
+            data: { limparSelecao: false },
+          }
+        }
 
         const agora = Date.now()
         if (bloqueavel && contaComPendenciaNoEstado(s, email, agora)) {
@@ -435,6 +449,15 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // Comprador some do estado (banco recriado): no original isso estourava um
       // TypeError; aqui a oferta órfã é tratada como oferta que já não existe.
       if (!buyer) return { ok: false, error: BID_SUMIU }
+
+      // Mesma trava de `publishOffer`: vender direto para um bid também é
+      // negociar, e move dinheiro de verdade para o vendedor.
+      if (!temCadastroCompleto(seller)) {
+        return {
+          ok: false,
+          error: 'Complete seu cadastro formal em Minha conta antes de vender.',
+        }
+      }
 
       const agora = Date.now()
       if (bloqueavel && contaComPendenciaNoEstado(s, email, agora)) {

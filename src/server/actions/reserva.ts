@@ -19,6 +19,7 @@
 
 import { randomUUID } from 'node:crypto'
 
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { novoBidId } from '@/domain/codes'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
@@ -293,6 +294,20 @@ export async function iniciarOfertaPrePaga(
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
   }
 
+  // TODA NEGOCIAÇÃO EXIGE CADASTRO COMPLETO (28/09/2026, decisão do Gabriel).
+  // Esta é a porta de entrada da oferta pré-paga: abrir a cobrança antes de
+  // checar o cadastro cobraria o cliente por uma oferta que nunca vai poder
+  // ser publicada.
+  const estadoAtual = await getState()
+  const solicitante = estadoAtual.users[session]
+  if (!solicitante) return { ok: false, error: SESSAO_EXPIRADA }
+  if (!temCadastroCompleto(solicitante)) {
+    return {
+      ok: false,
+      error: 'Complete seu cadastro formal em Minha conta antes de publicar uma oferta de compra.',
+    }
+  }
+
   const qty = Math.floor(Number(qtyPedida))
   const preco = Math.floor(Number(precoUnit))
   if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(preco) || preco <= 0) {
@@ -414,6 +429,13 @@ export async function publicarOfertaPrePagaComSaldo(
     const { result } = await mutateState<ActionResult<{ bidId: string; pagoCents: Cents }>>((s) => {
       const u = s.users[session]
       if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+      if (!temCadastroCompleto(u)) {
+        return {
+          ok: false,
+          error: 'Complete seu cadastro formal em Minha conta antes de publicar uma oferta de compra.',
+        }
+      }
 
       if (u.balance < total) {
         return {

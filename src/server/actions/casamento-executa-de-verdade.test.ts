@@ -29,6 +29,7 @@ vi.mock('@/server/session', () => ({ getSessionEmail }))
 
 import { COIN } from '@/domain/constants'
 import { competenciaAtual } from '@/domain/custody'
+import { cadastroCompleto } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 import { publishBid } from './market'
 import { publishOffer } from './sell'
@@ -54,6 +55,13 @@ beforeEach(async () => {
     s.users[VENDEDOR]!.balance = 0
     s.users[COMPRADOR]!.balance = 100_000
     s.users[COMPRADOR]!.coins = []
+
+    // Cadastro formal completo (28/09/2026): desde a trava do Gabriel
+    // ("deveria travar qualquer negociação sem cadastro completo"),
+    // publishOffer/publishBid recusam quem não tiver — e este arquivo é
+    // sobre casamento, não sobre cadastro.
+    s.users[VENDEDOR]!.cadastro = cadastroCompleto()
+    s.users[COMPRADOR]!.cadastro = cadastroCompleto()
 
     // Custódia em dia: desde 23/09/2026 publicar venda exige prova de
     // pagamento, e este arquivo é sobre casamento, não sobre custódia.

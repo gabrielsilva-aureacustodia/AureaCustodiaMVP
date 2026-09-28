@@ -19,13 +19,41 @@ import { AcoesDaOrdemDeCompra, AcoesDoLote } from '../registros'
 import { Indisponivel } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
-/** "1º no preço · 2 à frente" — o mesmo resumo de "Minhas ofertas". */
-function Posicao({ p }: { p: InfoPosicaoFila | null }): ReactNode {
+/**
+ * "1º no preço · 23 com preço melhor vendem primeiro · 3 no total a este preço"
+ * — o mesmo resumo de "Minhas ofertas".
+ *
+ * A REDAÇÃO MUDOU EM 28/09/2026. Era "{posicao}º no preço" seguido de "{aFrente}
+ * à frente · {mesmoPreco} no mesmo preço" — e o Gabriel leu "23 à frente" como
+ * "23ª posição na fila", achando um bug: um anúncio sozinho num preço (1º no
+ * preço, os 3 "no mesmo preço" eram as 3 moedas do PRÓPRIO lote) parecia estar
+ * atrás de 23 outras ofertas.
+ *
+ * NÃO É BUG. A fila é Única e por prioridade preço-tempo dentro do tipo de
+ * moeda (regra protegida, decidida pelos sócios — ver CLAUDE.md): quando um
+ * comprador aparece, a oferta MAIS BARATA vende primeiro, não importa o
+ * preço dela. "23 à frente" contava, corretamente, as ofertas de OUTROS
+ * vendedores com preço melhor no livro inteiro — elas de fato vendem antes,
+ * porque são mais baratas. O texto só não dizia isso.
+ *
+ * O texto novo separa as duas perguntas: "sou o 1º no MEU preço?" (sim,
+ * sempre que for a única oferta ali) e "quantas OUTRAS ofertas, de qualquer
+ * preço, vendem antes de mim?" (as com preço melhor). Comprador e vendedor
+ * têm sentidos opostos de "melhor" — mais barato para quem compra, mais alto
+ * para quem vende — e por isso a frase muda com `lado`.
+ */
+function Posicao({ p, lado }: { p: InfoPosicaoFila | null; lado: 'venda' | 'compra' }): ReactNode {
   if (!p) return <span className="adm-fraco">fora da fila</span>
+  const verbo = lado === 'venda' ? 'vendem' : 'compram'
+  const comparativo = lado === 'venda' ? 'com preço melhor' : 'com lance maior'
   return (
     <>
-      {p.posicao}º no preço
-      <div className="adm-fraco">{p.aFrente > 0 ? `${p.aFrente} à frente` : 'primeira da fila'} · {p.mesmoPreco} no mesmo preço</div>
+      {p.posicao}º no seu preço
+      <div className="adm-fraco">
+        {p.aFrente > 0 ? `${p.aFrente} ${comparativo} ${verbo} primeiro` : `nenhuma oferta ${comparativo}`}
+        {' · '}
+        {p.mesmoPreco} no total a este preço
+      </div>
     </>
   )
 }
@@ -59,7 +87,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td className="adm-num">{dinheiro(l.preco)}</td>
                   <td>{dataHora(l.createdAt)}</td>
                   <td>
-                    <Posicao p={l.posicao} />
+                    <Posicao p={l.posicao} lado="venda" />
                   </td>
                   <td>
                     <AcoesDoLote lotId={l.lotId} precoCents={l.preco} />
@@ -97,7 +125,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                   <td className="adm-num">{dinheiro(b.price)}</td>
                   <td>{dataHora(b.createdAt)}</td>
                   <td>
-                    <Posicao p={b.posicao} />
+                    <Posicao p={b.posicao} lado="compra" />
                   </td>
                   <td>
                     <AcoesDaOrdemDeCompra bidId={b.id} />

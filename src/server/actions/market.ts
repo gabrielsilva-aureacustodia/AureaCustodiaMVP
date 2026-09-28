@@ -28,6 +28,7 @@
  * isolado e sem nenhuma amarra com as ações de compra.
  */
 
+import { temCadastroCompleto } from '@/domain/cadastro'
 import { novoBidId } from '@/domain/codes'
 import { devolverLastroDoBid } from '@/domain/reserva-de-compra'
 import { isNegociavel } from '@/domain/constants'
@@ -348,6 +349,17 @@ export async function publishBid(
 
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
+
+    // TODA NEGOCIAÇÃO EXIGE CADASTRO COMPLETO (28/09/2026, decisão do Gabriel:
+    // "deveria travar qualquer negociação sem ela ter cadastro completo"). Ver
+    // o cabeçalho de `publishOffer`, em sell.ts — a mesma trava, do outro lado
+    // do livro.
+    if (!temCadastroCompleto(u)) {
+      return {
+        ok: false,
+        error: 'Complete seu cadastro formal em Minha conta antes de publicar uma oferta de compra.',
+      }
+    }
 
     /*
      * O SALDO SÓ LIMITA A QUANTIDADE NA MODALIDADE 'saldo' (22/09/2026).

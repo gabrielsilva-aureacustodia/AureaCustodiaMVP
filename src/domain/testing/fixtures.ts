@@ -12,7 +12,7 @@
  * exige, e o resto não distrai.
  */
 
-import type { AppState, BuyOrder, Coin, SellOffer, User } from '@/domain/types'
+import type { AppState, BuyOrder, Cadastro, Coin, SellOffer, User } from '@/domain/types'
 
 /** A moeda-referência do marketplace — nome exato do catálogo. */
 export const BAN = 'Entrega da Bandeira Olímpica'
@@ -39,8 +39,43 @@ export function moeda(id: string, tipo: string): Coin {
   }
 }
 
+/**
+ * Um cadastro formal COMPLETO e válido — CPF com dígito verificador correto,
+ * todos os campos obrigatórios, PIX cadastrado.
+ *
+ * Existe porque `temCadastroCompleto` (src/domain/cadastro.ts) passou, em
+ * 28/09/2026, a travar a publicação de oferta de venda e de compra
+ * (`casarOrdensRespeitandoPendencia`, em bloqueio-por-debito.ts). Sem um
+ * cadastro completo por padrão, todo usuário de teste do mercado — aqui e
+ * nas fixtures locais de outros arquivos — passaria a ser tratado como
+ * cadastro incompleto, e ofertas que os testes esperam ver casar sairiam do
+ * livro antes de o motor rodar.
+ */
+export function cadastroCompleto(agora: number = Date.now()): Cadastro {
+  return {
+    cpf: '529.982.247-25',
+    nomeCompleto: 'Usuário Teste',
+    dataNascimento: '1990-01-01',
+    telefone: '(11) 98765-4321',
+    endereco: {
+      logradouro: 'Rua das Moedas',
+      numero: '10',
+      bairro: 'Centro',
+      cidade: 'São Paulo',
+      uf: 'SP',
+      cep: '01000-000',
+    },
+    dadosBancarios: {
+      chavePix: 'usuario.teste@exemplo.com.br',
+      tipoChavePix: 'email',
+    },
+    completadoEm: agora,
+    confirmadoEm: agora,
+  }
+}
+
 export function usuario(nome: string, saldo: number, coins: Coin[]): User {
-  return { name: nome, balance: saldo, coins }
+  return { name: nome, balance: saldo, coins, cadastro: cadastroCompleto() }
 }
 
 export function estado(users: Record<string, User>): AppState {

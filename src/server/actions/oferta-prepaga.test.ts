@@ -21,6 +21,7 @@ const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
 vi.mock('@/server/session', () => ({ getSessionEmail }))
 
 import { COIN } from '@/domain/constants'
+import { cadastroCompleto } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 import { publishBid } from './market'
 import { publicarOfertaPrePagaComSaldo } from './reserva'
@@ -37,7 +38,13 @@ describe('oferta de compra pré-paga', () => {
       s.sellOffers = []
       s.buyOrders = []
       s.trades = []
-      if (s.users[ROGERIO]) s.users[ROGERIO].balance = 100_000
+      if (s.users[ROGERIO]) {
+        s.users[ROGERIO].balance = 100_000
+        // Cadastro completo (28/09/2026): publicar oferta de compra passou a
+        // exigir cadastro formal completo, e este arquivo testa a cobrança
+        // pré-paga, não o cadastro.
+        s.users[ROGERIO].cadastro = cadastroCompleto()
+      }
     })
   })
 

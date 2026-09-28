@@ -124,10 +124,17 @@ export function MinhasOfertas(): ReactNode {
                   </div>
                   {pos ? (
                     <div style={{ fontSize: 12.5, color: 'var(--gold)', marginTop: 4, fontWeight: 500 }}>
-                      {pos.posicao}ª na fila a {brl(lote.price)}
+                      {/* A FILA É ÚNICA, POR PREÇO-TEMPO, DENTRO DO TIPO DE MOEDA — não
+                          uma fila por preço (regra protegida, ver CLAUDE.md). Um anúncio
+                          pode ser o único no SEU preço e ainda assim ter ofertas mais
+                          baratas de outros vendedores vendendo primeiro — elas são mais
+                          baratas de verdade, então é assim que tem de ser. As duas
+                          perguntas ("sou o 1º no meu preço?" e "quantos vendem antes de
+                          mim, de qualquer preço?") aparecem separadas de propósito. */}
+                      {pos.posicao}ª no seu preço de {brl(lote.price)}
                       {pos.aFrente > 0
-                        ? ` · ${pos.aFrente} oferta(s) à frente`
-                        : ' · melhor preço no topo da fila'}
+                        ? ` · ${pos.aFrente} oferta(s) com preço melhor vendem primeiro`
+                        : ' · nenhuma oferta com preço melhor'}
                     </div>
                   ) : null}
                 </div>
@@ -197,10 +204,10 @@ export function MinhasOfertas(): ReactNode {
                   </div>
                   {pos ? (
                     <div style={{ fontSize: 12.5, color: 'var(--green, #4caf50)', marginTop: 4, fontWeight: 500 }}>
-                      {pos.posicao}ª na fila a {brl(bid.price)}
+                      {pos.posicao}ª no seu preço de {brl(bid.price)}
                       {pos.aFrente > 0
-                        ? ` · ${pos.aFrente} oferta(s) à frente`
-                        : ' · maior lance no topo da fila'}
+                        ? ` · ${pos.aFrente} oferta(s) com lance maior compram primeiro`
+                        : ' · nenhuma oferta com lance maior'}
                     </div>
                   ) : null}
                 </div>
