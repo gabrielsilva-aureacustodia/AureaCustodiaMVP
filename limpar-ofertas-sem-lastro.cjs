@@ -42,13 +42,38 @@ function reais(cents) {
   const c = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } })
   await c.connect()
 
-  const { rows: alvos } = await c.query(
-    `SELECT id, buyer, price, qty, tipo_moeda, modalidade, pago_antecipado
-       FROM aurea.buy_orders
-      WHERE modalidade = 'pospago'
-         OR (modalidade = 'prepago' AND COALESCE(pago_antecipado, 0) = 0)
-      ORDER BY modalidade, price DESC`,
+  // Quem sai do livro (28/09/2026, pedido do Gabriel):
+  //
+  //  - toda ordem PÓS-PAGA (a modalidade está oculta na tela);
+  //  - PRÉ-PAGA sem lastro (publicada antes da correção de 28/09);
+  //  - ordem de SALDO cujo dono não paga nem uma moeda com a taxa. "O saldo tem
+  //    que ser o suficiente pra pagar a compra da moeda com a taxa, nada mais" —
+  //    então a conta é exatamente preço + 0,5% + R$ 1,00, nada além disso;
+  //  - as ordens da conta indicada em CONTA_A_LIMPAR, quando houver.
+  //
+  // A PRÉ-PAGA COM LASTRO NÃO ENTRA EM NENHUM DESSES CASOS, e é de propósito:
+  // quem pagou adiantado não tem trava nenhuma. O saldo da conta dele é
+  // irrelevante — o dinheiro da compra já está preso à própria ordem.
+  const CONTA_A_LIMPAR = process.env.CONTA_A_LIMPAR || ''
+
+  const { rows: candidatas } = await c.query(
+    `SELECT b.id, b.buyer, b.price, b.qty, b.tipo_moeda, b.modalidade,
+            COALESCE(b.pago_antecipado, 0) AS pago_antecipado,
+            COALESCE(u.balance, 0) AS saldo
+       FROM aurea.buy_orders b
+       LEFT JOIN aurea.users u ON u.email = b.buyer
+      ORDER BY b.modalidade, b.price DESC`,
   )
+
+  const comissao = (p) => Math.round(p * 0.005) + 100
+  const alvos = candidatas.filter((b) => {
+    const modalidade = b.modalidade || 'saldo'
+    if (modalidade === 'pospago') return true
+    if (CONTA_A_LIMPAR && b.buyer === CONTA_A_LIMPAR) return true
+    const precisa = Number(b.price) + comissao(Number(b.price))
+    if (modalidade === 'prepago') return Number(b.pago_antecipado) < precisa
+    return Number(b.saldo) < precisa
+  })
 
   if (alvos.length === 0) {
     console.log('Nenhuma ordem de compra sem lastro no livro.')
@@ -158,8 +183,13 @@ function reais(cents) {
 
   const restante = (
     await c.query(
-      `SELECT count(*)::int n FROM aurea.buy_orders
-        WHERE modalidade = 'pospago' OR (modalidade = 'prepago' AND COALESCE(pago_antecipado,0) = 0)`,
+      `SELECT count(*)::int n
+         FROM aurea.buy_orders b
+         LEFT JOIN aurea.users u ON u.email = b.buyer
+        WHERE b.modalidade = 'pospago'
+           OR (b.modalidade = 'prepago' AND COALESCE(b.pago_antecipado,0) < b.price + ROUND(b.price * 0.005) + 100)
+           OR (COALESCE(b.modalidade,'saldo') = 'saldo'
+               AND COALESCE(u.balance,0) < b.price + ROUND(b.price * 0.005) + 100)`,
     )
   ).rows[0].n
   const orfas = (

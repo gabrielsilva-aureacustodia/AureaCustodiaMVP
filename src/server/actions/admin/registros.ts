@@ -30,6 +30,8 @@
  */
 
 import type { ChavePermissao, MembroAdmin } from '@/domain/admin/permissoes'
+import { brl } from '@/domain/money'
+import { devolverLastroDoBid } from '@/domain/reserva-de-compra'
 import type { ActionResult, Cents } from '@/domain/types'
 import { permissaoParaAcao } from '@/server/admin/acesso'
 import { registrarAcaoAdmin } from '@/server/admin/auditar'
@@ -131,11 +133,20 @@ export async function excluirOrdemDeCompra(bidId: string): Promise<ActionResult>
     const { result } = await mutateState<ActionResult>((s) => {
       const b = s.buyOrders.find((x) => x.id === id)
       if (!b) return { ok: false, error: 'Ordem de compra não encontrada.' }
+
+      // Pré-pago guarda dinheiro FORA do caixa da conta. Apagar a ordem sem
+      // devolver apagava o dinheiro junto — e aqui é pior do que no botão do
+      // cliente, porque quem perde não é quem clicou.
+      const devolvido = devolverLastroDoBid(s, b)
+
       s.buyOrders = s.buyOrders.filter((x) => x.id !== id)
       return {
         ok: true,
-        message: `Ordem de compra de ${b.tipoMoeda} removida do livro.`,
-        data: { buyer: b.buyer },
+        message:
+          devolvido > 0
+            ? `Ordem de compra de ${b.tipoMoeda} removida. ${brl(devolvido)} devolvidos ao saldo de ${b.buyer}.`
+            : `Ordem de compra de ${b.tipoMoeda} removida do livro.`,
+        data: { buyer: b.buyer, devolvidoCents: devolvido },
       }
     })
 

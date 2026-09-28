@@ -30,6 +30,7 @@ import {
   abrirReserva,
   bidJaFalhouComAMoeda,
   expirarReservasVencidas,
+  expurgarOrdensSemLastro,
   fundosDoBid,
   modalidadeDoBid,
 } from '@/domain/reserva-de-compra'
@@ -318,6 +319,16 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
   // tenta usar o mercado, que é quando a vaga importa. Moeda de reserva vencida
   // volta ao livro AQUI, e por isso já pode casar nesta mesma passagem.
   expirarReservasVencidas(state, Date.now())
+
+  // ORDEM QUE NÃO PODE PAGAR SAI DA FILA (28/09/2026, pedido do Gabriel:
+  // "toda oferta na fila que casar, acontecer").
+  //
+  // Até aqui o motor apenas PULAVA a ordem sem fundos, para não cancelar
+  // ninguém por falta de caixa momentânea. A intenção era boa e o efeito não:
+  // o livro acumulava ordens mortas que pareciam vivas — o dono achava que
+  // estava na fila, o vendedor via demanda que não existia. O pré-pago que
+  // sobrar volta ao saldo antes de a ordem sair.
+  expurgarOrdensSemLastro(state, (preco) => preco + comissaoPorMoeda(preco, taxas).comprador)
 
   let progress = true
   while (progress) {

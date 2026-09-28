@@ -12,7 +12,9 @@ import { describe, expect, it } from 'vitest'
 import { availableCoinsForSell, matchOrders } from './market'
 import {
   abrirReserva,
+  devolverLastroDoBid,
   expirarReservasVencidas,
+  expurgarOrdensSemLastro,
   fundosDoBid,
   marcarReservaPaga,
   modalidadeDoBid,
@@ -273,5 +275,85 @@ describe('moeda em reserva aberta não volta ao livro por reanúncio (28/09/2026
     const s = comReserva('expirada')
     const ids = availableCoinsForSell(s, s.users.vendedor!).map((c) => c.id)
     expect(ids).toContain('RO-000001')
+  })
+})
+
+describe('dinheiro preso na oferta pré-paga não some com ela (28/09/2026)', () => {
+  function comPrepago(lastro: number, preco = 28500): AppState {
+    const s = estado()
+    s.sellOffers = []
+    s.buyOrders = [{ ...bid('B1', 'caloteiro', preco, 'prepago', AGORA), pagoAntecipadoCents: lastro }]
+    return s
+  }
+
+  it('devolve ao saldo o valor preso quando a ordem sai', () => {
+    const s = comPrepago(28_742)
+    const antes = s.users.caloteiro!.balance
+
+    expect(devolverLastroDoBid(s, s.buyOrders[0]!)).toBe(28_742)
+    expect(s.users.caloteiro!.balance).toBe(antes + 28_742)
+    // Zerado para que uma segunda passagem não credite de novo.
+    expect(s.buyOrders[0]!.pagoAntecipadoCents).toBe(0)
+  })
+
+  it('não devolve duas vezes', () => {
+    const s = comPrepago(28_742)
+    devolverLastroDoBid(s, s.buyOrders[0]!)
+    const depoisDaPrimeira = s.users.caloteiro!.balance
+    expect(devolverLastroDoBid(s, s.buyOrders[0]!)).toBe(0)
+    expect(s.users.caloteiro!.balance).toBe(depoisDaPrimeira)
+  })
+
+  it('ordem de saldo não tem lastro a devolver', () => {
+    const s = estado()
+    s.buyOrders = [bid('B1', 'segundo', 28500, 'saldo', AGORA)]
+    expect(devolverLastroDoBid(s, s.buyOrders[0]!)).toBe(0)
+  })
+})
+
+describe('expurgarOrdensSemLastro', () => {
+  const comComissao = (preco: number) => preco + Math.round(preco * 0.005) + 100
+
+  it('tira do livro a ordem de saldo que não paga nem uma moeda', () => {
+    const s = estado()
+    s.users.caloteiro!.balance = 100
+    s.buyOrders = [bid('B1', 'caloteiro', 28500, 'saldo', AGORA)]
+
+    const removidas = expurgarOrdensSemLastro(s, comComissao)
+    expect(removidas.map((b) => b.id)).toEqual(['B1'])
+    expect(s.buyOrders).toHaveLength(0)
+  })
+
+  it('mantém a ordem de saldo que ainda paga', () => {
+    const s = estado()
+    s.buyOrders = [bid('B1', 'segundo', 28500, 'saldo', AGORA)]
+    expect(expurgarOrdensSemLastro(s, comComissao)).toHaveLength(0)
+    expect(s.buyOrders).toHaveLength(1)
+  })
+
+  it('NÃO toca no pós-pago — ele não tem lastro por definição', () => {
+    const s = estado()
+    s.users.caloteiro!.balance = 0
+    s.buyOrders = [bid('B1', 'caloteiro', 28500, 'pospago', AGORA)]
+    expect(expurgarOrdensSemLastro(s, comComissao)).toHaveLength(0)
+    expect(s.buyOrders).toHaveLength(1)
+  })
+
+  it('devolve o troco do pré-pago ao saldo antes de tirar a ordem', () => {
+    const s = estado()
+    const antes = s.users.caloteiro!.balance
+    // Sobrou dinheiro, mas não o bastante para mais uma moeda.
+    s.buyOrders = [{ ...bid('B1', 'caloteiro', 28500, 'prepago', AGORA), pagoAntecipadoCents: 5_000 }]
+
+    expect(expurgarOrdensSemLastro(s, comComissao)).toHaveLength(1)
+    expect(s.buyOrders).toHaveLength(0)
+    expect(s.users.caloteiro!.balance).toBe(antes + 5_000)
+  })
+
+  it('mantém o pré-pago que ainda tem lastro para uma moeda', () => {
+    const s = estado()
+    s.buyOrders = [{ ...bid('B1', 'caloteiro', 28500, 'prepago', AGORA), pagoAntecipadoCents: 28_743 }]
+    expect(expurgarOrdensSemLastro(s, comComissao)).toHaveLength(0)
+    expect(s.buyOrders).toHaveLength(1)
   })
 })

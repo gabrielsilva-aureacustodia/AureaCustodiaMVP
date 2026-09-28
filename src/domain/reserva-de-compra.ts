@@ -239,3 +239,84 @@ export function marcarReservaPaga(
 export function tempoRestante(r: ReservaDeCompra, agora: Timestamp = Date.now()): number {
   return Math.max(0, r.expiraEm - agora)
 }
+
+/**
+ * Devolve ao saldo o dinheiro que ficou preso numa oferta pré-paga.
+ *
+ * DINHEIRO PRESO NÃO PODE SUMIR COM A OFERTA (28/09/2026)
+ * -------------------------------------------------------
+ * O pré-pago guarda o valor em `pagoAntecipadoCents`, fora do caixa da conta.
+ * Até aqui, apagar o bid — pelo botão "Cancelar" do dono ou pelo painel —
+ * apagava junto o dinheiro: ele não estava no saldo, não estava em lugar
+ * nenhum, e simplesmente deixava de existir. O pop-up de pagamento chega a
+ * prometer o contrário ("se você cancelar a oferta antes de ela executar, o
+ * dinheiro volta como saldo em conta"), e era uma promessa que o código não
+ * cumpria.
+ *
+ * Não grava em `deposits`: o dinheiro já entrou na plataforma quando o gateway
+ * confirmou, e registrá-lo de novo contaria a mesma entrada duas vezes no
+ * livro-razão. A volta ao caixa é movimento interno, e o ledger a deriva como
+ * `ajuste` — que é justamente o lançamento que existe para saldo que muda sem
+ * negociação nem depósito.
+ *
+ * Devolve quanto foi devolvido, para quem chama poder contar na mensagem.
+ */
+export function devolverLastroDoBid(state: AppState, bo: BuyOrder): Cents {
+  if (modalidadeDoBid(bo) !== 'prepago') return 0
+  const preso = bo.pagoAntecipadoCents ?? 0
+  if (preso <= 0) return 0
+
+  const comprador = state.users[bo.buyer]
+  if (!comprador) return 0
+
+  comprador.balance += preso
+  bo.pagoAntecipadoCents = 0
+  return preso
+}
+
+/**
+ * Tira do livro as ordens de compra que não conseguem pagar nem uma moeda.
+ *
+ * POR QUE O MOTOR DEIXOU DE SÓ "PULAR" (28/09/2026)
+ * -------------------------------------------------
+ * `matchOrders` pula a ordem sem fundos e segue — a nota ao lado da conta
+ * dizia, com razão, que não se cancela um bid por "falta de caixa momentânea".
+ * O efeito colateral é que o livro acumula ordens que nunca vão executar, e
+ * elas parecem vivas para todo mundo: o dono acha que está na fila, o vendedor
+ * vê demanda que não existe.
+ *
+ * O Gabriel pediu o contrário, e a razão dele é a que vale: "toda oferta na
+ * fila que casar, acontecer". Ordem que não pode pagar sai da fila.
+ *
+ * O PÓS-PAGO NÃO ENTRA AQUI, e não é exceção esquecida: ele não tem lastro por
+ * definição — casa primeiro e paga depois, dentro da reserva. Purgá-lo seria
+ * apagar a modalidade inteira.
+ *
+ * O que sobra de pré-pago volta para o saldo antes de a ordem sair.
+ */
+export function expurgarOrdensSemLastro(
+  state: AppState,
+  precoMaisComissao: (preco: Cents) => Cents,
+): BuyOrder[] {
+  const removidas: BuyOrder[] = []
+
+  state.buyOrders = state.buyOrders.filter((bo) => {
+    if (modalidadeDoBid(bo) === 'pospago') return true
+    if (bo.qty <= 0) return true
+
+    const comprador = state.users[bo.buyer]
+    if (!comprador) {
+      removidas.push(bo)
+      return false
+    }
+
+    const podePagarUma = fundosDoBid(bo, comprador.balance) >= precoMaisComissao(bo.price)
+    if (!podePagarUma) {
+      devolverLastroDoBid(state, bo)
+      removidas.push(bo)
+    }
+    return podePagarUma
+  })
+
+  return removidas
+}

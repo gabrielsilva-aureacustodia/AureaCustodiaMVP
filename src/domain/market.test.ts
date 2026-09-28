@@ -90,7 +90,7 @@ describe('matchOrders — um livro por tipo', () => {
     expect(s.users.v.balance).toBe(19_800) // R$ 198,00 creditado
   })
 
-  it('comprador com saldo para o preço mas sem saldo para a comissão NÃO casa (é pulado)', () => {
+  it('comprador com saldo para o preço mas não para a taxa não casa — e sai do livro', () => {
     const s = estado({
       v: usuario('Vendedor', 0, [moeda('RO-000001', BAN)]),
       c: usuario('Comprador', 20_000, []), // tem exatamente R$ 200,00, mas precisa de R$ 202,00
@@ -101,9 +101,13 @@ describe('matchOrders — um livro por tipo', () => {
     const r = matchOrders(s)
 
     expect(r.matched).toBe(false)
-    expect(s.buyOrders).toHaveLength(1) // bid continua no livro
-    expect(s.sellOffers).toHaveLength(1) // oferta continua no livro
-    expect(s.users.c.balance).toBe(20_000)
+    // Até 27/09/2026 o bid era apenas pulado e continuava no livro. Desde
+    // 28/09 ele sai: o Gabriel pediu que a fila só contenha ordem que executa
+    // ("toda oferta na fila que casar, acontecer"), e uma ordem que não paga
+    // nem a taxa nunca vai executar — mas parecia demanda viva para o vendedor.
+    expect(s.buyOrders).toHaveLength(0)
+    expect(s.sellOffers).toHaveLength(1) // a oferta de venda continua no livro
+    expect(s.users.c.balance).toBe(20_000) // e o dinheiro dele não se moveu
     expect(s.users.v.balance).toBe(0)
   })
 
@@ -215,7 +219,7 @@ describe('matchOrders — proteções', () => {
     expect(s.users.v.balance).toBe(10_000_000) // nem a comissão se moveu
   })
 
-  it('bid sem saldo é PULADO, não cancelado — volta a valer quando o dinheiro entrar', () => {
+  it('bid sem saldo SAI do livro, em vez de ficar parecendo demanda viva (28/09/2026)', () => {
     const s = estado({
       v: usuario('Vendedor', 0, [moeda('RO-000001', BAN)]),
       c: usuario('Comprador', 100, []), // não paga nem uma unidade
@@ -225,9 +229,13 @@ describe('matchOrders — proteções', () => {
 
     const r = matchOrders(s)
 
+    // A regra anterior era pular sem cancelar, para não punir falta de caixa
+    // momentânea. A intenção era boa e o efeito não: o livro acumulava ordens
+    // que nunca executariam, e o dono achava que continuava na fila.
     expect(r.matched).toBe(false)
-    expect(s.buyOrders).toHaveLength(1) // o bid continua no livro
-    expect(s.sellOffers).toHaveLength(1)
+    expect(s.buyOrders).toHaveLength(0)
+    expect(s.sellOffers).toHaveLength(1) // nada aconteceu com a venda
+    expect(s.users.c.balance).toBe(100) // nem com o dinheiro do comprador
   })
 })
 

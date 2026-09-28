@@ -29,6 +29,7 @@
  */
 
 import { novoBidId } from '@/domain/codes'
+import { devolverLastroDoBid } from '@/domain/reserva-de-compra'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { transferirMoedaVendida } from '@/domain/market'
@@ -420,8 +421,23 @@ export async function cancelBid(bidId: string): Promise<ActionResult> {
     const bo = state.buyOrders.find((b) => b.id === bidId)
     if (!bo || bo.buyer !== session) return { ok: false, error: OFERTA_INDISPONIVEL }
 
+    // O DINHEIRO PRESO VOLTA ANTES DE A ORDEM SAIR (28/09/2026).
+    //
+    // No pré-pago o valor fica em `pagoAntecipadoCents`, fora do caixa da
+    // conta. Cancelar apagava a ordem e o dinheiro junto — ele não estava no
+    // saldo, não estava em lugar nenhum, e deixava de existir. O pop-up de
+    // pagamento promete a devolução desde o primeiro dia; agora o código
+    // cumpre.
+    const devolvido = devolverLastroDoBid(state, bo)
+
     state.buyOrders = state.buyOrders.filter((b) => b.id !== bidId)
-    return { ok: true, message: 'Oferta de compra removida.' }
+    return {
+      ok: true,
+      message:
+        devolvido > 0
+          ? `Oferta de compra removida. ${brl(devolvido)} voltaram para o seu saldo.`
+          : 'Oferta de compra removida.',
+    }
   })
 }
 
