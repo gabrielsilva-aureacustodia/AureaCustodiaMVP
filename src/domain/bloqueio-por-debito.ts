@@ -25,7 +25,7 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
-import { competenciaAtual, faturaBloqueia, isInadimplente } from '@/domain/custody'
+import { faturaBloqueia, isInadimplente } from '@/domain/custody'
 import { matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =

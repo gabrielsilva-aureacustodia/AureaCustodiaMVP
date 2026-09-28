@@ -753,7 +753,7 @@ function ConfirmarCompraModal({
     try {
       const res = await iniciarCompraDireta(lot.lotId, qty, metodo)
       if (!res.ok || !res.data) {
-        setErroMp(res.error ?? 'Não foi possível abrir a cobrança no gateway.')
+        setErroMp(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
         return
       }
       if (res.data.simulado) {
@@ -767,7 +767,7 @@ function ConfirmarCompraModal({
       if (res.data.initPoint) {
         window.open(res.data.initPoint, '_blank', 'noopener,noreferrer')
       } else {
-        setErroMp('O gateway não devolveu o endereço do checkout. Tente novamente.')
+        setErroMp('Não foi possível abrir a tela de pagamento. Tente novamente.')
       }
     } finally {
       setEnviando(false)
@@ -794,7 +794,7 @@ function ConfirmarCompraModal({
         <span className="v">{brl(subtotal)}</span>
       </div>
       <div className="summary-row">
-        <span className="k">Comissão de compra do Real Olímpico</span>
+        <span className="k">Taxa de compra do Real Olímpico</span>
         <span className="v">+ {brl(comissaoComprador)}</span>
       </div>
       <div className="summary-row total">
@@ -808,7 +808,11 @@ function ConfirmarCompraModal({
         <span className="v">{brl(me.balance)}</span>
       </div>
 
-      {/* Opção 1: Saldo em conta */}
+      {/* O NOME DA OPÇÃO É O QUE ELA FAZ (27/09/2026). Era "Opção 1 · Usar
+          saldo disponível" e "Opção 2 · Comprar direto pelo gateway" —
+          "gateway" é palavra de quem escreve o código, não de quem compra, e
+          numerar as opções gasta a linha mais visível do bloco sem dizer nada.
+          Agora o título é a própria escolha. */}
       <div
         style={{
           marginTop: 14,
@@ -819,12 +823,12 @@ function ConfirmarCompraModal({
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
-          Opção 1 · Usar saldo disponível
+          Comprar com saldo
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
           {temSaldo
-            ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de comissão de compra) será debitado do seu saldo interno.`
-            : `Saldo insuficiente para comprar esta quantidade com comissão (faltam ${brl(total - me.balance)}).`}
+            ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de taxa de compra) será debitado do seu saldo em conta.`
+            : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - me.balance)}).`}
         </div>
         <button
           type="button"
@@ -837,7 +841,7 @@ function ConfirmarCompraModal({
         </button>
       </div>
 
-      {/* Opção 2: Compra direta pelo gateway */}
+      {/* Pix e cartão, sem passar pelo saldo. */}
       <div
         style={{
           marginTop: 12,
@@ -848,10 +852,10 @@ function ConfirmarCompraModal({
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
-          Opção 2 · Comprar direto pelo gateway
+          Comprar com Pix ou cartão
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Pague {brl(total)} direto por Pix ou cartão — as moedas e a comissão de compra —, sem
+          Pague {brl(total)} direto por Pix ou cartão — as moedas e a taxa de compra —, sem
           usar o saldo em conta. A moeda entra no seu acervo assim que o pagamento for aprovado.
           Se, nessa hora, o anúncio já tiver sido vendido, tiver subido de preço ou estiver
           pausado, o valor pago entra inteiro no seu saldo em conta.
@@ -901,8 +905,8 @@ function ConfirmarCompraModal({
             />
           ) : null}
           <div className="note">
-            Referência {pix.externalReference} · {brl(pix.valorCents)}, com a comissão de compra.
-            Assim que o pagamento for confirmado pelo gateway, o lote é liquidado e as moedas
+            Referência {pix.externalReference} · {brl(pix.valorCents)}, com a taxa de compra.
+            Assim que o pagamento for confirmado, o lote é liquidado e as moedas
             entram na sua conta.
           </div>
         </div>

@@ -120,15 +120,15 @@ const COMPRA_DO_PROPRIO_ANUNCIO = 'Você não pode comprar do seu próprio anún
  * mudança feita no painel vale a partir da próxima operação. Sem banco, é o
  * padrão do código — o mesmo que valia antes.
  */
-async function executar(
-  regra: (state: AppState, session: UserEmail, regras: RegrasDoMercado) => ActionResult,
-): Promise<ActionResult> {
+async function executar<T = unknown>(
+  regra: (state: AppState, session: UserEmail, regras: RegrasDoMercado) => ActionResult<T>,
+): Promise<ActionResult<T>> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
 
   try {
     const regras = await carregarRegrasDoMercado()
-    const { result } = await mutateState<ActionResult>((state) => regra(state, session, regras))
+    const { result } = await mutateState<ActionResult<T>>((state) => regra(state, session, regras))
     return result
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -308,7 +308,7 @@ export async function publishBid(
   precoUnit: Cents,
   tipoMoeda: string,
   modalidade: ModalidadeOfertaCompra = 'saldo',
-): Promise<ActionResult> {
+): Promise<ActionResult<{ bidId: string; qty: number; aPagarCents: Cents }>> {
   const bloqueaveis = await vendedoresBloqueaveis()
 
   if (modalidade !== 'saldo' && modalidade !== 'prepago' && modalidade !== 'pospago') {
@@ -347,8 +347,9 @@ export async function publishBid(
     }
 
     const agora = Date.now()
+    const bidId = novoBidId()
     state.buyOrders.push({
-      id: novoBidId(),
+      id: bidId,
       buyer: session,
       price: cents,
       qty,
@@ -366,14 +367,19 @@ export async function publishBid(
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
     if (qty < qtyRaw) msg += ' (ajustada ao seu saldo disponível)'
+    const aPagarCents = custoDeCompraPorMoeda(cents, taxas) * qty
     if (modalidade === 'prepago') {
-      msg += ` Pague ${brl(custoDeCompraPorMoeda(cents, taxas) * qty)} para a oferta entrar no mercado.`
+      msg += ` Pague ${brl(aPagarCents)} para a oferta entrar no mercado.`
     }
     if (modalidade === 'pospago') {
       msg += ' Você paga quando ela for aceita, e terá 10 minutos para concluir.'
     }
     if (matched) msg += ' Parte já foi executada automaticamente com ofertas de venda existentes.'
-    return { ok: true, message: msg }
+    // O id volta para a tela porque o pré-pago precisa cobrar EM SEGUIDA, na
+    // mesma interação: a oferta nasce sem lastro e só entra no mercado quando
+    // o pagamento é confirmado. Sem o id, a tela publicava e não tinha como
+    // abrir a cobrança — era o beco sem saída de 27/09/2026.
+    return { ok: true, message: msg, data: { bidId, qty, aPagarCents } }
   })
 
   // Fora da transação: o casamento pode ter aberto reserva pós-paga, e quem

@@ -7,7 +7,8 @@
    ========================================================================= */
 
 .cols{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
-.cols.sell{grid-template-columns:320px 1fr 280px}
+.cols.sell{grid-template-columns:1fr 320px 280px}  /* O anúncio primeiro e largo (27/09/2026): quem abre Vender vem publicar,
+     e a escolha da moeda específica é o passo de quem precisa dela. */
 .cols-rev{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
 .avg-box{
   border:1px solid var(--line-soft);border-radius:10px;padding:14px 16px;margin-bottom:16px;

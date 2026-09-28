@@ -11,7 +11,7 @@ import 'server-only'
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
 import { competenciaAtual } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
-import { transferirMoedaVendida } from '@/domain/market'
+import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { calcularPagoAte, mesesCobertos, somarMeses } from '@/domain/plano-custodia'
 import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
@@ -469,7 +469,12 @@ function liquidarRetirada(
  * anunciada sem lastro — que é exatamente o que a modalidade existe para
  * evitar.
  */
-function liquidarOfertaPrepaga(s: AppState, reivindicada: IntencaoDeposito): ResultadoLiquidacao {
+function liquidarOfertaPrepaga(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+  _detalhes: DetalhesPagamento,
+  regras: RegrasDaLiquidacao,
+): ResultadoLiquidacao {
   const bidId = (reivindicada.metadata?.bidId as string) || ''
   const bo = s.buyOrders.find((b) => b.id === bidId)
 
@@ -483,6 +488,14 @@ function liquidarOfertaPrepaga(s: AppState, reivindicada: IntencaoDeposito): Res
   }
 
   bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) + reivindicada.valor
+
+  // O DINHEIRO ENTROU, ENTÃO A OFERTA PRECISA TENTAR CASAR AGORA.
+  //
+  // Sem esta rodada, a oferta recém-financiada ficava parada até alguém
+  // ANUNCIAR OU OFERTAR de novo — é só aí que o motor roda. O comprador pagava,
+  // via a oferta no livro com moeda compatível à venda, e nada acontecia. Quem
+  // pagou adiantado é justamente quem já fez a sua parte.
+  matchOrders(s, regras.taxas)
   return { sucesso: true, motivo: 'oferta_prepaga_financiada' }
 }
 

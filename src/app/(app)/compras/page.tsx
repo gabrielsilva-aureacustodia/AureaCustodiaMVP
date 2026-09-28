@@ -16,6 +16,7 @@ import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAconte
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
+import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
@@ -24,6 +25,7 @@ import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { publishBid } from '@/server/actions/market'
 import type { ModalidadeOfertaCompra } from '@/domain/types'
+import { ModalOfertaPrePaga } from '@/components/market/ModalOfertaPrePaga'
 import { ReservasEmAberto } from '@/components/market/ReservasEmAberto'
 
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
@@ -31,6 +33,7 @@ const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 export default function ComprasPage(): ReactNode {
   const { state, me, run, taxas, catalogo } = useApp()
   const toast = useToast()
+  const { open } = useModal()
 
   /** Tipos que a plataforma aceita negociar hoje — do catálogo vigente. */
   const NEGOCIAVEIS = tiposNegociaveis(catalogo)
@@ -80,9 +83,26 @@ export default function ComprasPage(): ReactNode {
       return
     }
     const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo, modalidadeBid))
-    if (res.ok) {
-      setBidQty('1')
-      setBidPrice('')
+    if (!res.ok) return
+
+    setBidQty('1')
+    setBidPrice('')
+
+    // PRÉ-PAGO COBRA AGORA, no mesmo pop-up da compra direta do Mercado.
+    //
+    // A oferta pré-paga nasce sem lastro e não casa com nada até o pagamento
+    // ser confirmado. Até 27/09/2026 a tela publicava, dizia "pague X" e não
+    // oferecia lugar nenhum para pagar — a oferta ficava parada no livro.
+    if (modalidadeBid === 'prepago' && res.data) {
+      open(
+        <ModalOfertaPrePaga
+          bidId={res.data.bidId}
+          qty={res.data.qty}
+          tipoMoeda={tipoAtivo}
+          precoUnit={bidPriceCents}
+          totalCents={res.data.aPagarCents}
+        />,
+      )
     }
   }
 
@@ -92,67 +112,7 @@ export default function ComprasPage(): ReactNode {
           Por isso vem antes de tudo, inclusive do formulário. */}
       <ReservasEmAberto />
 
-      <div className="cols">
-        <div>
-          <div className="panel" style={{ marginBottom: 18 }}>
-            <h3>
-              <svg viewBox="0 0 24 24">
-                <path d="M3 5h18l-7 8v6l-4 2v-8z" />
-              </svg>
-              Mercado
-            </h3>
-
-            <TipoSelector
-              name="tipo-foco"
-              titulo="Moeda em foco"
-              tipos={NEGOCIAVEIS}
-              valor={tipoAtivo}
-              onChange={trocarTipo}
-              detalhePorTipo={lotesPorTipo}
-            />
-
-            <div className="avg-box" style={{ marginTop: 14 }}>
-              <div className="l">Média de mercado — 7 dias</div>
-              <div className="v">{media7 ? brl(media7) : '—'}</div>
-              <div className="s">{tipoAtivo} · negociações concluídas na plataforma</div>
-            </div>
-
-            <div className="avg-box">
-              <div className="l">
-                Última negociação{' '}
-                <span className="sync-dot">
-                  <i />
-                  10s
-                </span>
-              </div>
-              <div className="v" style={{ fontSize: '19px' }}>
-                {ultima ? fmtTrade(ultima) : '—'}
-              </div>
-              <div className="s">
-                {ultima ? fdate(ultima.date) : ''} · {tipoAtivo}
-              </div>
-            </div>
-
-            <div className="hist">
-              <div className="hist-head">Últimas negociações</div>
-              {!historico.length ? (
-                <div className="empty" style={{ marginTop: 8 }}>
-                  Nenhuma negociação de {tipoAtivo} ainda.
-                </div>
-              ) : null}
-              {historico.map(({ trade, idx }) => (
-                <div className="hist-row" key={idx}>
-                  <span className="d">{fdate(trade.date)}</span>
-                  <span className="p">{fmtTrade(trade)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
-          <ComoNegociacaoAcontece />
-        </div>
-
+      <div className="cols-rev">
         <div>
           <div className="panel" style={{ marginBottom: '18px' }}>
             <h3>
@@ -162,12 +122,17 @@ export default function ComprasPage(): ReactNode {
               Fazer oferta de compra
             </h3>
 
+            {/* Quantos anúncios existem de cada tipo vem para cá junto com o
+                seletor: escolhendo o que comprar, saber que um tipo tem zero
+                anúncio à venda é o que evita publicar uma oferta que não tem
+                com quem casar. */}
             <TipoSelector
               name="tipo-bid"
               titulo="Moeda que deseja comprar"
               tipos={NEGOCIAVEIS}
               valor={tipoAtivo}
               onChange={trocarTipo}
+              detalhePorTipo={lotesPorTipo}
             />
 
             <div className="field-lbl">Quantidade desejada</div>
@@ -197,7 +162,7 @@ export default function ComprasPage(): ReactNode {
               <span className="v">{bidSubtotal > 0 ? brl(bidSubtotal) : '—'}</span>
             </div>
             <div className="summary-row">
-              <span className="k">Comissão de compra (estimada no seu preço máximo)</span>
+              <span className="k">Taxa de compra (estimada no seu preço máximo)</span>
               <span className="v">{bidComissaoTotal > 0 ? `+ ${brl(bidComissaoTotal)}` : '—'}</span>
             </div>
             <div className="summary-row total">
@@ -302,8 +267,63 @@ export default function ComprasPage(): ReactNode {
             </div>
           </div>
         </div>
-      </div>
 
+        <div>
+          <div className="panel" style={{ marginBottom: 18 }}>
+            <h3>
+              <svg viewBox="0 0 24 24">
+                <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+              </svg>
+              Mercado
+            </h3>
+
+            {/* SEM seletor de tipo aqui (27/09/2026). Este painel é leitura:
+                média, última negociação e histórico do tipo que a oferta ao
+                lado está mirando. Ter a mesma escolha em dois blocos da mesma
+                tela não dá poder nenhum a mais — só duas coisas para manter
+                em sincronia e uma dúvida sobre qual delas vale. */}
+            <div className="avg-box" style={{ marginTop: 14 }}>
+              <div className="l">Média de mercado — 7 dias</div>
+              <div className="v">{media7 ? brl(media7) : '—'}</div>
+              <div className="s">{tipoAtivo} · negociações concluídas na plataforma</div>
+            </div>
+
+            <div className="avg-box">
+              <div className="l">
+                Última negociação{' '}
+                <span className="sync-dot">
+                  <i />
+                  10s
+                </span>
+              </div>
+              <div className="v" style={{ fontSize: '19px' }}>
+                {ultima ? fmtTrade(ultima) : '—'}
+              </div>
+              <div className="s">
+                {ultima ? fdate(ultima.date) : ''} · {tipoAtivo}
+              </div>
+            </div>
+
+            <div className="hist">
+              <div className="hist-head">Últimas negociações</div>
+              {!historico.length ? (
+                <div className="empty" style={{ marginTop: 8 }}>
+                  Nenhuma negociação de {tipoAtivo} ainda.
+                </div>
+              ) : null}
+              {historico.map(({ trade, idx }) => (
+                <div className="hist-row" key={idx}>
+                  <span className="d">{fdate(trade.date)}</span>
+                  <span className="p">{fmtTrade(trade)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
+          <ComoNegociacaoAcontece />
+        </div>
+      </div>
       <div style={{ marginTop: 24 }}>
         <MinhasOfertas />
       </div>

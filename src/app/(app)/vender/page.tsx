@@ -297,48 +297,7 @@ export default function VenderPage(): ReactNode {
         </div>
       ) : null}
       <div className="cols sell">
-      {/* ================= coluna 1 — escolha dos ativos ================= */}
-      <div className="panel">
-        <h3>
-          <svg viewBox="0 0 24 24">
-            <ellipse cx="12" cy="6.5" rx="7" ry="3" />
-            <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
-          </svg>
-          Escolha as moedas
-        </h3>
-
-        <TipoSelector
-          name="tipo-venda"
-          titulo="Tipo de moeda a vender"
-          tipos={NEGOCIAVEIS}
-          valor={tipoAtivo}
-          onChange={trocarTipo}
-          detalhePorTipo={livresPorTipo}
-        />
-
-        <div style={{ display: 'flex', gap: 16, margin: '12px 0' }}>
-          <span className="back-link" onClick={selecionarTodas}>
-            Selecionar todas
-          </span>
-          <span className="back-link" onClick={limparSelecao}>
-            Limpar seleção
-          </span>
-        </div>
-
-        <div>
-          <CoinPicker
-            moedas={negociaveis}
-            anunciadas={anunciadas}
-            selecionadas={selecionadas}
-            tipoAtivo={tipoAtivo}
-            abertas={abertas}
-            onToggleFolder={alternarPasta}
-            onToggle={alternarMoeda}
-          />
-        </div>
-      </div>
-
-      {/* ================= coluna 2 — detalhes do anúncio ================= */}
+      {/* ================= coluna 1 — o anúncio, que é o que se veio fazer ====== */}
       <div className="panel">
         <h3>
           <svg viewBox="0 0 24 24">
@@ -347,6 +306,15 @@ export default function VenderPage(): ReactNode {
           </svg>
           Detalhes do anúncio
         </h3>
+
+        <TipoSelector
+          name="tipo-anuncio"
+          titulo="Tipo de moeda a vender"
+          tipos={NEGOCIAVEIS}
+          valor={tipoAtivo}
+          onChange={trocarTipo}
+          detalhePorTipo={livresPorTipo}
+        />
 
         <div className="field-lbl">
           <svg viewBox="0 0 24 24">
@@ -444,6 +412,47 @@ export default function VenderPage(): ReactNode {
           </svg>
           Após publicado, o anúncio ficará visível no mercado para todas as contas até ser removido
           ou concluído.
+        </div>
+      </div>
+
+      {/* ====== coluna 2 — escolha da moeda específica, para quem precisa ====== */}
+      <div className="panel">
+        <h3>
+          <svg viewBox="0 0 24 24">
+            <ellipse cx="12" cy="6.5" rx="7" ry="3" />
+            <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
+          </svg>
+          Escolha as moedas
+        </h3>
+
+        <TipoSelector
+          name="tipo-venda"
+          titulo="Tipo de moeda a vender"
+          tipos={NEGOCIAVEIS}
+          valor={tipoAtivo}
+          onChange={trocarTipo}
+          detalhePorTipo={livresPorTipo}
+        />
+
+        <div style={{ display: 'flex', gap: 16, margin: '12px 0' }}>
+          <span className="back-link" onClick={selecionarTodas}>
+            Selecionar todas
+          </span>
+          <span className="back-link" onClick={limparSelecao}>
+            Limpar seleção
+          </span>
+        </div>
+
+        <div>
+          <CoinPicker
+            moedas={negociaveis}
+            anunciadas={anunciadas}
+            selecionadas={selecionadas}
+            tipoAtivo={tipoAtivo}
+            abertas={abertas}
+            onToggleFolder={alternarPasta}
+            onToggle={alternarMoeda}
+          />
         </div>
       </div>
 
