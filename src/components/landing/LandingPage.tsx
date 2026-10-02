@@ -431,8 +431,8 @@ export function LandingPage(): ReactNode {
             recibo do item sem precisar resgatá-lo fisicamente.&rdquo;
           </blockquote>
           <div className="landing-positioning-actions">
-            <Link className="landing-link-academy" href="/academy">
-              Entenda em detalhes no Real Olímpico Academy &rarr;
+            <Link className="landing-link-academy" href="/termos">
+              Consulte as diretrizes e termos de custódia &rarr;
             </Link>
           </div>
         </div>
@@ -448,7 +448,6 @@ export function LandingPage(): ReactNode {
           </p>
         </div>
         <nav aria-label="Informações institucionais e legais">
-          <Link href="/academy">Academy</Link>
           <Link href="/termos">Termos de Uso</Link>
           <Link href="/privacidade">Política de Privacidade</Link>
         </nav>

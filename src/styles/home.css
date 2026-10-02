@@ -60,7 +60,16 @@
 }
 .moeda-bloco:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 10px 24px rgba(0,0,0,.25),0 0 16px rgba(201,162,75,.1)}
 .moeda-bloco-foto{flex-shrink:0;width:150px;height:150px}
-.moeda-bloco-foto img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}
+.moeda-bloco-foto img{
+  width:100%;height:100%;object-fit:contain;border-radius:50%;
+  filter:drop-shadow(0 10px 20px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(201,162,75,.25));
+  transition:transform .35s cubic-bezier(.16,1,.3,1),filter .35s ease;
+  will-change:transform,filter;
+}
+.moeda-bloco:hover .moeda-bloco-foto img{
+  transform:scale(1.08) rotate(3deg);
+  filter:drop-shadow(0 14px 28px rgba(0,0,0,.6)) drop-shadow(0 0 20px rgba(227,185,92,.45));
+}
 .moeda-bloco-tx{min-width:0}
 .moeda-bloco-tx h3{font-size:21px;color:var(--text-strong);font-weight:600;margin-bottom:8px}
 .moeda-bloco-tx p{font-size:13.5px;color:var(--text-muted);line-height:1.45}
