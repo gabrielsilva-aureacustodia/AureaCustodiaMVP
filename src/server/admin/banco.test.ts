@@ -64,6 +64,7 @@ import {
   garantirCatalogosAdmin,
   type Ambiente,
 } from './rbac'
+import { chaveDoEnvio, gravarReenvio, ultimosConvites, ultimosEnvios } from './emails'
 import { bancoDeTeste, type BancoDeTeste } from './testing/pglite'
 import { carregarUsoNoBanco, gravarEventosDeUso } from './uso'
 import {
@@ -961,5 +962,37 @@ describe('bancada web (C3) — o serviço da estação é chamado, não reimplem
     ])
     expect(await abrirPelaBancadaWeb(porta, GESTOR, 'RO-ENV-0002')).toMatchObject({ ok: true })
     expect(porta.linhas).toHaveLength(2)
+  })
+})
+
+describe('reenvio de e-mail — admin.email.reenviar e o último envio da ficha', () => {
+  it('grava a linha com o tipo e devolve o envio mais recente de cada e-mail', async () => {
+    await executar(async (tx) => {
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'redefinicao_senha', email: 'c@x.com', agora: 1000 })
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'redefinicao_senha', email: 'c@x.com', agora: 3000 })
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'aviso_reserva', email: 'c@x.com', referencia: 'RES-1', agora: 2000 })
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'redefinicao_senha', email: 'outro@x.com', agora: 9000 })
+    })
+    const linhas = await executar((tx) => tx.query<{ acao: string }>('SELECT acao FROM aurea.audit_log'))
+    expect(linhas.rows.every((l) => l.acao === 'admin.email.reenviar')).toBe(true)
+    const envios = await executar((tx) => ultimosEnvios(tx, 'c@x.com'))
+    expect(envios).toEqual({ [chaveDoEnvio('redefinicao_senha')]: 3000, [chaveDoEnvio('aviso_reserva', 'RES-1')]: 2000 })
+  })
+
+  it('o primeiro link de senha do painel conta como envio, e envio simulado não conta', async () => {
+    await executar(async (tx) => {
+      await registrarAcaoAdmin(tx, { ator: 'a@x.com', area: 'usuarios', verbo: 'redefinir_senha', usuariosAfetados: ['c@x.com'], detalhes: { modo: 'link' }, agora: 500 })
+      await registrarAcaoAdmin(tx, { ator: 'a@x.com', area: 'usuarios', verbo: 'redefinir_senha', usuariosAfetados: ['c@x.com'], detalhes: { modo: 'provisoria' }, agora: 600 })
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'aviso_reserva', email: 'c@x.com', referencia: 'RES-2', simulado: true, agora: 700 })
+    })
+    expect(await executar((tx) => ultimosEnvios(tx, 'c@x.com'))).toEqual({ redefinicao_senha: 500 })
+  })
+
+  it('o convite de equipe é lido por membro, do primeiro envio ao último reenvio', async () => {
+    await executar(async (tx) => {
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'convite_equipe', email: 'm@x.com', primeiro: true, agora: 100 })
+      await gravarReenvio(tx, { ator: 'a@x.com', tipo: 'convite_equipe', email: 'm@x.com', agora: 400 })
+    })
+    expect(await executar((tx) => ultimosConvites(tx))).toEqual({ 'm@x.com': 400 })
   })
 })

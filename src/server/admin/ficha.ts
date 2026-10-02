@@ -71,6 +71,7 @@ import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { rastreiosPorProtocolo } from '@/server/shipping/rastreios'
 import { getState } from '@/server/state'
 
+import { ultimosEnvios } from './emails'
 import { portaDeIdentidadeDoAmbiente } from './identidade'
 import type { IdentidadeResumo } from './usuarios'
 
@@ -136,6 +137,10 @@ export interface CabecalhoFicha {
   ehDaEquipe: boolean
   ehDoCatalogo: boolean
   semBanco: boolean
+  /** Quando cada e-mail do painel saiu por último para esta conta — ver `chaveDoEnvio`. */
+  ultimosEnvios: Record<string, number>
+  /** Compras pós-pagas com o prazo correndo: cada uma tem um aviso que pode ser reenviado. */
+  reservasAbertas: Array<{ id: string; tipoMoeda: string; totalCents: number; expiraEm: number }>
 }
 
 /** Os dados de cadastro que saem para a tela — sem os bancários, que têm permissão própria. */
@@ -363,7 +368,7 @@ async function conteudoDaAba(aba: AbaFicha, state: AppState, email: string, reti
 export async function carregarFicha(email: string, aba: AbaFicha, membro: MembroAdmin, agora: number = Date.now()): Promise<Ficha | null> {
   const state = await getState()
   if (!state.users[email]) return null
-  const [retiradas, situacao, criacao, ehDaEquipe] = await Promise.all([
+  const [retiradas, situacao, criacao, ehDaEquipe, envios] = await Promise.all([
     repositorioRetiradas()
       .buscarPorUsuario(email)
       .catch((err: unknown) => {
@@ -373,6 +378,7 @@ export async function carregarFicha(email: string, aba: AbaFicha, membro: Membro
     opcional((tx) => situacaoDaConta(tx, email)),
     opcional((tx) => datasDeCriacao(tx)),
     podeAbrirPainelAdmin(email),
+    opcional((tx) => ultimosEnvios(tx, email)),
   ])
   const resumo = resumirConta(state, email, retiradas, agora)
   if (!resumo) return null
@@ -384,6 +390,10 @@ export async function carregarFicha(email: string, aba: AbaFicha, membro: Membro
       ehDaEquipe,
       ehDoCatalogo: email in ACCOUNTS,
       semBanco: !bancoConfigurado(),
+      ultimosEnvios: envios ?? {},
+      reservasAbertas: (state.reservas ?? [])
+        .filter((r) => r.comprador === email && r.status === 'aguardando_pagamento' && r.expiraEm > agora)
+        .map((r) => ({ id: r.id, tipoMoeda: r.tipoMoeda, totalCents: r.totalCents, expiraEm: r.expiraEm })),
     },
     conteudo: await conteudoDaAba(aba, state, email, retiradas, membro, agora),
   }

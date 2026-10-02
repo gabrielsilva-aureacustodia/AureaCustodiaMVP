@@ -37,7 +37,8 @@ import { mutateState } from '@/server/state'
 
 const MINUTOS = Math.round(PRAZO_DA_RESERVA_MS / 60000)
 
-function corpo(r: ReservaDeCompra, nome: string): { assunto: string; texto: string } {
+/** Exportada para o reenvio manual do painel mandar exatamente o mesmo texto do aviso automático. */
+export function corpo(r: ReservaDeCompra, nome: string): { assunto: string; texto: string } {
   const vence = new Date(r.expiraEm).toLocaleTimeString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
     hour: '2-digit',

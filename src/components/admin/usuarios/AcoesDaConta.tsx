@@ -21,9 +21,10 @@ import {
   mudarSituacaoDaContaNoPainel,
   redefinirSenhaNoPainel,
 } from '@/server/actions/admin/usuarios'
+import { reenviarAvisoDeReservaNoPainel, reenviarRedefinicaoSenhaNoPainel } from '@/server/actions/admin/emails'
 
 import { useAdmin } from '../AdminProvider'
-import { dinheiro } from '../formatos'
+import { dataHora, dinheiro } from '../formatos'
 
 export function AcoesDaConta({ cabecalho }: { cabecalho: CabecalhoFicha }): ReactNode {
   const { resumo } = cabecalho
@@ -32,7 +33,8 @@ export function AcoesDaConta({ cabecalho }: { cabecalho: CabecalhoFicha }): Reac
       <AjustarSaldo email={resumo.email} saldo={resumo.saldo} />
       <Inadimplencia email={resumo.email} marcaManual={resumo.marcaManual} inadimplentePorFatura={resumo.inadimplente && !resumo.marcaManual} />
       <Situacao email={resumo.email} ativa={cabecalho.situacao.ativa} ehDaEquipe={cabecalho.ehDaEquipe} semBanco={cabecalho.semBanco} />
-      <Senha email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} />
+      <Senha email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} ultimoEnvio={cabecalho.ultimosEnvios.redefinicao_senha ?? null} />
+      <AvisoDeReserva email={resumo.email} reservas={cabecalho.reservasAbertas} envios={cabecalho.ultimosEnvios} />
     </div>
   )
 }
@@ -166,7 +168,7 @@ function Situacao({ email, ativa, ehDaEquipe, semBanco }: { email: string; ativa
   )
 }
 
-function Senha({ email, ehDoCatalogo }: { email: string; ehDoCatalogo: boolean }): ReactNode {
+function Senha({ email, ehDoCatalogo, ultimoEnvio }: { email: string; ehDoCatalogo: boolean; ultimoEnvio: number | null }): ReactNode {
   const { run } = useAdmin()
   const [senha, setSenha] = useState('')
   return (
@@ -178,9 +180,15 @@ function Senha({ email, ehDoCatalogo }: { email: string; ehDoCatalogo: boolean }
         ) : (
           <>
             <div className="adm-acoes adm-secao">
-              <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => void run(() => redefinirSenhaNoPainel(email, 'link', ''))}>
-                Enviar link de redefinição por e-mail
+              <button
+                type="button"
+                className="btn btn-outline adm-btn-compacto"
+                data-uso="usuarios-link-senha"
+                onClick={() => void run(() => (ultimoEnvio ? reenviarRedefinicaoSenhaNoPainel(email) : redefinirSenhaNoPainel(email, 'link', '')))}
+              >
+                {ultimoEnvio ? 'Reenviar e-mail de redefinição' : 'Enviar link de redefinição por e-mail'}
               </button>
+              {ultimoEnvio ? <span className="adm-fraco">Último envio em {dataHora(ultimoEnvio)}.</span> : null}
             </div>
             <form
               className="adm-form"
@@ -200,6 +208,36 @@ function Senha({ email, ehDoCatalogo }: { email: string; ehDoCatalogo: boolean }
             </form>
           </>
         )}
+      </div>
+    </details>
+  )
+}
+
+function AvisoDeReserva({ email, reservas, envios }: { email: string; reservas: CabecalhoFicha['reservasAbertas']; envios: Record<string, number> }): ReactNode {
+  const { run } = useAdmin()
+  if (reservas.length === 0) return null
+  return (
+    <details className="adm-detalhes">
+      <summary>Aviso de reserva</summary>
+      <div className="adm-detalhes-corpo">
+        <p className="adm-fraco">
+          Compras pós-pagas com o prazo de pagamento correndo. Use quando a pessoa disser que não recebeu o aviso — o texto é o
+          mesmo do aviso automático.
+        </p>
+        {reservas.map((r) => {
+          const ultimo = envios[`aviso_reserva:${r.id}`]
+          return (
+            <div key={r.id} className="adm-acoes adm-secao">
+              <span>
+                {r.tipoMoeda} · {dinheiro(r.totalCents)} · vence {dataHora(r.expiraEm)}
+              </span>
+              <button type="button" className="btn btn-outline adm-btn-compacto" data-uso="usuarios-reenviar-aviso-reserva" onClick={() => void run(() => reenviarAvisoDeReservaNoPainel(email, r.id))}>
+                Reenviar aviso
+              </button>
+              {ultimo ? <span className="adm-fraco">Último reenvio em {dataHora(ultimo)}.</span> : null}
+            </div>
+          )
+        })}
       </div>
     </details>
   )

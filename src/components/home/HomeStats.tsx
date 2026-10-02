@@ -59,7 +59,7 @@ export function HomeStats(): ReactNode {
           </svg>
         </div>
         <div>
-          <div className="lbl">Moedas em custódia</div>
+          <div className="lbl">Moedas no Mercado</div>
           <div className="val">{totalCoins}</div>
         </div>
       </div>
