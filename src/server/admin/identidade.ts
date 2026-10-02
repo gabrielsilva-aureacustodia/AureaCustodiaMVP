@@ -12,6 +12,7 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 
 import type { IdentidadeResumo, PortaDeIdentidade, RespostaIdentidade } from './usuarios'
+import { normalizarEmail } from '@/domain/email'
 
 /**
  * A porta do painel para o Supabase Auth — a Admin API, pela chave de serviço (plano do
@@ -93,7 +94,7 @@ export function portaDeIdentidadeDoAmbiente(): PortaDeIdentidade {
     faltando: [],
 
     async buscar(email) {
-      const alvo = email.trim().toLowerCase()
+      const alvo = normalizarEmail(email)
       for (let pagina = 1; pagina <= PAGINAS_MAX; pagina += 1) {
         const { data, error } = await supabase().auth.admin.listUsers({ page: pagina, perPage: POR_PAGINA })
         if (error) throw new Error(`Supabase Auth: ${error.message}`)
@@ -137,7 +138,7 @@ export function portaDeIdentidadeDoAmbiente(): PortaDeIdentidade {
     async atualizarLogin(id, dados) {
       const attributes: Record<string, unknown> = {}
       if (dados.email) {
-        attributes.email = dados.email.trim().toLowerCase()
+        attributes.email = normalizarEmail(dados.email)
         attributes.email_confirm = true
       }
       if (dados.senha) {

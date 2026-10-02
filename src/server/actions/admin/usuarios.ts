@@ -37,6 +37,7 @@ import {
 } from '@/server/admin/usuarios'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
+import { normalizarEmail } from '@/domain/email'
 
 const FALHA_GRAVACAO = 'Falha ao salvar dados. Tente novamente.'
 
@@ -63,7 +64,7 @@ async function comPermissoes<T>(chaves: readonly ChavePermissao[], acao: (membro
 }
 
 function conta(email: unknown): string {
-  return typeof email === 'string' ? email.trim().toLowerCase() : ''
+  return typeof email === 'string' ? normalizarEmail(email) : ''
 }
 
 export async function criarUsuarioNoPainel(entrada: { email: string; nome: string; senha: string; demonstracao: boolean }): Promise<ActionResult<{ email: string }>> {

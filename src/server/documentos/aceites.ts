@@ -30,6 +30,7 @@ import {
   TODOS_OS_BLOCOS_IDS,
 } from '@/domain/legal'
 import type { LegalBlockAcceptance } from '@/domain/types'
+import { normalizarEmail } from '@/domain/email'
 
 export interface OpcoesRegistroAceite {
   ip?: string | null
@@ -61,7 +62,7 @@ export async function registrarAceitesFormais(
   canal: CanalAceite,
   opcoes?: OpcoesRegistroAceite,
 ): Promise<AceiteDocumentoGravado[]> {
-  const email = userEmail.trim().toLowerCase()
+  const email = normalizarEmail(userEmail)
   const agora = Date.now()
   const chavesDesejadas: ChaveDocumento[] =
     opcoes?.documentos ?? ['termos_de_uso', 'politica_privacidade', 'tabela_de_taxas']

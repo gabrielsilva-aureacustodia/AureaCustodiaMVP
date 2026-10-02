@@ -52,6 +52,7 @@ import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
 import { TAXAS_PADRAO } from '@/domain/fees'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { mutateState } from '@/server/state'
+import { normalizarEmail } from '@/domain/email'
 
 /** Teto por operação. Não é regra de negócio: é freio contra zero a mais na digitação. */
 export const MAX_POR_CADASTRO_DIRETO = 500
@@ -134,7 +135,7 @@ export async function cadastrarMoedasDiretamente(
     return { tipo: 'tipo-invalido', tipoMoeda: entrada.tipoMoeda }
   }
 
-  const email = entrada.userEmail.trim().toLowerCase()
+  const email = normalizarEmail(entrada.userEmail)
   const informado = Number.isFinite(entrada.pesoMg) ? Math.max(0, Math.round(entrada.pesoMg as number)) : 0
   const pesoMg = informado > 0 ? informado : (catalogo.find((t) => t.key === entrada.tipoMoeda)?.pesoPadraoMg ?? 0)
   const caixa = entrada.caixa?.trim() || null

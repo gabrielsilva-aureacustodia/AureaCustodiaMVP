@@ -11,14 +11,17 @@
 import 'server-only'
 
 import { getState, mutateState } from '@/server/state'
+import { chaveDeUsuario, normalizarEmail } from '@/domain/email'
 
 export async function authorizeProvisionedUser(email: string): Promise<boolean> {
-  const normalized = email.trim().toLowerCase()
+  const normalized = normalizarEmail(email)
   const current = await getState()
-  if (!current.users[normalized]) return false
+  const chave = chaveDeUsuario(current.users, normalized)
+  if (chave === null) return false
 
   const { result } = await mutateState((state) => {
-    const user = state.users[normalized]
+    const chaveAtual = chaveDeUsuario(state.users, normalized)
+    const user = chaveAtual === null ? undefined : state.users[chaveAtual]
     if (!user) return false
 
     user.prevAccess = user.lastAccess

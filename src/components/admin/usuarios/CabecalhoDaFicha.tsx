@@ -27,7 +27,7 @@ export function CabecalhoDaFicha({ cabecalho }: { cabecalho: CabecalhoFicha }): 
           {situacao.ativa ? <span className="pill g">Ativa</span> : <span className="pill adm-pill-vermelho">Desativada</span>}
           {resumo.inadimplente ? <span className="pill adm-pill-vermelho">Inadimplente{resumo.marcaManual ? ' (marca manual)' : ''}</span> : null}
           <span className={resumo.comCadastro ? 'pill g' : 'pill y'}>{resumo.comCadastro ? 'Cadastro completo' : 'Cadastro incompleto'}</span>
-          {cabecalho.ehDaEquipe ? <span className="pill y">Equipe do painel</span> : null}
+          {cabecalho.ehDaEquipe ? <span className="pill y" title="Este e-mail também tem acesso ao painel administrativo: é a mesma pessoa, não duas.">Também é membro da equipe</span> : null}
           {cabecalho.ehDoCatalogo ? <span className="pill n">Catálogo de demonstração</span> : null}
         </div>
       </div>

@@ -39,6 +39,7 @@ import type { ReactNode } from 'react'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { calcularDataLimiteSaque } from '@/domain/dates'
+import { normalizarEmail } from '@/domain/email'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -80,8 +81,8 @@ export function ModalDadosPessoais(): ReactNode {
   async function salvar(): Promise<void> {
     setSalvando(true)
     setErro('')
-    const novoEmailLimpo = email.trim().toLowerCase()
-    const emailMudou = novoEmailLimpo !== session.trim().toLowerCase()
+    const novoEmailLimpo = normalizarEmail(email)
+    const emailMudou = novoEmailLimpo !== normalizarEmail(session)
 
     if (!emailMudou) {
       const res = await run(() => updatePersonal(nome))

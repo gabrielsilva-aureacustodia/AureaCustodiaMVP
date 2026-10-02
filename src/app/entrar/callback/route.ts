@@ -37,6 +37,7 @@ import { consumePendingLegalAcceptance } from '@/server/auth/legal'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { setSession } from '@/server/session'
+import { normalizarEmail } from '@/domain/email'
 
 function destination(request: Request, path: string): URL {
   return new URL(path, request.url)
@@ -174,7 +175,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       await provisionAuthenticatedUser(user.email, nomeDoUsuario(user))
     }
 
-    await setSession(user.email.trim().toLowerCase())
+    await setSession(normalizarEmail(user.email))
 
     const destino = await consumirDestinoDoLogin()
     if (recuperacao) {

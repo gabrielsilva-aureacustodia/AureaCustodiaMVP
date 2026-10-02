@@ -37,6 +37,7 @@ import {
   type RegistrationStatus,
 } from '@/server/auth/config'
 import { getState, mutateState } from '@/server/state'
+import { normalizarEmail } from '@/domain/email'
 
 const COOKIE_NAME = 'aurea_oauth_legal'
 const MAX_AGE_S = 10 * 60
@@ -144,7 +145,7 @@ export async function consumePendingLegalAcceptance(): Promise<LegalAcceptance |
  * e de todos os blocos obrigatórios.
  */
 export async function obterStatusAceiteLegal(email: string): Promise<StatusAceiteLegal> {
-  const normalized = email.trim().toLowerCase()
+  const normalized = normalizarEmail(email)
   const state = await getState()
   const user = state.users[normalized]
   const aceite = user?.settings?.legalAcceptance ?? null
@@ -173,7 +174,7 @@ export async function registrarAceiteLegal(
   email: string,
   blocosMarcados: readonly string[],
 ): Promise<ActionResult<LegalBlockAcceptance>> {
-  const normalized = email.trim().toLowerCase()
+  const normalized = normalizarEmail(email)
   if (!normalized) return { ok: false, error: 'Identificação de usuário inválida.' }
 
   const validacao = validarAceiteBlocos(blocosMarcados)

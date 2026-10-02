@@ -18,6 +18,7 @@
 
 import { cpfValido, temCadastroCompleto } from '@/domain/cadastro'
 import { isInadimplente, verificarStatusFatura } from '@/domain/custody'
+import { chaveDeUsuario } from '@/domain/email'
 import type {
   AppState,
   Cadastro,
@@ -179,7 +180,7 @@ export function validarNovoUsuario(
 ): Validacao<NovoUsuario> {
   const email = typeof entrada.email === 'string' ? normalizarEmail(entrada.email) : ''
   if (!emailValido(email)) return { ok: false, erro: 'Informe um e-mail válido.' }
-  if (email in existentes) return { ok: false, erro: 'Já existe uma conta com este e-mail.' }
+  if (chaveDeUsuario(existentes, email) !== null) return { ok: false, erro: 'Já existe uma conta com este e-mail.' }
   const nome = typeof entrada.nome === 'string' ? entrada.nome.trim() : ''
   // O mesmo mínimo do "Salvar dados pessoais" da conta (src/server/actions/account.ts).
   if (nome.length < 2) return { ok: false, erro: 'O nome precisa de pelo menos 2 caracteres.' }

@@ -21,6 +21,7 @@ import 'server-only'
 
 import type { Cents, User } from '@/domain/types'
 import { mutateState } from '@/server/state'
+import { chaveDeUsuario, normalizarEmail } from '@/domain/email'
 
 /**
  * Saldo com que uma conta nova nasce: ZERO.
@@ -53,14 +54,17 @@ export async function provisionAuthenticatedUser(
   email: string,
   nome?: string,
 ): Promise<ProvisioningResult> {
-  const normalized = email.trim().toLowerCase()
+  const normalized = normalizarEmail(email)
 
   const { result } = await mutateState<ProvisioningResult>((state) => {
-    const existing = state.users[normalized]
-    if (existing) {
+    // `chaveDeUsuario` também acha conta gravada com maiúscula ou espaço antes da
+    // normalização existir — criar a versão normalizada ao lado dela seria duplicar a pessoa.
+    const chaveExistente = chaveDeUsuario(state.users, normalized)
+    const existing = chaveExistente === null ? undefined : state.users[chaveExistente]
+    if (existing && chaveExistente !== null) {
       existing.prevAccess = existing.lastAccess
       existing.lastAccess = Date.now()
-      return { created: false, email: normalized }
+      return { created: false, email: chaveExistente }
     }
 
     const user: User = {

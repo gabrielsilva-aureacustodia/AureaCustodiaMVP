@@ -15,6 +15,7 @@ import { carregarCatalogo } from '@/server/config/carregar'
 import { mutateState } from '@/server/state'
 
 import { MAX_POR_CADASTRO_DIRETO } from './cadastro-direto'
+import { normalizarEmail } from '@/domain/email'
 
 export interface EntradaCadastroSemEnvio {
   userEmail: string
@@ -59,7 +60,7 @@ export async function cadastrarMoedasSemEnvio(
   const pesoMg = pesoInicial(entrada, catalogo)
   if (pesoMg === null) return { tipo: 'peso-invalido' }
 
-  const email = entrada.userEmail.trim().toLowerCase()
+  const email = normalizarEmail(entrada.userEmail)
   const caixa = entrada.caixa?.trim() || null
   const observacao = entrada.observacao?.trim() || null
 

@@ -14,6 +14,7 @@ import type { AppState, Cadastro, DadosBancarios, Endereco, UserEmail, UserSetti
 
 import type { UserRegistro } from '../diff'
 import { json, nomeDoSchema, num, numOuNulo, type Consulta } from '../sql'
+import { chaveDeUsuario, normalizarEmail } from '@/domain/email'
 
 type LinhaUser = {
   email: string
@@ -177,8 +178,8 @@ export async function renomearEmailUsuarioNoBanco(
   novaSenha?: string,
 ): Promise<void> {
   const S = nomeDoSchema()
-  const de = antigoEmail.trim().toLowerCase()
-  const para = novoEmail.trim().toLowerCase()
+  const de = normalizarEmail(antigoEmail)
+  const para = normalizarEmail(novoEmail)
 
   if (de === para) return
 
@@ -280,9 +281,13 @@ export function renomearEmailNoAppState(
   novoNome?: string,
   novaSenha?: string,
 ): void {
-  const de = antigoEmail.trim().toLowerCase()
-  const para = novoEmail.trim().toLowerCase()
+  const de = normalizarEmail(antigoEmail)
+  const para = normalizarEmail(novoEmail)
   if (de === para) return
+
+  // O caminho com banco já recusa e-mail ocupado; sem banco `s.users[para] = ...` sobrescreveria
+  // a conta de OUTRA pessoa (saldo e moedas dela somem). Mesma recusa, mesma mensagem.
+  if (chaveDeUsuario(s.users, para) !== null) throw new Error('Já existe uma conta com este e-mail.')
 
   const u = s.users[de]
   if (u) {

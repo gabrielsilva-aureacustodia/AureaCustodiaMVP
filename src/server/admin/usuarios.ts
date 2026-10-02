@@ -33,6 +33,7 @@ import {
   type EntradaCadastro,
 } from '@/domain/admin/usuarios'
 import { normalizarEmail } from '@/domain/admin/permissoes'
+import { chaveDeUsuario } from '@/domain/email'
 import type { AppState, Cadastro, Cents, UserEmail } from '@/domain/types'
 import { inserirNotaDoUsuario, inserirSituacao, situacaoDaConta } from '@/server/db/repositories/admin-usuarios'
 import { lerEstado, mutarEstado } from '@/server/db/estado'
@@ -146,7 +147,7 @@ export async function criarUsuario(
 
   const r = await estado.mutarComTrilha(
     (s): ResultadoAdmin => {
-      if (s.users[novo.email]) return { ok: false, erro: 'Já existe uma conta com este e-mail.' }
+      if (chaveDeUsuario(s.users, novo.email) !== null) return { ok: false, erro: 'Já existe uma conta com este e-mail.' }
       s.users[novo.email] = {
         name: novo.nome,
         // Conta criada pelo painel nasce zerada, igual à criada pelo site. Até

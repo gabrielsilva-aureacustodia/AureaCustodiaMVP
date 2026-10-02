@@ -19,6 +19,7 @@ import type { CanalAceite, ChaveDocumento, MetodoAceite } from '@/domain/documen
 import { GENESIS } from '@/domain/hash'
 
 import { nomeDoSchema, num, type Consulta } from '../sql'
+import { normalizarEmail } from '@/domain/email'
 
 export interface AceiteDocumentoGravado extends AceiteDocumento {
   id: number
@@ -127,7 +128,7 @@ export async function listarAceitesPorUsuario(
     `SELECT * FROM ${S}.aceites_documentos
      WHERE user_email = $1
      ORDER BY id DESC`,
-    [userEmail.trim().toLowerCase()],
+    [normalizarEmail(userEmail)],
   )
   return rows.map(paraRegistro)
 }
@@ -161,7 +162,7 @@ export async function buscarUltimoAceitePorDocumento(
      WHERE user_email = $1 AND documento_chave = $2
      ORDER BY id DESC
      LIMIT 1`,
-    [userEmail.trim().toLowerCase(), documentoChave],
+    [normalizarEmail(userEmail), documentoChave],
   )
   return rows[0] ? paraRegistro(rows[0]) : null
 }

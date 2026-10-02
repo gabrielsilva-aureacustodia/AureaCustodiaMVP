@@ -34,6 +34,7 @@ import type { SaidaFechamento } from '@/server/estacao/analise'
 import { filaDeAnalise } from '@/server/estacao/analise'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { getState } from '@/server/state'
+import { normalizarEmail } from '@/domain/email'
 
 const FALHA = 'Falha ao salvar dados. Tente novamente.'
 const SEM_TABELA_CAIXAS = 'O banco ainda não tem a tabela de caixas (migration 025). Rode npm run db:migrate.'
@@ -230,7 +231,7 @@ export async function cadastrarMoedaDiretaNoPainel(entrada: {
           verbo: 'cadastro_direto',
           entidade: 'acervo',
           entidadeId: r.protocolo,
-          usuariosAfetados: [texto(e.userEmail).trim().toLowerCase()],
+          usuariosAfetados: [normalizarEmail(texto(e.userEmail))],
           detalhes: {
             quantidade: r.moedas.length,
             tipoMoeda: texto(e.tipoMoeda),
@@ -299,7 +300,7 @@ export async function cadastrarMoedaSemEnvioNoPainel(entrada: {
           verbo: 'cadastro_sem_envio',
           entidade: 'envio',
           entidadeId: r.protocolo,
-          usuariosAfetados: [texto(e.userEmail).trim().toLowerCase()],
+          usuariosAfetados: [normalizarEmail(texto(e.userEmail))],
           detalhes: {
             quantidade: Number(e.quantidade),
             tipoMoeda: texto(e.tipoMoeda),

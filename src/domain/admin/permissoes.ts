@@ -29,6 +29,8 @@
  * parâmetro.
  */
 
+import { normalizarEmail } from '@/domain/email'
+
 /* ---------- o catálogo ---------- */
 
 export const PERMISSOES = [
@@ -183,9 +185,8 @@ export interface MembroAdmin {
   origem: 'tabela' | 'ambiente'
 }
 
-export function normalizarEmail(email: string): string {
-  return email.trim().toLowerCase()
-}
+// A definição mora em src/domain/email.ts; o re-export mantém os importadores atuais.
+export { normalizarEmail }
 
 /**
  * Quem entra no painel como `dev` em qualquer ambiente, com ou sem `AUREA_ADMIN_EMAILS`.

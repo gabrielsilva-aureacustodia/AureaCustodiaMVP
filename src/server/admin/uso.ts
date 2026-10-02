@@ -16,6 +16,7 @@ import type { EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria
 import { inserirEventos, listarEventos } from '@/server/db/repositories/eventos-uso'
 import { listarAcoesDaTrilha, listarTrilhaDoPainel, type FiltroTrilha } from '@/server/db/repositories/painel-leituras'
 import type { Executor } from '@/server/db/sql'
+import { normalizarEmail } from '@/domain/email'
 
 export const LIMITE_EVENTOS = 50_000
 export const LIMITE_ACOES_TRILHA = 20_000
@@ -28,7 +29,7 @@ export async function gravarEventosDeUso(
   plataforma: string,
 ): Promise<number> {
   if (!lote.eventos.length) return 0
-  await executar((tx) => inserirEventos(tx, { userEmail: userEmail.trim().toLowerCase(), sessao: lote.sessao, plataforma }, lote.eventos))
+  await executar((tx) => inserirEventos(tx, { userEmail: normalizarEmail(userEmail), sessao: lote.sessao, plataforma }, lote.eventos))
   return lote.eventos.length
 }
 

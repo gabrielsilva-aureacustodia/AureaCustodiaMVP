@@ -30,6 +30,7 @@ import {
   ehIdentidadeBloqueada,
   MENSAGEM_CONTA_DESATIVADA,
 } from '@/server/auth/conta-desativada'
+import { normalizarEmail } from '@/domain/email'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
@@ -48,7 +49,7 @@ function nomeDoSupabase(metadata: Record<string, unknown>): string | undefined {
 }
 
 export async function login(email: string, senha: string): Promise<ActionResult> {
-  const normalized = email.trim().toLowerCase()
+  const normalized = normalizarEmail(email)
   if (!normalized || !senha) return { ok: false, error: CREDENCIAIS_INVALIDAS }
 
   // Não existe mais entrada por catálogo local. Até 20/09/2026 as contas de
@@ -86,7 +87,7 @@ export async function login(email: string, senha: string): Promise<ActionResult>
       )
     }
 
-    await setSession(data.user.email.trim().toLowerCase())
+    await setSession(normalizarEmail(data.user.email))
     return { ok: true }
   } catch (error) {
     if (error instanceof AuthConfigurationError) {
@@ -111,7 +112,7 @@ export async function registerWithEmail(
   // Sem validacao local de nome, e-mail ou tamanho de senha: quem valida e o
   // Supabase, e a mensagem dele e mais precisa do que a nossa. Ver RA-18.
   const normalizedName = name.trim()
-  const normalizedEmail = email.trim().toLowerCase()
+  const normalizedEmail = normalizarEmail(email)
 
   try {
     const client = await createAuthClient()
@@ -266,8 +267,8 @@ export async function definirNovaSenha(
     const client = await createAuthClient()
     const { data, error: userError } = await client.auth.getUser()
 
-    const emailSupabase = data?.user?.email?.trim().toLowerCase()
-    if (userError || !emailSupabase || emailSupabase !== email.trim().toLowerCase()) {
+    const emailSupabase = data?.user?.email ? normalizarEmail(data.user.email) : undefined
+    if (userError || !emailSupabase || emailSupabase !== normalizarEmail(email)) {
       return {
         ok: false,
         error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
