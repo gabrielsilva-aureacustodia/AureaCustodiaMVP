@@ -50,13 +50,13 @@ export function CoinSpecimenViewer(): ReactNode {
           <div className="landing-specimen-coin-frame">
             <div className="landing-specimen-halo" aria-hidden="true" />
             <div className={`landing-specimen-coin-stage ${face === 'anverso' ? 'face-anverso' : 'face-reverso'}`}>
-              {/* Moeda física real em alta definição */}
+              {/* Desenho vetorial realista em altíssima definição */}
               <Image
-                src={face === 'reverso' ? '/moedas/moeda-entrega-da-bandeira-2012.png' : '/moedas/moeda-real-anverso.png'}
+                src={face === 'reverso' ? '/moedas/moeda-bandeira-vetor.svg' : '/moedas/moeda-anverso-vetor.svg'}
                 alt={
                   face === 'reverso'
-                    ? 'Reverso da moeda comemorativa da Entrega da Bandeira Olímpica 2012'
-                    : 'Anverso da moeda comemorativa com valor facial de R$ 1 e grafismo marajoara'
+                    ? 'Reverso da moeda comemorativa da Entrega da Bandeira Olímpica 2012 em desenho vetorial realista'
+                    : 'Anverso da moeda comemorativa com valor facial de R$ 1 e grafismo marajoara em desenho vetorial realista'
                 }
                 width={260}
                 height={260}

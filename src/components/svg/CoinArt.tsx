@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { ReactElement, ReactNode } from 'react'
 
 import { coinTypeInfo } from '@/domain/constants'
@@ -316,11 +317,30 @@ export interface CoinArtProps {
   className?: string
 }
 
+const VETOR_MOEDAS: Record<string, string> = {
+  'Entrega da Bandeira Olímpica': '/moedas/moeda-bandeira-vetor.svg',
+  'Bandeira Olímpica': '/moedas/moeda-bandeira-vetor.svg',
+  'Direitos Humanos': '/moedas/moeda-dh-vetor.svg',
+}
+
 /**
- * Arte por tipo de moeda. Tipo desconhecido cai na Bandeira Olímpica, e o ano
- * vem do catálogo (`anoPadrao`), não da moeda: é o ano de cunhagem do modelo.
+ * Arte por tipo de moeda. Moedas comemorativas principais renderizam o vetor
+ * realista de alta definição; os demais tipos renderizam o disco bimetálico.
  */
 export function CoinArt({ type, className = 'coin-svg' }: CoinArtProps): ReactElement {
+  const vetorSrc = VETOR_MOEDAS[type]
+  if (vetorSrc) {
+    return (
+      <Image
+        src={vetorSrc}
+        alt={`Moeda ${type}`}
+        width={100}
+        height={100}
+        className={className}
+        unoptimized
+      />
+    )
+  }
   const motivo = MOTIVOS[type] ?? MOTIVOS[MOTIVO_PADRAO]
   const info = coinTypeInfo(type)
   return (
@@ -334,26 +354,17 @@ export interface CoinSvgProps {
 
 /**
  * Moeda genérica do mercado e da tela de venda (linha 937 do original).
- *
- * Ali o ativo negociado é sempre o mesmo — Real Olímpico 2012 —, então o
- * desenho é fixo e não consulta o catálogo. O motivo é a entrega da bandeira,
- * com traçado próprio, ligeiramente diferente do usado no certificado.
+ * Renderiza o vetor realista do Real Olímpico 2012.
  */
 export function CoinSvg({ className = 'coin-svg' }: CoinSvgProps): ReactElement {
   return (
-    <CoinDisc
+    <Image
+      src="/moedas/moeda-bandeira-vetor.svg"
+      alt="Moeda Real Olímpico"
+      width={100}
+      height={100}
       className={className}
-      ano={2012}
-      rotulo="Moeda Real Olímpico"
-      motivo={
-        <path
-          d="M35 36 v30 M35 36 h26 l-4.5 6 4.5 6 h-26"
-          fill={CLARO}
-          stroke={SOMBRA}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-        />
-      }
+      unoptimized
     />
   )
 }
