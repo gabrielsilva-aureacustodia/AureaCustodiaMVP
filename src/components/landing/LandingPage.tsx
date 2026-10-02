@@ -54,26 +54,25 @@ export function LandingPage(): ReactNode {
     <main className="landing-page">
       <ScrollRevealInit />
 
-      <header className="landing-header">
-        <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
-          <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={56} height={56} priority />
-          <span>
-            <strong>Real Olímpico</strong>
-            <small>Custódia de moedas comemorativas</small>
-          </span>
-        </Link>
-        <nav className="landing-nav" aria-label="Acesso à plataforma">
-          <Link className="landing-nav-link" href="/academy">
-            Academy
+      <div className="landing-header-wrap">
+        <header className="landing-header">
+          <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
+            <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={54} height={54} priority />
+            <span>
+              <strong>Real Olímpico</strong>
+              <small>Custódia de moedas comemorativas</small>
+            </span>
           </Link>
-          <Link className="btn btn-outline" href="/entrar">
-            Entrar
-          </Link>
-          <Link className="btn landing-primary" href="/cadastrar">
-            Criar conta
-          </Link>
-        </nav>
-      </header>
+          <nav className="landing-nav" aria-label="Acesso à plataforma">
+            <Link className="btn btn-outline" href="/entrar">
+              Entrar
+            </Link>
+            <Link className="btn landing-primary" href="/cadastrar">
+              Criar conta
+            </Link>
+          </nav>
+        </header>
+      </div>
 
       {/* BLOCO 1: Hero com fotos reais das moedas em diagonal */}
       <section className="landing-hero" aria-labelledby="landing-title">

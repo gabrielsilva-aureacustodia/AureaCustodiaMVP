@@ -67,3 +67,20 @@ Reescrita completa dos 5 blocos da landing page institucional do Real Olímpico 
 - Teste visual:
   - **Desktop (1440px):** Composição diagonal nítida das moedas, halo dourado, cartões com bordas e espaçamento balanceado.
   - **Mobile (375px e 320px):** Redução proporcional das moedas e tipografia, empilhamento fluído de cartões e ausência de rolagem horizontal.
+
+---
+
+## 4. Refinamentos e Ajustes Finais
+
+1. **Cabeçalho Limpo e Foco nos CTAs Principais:**
+   - Remoção do link "Academy" da barra de navegação superior, concentrando os botões de ação em "Entrar" e "Criar conta".
+   - Encapsulamento em container sticky com `backdrop-filter: blur(12px)` e borda inferior dourada translúcida, mantendo o cabeçalho acessível durante a navegação sem poluição visual.
+
+2. **Renderização Vetorial Impecável:**
+   - Adicionado `vectorEffect="non-scaling-stroke"` em todos os elementos de traçado dos ícones SVG de `LandingIcons.tsx`, garantindo que os traços permaneçam uniformes e nítidos em qualquer escala ou densidade de tela.
+
+3. **Animações e Microinterações:**
+   - Adicionada flutuação orgânica e alternada nas moedas reais do hero (`floatBandeira` e `floatDH`) com rotação e deslocamento vertical suaves, que pausam elegantemente em `:hover`.
+   - Adicionada elevação sutil e glow dourado nos cards ao passar o cursor (`:hover`).
+   - Cobertura completa de acessibilidade com `@media (prefers-reduced-motion: reduce)`, desativando flutuações e transformações dinâmicas.
+
