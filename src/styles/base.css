@@ -132,3 +132,28 @@ body[data-theme="light"] .toast{background:var(--white);color:var(--navy)}
    A largura mínima da tabela de auditoria fica em reports.css, junto dela. */
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;font-variant-numeric:tabular-nums}
 table{font-variant-numeric:tabular-nums}
+
+/* ---- Animações de Moedas na Plataforma (Desktop & Mobile) ---- */
+.coin-svg, .recibo-art, .cert-art {
+  transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1), filter .35s ease;
+  will-change: transform, filter;
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,.3));
+}
+.coin-svg:hover,
+.recibo-card:hover .recibo-art,
+.acct-row:hover .coin-svg,
+.sell-coin:hover .coin-svg {
+  transform: scale(1.08) translateY(-2px) rotate(4deg);
+  filter: drop-shadow(0 8px 22px rgba(201,162,75,.45)) brightness(1.08);
+}
+@keyframes coinLusterPulse {
+  0%, 100% {
+    filter: drop-shadow(0 3px 10px rgba(201,162,75,0.25));
+  }
+  50% {
+    filter: drop-shadow(0 6px 20px rgba(201,162,75,0.55)) brightness(1.06);
+  }
+}
+.recibo-art, .cert-art {
+  animation: coinLusterPulse 6s ease-in-out infinite;
+}
