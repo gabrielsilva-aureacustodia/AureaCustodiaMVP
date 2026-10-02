@@ -8,10 +8,13 @@
  * - Números tabulares para evitar oscilações visuais
  * - Regras de negócio protegidas e exatas:
  *     Comissão: 0,5% + R$ 1,00 por moeda em cada lado da operação
- *     Custódia: R$ 3,00/mês ou R$ 24,00/ano (economia de 33%)
+ *     Custódia: R$ 2,00 por moeda ao mês, sem prazo mínimo e sem desconto por período
+ *     (o valor vem de TAXAS_PADRAO; 6 meses e 1 ano são só a conta de 6 e 12 mensalidades)
  */
 
 import { useState, type ReactNode } from 'react'
+
+import { TAXAS_PADRAO } from '@/domain/fees'
 
 const PRESETS = [
   { label: 'Bandeira 2012 (R$ 180,00)', val: 180 },
@@ -29,7 +32,12 @@ export function FeeSimulator(): ReactNode {
   const liquidoVendedor = Math.max(0, val - comissao)
   const custoComprador = Math.max(0, val + comissao)
 
-  const custoCustodia = periodo === '1a' ? 24.0 : periodo === '6m' ? 18.0 : 3.0
+  // Mensalidade única por moeda (centavos -> reais). Não há plano anual nem desconto por prazo.
+  const mensalidade = TAXAS_PADRAO.custodiaMensalPorMoeda / 100
+  const mesesDoPeriodo = periodo === '1a' ? 12 : periodo === '6m' ? 6 : 1
+  const custoCustodia = mensalidade * mesesDoPeriodo
+  const reais = (v: number): string =>
+    v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
     <section className="landing-simulator-section reveal" aria-labelledby="simulator-title">
@@ -77,6 +85,7 @@ export function FeeSimulator(): ReactNode {
 
           <div className="landing-sim-group">
             <span className="landing-sim-label">Período de Custódia em Cofre Sicoob</span>
+            <small className="landing-sim-sub">R$ {reais(mensalidade)} por moeda ao mês, sem prazo mínimo.</small>
             <div className="landing-sim-tabs" role="tablist">
               <button
                 type="button"
@@ -85,7 +94,7 @@ export function FeeSimulator(): ReactNode {
                 onClick={() => setPeriodo('1m')}
                 className={`landing-sim-tab ${periodo === '1m' ? 'active' : ''}`}
               >
-                1 Mês (R$ 3,00)
+                1 Mês (R$ {reais(mensalidade)})
               </button>
               <button
                 type="button"
@@ -94,7 +103,7 @@ export function FeeSimulator(): ReactNode {
                 onClick={() => setPeriodo('6m')}
                 className={`landing-sim-tab ${periodo === '6m' ? 'active' : ''}`}
               >
-                6 Meses (R$ 18,00)
+                6 Meses (R$ {reais(mensalidade * 6)})
               </button>
               <button
                 type="button"
@@ -103,7 +112,7 @@ export function FeeSimulator(): ReactNode {
                 onClick={() => setPeriodo('1a')}
                 className={`landing-sim-tab ${periodo === '1a' ? 'active' : ''}`}
               >
-                1 Ano (R$ 24,00 · 33% OFF)
+                1 Ano (R$ {reais(mensalidade * 12)})
               </button>
             </div>
           </div>

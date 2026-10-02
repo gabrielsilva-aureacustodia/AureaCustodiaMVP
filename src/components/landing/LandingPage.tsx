@@ -67,7 +67,7 @@ const faqs = [
   {
     question: 'Quais são as taxas exatas de negociação e de custódia?',
     answer:
-      'Transparência absoluta: a custódia especializada custa R$ 3,00/moeda por mês (ou R$ 24,00 no plano anual). Em negociações dentro do marketplace, a comissão é de 0,5% + R$ 1,00 por moeda de cada lado da operação, sem nenhuma cobrança oculta.',
+      'Transparência absoluta: a custódia especializada custa R$ 2,00 por moeda ao mês, sem prazo mínimo e sem plano anual. Em negociações dentro do marketplace, a comissão é de 0,5% + R$ 1,00 por moeda de cada lado da operação, sem nenhuma cobrança oculta.',
   },
   {
     question: 'O que é o recibo lastreado e como ele garante a negociação segura?',
