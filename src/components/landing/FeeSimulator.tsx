@@ -8,8 +8,8 @@
  * - Números tabulares para evitar oscilações visuais
  * - Regras de negócio protegidas e exatas:
  *     Comissão: 0,5% + R$ 1,00 por moeda em cada lado da operação
- *     Custódia: R$ 2,00 por moeda ao mês, sem prazo mínimo e sem desconto por período
- *     (o valor vem de TAXAS_PADRAO; 6 meses e 1 ano são só a conta de 6 e 12 mensalidades)
+ *     Custódia: R$ 2,00 por moeda ao mês, sem prazo mínimo, sem plano anual e sem desconto
+ *     (o valor vem de TAXAS_PADRAO)
  */
 
 import { useState, type ReactNode } from 'react'
@@ -24,7 +24,6 @@ const PRESETS = [
 
 export function FeeSimulator(): ReactNode {
   const [val, setVal] = useState<number>(180)
-  const [periodo, setPeriodo] = useState<'1m' | '6m' | '1a'>('1a')
 
   const taxaPercentual = 0.005 // 0,5%
   const taxaFixa = 1.0 // R$ 1,00
@@ -33,11 +32,7 @@ export function FeeSimulator(): ReactNode {
   const custoComprador = Math.max(0, val + comissao)
 
   // Mensalidade única por moeda (centavos -> reais). Não há plano anual nem desconto por prazo.
-  const mensalidade = TAXAS_PADRAO.custodiaMensalPorMoeda / 100
-  const mesesDoPeriodo = periodo === '1a' ? 12 : periodo === '6m' ? 6 : 1
-  const custoCustodia = mensalidade * mesesDoPeriodo
-  const reais = (v: number): string =>
-    v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const custoCustodia = TAXAS_PADRAO.custodiaMensalPorMoeda / 100
 
   return (
     <section className="landing-simulator-section reveal" aria-labelledby="simulator-title">
@@ -82,40 +77,6 @@ export function FeeSimulator(): ReactNode {
               ))}
             </div>
           </div>
-
-          <div className="landing-sim-group">
-            <span className="landing-sim-label">Período de Custódia em Cofre Sicoob</span>
-            <small className="landing-sim-sub">R$ {reais(mensalidade)} por moeda ao mês, sem prazo mínimo.</small>
-            <div className="landing-sim-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={periodo === '1m'}
-                onClick={() => setPeriodo('1m')}
-                className={`landing-sim-tab ${periodo === '1m' ? 'active' : ''}`}
-              >
-                1 Mês (R$ {reais(mensalidade)})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={periodo === '6m'}
-                onClick={() => setPeriodo('6m')}
-                className={`landing-sim-tab ${periodo === '6m' ? 'active' : ''}`}
-              >
-                6 Meses (R$ {reais(mensalidade * 6)})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={periodo === '1a'}
-                onClick={() => setPeriodo('1a')}
-                className={`landing-sim-tab ${periodo === '1a' ? 'active' : ''}`}
-              >
-                1 Ano (R$ {reais(mensalidade * 12)})
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Lado Direito: Resumo Factual */}
@@ -149,8 +110,8 @@ export function FeeSimulator(): ReactNode {
 
             <div className="landing-sim-row highlight-gold">
               <div>
-                <span className="landing-sim-k">Custo da Guarda Física no Período:</span>
-                <small className="landing-sim-sub">Cofre de segurança bancária Sicoob com laudo pericial</small>
+                <span className="landing-sim-k">Custo da Guarda Física por moeda ao mês:</span>
+                <small className="landing-sim-sub">Sem prazo mínimo. Cofre de segurança bancária Sicoob com laudo pericial</small>
               </div>
               <strong className="landing-sim-v">
                 R$ {custoCustodia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
