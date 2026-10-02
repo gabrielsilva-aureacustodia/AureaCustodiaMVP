@@ -44,7 +44,7 @@ intro.js é restritiva para uso comercial).
 
 ### Conteúdo e regras — `src/domain/tutorial.ts` (testado em `tutorial.test.ts`, 14 testes)
 
-* **Passos do tour** (`passosDoTour`): boas-vindas + 5 etapas, na ordem pedida.
+* **Passos do tour** (`passosDoTour`): boas-vindas + 6 etapas, na ordem pedida.
   1. **Mercado** — blocos de venda e de compra, e a **compra facilitada** (botão Comprar → confirmar
      com saldo ou com Pix/cartão, comissão da Tabela).
   2. **Compras** — fazer oferta, opções de pagamento (saldo e pré-pago), negociação automática,
@@ -55,7 +55,12 @@ intro.js é restritiva para uso comercial).
      libera negociar.
   5. **Custódia** — valores lidos da Tabela de Taxas (`taxas.custodiaMensalPorMoeda`) e de
      `custody.ts` (`DIAS_TOLERANCIA_FATURA`, `DIAS_CARENCIA_BLOQUEIO`); passos em **Envios** e
-     **Minha conta** com a fatura de exemplo ligada; fecho.
+     **Minha conta** com a fatura de exemplo ligada.
+  6. **Cadastro completo** (acrescentada em 01/10/2026) — por que quase toda ação exige (identifica o
+     titular: recibo, pagamentos e saques em nome do dono), o que é pedido, onde fica (aviso do topo
+     de Minha conta e Configurações rápidas › Dados pessoais) e, no último balão, o botão
+     **Completar meu cadastro**, que fecha o tour e abre o formulário. Quem já tem cadastro completo
+     vê a versão curta, sem o botão.
 * **Tutorial por página** (`tutorialDaPagina`): Início, Mercado, Compras, Vendas, Envios, Recibos e
   Minha conta — uma dica por botão/bloco relevante.
 * **Tutoriais contextuais** (`tutoriaisContextuais`): disparam quando o elemento aparece na tela,
@@ -101,7 +106,11 @@ instante em que o passo muda ou o tour fecha. O véu bloqueia o clique em "Pagar
   marca a própria tela como já explicada (quem vê o tour em Mercado não recebe de novo as dicas de
   Mercado). Terminar ou pular o tour marca a tela atual também.
 * **Contextual:** varredura a cada 2 s, só com nenhum outro tutorial aberto.
-* **Progresso:** `localStorage`, chaves `ro-tutorial:<e-mail>:tour`, `…:pagina:<rota>` e
+* **Versão do tutorial** (`VERSAO_DO_TUTORIAL`, hoje `v2`): entra na chave. **Subir a versão faz todas
+  as contas — inclusive as que já tinham visto — revêem o tour no próximo acesso**, sem banco. Foi o
+  que se fez em 01/10/2026 ao acrescentar a etapa de cadastro. Contas novas não têm chave e veem o
+  tour no primeiro acesso. Limite: é por navegador (quem usa outro aparelho vê de novo).
+* **Progresso:** `localStorage`, chaves `ro-tutorial:v2:<e-mail>:tour`, `…:pagina:<rota>` e
   `…:contexto:<id>`. **Sem tabela e sem migration.** Não foi preciso servidor; se a ideia de
   sincronizar entre aparelhos voltar, é decisão a combinar antes — aqui trocar de aparelho só
   repete o tutorial.

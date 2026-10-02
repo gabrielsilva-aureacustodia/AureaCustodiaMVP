@@ -30,7 +30,7 @@ import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import { resumoComExemplo } from '@/domain/tutorial'
 import { useApp } from '@/components/providers/AppProvider'
-import { useTutorial } from '@/components/tutorial/TutorialProvider'
+import { useTutorial } from '@/components/tutorial/contexto'
 
 /** O primeiro dia da competência seguinte — quando o ciclo mensal passa de novo. */
 function inicioDaProximaCobranca(r: { proximaCompetencia: string }): number {

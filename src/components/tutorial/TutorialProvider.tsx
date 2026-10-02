@@ -28,7 +28,7 @@
  */
 
 import { usePathname, useRouter } from 'next/navigation'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import {
@@ -42,23 +42,17 @@ import {
   tutoriaisContextuais,
 } from '@/domain/tutorial'
 import type { Dica } from '@/domain/tutorial'
-import type { FaturaCustodia } from '@/domain/types'
+import { temCadastroCompleto } from '@/domain/cadastro'
+import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { useApp } from '@/components/providers/AppProvider'
 import { DicasDaPagina } from '@/components/tutorial/DicasDaPagina'
 import { TourGuiado } from '@/components/tutorial/TourGuiado'
+import { Ctx } from '@/components/tutorial/contexto'
+import type { TutorialCtx } from '@/components/tutorial/contexto'
 import { acharAlvo, apagarChave, gravarChave, lerChave } from '@/components/tutorial/dom'
+import { useModal } from '@/components/ui/Modal'
 
-interface TutorialCtx {
-  /** A fatura de exemplo, só durante a etapa de custódia do tour. `null` o resto do tempo. */
-  exemplo: FaturaCustodia | null
-}
-
-// Padrão sem provider: telas que leem o contexto continuam funcionando (e testáveis) sem tutorial.
-const Ctx = createContext<TutorialCtx>({ exemplo: null })
-
-export function useTutorial(): TutorialCtx {
-  return useContext(Ctx)
-}
+export { useTutorial } from '@/components/tutorial/contexto'
 
 /** O que está aberto na camada de dicas. */
 interface DicasAbertas {
@@ -77,6 +71,7 @@ export function TutorialProvider({ children }: { children: ReactNode }): ReactNo
   const { session, me, taxas } = useApp()
   const pathname = usePathname()
   const router = useRouter()
+  const modal = useModal()
   const pagina = paginaDoTutorial(pathname)
 
   // localStorage só existe no navegador: nada de decidir antes de montar, para o HTML do
@@ -88,8 +83,8 @@ export function TutorialProvider({ children }: { children: ReactNode }): ReactNo
   useEffect(() => setMontado(true), [])
 
   const passos = useMemo(
-    () => passosDoTour({ taxas, temMoedas: me.coins.length > 0 }),
-    [taxas, me.coins.length],
+    () => passosDoTour({ taxas, temMoedas: me.coins.length > 0, cadastroCompleto: temCadastroCompleto(me) }),
+    [taxas, me],
   )
   const passo = indiceDoTour !== null ? (passos[indiceDoTour] ?? null) : null
 
@@ -134,6 +129,12 @@ export function TutorialProvider({ children }: { children: ReactNode }): ReactNo
     if (proximo === -1) encerrarTour('concluido')
     else setIndiceDoTour(proximo)
   }, [indiceDoTour, passos, encerrarTour])
+
+  // Último balão: fecha o tour e abre o formulário de cadastro na hora, sem a pessoa procurar o botão.
+  const completarCadastro = useCallback(() => {
+    encerrarTour('concluido')
+    modal.open(<ModalCadastro motivo="configuracoes" />)
+  }, [encerrarTour, modal])
 
   const pularTudo = useCallback(() => encerrarTour('pulado'), [encerrarTour])
 
@@ -216,6 +217,7 @@ export function TutorialProvider({ children }: { children: ReactNode }): ReactNo
           aoVoltar={voltar}
           aoPularEtapa={pularEtapa}
           aoPularTudo={pularTudo}
+          aoCompletarCadastro={completarCadastro}
         />
       ) : null}
 

@@ -25,7 +25,7 @@ import type { ReactNode } from 'react'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
-import { useTutorial } from '@/components/tutorial/TutorialProvider'
+import { useTutorial } from '@/components/tutorial/contexto'
 
 /** Faturas da conta que ainda não foram pagas nem canceladas. */
 function faturasEmAberto(faturas: readonly FaturaCustodia[], email: string): FaturaCustodia[] {

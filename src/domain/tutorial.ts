@@ -67,7 +67,17 @@ export interface Dica {
 /* Chaves de armazenamento                                                    */
 /* ------------------------------------------------------------------------- */
 
-const PREFIXO = 'ro-tutorial'
+/**
+ * A versão faz parte da chave: subi-la faz TODAS as contas — inclusive as que já tinham visto o
+ * tutorial — voltarem a vê-lo no próximo acesso, sem mexer em banco nenhum. É o botão de "refazer
+ * para todo mundo" quando o tour ganha conteúdo que vale a pena mostrar de novo.
+ *
+ * v2 (01/10/2026): o tour ganhou a etapa de cadastro completo; todas as contas o revêem uma vez.
+ * Conta criada depois disso não tem chave nenhuma e vê o tour no primeiro acesso.
+ */
+export const VERSAO_DO_TUTORIAL = 'v2'
+
+const PREFIXO = `ro-tutorial:${VERSAO_DO_TUTORIAL}`
 
 /** Uma chave por conta e por assunto — o e-mail entra para duas pessoas no mesmo navegador não dividirem progresso. */
 export const chaveDoTour = (email: UserEmail): string => `${PREFIXO}:${email}:tour`
@@ -177,18 +187,22 @@ export interface PassoDoTour {
   alvo?: Alvo
   /** Liga o exemplo de custódia enquanto este passo está na tela. */
   exemploDeCustodia?: boolean
+  /** Botão extra do último balão: leva a pessoa direto ao que o passo pede. */
+  acaoFinal?: 'completar-cadastro'
 }
 
 /** Quantas etapas o tour tem além da boas-vindas. */
-export const TOTAL_DE_ETAPAS_DO_TOUR = 5
+export const TOTAL_DE_ETAPAS_DO_TOUR = 6
 
 export interface ContextoDoTour {
   taxas: TabelaDeTaxas
   /** A conta já tem moeda cadastrada? Muda só o texto de Vendas. */
   temMoedas: boolean
+  /** O cadastro completo já foi feito? Muda o texto da etapa final. */
+  cadastroCompleto: boolean
 }
 
-export function passosDoTour({ taxas, temMoedas }: ContextoDoTour): PassoDoTour[] {
+export function passosDoTour({ taxas, temMoedas, cadastroCompleto }: ContextoDoTour): PassoDoTour[] {
   const porMoeda = brl(taxas.custodiaMensalPorMoeda)
   const comissaoCompra = textoDaComissao(taxas.comissaoCompradorBp, taxas.comissaoCompradorFixa)
   const comissaoVenda = textoDaComissao(taxas.comissaoVendedorBp, taxas.comissaoVendedorFixa)
@@ -200,7 +214,7 @@ export function passosDoTour({ taxas, temMoedas }: ContextoDoTour): PassoDoTour[
       rota: null,
       titulo: 'Bem-vindo ao Real Olímpico',
       texto:
-        'Vamos fazer um passeio rápido de 5 etapas pelo caminho principal: Mercado, Compras, Vendas, Envios e Custódia. ' +
+        'Vamos fazer um passeio rápido de 6 etapas pelo caminho principal: Mercado, Compras, Vendas, Envios, Custódia e Cadastro. ' +
         'É só para você conhecer as telas — nada será comprado, vendido nem alterado na sua conta. Você pode pular quando quiser.',
     },
 
@@ -358,14 +372,51 @@ export function passosDoTour({ taxas, temMoedas }: ContextoDoTour): PassoDoTour[
         `Se a fatura passar do vencimento por mais de ${DIAS_CARENCIA_BLOQUEIO} dia, venda e retirada ficam bloqueadas até o pagamento — ` +
         'por isso vale pagar dentro do prazo. Este cartão também é só um exemplo.',
     },
+
+    /* ---------------- 6 · Cadastro completo ---------------- */
+    cadastroCompleto
+      ? {
+          id: 'cadastro-por-que',
+          etapa: 6,
+          rota: '/conta',
+          titulo: 'Seu cadastro está completo',
+          texto:
+            'Quase tudo no Real Olímpico — depositar, comprar, vender, enviar moeda e sacar — pede o cadastro completo, e o seu já está em dia, então nada fica travado. ' +
+            'Se um dado mudar, é só atualizá-lo em Configurações rápidas, na opção Dados pessoais.',
+        }
+      : {
+          id: 'cadastro-por-que',
+          etapa: 6,
+          rota: '/conta',
+          alvo: { css: '.note', contem: 'Complete seu cadastro' },
+          titulo: 'Falta um passo: complete seu cadastro',
+          texto:
+            'Quase tudo no Real Olímpico — depositar, comprar, vender, enviar moeda e sacar — só libera depois do cadastro completo. ' +
+            'Ele identifica o titular da conta: o recibo, os pagamentos e os saques ficam em nome de quem de fato é o dono. ' +
+            'Você informa CPF, nome, data de nascimento, telefone, endereço e uma chave Pix ou conta para receber saques. É feito uma vez só e leva poucos minutos.',
+        },
+    {
+      id: 'cadastro-onde',
+      etapa: 6,
+      rota: '/conta',
+      alvo: { css: '.qk-name', contem: 'Dados pessoais', subir: '.qk-row' },
+      titulo: 'Onde fica o cadastro',
+      texto: cadastroCompleto
+        ? 'Em Minha conta, na lista de Configurações rápidas, a opção Dados pessoais abre o seu cadastro para você conferir e atualizar quando precisar.'
+        : 'Em Minha conta você encontra o botão Completar cadastro, no aviso do topo, e também a opção Dados pessoais, em Configurações rápidas. ' +
+          'O formulário também é oferecido quando você tenta depositar, comprar ou enviar uma moeda sem ele.',
+    },
     {
       id: 'fim',
-      etapa: 5,
+      etapa: 6,
       rota: null,
-      titulo: 'Tudo pronto',
-      texto:
-        'Esse foi o caminho principal. Em qualquer tela, o botão Ver tutorial desta página, no canto de baixo, explica cada botão sem escurecer nada. ' +
-        'E se quiser refazer este passeio, o link Refazer o tour guiado fica nesse mesmo painel.',
+      titulo: cadastroCompleto ? 'Tudo pronto' : 'Tudo pronto — falta só o cadastro',
+      texto: cadastroCompleto
+        ? 'Esse foi o caminho principal. Em qualquer tela, o botão Ver tutorial desta página, no canto de baixo, explica cada botão sem escurecer nada. ' +
+          'E se quiser refazer este passeio, o link Refazer o tour guiado fica nesse mesmo painel.'
+        : 'Esse foi o caminho principal. Para começar a usar tudo isso, complete o cadastro agora — leva poucos minutos. ' +
+          'Em qualquer tela, o botão Ver tutorial desta página, no canto de baixo, explica cada botão, e o link Refazer o tour guiado fica nesse mesmo painel.',
+      acaoFinal: cadastroCompleto ? undefined : 'completar-cadastro',
     },
   ]
 }

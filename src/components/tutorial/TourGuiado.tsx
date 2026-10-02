@@ -46,6 +46,8 @@ interface Props {
   aoVoltar(): void
   aoPularEtapa(): void
   aoPularTudo(): void
+  /** Só no último balão quando há ação final (completar cadastro): fecha o tour e leva ao formulário. */
+  aoCompletarCadastro?: () => void
 }
 
 export function TourGuiado({
@@ -59,6 +61,7 @@ export function TourGuiado({
   aoVoltar,
   aoPularEtapa,
   aoPularTudo,
+  aoCompletarCadastro,
 }: Props): ReactNode {
   const [alvo, setAlvo] = useState<HTMLElement | null>(null)
   const [semAlvo, setSemAlvo] = useState(false)
@@ -237,9 +240,20 @@ export function TourGuiado({
                 Pular esta etapa
               </button>
             ) : null}
-            <button ref={botaoPrincipal} type="button" className="btn btn-gold" onClick={aoAvancar}>
-              {ultimo ? 'Concluir' : passo.etapa === 0 ? 'Começar' : 'Próximo'}
-            </button>
+            {passo.acaoFinal === 'completar-cadastro' && aoCompletarCadastro ? (
+              <>
+                <button type="button" className="btn btn-outline" onClick={aoAvancar}>
+                  Concluir
+                </button>
+                <button ref={botaoPrincipal} type="button" className="btn btn-gold" onClick={aoCompletarCadastro}>
+                  Completar meu cadastro
+                </button>
+              </>
+            ) : (
+              <button ref={botaoPrincipal} type="button" className="btn btn-gold" onClick={aoAvancar}>
+                {ultimo ? 'Concluir' : passo.etapa === 0 ? 'Começar' : 'Próximo'}
+              </button>
+            )}
           </div>
         </div>
       ) : null}

@@ -18,6 +18,7 @@ import {
   textoDaComissao,
   tutorialDaPagina,
   tutoriaisContextuais,
+  VERSAO_DO_TUTORIAL,
 } from '@/domain/tutorial'
 
 const EMAIL = 'ana@testeaurea.com.br'
@@ -27,7 +28,7 @@ const PROIBIDAS = /\b(token|tokens|nft|cripto|criptoativo|ativo digital|ativos|i
 
 function todosOsTextos(): string[] {
   const textos: string[] = []
-  for (const p of passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false })) textos.push(p.titulo, p.texto)
+  for (const p of passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: false })) textos.push(p.titulo, p.texto)
   for (const pg of PAGINAS_COM_TUTORIAL) {
     const t = tutorialDaPagina(pg, TAXAS_PADRAO)
     textos.push(t.titulo)
@@ -62,19 +63,19 @@ describe('textos com número real', () => {
   })
 
   it('o passo de custódia cita o preço e o prazo vigentes, e acompanha a tabela', () => {
-    const base = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false }).find((p) => p.id === 'custodia-valores')!
+    const base = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: false }).find((p) => p.id === 'custodia-valores')!
     expect(base.texto).toMatch(/R\$\s2,00/)
     expect(base.texto).toContain(`${DIAS_TOLERANCIA_FATURA} dias`)
 
-    const alterada = passosDoTour({ taxas: { ...TAXAS_PADRAO, custodiaMensalPorMoeda: 350 }, temMoedas: false }).find(
+    const alterada = passosDoTour({ taxas: { ...TAXAS_PADRAO, custodiaMensalPorMoeda: 350 }, temMoedas: false, cadastroCompleto: false }).find(
       (p) => p.id === 'custodia-valores',
     )!
     expect(alterada.texto).toMatch(/R\$\s3,50/)
   })
 
   it('Vendas muda de texto conforme a conta já tenha moeda', () => {
-    const sem = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false }).find((p) => p.id === 'vender-proximo-passo')!
-    const com = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: true }).find((p) => p.id === 'vender-proximo-passo')!
+    const sem = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: false }).find((p) => p.id === 'vender-proximo-passo')!
+    const com = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: true, cadastroCompleto: false }).find((p) => p.id === 'vender-proximo-passo')!
     expect(sem.texto).toContain('Envios')
     expect(sem.texto).toContain('ainda não tem moedas')
     expect(com.texto).not.toContain('ainda não tem moedas')
@@ -89,22 +90,39 @@ describe('textos com número real', () => {
 })
 
 describe('forma do tour', () => {
-  const passos = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false })
+  const passos = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: false })
 
   it('tem boas-vindas e as cinco etapas, em ordem', () => {
     expect(passos[0]!.etapa).toBe(0)
     const etapas = [...new Set(passos.map((p) => p.etapa))]
-    expect(etapas).toEqual([0, 1, 2, 3, 4, 5])
+    expect(etapas).toEqual([0, 1, 2, 3, 4, 5, 6])
     expect(passos.map((p) => p.etapa)).toEqual([...passos.map((p) => p.etapa)].sort((a, b) => a - b))
   })
 
   it('segue a ordem Mercado, Compras, Vendas, Envios, Custódia', () => {
     const rotaPorEtapa = (e: number): string | null => passos.find((p) => p.etapa === e && p.rota)?.rota ?? null
-    expect([1, 2, 3, 4, 5].map(rotaPorEtapa)).toEqual(['/mercado', '/compras', '/vender', '/envios', '/envios'])
+    expect([1, 2, 3, 4, 5, 6].map(rotaPorEtapa)).toEqual(['/mercado', '/compras', '/vender', '/envios', '/envios', '/conta'])
   })
 
   it('só os passos de custódia ligam o exemplo', () => {
     for (const p of passos) expect(!!p.exemploDeCustodia).toBe(p.etapa === 5 && p.rota !== null)
+  })
+
+  it('a etapa final explica o cadastro e só oferece a ação a quem ainda não completou', () => {
+    const sem = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: false })
+    const com = passosDoTour({ taxas: TAXAS_PADRAO, temMoedas: false, cadastroCompleto: true })
+    const porQue = sem.find((p) => p.id === 'cadastro-por-que')!
+    expect(porQue.texto).toMatch(/cadastro completo/)
+    expect(porQue.alvo?.contem).toBe('Complete seu cadastro')
+    expect(sem.at(-1)!.acaoFinal).toBe('completar-cadastro')
+    expect(com.find((p) => p.id === 'cadastro-por-que')!.titulo).toMatch(/completo/)
+    expect(com.at(-1)!.acaoFinal).toBeUndefined()
+    expect(sem.at(-1)!.id).toBe('fim')
+  })
+
+  it('a versão do tutorial entra nas chaves, para refazer o tour de todos subindo a versão', () => {
+    expect(chaveDoTour(EMAIL)).toContain(`:${VERSAO_DO_TUTORIAL}:`)
+    expect(chaveDaPagina(EMAIL, '/mercado')).toContain(`:${VERSAO_DO_TUTORIAL}:`)
   })
 
   it('ids são únicos', () => {
