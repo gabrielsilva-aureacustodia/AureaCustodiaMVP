@@ -53,9 +53,12 @@
 .nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
 .nav-item:hover:not(.soon){color:var(--text-strong);transform:translateX(3px);background:var(--gold-wash)}
 .nav-item.active{
-  color:var(--gold);border-color:var(--line-soft);
+  color:var(--gold);
+  border-color:var(--line-soft);
+  border-left:3px solid var(--gold);
   background:linear-gradient(90deg,var(--gold-tint-14),transparent);
   transform:translateX(3px);
+  box-shadow:inset 1px 0 8px rgba(201,162,75,.15);
 }
 .nav-item.soon{opacity:.45;cursor:default}
 .nav-item.soon:hover{color:var(--text-muted);transform:none}
