@@ -23,12 +23,13 @@ import { COIN_TYPES } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
-import { CoinArt } from '@/components/svg/CoinArt'
+import { MoedaRealista } from '@/components/ui/MoedaRealista'
 
 interface Bloco {
   tipo: string
   titulo: string
   historia: string
+  foto: string
 }
 
 const BLOCOS: Bloco[] = [
@@ -37,12 +38,14 @@ const BLOCOS: Bloco[] = [
     titulo: 'Moeda dos Direitos Humanos',
     historia:
       'Emitida pelo Banco Central em dezembro de 1998 para os 50 anos da Declaração Universal dos Direitos Humanos. Traz um globo e uma figura humana estilizada e tem a menor tiragem entre as moedas de R$ 1.',
+    foto: '/moedas/moeda-direitos-humanos-1998.png',
   },
   {
     tipo: 'Entrega da Bandeira Olímpica',
     titulo: 'Moeda da Entrega da Bandeira',
     historia:
       'Lançada em 2012, marca a passagem da bandeira olímpica de Londres para o Rio de Janeiro, na cerimônia de encerramento dos Jogos. Foi a primeira da série comemorativa que levou aos Jogos Rio 2016.',
+    foto: '/moedas/moeda-entrega-da-bandeira-2012.png',
   },
 ]
 
@@ -57,7 +60,7 @@ export function BlocosDeMoedas(): ReactNode {
         return (
           <section key={b.tipo} className="moeda-bloco">
             <div className="moeda-bloco-foto">
-              <CoinArt type={b.tipo} className="coin-svg coin-showcase" />
+              <MoedaRealista src={b.foto} alt={b.titulo} size={160} interativa />
             </div>
             <div className="moeda-bloco-tx">
               <h3>{b.titulo}</h3>

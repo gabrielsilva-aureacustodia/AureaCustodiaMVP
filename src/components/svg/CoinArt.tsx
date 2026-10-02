@@ -1,6 +1,6 @@
-import Image from 'next/image'
 import type { ReactElement, ReactNode } from 'react'
 
+import { MoedaRealista } from '@/components/ui/MoedaRealista'
 import { coinTypeInfo } from '@/domain/constants'
 
 /**
@@ -317,29 +317,20 @@ export interface CoinArtProps {
   className?: string
 }
 
-const VETOR_MOEDAS: Record<string, string> = {
-  'Entrega da Bandeira Olímpica': '/moedas/moeda-bandeira-vetor.svg',
-  'Bandeira Olímpica': '/moedas/moeda-bandeira-vetor.svg',
-  'Direitos Humanos': '/moedas/moeda-dh-vetor.svg',
+const FOTO_MOEDAS: Record<string, string> = {
+  'Entrega da Bandeira Olímpica': '/moedas/moeda-entrega-da-bandeira-2012.png',
+  'Bandeira Olímpica': '/moedas/moeda-entrega-da-bandeira-2012.png',
+  'Direitos Humanos': '/moedas/moeda-direitos-humanos-1998.png',
 }
 
 /**
- * Arte por tipo de moeda. Moedas comemorativas principais renderizam o vetor
- * realista de alta definição; os demais tipos renderizam o disco bimetálico.
+ * Arte por tipo de moeda. Moedas comemorativas principais renderizam a foto
+ * real (ver MoedaRealista); os demais tipos renderizam o disco bimetálico.
  */
 export function CoinArt({ type, className = 'coin-svg' }: CoinArtProps): ReactElement {
-  const vetorSrc = VETOR_MOEDAS[type]
-  if (vetorSrc) {
-    return (
-      <Image
-        src={vetorSrc}
-        alt={`Moeda ${type}`}
-        width={100}
-        height={100}
-        className={className}
-        unoptimized
-      />
-    )
+  const fotoSrc = FOTO_MOEDAS[type]
+  if (fotoSrc) {
+    return <MoedaRealista src={fotoSrc} alt={`Moeda ${type}`} size={100} className={className} />
   }
   const motivo = MOTIVOS[type] ?? MOTIVOS[MOTIVO_PADRAO]
   const info = coinTypeInfo(type)
@@ -358,13 +349,11 @@ export interface CoinSvgProps {
  */
 export function CoinSvg({ className = 'coin-svg' }: CoinSvgProps): ReactElement {
   return (
-    <Image
-      src="/moedas/moeda-bandeira-vetor.svg"
+    <MoedaRealista
+      src="/moedas/moeda-entrega-da-bandeira-2012.png"
       alt="Moeda Real Olímpico"
-      width={100}
-      height={100}
+      size={100}
       className={className}
-      unoptimized
     />
   )
 }

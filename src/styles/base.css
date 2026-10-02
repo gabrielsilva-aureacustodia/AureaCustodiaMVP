@@ -23,6 +23,38 @@
 }
 .skip-link:focus{top:0;outline:2px solid #000;outline-offset:2px}
 
+/* ---- Moeda com foto real: halo dourado + brilho especular + friso, tudo
+   decoração (sem imagem extra) — ver MoedaRealista.tsx. ------------------- */
+.moeda-realista{
+  --moeda-tilt-x:0deg;--moeda-tilt-y:0deg;
+  position:relative;display:inline-block;border-radius:50%;isolation:isolate;
+  perspective:900px;
+}
+.moeda-realista::before{
+  content:'';position:absolute;inset:-10%;border-radius:50%;z-index:0;pointer-events:none;
+  background:radial-gradient(circle,transparent 66%,rgba(212,175,55,.2) 84%,rgba(243,229,171,.13) 95%,transparent 100%);
+}
+.moeda-realista-img{
+  position:relative;z-index:1;display:block;border-radius:50%;
+  transform:rotateX(var(--moeda-tilt-x)) rotateY(var(--moeda-tilt-y));
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  transform-style:preserve-3d;
+}
+.moeda-realista::after{
+  content:'';position:absolute;inset:0;border-radius:50%;z-index:2;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.3) 0%,rgba(255,255,255,.08) 22%,transparent 40%,rgba(255,255,255,.04) 65%,rgba(255,255,255,.16) 85%,transparent 100%);
+  box-shadow:inset 0 0 0 1.5px rgba(255,245,204,.35),inset 0 0 0 3px rgba(59,37,3,.3);
+}
+.moeda-realista-interativa{cursor:pointer}
+.moeda-realista-interativa .moeda-realista-img{transition:transform .08s linear}
+.moeda-realista-interativa:not(:hover) .moeda-realista-img{transition:transform .5s cubic-bezier(.22,1,.36,1)}
+@media (prefers-reduced-motion:reduce){
+  .moeda-realista-img{transition:none}
+}
+@media (hover:none){
+  .moeda-realista-interativa{cursor:default}
+}
+
 body{
   font-family:var(--ff-sans);
   background:var(--bg);

@@ -14,6 +14,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { MoedaRealista } from '@/components/ui/MoedaRealista'
 import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
 import {
   VaultIcon,
@@ -128,26 +129,24 @@ export function LandingPage(): ReactNode {
           <div className="landing-hero-coins-track">
             {/* Moeda 1: Entrega da Bandeira Olímpica 2012 */}
             <div className="landing-coin-item landing-coin-bandeira">
-              <Image
-                src="/moedas/moeda-bandeira-vetor.svg"
-                alt="Desenho vetorial realista da Moeda comemorativa de R$ 1 da Entrega da Bandeira Olímpica Londres 2012 – Rio 2016"
-                width={250}
-                height={250}
-                unoptimized
+              <MoedaRealista
+                src="/moedas/moeda-entrega-da-bandeira-2012.png"
+                alt="Moeda comemorativa de R$ 1 da Entrega da Bandeira Olímpica Londres 2012 – Rio 2016"
+                size={250}
                 priority
+                interativa
               />
               <span className="landing-coin-caption">Entrega da Bandeira · 2012</span>
             </div>
 
             {/* Moeda 2: Direitos Humanos 1998 */}
             <div className="landing-coin-item landing-coin-dh">
-              <Image
-                src="/moedas/moeda-dh-vetor.svg"
-                alt="Desenho vetorial realista da Moeda comemorativa de R$ 1 do cinquentenário da Declaração Universal dos Direitos Humanos 1998"
-                width={250}
-                height={250}
-                unoptimized
+              <MoedaRealista
+                src="/moedas/moeda-direitos-humanos-1998.png"
+                alt="Moeda comemorativa de R$ 1 do cinquentenário da Declaração Universal dos Direitos Humanos 1998"
+                size={250}
                 priority
+                interativa
               />
               <span className="landing-coin-caption">Direitos Humanos · 1998</span>
             </div>
