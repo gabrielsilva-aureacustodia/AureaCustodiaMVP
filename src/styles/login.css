@@ -10,15 +10,26 @@
    base.css — são compartilhados com metade do sistema.
    ========================================================================= */
 
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 20%, rgba(201,162,75,0.05) 0%, transparent 70%)}
 .login-card{
   width:100%;max-width:430px;
   background:var(--card);
   border:1px solid var(--line);
   border-radius:14px;
   padding:46px 40px;
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow-lg), 0 0 24px rgba(201,162,75,0.04);
   text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.login-card::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:2px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 .brand-mark{
   width:74px;height:74px;margin:0 auto 14px;
@@ -26,6 +37,7 @@
   display:flex;align-items:center;justify-content:center;
   font-family:var(--ff-display);font-size:36px;color:var(--gold);
   position:relative;
+  box-shadow:0 0 20px rgba(201,162,75,0.12);
 }
 .brand-mark::after{content:'';position:absolute;inset:5px;border:.8px solid var(--line-soft);border-radius:50%}
 .brand-name{font-family:var(--ff-display);font-size:30px;letter-spacing:.22em;color:var(--gold);font-weight:600}

@@ -29,34 +29,38 @@ h1,h2,h3,.serif{font-family:var(--ff-display)}
   width:100%;padding:12px 14px;border-radius:8px;
   border:1px solid var(--line-soft);
   background:var(--input-bg);color:var(--text);
-  font-size:15px;font-family:inherit;outline:none;transition:border .2s;
+  font-size:15px;font-family:inherit;outline:none;
+  transition:border-color .2s ease,box-shadow .2s ease;
 }
-.field input:focus{border-color:var(--gold)}
+.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.16)}
 .tinput{
   width:100%;border:1px solid var(--line-soft);border-radius:9px;background:var(--input-bg);
   color:var(--text);font-family:inherit;font-size:14.5px;padding:11px 13px;outline:none;margin-bottom:4px;
+  transition:border-color .2s ease,box-shadow .2s ease;
 }
-.tinput:focus{border-color:var(--gold)}
+.tinput:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.16)}
 textarea.obs{
   width:100%;border:1px solid var(--line-soft);border-radius:9px;background:var(--input-bg);
   color:var(--text);font-family:inherit;font-size:13.5px;padding:11px 13px;resize:vertical;min-height:56px;outline:none;
+  transition:border-color .2s ease,box-shadow .2s ease;
 }
-textarea.obs:focus{border-color:var(--gold)}
+textarea.obs:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,75,.16)}
 .field-lbl{font-size:13px;font-weight:700;color:var(--text);margin:14px 0 4px;display:flex;align-items:center;gap:7px}
 .field-lbl svg{width:15px;height:15px;stroke:var(--gold);fill:none;stroke-width:1.6}
 
 /* ---- Botões -------------------------------------------------------------- */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:13px 22px;border-radius:8px;border:none;cursor:pointer;
+  min-height:44px;padding:12px 22px;border-radius:8px;border:none;cursor:pointer;
   font-family:var(--ff-sans);font-size:15px;font-weight:700;
-  transition:transform .12s,box-shadow .2s,opacity .2s;
+  transition:transform .12s ease,box-shadow .2s ease,opacity .2s ease,filter .2s ease;
 }
+.btn:hover:not([disabled]){transform:translateY(-1px)}
 .btn:active{transform:translateY(1px)}
-.btn-gold{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--on-gold);width:100%}
-.btn-gold:hover{box-shadow:var(--shadow-gold-hover)}
+.btn-gold{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--on-gold);width:100%;box-shadow:0 4px 14px rgba(201,162,75,.22)}
+.btn-gold:hover:not([disabled]){box-shadow:var(--shadow-gold-hover);filter:brightness(1.03)}
 .btn-outline{background:transparent;border:1px solid var(--gold);color:var(--gold)}
-.btn-outline:hover{background:var(--gold-wash)}
+.btn-outline:hover:not([disabled]){background:var(--gold-wash);box-shadow:0 4px 12px rgba(201,162,75,.12)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 
 /* ---- Interruptor (tema na topbar, notificações nas configurações) --------- */
@@ -67,8 +71,9 @@ textarea.obs:focus{border-color:var(--gold)}
 
 /* ---- Painel: o cartão que envolve praticamente todo conteúdo -------------- */
 .panel{
-  background:var(--card);border:1px solid var(--line);border-radius:13px;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
   padding:22px;box-shadow:var(--shadow);
+  transition:border-color .2s ease,box-shadow .2s ease;
 }
 .panel h3{font-size:17px;color:var(--text-strong);font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:9px}
 .panel h3 svg{width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:1.6}
@@ -125,4 +130,5 @@ body[data-theme="light"] .toast{background:var(--white);color:var(--navy)}
 
 /* wrapper padrão de tabela larga: rola sozinha em vez de empurrar a página.
    A largura mínima da tabela de auditoria fica em reports.css, junto dela. */
-.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;font-variant-numeric:tabular-nums}
+table{font-variant-numeric:tabular-nums}
