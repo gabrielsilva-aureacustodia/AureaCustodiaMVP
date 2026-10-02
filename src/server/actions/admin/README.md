@@ -21,11 +21,13 @@ de falha de gravação, nunca um erro na tela.
 | | `definirAliquotaNoPainel` | `contabil.parametros` |
 | | `verificarLedgerNoPainel` | `resultados.ver` |
 | | `enviarAoSheetsNoPainel` | `resultados.exportar` |
-| `equipe.ts` | `adicionarMembroNoPainel`, `alterarMembroNoPainel` | `admin.membros` |
+| `equipe.ts` | `adicionarMembroNoPainel` (também manda o e-mail "você foi adicionado"), `alterarMembroNoPainel` | `admin.membros` |
 | | `criarPapelNoPainel`, `alterarPapelNoPainel`, `excluirPapelNoPainel` | `admin.papeis` |
 | `cs.ts` (C2) | `atualizarAtendimentoNoPainel` (o polling de 5 s, só leitura) | `cs.ver` |
 | | `responderNoPainel`, `enviarMidiaNoPainel`, `iniciarConversaNoPainel`, `anotarConversaNoPainel`, `mudarSituacaoDaConversaNoPainel`, `atribuirConversaNoPainel`, `criarEtiquetaNoPainel`, `etiquetarConversaNoPainel`, `atualizarContatoNoPainel` | `cs.responder` |
 | | `conferirCanalNoPainel` | `cs.canais` |
+| `emails.ts` | `reenviarRedefinicaoSenhaNoPainel`, `reenviarAvisoDeReservaNoPainel` — gravam `admin.email.reenviar` | `usuarios.editar` |
+| | `reenviarConviteDeEquipeNoPainel` — grava `admin.email.reenviar` | `admin.membros` |
 | `usuarios.ts` (C2) | `criarUsuarioNoPainel` | `usuarios.criar` |
 | | `editarCadastroNoPainel`, `ajustarSaldoNoPainel`, `marcarInadimplenciaNoPainel`, `mudarSituacaoDaContaNoPainel`, `redefinirSenhaNoPainel`, `anotarUsuarioNoPainel` | `usuarios.editar` |
 | | `editarDadosBancariosNoPainel` | `usuarios.editar` **e** `usuarios.dados_bancarios` |

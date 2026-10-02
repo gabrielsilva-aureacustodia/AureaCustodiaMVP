@@ -29,6 +29,7 @@ import {
   criarPapelNoPainel,
   excluirPapelNoPainel,
 } from '@/server/actions/admin/equipe'
+import { reenviarConviteDeEquipeNoPainel } from '@/server/actions/admin/emails'
 
 import { useAdmin } from '../AdminProvider'
 import { dataHora, numero } from '../formatos'
@@ -39,7 +40,7 @@ const ROTULO_VARIANTE: Record<VariantePainel, string> = {
   operacional: 'Operacional — execução do dia',
 }
 
-export function PainelEquipe({ equipe, semBanco }: { equipe: VisaoEquipe; semBanco: boolean }): ReactNode {
+export function PainelEquipe({ equipe, semBanco, convites = {} }: { equipe: VisaoEquipe; semBanco: boolean; convites?: Record<string, number> }): ReactNode {
   const { pode } = useAdmin()
   return (
     <>
@@ -51,7 +52,7 @@ export function PainelEquipe({ equipe, semBanco }: { equipe: VisaoEquipe; semBan
           </span>
         </div>
       ) : null}
-      <Membros equipe={equipe} podeEditar={pode('admin.membros') && !semBanco} />
+      <Membros equipe={equipe} podeEditar={pode('admin.membros') && !semBanco} convites={convites} />
       <Papeis equipe={equipe} podeEditar={pode('admin.papeis') && !semBanco} />
     </>
   )
@@ -59,7 +60,7 @@ export function PainelEquipe({ equipe, semBanco }: { equipe: VisaoEquipe; semBan
 
 /* ---------- membros ---------- */
 
-function Membros({ equipe, podeEditar }: { equipe: VisaoEquipe; podeEditar: boolean }): ReactNode {
+function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEditar: boolean; convites: Record<string, number> }): ReactNode {
   const { run, membro } = useAdmin()
   const [email, setEmail] = useState('')
   const [nome, setNome] = useState('')
@@ -79,6 +80,12 @@ function Membros({ equipe, podeEditar }: { equipe: VisaoEquipe; podeEditar: bool
   async function alterar(emailDoMembro: string, alteracoes: { papelSlug?: string; status?: string }): Promise<void> {
     setOcupado(true)
     await run(() => alterarMembroNoPainel(emailDoMembro, alteracoes))
+    setOcupado(false)
+  }
+
+  async function reenviar(emailDoMembro: string): Promise<void> {
+    setOcupado(true)
+    await run(() => reenviarConviteDeEquipeNoPainel(emailDoMembro))
     setOcupado(false)
   }
 
@@ -176,10 +183,22 @@ function Membros({ equipe, podeEditar }: { equipe: VisaoEquipe; podeEditar: bool
                           {m.status === 'ativo' ? 'Desativar' : 'Reativar'}
                         </button>
                       ) : null}
+                      {podeEditar && m.status === 'ativo' ? (
+                        <button
+                          type="button"
+                          className="btn btn-outline adm-btn-compacto"
+                          disabled={ocupado}
+                          data-uso="equipe:reenviar-convite"
+                          onClick={() => void reenviar(m.email)}
+                        >
+                          Reenviar
+                        </button>
+                      ) : null}
                     </span>
                   </td>
                   <td className="adm-fraco">
                     {dataHora(m.createdAt)} · {m.criadoPor}
+                    {convites[m.email] ? <div>aviso por e-mail em {dataHora(convites[m.email])}</div> : null}
                     {m.atualizadoEm ? <div>alterado em {dataHora(m.atualizadoEm)} · {m.atualizadoPor}</div> : null}
                   </td>
                 </tr>

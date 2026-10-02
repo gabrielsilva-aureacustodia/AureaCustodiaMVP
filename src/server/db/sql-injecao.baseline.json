@@ -2,6 +2,9 @@
   "src/server/admin/cs.ts": [
     "S"
   ],
+  "src/server/admin/emails.ts": [
+    "S"
+  ],
   "src/server/admin/rbac.ts": [
     "S"
   ],

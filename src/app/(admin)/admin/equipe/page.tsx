@@ -13,6 +13,7 @@ import { SemPermissao } from '@/components/admin/Blocos'
 import { PainelEquipe } from '@/components/admin/equipe/PainelEquipe'
 import { PAPEIS_DE_SISTEMA, emailsDeBootstrap, temAlguma } from '@/domain/admin/permissoes'
 import { ambienteAtual, membroDaPagina } from '@/server/admin/acesso'
+import { ultimosConvites } from '@/server/admin/emails'
 import { carregarEquipe, type VisaoEquipe } from '@/server/admin/rbac'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 
@@ -45,5 +46,7 @@ export default async function EquipePage(): Promise<ReactNode> {
 
   if (!bancoConfigurado()) return <PainelEquipe equipe={equipeSemBanco()} semBanco />
   const equipe = await carregarEquipe(executarNoBanco, ambienteAtual())
-  return <PainelEquipe equipe={equipe} semBanco={false} />
+  // Leitura opcional: o histórico de convites é só enfeite da lista, e não pode derrubar a tela.
+  const convites = await executarNoBanco((tx) => ultimosConvites(tx), { somenteLeitura: true }).catch(() => ({}))
+  return <PainelEquipe equipe={equipe} semBanco={false} convites={convites} />
 }

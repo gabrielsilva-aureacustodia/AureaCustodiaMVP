@@ -23,7 +23,11 @@ import {
   excluirPapel,
   type ResultadoEquipe,
 } from '@/server/admin/rbac'
+import { conviteDeEquipe, gravarReenvio } from '@/server/admin/emails'
+import { authCallbackUrl } from '@/server/auth/origin'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { listarMembros } from '@/server/db/repositories/admin-rbac'
+import { enviarEmail } from '@/lib/email'
 
 const SEM_BANCO = 'Sem banco configurado (POSTGRES_URL): sem ele só vale a lista do ambiente, e não há equipe para editar.'
 const FALHA_GRAVACAO = 'Falha ao salvar dados. Tente novamente.'
@@ -42,7 +46,31 @@ async function comPermissao(chave: ChavePermissao, acao: (ator: string) => Promi
 }
 
 export async function adicionarMembroNoPainel(email: string, nome: string, papelSlug: string): Promise<ActionResult> {
-  return comPermissao('admin.membros', (ator) => adicionarMembro(executarNoBanco, ator, { email, nome, papelSlug }, ambienteAtual()))
+  const r = await comPermissao('admin.membros', (ator) => adicionarMembro(executarNoBanco, ator, { email, nome, papelSlug }, ambienteAtual()))
+  if (!r.ok) return r
+  // O aviso "você foi adicionado" sai DEPOIS de o membro estar gravado e nunca desfaz o cadastro:
+  // se o e-mail falhar, o acesso vale do mesmo jeito e o botão "Reenviar" da lista resolve.
+  const aviso = await avisarNovoMembro(email)
+  return { ...r, message: aviso ? `${r.message} ${aviso}` : r.message }
+}
+
+async function avisarNovoMembro(email: string): Promise<string> {
+  try {
+    const acesso = await permissaoParaAcao('admin.membros')
+    if (!acesso.ok) return ''
+    const alvo = email.trim().toLowerCase()
+    const membro = (await executarNoBanco((tx) => listarMembros(tx))).find((m) => m.email === alvo)
+    if (!membro) return ''
+    const link = new URL('/painel', await authCallbackUrl()).toString()
+    const { assunto, texto } = conviteDeEquipe(membro.nomeExibicao, membro.papelNome, link)
+    const envio = await enviarEmail({ para: alvo, assunto, texto })
+    if (!envio.ok) return `O e-mail de aviso não saiu (${envio.erro ?? 'erro do provedor'}); use Reenviar na lista.`
+    await executarNoBanco((tx) => gravarReenvio(tx, { ator: acesso.membro.email, tipo: 'convite_equipe', email: alvo, simulado: envio.simulado, primeiro: true }))
+    return envio.simulado ? 'Sem RESEND_API_KEY: o aviso foi só registrado no log do servidor.' : 'Aviso enviado por e-mail.'
+  } catch (err) {
+    console.error('[admin] falha ao avisar novo membro por e-mail:', err)
+    return 'O e-mail de aviso não saiu; use Reenviar na lista.'
+  }
 }
 
 export async function alterarMembroNoPainel(
