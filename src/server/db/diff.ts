@@ -349,6 +349,7 @@ export function normalizarFatura(f: FaturaCustodia): FaturaCustodia {
     paymentIntentId: f.paymentIntentId ?? null,
     planoId: f.planoId ?? null,
     origem: f.origem ?? 'ciclo_mensal',
+    coberturaAte: f.coberturaAte ?? null,
   }
 }
 

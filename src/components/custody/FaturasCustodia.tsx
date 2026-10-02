@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
-import { fimDaCompetencia } from '@/domain/custody'
+import { fimDaCoberturaDaFatura } from '@/domain/custody'
 import { rotuloDaOrigem } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
@@ -175,7 +175,7 @@ export function FaturasCustodia(): ReactNode {
                 <div className="sr">
                   <span className="k">Guarda coberta até</span>
                   <span className="v">
-                    {fdate(fimDaCompetencia(faturaSelecionada.competencia))} (
+                    {fdate(fimDaCoberturaDaFatura(faturaSelecionada))} (
                     {faturaSelecionada.competencia})
                   </span>
                 </div>
@@ -256,7 +256,7 @@ export function FaturasCustodia(): ReactNode {
                         <td>
                           <b>{f.competencia}</b>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            guarda até {fdate(fimDaCompetencia(f.competencia))}
+                            guarda até {fdate(fimDaCoberturaDaFatura(f))}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{f.id}</div>
                         </td>

@@ -14,7 +14,13 @@ vi.mock('@/server/state', () => ({
   getState: vi.fn(async () => estadoSimulado),
 }))
 
+import { faturaBloqueia } from '@/domain/custody'
+
 import { pagarFaturaCustodiaComSaldo, processarCicloFaturamento } from './faturamento'
+
+/** 10/09/2026, 09:00 em Brasília — o dia em que as moedas do cenário foram aceitas. */
+const AGORA = Date.UTC(2026, 8, 10, 12)
+const DIA = 86_400_000
 
 describe('server/custodia/faturamento', () => {
   beforeEach(() => {
@@ -28,7 +34,7 @@ describe('server/custodia/faturamento', () => {
               id: 'RO-000001',
               tipoMoeda: 'Entrega da Bandeira Olímpica',
               ano: 2024,
-              entrada: '01/01/2026',
+              entrada: '10/09/2026',
               statusFisico: 'Armazenado',
               statusDigital: 'Validado',
               valorEstimado: 250000,
@@ -39,7 +45,7 @@ describe('server/custodia/faturamento', () => {
               id: 'RO-000002',
               tipoMoeda: 'Entrega da Bandeira Olímpica',
               ano: 2024,
-              entrada: '01/01/2026',
+              entrada: '10/09/2026',
               statusFisico: 'Armazenado',
               statusDigital: 'Validado',
               valorEstimado: 250000,
@@ -56,7 +62,7 @@ describe('server/custodia/faturamento', () => {
               id: 'RO-000003',
               tipoMoeda: 'Entrega da Bandeira Olímpica',
               ano: 2024,
-              entrada: '01/01/2026',
+              entrada: '10/09/2026',
               statusFisico: 'Armazenado',
               statusDigital: 'Validado',
               valorEstimado: 250000,
@@ -85,7 +91,7 @@ describe('server/custodia/faturamento', () => {
   })
 
   it('debita automaticamente saldo se disponível e emite fatura paga', async () => {
-    const rel = await processarCicloFaturamento('2026-09', 1726000000000)
+    const rel = await processarCicloFaturamento(AGORA)
 
     expect(rel.competencia).toBe('2026-09')
     expect(rel.faturasGeradas).toBe(2)
@@ -121,10 +127,10 @@ describe('server/custodia/faturamento', () => {
   })
 
   it('é idempotente para a mesma competência', async () => {
-    await processarCicloFaturamento('2026-09', 1726000000000)
+    await processarCicloFaturamento(AGORA)
     const totalFaturas1 = estadoSimulado.faturasCustodia?.length
 
-    const rel2 = await processarCicloFaturamento('2026-09', 1726000000000)
+    const rel2 = await processarCicloFaturamento(AGORA)
     const totalFaturas2 = estadoSimulado.faturasCustodia?.length
 
     expect(rel2.faturasGeradas).toBe(0)
@@ -132,15 +138,15 @@ describe('server/custodia/faturamento', () => {
   })
 
   it('marca fatura como atrasada e usuário como inadimplente quando passa da data de tolerância', async () => {
-    // 1. Gera ciclo em t=1000
-    await processarCicloFaturamento('2026-09', 1000)
+    // 1. Gera a fatura do primeiro ciclo
+    await processarCicloFaturamento(AGORA)
     const fatura = estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'sem_saldo@teste.com')
     expect(fatura?.status).toBe('pendente')
 
-    // 2. Roda ciclo depois do vencimento, que desde 27/09/2026 é de 30 dias
-    //    (antes eram 10). O bloqueio ainda espera mais um dia de carência.
-    const aposVencimento = 1000 + 32 * 86400000
-    const rel = await processarCicloFaturamento('2026-09', aposVencimento)
+    // 2. Roda o ciclo depois do vencimento, que é o próximo aniversário da moeda
+    //    (10/10). O bloqueio ainda espera mais um dia de carência.
+    const aposVencimento = AGORA + 32 * DIA
+    const rel = await processarCicloFaturamento(aposVencimento)
 
     expect(fatura?.status).toBe('atrasada')
     // A fatura vencida NÃO grava mais a coluna (E8) — quem lê calcula a partir das faturas —, mas o
@@ -250,11 +256,11 @@ describe('server/custodia/faturamento', () => {
       },
     ]
 
-    // Roda o faturamento do ciclo para 2026-09
-    await processarCicloFaturamento('2026-09', 1726000000000)
+    // Roda o faturamento do ciclo de 10/09
+    await processarCicloFaturamento(AGORA)
 
     // Deve ter a fatura de contratacao (200) E uma nova fatura de ciclo_mensal cobrindo apenas RO-000002 (300 cents)
-    const faturasComSaldo = estadoSimulado.faturasCustodia.filter((f) => f.userEmail === 'com_saldo@teste.com')
+    const faturasComSaldo = estadoSimulado.faturasCustodia!.filter((f) => f.userEmail === 'com_saldo@teste.com')
     expect(faturasComSaldo).toHaveLength(2)
 
     const faturaCiclo = faturasComSaldo.find((f) => f.origem === 'ciclo_mensal')
@@ -290,7 +296,7 @@ describe('server/custodia/faturamento', () => {
       },
     ]
 
-    await processarCicloFaturamento('2026-10', 1726000000000)
+    await processarCicloFaturamento(Date.UTC(2026, 9, 15, 12))
 
     const faturaComSaldo = estadoSimulado.faturasCustodia?.find(
       (f) => f.userEmail === 'com_saldo@teste.com' && f.competencia === '2026-10',
@@ -326,7 +332,7 @@ describe('server/custodia/faturamento', () => {
 
     const saldoInicial = estadoSimulado.users['com_saldo@teste.com'].balance // 10000 (R$ 100,00)
 
-    await processarCicloFaturamento('2026-09', 1726000000000)
+    await processarCicloFaturamento(AGORA)
 
     const faturaRenovacao = estadoSimulado.faturasCustodia?.find(
       (f) => f.userEmail === 'com_saldo@teste.com' && f.origem === 'renovacao_anual',
@@ -341,5 +347,88 @@ describe('server/custodia/faturamento', () => {
     // Plano atualizado para o próximo mês: de 2026-08 para 2026-09
     const plano = estadoSimulado.planosCustodia[0]
     expect(plano.pagoAteCompetencia).toBe('2026-09')
+  })
+
+  describe('o ciclo é de cada moeda, não do mês-calendário (02/10/2026)', () => {
+    // Aceita em 21/09, paga a guarda na entrada: é o caso do Rogério, que pagou em 25/09 e foi
+    // cobrado de novo em 01/10.
+    const ACEITE = '21/09/2026'
+    const PAGA_NA_ENTRADA: FaturaCustodia = {
+      id: 'FAT-2026-09-sem_saldo-ENT',
+      userEmail: 'sem_saldo@teste.com',
+      competencia: '2026-09',
+      quantidadeMoedas: 1,
+      moedaIds: ['RO-000003'],
+      valorCents: 200,
+      status: 'paga',
+      dataEmissao: Date.UTC(2026, 8, 21, 12),
+      dataVencimento: Date.UTC(2026, 9, 21, 3),
+      dataPagamento: Date.UTC(2026, 8, 21, 12),
+      formaPagamento: 'saldo',
+      paymentIntentId: null,
+      origem: 'entrada_no_acervo',
+      coberturaAte: Date.UTC(2026, 9, 21, 3) - 1,
+    }
+
+    beforeEach(() => {
+      estadoSimulado.users['sem_saldo@teste.com'].coins[0]!.entrada = ACEITE
+      estadoSimulado.users['com_saldo@teste.com'].coins = []
+      estadoSimulado.faturasCustodia = [{ ...PAGA_NA_ENTRADA }]
+    })
+
+    it('não cobra no dia 1º: quem pagou em 21/09 não é cobrado em 01/10', async () => {
+      const rel = await processarCicloFaturamento(Date.UTC(2026, 9, 1, 8, 2))
+
+      expect(rel.faturasGeradas).toBe(0)
+      expect(estadoSimulado.faturasCustodia!).toHaveLength(1)
+    })
+
+    it('cobra no aniversário: 21/10, com vencimento em 21/11 e cobertura até 20/11', async () => {
+      const aniversario = Date.UTC(2026, 9, 21, 8) // 05:00 em Brasília, o horário do cron
+      const rel = await processarCicloFaturamento(aniversario)
+
+      expect(rel.faturasGeradas).toBe(1)
+      const nova = estadoSimulado.faturasCustodia!.find((f) => f.id !== PAGA_NA_ENTRADA.id)!
+      expect(nova.competencia).toBe('2026-10')
+      expect(nova.origem).toBe('ciclo_mensal')
+      expect(nova.moedaIds).toEqual(['RO-000003'])
+      expect(nova.status).toBe('pendente') // sem saldo
+      expect(nova.dataVencimento).toBe(Date.UTC(2026, 10, 21, 3)) // 21/11, 00:00 de Brasília
+      expect(nova.coberturaAte).toBe(Date.UTC(2026, 10, 21, 3) - 1) // até 20/11, 23:59
+
+      // idempotente: a segunda passada do mesmo dia não encontra nada
+      expect((await processarCicloFaturamento(aniversario + 3_600_000)).faturasGeradas).toBe(0)
+    })
+
+    it('só trava a moeda depois das 23:59 do dia do vencimento', async () => {
+      await processarCicloFaturamento(Date.UTC(2026, 9, 21, 8))
+      const nova = estadoSimulado.faturasCustodia!.find((f) => f.id !== PAGA_NA_ENTRADA.id)!
+
+      const fimDoDia = Date.UTC(2026, 10, 22, 2, 59) // 21/11, 23:59 em Brasília
+      const viradaDoDia = Date.UTC(2026, 10, 22, 3, 1) // 22/11, 00:01 em Brasília
+      expect(faturaBloqueia(nova, fimDoDia)).toBe(false)
+      expect(faturaBloqueia(nova, viradaDoDia)).toBe(true)
+    })
+
+    it('moedas aceitas em dias diferentes viram faturas diferentes, cada uma no seu dia', async () => {
+      const u = estadoSimulado.users['sem_saldo@teste.com']
+      u.coins.push({ ...u.coins[0]!, id: 'RO-000004', entrada: '28/09/2026' })
+      estadoSimulado.faturasCustodia!.push({
+        ...PAGA_NA_ENTRADA,
+        id: 'FAT-2026-09-sem_saldo-ENT-2',
+        moedaIds: ['RO-000004'],
+      })
+
+      // 21/10: vence só a moeda de 21/09
+      await processarCicloFaturamento(Date.UTC(2026, 9, 21, 8))
+      let abertas = estadoSimulado.faturasCustodia!.filter((f) => f.status === 'pendente')
+      expect(abertas.map((f) => f.moedaIds)).toEqual([['RO-000003']])
+
+      // 28/10: vence a outra, em fatura própria, na mesma competência
+      await processarCicloFaturamento(Date.UTC(2026, 9, 28, 8))
+      abertas = estadoSimulado.faturasCustodia!.filter((f) => f.status === 'pendente')
+      expect(abertas.map((f) => f.moedaIds)).toEqual([['RO-000003'], ['RO-000004']])
+      expect(new Set(abertas.map((f) => f.competencia))).toEqual(new Set(['2026-10']))
+    })
   })
 })

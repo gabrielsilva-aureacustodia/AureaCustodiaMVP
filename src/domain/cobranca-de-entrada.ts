@@ -1,51 +1,55 @@
 /**
- * A custódia é cobrada no INSTANTE em que a moeda entra no acervo.
+ * A cobrança de custódia, moeda a moeda, no ritmo do ciclo de cada uma.
  *
- * POR QUE ISTO EXISTE (25/09/2026)
- * --------------------------------
- * Até aqui só havia dois jeitos de uma moeda gerar cobrança de guarda:
+ * DUAS PORTAS, UMA REGRA
+ * ----------------------
+ * A fatura de custódia nasce de dois jeitos, e os dois passam por
+ * `emitirFaturasDosCiclos`:
  *
- *   1. o cliente contratar o plano na tela de Envios (`origem: 'contratacao'`);
- *   2. o ciclo mensal passar por cima do acervo na virada da competência
- *      (`origem: 'ciclo_mensal'`).
+ *   1. na ENTRADA — a moeda acabou de ser aceita (cadastro direto, cadastro sem
+ *      envio, ou envio cuja análise fechou): `cobrarEntradaNoAcervo`;
+ *   2. na RENOVAÇÃO — o aniversário do ciclo da moeda chegou: o cron diário de
+ *      faturamento (src/server/custodia/faturamento.ts).
  *
- * Moeda registrada pelo painel — cadastro direto ou cadastro sem envio — não
- * passa por nenhum dos dois. Ela nasce guardada, sem plano e sem fatura, e fica
- * assim até o dia 1º. No banco de 25/09/2026 eram 28 moedas nessa situação: as
- * 6 de Direitos Humanos do Rogério, as 11 da Rozâne, as 10 do Alexandre e 1 da
- * Peggê. Nenhuma delas tinha sido cobrada, e por isso nenhuma delas notificava
- * nada ao dono — o que de fora parece "a Direitos Humanos não foi homologada
- * para custódia", quando na verdade o tipo nunca teve nada a ver com o assunto:
- * todas essas moedas entraram pelo cadastro direto.
+ * O ciclo de cada moeda começa no dia em que ela foi aceita e se renova todo mês
+ * no mesmo dia — ver src/domain/ciclo-custodia.ts. Até 02/10/2026 a renovação
+ * era um cron no dia 1º que cobrava o acervo inteiro de uma vez, e quem pagou em
+ * 25/09 foi cobrado de novo em 01/10.
  *
- * A guarda começa quando a moeda entra no armazém, então a cobrança também
- * começa ali. Esperar a virada do mês dava até 30 dias de guarda de graça e,
- * desde a trava de 23/09, deixava a moeda presa: sem prova de pagamento ela não
- * pode ser anunciada, e sem fatura não havia o que pagar para destravar.
+ * POR QUE A ENTRADA TEM COBRANÇA PRÓPRIA (25/09/2026)
+ * ---------------------------------------------------
+ * Moeda registrada pelo painel nasce guardada, sem plano e sem fatura. No banco
+ * de 25/09/2026 eram 28 moedas nessa situação, nenhuma cobrada, e por isso
+ * nenhuma notificava nada ao dono. A guarda começa quando a moeda entra no
+ * armazém, então a cobrança também começa ali.
  *
  * O QUE ESTA REGRA NÃO FAZ
  * ------------------------
- * Não cobra moeda que já está paga no mês corrente. É o caso da moeda comprada
- * no marketplace: a competência dela já foi quitada pelo vendedor, e cobrar o
- * comprador de novo seria cobrar duas vezes pela mesma guarda. Do mês seguinte
- * em diante o ciclo cobra o dono novo, que é o certo.
+ * Não cobra moeda cujo ciclo já está resolvido: paga, ou com fatura aberta do
+ * mesmo ciclo ou de um ciclo mais novo. É o caso da moeda comprada no
+ * marketplace — o ciclo dela já foi quitado pelo vendedor, e cobrar o comprador
+ * de novo seria cobrar duas vezes pela mesma guarda. Do ciclo seguinte em
+ * diante, cobra o dono novo, que é o certo.
  *
- * Também não cobra duas vezes a mesma entrada: moeda que já figura em fatura em
- * aberto desta competência fica de fora.
+ * "Um ciclo mais novo" importa na transição de 02/10/2026: as faturas de
+ * 01/10, emitidas pela regra antiga, valem como a cobrança do mês e não podem
+ * ser cobradas de novo só porque o aniversário da moeda cai depois.
  */
 
-import { calcularVencimentoFatura, competenciaAtual, DIAS_TOLERANCIA_FATURA } from '@/domain/custody'
+import { cicloDaMoeda, dataBrasilia, type CicloDaMoeda } from '@/domain/ciclo-custodia'
+import { moedasFaturaveis } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
-import type { TabelaDeTaxasPlano } from '@/domain/plano-custodia'
+import { moedasCobertas, type TabelaDeTaxasPlano } from '@/domain/plano-custodia'
 import { custodiaPagaAteCompetencia } from '@/domain/bloqueio-por-debito'
 import type { AppState, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
 /**
- * A moeda já tem a guarda desta competência resolvida — paga ou cobrada?
+ * A moeda já tem a guarda deste ciclo resolvida — paga ou cobrada?
  *
  * Duas fontes: `custodiaPagaAteCompetencia`, que responde até quando está PAGA
  * (por plano vigente ou por fatura liquidada), e as faturas em aberto, que
- * respondem se já existe boleto emitido esperando pagamento.
+ * respondem se já existe boleto emitido esperando pagamento. A fatura em aberto
+ * vale se for deste ciclo OU de um mais novo (competência maior ou igual).
  */
 export function custodiaResolvidaNaCompetencia(
   state: AppState,
@@ -57,23 +61,120 @@ export function custodiaResolvidaNaCompetencia(
 
   return (state.faturasCustodia ?? []).some(
     (f) =>
-      f.competencia === competencia &&
+      f.competencia >= competencia &&
       f.status !== 'cancelada' &&
       (f.moedaIds ?? []).includes(coinId),
   )
 }
 
 /**
+ * Emite as faturas dos ciclos que estão devidos para as moedas da conta.
+ *
+ * Muta o estado: acrescenta as faturas a `state.faturasCustodia` e, quando o
+ * cliente tem saldo, debita e marca cada uma como paga — exatamente o que o
+ * ciclo sempre fez. Devolve as faturas criadas (vazio quando não havia o que
+ * cobrar).
+ *
+ * Moedas de ciclos diferentes viram faturas diferentes: a fatura tem uma
+ * competência e um fim de cobertura só. Moedas aceitas no mesmo dia andam
+ * juntas na mesma fatura.
+ *
+ * `moedaIds` restringe a emissão a essas moedas (a entrada); sem ele, todas as
+ * moedas sob guarda da conta são consideradas (o cron).
+ *
+ * Roda dentro do `mutateState` de quem chama: a moeda e a cobrança dela nascem
+ * na mesma transação. Registrar a moeda e falhar a cobrança em seguida deixaria
+ * acervo sem custódia.
+ */
+export function emitirFaturasDosCiclos(
+  state: AppState,
+  userEmail: UserEmail,
+  origem: 'entrada_no_acervo' | 'ciclo_mensal',
+  taxas: TabelaDeTaxasPlano | undefined,
+  agora: Timestamp = Date.now(),
+  moedaIds?: readonly string[],
+): FaturaCustodia[] {
+  const user = state.users[userEmail]
+  if (!user) return []
+
+  state.faturasCustodia = state.faturasCustodia ?? []
+  const planos = (state.planosCustodia ?? []).filter((p) => p.userEmail === userEmail)
+  const cobertasPorCompetencia = new Map<string, Set<string>>()
+
+  const grupos = new Map<string, { ciclo: CicloDaMoeda; ids: string[] }>()
+  for (const moeda of moedasFaturaveis(user)) {
+    if (moedaIds && !moedaIds.includes(moeda.id)) continue
+
+    const ciclo = cicloDaMoeda(moeda.entrada, agora)
+
+    let cobertas = cobertasPorCompetencia.get(ciclo.competencia)
+    if (!cobertas) {
+      cobertas = moedasCobertas(planos, ciclo.competencia)
+      cobertasPorCompetencia.set(ciclo.competencia, cobertas)
+    }
+    if (cobertas.has(moeda.id)) continue
+    if (custodiaResolvidaNaCompetencia(state, moeda.id, ciclo.competencia)) continue
+
+    const chave = `${ciclo.competencia}#${ciclo.fim}`
+    const grupo = grupos.get(chave)
+    if (grupo) grupo.ids.push(moeda.id)
+    else grupos.set(chave, { ciclo, ids: [moeda.id] })
+  }
+
+  const porMoeda = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
+  const sufixo = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
+  const criadas: FaturaCustodia[] = []
+
+  for (const { ciclo, ids } of grupos.values()) {
+    const valorCents = porMoeda * ids.length
+    // `ENT` no id da entrada, para ela não colidir com a do ciclo do mesmo mês,
+    // que usa o mesmo carimbo de tempo quando as duas nascem no mesmo ms. O dia
+    // do ciclo separa as faturas de moedas de aniversários diferentes.
+    const marca = origem === 'entrada_no_acervo' ? 'ENT-' : ''
+    const dia = dataBrasilia(ciclo.inicio).slice(0, 2)
+    const fatura: FaturaCustodia = {
+      id: `FAT-${ciclo.competencia}-${sufixo}-${marca}D${dia}-${agora}`,
+      userEmail,
+      competencia: ciclo.competencia,
+      quantidadeMoedas: ids.length,
+      moedaIds: [...ids],
+      valorCents,
+      status: 'pendente',
+      dataEmissao: agora,
+      // O vencimento é o próximo aniversário (00:00 de Brasília): `faturaBloqueia`
+      // soma um dia de carência, então a moeda só trava depois das 23:59 desse dia.
+      dataVencimento: ciclo.fim,
+      coberturaAte: ciclo.fim - 1,
+      dataPagamento: null,
+      formaPagamento: null,
+      paymentIntentId: null,
+      planoId: null,
+      origem,
+    }
+
+    // Débito automático quando há saldo, a mesma regra do ciclo mensal: quem tem
+    // dinheiro na conta não precisa de um boleto para R$ 2,00, e a moeda já sai
+    // liberada para anunciar.
+    if (user.balance >= valorCents) {
+      user.balance -= valorCents
+      fatura.status = 'paga'
+      fatura.dataPagamento = agora
+      fatura.formaPagamento = 'saldo'
+    }
+
+    state.faturasCustodia.push(fatura)
+    criadas.push(fatura)
+  }
+
+  return criadas
+}
+
+/**
  * Emite a fatura de entrada das moedas que acabaram de chegar ao acervo.
  *
- * Muta o estado: acrescenta a fatura a `state.faturasCustodia` e, quando o
- * cliente tem saldo, debita e marca como paga — exatamente o que o ciclo mensal
- * já faz. Devolve a fatura criada, ou `null` quando não havia o que cobrar.
- *
- * Roda dentro do `mutateState` de quem registra a moeda, e não depois, para que
- * a moeda e a cobrança dela nasçam na mesma transação. Registrar a moeda e
- * falhar a cobrança em seguida deixaria acervo sem custódia — o buraco que esta
- * função existe para fechar.
+ * É `emitirFaturasDosCiclos` restrita às moedas novas. Devolve a primeira
+ * fatura criada, ou `null` quando não havia o que cobrar — moeda aceita hoje
+ * está sempre no primeiro ciclo, então na prática é uma fatura só.
  */
 export function cobrarEntradaNoAcervo(
   state: AppState,
@@ -82,48 +183,5 @@ export function cobrarEntradaNoAcervo(
   taxas?: TabelaDeTaxasPlano,
   agora: Timestamp = Date.now(),
 ): FaturaCustodia | null {
-  const user = state.users[userEmail]
-  if (!user) return null
-
-  const competencia = competenciaAtual(agora)
-  state.faturasCustodia = state.faturasCustodia ?? []
-
-  const aCobrar = moedaIds.filter((id) => !custodiaResolvidaNaCompetencia(state, id, competencia))
-  if (aCobrar.length === 0) return null
-
-  const porMoeda = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
-  const valorCents = porMoeda * aCobrar.length
-  const sufixo = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
-
-  const fatura: FaturaCustodia = {
-    // `ENT` no id para a fatura de entrada não colidir com a do ciclo do mesmo
-    // mês, que usa o mesmo carimbo de tempo quando as duas nascem no mesmo ms.
-    id: `FAT-${competencia}-${sufixo}-ENT-${agora}`,
-    userEmail,
-    competencia,
-    quantidadeMoedas: aCobrar.length,
-    moedaIds: [...aCobrar],
-    valorCents,
-    status: 'pendente',
-    dataEmissao: agora,
-    dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
-    dataPagamento: null,
-    formaPagamento: null,
-    paymentIntentId: null,
-    planoId: null,
-    origem: 'entrada_no_acervo',
-  }
-
-  // Débito automático quando há saldo, a mesma regra do ciclo mensal: quem tem
-  // dinheiro na conta não precisa de um boleto para R$ 2,00, e a moeda já sai
-  // liberada para anunciar.
-  if (user.balance >= valorCents) {
-    user.balance -= valorCents
-    fatura.status = 'paga'
-    fatura.dataPagamento = agora
-    fatura.formaPagamento = 'saldo'
-  }
-
-  state.faturasCustodia.push(fatura)
-  return fatura
+  return emitirFaturasDosCiclos(state, userEmail, 'entrada_no_acervo', taxas, agora, moedaIds)[0] ?? null
 }

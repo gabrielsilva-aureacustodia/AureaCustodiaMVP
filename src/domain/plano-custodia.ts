@@ -12,12 +12,12 @@
  *
  * PLANO MENSAL E CICLO MENSAL NÃO SÃO A MESMA COISA, apesar do mesmo preço.
  * Plano é o que o cliente escolhe e fica gravado em `planosCustodia`; ciclo
- * (`gerarFaturaDoCiclo`) é o que se cobra de quem tem moeda guardada SEM plano
+ * (`emitirFaturasDosCiclos`, em cobranca-de-entrada.ts) é o que se cobra de quem tem moeda guardada SEM plano
  * vigente — plano vencido, moeda solta de plano cancelado, moeda cadastrada
  * direto pela bancada. Confundir os dois foi o que embaralhou a cobrança antes.
  *
  * Cobertura e ciclo:
- * - A competência coberta impede cobrança duplicada no ciclo do dia 1º.
+ * - A competência coberta impede cobrança duplicada no ciclo da moeda.
  * - Moedas cobertas por plano vigente e quitado são deduzidas das moedas faturáveis.
  * - Plano vencido gera fatura de renovação no mês seguinte ao último mês coberto
  *   (13º mês do anual, 2º mês do mensal).
@@ -26,11 +26,6 @@
 import {
   CUSTODIA_MENSAL_POR_MOEDA_CENTS,
 } from '@/domain/fees'
-import {
-  calcularVencimentoFatura,
-  DIAS_TOLERANCIA_FATURA,
-  moedasFaturaveis,
-} from '@/domain/custody'
 import type {
   Cents,
   FaturaCustodia,
@@ -38,7 +33,6 @@ import type {
   PlanoCustodia,
   Timestamp,
   User,
-  UserEmail,
 } from '@/domain/types'
 
 /**
@@ -152,49 +146,6 @@ export function moedasCobertas(
     }
   }
   return cobertas
-}
-
-/**
- * Gera a fatura do ciclo mensal para moedas que NÃO estejam cobertas por nenhum plano ativo.
- * Retorna null se todas as moedas estiverem cobertas ou se o usuário não possuir moedas ativas.
- */
-export function gerarFaturaDoCiclo(
-  user: User,
-  userEmail: UserEmail,
-  competencia: string,
-  planos: PlanoCustodia[],
-  taxas?: TabelaDeTaxasPlano,
-  agora: Timestamp = Date.now()
-): FaturaCustodia | null {
-  const moedasAtivas = moedasFaturaveis(user)
-  const cobertas = moedasCobertas(planos, competencia)
-  const naoCobertas = moedasAtivas.filter((c) => !cobertas.has(c.id))
-
-  if (naoCobertas.length === 0) {
-    return null
-  }
-
-  const taxaUnitária = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
-  const valorCents = naoCobertas.length * taxaUnitária
-  const sanitizeEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
-  const id = `FAT-${competencia}-${sanitizeEmail}-${agora}`
-
-  return {
-    id,
-    userEmail,
-    competencia,
-    quantidadeMoedas: naoCobertas.length,
-    moedaIds: naoCobertas.map((c) => c.id),
-    valorCents,
-    status: 'pendente',
-    dataEmissao: agora,
-    dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
-    dataPagamento: null,
-    formaPagamento: null,
-    paymentIntentId: null,
-    planoId: null,
-    origem: 'ciclo_mensal',
-  }
 }
 
 /**

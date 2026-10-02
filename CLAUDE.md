@@ -105,9 +105,23 @@ cold start.
   `src/domain/cobranca-de-entrada.ts`, 25/09/2026): moeda registrada pelo painel — cadastro direto
   ou sem envio — nascia sem plano e sem fatura, ficava até 30 dias guardada de graça e, desde a
   trava de 23/09, presa, porque anunciar exige prova de pagamento e não havia o que pagar.
-- **Prazo de pagamento da fatura: 30 dias**, e a trava por débito só entra **um dia depois de
-  vencer** (`DIAS_TOLERANCIA_FATURA` e `DIAS_CARENCIA_BLOQUEIO` em `src/domain/custody.ts`,
-  decisão do Gabriel de 27/09/2026). **Fatura em aberto dentro do prazo NÃO é dívida** e não pode
+- **O ciclo de custódia é de CADA MOEDA, contado do dia em que ela foi aceita** (decisão do Gabriel
+  de 02/10/2026; `src/domain/ciclo-custodia.ts`). Aceita em 02/10 — aprovada no painel ou na análise
+  do envio —, a custódia corre de 02/10 independente do dia em que o cliente pagar, e a próxima
+  cobrança é em 02/11, 02/12 e assim por diante, sempre no mesmo dia (dia 29-31 cai no último dia
+  do mês curto). Quem não pagou até as 23:59 do dia do vencimento tem a moeda travada para
+  negociação até pagar. **NÃO existe cobrança no dia 1º**: até 02/10/2026 um cron mensal cobrava o
+  acervo inteiro por mês-calendário e cobrou o Rogério em 01/10, seis dias depois de ele pagar. Hoje
+  o cron (`/api/cron/faturamento`, `vercel.json`) roda **todo dia** e só emite o que venceu naquele
+  dia (`emitirFaturasDosCiclos`, `src/domain/cobranca-de-entrada.ts`). O dia é o de **Brasília**
+  (UTC-3), não o do servidor. `competencia` ('AAAA-MM') virou "o mês em que o ciclo da moeda
+  começa" e `coberturaAte` (migration 039) é o instante exato em que a guarda paga termina. O
+  gateway não tem nenhuma assinatura recorrente: a cobrança é só fatura do nosso backend.
+- **Prazo de pagamento da fatura = até o próximo aniversário da moeda** (era "30 dias fixos",
+  decisão de 27/09/2026, que continua valendo como ordem de grandeza), e a trava por débito só
+  entra **um dia depois de vencer** (`DIAS_CARENCIA_BLOQUEIO` em `src/domain/custody.ts`, decisão do
+  Gabriel de 27/09/2026; o vencimento da fatura do ciclo é 00:00 de Brasília do dia da próxima
+  cobrança, então a trava começa depois das 23:59 desse dia). **Fatura em aberto dentro do prazo NÃO é dívida** e não pode
   bloquear venda, retirada, anúncio nem casamento — quem responde "isto bloqueia?" é
   `faturaBloqueia()`, e é ela que todas as travas consultam. Entre 23 e 27/09 a publicação exigia
   custódia *comprovadamente paga*, e somada à cobrança na entrada isso travou quem não devia nada.

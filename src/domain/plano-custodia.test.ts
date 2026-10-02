@@ -8,33 +8,13 @@ import {
   alimentarPlanoNaAnalise,
   calcularPagoAte,
   competenciaCoberta,
-  gerarFaturaDoCiclo,
   moedasCobertas,
   mesesCobertos,
   renovacaoDevida,
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
-import type { Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
-
-function criarMoeda(id: string, statusRecibo: 'Ativo' | 'Bloqueado' | 'Extinto' = 'Ativo'): Coin {
-  return {
-    id,
-    tipoMoeda: 'Entrega da Bandeira Olímpica',
-    ano: 2016,
-    entrada: '14/09/2026',
-    statusFisico: 'Armazenado',
-    statusDigital: 'Validado',
-    valorEstimado: 20000,
-    protocolo: 'ENV-2026-0001',
-    recibo: {
-      codigo: `REC-${id}`,
-      hash: 'hash-fake',
-      dataEmissao: '14/09/2026',
-      status: statusRecibo,
-    },
-  }
-}
+import type { FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 function criarPlano(parciais: Partial<PlanoCustodia> = {}): PlanoCustodia {
   return {
@@ -188,70 +168,6 @@ describe('plano-custodia (B2.3)', () => {
       // Em 2026-10 o p2 ja passou ate do mes da renovacao: so p1 cobre
       const cobertasMesSeguinte = moedasCobertas([p1, p2, p3NaoPago], '2026-10')
       expect(Array.from(cobertasMesSeguinte)).toEqual(['M-1', 'M-2'])
-    })
-  })
-
-  describe('gerarFaturaDoCiclo', () => {
-    const userBase: User = {
-      name: 'Cliente Teste',
-      balance: 10000,
-      coins: [
-        criarMoeda('M-1'),
-        criarMoeda('M-2'),
-        criarMoeda('M-3'),
-      ],
-    }
-
-    it('retorna null se o usuário não tiver moedas ativas', () => {
-      const userSemMoedas: User = { name: 'Vazio', balance: 0, coins: [] }
-      const fatura = gerarFaturaDoCiclo(userSemMoedas, 'cliente@teste.com', '2026-10', [])
-      expect(fatura).toBeNull()
-    })
-
-    it('retorna null se todas as moedas estiverem cobertas por plano', () => {
-      const plano = criarPlano({
-        moedaIds: ['M-1', 'M-2', 'M-3'],
-        inicioCompetencia: '2026-10',
-        pagoAteCompetencia: '2026-10',
-        status: 'vigente',
-      })
-      const fatura = gerarFaturaDoCiclo(userBase, 'cliente@teste.com', '2026-10', [plano])
-      expect(fatura).toBeNull()
-    })
-
-    it('fatura apenas moedas não cobertas, descontando as cobertas', () => {
-      const plano = criarPlano({
-        moedaIds: ['M-1', 'M-2'],
-        inicioCompetencia: '2026-10',
-        pagoAteCompetencia: '2026-10',
-        status: 'vigente',
-      })
-      // M-1 e M-2 estão cobertas; M-3 não está coberta
-      const agora = 1789344000000
-      const fatura = gerarFaturaDoCiclo(userBase, 'cliente@teste.com', '2026-10', [plano], undefined, agora)
-
-      expect(fatura).not.toBeNull()
-      expect(fatura?.quantidadeMoedas).toBe(1)
-      expect(fatura?.moedaIds).toEqual(['M-3'])
-      expect(fatura?.valorCents).toBe(200) // R$ 2,00
-      expect(fatura?.origem).toBe('ciclo_mensal')
-      expect(fatura?.planoId).toBeNull()
-      expect(fatura?.status).toBe('pendente')
-    })
-
-    it('desconsidera moedas com recibo extinto', () => {
-      const userComExtinta: User = {
-        name: 'Cliente',
-        balance: 0,
-        coins: [
-          criarMoeda('M-1', 'Ativo'),
-          criarMoeda('M-2', 'Extinto'), // Extinto não deve pagar
-        ],
-      }
-      const fatura = gerarFaturaDoCiclo(userComExtinta, 'cliente@teste.com', '2026-10', [])
-      expect(fatura?.quantidadeMoedas).toBe(1)
-      expect(fatura?.moedaIds).toEqual(['M-1'])
-      expect(fatura?.valorCents).toBe(200)
     })
   })
 

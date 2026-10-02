@@ -5,7 +5,7 @@ import 'server-only'
  *
  * Regras protegidas (Decisão D-3, 10/09/2026 e Cláusulas 3 e 4 dos Termos):
  * - R$ 2,00 por moeda guardada por mês.
- * - Ciclo mensal com tolerância de 10 dias para pagamento.
+ * - Ciclo de 30 dias por moeda, contado do dia em que ela foi aceita (ciclo-custodia.ts).
  * - Cobrança automática no saldo disponível caso o cliente possua saldo suficiente.
  * - Caso não haja saldo, fatura fica pendente para liquidação externa (Pix/cartão).
  * - A inadimplência POR FATURA é calculada na hora, a partir das próprias faturas, por quem lê:
@@ -23,7 +23,6 @@ import {
 } from '@/domain/custody'
 import {
   calcularPagoAte,
-  gerarFaturaDoCiclo,
   mesesCobertos,
   renovacaoDevida,
   somarMeses,
@@ -32,6 +31,7 @@ import {
 import type { ActionResult, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { expurgarOfertasSemCustodia } from '@/domain/bloqueio-por-debito'
+import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
 import { mutateState } from '@/server/state'
 
 export interface RelatorioCicloFaturamento {
@@ -51,15 +51,19 @@ export interface RelatorioCicloFaturamento {
 }
 
 /**
- * Executa o ciclo mensal de faturamento para todos os usuários com moedas ativas sob guarda.
- * Chamado pelo cron mensal (`/api/cron/faturamento`) ou manualmente por rotina administrativa.
+ * Cobra as moedas cujo ciclo de custódia venceu e atualiza o status das faturas.
+ * Chamado pelo cron DIÁRIO (`/api/cron/faturamento`) ou manualmente por rotina administrativa.
+ *
+ * Roda todo dia porque o ciclo é de cada moeda — começa no dia em que ela foi
+ * aceita e renova todo mês no mesmo dia (src/domain/ciclo-custodia.ts). Até
+ * 02/10/2026 rodava só no dia 1º e cobrava o acervo inteiro de uma vez. É
+ * idempotente: no mesmo dia, a segunda passada não encontra nada a cobrar.
  */
 export async function processarCicloFaturamento(
-  competenciaAlvo?: string,
   relogioReferencia?: Timestamp,
 ): Promise<RelatorioCicloFaturamento> {
   const agora = relogioReferencia ?? Date.now()
-  const competencia = competenciaAlvo ?? competenciaAtual(agora)
+  const competencia = competenciaAtual(agora)
   // Valores por moeda da Tabela de Taxas vigente (C3); sem banco, TAXAS_PADRAO.
   const { taxas } = await carregarRegrasDoMercado()
 
@@ -68,11 +72,6 @@ export async function processarCicloFaturamento(
   const { result } = await mutateState<RelatorioCicloFaturamento>((s) => {
     s.faturasCustodia = s.faturasCustodia ?? []
     s.planosCustodia = s.planosCustodia ?? []
-    const faturasExistentes = new Map<string, FaturaCustodia>()
-    for (const f of s.faturasCustodia) {
-      faturasExistentes.set(`${f.userEmail}#${f.competencia}#${f.origem || 'ciclo_mensal'}`, f)
-    }
-
     let faturasGeradas = 0
     let faturasLiquidadasComSaldo = 0
     let faturasPendentes = 0
@@ -87,7 +86,6 @@ export async function processarCicloFaturamento(
       // A) Renovação dos planos que passaram do último mês coberto (13º do anual, 25º do de 24 meses)
       for (const plano of planosDoUsuario) {
         if (renovacaoDevida(plano, competencia)) {
-          const chaveRenovacao = `${email}#${competencia}#renovacao_anual#${plano.id}`
           const jaTemRenovacao = s.faturasCustodia.some(
             (f) => f.planoId === plano.id && f.competencia === competencia && f.origem === 'renovacao_anual',
           )
@@ -138,33 +136,19 @@ export async function processarCicloFaturamento(
             }
 
             s.faturasCustodia.push(faturaRenovacao)
-            faturasExistentes.set(chaveRenovacao, faturaRenovacao)
           }
         }
       }
 
-      // B) Ciclo mensal para moedas não cobertas
-      const chaveCiclo = `${email}#${competencia}#ciclo_mensal`
-      const faturaCicloExistente = faturasExistentes.get(chaveCiclo)
-
-      if (!faturaCicloExistente) {
-        const novaFatura = gerarFaturaDoCiclo(user, email, competencia, planosDoUsuario, { ...taxas }, agora)
-        if (novaFatura) {
-          faturasGeradas++
-          // Débito automático se houver saldo suficiente
-          if (user.balance >= novaFatura.valorCents) {
-            user.balance -= novaFatura.valorCents
-            novaFatura.status = 'paga'
-            novaFatura.dataPagamento = agora
-            novaFatura.formaPagamento = 'saldo'
-            faturasLiquidadasComSaldo++
-          } else {
-            novaFatura.status = 'pendente'
-            faturasPendentes++
-          }
-          s.faturasCustodia.push(novaFatura)
-          faturasExistentes.set(chaveCiclo, novaFatura)
-        }
+      // B) Ciclo de cada moeda: cobra as moedas cujo aniversário de custódia chegou
+      // e ainda não têm o ciclo resolvido (paga, ou com fatura aberta do ciclo).
+      // Roda todo dia, e a cada dia só aparece o que venceu naquele dia — ver
+      // src/domain/ciclo-custodia.ts. O débito automático em saldo mora na própria
+      // emissão.
+      for (const nova of emitirFaturasDosCiclos(s, email, 'ciclo_mensal', { ...taxas }, agora)) {
+        faturasGeradas++
+        if (nova.status === 'paga') faturasLiquidadasComSaldo++
+        else faturasPendentes++
       }
 
       // 2. Atualização de status das faturas deste usuário e conferência de inadimplência

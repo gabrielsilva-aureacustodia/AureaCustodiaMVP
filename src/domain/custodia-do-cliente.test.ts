@@ -65,13 +65,35 @@ describe('resumoDaCustodia', () => {
     expect(resumoDaCustodia(s, DONO, 200, AGORA).moedasGuardadas).toBe(1)
   })
 
-  it('aponta a competência corrente e a próxima, virando o ano quando precisa', () => {
-    const s = estado([])
-    expect(resumoDaCustodia(s, DONO, 200, AGORA).proximaCompetencia).toBe('2026-10')
+  it('a próxima cobrança é o aniversário de ciclo mais próximo entre as moedas — nunca o dia 1º', () => {
+    // Aceitas em 25/09 e 02/10: em 25/09 o próximo aniversário é 25/10 (a de 02/10 ainda nem existe).
+    const s = estado([moeda('RO-000001')])
+    expect(resumoDaCustodia(s, DONO, 200, AGORA).proximaCobrancaEm).toBe(Date.UTC(2026, 9, 25, 3))
 
+    const outra = { ...moeda('RO-000002'), entrada: '02/10/2026' }
+    const depois = Date.UTC(2026, 9, 3, 12)
+    const r = resumoDaCustodia(estado([moeda('RO-000001'), outra]), DONO, 200, depois)
+    // 25/10 (moeda de 25/09) vem antes de 02/11 (moeda de 02/10)
+    expect(r.proximaCobrancaEm).toBe(Date.UTC(2026, 9, 25, 3))
+  })
+
+  it('sem moeda sob guarda não há próxima cobrança', () => {
+    expect(resumoDaCustodia(estado([]), DONO, 200, AGORA).proximaCobrancaEm).toBeNull()
+    expect(resumoDaCustodia(estado([moeda('RO-000001', 'Extinto')]), DONO, 200, AGORA).proximaCobrancaEm).toBeNull()
+  })
+
+  it('a competência corrente vira o ano quando precisa', () => {
     const dezembro = Date.UTC(2026, 11, 20)
-    expect(resumoDaCustodia(s, DONO, 200, dezembro).competencia).toBe('2026-12')
-    expect(resumoDaCustodia(s, DONO, 200, dezembro).proximaCompetencia).toBe('2027-01')
+    expect(resumoDaCustodia(estado([]), DONO, 200, dezembro).competencia).toBe('2026-12')
+  })
+
+  it('a cobertura de uma fatura do ciclo por moeda é o instante exato em que o ciclo termina', () => {
+    const fim = Date.UTC(2026, 10, 21, 3) // 21/11 00:00 em Brasília
+    const s = estado(
+      [moeda('RO-000001')],
+      [fatura({ id: 'F-CICLO', status: 'paga', competencia: '2026-10', dataPagamento: AGORA, dataVencimento: fim, coberturaAte: fim - 1 })],
+    )
+    expect(resumoDaCustodia(s, DONO, 200, AGORA).cobertaAte).toBe(fim - 1)
   })
 
   it('o próximo vencimento é o da fatura aberta mais antiga', () => {

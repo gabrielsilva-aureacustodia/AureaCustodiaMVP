@@ -89,6 +89,18 @@ export function fimDaCompetencia(competencia: string): Timestamp {
 }
 
 /**
+ * Até quando a guarda paga por esta fatura está coberta.
+ *
+ * Faturas do ciclo por moeda (02/10/2026) trazem o instante exato em `coberturaAte`;
+ * as anteriores cobriam o mês-calendário da competência.
+ */
+export function fimDaCoberturaDaFatura(
+  fatura: Pick<FaturaCustodia, 'competencia' | 'coberturaAte'>,
+): Timestamp {
+  return fatura.coberturaAte ?? fimDaCompetencia(fatura.competencia)
+}
+
+/**
  * Calcula a data de vencimento da fatura com base na data de emissão e nos dias de tolerância.
  */
 export function calcularVencimentoFatura(

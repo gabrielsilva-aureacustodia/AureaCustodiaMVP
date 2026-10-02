@@ -32,12 +32,6 @@ import { resumoComExemplo } from '@/domain/tutorial'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTutorial } from '@/components/tutorial/contexto'
 
-/** O primeiro dia da competência seguinte — quando o ciclo mensal passa de novo. */
-function inicioDaProximaCobranca(r: { proximaCompetencia: string }): number {
-  const [ano, mes] = r.proximaCompetencia.split('-').map(Number)
-  return Date.UTC(ano ?? 1970, (mes ?? 1) - 1, 1, 12)
-}
-
 export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactNode {
   const { state, session, taxas } = useApp()
   const { exemplo } = useTutorial()
@@ -108,7 +102,11 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
         <div className="sr">
           <span className="k">{r.emAberto.length > 0 ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
           <span className="v">
-            {r.proximoVencimento ? fdate(r.proximoVencimento) : fdate(inicioDaProximaCobranca(r))}
+            {r.proximoVencimento
+              ? fdate(r.proximoVencimento)
+              : r.proximaCobrancaEm
+                ? fdate(r.proximaCobrancaEm)
+                : '—'}
           </span>
         </div>
         {r.emAberto.length > 0 && (

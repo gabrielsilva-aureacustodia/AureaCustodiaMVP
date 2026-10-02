@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { cobrarEntradaNoAcervo, custodiaResolvidaNaCompetencia } from '@/domain/cobranca-de-entrada'
+import {
+  cobrarEntradaNoAcervo,
+  custodiaResolvidaNaCompetencia,
+  emitirFaturasDosCiclos,
+} from '@/domain/cobranca-de-entrada'
 import type { AppState, Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 /** 25/09/2026, 12:00 UTC — competência '2026-09'. */
@@ -122,6 +126,15 @@ describe('cobrarEntradaNoAcervo', () => {
     expect(f!.valorCents).toBe(200)
   })
 
+  it('o vencimento é o próximo aniversário da moeda e a cobertura vai até o dia anterior', () => {
+    const s = estado(0, [moeda('RO-000001')])
+    const f = cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], { custodiaMensalPorMoeda: 200 }, AGORA)
+
+    // aceita em 25/09 -> próxima cobrança em 25/10, 00:00 de Brasília (03:00 UTC)
+    expect(f!.dataVencimento).toBe(Date.UTC(2026, 9, 25, 3))
+    expect(f!.coberturaAte).toBe(Date.UTC(2026, 9, 25, 3) - 1)
+  })
+
   it('devolve null para conta inexistente, sem criar fatura órfã', () => {
     const s = estado(0, [])
     expect(cobrarEntradaNoAcervo(s, 'fantasma@exemplo.com.br', ['RO-000001'], {}, AGORA)).toBeNull()
@@ -175,5 +188,90 @@ describe('custodiaResolvidaNaCompetencia', () => {
       },
     ]
     expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-09')).toBe(false)
+  })
+})
+
+describe('custodiaResolvidaNaCompetencia — fatura aberta de ciclo mais novo também resolve', () => {
+  const aberta = (competencia: string): FaturaCustodia => ({
+    id: `FAT-${competencia}`,
+    userEmail: DONO,
+    competencia,
+    quantidadeMoedas: 1,
+    moedaIds: ['RO-000001'],
+    valorCents: 200,
+    status: 'pendente',
+    dataEmissao: AGORA,
+    dataVencimento: AGORA + 1000,
+    origem: 'ciclo_mensal',
+  })
+
+  it('competência igual ou maior resolve; menor não', () => {
+    const s = estado(0, [moeda('RO-000001')])
+    s.faturasCustodia = [aberta('2026-10')]
+
+    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-10')).toBe(true)
+    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-09')).toBe(true)
+    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-11')).toBe(false)
+  })
+})
+
+describe('emitirFaturasDosCiclos — a transição de 02/10/2026', () => {
+  const taxa = { custodiaMensalPorMoeda: 200 }
+  const dia = (d: number, mes = 9, h = 8): number => Date.UTC(2026, mes, d, h)
+  const faturaDe01 = (status: 'paga' | 'pendente'): FaturaCustodia => ({
+    // emitida pelo cron antigo, no dia 1º, pelo mês-calendário
+    id: 'FAT-2026-10-ANTIGA',
+    userEmail: DONO,
+    competencia: '2026-10',
+    quantidadeMoedas: 1,
+    moedaIds: ['RO-000001'],
+    valorCents: 200,
+    status,
+    dataEmissao: dia(1),
+    dataVencimento: dia(31),
+    dataPagamento: status === 'paga' ? dia(1) : null,
+    origem: 'ciclo_mensal',
+  })
+
+  it('a fatura de 01/10 vale como a cobrança do mês: o aniversário de 21/10 não cobra de novo', () => {
+    const s = estado(0, [{ ...moeda('RO-000001'), entrada: '21/09/2026' }])
+    s.faturasCustodia = [faturaDe01('paga')]
+
+    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(21))).toEqual([])
+    // ...e o ciclo seguinte, em 21/11, cobra normalmente
+    const novembro = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(21, 10))
+    expect(novembro).toHaveLength(1)
+    expect(novembro[0]!.competencia).toBe('2026-11')
+  })
+
+  it('moeda cujo aniversário ainda não chegou não é cobrada de novo só porque o mês virou', () => {
+    // aceita em 05/09: o ciclo em curso em 02/10 é o de 05/09 (competência 2026-09), que a
+    // fatura aberta de 2026-10 já supera. Cobrar de novo seria dobrar a mensalidade.
+    const s = estado(0, [{ ...moeda('RO-000001'), entrada: '05/09/2026' }])
+    s.faturasCustodia = [faturaDe01('pendente')]
+
+    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(2, 9))).toEqual([])
+  })
+
+  it('moedas de aniversários diferentes no mesmo mês viram faturas diferentes, com ids distintos', () => {
+    const s = estado(0, [
+      { ...moeda('RO-000001'), entrada: '05/09/2026' },
+      { ...moeda('RO-000002'), entrada: '07/09/2026' },
+    ])
+    // 08/10: os dois ciclos de outubro já começaram (05/10 e 07/10), cada um com o seu fim
+    const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(8, 9))
+
+    expect(criadas.map((f) => f.moedaIds)).toEqual([['RO-000001'], ['RO-000002']])
+    expect(new Set(criadas.map((f) => f.id)).size).toBe(2)
+    expect(criadas.map((f) => f.dataVencimento)).toEqual([Date.UTC(2026, 10, 5, 3), Date.UTC(2026, 10, 7, 3)])
+  })
+
+  it('moedas aceitas no mesmo dia andam juntas na mesma fatura', () => {
+    const s = estado(0, [moeda('RO-000001'), moeda('RO-000002')])
+    const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, Date.UTC(2026, 9, 25, 8))
+
+    expect(criadas).toHaveLength(1)
+    expect(criadas[0]!.moedaIds).toEqual(['RO-000001', 'RO-000002'])
+    expect(criadas[0]!.valorCents).toBe(400)
   })
 })

@@ -59,7 +59,7 @@ describe('Nenhum processo automático grava user.inadimplente (E8)', () => {
       s.users[EMAIL].balance = 0
     })
 
-    const rel = await processarCicloFaturamento('2026-09', agora)
+    const rel = await processarCicloFaturamento(agora)
 
     const s = await getState()
     expect(s.users[EMAIL].inadimplente).toBeFalsy()

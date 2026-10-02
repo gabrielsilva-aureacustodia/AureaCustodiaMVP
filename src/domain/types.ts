@@ -777,6 +777,15 @@ export interface FaturaCustodia {
    * nenhuma até a virada do mês — ver src/domain/cobranca-de-entrada.ts.
    */
   origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'entrada_no_acervo'
+  /**
+   * O último instante da guarda que esta fatura cobre — o fim do ciclo da moeda
+   * (02/10/2026, ver src/domain/ciclo-custodia.ts). É a COBERTURA, e não o
+   * prazo de pagamento (`dataVencimento`): uma moeda aceita em 02/10 tem
+   * cobertura até 01/11 23:59. `null` nas faturas anteriores a essa regra, que
+   * cobriam o mês-calendário da `competencia` — quem lê cai em
+   * `fimDaCompetencia`.
+   */
+  coberturaAte?: Timestamp | null
 }
 
 /**

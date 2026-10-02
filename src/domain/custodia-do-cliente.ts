@@ -22,9 +22,9 @@
  * tarifa. Quem olhasse só os planos veria R$ 2,00 tendo 11 moedas guardadas.
  */
 
-import { competenciaAtual, fimDaCompetencia } from '@/domain/custody'
+import { cicloDaMoeda } from '@/domain/ciclo-custodia'
+import { competenciaAtual, fimDaCoberturaDaFatura, fimDaCompetencia } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
-import { somarMeses } from '@/domain/plano-custodia'
 import type {
   AppState,
   Cents,
@@ -43,8 +43,11 @@ export interface ResumoDaCustodia {
   mensalidadeCents: Cents
   /** Competência que a conta está pagando agora ('AAAA-MM'). */
   competencia: string
-  /** A competência da próxima cobrança. */
-  proximaCompetencia: string
+  /**
+   * Quando a conta é cobrada de novo: o aniversário de ciclo mais próximo entre
+   * as moedas sob guarda (src/domain/ciclo-custodia.ts). `null` sem moeda.
+   */
+  proximaCobrancaEm: Timestamp | null
   /** Faturas ainda não pagas nem canceladas, da mais antiga para a mais nova. */
   emAberto: FaturaCustodia[]
   /** Soma das faturas em aberto. */
@@ -62,7 +65,11 @@ export interface ResumoDaCustodia {
    * prazo até o dia 5 do mês seguinte e cobrir a guarda só até o dia 30.
    */
   pagaAteCompetencia: string | null
-  /** O último instante coberto pelo que já foi pago; `null` quando nada foi. */
+  /**
+   * O último instante coberto pelo que já foi pago; `null` quando nada foi. Vem
+   * da `coberturaAte` da fatura (o fim do ciclo da moeda) e, nas faturas
+   * anteriores a 02/10/2026, do fim do mês da competência.
+   */
   cobertaAte: Timestamp | null
   /** Faturas pagas, da mais recente para a mais antiga. É o extrato. */
   pagas: FaturaCustodia[]
@@ -98,25 +105,34 @@ export function resumoDaCustodia(
   const planos = (state.planosCustodia ?? []).filter((p) => p.userEmail === email)
   const competencia = competenciaAtual(agora)
 
-  // A competência mais adiantada entre o que já foi pago: fatura liquidada ou
-  // plano vigente com `pagoAteCompetencia` escrito.
+  // O que já foi pago de mais adiantado: fatura liquidada ou plano vigente com
+  // `pagoAteCompetencia` escrito. A cobertura em instante vem da própria fatura.
   let pagaAteCompetencia: string | null = null
+  let cobertaAte: Timestamp | null = null
   for (const f of pagas) {
     if (!pagaAteCompetencia || f.competencia > pagaAteCompetencia) pagaAteCompetencia = f.competencia
+    const fim = fimDaCoberturaDaFatura(f)
+    if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
   }
   for (const p of planos) {
     if (p.status !== 'vigente' || !p.pagoAteCompetencia) continue
     if (!pagaAteCompetencia || p.pagoAteCompetencia > pagaAteCompetencia) {
       pagaAteCompetencia = p.pagoAteCompetencia
     }
+    const fim = fimDaCompetencia(p.pagoAteCompetencia)
+    if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
   }
+
+  const aniversarios = (user?.coins ?? [])
+    .filter((c) => c.recibo?.status !== 'Extinto')
+    .map((c) => cicloDaMoeda(c.entrada, agora).fim)
 
   return {
     moedasGuardadas,
     porMoedaCents,
     mensalidadeCents: moedasGuardadas * porMoedaCents,
     competencia,
-    proximaCompetencia: somarMeses(competencia, 1),
+    proximaCobrancaEm: aniversarios.length > 0 ? Math.min(...aniversarios) : null,
     emAberto,
     emAbertoCents: emAberto.reduce((soma, f) => soma + f.valorCents, 0),
     proximoVencimento: emAberto.length > 0 ? emAberto[0]!.dataVencimento : null,
@@ -125,7 +141,7 @@ export function resumoDaCustodia(
     // passagem a tela mostraria "em dia" uma fatura que já bloqueia a venda.
     vencida: emAberto.some((f) => f.status === 'atrasada' || f.dataVencimento < agora),
     pagaAteCompetencia,
-    cobertaAte: pagaAteCompetencia ? fimDaCompetencia(pagaAteCompetencia) : null,
+    cobertaAte,
     pagas,
     totalPagoCents: pagas.reduce((soma, f) => soma + f.valorCents, 0),
     planosAtivos: planos

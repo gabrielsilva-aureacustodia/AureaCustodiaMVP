@@ -94,3 +94,12 @@ publicado antes delas cai no bootstrap do ambiente (RA-40) e não grava registro
 022 e a 023, `/admin/cs` e as notas da ficha de usuário mostram o aviso de tabela ausente. Sem a
 024, o site cobra o padrão do código e a tela de configuração pede `npm run db:migrate`; sem a
 025, a bancada web aceita qualquer código de caixa e o quadro de caixas fica vazio.
+
+## Migration 039 — o ciclo de custódia é de cada moeda (02/10/2026)
+
+`039_ciclo_de_custodia_por_moeda.sql` acrescenta `faturas_custodia.cobertura_ate` (o último instante da
+guarda que a fatura cobre) e troca o índice único `faturas_ciclo_uniq` — de "uma fatura de ciclo por
+conta por competência" para "uma por conta, competência **e fim de ciclo**". Motivo: o ciclo agora
+corre do dia em que cada moeda foi aceita (`src/domain/ciclo-custodia.ts`), então duas moedas da mesma
+conta renovam em dias diferentes do mesmo mês. Aditiva — o código anterior ao deploy não lê a coluna,
+então esta migration pode (e deve) entrar **antes** do push. Aplicada em produção em 02/10/2026.

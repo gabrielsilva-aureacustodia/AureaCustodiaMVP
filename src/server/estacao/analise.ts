@@ -9,7 +9,7 @@ import 'server-only'
 import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePendente } from '@/domain/analise'
 import { nextCodigoRecibo } from '@/domain/codes'
 import { COIN_TYPES, faixaValor, isNegociavel } from '@/domain/constants'
-import { fdate } from '@/domain/dates'
+import { dataBrasilia } from '@/domain/ciclo-custodia'
 import { TAXAS_PADRAO } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
@@ -230,7 +230,7 @@ export async function fecharAnalise(
       if (!dono) return { tipo: 'nao-encontrado' as const }
 
       const agora = Date.now()
-      const entradaStr = fdate(agora)
+      const entradaStr = dataBrasilia(agora)
       const valor = valorDeEntrada(state, envio.tipoMoeda, catalogo)
       // A corrente continua de onde parou. Primeira análise do sistema encadeia
       // no GENESIS — 64 zeros, a mesma convenção do ledger.

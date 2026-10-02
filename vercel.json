@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/cron/faturamento",
-      "schedule": "0 8 1 * *"
+      "schedule": "0 8 * * *"
     }
   ]
 }

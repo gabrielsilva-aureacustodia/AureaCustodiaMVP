@@ -44,7 +44,7 @@ import 'server-only'
 import { encadearAnalise, nextAnaliseCode, ultimoHashDeAnalise, type AnalisePendente } from '@/domain/analise'
 import { nextCodigoRecibo, nextCoinCode } from '@/domain/codes'
 import { COIN_TYPES, coinTypeInfo, faixaValor, isNegociavel } from '@/domain/constants'
-import { fdate } from '@/domain/dates'
+import { dataBrasilia } from '@/domain/ciclo-custodia'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import type { Analise, AppState, Cents, Coin, CoinType } from '@/domain/types'
@@ -146,7 +146,7 @@ export async function cadastrarMoedasDiretamente(
     if (!dono) return { tipo: 'usuario-nao-encontrado' }
 
     const agora = Date.now()
-    const entradaStr = fdate(agora)
+    const entradaStr = dataBrasilia(agora)
     const valor = valorDeEntrada(state, entrada.tipoMoeda, catalogo)
     const protocolo = proximoProtocoloDireto(state.analises)
 
