@@ -17,19 +17,17 @@
  * Tiragem e ficha técnica saem de COIN_TYPES para não duplicar número.
  */
 
-import Image from 'next/image'
 import type { ReactNode } from 'react'
 
 import { COIN_TYPES } from '@/domain/constants'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
+import { CoinArt } from '@/components/svg/CoinArt'
 
 interface Bloco {
   tipo: string
   titulo: string
-  foto: string
-  alt: string
   historia: string
 }
 
@@ -37,16 +35,12 @@ const BLOCOS: Bloco[] = [
   {
     tipo: 'Direitos Humanos',
     titulo: 'Moeda dos Direitos Humanos',
-    foto: '/moedas/moeda-direitos-humanos-1998.png',
-    alt: 'Moeda de R$ 1 do cinquentenário da Declaração Universal dos Direitos Humanos, 1998',
     historia:
       'Emitida pelo Banco Central em dezembro de 1998 para os 50 anos da Declaração Universal dos Direitos Humanos. Traz um globo e uma figura humana estilizada e tem a menor tiragem entre as moedas de R$ 1.',
   },
   {
     tipo: 'Entrega da Bandeira Olímpica',
     titulo: 'Moeda da Entrega da Bandeira',
-    foto: '/moedas/moeda-entrega-da-bandeira-2012.png',
-    alt: 'Moeda de R$ 1 da Entrega da Bandeira Olímpica, Londres 2012 – Rio 2016',
     historia:
       'Lançada em 2012, marca a passagem da bandeira olímpica de Londres para o Rio de Janeiro, na cerimônia de encerramento dos Jogos. Foi a primeira da série comemorativa que levou aos Jogos Rio 2016.',
   },
@@ -63,7 +57,7 @@ export function BlocosDeMoedas(): ReactNode {
         return (
           <section key={b.tipo} className="moeda-bloco">
             <div className="moeda-bloco-foto">
-              <Image src={b.foto} alt={b.alt} width={150} height={150} />
+              <CoinArt type={b.tipo} className="coin-svg coin-showcase" />
             </div>
             <div className="moeda-bloco-tx">
               <h3>{b.titulo}</h3>
