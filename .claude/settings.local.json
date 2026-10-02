@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git status --short; git log --oneline -8; Get-ChildItem -Recurse -Directory src | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"c:\\\\dev\\\\AureaCustodiaMVP\\\\\",\"\"\\) })",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(git merge landing/redesign-real-olimpico --no-ff -m ' *)",
+      "Bash(git merge tutorial/onboarding-guiado --no-ff -m ' *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}
