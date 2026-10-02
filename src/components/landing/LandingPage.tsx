@@ -78,6 +78,9 @@ const faqs = [
 export function LandingPage(): ReactNode {
   return (
     <main className="landing-page">
+      <a href="#landing-conteudo" className="skip-link">
+        Pular para o conteúdo
+      </a>
       <ScrollRevealInit />
 
       <div className="landing-header-wrap">
@@ -101,7 +104,7 @@ export function LandingPage(): ReactNode {
       </div>
 
       {/* BLOCO 1: Hero com fotos reais das moedas em diagonal */}
-      <section className="landing-hero" aria-labelledby="landing-title">
+      <section id="landing-conteudo" tabIndex={-1} className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-hero-copy">
           <p className="landing-eyebrow">Custódia de moedas comemorativas</p>
           <h1 id="landing-title">Transforme seus itens de colecionador em liquidez</h1>

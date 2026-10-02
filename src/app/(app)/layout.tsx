@@ -80,9 +80,12 @@ export default async function AppLayout({
       <TutorialProvider>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa. */}
+        <a href="#conteudo-principal" className="skip-link">
+          Pular para o conteúdo
+        </a>
         <div className="app active">
           <Sidebar />
-          <main className="main">
+          <main id="conteudo-principal" tabIndex={-1} className="main">
             <Topbar />
             {children}
           </main>

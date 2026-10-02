@@ -13,6 +13,16 @@
    ========================================================================= */
 
 *{margin:0;padding:0;box-sizing:border-box}
+
+/* ---- Skip-link — quem navega por teclado não devia precisar tabular pelo
+   menu inteiro pra chegar no conteúdo. Invisível até receber foco. ---------- */
+.skip-link{
+  position:fixed;top:-100%;left:50%;transform:translateX(-50%);z-index:9999;
+  padding:.75rem 1.5rem;background:var(--gold);color:#000;font-weight:600;
+  border-radius:0 0 .5rem .5rem;transition:top .2s ease;
+}
+.skip-link:focus{top:0;outline:2px solid #000;outline-offset:2px}
+
 body{
   font-family:var(--ff-sans);
   background:var(--bg);
