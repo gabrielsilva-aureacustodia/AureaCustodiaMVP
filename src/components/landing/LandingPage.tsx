@@ -25,8 +25,11 @@ import {
   ArmoredCarIcon,
   BankVaultIcon,
   UntouchedSealIcon,
+  ChevronDownIcon,
 } from './LandingIcons'
 import { ScrollRevealInit } from './ScrollRevealInit'
+import { CoinSpecimenViewer } from './CoinSpecimenViewer'
+import { FeeSimulator } from './FeeSimulator'
 
 const etapas = [
   {
@@ -46,6 +49,29 @@ const etapas = [
     title: 'Marketplace',
     text: 'Colecionadores negociam itens elegíveis dentro da plataforma, ganhando dinheiro sobre a valorização e negociação.',
     Icon: MarketTradeIcon,
+  },
+] as const
+
+const faqs = [
+  {
+    question: 'Como é comprovada a autenticidade e o estado de conservação da moeda?',
+    answer:
+      'Cada item é submetido a uma rigorosa inspeção pericial numismática: pesagem analítica de precisão, conferência de diâmetro e espessura, testes não destrutivos de magnetismo e validação minuciosa dos detalhes do cunho. O laudo pericial vincula o item aprovado a um comprovante digital exclusivo antes de seu lacre e guarda no acervo.',
+  },
+  {
+    question: 'Posso retirar minhas moedas físicas do cofre quando quiser?',
+    answer:
+      'Sim. O proprietário legítimo detém a posse jurídica integral e pode solicitar o resgate físico de seus itens custodiados a qualquer momento, conforme o procedimento seguro de deslacração e entrega estabelecido nos Termos de Uso.',
+  },
+  {
+    question: 'Quais são as taxas exatas de negociação e de custódia?',
+    answer:
+      'Transparência absoluta: a custódia especializada custa R$ 3,00/moeda por mês (ou R$ 24,00 no plano anual). Em negociações dentro do marketplace, a comissão é de 0,5% + R$ 1,00 por moeda de cada lado da operação, sem nenhuma cobrança oculta.',
+  },
+  {
+    question: 'O que é o recibo lastreado e como ele garante a negociação segura?',
+    answer:
+      'O recibo digital emitido pelo Real Olímpico é o título oficial e auditável comprobatório de que o item físico correspondente está sob guarda fiduciária em cofre. Ele permite que os colecionadores comprem e vendam a posse das moedas com liquidez imediata, eliminando custos de fretes blindados e riscos de extravio a cada negociação.',
   },
 ] as const
 
@@ -145,6 +171,76 @@ export function LandingPage(): ReactNode {
           </p>
         </div>
       </section>
+
+      {/* MARKET SNAPSHOT: Moedas de Destaque no Acervo */}
+      <section className="landing-market reveal" aria-labelledby="market-title">
+        <div className="landing-section-heading">
+          <p className="landing-eyebrow">Cotações de referência</p>
+          <h2 id="market-title">Moedas de Destaque no Acervo</h2>
+        </div>
+        <div className="landing-market-grid">
+          <article className="landing-market-card">
+            <div className="landing-market-card-header">
+              <span className="landing-market-badge">100% Custodiado</span>
+              <span className="landing-market-code">BR-2012-BANDEIRA</span>
+            </div>
+            <div className="landing-market-card-body">
+              <h3>Entrega da Bandeira · 2012</h3>
+              <p className="landing-market-spec">
+                Moeda comemorativa de R$ 1 · Bimetálica · Londres 2012 &rarr; Rio 2016
+              </p>
+              <div className="landing-market-metric">
+                <div>
+                  <span className="landing-market-label">Referência de mercado</span>
+                  <div className="landing-market-price">R$ 180,00</div>
+                </div>
+                <div className="landing-market-liquidity">
+                  <span className="landing-market-label">Demanda</span>
+                  <span className="landing-market-tag">Alta liquidez</span>
+                </div>
+              </div>
+            </div>
+            <div className="landing-market-card-footer">
+              <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>
+              <Link className="landing-market-cta" href="/cadastrar">
+                Negociar &rarr;
+              </Link>
+            </div>
+          </article>
+
+          <article className="landing-market-card">
+            <div className="landing-market-card-header">
+              <span className="landing-market-badge">100% Custodiado</span>
+              <span className="landing-market-code">BR-1998-DH</span>
+            </div>
+            <div className="landing-market-card-body">
+              <h3>Direitos Humanos · 1998</h3>
+              <p className="landing-market-spec">
+                Moeda comemorativa de R$ 1 · Cuproníquel · Tiragem histórica de 600 mil
+              </p>
+              <div className="landing-market-metric">
+                <div>
+                  <span className="landing-market-label">Referência de mercado</span>
+                  <div className="landing-market-price">R$ 450,00</div>
+                </div>
+                <div className="landing-market-liquidity">
+                  <span className="landing-market-label">Demanda</span>
+                  <span className="landing-market-tag">Raridade chave</span>
+                </div>
+              </div>
+            </div>
+            <div className="landing-market-card-footer">
+              <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>
+              <Link className="landing-market-cta" href="/cadastrar">
+                Negociar &rarr;
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {/* EXAME TÉCNICO DE ESPÉCIME (Benchmark PCGS / Heritage) */}
+      <CoinSpecimenViewer />
 
       {/* BLOCO 3: Sua coleção protegida, registrada e pronta para negociar */}
       <section className="landing-process reveal" aria-labelledby="process-title">
@@ -259,6 +355,64 @@ export function LandingPage(): ReactNode {
               </div>
             </div>
           </div>
+
+          {/* Comparativo factual: Domicílio vs Real Olímpico */}
+          <div className="landing-compare-wrap">
+            <h3 className="landing-compare-title">Comparativo Factual: Onde seu acervo está mais protegido?</h3>
+            <div className="landing-compare-table" role="table" aria-label="Comparativo de segurança de custódia">
+              <div className="landing-compare-row landing-compare-head" role="row">
+                <div className="landing-compare-cell col-feature" role="columnheader">Critério</div>
+                <div className="landing-compare-cell col-risk" role="columnheader">Guardando em Domicílio</div>
+                <div className="landing-compare-cell col-safe" role="columnheader">Custódia no Real Olímpico</div>
+              </div>
+              <div className="landing-compare-row" role="row">
+                <div className="landing-compare-cell col-feature" role="cell">Segurança física</div>
+                <div className="landing-compare-cell col-risk" role="cell">Vulnerável a furtos, assaltos e sinistros</div>
+                <div className="landing-compare-cell col-safe" role="cell">Cofre de segurança de padrão bancário (Sicoob)</div>
+              </div>
+              <div className="landing-compare-row" role="row">
+                <div className="landing-compare-cell col-feature" role="cell">Preservação física</div>
+                <div className="landing-compare-cell col-risk" role="cell">Oxidação, maresia e desgaste por manuseio</div>
+                <div className="landing-compare-cell col-safe" role="cell">Ambiente controlado e lacre pericial inviolável</div>
+              </div>
+              <div className="landing-compare-row" role="row">
+                <div className="landing-compare-cell col-feature" role="cell">Liquidez e venda</div>
+                <div className="landing-compare-cell col-risk" role="cell">Negociação demorada e risco de frete interestadual</div>
+                <div className="landing-compare-cell col-safe" role="cell">Marketplace direto sem frete a cada transação</div>
+              </div>
+              <div className="landing-compare-row" role="row">
+                <div className="landing-compare-cell col-feature" role="cell">Comprovação</div>
+                <div className="landing-compare-cell col-risk" role="cell">Sem registro formal auditável</div>
+                <div className="landing-compare-cell col-safe" role="cell">Recibo digital lastreado com conferência pericial</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SIMULADOR FACTUAL DE CUSTÓDIA E NEGOCIAÇÃO (Benchmark Uniswap / Robinhood / Revolut) */}
+      <FeeSimulator />
+
+      {/* FAQ: Dúvidas frequentes */}
+      <section className="landing-faq-section reveal" aria-labelledby="faq-title">
+        <div className="landing-section-heading">
+          <p className="landing-eyebrow">Esclarecimentos</p>
+          <h2 id="faq-title">Perguntas Frequentes</h2>
+        </div>
+        <div className="landing-faq-list">
+          {faqs.map((faq, index) => (
+            <details className="landing-faq-item" key={index}>
+              <summary className="landing-faq-question">
+                <span>{faq.question}</span>
+                <ChevronDownIcon className="landing-faq-chevron" />
+              </summary>
+              <div className="landing-faq-answer-wrap">
+                <div className="landing-faq-answer">
+                  <p>{faq.answer}</p>
+                </div>
+              </div>
+            </details>
+          ))}
         </div>
       </section>
 
@@ -277,8 +431,8 @@ export function LandingPage(): ReactNode {
             recibo do item sem precisar resgatá-lo fisicamente.&rdquo;
           </blockquote>
           <div className="landing-positioning-actions">
-            <Link className="landing-link-academy" href="/academy">
-              Entenda em detalhes no Real Olímpico Academy &rarr;
+            <Link className="landing-link-academy" href="/termos">
+              Consulte as diretrizes e termos de custódia &rarr;
             </Link>
           </div>
         </div>
@@ -294,7 +448,6 @@ export function LandingPage(): ReactNode {
           </p>
         </div>
         <nav aria-label="Informações institucionais e legais">
-          <Link href="/academy">Academy</Link>
           <Link href="/termos">Termos de Uso</Link>
           <Link href="/privacidade">Política de Privacidade</Link>
         </nav>

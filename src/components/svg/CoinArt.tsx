@@ -206,38 +206,103 @@ interface CoinDiscProps {
 function CoinDisc({ motivo, ano, className, rotulo }: CoinDiscProps): ReactElement {
   return (
     <svg className={className} viewBox="0 0 100 100" role="img" aria-label={rotulo}>
-      <circle cx={50} cy={50} r={47} fill={OURO} />
-      {/* Serrilha: o tracejado é o que dá leitura de moeda cunhada. */}
+      <defs>
+        {/* Anel externo bimetálico em ouro polido com gradiente de relevo */}
+        <linearGradient id="coinGoldRing" x1="15%" y1="10%" x2="85%" y2="90%">
+          <stop offset="0%" stopColor="#fcedbe" />
+          <stop offset="25%" stopColor="#c9a24b" />
+          <stop offset="50%" stopColor="#e3b95c" />
+          <stop offset="75%" stopColor="#8f691d" />
+          <stop offset="100%" stopColor="#c9a24b" />
+        </linearGradient>
+
+        {/* Núcleo em aço inoxidável / cuproníquel acetinado */}
+        <radialGradient id="coinSilverCore" cx="45%" cy="40%" r="58%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="40%" stopColor="#edf2f7" />
+          <stop offset="75%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#94a3b8" />
+        </radialGradient>
+
+        {/* Chanfro da borda externa */}
+        <linearGradient id="coinBevelOuter" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fff3cc" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#5d4310" stopOpacity="0.7" />
+        </linearGradient>
+
+        {/* Junção bimetálica com ranhura de profundidade */}
+        <linearGradient id="coinInnerBevel" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#fff3cc" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#4f380c" stopOpacity="0.75" />
+        </linearGradient>
+
+        {/* Reflexo luminoso transversal */}
+        <linearGradient id="coinGleam" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.32" />
+          <stop offset="35%" stopColor="#ffffff" stopOpacity="0.08" />
+          <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Anel dourado externo chanfrado */}
+      <circle cx={50} cy={50} r={47.5} fill="url(#coinGoldRing)" stroke="url(#coinBevelOuter)" strokeWidth={1} />
+
+      {/* Serrilha perimetral numismática em baixo-relevo */}
       <circle
         cx={50}
         cy={50}
-        r={47}
+        r={45.5}
         fill="none"
         stroke={SERRILHA}
-        strokeWidth={1.5}
-        strokeDasharray="2.5 2.5"
+        strokeWidth={1.3}
+        strokeDasharray="2 1.8"
+        opacity="0.85"
       />
-      <circle cx={50} cy={50} r={33} fill={NUCLEO} />
-      {motivo}
+
+      {/* Ranhura de transição da cunhagem bimetálica */}
+      <circle cx={50} cy={50} r={33.6} fill="none" stroke="url(#coinInnerBevel)" strokeWidth={0.8} />
+
+      {/* Núcleo prateado acetinado */}
+      <circle cx={50} cy={50} r={32.8} fill="url(#coinSilverCore)" />
+
+      {/* Brilho translúcido em arco sobre o metal */}
+      <path
+        d="M 23 35 A 32.8 32.8 0 0 1 77 35 Q 50 48 23 35 Z"
+        fill="url(#coinGleam)"
+        pointerEvents="none"
+      />
+
+      {/* Motivo central gravado */}
+      <g style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.22))' }}>
+        {motivo}
+      </g>
+
+      {/* Ano cunhado na parte inferior */}
       <text
         x={50}
-        y={88}
+        y={88.5}
         textAnchor="middle"
         fontSize={8.5}
         fill={LEGENDA}
-        fontFamily="serif"
+        fontFamily="var(--ff-serif, 'Georgia', serif)"
         fontWeight="bold"
+        letterSpacing="0.06em"
+        style={{ filter: 'drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.35))' }}
       >
         {ano}
       </text>
+
+      {/* Inscrição BRASIL no topo */}
       <text
         x={50}
         y={18}
         textAnchor="middle"
         fontSize={7.5}
         fill={LEGENDA}
-        fontFamily="serif"
-        letterSpacing={1}
+        fontFamily="var(--ff-serif, 'Georgia', serif)"
+        fontWeight="bold"
+        letterSpacing="0.14em"
+        style={{ filter: 'drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.35))' }}
       >
         BRASIL
       </text>

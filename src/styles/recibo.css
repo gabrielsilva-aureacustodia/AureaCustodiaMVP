@@ -7,12 +7,12 @@
    ========================================================================= */
 
 .recibo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
-.recibo-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card);box-shadow:var(--shadow);text-align:center;transition:transform .15s}
-.recibo-card:hover{transform:translateY(-2px)}
+.recibo-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card);box-shadow:var(--shadow);text-align:center;transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1),box-shadow .2s cubic-bezier(0.16, 1, 0.3, 1),border-color .2s ease}
+.recibo-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md),0 0 16px rgba(201,162,75,.08);border-color:var(--gold-tint-30,rgba(201,162,75,.35))}
 .recibo-card .recibo-art{width:96px;height:96px;margin:0 auto 10px}
 .recibo-card .recibo-code{font-weight:700;color:var(--text-strong);font-size:14.5px}
 .recibo-card .recibo-type{font-size:12px;color:var(--text-muted);margin-top:2px;min-height:15px}
-.recibo-card .recibo-val{font-size:13.5px;color:var(--gold);font-weight:700;margin:8px 0 4px;font-family:var(--ff-display)}
+.recibo-card .recibo-val{font-size:13.5px;color:var(--gold);font-weight:700;margin:8px 0 4px;font-family:var(--ff-display);font-variant-numeric:tabular-nums}
 
 /* ---- 3.1 CERTIFICADO ------------------------------------------------------ */
 .cert-wrap{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
@@ -33,7 +33,7 @@
 .cert-fields{text-align:left;max-width:400px;margin:0 auto}
 .cert-fields .cf-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--cert-divider);font-size:13.5px}
 .cert-fields .cf-row .k{color:var(--cert-ink-label)}
-.cert-fields .cf-row .v{font-weight:700;color:var(--navy-deep);text-align:right}
+.cert-fields .cf-row .v{font-weight:700;color:var(--navy-deep);text-align:right;font-variant-numeric:tabular-nums}
 .cert-seal{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:26px}
 .cert-seal .seal-badge{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--cert-ink-gold);font-size:13px}
 .cert-seal svg.seal-ico{width:34px;height:34px;stroke:var(--cert-ink-gold);fill:none;stroke-width:1.4}
@@ -92,15 +92,18 @@
   padding: 12px 14px;
   margin-bottom: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color .2s ease, background .2s ease, transform .2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s ease;
   background: var(--card);
 }
 .modalidade-card:hover {
   border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
 }
 .modalidade-card.selecionada {
   border-color: var(--gold);
   background: var(--gold-wash);
+  box-shadow: 0 0 0 1px var(--gold);
 }
 .modalidade-header {
   display: flex;
@@ -116,6 +119,7 @@
   font-weight: 700;
   font-size: 14px;
   font-family: var(--ff-display);
+  font-variant-numeric: tabular-nums;
 }
 .modalidade-desc {
   font-size: 12px;

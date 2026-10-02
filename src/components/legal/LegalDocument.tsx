@@ -28,25 +28,26 @@ export function LegalDocument({
 }: LegalDocumentProps): ReactNode {
   return (
     <main className="legal-page">
-      <header className="legal-header">
-        <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
-          <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={58} height={58} priority />
-          <span>
-            <strong>Real Olímpico</strong>
-            <small>Custódia de moedas comemorativas</small>
-          </span>
-        </Link>
-        <nav aria-label="Documentos e acesso">
-          <Link href="/academy">Academy</Link>
-          <Link href="/termos">Termos</Link>
-          <Link href="/privacidade">Privacidade</Link>
-          <Link href="/taxas">Taxas</Link>
-          <Link href="/suporte">SAC</Link>
-          <Link className="btn btn-outline" href="/entrar">
-            Entrar
+      <div className="landing-header-wrap">
+        <header className="legal-header">
+          <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
+            <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={54} height={54} priority />
+            <span>
+              <strong>Real Olímpico</strong>
+              <small>Custódia de moedas comemorativas</small>
+            </span>
           </Link>
-        </nav>
-      </header>
+          <nav aria-label="Documentos e acesso">
+            <Link href="/termos">Termos</Link>
+            <Link href="/privacidade">Privacidade</Link>
+            <Link href="/taxas">Taxas</Link>
+            <Link href="/suporte">SAC</Link>
+            <Link className="btn btn-outline" href="/entrar">
+              Entrar
+            </Link>
+          </nav>
+        </header>
+      </div>
 
       <article className="legal-document">
         <p className="landing-eyebrow">{eyebrow}</p>

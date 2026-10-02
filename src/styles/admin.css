@@ -28,17 +28,18 @@
 .adm-subtitulo{font-size:14px;color:var(--text-strong);font-weight:700;margin:16px 0 8px}
 
 /* Atalho do painel inicial: um cartão inteiro clicável, com ícone e descrição. */
-.adm-atalho{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-height:44px;transition:background .18s,border-color .18s}
-.adm-atalho:hover{background:var(--card-hover);border-color:var(--line)}
+.adm-atalho{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-height:44px;transition:background .18s ease,border-color .18s ease,transform .2s cubic-bezier(0.16, 1, 0.3, 1),box-shadow .2s ease}
+.adm-atalho:hover{background:var(--card-hover);border-color:var(--line);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
 .adm-atalho-titulo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-strong);font-size:15px}
 .adm-atalho-titulo svg{width:19px;height:19px;stroke:var(--gold);fill:none;stroke-width:1.6;flex-shrink:0}
 .adm-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px;margin-bottom:18px}
 .adm-grade-larga{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px;margin-bottom:18px}
 .adm-grade-larga > *{min-width:0}
 
-.adm-cartao{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0}
+.adm-cartao{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0;transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1),border-color .2s ease,box-shadow .2s ease}
+.adm-cartao:hover{transform:translateY(-1px);border-color:var(--line);box-shadow:var(--shadow-sm)}
 .adm-cartao-rotulo{font-size:12.5px;color:var(--text-muted);font-weight:600}
-.adm-cartao-valor{font-size:21px;color:var(--gold);font-weight:700;font-family:var(--ff-display);overflow-wrap:anywhere;margin-top:2px}
+.adm-cartao-valor{font-size:21px;color:var(--gold);font-weight:700;font-family:var(--ff-display);overflow-wrap:anywhere;margin-top:2px;font-variant-numeric:tabular-nums}
 .adm-cartao-detalhe{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.4}
 .adm-tom-alerta{border-color:var(--red-line-soft)}
 .adm-tom-alerta .adm-cartao-valor{color:var(--red)}
@@ -146,9 +147,10 @@ body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
 .adm-pares{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px 18px;margin:0 0 12px}
 .adm-pares > div{min-width:0}
 .adm-pares dt{font-size:12px;color:var(--text-muted);font-weight:600}
-.adm-pares dd{margin:2px 0 0;font-size:14px;color:var(--text-strong);overflow-wrap:anywhere}
-.adm-detalhes{border:1px solid var(--line-soft);border-radius:10px;margin-bottom:10px}
-.adm-detalhes > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 14px;font-weight:700;color:var(--text-strong);font-size:14px}
+.adm-pares dd{margin:2px 0 0;font-size:14px;color:var(--text-strong);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.adm-detalhes{border:1px solid var(--line-soft);border-radius:10px;margin-bottom:10px;transition:border-color .18s ease}
+.adm-detalhes > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 14px;font-weight:700;color:var(--text-strong);font-size:14px;transition:background .18s ease}
+.adm-detalhes > summary:hover{background:var(--card-hover)}
 .adm-detalhes > .adm-detalhes-corpo{padding:0 14px 14px}
 .adm-topo-ficha{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:14px}
 .adm-topo-ficha h2{font-size:22px;color:var(--text-strong);margin:0}
