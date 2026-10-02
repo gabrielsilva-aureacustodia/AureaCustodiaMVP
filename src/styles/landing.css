@@ -337,6 +337,141 @@ html, body{
 }
 
 /* ============================================================================
+   MARKET SNAPSHOT: Moedas de Destaque no Acervo (Benchmark Numismática & Trading)
+   ========================================================================= */
+.landing-market{
+  width:min(1180px,calc(100% - 32px));
+  margin:0 auto 84px;
+}
+.landing-market-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));
+  gap:24px;
+}
+.landing-market-card{
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  border-radius:14px;
+  padding:26px;
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:18px;
+  transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
+}
+.landing-market-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--line);
+  box-shadow:0 12px 28px rgba(0,0,0,.35),0 0 16px rgba(201,162,75,.08);
+}
+.landing-market-card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.landing-market-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#4ade80;
+  background:rgba(34,197,94,.1);
+  border:1px solid rgba(34,197,94,.25);
+  border-radius:20px;
+  padding:3px 10px;
+}
+.landing-market-code{
+  font-size:11px;
+  color:var(--text-muted);
+  letter-spacing:.05em;
+  font-weight:500;
+}
+.landing-market-card-body h3{
+  margin:0 0 6px;
+  font-family:var(--ff-display);
+  font-size:22px;
+  color:var(--text-strong);
+}
+.landing-market-spec{
+  color:var(--text-muted);
+  font-size:13.5px;
+  line-height:1.5;
+  margin:0 0 18px;
+}
+.landing-market-metric{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  padding:14px 18px;
+  background:var(--gold-wash);
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+}
+.landing-market-label{
+  display:block;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--gold);
+  font-weight:600;
+  margin-bottom:4px;
+}
+.landing-market-price{
+  font-family:var(--ff-display);
+  font-size:26px;
+  font-weight:700;
+  color:var(--text-strong);
+  font-variant-numeric:tabular-nums;
+  line-height:1.1;
+}
+.landing-market-liquidity{
+  text-align:right;
+}
+.landing-market-tag{
+  display:inline-block;
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-strong);
+  background:rgba(8,18,38,.65);
+  border:1px solid var(--line-soft);
+  padding:3px 8px;
+  border-radius:6px;
+}
+.landing-market-card-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-top:14px;
+  border-top:1px solid var(--line-soft);
+}
+.landing-market-vault-info{
+  font-size:12px;
+  color:var(--text-muted);
+}
+.landing-market-cta{
+  display:inline-flex;
+  align-items:center;
+  color:var(--gold);
+  font-size:14px;
+  font-weight:600;
+  text-decoration:none;
+  min-height:44px;
+  padding:0 4px;
+  transition:color .15s ease;
+}
+.landing-market-cta:hover{
+  color:var(--gold-bright);
+  text-decoration:underline;
+}
+
+/* ============================================================================
    BLOCO 3: PROCESSO — Sua coleção protegida, registrada e pronta para negociar
    ========================================================================= */
 .landing-process{
@@ -550,6 +685,126 @@ html, body{
   line-height:1.45;
 }
 
+/* Comparativo factual: Domicílio vs Real Olímpico */
+.landing-compare-wrap{
+  margin-top:36px;
+  border-top:1px solid var(--line-soft);
+  padding-top:28px;
+}
+.landing-compare-title{
+  font-family:var(--ff-display);
+  font-size:clamp(18px,2.5vw,24px);
+  color:var(--text-strong);
+  margin:0 0 18px;
+  font-weight:600;
+}
+.landing-compare-table{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  background:rgba(8,18,38,.65);
+  font-size:14px;
+}
+.landing-compare-row{
+  display:grid;
+  grid-template-columns:1.1fr 1.3fr 1.4fr;
+  align-items:center;
+  padding:14px 18px;
+  border-bottom:1px solid var(--line-soft);
+  gap:12px;
+}
+.landing-compare-row:last-child{
+  border-bottom:none;
+}
+.landing-compare-head{
+  background:var(--gold-wash);
+  font-weight:700;
+  font-size:11.5px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--gold);
+}
+.landing-compare-cell.col-feature{
+  color:var(--text-strong);
+  font-weight:600;
+}
+.landing-compare-cell.col-risk{
+  color:#f87171;
+}
+.landing-compare-cell.col-safe{
+  color:#4ade80;
+  font-weight:600;
+}
+
+/* ============================================================================
+   FAQ INTERATIVO (CSS PURO COM <details> NATIVO)
+   ========================================================================= */
+.landing-faq-section{
+  width:min(1180px,calc(100% - 32px));
+  margin:0 auto 84px;
+}
+.landing-faq-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-width:860px;
+}
+.landing-faq-item{
+  border:1px solid var(--line-soft);
+  border-radius:12px;
+  background:var(--card);
+  transition:border-color .2s ease,box-shadow .2s ease;
+  overflow:hidden;
+}
+.landing-faq-item[open]{
+  border-color:var(--line);
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.landing-faq-question{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 22px;
+  font-size:16px;
+  font-weight:600;
+  color:var(--text-strong);
+  cursor:pointer;
+  list-style:none;
+  user-select:none;
+  min-height:48px;
+}
+.landing-faq-question::-webkit-details-marker{
+  display:none;
+}
+.landing-faq-chevron{
+  color:var(--gold);
+  transition:transform .3s ease;
+  flex-shrink:0;
+}
+.landing-faq-item[open] .landing-faq-chevron{
+  transform:rotate(180deg);
+}
+.landing-faq-answer-wrap{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows .3s ease;
+}
+.landing-faq-item[open] .landing-faq-answer-wrap{
+  grid-template-rows:1fr;
+}
+.landing-faq-answer{
+  overflow:hidden;
+}
+.landing-faq-answer p{
+  padding:0 22px 20px;
+  margin:0;
+  color:var(--text-muted);
+  font-size:15px;
+  line-height:1.65;
+}
+
 /* ============================================================================
    POSICIONAMENTO INSTITUCIONAL & RODAPÉ
    ========================================================================= */
@@ -680,12 +935,52 @@ html, body{
   .landing-header,
   .landing-hero,
   .landing-reserve,
+  .landing-market,
   .landing-process,
   .landing-origin,
   .landing-assurance,
+  .landing-faq-section,
   .landing-positioning,
   .landing-footer{
     width:calc(100% - 28px);
+  }
+  .landing-market-grid{
+    grid-template-columns:1fr;
+  }
+  .landing-market-card{
+    padding:20px;
+  }
+  .landing-compare-row{
+    grid-template-columns:1fr;
+    gap:6px;
+    padding:12px;
+  }
+  .landing-compare-head{
+    display:none;
+  }
+  .landing-compare-cell.col-feature{
+    font-size:15px;
+    border-bottom:1px solid var(--line-soft);
+    padding-bottom:4px;
+    color:var(--text-strong);
+  }
+  .landing-compare-cell.col-risk::before{
+    content:'Em Domicílio: ';
+    font-weight:600;
+    color:var(--text-muted);
+  }
+  .landing-compare-cell.col-safe::before{
+    content:'No Real Olímpico: ';
+    font-weight:600;
+    color:var(--gold);
+  }
+  .landing-faq-question{
+    font-size:14.5px;
+    padding:16px 18px;
+  }
+  .landing-faq-answer p{
+    padding:0 18px 16px;
+    font-size:14px;
   }
   .landing-hero-coins{
     max-width:280px;
