@@ -84,5 +84,5 @@ export const config = {
    * arquivos de raiz que buscadores pedem. Tudo o mais passa por aqui —
    * inclusive rota que ainda não existe, que é exatamente o ponto.
    */
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|robots.txt|sitemap.xml).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|moedas/|robots.txt|sitemap.xml).*)'],
 }
