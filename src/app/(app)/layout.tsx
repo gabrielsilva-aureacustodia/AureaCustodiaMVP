@@ -32,6 +32,7 @@ import type { ReactNode } from 'react'
 
 import { AppProvider } from '@/components/providers/AppProvider'
 import { RegistroDeUso } from '@/components/providers/RegistroDeUso'
+import { TutorialProvider } from '@/components/tutorial/TutorialProvider'
 import { Sidebar, SidebarProvider } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { ModalHost } from '@/components/ui/Modal'
@@ -75,6 +76,8 @@ export default async function AppLayout({
     // menu. O painel e as rotas de API conferem de novo — o menu é conveniência,
     // não barreira.
     <AppProvider initialState={state} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
+      {/* Tutorial guiado: tour da primeira visita, dicas por página e o exemplo de custódia do tour. */}
+      <TutorialProvider>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa. */}
         <div className="app active">
@@ -89,6 +92,7 @@ export default async function AppLayout({
             run() — ver a nota no topo de components/ui/Modal.tsx. */}
         <ModalHost />
       </SidebarProvider>
+      </TutorialProvider>
       {/* Registro de uso da plataforma (frente C): anota páginas abertas e manda em
           lote. Não desenha nada e nunca interrompe a navegação. */}
       <RegistroDeUso />

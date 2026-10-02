@@ -28,7 +28,9 @@ import type { CSSProperties, ReactNode } from 'react'
 import { resumoDaCustodia } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
+import { resumoComExemplo } from '@/domain/tutorial'
 import { useApp } from '@/components/providers/AppProvider'
+import { useTutorial } from '@/components/tutorial/TutorialProvider'
 
 /** O primeiro dia da competência seguinte — quando o ciclo mensal passa de novo. */
 function inicioDaProximaCobranca(r: { proximaCompetencia: string }): number {
@@ -38,7 +40,10 @@ function inicioDaProximaCobranca(r: { proximaCompetencia: string }): number {
 
 export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactNode {
   const { state, session, taxas } = useApp()
-  const r = resumoDaCustodia(state, session, taxas.custodiaMensalPorMoeda)
+  const { exemplo } = useTutorial()
+  const real = resumoDaCustodia(state, session, taxas.custodiaMensalPorMoeda)
+  // Exemplo do tour guiado: soma uma fatura de mentira só para o desenho (ver TutorialProvider).
+  const r = exemplo ? resumoComExemplo(real, exemplo) : real
 
   // Sem moeda guardada e sem fatura, não há custódia de que falar. Bloco que
   // aparece sempre vira paisagem, e quando tiver algo de verdade ninguém lê.
@@ -59,6 +64,7 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
             <path d="M9 12l2 2 4-4" />
           </svg>
           Minha custódia
+          {exemplo ? <small style={{ fontSize: 10.5, color: 'var(--gold)' }}>EXEMPLO DO TUTORIAL</small> : null}
         </span>
         <span
           style={{

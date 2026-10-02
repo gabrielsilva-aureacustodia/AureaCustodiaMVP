@@ -25,6 +25,7 @@ import type { ReactNode } from 'react'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { useTutorial } from '@/components/tutorial/TutorialProvider'
 
 /** Faturas da conta que ainda não foram pagas nem canceladas. */
 function faturasEmAberto(faturas: readonly FaturaCustodia[], email: string): FaturaCustodia[] {
@@ -33,8 +34,11 @@ function faturasEmAberto(faturas: readonly FaturaCustodia[], email: string): Fat
 
 export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }): ReactNode {
   const { state, session } = useApp()
+  // Fatura de exemplo do tour guiado (etapa de custódia): só desenho, nunca estado — ver TutorialProvider.
+  const { exemplo } = useTutorial()
 
   const abertas = faturasEmAberto(state.faturasCustodia ?? [], session)
+  if (exemplo) abertas.push(exemplo)
   if (abertas.length === 0) return null
 
   const total = abertas.reduce((soma, f) => soma + f.valorCents, 0)
@@ -51,6 +55,7 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
       <div>
         <b>
           {vencida ? 'Custódia vencida' : 'Custódia a pagar'} — {brl(total)}
+          {exemplo ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--gold)' }}>EXEMPLO DO TUTORIAL</span> : null}
         </b>
         <div style={{ marginTop: 4 }}>
           {moedas} moeda(s) sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}

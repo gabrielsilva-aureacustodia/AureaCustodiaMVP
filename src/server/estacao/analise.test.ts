@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mutateStateMock, getStateMock } = vi.hoisted(() => ({
   mutateStateMock: vi.fn(),
@@ -36,6 +36,8 @@ function envio(parcial: Partial<Envio> = {}): Envio {
     ...parcial,
   }
 }
+
+afterEach(() => vi.useRealTimers())
 
 beforeEach(() => {
   state = seedState()
@@ -284,6 +286,9 @@ describe('fecharAnalise', () => {
   })
 
   it('B2.5: 3 moedas contratadas e pagas no plano mensal, 1 recusada: plano fica com 2 moedas e R$ 2,00 voltam ao saldo', async () => {
+    // O plano do teste cobre a competência 2026-09; o estorno proporcional depende do mês corrente.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.UTC(2026, 8, 20, 15))
     const saldoAntes = state.users[CLIENTE].balance
     state.envios = [envio({ quantidade: 3 })]
     state.planosCustodia = [
