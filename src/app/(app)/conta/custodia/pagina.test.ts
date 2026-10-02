@@ -12,7 +12,7 @@
 
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import { brl } from '@/domain/money'
 import type { AppState, Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
@@ -122,6 +122,9 @@ describe('Minha custódia', () => {
   })
 
   it('cobertura e prazo de pagamento aparecem com nomes diferentes (27/09/2026)', () => {
+    // A cobertura mostrada depende da competência atual: fixa o dia do cenário.
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.UTC(2026, 8, 27, 15) })
+    onTestFinished(() => void vi.useRealTimers())
     // A fatura de 25/09 com 10 dias de tolerância vence para pagamento em
     // 05/10 e cobre a guarda só até 30/09. As duas datas na mesma coluna
     // faziam a custódia parecer expirar dez dias depois de paga.

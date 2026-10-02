@@ -26,6 +26,7 @@
 
 import type { ReactNode } from 'react'
 
+import { BlocosDeMoedas } from '@/components/home/BlocosDeMoedas'
 import { HomeBlocks } from '@/components/home/HomeBlocks'
 import { HomeStats } from '@/components/home/HomeStats'
 
@@ -33,6 +34,8 @@ export default function InicioPage(): ReactNode {
   return (
     <>
       <HomeStats />
+
+      <BlocosDeMoedas />
 
       {/* Filete com a estrela: separa os indicadores dos blocos de ação. As
           duas hastes são ::before/::after de .title-rule — só o ★ é conteúdo. */}
