@@ -472,6 +472,427 @@ html, body{
 }
 
 /* ============================================================================
+   EXAME NUMISMÁTICO DE ESPÉCIME (Benchmark PCGS / Heritage)
+   ========================================================================= */
+.landing-specimen-section{
+  width:min(1180px,calc(100% - 32px));
+  margin:0 auto 84px;
+}
+.landing-specimen-card{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:32px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:clamp(24px,4vw,44px);
+  box-shadow:var(--shadow);
+  align-items:center;
+}
+@media (min-width:880px){
+  .landing-specimen-card{
+    grid-template-columns:1fr 1.25fr;
+    gap:48px;
+  }
+}
+.landing-specimen-visual{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:20px;
+}
+.landing-specimen-toggles{
+  display:flex;
+  gap:8px;
+  background:var(--gold-wash);
+  padding:4px;
+  border-radius:10px;
+  border:1px solid var(--line-soft);
+  width:100%;
+  max-width:340px;
+}
+.landing-specimen-btn{
+  flex:1;
+  min-height:40px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text-muted);
+  background:transparent;
+  border:none;
+  border-radius:7px;
+  cursor:pointer;
+  transition:all .18s ease;
+  white-space:nowrap;
+}
+.landing-specimen-btn.active{
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+  color:var(--on-gold);
+  box-shadow:0 2px 8px rgba(201,162,75,.3);
+}
+.landing-specimen-coin-frame{
+  position:relative;
+  width:280px;
+  height:280px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.landing-specimen-halo{
+  position:absolute;
+  inset:10px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(201,162,75,.2) 0%,rgba(201,162,75,.04) 60%,transparent 75%);
+  filter:blur(16px);
+  pointer-events:none;
+}
+.landing-specimen-coin-stage{
+  position:relative;
+  z-index:1;
+  transition:transform .4s cubic-bezier(.16,1,.3,1),filter .4s ease;
+}
+.landing-specimen-coin-stage.face-anverso{
+  transform:scale(0.98);
+  filter:brightness(1.05) contrast(1.02);
+}
+.landing-specimen-img{
+  width:230px;
+  height:230px;
+  object-fit:contain;
+  filter:drop-shadow(0 14px 28px rgba(0,0,0,.6)) drop-shadow(0 2px 8px rgba(201,162,75,.3));
+}
+.landing-specimen-badge{
+  position:absolute;
+  bottom:0;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--gold);
+  background:rgba(8,18,38,.85);
+  border:1px solid var(--line-soft);
+  border-radius:20px;
+  padding:3px 12px;
+  backdrop-filter:blur(6px);
+}
+.landing-specimen-badge .specimen-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#4ade80;
+}
+
+.landing-specimen-sheet{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+.landing-specimen-tag{
+  display:inline-block;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:var(--gold);
+  margin-bottom:6px;
+}
+.landing-specimen-header h3{
+  margin:0 0 6px;
+  font-family:var(--ff-display);
+  font-size:clamp(20px,2.8vw,28px);
+  color:var(--text-strong);
+  line-height:1.2;
+}
+.landing-specimen-sub{
+  font-size:13.5px;
+  color:var(--text-muted);
+  margin:0;
+  line-height:1.5;
+}
+.landing-specimen-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));
+  gap:12px;
+}
+.landing-specimen-item{
+  padding:10px 14px;
+  background:var(--gold-wash);
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.landing-specimen-item.spec-wide{
+  grid-column:1 / -1;
+}
+.spec-label{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--text-muted);
+  font-weight:600;
+}
+.spec-val{
+  font-size:14px;
+  font-weight:700;
+  color:var(--text-strong);
+  font-variant-numeric:tabular-nums;
+}
+.spec-val.highlight-gold{
+  color:var(--gold);
+}
+.landing-specimen-vault-status{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:14px 16px;
+  background:rgba(34,197,94,.08);
+  border:1px solid rgba(34,197,94,.25);
+  border-radius:10px;
+}
+.vault-status-icon{
+  font-size:18px;
+  line-height:1;
+}
+.vault-status-text strong{
+  display:block;
+  font-size:13.5px;
+  color:#4ade80;
+  margin-bottom:2px;
+}
+.vault-status-text span{
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.4;
+}
+
+/* ============================================================================
+   SIMULADOR DE CUSTÓDIA E NEGOCIAÇÃO (Benchmark Uniswap / Robinhood / Revolut)
+   ========================================================================= */
+.landing-simulator-section{
+  width:min(1180px,calc(100% - 32px));
+  margin:0 auto 84px;
+}
+.landing-sim-card{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:28px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:clamp(24px,4vw,40px);
+  box-shadow:var(--shadow);
+}
+@media (min-width:880px){
+  .landing-sim-card{
+    grid-template-columns:1.05fr .95fr;
+    gap:40px;
+  }
+}
+.landing-sim-controls{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+.landing-sim-group{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.landing-sim-label{
+  font-size:13.5px;
+  font-weight:700;
+  color:var(--text-strong);
+}
+.landing-sim-input-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.landing-sim-prefix{
+  position:absolute;
+  left:14px;
+  font-weight:700;
+  color:var(--gold);
+  font-size:16px;
+  pointer-events:none;
+}
+.landing-sim-input{
+  width:100%;
+  min-height:48px;
+  padding:0 14px 0 42px;
+  font-size:18px;
+  font-weight:700;
+  color:var(--text-strong);
+  background:var(--bg-panel);
+  border:1.5px solid var(--line-soft);
+  border-radius:10px;
+  font-variant-numeric:tabular-nums;
+  outline:none;
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.landing-sim-input:focus-visible{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(201,162,75,.2);
+}
+.landing-sim-presets{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.landing-sim-preset-btn{
+  font-size:12px;
+  font-weight:600;
+  color:var(--text-muted);
+  background:var(--gold-wash);
+  border:1px solid var(--line-soft);
+  border-radius:6px;
+  padding:6px 10px;
+  cursor:pointer;
+  transition:all .18s ease;
+  min-height:36px;
+}
+.landing-sim-preset-btn:hover{
+  border-color:var(--gold);
+  color:var(--text-strong);
+}
+.landing-sim-preset-btn.active{
+  border-color:var(--gold);
+  color:var(--gold);
+  background:rgba(201,162,75,.16);
+}
+.landing-sim-tabs{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+@media (min-width:540px){
+  .landing-sim-tabs{
+    flex-direction:row;
+  }
+}
+.landing-sim-tab{
+  flex:1;
+  min-height:44px;
+  padding:8px 12px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text-muted);
+  background:var(--bg-panel);
+  border:1px solid var(--line-soft);
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .18s ease;
+  text-align:center;
+}
+.landing-sim-tab:hover{
+  border-color:var(--gold);
+  color:var(--text-strong);
+}
+.landing-sim-tab.active{
+  border-color:var(--gold);
+  background:linear-gradient(180deg,rgba(201,162,75,.16),rgba(201,162,75,.08));
+  color:var(--gold);
+  font-weight:700;
+}
+
+.landing-sim-results{
+  background:var(--bg-panel);
+  border:1px solid var(--line-soft);
+  border-radius:14px;
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:20px;
+}
+.landing-sim-results-title{
+  margin:0;
+  font-family:var(--ff-display);
+  font-size:18px;
+  color:var(--text-strong);
+  padding-bottom:12px;
+  border-bottom:1px solid var(--line-soft);
+}
+.landing-sim-rows{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.landing-sim-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:8px 0;
+  font-size:13.5px;
+}
+.landing-sim-row.highlight-green{
+  padding:12px 14px;
+  background:rgba(34,197,94,.08);
+  border:1px solid rgba(34,197,94,.25);
+  border-radius:10px;
+}
+.landing-sim-row.highlight-green .landing-sim-k{
+  color:var(--text-strong);
+  font-weight:700;
+}
+.landing-sim-row.highlight-green .landing-sim-v{
+  color:#4ade80;
+  font-size:18px;
+}
+.landing-sim-row.highlight-gold{
+  padding:12px 14px;
+  background:var(--gold-wash);
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+}
+.landing-sim-row.highlight-gold .landing-sim-k{
+  color:var(--text-strong);
+  font-weight:700;
+}
+.landing-sim-row.highlight-gold .landing-sim-v{
+  color:var(--gold);
+  font-size:18px;
+}
+.landing-sim-k{
+  color:var(--text-muted);
+}
+.landing-sim-sub{
+  display:block;
+  font-size:11.5px;
+  color:var(--text-muted);
+  margin-top:2px;
+}
+.landing-sim-v{
+  font-family:var(--ff-display);
+  font-size:16px;
+  font-weight:700;
+  color:var(--text-strong);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  text-align:right;
+}
+.landing-sim-footnote{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding-top:14px;
+  border-top:1px solid var(--line-soft);
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.45;
+}
+.landing-sim-seal-icon{
+  color:var(--gold);
+  font-weight:800;
+  font-size:14px;
+  line-height:1;
+}
+
+/* ============================================================================
    BLOCO 3: PROCESSO — Sua coleção protegida, registrada e pronta para negociar
    ========================================================================= */
 .landing-process{

@@ -28,6 +28,8 @@ import {
   ChevronDownIcon,
 } from './LandingIcons'
 import { ScrollRevealInit } from './ScrollRevealInit'
+import { CoinSpecimenViewer } from './CoinSpecimenViewer'
+import { FeeSimulator } from './FeeSimulator'
 
 const etapas = [
   {
@@ -237,6 +239,9 @@ export function LandingPage(): ReactNode {
         </div>
       </section>
 
+      {/* EXAME TÉCNICO DE ESPÉCIME (Benchmark PCGS / Heritage) */}
+      <CoinSpecimenViewer />
+
       {/* BLOCO 3: Sua coleção protegida, registrada e pronta para negociar */}
       <section className="landing-process reveal" aria-labelledby="process-title">
         <div className="landing-section-heading">
@@ -384,6 +389,9 @@ export function LandingPage(): ReactNode {
           </div>
         </div>
       </section>
+
+      {/* SIMULADOR FACTUAL DE CUSTÓDIA E NEGOCIAÇÃO (Benchmark Uniswap / Robinhood / Revolut) */}
+      <FeeSimulator />
 
       {/* FAQ: Dúvidas frequentes */}
       <section className="landing-faq-section reveal" aria-labelledby="faq-title">
