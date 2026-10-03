@@ -22,7 +22,7 @@
  * tarifa. Quem olhasse só os planos veria R$ 2,00 tendo 11 moedas guardadas.
  */
 
-import { cicloDaMoeda } from '@/domain/ciclo-custodia'
+import { guardaPagaAteDaMoeda, proximaCobrancaDaMoeda } from '@/domain/cobranca-de-entrada'
 import { competenciaAtual, fimDaCoberturaDaFatura, fimDaCompetencia } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import type {
@@ -123,16 +123,22 @@ export function resumoDaCustodia(
     if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
   }
 
-  const aniversarios = (user?.coins ?? [])
-    .filter((c) => c.recibo?.status !== 'Extinto')
-    .map((c) => cicloDaMoeda(c.entrada, agora).fim)
+  // Por moeda, com a mesma pergunta do cron: o que já foi cobrado (inclusive pela regra antiga, em
+  // 01/10) conta, então a próxima cobrança não é só o aniversário.
+  const moedasVivas = (user?.coins ?? []).filter((c) => c.recibo?.status !== 'Extinto')
+  const proximas = moedasVivas.map((c) => proximaCobrancaDaMoeda(state, c, agora))
+  const coberturas = moedasVivas
+    .map((c) => guardaPagaAteDaMoeda(state, c, agora))
+    .filter((t): t is Timestamp => t !== null)
+  // Com moedas, a cobertura da conta é a MENOR entre as moedas pagas: é quando a primeira lapsa.
+  if (coberturas.length > 0) cobertaAte = Math.min(...coberturas)
 
   return {
     moedasGuardadas,
     porMoedaCents,
     mensalidadeCents: moedasGuardadas * porMoedaCents,
     competencia,
-    proximaCobrancaEm: aniversarios.length > 0 ? Math.min(...aniversarios) : null,
+    proximaCobrancaEm: proximas.length > 0 ? Math.min(...proximas) : null,
     emAberto,
     emAbertoCents: emAberto.reduce((soma, f) => soma + f.valorCents, 0),
     proximoVencimento: emAberto.length > 0 ? emAberto[0]!.dataVencimento : null,

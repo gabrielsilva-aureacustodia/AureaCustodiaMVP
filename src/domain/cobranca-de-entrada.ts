@@ -41,7 +41,7 @@ import { moedasFaturaveis } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import { moedasCobertas, type TabelaDeTaxasPlano } from '@/domain/plano-custodia'
 import { custodiaPagaAteCompetencia } from '@/domain/bloqueio-por-debito'
-import type { AppState, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
+import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
 /**
  * A moeda já tem a guarda deste ciclo resolvida — paga ou cobrada?
@@ -65,6 +65,48 @@ export function custodiaResolvidaNaCompetencia(
       f.status !== 'cancelada' &&
       (f.moedaIds ?? []).includes(coinId),
   )
+}
+
+/**
+ * Quando esta moeda é cobrada de novo — a data que a tela mostra como "próxima
+ * cobrança".
+ *
+ * Responde com a MESMA pergunta do cron (`custodiaResolvidaNaCompetencia`), e
+ * não só pelo aniversário: quem foi cobrado em 01/10 pela regra antiga já tem o
+ * ciclo de outubro resolvido, então a moeda aceita em 21/09 só é cobrada de novo
+ * em 21/11, e não em 21/10. Mostrar 21/10 enquanto o cron cobra 21/11 foi o
+ * defeito que o Gabriel apontou em 03/10/2026.
+ *
+ * Se o ciclo em curso ainda NÃO está resolvido, a cobrança já é devida e a data
+ * devolvida é a do começo dele (hoje ou antes) — o cron emite a fatura.
+ */
+export function proximaCobrancaDaMoeda(state: AppState, coin: Coin, agora: Timestamp = Date.now()): Timestamp {
+  let ciclo = cicloDaMoeda(coin.entrada, agora)
+  // O teto é só uma guarda contra laço infinito: seriam 50 anos de ciclos pagos.
+  for (let i = 0; i < 600; i++) {
+    if (!custodiaResolvidaNaCompetencia(state, coin.id, ciclo.competencia)) return ciclo.inicio
+    ciclo = cicloDaMoeda(coin.entrada, ciclo.fim)
+  }
+  return ciclo.inicio
+}
+
+/**
+ * Até quando a guarda desta moeda está PAGA — o último instante coberto —, ou
+ * `null` se nunca foi paga. Só conta pagamento: fatura em aberto não cobre nada.
+ *
+ * É a competência paga mais adiantada, levada ao fim do ciclo da moeda: paga a
+ * competência 2026-10 de uma moeda aceita em 21/09, a guarda vai até 20/11, que
+ * é quando o ciclo de outubro termina.
+ */
+export function guardaPagaAteDaMoeda(state: AppState, coin: Coin, agora: Timestamp = Date.now()): Timestamp | null {
+  const pagaAte = custodiaPagaAteCompetencia(state, coin.id)
+  if (!pagaAte) return null
+
+  let ciclo = cicloDaMoeda(coin.entrada, agora)
+  for (let i = 0; i < 600 && ciclo.competencia <= pagaAte; i++) {
+    ciclo = cicloDaMoeda(coin.entrada, ciclo.fim)
+  }
+  return ciclo.inicio - 1
 }
 
 /**

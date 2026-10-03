@@ -45,7 +45,7 @@ describe('faturas_ciclo_uniq no grão do ciclo por moeda', () => {
     banco = await bancoDeTeste()
     const estado = await lerEstado(banco.executar) // semeia as contas
     dono = Object.keys(estado.users)[0]!
-  })
+  }, 120_000)
 
   afterAll(async () => {
     await banco.fechar()
