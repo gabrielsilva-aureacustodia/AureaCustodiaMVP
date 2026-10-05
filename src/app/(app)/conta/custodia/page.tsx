@@ -26,7 +26,7 @@ import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
 import { fimDaCoberturaDaFatura } from '@/domain/custody'
-import { resumoDaCustodia, rotuloDaOrigem } from '@/domain/custodia-do-cliente'
+import { resumoDaCustodia, rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { PlanoCustodia } from '@/domain/types'
@@ -183,6 +183,7 @@ function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
 
 export default function MinhaCustodiaPage(): ReactNode {
   const { state, session, taxas } = useApp()
+  const meusCoins = state.users[session]?.coins ?? []
   const r = resumoDaCustodia(state, session, taxas.custodiaMensalPorMoeda)
 
   return (
@@ -322,7 +323,15 @@ export default function MinhaCustodiaPage(): ReactNode {
                         guarda até {fdate(fimDaCoberturaDaFatura(f))}
                       </div>
                     </td>
-                    <td>{rotuloDaOrigem(f.origem)}</td>
+                    <td>
+                      {rotuloDaOrigem(f.origem)}
+                      {lotesDaFatura(meusCoins, f).length > 0 && (
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          {lotesDaFatura(meusCoins, f).length > 1 ? 'Lotes ' : 'Lote '}
+                          {lotesDaFatura(meusCoins, f).join(', ')}
+                        </div>
+                      )}
+                    </td>
                     <td>{f.quantidadeMoedas}</td>
                     <td>{FORMA[f.formaPagamento ?? 'saldo'] ?? f.formaPagamento}</td>
                     <td style={{ textAlign: 'right' }}>{brl(f.valorCents)}</td>
@@ -367,7 +376,15 @@ export default function MinhaCustodiaPage(): ReactNode {
                           guarda até {fdate(fimDaCoberturaDaFatura(f))}
                         </div>
                       </td>
-                      <td>{rotuloDaOrigem(f.origem)}</td>
+                      <td>
+                        {rotuloDaOrigem(f.origem)}
+                        {lotesDaFatura(meusCoins, f).length > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {lotesDaFatura(meusCoins, f).length > 1 ? 'Lotes ' : 'Lote '}
+                            {lotesDaFatura(meusCoins, f).join(', ')}
+                          </div>
+                        )}
+                      </td>
                       <td>{f.quantidadeMoedas}</td>
                       <td style={{ textAlign: 'right' }}>{brl(f.valorCents)}</td>
                     </tr>

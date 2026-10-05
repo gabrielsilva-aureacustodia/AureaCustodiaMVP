@@ -13,6 +13,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import type { OcupacaoDaCaixa } from '@/domain/admin/caixas'
+import { COIN_TYPES } from '@/domain/constants'
 import { salvarCaixaNoPainel } from '@/server/actions/admin/bancada'
 import { useToast } from '@/components/ui/Toast'
 
@@ -24,9 +25,10 @@ interface Rascunho {
   local: string
   capacidade: string
   ativa: boolean
+  tipoMoeda: string
 }
 
-const EM_BRANCO: Rascunho = { codigo: '', rotulo: '', local: '', capacidade: '', ativa: true }
+const EM_BRANCO: Rascunho = { codigo: '', rotulo: '', local: '', capacidade: '', ativa: true, tipoMoeda: '' }
 
 function FormCaixa({ inicial, criando, aoTerminar }: { inicial: Rascunho; criando: boolean; aoTerminar(): void }): ReactNode {
   const toast = useToast()
@@ -59,6 +61,17 @@ function FormCaixa({ inicial, criando, aoTerminar }: { inicial: Rascunho; criand
       <label className="field">
         <span>Local</span>
         <input className="tinput" value={r.local} placeholder="Cofre, prateleira A" onChange={(e) => setR({ ...r, local: e.target.value })} />
+      </label>
+      <label className="field">
+        <span>Tipo de moeda</span>
+        <select className="tinput" value={r.tipoMoeda} onChange={(e) => setR({ ...r, tipoMoeda: e.target.value })}>
+          <option value="">Qualquer tipo</option>
+          {COIN_TYPES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.key}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="field">
         <span>Posições</span>
@@ -121,6 +134,7 @@ export function QuadroDeCaixas({
                   <td>
                     <b>{c.codigo}</b>
                     <div className="adm-fraco">{c.rotulo}</div>
+                    {c.tipoMoeda ? <div className="adm-fraco">{c.tipoMoeda}</div> : null}
                     {!c.cadastrada ? <span className="pill y">só na análise</span> : !c.ativa ? <span className="pill n">fora de uso</span> : null}
                   </td>
                   <td>{c.local || <span className="adm-fraco">—</span>}</td>
@@ -173,7 +187,7 @@ export function QuadroDeCaixas({
               <FormCaixa
                 key={c.codigo}
                 criando={false}
-                inicial={{ codigo: c.codigo, rotulo: c.rotulo, local: c.local, capacidade: c.capacidade === null ? '' : String(c.capacidade), ativa: c.ativa }}
+                inicial={{ codigo: c.codigo, rotulo: c.rotulo, local: c.local, capacidade: c.capacidade === null ? '' : String(c.capacidade), ativa: c.ativa, tipoMoeda: c.tipoMoeda ?? '' }}
                 aoTerminar={() => {
                   setEditando(null)
                   aoSalvar()

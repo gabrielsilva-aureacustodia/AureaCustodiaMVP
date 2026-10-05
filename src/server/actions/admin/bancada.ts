@@ -219,6 +219,9 @@ export async function cadastrarMoedaDiretaNoPainel(entrada: {
     if (r.tipo === 'quantidade-invalida') {
       return { ok: false, erro: `Informe uma quantidade de 1 a ${r.max} moedas.` }
     }
+    if (r.tipo === 'sem-vaga') {
+      return { ok: false, erro: r.erro }
+    }
 
     // A trilha do painel, além da que `mutateState` já grava: aqui fica quem
     // registrou, para qual conta, quantas moedas e por quê.
@@ -246,7 +249,11 @@ export async function cadastrarMoedaDiretaNoPainel(entrada: {
 
     return {
       ok: true,
-      mensagem: `${r.moedas.length} moeda(s) registradas no acervo, protocolo ${r.protocolo}.`,
+      mensagem:
+        `${r.moedas.length} moeda(s) registradas no acervo, protocolo ${r.protocolo}.` +
+        (r.realocadas > 0
+          ? ` ${r.realocadas} foram para outra caixa porque a escolhida estava cheia ou é de outro tipo de moeda — confira em Caixas.`
+          : ''),
       dados: { protocolo: r.protocolo, moedas: r.moedas },
     }
   })

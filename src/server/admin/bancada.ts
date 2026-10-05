@@ -133,7 +133,11 @@ export async function fecharPelaBancadaWeb(porta: PortaDaBancada, ator: string, 
   })
   return {
     ok: true,
-    mensagem: `Pronto. ${saida.aprovadas} aprovada(s), ${saida.recusadas} recusada(s). Recibos emitidos.`,
+    mensagem:
+      `Pronto. ${saida.aprovadas} aprovada(s), ${saida.recusadas} recusada(s). Recibos emitidos.` +
+      (saida.realocadas > 0
+        ? ` ${saida.realocadas} moeda(s) foram para outra caixa porque a escolhida estava cheia ou é de outro tipo de moeda — confira em Caixas.`
+        : ''),
     dados: saida,
   }
 }

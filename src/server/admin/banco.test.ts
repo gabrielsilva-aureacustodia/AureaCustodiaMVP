@@ -902,7 +902,7 @@ describe('caixas do cofre (C3)', () => {
     expect((await salvarCaixa(executar, GESTOR, { codigo: 'EB-001', rotulo: 'Bandeira 1', local: 'Cofre A', capacidade: '40', ativa: true }, true, AGORA_C3)).ok).toBe(true)
     expect(await salvarCaixa(executar, GESTOR, { codigo: 'eb 001', rotulo: '', local: '', capacidade: '', ativa: true }, true)).toMatchObject({ ok: false, erro: 'A caixa EB-001 já está cadastrada.' })
     expect((await salvarCaixa(executar, GESTOR, { codigo: 'eb 001', rotulo: 'Bandeira 1', local: 'Cofre B', capacidade: '', ativa: false }, false, AGORA_C3)).ok).toBe(true)
-    expect(await executar((tx) => listarCaixas(tx))).toEqual([{ codigo: 'EB-001', rotulo: 'Bandeira 1', local: 'Cofre B', capacidade: null, ativa: false, criadoEm: AGORA_C3 }])
+    expect(await executar((tx) => listarCaixas(tx))).toEqual([{ codigo: 'EB-001', rotulo: 'Bandeira 1', local: 'Cofre B', capacidade: null, ativa: false, criadoEm: AGORA_C3, tipoMoeda: null }])
     expect((await acoesNaTrilha()).filter((a) => a.startsWith('admin.'))).toEqual(['admin.bancada.caixa', 'admin.bancada.caixa'])
     expect(await salvarCaixa(null, GESTOR, { codigo: 'X', rotulo: '', local: '', capacidade: '', ativa: true }, true)).toMatchObject({ ok: false })
   })

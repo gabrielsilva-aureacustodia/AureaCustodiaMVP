@@ -50,8 +50,11 @@ import { medianSellPrice } from '@/domain/market'
 import type { Analise, AppState, Cents, Coin, CoinType } from '@/domain/types'
 import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
 import { TAXAS_PADRAO } from '@/domain/fees'
+import { colocarMoeda, ocupantesDoCofre } from '@/domain/admin/caixas'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { mutateState } from '@/server/state'
+
+import { carregarCaixasParaAlocar } from './caixas'
 import { normalizarEmail } from '@/domain/email'
 
 /** Teto por operação. Não é regra de negócio: é freio contra zero a mais na digitação. */
@@ -79,7 +82,8 @@ export interface EntradaCadastroDireto {
 }
 
 export type ResultadoCadastroDireto =
-  | { tipo: 'ok'; protocolo: string; moedas: string[]; recibos: string[] }
+  | { tipo: 'ok'; protocolo: string; moedas: string[]; recibos: string[]; realocadas: number }
+  | { tipo: 'sem-vaga'; erro: string }
   | { tipo: 'usuario-nao-encontrado' }
   | { tipo: 'tipo-invalido'; tipoMoeda: string }
   | { tipo: 'quantidade-invalida'; max: number }
@@ -141,9 +145,33 @@ export async function cadastrarMoedasDiretamente(
   const caixa = entrada.caixa?.trim() || null
   const observacao = entrada.observacao?.trim() || null
 
+  // As caixas cadastradas decidem onde cada moeda fica (capacidade e tipo). Sem catálogo, vale a caixa
+  // digitada, como sempre valeu.
+  const caixasCadastradas = await carregarCaixasParaAlocar()
+
   const { result } = await mutateState<ResultadoCadastroDireto>((state) => {
     const dono = state.users[email]
     if (!dono) return { tipo: 'usuario-nao-encontrado' }
+
+    // Onde cada moeda fica, decidido ANTES de criar qualquer uma: se o lote não couber nas caixas do
+    // tipo, nada é registrado pela metade. A moeda que não cabe na caixa digitada vai para a próxima
+    // do mesmo tipo com vaga — a EB-001 não passa de 100, e Bandeira não entra na caixa de Direitos
+    // Humanos.
+    const ocupantes = ocupantesDoCofre({ users: state.users, analises: state.analises, retiradas: state.retiradas })
+    const lugares: Array<{ caixa: string | null; posicao: number | null }> = []
+    let realocadas = 0
+    for (let i = 0; i < quantidade; i++) {
+      const c = colocarMoeda(
+        caixasCadastradas,
+        ocupantes,
+        { codigoMoeda: '', tipoMoeda: entrada.tipoMoeda, analise: '' },
+        { caixa, posicao: null },
+        caixa,
+      )
+      if (!c.ok) return { tipo: 'sem-vaga', erro: c.erro }
+      if (c.movida) realocadas++
+      lugares.push({ caixa: c.caixa, posicao: c.posicao })
+    }
 
     const agora = Date.now()
     const entradaStr = dataBrasilia(agora)
@@ -192,8 +220,8 @@ export async function cadastrarMoedasDiretamente(
         motivoRecusa: null,
         operador: entrada.operador,
         aprovador: entrada.operador,
-        caixa,
-        posicao: null,
+        caixa: lugares[i]!.caixa,
+        posicao: lugares[i]!.posicao,
         validadoEm: agora,
         caminhoVideo: null,
         origem: 'cadastro_direto',
@@ -218,7 +246,7 @@ export async function cadastrarMoedasDiretamente(
     // pagar. Ver src/domain/cobranca-de-entrada.ts.
     cobrarEntradaNoAcervo(state, email, moedas, { ...taxas }, agora)
 
-    return { tipo: 'ok', protocolo, moedas, recibos }
+    return { tipo: 'ok', protocolo, moedas, recibos, realocadas }
   })
 
   return result

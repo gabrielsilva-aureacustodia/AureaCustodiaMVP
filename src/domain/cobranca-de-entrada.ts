@@ -118,8 +118,10 @@ export function guardaPagaAteDaMoeda(state: AppState, coin: Coin, agora: Timesta
  * cobrar).
  *
  * Moedas de ciclos diferentes viram faturas diferentes: a fatura tem uma
- * competência e um fim de cobertura só. Moedas aceitas no mesmo dia andam
- * juntas na mesma fatura.
+ * competência e um fim de cobertura só. E moedas de LOTES diferentes — outro
+ * envio, outro cadastro — também: cada lote é uma custódia própria, com seu
+ * valor, seu pagamento e sua data (pedido do Gabriel, 05/10/2026). Só moedas do
+ * mesmo lote aceitas no mesmo dia andam juntas na mesma fatura.
  *
  * `moedaIds` restringe a emissão a essas moedas (a entrada); sem ele, todas as
  * moedas sob guarda da conta são consideradas (o cron).
@@ -157,7 +159,9 @@ export function emitirFaturasDosCiclos(
     if (cobertas.has(moeda.id)) continue
     if (custodiaResolvidaNaCompetencia(state, moeda.id, ciclo.competencia)) continue
 
-    const chave = `${ciclo.competencia}#${ciclo.fim}`
+    // Uma fatura por LOTE (envio ou cadastro) em cada ciclo: moedas de lotes diferentes são custódias
+    // diferentes, mesmo quando o aniversário cai no mesmo dia (05/10/2026).
+    const chave = `${ciclo.competencia}#${ciclo.fim}#${moeda.protocolo ?? ''}`
     const grupo = grupos.get(chave)
     if (grupo) grupo.ids.push(moeda.id)
     else grupos.set(chave, { ciclo, ids: [moeda.id] })
@@ -166,6 +170,7 @@ export function emitirFaturasDosCiclos(
   const porMoeda = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
   const sufixo = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
   const criadas: FaturaCustodia[] = []
+  const idsUsados = new Set((state.faturasCustodia ?? []).map((f) => f.id))
 
   for (const { ciclo, ids } of grupos.values()) {
     const valorCents = porMoeda * ids.length
@@ -174,8 +179,13 @@ export function emitirFaturasDosCiclos(
     // do ciclo separa as faturas de moedas de aniversários diferentes.
     const marca = origem === 'entrada_no_acervo' ? 'ENT-' : ''
     const dia = dataBrasilia(ciclo.inicio).slice(0, 2)
+    // Dois lotes do mesmo ciclo nascem no mesmo milissegundo: o sufixo numérico os distingue.
+    const base = `FAT-${ciclo.competencia}-${sufixo}-${marca}D${dia}-${agora}`
+    let id = base
+    for (let n = 2; idsUsados.has(id); n++) id = `${base}-${n}`
+    idsUsados.add(id)
     const fatura: FaturaCustodia = {
-      id: `FAT-${ciclo.competencia}-${sufixo}-${marca}D${dia}-${agora}`,
+      id,
       userEmail,
       competencia: ciclo.competencia,
       quantidadeMoedas: ids.length,

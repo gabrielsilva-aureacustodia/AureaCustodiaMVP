@@ -117,7 +117,7 @@ export function BancadaWeb({
       return
     }
     setEnvio(item)
-    const caixaSugerida = item.caixaInicial || caixaCorrente(caixas)
+    const caixaSugerida = item.caixaInicial || caixaCorrente(caixas, item.tipoMoeda)
     const pesoSugerido = pesoPadraoOuInicial(item.tipoMoeda, item.pesoInicialMg)
     const cObj = caixas.find((c) => chaveDeCaixa(c.codigo) === chaveDeCaixa(caixaSugerida))
     const posicoes = proximasPosicoesDaCaixa(cObj, item.quantidade)
@@ -178,7 +178,7 @@ export function BancadaWeb({
       let novas = moedas.map((m, j) => {
         if (j === i) {
           const aprovada = valor === 'aprovada'
-          const caixaPadrao = m.caixa || (envio ? envio.caixaInicial || caixaCorrente(caixas) : '')
+          const caixaPadrao = m.caixa || (envio ? envio.caixaInicial || caixaCorrente(caixas, envio.tipoMoeda) : '')
           return {
             ...m,
             veredito: valor as MoedaDigitada['veredito'],

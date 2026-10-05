@@ -18,8 +18,11 @@ import { ETAPAS_ENVIO } from '@/domain/types'
 import type { Analise, AppState, Cents, Coin, CoinType, Envio, VereditoAnalise } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
+import { colocarMoeda, ocupantesDoCofre } from '@/domain/admin/caixas'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getState, mutateState } from '@/server/state'
+
+import { carregarCaixasParaAlocar } from './caixas'
 
 /**
  * O lado servidor da bancada.
@@ -155,6 +158,11 @@ export interface SaidaFechamento {
   aprovadas: number
   recusadas: number
   analises: Array<{ protocolo: string; codigoMoeda: string | null; hash: string }>
+  /**
+   * Quantas moedas foram para outra caixa que não a digitada — a caixa estava cheia ou é de outro
+   * tipo de moeda (05/10/2026). A bancada avisa o operador; antes, nada barrava.
+   */
+  realocadas: number
 }
 
 function naoEncontrado(protocolo: string): ResultadoEstacao<never> {
@@ -212,6 +220,10 @@ export async function fecharAnalise(
       return { catalogo: [...COIN_TYPES], taxas: TAXAS_PADRAO, depositoMaxCents: 0 }
     })
 
+    // As caixas cadastradas decidem onde cada moeda aprovada fica (capacidade e tipo). Lidas antes da
+    // transação; sem catálogo, vale o que o operador digitou, como sempre valeu.
+    const caixasCadastradas = await carregarCaixasParaAlocar()
+
     const { result } = await mutateState((state) => {
       const envio: Envio | undefined = state.envios.find((e) => e.protocolo === protocolo)
       if (!envio) return { tipo: 'nao-encontrado' as const }
@@ -229,6 +241,29 @@ export async function fecharAnalise(
       const dono = state.users[envio.userEmail]
       if (!dono) return { tipo: 'nao-encontrado' as const }
 
+      // ONDE CADA MOEDA FICA, decidido ANTES de gravar qualquer coisa: se uma não couber em caixa
+      // nenhuma, o envio inteiro volta com o erro e nada é criado pela metade.
+      const ocupantes = ocupantesDoCofre({ users: state.users, analises: state.analises, retiradas: state.retiradas })
+      const caixaDoLote = textoOuNulo(envio.caixaInicial) ?? moedas.map((m) => textoOuNulo(m.caixa)).find((c) => c !== null) ?? null
+      const colocacoes: Array<{ caixa: string | null; posicao: number | null } | null> = []
+      let realocadas = 0
+      for (const m of moedas) {
+        if (m.veredito !== 'aprovada') {
+          colocacoes.push(null)
+          continue
+        }
+        const c = colocarMoeda(
+          caixasCadastradas,
+          ocupantes,
+          { codigoMoeda: '', tipoMoeda: envio.tipoMoeda, analise: envio.protocolo },
+          { caixa: textoOuNulo(m.caixa), posicao: typeof m.posicao === 'number' ? Math.round(m.posicao) : null },
+          caixaDoLote,
+        )
+        if (!c.ok) return { tipo: 'sem-vaga' as const, erro: c.erro }
+        if (c.movida) realocadas++
+        colocacoes.push({ caixa: c.caixa, posicao: c.posicao })
+      }
+
       const agora = Date.now()
       const entradaStr = dataBrasilia(agora)
       const valor = valorDeEntrada(state, envio.tipoMoeda, catalogo)
@@ -238,8 +273,9 @@ export async function fecharAnalise(
 
       const registradas: Analise[] = []
 
-      for (const m of moedas) {
+      for (const [indice, m] of moedas.entries()) {
         const aprovada = m.veredito === 'aprovada'
+        const lugar = colocacoes[indice] ?? null
         let coin: Coin | null = null
 
         if (aprovada) {
@@ -281,8 +317,8 @@ export async function fecharAnalise(
           // separado para que a segregação de função chegue depois sem mudar a
           // fórmula do hash e sem invalidar recibo já emitido.
           aprovador: operador,
-          caixa: aprovada ? textoOuNulo(m.caixa) : null,
-          posicao: aprovada && typeof m.posicao === 'number' ? Math.round(m.posicao) : null,
+          caixa: aprovada ? (lugar?.caixa ?? null) : null,
+          posicao: aprovada ? (lugar?.posicao ?? null) : null,
           validadoEm: agora,
           caminhoVideo: textoOuNulo(m.caminhoVideo),
           origem: 'bancada',
@@ -346,6 +382,7 @@ export async function fecharAnalise(
             codigoMoeda: a.codigoMoeda,
             hash: a.hash,
           })),
+          realocadas,
         },
       }
     })
@@ -365,6 +402,8 @@ export async function fecharAnalise(
           status: 409,
           erro: `O envio ${protocolo} está em "${result.etapa}" e não pode ser analisado agora.`,
         }
+      case 'sem-vaga':
+        return { ok: false, status: 409, erro: result.erro }
       case 'quantidade':
         return {
           ok: false,

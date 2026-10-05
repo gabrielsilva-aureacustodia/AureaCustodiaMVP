@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { resumoDaCustodia, rotuloDaOrigem } from '@/domain/custodia-do-cliente'
+import { lotesDaFatura, resumoDaCustodia, rotuloDaOrigem } from '@/domain/custodia-do-cliente'
 import type { AppState, Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 const AGORA = Date.UTC(2026, 8, 25, 12)
@@ -49,6 +49,21 @@ function estado(moedas: Coin[], faturas: FaturaCustodia[] = [], planos: PlanoCus
     planosCustodia: planos,
   }
 }
+
+describe('lotesDaFatura', () => {
+  it('lista os lotes das moedas da fatura, sem repetir e em ordem', () => {
+    const coins = [
+      { ...moeda('RO-000001'), protocolo: 'RO-ENV-0003' },
+      { ...moeda('RO-000002'), protocolo: 'RO-ENV-0003' },
+      { ...moeda('RO-000003'), protocolo: 'RO-DIR-0004' },
+    ]
+    expect(lotesDaFatura(coins, { moedaIds: ['RO-000001', 'RO-000002', 'RO-000003'] })).toEqual(['RO-DIR-0004', 'RO-ENV-0003'])
+  })
+
+  it('moeda que já saiu da conta não aparece', () => {
+    expect(lotesDaFatura([moeda('RO-000001')], { moedaIds: ['RO-000001', 'RO-999999'] })).toEqual(['RO-ENV-0001'])
+  })
+})
 
 describe('resumoDaCustodia', () => {
   it('a mensalidade acompanha o ACERVO, não a soma dos planos', () => {

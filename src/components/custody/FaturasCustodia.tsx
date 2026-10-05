@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { fimDaCoberturaDaFatura } from '@/domain/custody'
-import { rotuloDaOrigem } from '@/domain/custodia-do-cliente'
+import { rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
@@ -262,6 +262,12 @@ export function FaturasCustodia(): ReactNode {
                         </td>
                         <td>
                           <span style={{ fontSize: '12.5px' }}>{origemNome}</span>
+                          {lotesDaFatura(me.coins, f).length > 0 && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              {lotesDaFatura(me.coins, f).length > 1 ? 'Lotes ' : 'Lote '}
+                              {lotesDaFatura(me.coins, f).join(', ')}
+                            </div>
+                          )}
                         </td>
                         <td>{f.quantidadeMoedas}</td>
                         <td style={{ fontWeight: 600 }}>{brl(f.valorCents)}</td>

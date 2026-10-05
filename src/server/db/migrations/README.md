@@ -103,3 +103,11 @@ conta por competência" para "uma por conta, competência **e fim de ciclo**". M
 corre do dia em que cada moeda foi aceita (`src/domain/ciclo-custodia.ts`), então duas moedas da mesma
 conta renovam em dias diferentes do mesmo mês. Aditiva — o código anterior ao deploy não lê a coluna,
 então esta migration pode (e deve) entrar **antes** do push. Aplicada em produção em 02/10/2026.
+
+## Migration 040 — a caixa do cofre guarda um tipo de moeda (05/10/2026)
+
+`040_tipo_de_moeda_da_caixa.sql` acrescenta `caixas.tipo_moeda` (nulo = aceita qualquer tipo). Com ele a
+capacidade e o tipo da caixa passam a valer no cadastro de moeda (`alocarNasCaixas`, em
+`src/domain/admin/caixas.ts`): a Bandeira não entra na caixa dos Direitos Humanos e a caixa que enche
+manda a moeda seguinte para a próxima do mesmo tipo. Aditiva — o código anterior ao deploy não lê a
+coluna, então entra **antes** do push. Aplicada em produção em 05/10/2026.

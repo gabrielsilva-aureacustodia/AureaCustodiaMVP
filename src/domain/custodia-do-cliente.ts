@@ -28,6 +28,7 @@ import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import type {
   AppState,
   Cents,
+  Coin,
   FaturaCustodia,
   PlanoCustodia,
   Timestamp,
@@ -157,6 +158,23 @@ export function resumoDaCustodia(
       .filter((p) => p.status === 'cancelado' || p.status === 'encerrado')
       .sort((a, b) => b.criadoEm - a.criadoEm),
   }
+}
+
+/**
+ * Os lotes (envio ou cadastro) de que a fatura cobra a guarda — "RO-ENV-0003", "RO-DIR-0004".
+ *
+ * Cada lote é uma custódia própria, com data própria, e o extrato precisa dizer de qual é a linha
+ * (pedido do Gabriel, 05/10/2026). Moeda que já saiu da conta não aparece: o lote dela não é mais
+ * assunto de quem lê.
+ */
+export function lotesDaFatura(coins: readonly Coin[], fatura: Pick<FaturaCustodia, 'moedaIds'>): string[] {
+  const doDono = new Map(coins.map((c) => [c.id, c.protocolo]))
+  const lotes = new Set<string>()
+  for (const id of fatura.moedaIds ?? []) {
+    const lote = doDono.get(id)
+    if (lote) lotes.add(lote)
+  }
+  return [...lotes].sort()
 }
 
 /**

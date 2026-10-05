@@ -88,7 +88,7 @@ describe('códigos de caixa', () => {
   it('validação do cadastro de caixa', () => {
     expect(validarCaixa({ codigo: 'EB-001', rotulo: 'x', local: '', capacidade: '40', ativa: true })).toEqual({
       ok: true,
-      caixa: { codigo: 'EB-001', rotulo: 'x', local: '', capacidade: 40, ativa: true },
+      caixa: { codigo: 'EB-001', rotulo: 'x', local: '', capacidade: 40, ativa: true, tipoMoeda: null },
     })
     expect(validarCaixa({ codigo: 'EB/001', rotulo: '', local: '', capacidade: null, ativa: true }).ok).toBe(false)
     expect(validarCaixa({ codigo: 'EB-001', rotulo: '', local: '', capacidade: '2,5', ativa: true }).ok).toBe(false)

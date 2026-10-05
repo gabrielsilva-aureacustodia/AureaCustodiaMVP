@@ -266,7 +266,23 @@ describe('emitirFaturasDosCiclos — a transição de 02/10/2026', () => {
     expect(criadas.map((f) => f.dataVencimento)).toEqual([Date.UTC(2026, 10, 5, 3), Date.UTC(2026, 10, 7, 3)])
   })
 
-  it('moedas aceitas no mesmo dia andam juntas na mesma fatura', () => {
+  it('lotes diferentes são custódias diferentes, mesmo aceitos no mesmo dia (05/10/2026)', () => {
+    const s = estado(0, [
+      { ...moeda('RO-000001'), protocolo: 'RO-ENV-0002' },
+      { ...moeda('RO-000002'), protocolo: 'RO-ENV-0003' },
+      { ...moeda('RO-000003'), protocolo: 'RO-ENV-0003' },
+    ])
+    const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, Date.UTC(2026, 9, 25, 8))
+
+    // um lote de 1 moeda e um de 2, com ids e valores próprios
+    expect(criadas.map((f) => f.moedaIds)).toEqual([['RO-000001'], ['RO-000002', 'RO-000003']])
+    expect(criadas.map((f) => f.valorCents)).toEqual([200, 400])
+    expect(new Set(criadas.map((f) => f.id)).size).toBe(2)
+    // e pagar uma não paga a outra: cada uma tem o seu status
+    expect(s.faturasCustodia).toHaveLength(2)
+  })
+
+  it('moedas aceitas no mesmo dia, do mesmo lote, andam juntas na mesma fatura', () => {
     const s = estado(0, [moeda('RO-000001'), moeda('RO-000002')])
     const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, Date.UTC(2026, 9, 25, 8))
 

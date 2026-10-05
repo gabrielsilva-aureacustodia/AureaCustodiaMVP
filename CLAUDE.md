@@ -117,6 +117,11 @@ cold start.
   (UTC-3), não o do servidor. `competencia` ('AAAA-MM') virou "o mês em que o ciclo da moeda
   começa" e `coberturaAte` (migration 039) é o instante exato em que a guarda paga termina. O
   gateway não tem nenhuma assinatura recorrente: a cobrança é só fatura do nosso backend.
+- **Cada lote (envio ou cadastro) é uma custódia própria**: `emitirFaturasDosCiclos` emite uma fatura por
+  lote em cada ciclo, e o extrato mostra o lote (pedido do Gabriel, 05/10/2026).
+- **Caixa do cofre tem capacidade e tipo, e valem** (migration 040, `alocarNasCaixas` em
+  `src/domain/admin/caixas.ts`): caixa cheia manda a moeda para a próxima do mesmo tipo com vaga, e moeda
+  de um tipo não entra em caixa de outro. Sem vaga em nenhuma caixa do tipo, o cadastro volta com erro.
 - **Prazo de pagamento da fatura = até o próximo aniversário da moeda** (era "30 dias fixos",
   decisão de 27/09/2026, que continua valendo como ordem de grandeza), e a trava por débito só
   entra **um dia depois de vencer** (`DIAS_CARENCIA_BLOQUEIO` em `src/domain/custody.ts`, decisão do

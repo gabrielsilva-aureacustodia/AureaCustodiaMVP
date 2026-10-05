@@ -32,6 +32,12 @@ export interface CaixaCadastrada {
   capacidade: number | null
   ativa: boolean
   criadoEm: number
+  /**
+   * O tipo de moeda que a caixa guarda ('Entrega da Bandeira Olímpica', 'Direitos Humanos'…).
+   * `null` = aceita qualquer tipo. Migration 040 (05/10/2026): a Bandeira foi cadastrada na caixa
+   * dos Direitos Humanos porque nada dizia de que tipo era cada caixa.
+   */
+  tipoMoeda?: string | null
 }
 
 /** "EB 001" → "EB001". A chave de comparação, nunca o texto exibido. */
@@ -60,6 +66,7 @@ export interface EntradaCaixa {
   local: string
   capacidade: string | number | null
   ativa: boolean
+  tipoMoeda?: string | null
 }
 
 export type CaixaValidada = Omit<CaixaCadastrada, 'criadoEm'>
@@ -82,7 +89,10 @@ export function validarCaixa(e: EntradaCaixa): { ok: true; caixa: CaixaValidada 
     if (!Number.isInteger(n) || n < 1 || n > 10000) return { ok: false, erro: 'A capacidade é um número inteiro de posições, de 1 a 10.000.' }
     capacidade = n
   }
-  return { ok: true, caixa: { codigo, rotulo, local, capacidade, ativa: e?.ativa !== false } }
+  const tipoBruto = String(e?.tipoMoeda ?? '').trim()
+  if (tipoBruto.length > 80) return { ok: false, erro: 'O tipo de moeda tem no máximo 80 caracteres.' }
+  const tipoMoeda = tipoBruto === '' ? null : tipoBruto
+  return { ok: true, caixa: { codigo, rotulo, local, capacidade, ativa: e?.ativa !== false, tipoMoeda } }
 }
 
 /** Uma moeda que está numa posição do cofre. */
@@ -146,6 +156,8 @@ export interface OcupacaoDaCaixa {
   local: string
   capacidade: number | null
   ativa: boolean
+  /** O tipo que a caixa guarda; ausente ou `null` = qualquer. */
+  tipoMoeda?: string | null
   /** false = aparece em análise, mas não está em `aurea.caixas`. */
   cadastrada: boolean
   moedas: Ocupante[]
@@ -168,7 +180,7 @@ export function ocupacaoDasCaixas(caixas: readonly CaixaCadastrada[], ocupantes:
     const chave = chaveDeCaixa(o.caixa)
     let linha = porChave.get(chave)
     if (!linha) {
-      linha = { codigo: o.caixa, rotulo: '', local: '', capacidade: null, ativa: true, cadastrada: false, moedas: [], semPosicao: 0, cheia: false }
+      linha = { codigo: o.caixa, rotulo: '', local: '', capacidade: null, ativa: true, tipoMoeda: null, cadastrada: false, moedas: [], semPosicao: 0, cheia: false }
       porChave.set(chave, linha)
     }
     linha.moedas.push(o)
@@ -177,6 +189,11 @@ export function ocupacaoDasCaixas(caixas: readonly CaixaCadastrada[], ocupantes:
   const linhas = [...porChave.values()]
   for (const l of linhas) l.cheia = l.capacidade !== null && l.moedas.length >= l.capacidade
   return linhas.sort((a, b) => Number(b.cadastrada) - Number(a.cadastrada) || chaveDeCaixa(a.codigo).localeCompare(chaveDeCaixa(b.codigo)))
+}
+
+/** A caixa guarda este tipo de moeda? Sem tipo definido, guarda qualquer um. */
+export function caixaAceitaTipo(caixa: { tipoMoeda?: string | null }, tipoMoeda: string): boolean {
+  return !caixa.tipoMoeda || caixa.tipoMoeda === tipoMoeda
 }
 
 function extrairNumero(str: string): number {
@@ -189,8 +206,8 @@ function extrairNumero(str: string): number {
  * aquela onde a última moeda foi guardada, enquanto houver vaga.
  * Se cheia (ou inativa), passa para a próxima caixa cadastrada e ativa (EB-001 lotada → EB-002).
  */
-export function caixaCorrente(caixas: readonly OcupacaoDaCaixa[]): string {
-  const cadastradasAtivas = caixas.filter((c) => c.cadastrada && c.ativa)
+export function caixaCorrente(caixas: readonly OcupacaoDaCaixa[], tipoMoeda?: string): string {
+  const cadastradasAtivas = caixas.filter((c) => c.cadastrada && c.ativa && (!tipoMoeda || caixaAceitaTipo(c, tipoMoeda)))
   if (cadastradasAtivas.length === 0) {
     return caixas[0]?.codigo ?? ''
   }
@@ -277,3 +294,128 @@ export function proximasPosicoesDaCaixa(
   return resultado
 }
 
+
+export interface Lugar {
+  caixa: string
+  posicao: number
+}
+
+/**
+ * Onde cada moeda nova vai ficar — a regra que a capacidade e o tipo da caixa passam a ter (05/10/2026).
+ *
+ * O PROBLEMA QUE ISTO FECHA. A caixa tinha capacidade e a bancada só a exibia: o Rogério registrou mais
+ * de 100 moedas na EB-001, e a Bandeira entrou na caixa dos Direitos Humanos, sem que nada barrasse.
+ * Agora quem grava a análise pede os lugares aqui, e a moeda NÃO é recusada por a caixa estar cheia —
+ * ela é MOVIDA para a próxima caixa do mesmo tipo com vaga, que é o que o operador faria à mão.
+ *
+ * COMO ESCOLHE. Entre as caixas cadastradas, ativas e que aceitam o tipo (`tipoMoeda` nulo aceita
+ * qualquer), começa pela `preferida` — a que o operador digitou ou a caixa inicial do cadastro — e
+ * segue pela ordem do código (EB-001, EB-002…). Em cada caixa usa as menores posições livres de 1
+ * até a capacidade; a caixa sem capacidade informada não enche.
+ *
+ * `lugares: null` quer dizer que NÃO há caixa cadastrada para o tipo: quem chamou mantém o que foi
+ * digitado, como sempre foi — a regra só passa a valer quando há onde guardar. Se há caixa e nenhuma
+ * tem vaga, devolve o erro com o que fazer.
+ */
+export function alocarNasCaixas(
+  caixas: readonly CaixaCadastrada[],
+  ocupantes: readonly Ocupante[],
+  tipoMoeda: string,
+  quantidade: number,
+  preferida: string | null,
+): { ok: true; lugares: Lugar[] | null } | { ok: false; erro: string } {
+  const elegiveis = caixas.filter((c) => c.ativa && caixaAceitaTipo(c, tipoMoeda))
+  if (elegiveis.length === 0) return { ok: true, lugares: null }
+
+  const chavePreferida = preferida ? chaveDeCaixa(preferida) : ''
+  const ordenadas = [...elegiveis].sort(
+    (a, b) =>
+      Number(chaveDeCaixa(b.codigo) === chavePreferida) - Number(chaveDeCaixa(a.codigo) === chavePreferida) ||
+      chaveDeCaixa(a.codigo).localeCompare(chaveDeCaixa(b.codigo)),
+  )
+
+  const lugares: Lugar[] = []
+  for (const c of ordenadas) {
+    if (lugares.length >= quantidade) break
+    const chave = chaveDeCaixa(c.codigo)
+    const nela = ocupantes.filter((o) => chaveDeCaixa(o.caixa) === chave)
+    const ocupadas = new Set(nela.map((o) => o.posicao).filter((p): p is number => typeof p === 'number' && p > 0))
+    const vagas = c.capacidade === null ? Infinity : Math.max(0, c.capacidade - nela.length)
+
+    let candidata = 1
+    let usadas = 0
+    while (lugares.length < quantidade && usadas < vagas) {
+      while (ocupadas.has(candidata)) candidata++
+      if (c.capacidade !== null && candidata > c.capacidade) break
+      lugares.push({ caixa: c.codigo, posicao: candidata })
+      ocupadas.add(candidata)
+      candidata++
+      usadas++
+    }
+  }
+
+  if (lugares.length < quantidade) {
+    return {
+      ok: false,
+      erro: `Não há vaga para ${quantidade - lugares.length} moeda(s) de ${tipoMoeda}: as caixas desse tipo estão cheias. Cadastre outra em Bancada › Caixas e tente de novo.`,
+    }
+  }
+  return { ok: true, lugares }
+}
+
+export type Colocacao = { ok: true; caixa: string | null; posicao: number | null; movida: boolean } | { ok: false; erro: string }
+
+/**
+ * Decide onde UMA moeda fica, a partir do que o operador digitou.
+ *
+ * O digitado vale quando a caixa existe, está ativa, aceita o tipo, tem vaga e a posição escolhida
+ * está livre e dentro da capacidade. Senão a moeda é MOVIDA: `alocarNasCaixas` acha a próxima caixa do
+ * tipo com vaga, preferindo a digitada. Sem nenhuma caixa cadastrada para o tipo, o digitado fica como
+ * está — a regra só existe onde há onde guardar.
+ *
+ * Soma a moeda aos `ocupantes` (que o chamador passa como cópia de trabalho), para que a próxima
+ * moeda do mesmo lote já enxergue o lugar tomado.
+ */
+export function colocarMoeda(
+  caixas: readonly CaixaCadastrada[],
+  ocupantes: Ocupante[],
+  moeda: { codigoMoeda: string; tipoMoeda: string; analise: string },
+  digitado: { caixa: string | null; posicao: number | null },
+  preferida: string | null,
+): Colocacao {
+  const digitada = (digitado.caixa ?? '').trim() || null
+  const elegiveis = caixas.filter((c) => c.ativa && caixaAceitaTipo(c, moeda.tipoMoeda))
+  const registrar = (caixa: string, posicao: number | null): void => {
+    ocupantes.push({ caixa, posicao, codigoMoeda: moeda.codigoMoeda, tipoMoeda: moeda.tipoMoeda, dono: '', analise: moeda.analise })
+  }
+
+  if (elegiveis.length === 0) {
+    if (digitada) registrar(digitada, digitado.posicao)
+    return { ok: true, caixa: digitada, posicao: digitado.posicao, movida: false }
+  }
+
+  if (digitada) {
+    const chave = chaveDeCaixa(digitada)
+    const escolhida = elegiveis.find((c) => chaveDeCaixa(c.codigo) === chave)
+    const nela = ocupantes.filter((o) => chaveDeCaixa(o.caixa) === chave)
+    const posicao = digitado.posicao
+    const cabe = escolhida !== undefined && (escolhida.capacidade === null || nela.length < escolhida.capacidade)
+    const posicaoServe =
+      posicao !== null &&
+      Number.isInteger(posicao) &&
+      posicao >= 1 &&
+      (escolhida?.capacidade == null || posicao <= escolhida.capacidade) &&
+      !nela.some((o) => o.posicao === posicao)
+    if (escolhida && cabe && posicaoServe) {
+      registrar(escolhida.codigo, posicao)
+      return { ok: true, caixa: escolhida.codigo, posicao, movida: false }
+    }
+  }
+
+  const alvo = alocarNasCaixas(caixas, ocupantes, moeda.tipoMoeda, 1, digitada ?? preferida)
+  if (!alvo.ok) return alvo
+  const lugar = alvo.lugares![0]!
+  registrar(lugar.caixa, lugar.posicao)
+  const pedida = digitada ?? preferida
+  return { ok: true, caixa: lugar.caixa, posicao: lugar.posicao, movida: pedida !== null && chaveDeCaixa(lugar.caixa) !== chaveDeCaixa(pedida) }
+}
