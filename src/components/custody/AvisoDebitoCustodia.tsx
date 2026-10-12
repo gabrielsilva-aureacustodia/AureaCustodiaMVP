@@ -17,11 +17,17 @@
  *
  * Silencioso quando não há nada a pagar: bloco de aviso que aparece sempre vira
  * paisagem, e quando tiver algo de verdade ninguém lê.
+ *
+ * DESDE 12/10/2026 O AVISO TAMBÉM DIZ O QUE ESTÁ TRAVADO. Moeda cuja custódia nunca foi paga não pode
+ * ser vendida — nem anunciada, nem comprada do lote —, e antes o texto prometia que pagar "mantém os
+ * recibos livres para negociar", como se já estivessem. O cliente descobria ao tentar vender e ler uma
+ * recusa. Agora o aviso conta quantas moedas estão presas e o que as solta.
  */
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { moedasComCustodiaBloqueada } from '@/domain/bloqueio-por-debito'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
@@ -39,11 +45,12 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
 
   const abertas = faturasEmAberto(state.faturasCustodia ?? [], session)
   if (exemplo) abertas.push(exemplo)
-  if (abertas.length === 0) return null
+  const agora = Date.now()
+  const presas = moedasComCustodiaBloqueada(state, session, agora).length
+  if (abertas.length === 0 && presas === 0) return null
 
   const total = abertas.reduce((soma, f) => soma + f.valorCents, 0)
   const moedas = abertas.reduce((soma, f) => soma + f.quantidadeMoedas, 0)
-  const agora = Date.now()
   const vencida = abertas.some((f) => f.status === 'atrasada' || f.dataVencimento < agora)
 
   return (
@@ -54,14 +61,28 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
       </svg>
       <div>
         <b>
-          {vencida ? 'Custódia vencida' : 'Custódia a pagar'} — {brl(total)}
+          {vencida ? 'Custódia vencida' : 'Custódia a pagar'}
+          {abertas.length > 0 ? ` — ${brl(total)}` : ''}
           {exemplo ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--gold)' }}>EXEMPLO DO TUTORIAL</span> : null}
         </b>
         <div style={{ marginTop: 4 }}>
-          {moedas} moeda(s) sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}
-          {vencida
-            ? 'Enquanto estiver vencida, os recibos ficam bloqueados para venda e para retirada física.'
-            : 'A guarda já está ativa; o pagamento libera o plano e mantém os recibos livres para negociar.'}{' '}
+          {presas > 0 ? (
+            <>
+              <b>
+                {presas === 1 ? '1 moeda sua não pode' : `${presas} moedas suas não podem`} ser vendida
+                {presas === 1 ? '' : 's'}
+              </b>{' '}
+              enquanto a custódia não for paga: nem anunciar, nem negociar. A guarda já está ativa — pagar
+              solta {presas === 1 ? 'a moeda' : 'as moedas'} na hora.{' '}
+            </>
+          ) : (
+            <>
+              {moedas} moeda(s) sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}
+              {vencida
+                ? 'Enquanto estiver vencida, os recibos ficam bloqueados para venda e para retirada física.'
+                : 'Pague até o vencimento para manter os recibos livres para negociar.'}{' '}
+            </>
+          )}
           <Link href="/conta/faturas" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>
             Pagar agora
           </Link>

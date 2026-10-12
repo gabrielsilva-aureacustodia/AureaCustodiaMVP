@@ -32,6 +32,7 @@ import { TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { seedState } from '@/domain/seed'
 import { derivarLancamentos } from '@/server/db/derivar'
+import { custodiaEmDia } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 
 import { conciliarPagamento } from './conciliacao'
@@ -103,6 +104,7 @@ async function prepararLote(lotId: string, coinIds: string[], precoUnitario = PR
         tipoMoeda: 'Entrega da Bandeira Olímpica',
       })
     }
+    custodiaEmDia(s) // o vendedor tem a custódia dessas moedas em dia (12/10/2026)
   })
 }
 

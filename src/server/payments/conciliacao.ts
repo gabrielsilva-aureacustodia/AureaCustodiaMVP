@@ -8,7 +8,7 @@
 
 import 'server-only'
 
-import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
+import { contaComPendenciaNoEstado, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
@@ -113,6 +113,12 @@ function liquidarCompraDireta(
     sellerId === reivindicada.metadata?.sellerEmail &&
     contaComPendenciaNoEstado(s, sellerId, Date.now())
 
+  // E a MOEDA (12/10/2026): custódia não paga trava a venda por qualquer caminho, inclusive quando o
+  // pagamento já entrou — o dinheiro volta ao comprador como saldo, como no caso acima. Sem isto, a
+  // oferta aberta antes de a custódia lapsar ainda fechava por aqui.
+  const moedaSemCustodia =
+    Boolean(sellerId) && offers.slice(0, qtyPedida).some((o) => moedaComCustodiaNaoPagaNoEstado(s, sellerId!, o.coinId))
+
   // O preço do lote pode ter subido entre abrir a cobrança e o pagamento cair. O que o gateway
   // cobrou precisa cobrir o preço de agora mais a comissão congelada; se não cobrir, a compra não
   // acontece — senão o comprador levaria a moeda pagando menos do que ela custa hoje.
@@ -124,6 +130,7 @@ function liquidarCompraDireta(
     Boolean(seller) &&
     sellerId !== reivindicada.userEmail &&
     !vendedorPausado &&
+    !moedaSemCustodia &&
     cabeNoValorPago
 
   if (podeComprar && seller) {

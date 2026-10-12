@@ -29,6 +29,7 @@ vi.mock('@/lib/payments', async (importOriginal) => {
 import { conciliarPagamento } from './conciliacao'
 import { _limparRecebimentosEmMemoria, buscarRecebimentoPorPaymentId } from './recebimentos'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
+import { custodiaEmDia } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 
 const EMAIL = 'gabrielsilva@testeaurea.com.br'
@@ -226,6 +227,7 @@ describe('conciliarPagamento', () => {
         createdAt: Date.now(),
         tipoMoeda: 'Entrega da Bandeira Olímpica',
       })
+      custodiaEmDia(s) // o vendedor tem a custódia dessa moeda em dia (12/10/2026)
     })
 
     await criarIntencaoCompraDireta(ref, precoUnitario, lotId, 1, 'Entrega da Bandeira Olímpica')
@@ -270,6 +272,53 @@ describe('conciliarPagamento', () => {
     // Reenvio do webhook não credita novamente (idempotência)
     const res2 = await conciliarPagamento('pay-compra-1')
     expect(res2.creditado).toBe(false)
+  })
+
+  it('compra direta de moeda com a custódia NÃO paga: a moeda fica com o dono e o dinheiro vira saldo do comprador (12/10/2026)', async () => {
+    const ref = 'CMP-sem-custodia'
+    const sellerEmail = 'alex@testeaurea.com.br'
+    const lotId = 'LOT-sem-custodia'
+    const coinId = 'RO-999998'
+    const preco = 20_000
+
+    await mutateState((s) => {
+      const seller = s.users[sellerEmail]
+      if (!seller) throw new Error('Seller não encontrado no seed')
+      seller.coins.push({
+        id: coinId,
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        ano: 2016,
+        entrada: '01/01/2026',
+        statusFisico: 'Armazenado',
+        statusDigital: 'Validado',
+        valorEstimado: preco,
+        protocolo: 'RO-ENV-9998',
+        recibo: { codigo: 'REC-999998', dataEmissao: '01/01/2026', hash: 'ghi', status: 'Ativo' },
+      })
+      s.sellOffers.push({
+        id: 'OFFER-sem-custodia',
+        coinId,
+        seller: sellerEmail,
+        price: preco,
+        obs: 'Moeda sem custódia paga',
+        lotId,
+        createdAt: Date.now(),
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+      })
+      // nenhuma fatura paga nem plano cobre a moeda: é o caso do Sidnei
+    })
+
+    await criarIntencaoCompraDireta(ref, preco, lotId, 1, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, preco))
+
+    const saldoAntes = await saldo()
+    const res = await conciliarPagamento('pay-sem-custodia')
+
+    expect(res.compraConcluida).toBeFalsy()
+    const depois = await getState()
+    expect(depois.users[sellerEmail].coins.some((c) => c.id === coinId)).toBe(true)
+    expect(depois.users[EMAIL].coins.some((c) => c.id === coinId)).toBe(false)
+    expect(depois.users[EMAIL].balance).toBe(saldoAntes + preco)
   })
 
   it('compra direta quando o lote não está mais disponível: credita o dinheiro no saldo do comprador para evitar perda', async () => {

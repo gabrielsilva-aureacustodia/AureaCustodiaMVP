@@ -95,7 +95,10 @@ function abastecerCliente(s: AppState): void {
   for (const email of doadores) {
     while (cliente.coins.filter((c) => c.tipoMoeda === BANDEIRA).length < 4) {
       const doador = s.users[email]
-      const livre = availableCoinsForSell(s, doador, BANDEIRA)[0]
+      // Não é `availableCoinsForSell`: ela agora exclui moeda sem custódia paga, e o acervo do seed não
+      // tem nenhuma cobrança. Aqui só se quer uma Bandeira ativa para doar; a custódia entra depois, em
+      // `custodiaEmDia()`.
+      const livre = doador.coins.find((c) => c.tipoMoeda === BANDEIRA && c.recibo.status === 'Ativo')
       if (!livre) break
       doador.coins = doador.coins.filter((c) => c.id !== livre.id)
       cliente.coins.push(livre)
@@ -541,5 +544,88 @@ describe('moeda que nunca foi cobrada não pode ser vendida', () => {
     expect(res.ok).toBe(true)
     const s = await getState()
     expect(s.sellOffers).toHaveLength(1)
+  })
+})
+
+describe('fatura de entrada PENDENTE e dentro do prazo não libera a venda (12/10/2026)', () => {
+  /**
+   * O caso do Sidnei Pena: moeda aceita, fatura de entrada de R$ 2,00 emitida e ainda aberta, prazo de
+   * um mês pela frente. Até 12/10 isso bastava para anunciar e para o lote ser comprado. Agora a
+   * moeda só se negocia depois de paga.
+   */
+  async function soComFaturaDeEntradaPendente(): Promise<string> {
+    const [moeda] = await moedasDoCliente()
+    await mutateState((s) => {
+      s.planosCustodia = []
+      s.faturasCustodia = [
+        {
+          id: 'FAT-ENTRADA-PENDENTE',
+          userEmail: CLIENTE,
+          competencia: competenciaAtual(Date.now()),
+          quantidadeMoedas: 1,
+          moedaIds: [moeda.id],
+          valorCents: 200,
+          status: 'pendente',
+          dataEmissao: Date.now() - 60_000,
+          dataVencimento: Date.now() + 30 * 86_400_000,
+          dataPagamento: null,
+          formaPagamento: null,
+          paymentIntentId: null,
+          planoId: null,
+          origem: 'entrada_no_acervo',
+        },
+      ]
+    })
+    return moeda.id
+  }
+
+  it('publishOffer recusa a moeda, e nada entra no livro', async () => {
+    const coinId = await soComFaturaDeEntradaPendente()
+    getSessionEmail.mockResolvedValue(CLIENTE)
+
+    const res = await publishOffer([coinId], 20_000, '')
+
+    expect(res.ok).toBe(false)
+    expect(res.error).toBe(MENSAGEM_CUSTODIA_NAO_PAGA)
+    expect((await getState()).sellOffers).toHaveLength(0)
+  })
+
+  it('oferta que já estivesse no livro não é comprável: buyLot recusa e a derruba', async () => {
+    const coinId = await soComFaturaDeEntradaPendente()
+    // Oferta "herdada" de antes da regra: entra direto no estado, sem passar pelo anúncio.
+    await mutateState((s) => {
+      s.sellOffers.push({
+        id: 'OF-HERDADA',
+        coinId,
+        seller: CLIENTE,
+        price: 20_000,
+        obs: '',
+        lotId: 'LOT-HERDADO',
+        createdAt: Date.now(),
+        prioridadeEm: Date.now(),
+        tipoMoeda: BANDEIRA,
+      })
+    })
+
+    getSessionEmail.mockResolvedValue(ROGERIO)
+    const res = await buyLot('LOT-HERDADO', 1)
+
+    expect(res.ok).toBe(false)
+    const s = await getState()
+    expect(s.sellOffers).toHaveLength(0)
+    expect(s.users[CLIENTE].coins.some((c) => c.id === coinId)).toBe(true)
+    expect(s.trades).toHaveLength(0)
+  })
+
+  it('o cliente paga a fatura (pelo saldo) e a mesma moeda vira vendável', async () => {
+    const coinId = await soComFaturaDeEntradaPendente()
+    getSessionEmail.mockResolvedValue(CLIENTE)
+
+    const paga = await pagarFaturaCustodia('FAT-ENTRADA-PENDENTE')
+    expect(paga.ok).toBe(true)
+
+    const res = await publishOffer([coinId], 20_000, '')
+    expect(res.ok).toBe(true)
+    expect((await getState()).sellOffers).toHaveLength(1)
   })
 })

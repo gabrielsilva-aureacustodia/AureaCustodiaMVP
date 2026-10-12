@@ -278,7 +278,7 @@ describe('indicadores por tipo', () => {
 
 describe('lotes e disponibilidade', () => {
   it('lotsFromOffers carrega o tipo e filtra por ele', () => {
-    const s = estado({ u: usuario('U', 0, []) })
+    const s = estado({ v: usuario('V', 0, [moeda('RO-1', BAN), moeda('RO-2', DH)]) })
     s.sellOffers.push(venda('OF-1', 'RO-1', 'v', 28_500, BAN, 1000))
     s.sellOffers.push(venda('OF-2', 'RO-2', 'v', 45_000, DH, 1000))
 

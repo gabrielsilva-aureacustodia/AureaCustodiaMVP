@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { availableCoinsForSell, matchOrders } from './market'
+import { custodiaEmDia } from './testing/fixtures'
 import {
   abrirReserva,
   devolverLastroDoBid,
@@ -75,7 +76,7 @@ function bid(id: string, buyer: string, price: number, modalidade: BuyOrder['mod
 }
 
 function estado(): AppState {
-  return {
+  return custodiaEmDia({
     users: {
       vendedor: usuario('Vendedor', 0, ['RO-000001']),
       caloteiro: usuario('Caloteiro', 0),
@@ -91,7 +92,7 @@ function estado(): AppState {
     deposits: [],
     analises: [],
     saques: [],
-  } as unknown as AppState
+  } as unknown as AppState)
 }
 
 describe('fundos e modalidade', () => {

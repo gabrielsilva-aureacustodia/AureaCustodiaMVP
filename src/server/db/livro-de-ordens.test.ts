@@ -10,6 +10,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { matchOrders } from '@/domain/market'
+import { comCustodiaEmDia } from '@/domain/testing/fixtures'
 import { lerEstado, mutarEstado } from './estado'
 import { aplicarMigrations } from './migrar'
 import { listarHistoricoOfertas } from './repositories/ofertas-historico'
@@ -86,7 +87,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: agora,
         tipoMoeda: BANDEIRA,
       })
-      matchOrders(s)
+      comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     // 2. Comprador publica compra com saldo suficiente
@@ -102,7 +103,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: agora,
         tipoMoeda: BANDEIRA,
       })
-      return matchOrders(s)
+      return comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     expect(result.matched).toBe(true)
@@ -145,7 +146,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: agora,
         tipoMoeda: BANDEIRA,
       })
-      matchOrders(s)
+      comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     // 2. Vendedor anuncia
@@ -162,7 +163,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: agora,
         tipoMoeda: BANDEIRA,
       })
-      return matchOrders(s)
+      return comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     expect(result.matched).toBe(true)
@@ -212,7 +213,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: 3000,
         tipoMoeda: BANDEIRA,
       })
-      matchOrders(s)
+      comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     const lido = await lerEstado(executar)
@@ -277,7 +278,7 @@ describe('livro de ordens — fila justa, casamento e histórico (A2, Decisão F
         prioridadeEm: 6000,
         tipoMoeda: BANDEIRA,
       })
-      matchOrders(s)
+      comCustodiaEmDia(s, () => matchOrders(s))
     })
 
     const lido = await lerEstado(executar)

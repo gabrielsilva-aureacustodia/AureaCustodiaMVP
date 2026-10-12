@@ -28,6 +28,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { nextEnvioCode } from '@/domain/codes'
 import { tradeFee } from '@/domain/fees'
 import { matchOrders, transferCoin } from '@/domain/market'
+import { comCustodiaEmDia } from '@/domain/testing/fixtures'
 import { mkCoin } from '@/domain/seed'
 import type { Envio } from '@/domain/types'
 
@@ -412,7 +413,7 @@ function suite(alvo: Alvo): void {
           tipoMoeda: BANDEIRA,
         })
         s.buyOrders.push({ id: 'BID-1', buyer: comprador, price: 30_000, qty: 1, createdAt: now, tipoMoeda: BANDEIRA })
-        return matchOrders(s)
+        return comCustodiaEmDia(s, () => matchOrders(s))
       })
       expect(result.matched).toBe(true)
 
@@ -859,7 +860,7 @@ function suite(alvo: Alvo): void {
           const now = Date.now()
           s.sellOffers.push({ id: 'OF-1', coinId, seller: vendedor, price: 30_000, obs: '', lotId: 'LOT-1', createdAt: now, tipoMoeda: BANDEIRA })
           s.buyOrders.push({ id: 'BID-1', buyer: comprador, price: 30_000, qty: 1, createdAt: now, tipoMoeda: BANDEIRA })
-          matchOrders(s)
+          comCustodiaEmDia(s, () => matchOrders(s))
         },
         { ator: comprador },
       )

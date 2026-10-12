@@ -25,7 +25,7 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
-import { faturaBloqueia, isInadimplente } from '@/domain/custody'
+import { faturaBloqueia, fimDaCoberturaDaFatura, fimDaCompetencia, isInadimplente } from '@/domain/custody'
 import { expurgarOfertasSemCadastro, matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
@@ -131,6 +131,80 @@ export function custodiaPagaAteCompetencia(
 }
 
 /**
+ * Até quando a guarda desta moeda está PAGA, em instante — ou `null` se nunca foi paga.
+ *
+ * É a maior cobertura entre as faturas PAGAS que listam a moeda (`coberturaAte`, o fim do ciclo; nas
+ * anteriores a 02/10/2026, o fim do mês da competência) e os planos vigentes que a cobrem. Fatura em
+ * aberto NÃO cobre nada: é só uma conta a pagar. Não filtra por dono, de propósito: a custódia que o
+ * vendedor pagou vale para a moeda que o comprador recebe.
+ */
+export function coberturaPagaDaMoeda(state: AppState, coinId: string): Timestamp | null {
+  let maior: Timestamp | null = null
+
+  for (const f of state.faturasCustodia ?? []) {
+    if (f.status !== 'paga' || !(f.moedaIds ?? []).includes(coinId)) continue
+    const fim = fimDaCoberturaDaFatura(f)
+    if (maior === null || fim > maior) maior = fim
+  }
+  for (const p of state.planosCustodia ?? []) {
+    if (p.status !== 'vigente' || !p.pagoAteCompetencia || !(p.moedaIds ?? []).includes(coinId)) continue
+    const fim = fimDaCompetencia(p.pagoAteCompetencia)
+    if (maior === null || fim > maior) maior = fim
+  }
+  return maior
+}
+
+/**
+ * A custódia desta moeda IMPEDE negociá-la agora? — a ÚNICA resposta que todo ponto de venda usa.
+ *
+ * A REGRA (Gabriel, 02/10 e 12/10/2026): "ao pagar a custódia eu poderia então negociar essa moeda",
+ * e nos ciclos seguintes a moeda segue negociável até as 23:59 do dia da cobrança — depois disso, só
+ * depois de pagar. Em duas frases:
+ *
+ *  1. moeda cuja custódia NUNCA foi paga não é negociável, ainda que a fatura esteja dentro do prazo;
+ *  2. moeda cuja cobertura paga acabou fica negociável até um dia depois (`DIAS_CARENCIA_BLOQUEIO`), e
+ *     então trava até a próxima fatura ser paga.
+ *
+ * POR QUE ISTO EXISTE. Entre 27/09 e 12/10 a regra era "fatura em aberto dentro do prazo não é dívida",
+ * e cada ponto de venda perguntava uma coisa diferente: a publicação exigia "tem cobrança registrada",
+ * a compra do lote, o motor, a vitrine e a lista de moedas vendáveis exigiam só "não venceu há mais de um
+ * dia". A fatura de entrada, pendente e dentro do prazo, passava em todas — e o Sidnei Pena vendeu uma
+ * moeda 7 minutos depois de ela ser aceita, sem pagar R$ 2,00. Pergunta única, resposta única.
+ *
+ * Pergunta-se pela COBERTURA, e não pela existência de fatura vencida: se o cron falhar e não emitir a
+ * fatura do ciclo, a moeda ainda trava quando a cobertura acaba, em vez de negociar de graça.
+ */
+export function custodiaImpedeNegociar(
+  state: AppState,
+  coinId: string,
+  agora: Timestamp = Date.now(),
+): boolean {
+  const cobertura = coberturaPagaDaMoeda(state, coinId)
+  if (cobertura === null) return true
+  // O ciclo seguinte começa no instante seguinte ao fim da cobertura; a carência corre dali.
+  return faturaBloqueia({ status: 'pendente', dataVencimento: cobertura + 1 }, agora)
+}
+
+/**
+ * As moedas da conta que a custódia IMPEDE de negociar agora — a lista por trás do aviso "pague a
+ * custódia para vender".
+ *
+ * Só moeda ativa: recibo extinto (retirada física) já não é guarda nossa. Ordem estável pelo código,
+ * para a tela não embaralhar entre leituras.
+ */
+export function moedasComCustodiaBloqueada(
+  state: AppState,
+  email: UserEmail,
+  agora: Timestamp = Date.now(),
+): string[] {
+  const moedas = state.users[email]?.coins ?? []
+  return moedas
+    .filter((c) => c.recibo?.status !== 'Extinto' && custodiaImpedeNegociar(state, c.id, agora))
+    .map((c) => c.id)
+    .sort()
+}
+
+/**
  * Verifica se a custódia de uma moeda específica não foi paga pelo usuário informado.
  * Vale mesmo antes do vencimento: se a fatura estiver pendente ou atrasada, a guarda não foi quitada.
  */
@@ -195,6 +269,9 @@ export function moedaComCustodiaNaoPagaNoEstado(
   coinId: string,
   agora: Timestamp = Date.now(),
 ): boolean {
+  // Cobertura nunca paga ou já lapsada: a moeda não se negocia (ver `custodiaImpedeNegociar`).
+  if (custodiaImpedeNegociar(state, coinId, agora)) return true
+  // E fatura do dono atual vencida há mais de um dia segue bloqueando, como sempre bloqueou.
   return moedaComCustodiaNaoPaga(
     state.faturasCustodia ?? [],
     state.planosCustodia,
@@ -236,9 +313,7 @@ export function custodiaNaoComprovadaNoEstado(
   coinId: string,
   agora: Timestamp = Date.now(),
 ): boolean {
-  const cobrada = temCobrancaRegistrada(state, coinId)
-  if (!cobrada) return true
-
+  if (custodiaImpedeNegociar(state, coinId, agora)) return true
   return (state.faturasCustodia ?? []).some(
     (f) => (f.moedaIds ?? []).includes(coinId) && faturaBloqueia(f, agora),
   )

@@ -11,6 +11,7 @@ vi.mock('@/server/session', () => ({ getSessionEmail: getSessionEmailMock }))
 vi.mock('@/server/state', () => ({ mutateState: mutateStateMock, getState: getStateMock }))
 
 import { seedState } from '@/domain/seed'
+import { custodiaEmDia } from '@/domain/testing/fixtures'
 import type { AppState, EnderecoEntrega } from '@/domain/types'
 import { GENESIS } from '@/domain/hash'
 import { verificarCadeia } from '@/domain/ledger'
@@ -53,7 +54,7 @@ const ENDERECO_VALIDO: EnderecoEntrega = {
 process.env.AUREA_ADMIN_EMAILS = USER_EMAIL
 
 beforeEach(() => {
-  state = seedState()
+  state = custodiaEmDia(seedState())
   _limparRetiradasMemoriaParaTestes()
   getSessionEmailMock.mockReset()
   mutateStateMock.mockReset()

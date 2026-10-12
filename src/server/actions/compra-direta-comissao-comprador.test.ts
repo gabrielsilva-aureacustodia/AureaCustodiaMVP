@@ -35,6 +35,7 @@ vi.mock('@/server/config/carregar', async (importOriginal) => ({
 import { COIN_TYPES } from '@/domain/constants'
 import { TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from '@/server/payments/repositorios'
+import { custodiaEmDia } from '@/domain/testing/fixtures'
 import { mutateState } from '@/server/state'
 
 import { salvarCadastro } from './account'
@@ -87,6 +88,7 @@ async function prepararLote(lotId: string, quantas: number) {
         tipoMoeda: 'Entrega da Bandeira Olímpica',
       })
     }
+    custodiaEmDia(s) // o vendedor tem a custódia dessas moedas em dia (12/10/2026)
   })
 }
 

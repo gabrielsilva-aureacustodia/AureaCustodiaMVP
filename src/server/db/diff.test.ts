@@ -15,6 +15,7 @@ import { tradeFee } from '@/domain/fees'
 import { matchOrders, transferCoin } from '@/domain/market'
 import { nextEnvioCode } from '@/domain/codes'
 import { seedState } from '@/domain/seed'
+import { comCustodiaEmDia } from '@/domain/testing/fixtures'
 import type { AppState, Envio } from '@/domain/types'
 
 import { normalizarTrade, planejarDiff, type Operacao } from './diff'
@@ -213,7 +214,7 @@ describe('planejarDiff — livro de ordens', () => {
       tipoMoeda: BANDEIRA,
     })
 
-    const { matched, trades } = matchOrders(depois)
+    const { matched, trades } = comCustodiaEmDia(depois, () => matchOrders(depois))
     expect(matched).toBe(true)
     expect(trades).toHaveLength(1)
 

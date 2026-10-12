@@ -20,6 +20,7 @@ vi.mock('@/lib/payments', async (importOriginal) => {
 
 import { salvarCadastro } from './account'
 import { iniciarCompraDireta } from './payments'
+import { custodiaEmDia } from '@/domain/testing/fixtures'
 import { mutateState } from '@/server/state'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from '@/server/payments/repositorios'
 
@@ -152,6 +153,7 @@ describe('Server Action iniciarCompraDireta (payments.ts)', () => {
         createdAt: Date.now(),
         tipoMoeda: 'Entrega da Bandeira Olímpica',
       })
+      custodiaEmDia(s) // o vendedor tem a custódia dessa moeda em dia (12/10/2026)
     })
 
     criarPixDeposito.mockResolvedValue({
@@ -185,5 +187,46 @@ describe('Server Action iniciarCompraDireta (payments.ts)', () => {
       sellerEmail: EMAIL_VENDEDOR,
     })
     expect(intencao?.paymentId).toBe('pay-pix-123')
+  })
+
+  it('recusa a compra de moeda cuja custódia NÃO está paga, antes de gerar o Pix (12/10/2026)', async () => {
+    await salvarCadastro({
+      cpf: '529.982.247-25',
+      nomeCompleto: 'Gabriel Silva',
+      dataNascimento: '1990-01-01',
+      telefone: '(11) 98765-4321',
+      endereco: { logradouro: 'Rua das Moedas', numero: '10', bairro: 'Centro', cidade: 'São Paulo', uf: 'SP', cep: '01001-000' },
+      dadosBancarios: { chavePix: '52998224725', tipoChavePix: 'cpf' },
+    })
+
+    const lotId = 'LOT-sem-custodia'
+    await mutateState((s) => {
+      // moeda nova, depois de qualquer `custodiaEmDia`: nenhuma fatura paga nem plano a cobre
+      s.users[EMAIL_VENDEDOR]!.coins.push({
+        id: 'RO-777777',
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        ano: 2016,
+        entrada: '01/01/2026',
+        statusFisico: 'Armazenado',
+        statusDigital: 'Validado',
+        valorEstimado: 30_000,
+        protocolo: 'RO-ENV-7777',
+        recibo: { codigo: 'REC-777777', dataEmissao: '01/01/2026', hash: 'zzz', status: 'Ativo' },
+      })
+      s.sellOffers.push({
+        id: 'OFFER-sem-custodia',
+        coinId: 'RO-777777',
+        seller: EMAIL_VENDEDOR,
+        price: 30_000,
+        obs: 'Sem custódia paga',
+        lotId,
+        createdAt: Date.now(),
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+      })
+    })
+
+    const res = await iniciarCompraDireta(lotId, 1, 'pix')
+    expect(res.ok).toBe(false)
+    expect(criarPixDeposito).not.toHaveBeenCalled()
   })
 })

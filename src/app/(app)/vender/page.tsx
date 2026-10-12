@@ -53,6 +53,7 @@ import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { ComoPrecoEFormado } from '@/components/market/ComoPrecoEFormado'
 import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAcontece'
 import { CoinPicker } from '@/components/sell/CoinPicker'
+import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { ModalCustodiaNaoPaga } from '@/components/sell/ModalCustodiaNaoPaga'
 import { publishOffer } from '@/server/actions/sell'
 
@@ -265,6 +266,7 @@ export default function VenderPage(): ReactNode {
           </div>
         </div>
       ) : null}
+      <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 18 }} />
       <div className="cols sell">
       {/* ================= coluna 1 — o anúncio, que é o que se veio fazer ====== */}
       <div className="panel">

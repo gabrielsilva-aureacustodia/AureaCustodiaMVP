@@ -9,7 +9,7 @@ import {
 } from '@/domain/bloqueio-por-debito'
 import { matchOrders } from '@/domain/market'
 import { TAXAS_PADRAO } from '@/domain/fees'
-import { cadastroCompleto } from '@/domain/testing/fixtures'
+import { cadastroCompleto, custodiaEmDia } from '@/domain/testing/fixtures'
 import type { AppState, BuyOrder, Coin, FaturaCustodia, SellOffer, User } from '@/domain/types'
 
 function criarUsuario(email: string, inadimplente = false): User & { email: string } {
@@ -380,6 +380,10 @@ describe('casarOrdensRespeitandoPendencia', () => {
       analises: [],
     }
 
+    // Custódia paga (12/10/2026): moeda nunca paga não é negociável. Aqui a pendência que importa é a
+    // da CONTA (marca manual e fatura vencida), então as moedas partem cobertas.
+    custodiaEmDia(state)
+
     return { state, vendedorBloqueado, vendedorEquipe, vendedorLimpo, comprador }
   }
 
@@ -559,6 +563,7 @@ describe('cadastro incompleto tira a oferta do livro (28/09/2026)', () => {
       deposits: [],
       analises: [],
     }
+    custodiaEmDia(state)
 
     casarOrdensRespeitandoPendencia(state, TAXAS_PADRAO, agora, new Set())
 

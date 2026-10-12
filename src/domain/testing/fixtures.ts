@@ -78,8 +78,65 @@ export function usuario(nome: string, saldo: number, coins: Coin[]): User {
   return { name: nome, balance: saldo, coins, cadastro: cadastroCompleto() }
 }
 
+/**
+ * Faz a custódia de TODAS as moedas do estado constar como paga, por um plano vigente quitado por conta.
+ *
+ * Existe porque, desde 12/10/2026, moeda cuja custódia nunca foi paga não é negociável em ponto nenhum
+ * (`custodiaImpedeNegociar`, em bloqueio-por-debito.ts). Sem isto, todo teste de mercado cujo vendedor
+ * nasce de um fixture "de manual" veria a oferta sair do livro antes de o motor rodar.
+ *
+ * É um PLANO, e não uma fatura paga, de propósito: fatura paga é lançamento no extrato e mudaria o que
+ * os testes de saldo e de extrato contam; plano vigente cobre a moeda e não aparece em nenhuma conta.
+ * Quem testa a própria custódia zera `planosCustodia` e `faturasCustodia` no cenário.
+ */
+export function custodiaEmDia(state: AppState): AppState {
+  state.planosCustodia = state.planosCustodia ?? []
+  for (const [email, u] of Object.entries(state.users)) {
+    if (u.coins.length === 0) continue
+    state.planosCustodia.push({
+      id: `PLC-EM-DIA-${email}`,
+      userEmail: email,
+      protocoloEnvio: 'RO-ENV-0000',
+      modalidade: 'mensal',
+      quantidadeContratada: u.coins.length,
+      moedaIds: u.coins.map((c) => c.id),
+      valorPorMoedaCents: 200,
+      valorTotalCents: 200 * u.coins.length,
+      parcelasMax: 1,
+      inicioCompetencia: '2026-01',
+      pagoAteCompetencia: '2099-12',
+      status: 'vigente',
+      formaPagamento: 'saldo',
+      paymentIntentRef: null,
+      assinaturaId: null,
+      estornadoCents: 0,
+      criadoEm: 0,
+      atualizadoEm: 0,
+    })
+  }
+  return state
+}
+
+/**
+ * Roda `fn` com a custódia de todas as moedas em dia e DEVOLVE o estado como estava.
+ *
+ * Para os testes que gravam no banco: o plano de `custodiaEmDia` não pode ser persistido (tem
+ * protocolo de envio, entra no diff e no ledger), mas o motor de casamento precisa enxergá-lo enquanto
+ * roda.
+ */
+export function comCustodiaEmDia<T>(state: AppState, fn: () => T): T {
+  const antes = state.planosCustodia
+  state.planosCustodia = [...(antes ?? [])]
+  custodiaEmDia(state)
+  try {
+    return fn()
+  } finally {
+    state.planosCustodia = antes
+  }
+}
+
 export function estado(users: Record<string, User>): AppState {
-  return {
+  return custodiaEmDia({
     users,
     sellOffers: [],
     buyOrders: [],
@@ -88,7 +145,7 @@ export function estado(users: Record<string, User>): AppState {
     seq: { coin: 100, envio: 100 },
     deposits: [],
     analises: [],
-  }
+  })
 }
 
 export function venda(

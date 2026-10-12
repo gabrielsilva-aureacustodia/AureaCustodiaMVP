@@ -31,6 +31,7 @@ import { GENESIS } from '@/domain/hash'
 import { seedState } from '@/domain/seed'
 import type { IntencaoDeposito } from '@/server/db/repositories/payments'
 import { derivarLancamentos } from '@/server/db/derivar'
+import { comCustodiaEmDia, custodiaEmDia } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 
 import { conciliarPagamento, LIQUIDADORES } from './conciliacao'
@@ -101,6 +102,7 @@ async function prepararLote(lotId: string, coinIds: [string, string], precoUnita
         tipoMoeda: 'Entrega da Bandeira Olímpica',
       })
     }
+    custodiaEmDia(s) // o vendedor tem a custódia dessas moedas em dia (12/10/2026)
   })
 }
 
@@ -311,7 +313,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     }
     const detalhes = aprovado('CMP-e2-ledger', 40_000)
 
-    LIQUIDADORES.compra_direta(depois, intencao, detalhes, { taxas: TAXAS_DO_PAINEL })
+    // o plano de custódia em dia só existe durante a liquidação: não pode entrar no diff do ledger
+    comCustodiaEmDia(depois, () => LIQUIDADORES.compra_direta(depois, intencao, detalhes, { taxas: TAXAS_DO_PAINEL }))
 
     const derivado = derivarLancamentos({
       antes,

@@ -12,7 +12,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { MENSAGEM_CUSTODIA_NAO_PAGA, faturasAbertasDaMoeda } from '@/domain/bloqueio-por-debito'
+import { MENSAGEM_CUSTODIA_NAO_PAGA } from '@/domain/bloqueio-por-debito'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
 import { useModal } from '@/components/ui/Modal'
@@ -32,7 +32,16 @@ export function ModalCustodiaNaoPaga({
 }: ModalCustodiaNaoPagaProps): ReactNode {
   const { close } = useModal()
 
-  const abertas = faturasAbertasDaMoeda(faturas, planos, email, coinId)
+  // Todas as faturas em aberto da moeda — inclusive a de entrada, ainda dentro do prazo: desde 12/10/2026
+  // é ela, e não só a vencida, que impede a venda.
+  const abertas = faturas.filter(
+    (f) =>
+      f.userEmail === email &&
+      f.status !== 'paga' &&
+      f.status !== 'cancelada' &&
+      ((f.moedaIds ?? []).includes(coinId) ||
+        Boolean(f.planoId && planos?.find((p) => p.id === f.planoId)?.moedaIds?.includes(coinId))),
+  )
   const total = abertas.reduce((s, f) => s + f.valorCents, 0)
 
   return (

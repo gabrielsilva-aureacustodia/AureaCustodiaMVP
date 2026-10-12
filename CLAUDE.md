@@ -126,11 +126,15 @@ cold start.
   decisão de 27/09/2026, que continua valendo como ordem de grandeza), e a trava por débito só
   entra **um dia depois de vencer** (`DIAS_CARENCIA_BLOQUEIO` em `src/domain/custody.ts`, decisão do
   Gabriel de 27/09/2026; o vencimento da fatura do ciclo é 00:00 de Brasília do dia da próxima
-  cobrança, então a trava começa depois das 23:59 desse dia). **Fatura em aberto dentro do prazo NÃO é dívida** e não pode
-  bloquear venda, retirada, anúncio nem casamento — quem responde "isto bloqueia?" é
-  `faturaBloqueia()`, e é ela que todas as travas consultam. Entre 23 e 27/09 a publicação exigia
-  custódia *comprovadamente paga*, e somada à cobrança na entrada isso travou quem não devia nada.
-  O que ainda barra o anúncio é a moeda **sem nenhum rastro de cobrança** — nem fatura, nem plano. No cartão a cobrança é **recorrente**
+  cobrança, então a trava começa depois das 23:59 desse dia). **Fatura em aberto dentro do prazo NÃO é dívida** para retirada e para o aviso de inadimplência — quem
+  responde "isto bloqueia?" é `faturaBloqueia()`. **Mas moeda só se NEGOCIA com a custódia PAGA** (Gabriel, 12/10/2026,
+  depois que o Sidnei vendeu no mesmo dia em que a moeda foi aceita, com a fatura de entrada pendente "no prazo"):
+  quem responde é `custodiaImpedeNegociar()` (`src/domain/bloqueio-por-debito.ts`), por cobertura — moeda sem nenhuma
+  fatura paga ou plano vigente cobrindo-a **não anuncia, não casa, não é comprada** (`publishOffer`, `sellToBid`,
+  `buyLot`, `iniciarCompraDireta`, `conciliarPagamento`, `matchOrders`), e a oferta dela sai do livro (`expurgarOfertasSemCustodia`,
+  no cron diário). Paga, segue livre até as 23:59 do dia da próxima cobrança; depois disso, só pagando. A trava é por moeda,
+  e a conta mostra o aviso "Custódia a pagar" (`AvisoDebitoCustodia`, também em `/vender`). A regra de 27/09 de que a
+  fatura do primeiro ciclo dentro do prazo liberava a venda **foi revogada**. No cartão a cobrança é **recorrente**
   (Preapproval do Mercado Pago, `PlanoCustodia.assinaturaId`), renovada todo mês sem o cliente
   voltar à tela; zerado o acervo, a assinatura é cancelada.
   **Histórico, porque a regra mudou quatro vezes em quatro dias e o código guarda cicatrizes:**
