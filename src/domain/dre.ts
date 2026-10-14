@@ -305,8 +305,18 @@ export function montarDre({
         )
       : [...vigentePorUsuario.values()].reduce((s, l) => s + l.valor, 0)
 
-  /* receita de tarifas de saque: taxa fixa retida no saque de recursos */
-  const receitaTaxaSaque = taxasSaque.reduce((s, l) => s + l.valor, 0)
+  /* receita de tarifas de saque: taxa fixa retida no saque de recursos.
+   *
+   * A tarifa é lançada no ledger quando o cliente PEDE o saque. Se a equipe recusa o pedido, o valor
+   * total volta ao saldo (líquido + tarifa) por um `estorno` com a mesma referência do saque — e a
+   * tarifa deixa de ser receita, porque ninguém a pagou. O estorno desconta no período em que
+   * acontece (regime de caixa do ledger), mesmo que o pedido seja de um período anterior. */
+  const taxaPorSaque = new Map<string, Cents>()
+  for (const l of ledger) if (l.tipo === 'taxa_saque' && l.refInterna) taxaPorSaque.set(l.refInterna, l.valor)
+  const taxasDevolvidas = noPer
+    .filter((l) => l.tipo === 'estorno' && l.refInterna?.startsWith('SAQ-'))
+    .reduce((s, l) => s + (taxaPorSaque.get(l.refInterna as string) ?? 0), 0)
+  const receitaTaxaSaque = taxasSaque.reduce((s, l) => s + l.valor, 0) - taxasDevolvidas
 
   /* receita de tarifas de retirada física */
   const receitaTaxaRetirada = taxasRetirada.reduce((s, l) => s + l.valor, 0)

@@ -8,7 +8,7 @@ import { resumirFinanceiro, somarColunasDeDinheiro } from './financeiro'
 
 const EM = (mes: number, dia: number): number => new Date(2026, mes - 1, dia, 12).getTime()
 
-function l(tipo: LedgerTipo, valor: number, createdAt: number, sinal: Sinal, refExterna: string | null = null): LedgerEntry {
+function l(tipo: LedgerTipo, valor: number, createdAt: number, sinal: Sinal, refExterna: string | null = null, refInterna: string | null = null): LedgerEntry {
   return {
     createdAt,
     userEmail: 'a@x.com',
@@ -17,7 +17,7 @@ function l(tipo: LedgerTipo, valor: number, createdAt: number, sinal: Sinal, ref
     sinal,
     tipoMoeda: null,
     quantidade: null,
-    refInterna: null,
+    refInterna,
     refExterna,
     descricao: '',
     saldoApos: 0,
@@ -80,6 +80,22 @@ describe('resumirFinanceiro', () => {
       { mes: '2026-08', depositos: 12000, saques: 4500, comissoes: 250, custodiaPaga: 400, tarifas: 500, receita: 1150 },
       { mes: '2026-09', depositos: 0, saques: 0, comissoes: 0, custodiaPaga: 0, tarifas: 5000, receita: 5000 },
     ])
+  })
+})
+
+describe('resumirFinanceiro — saque recusado (14/10/2026)', () => {
+  it('o estorno devolve líquido e tarifa: a coluna de saques perde o líquido e a de tarifas perde a tarifa', () => {
+    const ledger = [
+      l('saque', 9500, EM(8, 4), -1, null, 'SAQ-A'),
+      l('taxa_saque', 500, EM(8, 4), -1, null, 'SAQ-A'),
+      l('saque', 4500, EM(8, 5), -1, null, 'SAQ-B'),
+      l('taxa_saque', 500, EM(8, 5), -1, null, 'SAQ-B'),
+      l('estorno', 10000, EM(8, 9), 1, null, 'SAQ-A'),
+      // estorno de custódia (outra referência) não é saque
+      l('estorno', 200, EM(8, 9), 1, null, 'PLC-1'),
+    ]
+    const r = resumirFinanceiro({ ledger, saques: [], faturas: [], periodo: periodoMensal(2026, 8) })
+    expect(r.fluxoMensal).toEqual([{ mes: '2026-08', depositos: 0, saques: 4500, comissoes: 0, custodiaPaga: 0, tarifas: 500, receita: 500 }])
   })
 })
 

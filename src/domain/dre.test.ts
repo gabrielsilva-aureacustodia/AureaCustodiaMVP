@@ -141,6 +141,36 @@ describe('montarDre', () => {
     expect(dre.linhas.find((l) => l.codigo === '3.1.04')?.valor).toBe(3_000)
   })
 
+  it('saque recusado: a tarifa devolvida ao cliente deixa de ser receita (14/10/2026)', () => {
+    const base = { userEmail: 'a', tipoMoeda: null, quantidade: null, refExterna: null }
+    const pendentes = [
+      lancamentoDeSaldoInicial('a', 100_000, new Date(2026, 7, 1).getTime(), 'abertura'),
+      { ...base, createdAt: new Date(2026, 7, 5).getTime(), tipo: 'saque' as const, valor: 9_500, sinal: -1 as const, refInterna: 'SAQ-A', descricao: 'Saque' },
+      { ...base, createdAt: new Date(2026, 7, 5).getTime(), tipo: 'taxa_saque' as const, valor: 500, sinal: -1 as const, refInterna: 'SAQ-A', descricao: 'Tarifa' },
+      { ...base, createdAt: new Date(2026, 7, 6).getTime(), tipo: 'saque' as const, valor: 4_500, sinal: -1 as const, refInterna: 'SAQ-B', descricao: 'Saque' },
+      { ...base, createdAt: new Date(2026, 7, 6).getTime(), tipo: 'taxa_saque' as const, valor: 500, sinal: -1 as const, refInterna: 'SAQ-B', descricao: 'Tarifa' },
+      // o SAQ-A é recusado: volta líquido + tarifa
+      { ...base, createdAt: new Date(2026, 7, 8).getTime(), tipo: 'estorno' as const, valor: 10_000, sinal: 1 as const, refInterna: 'SAQ-A', descricao: 'Estorno de saque recusado' },
+    ]
+    const ledger = encadear(pendentes, {}, GENESIS).lancamentos
+    const dre = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
+    // duas tarifas cobradas, uma devolvida: só a do SAQ-B é receita
+    expect(dre.totais.receitaTaxaSaque).toBe(500)
+    expect(dre.linhas.find((l) => l.codigo === '3.1.03')?.valor).toBe(500)
+  })
+
+  it('estorno de custódia (plano) não mexe na receita de tarifa de saque', () => {
+    const base = { userEmail: 'a', tipoMoeda: null, quantidade: null, refExterna: null }
+    const pendentes = [
+      lancamentoDeSaldoInicial('a', 100_000, new Date(2026, 7, 1).getTime(), 'abertura'),
+      { ...base, createdAt: new Date(2026, 7, 5).getTime(), tipo: 'taxa_saque' as const, valor: 500, sinal: -1 as const, refInterna: 'SAQ-A', descricao: 'Tarifa' },
+      { ...base, createdAt: new Date(2026, 7, 8).getTime(), tipo: 'estorno' as const, valor: 200, sinal: 1 as const, refInterna: 'PLC-1', descricao: 'Estorno de custódia' },
+    ]
+    const ledger = encadear(pendentes, {}, GENESIS).lancamentos
+    const dre = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
+    expect(dre.totais.receitaTaxaSaque).toBe(500)
+  })
+
   it('sem alíquota configurada, impostos ficam zerados e a pendência é declarada', () => {
     const dre = montarDre({ ledger: ledgerDeExemplo(), manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
     expect(dre.totais.deducoes).toBe(0)

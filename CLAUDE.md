@@ -144,6 +144,17 @@ cold start.
   paga o próximo mês, como qualquer outra moeda que guarde. `ModalidadePlanoCustodia` ainda aceita
   `'anual'` no union por causa de linhas antigas no banco; nenhum caminho de código cria uma.
   A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
+- **Saque é aprovado pela equipe, e só pela equipe** (14/10/2026, depois do saque do Sidnei que zerou o saldo e
+  ficou parado). O cliente pede (`solicitarSaque`): o valor total — líquido + tarifa de R$ 5,00 — sai do saldo
+  e o pedido fica `solicitado`, com aviso por e-mail à equipe e alerta no painel inicial. Aprovar, pagar por fora,
+  conferir e recusar vivem em `src/server/actions/admin/saques.ts` e exigem `saques.pagar` (ver a fila: `saques.ver`);
+  a lógica está em `src/server/saques/pagamento.ts`. **Nenhuma função de saque que não seja a de pedir pode viver
+  em arquivo de conta de cliente**: até 14/10 `confirmarLiquidacaoSaque` e `rejeitarSaque` estavam em `account.ts`
+  conferindo só a sessão — todo export de arquivo `'use server'` é endpoint. Recusar devolve o valor total e o
+  ledger grava um `estorno`. O Pix automático pela API de Payouts do Mercado Pago (`src/lib/payments/payouts*.ts`)
+  só liga com `MP_PAYOUTS_ATIVO="true"` e credencial (assinatura Ed25519 em produção); sem isso a equipe paga por fora
+  e registra o comprovante. Passo a passo em `docs/SAQUE_PIX_MERCADO_PAGO.md`; atalhos em RA-58. O RA-01 (parecer
+  jurídico sobre guardar dinheiro de terceiros) foi **encerrado pelo Gabriel em 11/09/2026** — não bloqueia o saque.
 - **A oferta de compra pré-paga é criada PELO PAGAMENTO**, nunca antes (28/09/2026). `publishBid`
   recusa a modalidade `prepago`: quem cria a ordem é `publicarOfertaPrePagaComSaldo` ou o
   liquidador da conciliação, quando o gateway confirma. Até 27/09 ela era gravada com

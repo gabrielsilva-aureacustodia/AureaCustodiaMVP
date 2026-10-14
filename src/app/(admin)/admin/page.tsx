@@ -13,6 +13,7 @@ import { TODOS_ITENS, permiteItem } from '@/components/admin/navegacao'
 import { temAlguma, temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarPainelInicial } from '@/server/admin/resultados'
+import { carregarFilaDeSaques } from '@/server/admin/saques'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,8 @@ export default async function AdminInicioPage(): Promise<ReactNode> {
     },
     Date.now(),
   )
+  // Saque esperando é dinheiro de cliente parado: sobe como alerta no topo, em qualquer variante do painel.
+  const saques = temPermissao(membro, 'saques.ver') ? await carregarFilaDeSaques().catch(() => null) : null
   const atalhos = TODOS_ITENS.filter((i) => i.href !== '/admin' && permiteItem(i, membro.permissoes))
-  return <PainelInicial membro={membro} dados={dados} atalhos={atalhos} />
+  return <PainelInicial membro={membro} dados={dados} atalhos={atalhos} saques={saques} podePagarSaques={temPermissao(membro, 'saques.pagar')} />
 }

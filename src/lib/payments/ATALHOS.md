@@ -40,3 +40,7 @@ Data:          03/09/2026 (atualizado na conclusão da Frente C)
 - **Situação:** Pagamentos aprovados no fim do mês no fuso de Brasília (UTC-3).
 - **Implementação:** `competenciaAtual(aprovadoEm)` usa UTC. Transações entre 21h00 e 23h59 do último dia do mês civil caem na competência do mês seguinte.
 
+### 9. RA-58 — Payouts (saque por Pix) desligado por padrão e aviso de status sem assinatura (14/10/2026)
+- **Situação:** `payouts.ts` só envia dinheiro com `MP_PAYOUTS_ATIVO="true"`; sem credencial devolve a lista do que falta e o painel oferece só o pagamento manual.
+- **Implementação:** corpo, cabeçalhos e assinatura Ed25519 em `payouts-core.ts` (testado com chave gerada na hora). O aviso do gateway não é assinado: `/api/webhooks/mercadopago-payouts` só aponta para o saque e a situação sai da consulta `GET /v1/payouts/{id}/transactions`.
+- **Pendente do Gabriel:** gerar o par de chaves, entregar a pública ao time de Integrações do Mercado Pago e ativar as credenciais de produção — `docs/SAQUE_PIX_MERCADO_PAGO.md`.

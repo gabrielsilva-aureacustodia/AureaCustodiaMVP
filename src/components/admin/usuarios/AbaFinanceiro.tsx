@@ -11,12 +11,14 @@
 import type { ReactNode } from 'react'
 
 import { quitarFaturaComSaldoNoPainel } from '@/server/actions/admin/usuarios'
+import type { DadosDaFilaDeSaques } from '@/server/admin/saques'
 import type { AbaFinanceiro as DadosAbaFinanceiro } from '@/server/admin/ficha'
 
 import { AcoesDoPlano } from '../registros'
 import { BotaoAcao } from '../BotaoAcao'
 import { Cartao, Indisponivel } from '../Blocos'
 import { data, dataHora, dinheiro, nomeDoMes, numero } from '../formatos'
+import { FilaDeSaques } from '../saques/FilaDeSaques'
 
 const SITUACAO_FATURA: Record<string, { rotulo: string; classe: string }> = {
   paga: { rotulo: 'Paga', classe: 'pill g' },
@@ -38,7 +40,22 @@ const TIPO_LEDGER: Record<string, string> = {
   ajuste: 'Ajuste',
 }
 
-export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: DadosAbaFinanceiro; semBanco: boolean; email: string; podeEditar: boolean }): ReactNode {
+export function AbaFinanceiro({
+  dados,
+  semBanco,
+  email,
+  podeEditar,
+  saques = null,
+  podePagarSaques = false,
+}: {
+  dados: DadosAbaFinanceiro
+  semBanco: boolean
+  email: string
+  podeEditar: boolean
+  /** A fila desta conta (com `saques.ver`); sem ela, a tabela só de leitura de antes. */
+  saques?: DadosDaFilaDeSaques | null
+  podePagarSaques?: boolean
+}): ReactNode {
   const t = dados.totais
   return (
     <>
@@ -127,8 +144,8 @@ export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: D
         </div>
       </details>
 
-      <details className="adm-detalhes">
-        <summary>Depósitos e saques</summary>
+      <details className="adm-detalhes" open={Boolean(saques && saques.fila.length > 0)}>
+        <summary>Depósitos e saques{saques && saques.fila.length > 0 ? ` — ${numero(saques.fila.length)} saque(s) esperando` : ''}</summary>
         <div className="adm-detalhes-corpo">
           <div className="adm-subtitulo">Depósitos</div>
           {dados.depositos.length ? (
@@ -143,7 +160,9 @@ export function AbaFinanceiro({ dados, semBanco, email, podeEditar }: { dados: D
             <p className="adm-fraco">Nenhum depósito.</p>
           )}
           <div className="adm-subtitulo">Saques</div>
-          {dados.saques.length ? (
+          {saques ? (
+            <FilaDeSaques dados={saques} podePagar={podePagarSaques} comCliente={false} vazio="Nenhum saque." />
+          ) : dados.saques.length ? (
             <div className="table-scroll">
               <table className="audit-table">
                 <thead>

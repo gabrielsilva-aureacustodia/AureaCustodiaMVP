@@ -74,6 +74,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-53** | O gateway não reconfere a pendência de custódia na confirmação do pagamento — **pago em 18/09/2026 (E8)** | ✅ | `src/server/actions/`, `src/server/payments/` |
 | **RA-57** | Os documentos legais versionados (Termos de Uso, Política de Privacidade, Tabela de Taxas, Cláusula de Arbitragem) continuam escritos com a marca "Áurea" enquanto o site inteiro já diz "Real Olímpico" | 🟡 | `src/domain/documentos-legais/`, `src/domain/legal.ts` |
 | **RA-56** | Pagamento aprovado que não pode liquidar vira saldo em conta, sem devolução pelo gateway e sem aviso próprio na tela de pagamento | 🟡 | `src/server/payments/` |
+| **RA-58** | Saque aprovado pela equipe; o Pix automático pelo Mercado Pago nasce DESLIGADO e o aviso de status do gateway não é assinado (só aponta, a consulta decide) | 🟡 | `src/server/saques/`, `src/lib/payments/payouts*.ts`, `src/app/api/webhooks/mercadopago-payouts/` |
 
 ---
 
@@ -1264,3 +1265,29 @@ trocar as referências à plataforma nos quatro documentos, subir a versão vige
 novo rodar. A razão social continua no preâmbulo e em todo ponto com CNPJ.
 
 Nota em `src/domain/documentos-legais/ATALHOS.md`.
+
+
+# RA-58 — Saque aprovado pela equipe; Pix automático desligado por padrão 🟡
+
+**O atalho:** em 14/10/2026 o saque ganhou fila, aprovação e recusa no painel (`/admin/saques`, o Financeiro, o
+painel inicial e a ficha do cliente) e a integração com a API de Payouts do Mercado Pago
+(`src/lib/payments/payouts*.ts`). Duas coisas ficaram de fora de propósito:
+
+1. **O envio automático só liga com `MP_PAYOUTS_ATIVO="true"` e credencial.** Sem isso o botão "Aprovar e
+   enviar Pix" não aparece e a equipe paga por fora e registra o comprovante. Não há simulador: um envio de
+   mentira marcaria como pago um saque que ninguém pagou. Em produção a API exige a assinatura Ed25519 do
+   corpo, e a chave **pública** precisa ter sido entregue ao time de Integrações do Mercado Pago (passo manual,
+   em `docs/SAQUE_PIX_MERCADO_PAGO.md`).
+2. **O aviso de status que o Mercado Pago manda (`/api/webhooks/mercadopago-payouts`) não tem assinatura
+   verificável na documentação.** A rota o trata como um dedo apontando: lê só o id do payout e a referência, e
+   a situação do saque vem SEMPRE da consulta que nós fazemos com o nosso token. Um aviso falso só provoca uma
+   consulta a mais.
+
+**O que isso custa:** enquanto o envio estiver desligado, cada saque depende de uma pessoa fazer o Pix. A
+previsão D+3 mostrada ao cliente é só uma previsão — o painel marca em vermelho o que passou do prazo e avisa
+a equipe por e-mail quando entra pedido novo.
+
+**Como se paga:** ativar o envio (checklist no guia), rodar um saque pequeno em sandbox e depois um real de
+valor baixo, e só então confiar a fila ao botão.
+
+Nota em `src/lib/payments/ATALHOS.md`.

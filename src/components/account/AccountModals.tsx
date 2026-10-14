@@ -707,6 +707,12 @@ export function ModalSaque(): ReactNode {
         <span className="v">D+3 úteis (previsão: {dataPrevistaBR})</span>
       </div>
 
+      <div className="note" style={{ marginTop: 10 }}>
+        Cada pedido é conferido pela nossa equipe antes do envio do Pix. O valor sai do seu saldo agora e fica
+        reservado para o saque; se o pedido for recusado, ele volta integralmente. Você recebe um e-mail quando
+        o saque for pago.
+      </div>
+
       {cents > 0 && cents <= TAXA_SAQUE_FIXA_CENTS ? (
         <div className="note" style={{ marginTop: 10 }}>
           O valor do saque deve ser superior à tarifa fixa de {brl(TAXA_SAQUE_FIXA_CENTS)}.

@@ -732,6 +732,60 @@ function suite(alvo: Alvo): void {
       expect(lido.saques?.[0].pagoEm).toBe(1_700_100_000_000)
     })
 
+    it('saques: aprovação pelo painel grava canal, aprovador e ids do payout; recusar estorna no ledger sem ajuste', async () => {
+      await lerEstado(executar)
+      const email = 'gabrielsilva@testeaurea.com.br'
+      const dados = { chavePix: '52998224725', tipoChavePix: 'cpf' as const }
+      const base = { userEmail: email, valorTotal: 10_000, taxa: 500, valorLiquido: 9_500, dadosBancarios: dados, criadoEm: 1_700_000_000_000, previsaoPagamentoEm: 1_700_259_200_000, atualizadoEm: 1_700_000_000_000 }
+
+      await mutarEstado(executar, (s) => {
+        s.users[email].balance -= 20_000
+        s.saques = [
+          { ...base, id: 'SAQ-APR-1', status: 'solicitado' },
+          { ...base, id: 'SAQ-REC-1', status: 'solicitado' },
+        ]
+      })
+
+      await mutarEstado(executar, (s) => {
+        const sq = s.saques!.find((x) => x.id === 'SAQ-APR-1')!
+        sq.status = 'em_processamento'
+        sq.canal = 'mercadopago'
+        sq.aprovadoPor = 'socio@aureacustodia.com.br'
+        sq.aprovadoEm = 1_700_050_000_000
+        sq.payoutId = 'POP123'
+        sq.payoutTransacaoId = 'TOP456'
+        sq.tentativas = 1
+        sq.detalheGateway = 'aceito pelo Mercado Pago'
+      })
+      let lido = await lerEstado(executar)
+      expect(lido.saques!.find((x) => x.id === 'SAQ-APR-1')).toMatchObject({
+        status: 'em_processamento',
+        canal: 'mercadopago',
+        aprovadoPor: 'socio@aureacustodia.com.br',
+        aprovadoEm: 1_700_050_000_000,
+        payoutId: 'POP123',
+        payoutTransacaoId: 'TOP456',
+        tentativas: 1,
+        detalheGateway: 'aceito pelo Mercado Pago',
+      })
+
+      const saldoAntes = lido.users[email].balance
+      await mutarEstado(executar, (s) => {
+        const sq = s.saques!.find((x) => x.id === 'SAQ-REC-1')!
+        sq.status = 'falhou'
+        sq.motivoFalha = 'Chave Pix de outra titularidade'
+        s.users[email].balance += sq.valorTotal
+      })
+      lido = await lerEstado(executar)
+      expect(lido.users[email].balance).toBe(saldoAntes + 10_000)
+
+      const ledger = await executar((tx) => listarLancamentos(tx))
+      const estornos = ledger.filter((l) => l.tipo === 'estorno' && l.refInterna === 'SAQ-REC-1')
+      expect(estornos).toHaveLength(1)
+      expect(estornos[0].valor).toBe(10_000)
+      expect(ledger.filter((l) => l.tipo === 'ajuste' && l.userEmail === email && l.descricao.includes('SAQ'))).toHaveLength(0)
+    })
+
     it('faturas: persiste fatura de custódia, liquidação e recarrega fielmente', async () => {
       await lerEstado(executar)
       const email = 'gabrielsilva@testeaurea.com.br'

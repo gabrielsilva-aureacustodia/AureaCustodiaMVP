@@ -62,3 +62,62 @@ describe('derivarLancamentos — Saques e Invariante do Ledger', () => {
     expect(derivado.ajustes).toHaveLength(0)
   })
 })
+
+describe('derivarLancamentos — saque recusado', () => {
+  const email = 'gabrielsilva@testeaurea.com.br'
+
+  function comSaque(status: Saque['status']): AppState {
+    const s: AppState = seedState()
+    s.saques = [
+      {
+        id: 'SAQ-REC-1',
+        userEmail: email,
+        valorTotal: 10_000,
+        taxa: 500,
+        valorLiquido: 9_500,
+        dadosBancarios: { chavePix: '52998224725', tipoChavePix: 'cpf' as const },
+        status,
+        criadoEm: 1,
+        previsaoPagamentoEm: 2,
+        atualizadoEm: 1,
+      },
+    ]
+    return s
+  }
+
+  it('recusar devolve o valor total como `estorno` — e não como um `ajuste` sem explicação', () => {
+    const antes = comSaque('solicitado')
+    const depois = structuredClone(antes)
+    depois.saques![0].status = 'falhou'
+    depois.saques![0].motivoFalha = 'Chave Pix de outra titularidade'
+    depois.users[email].balance += 10_000
+
+    const derivado = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h' })
+
+    expect(derivado.lancamentos).toHaveLength(1)
+    const l = derivado.lancamentos[0]
+    expect(l.tipo).toBe('estorno')
+    expect(l.valor).toBe(10_000)
+    expect(l.sinal).toBe(1)
+    expect(l.refInterna).toBe('SAQ-REC-1')
+    expect(l.descricao).toContain('Chave Pix de outra titularidade')
+    expect(derivado.ajustes).toHaveLength(0)
+  })
+
+  it('só a TRANSIÇÃO para falhou estorna: um saque já recusado e regravado não gera outro lançamento', () => {
+    const antes = comSaque('falhou')
+    const depois = structuredClone(antes)
+    depois.saques![0].atualizadoEm = 99
+    const derivado = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h' })
+    expect(derivado.lancamentos).toHaveLength(0)
+  })
+
+  it('pagar o saque não mexe no ledger (o dinheiro já tinha saído do saldo no pedido)', () => {
+    const antes = comSaque('solicitado')
+    const depois = structuredClone(antes)
+    depois.saques![0].status = 'pago'
+    const derivado = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h' })
+    expect(derivado.lancamentos).toHaveLength(0)
+    expect(derivado.ajustes).toHaveLength(0)
+  })
+})

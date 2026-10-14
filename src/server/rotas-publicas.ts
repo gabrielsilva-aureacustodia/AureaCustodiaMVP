@@ -39,7 +39,7 @@ export const ROTAS_PUBLICAS_EXATAS: readonly string[] = [
  * que a rede não os barre antes de a verificação deles acontecer.
  */
 export const ROTAS_PUBLICAS_PREFIXOS: readonly string[] = [
-  '/api/webhooks/', // Mercado Pago e WhatsApp — conferem a assinatura do provedor
+  '/api/webhooks/', // Mercado Pago e WhatsApp — conferem a assinatura do provedor (o de saques não tem: só aponta, e a consulta confirma)
   '/api/cron/', // faturamento e rastreio — conferem CRON_SECRET
   '/api/estacao', // bancada física — confere o token do equipamento no header Authorization
   '/entrar/callback', // retorno do Supabase Auth: é aqui que a sessão nasce

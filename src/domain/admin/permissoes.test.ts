@@ -35,11 +35,12 @@ function papel(slug: string, permissoes: readonly string[], id = 7): PapelGravad
 }
 
 describe('catálogo de permissões', () => {
-  it('tem as 26 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
+  it('tem as 29 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
     // 24 até 22/09/2026; 26 desde a gestão de registros (registros.editar e
-    // registros.excluir), que entrou em 23/09.
-    expect(CHAVES_PERMISSAO).toHaveLength(26)
-    expect(new Set(CHAVES_PERMISSAO).size).toBe(26)
+    // registros.excluir), que entrou em 23/09; 29 desde 14/10/2026 (saques.ver, saques.pagar e
+    // logistica.expedir).
+    expect(CHAVES_PERMISSAO).toHaveLength(29)
+    expect(new Set(CHAVES_PERMISSAO).size).toBe(29)
     for (const p of PERMISSOES) expect(p.chave.startsWith(`${p.modulo}.`)).toBe(true)
   })
 
@@ -59,7 +60,7 @@ describe('papéis de sistema', () => {
   it('dev nasce com tudo; sócio com tudo menos papéis e membros; operação só bancada e logística', () => {
     expect(papelDeSistema('dev')?.permissoesIniciais).toEqual(CHAVES_PERMISSAO)
     const socio = papelDeSistema('socio')?.permissoesIniciais ?? []
-    expect(socio).toHaveLength(24)
+    expect(socio).toHaveLength(27)
     expect(socio).not.toContain('admin.papeis')
     expect(socio).not.toContain('admin.membros')
     expect(socio).toContain('admin.auditoria')
@@ -70,8 +71,13 @@ describe('papéis de sistema', () => {
       'bancada.analisar',
       'bancada.auditoria',
       'logistica.ver',
+      'logistica.expedir',
       'logistica.etiquetas',
     ])
+    expect(socio).toContain('saques.ver')
+    expect(socio).toContain('saques.pagar')
+    // quem opera a bancada e a logística NÃO paga saque
+    expect(papelDeSistema('operacao')?.permissoesIniciais).not.toContain('saques.pagar')
   })
 
   it('os ranks ordenam dev > sócio > operação', () => {

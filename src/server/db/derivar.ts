@@ -96,6 +96,21 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     pendentes.push(lancamentoDeTaxaSaque(s.userEmail, s.taxa, s.criadoEm, s.id))
   })
 
+  /* saque recusado: o valor total (líquido + tarifa) volta ao saldo.
+   *
+   * Sem este lançamento o saldo subiria sem negociação, depósito ou conta nova e cairia na rede
+   * de segurança como `ajuste` — visível, mas sem dizer que foi um saque recusado. Só a TRANSIÇÃO
+   * para 'falhou' conta: um saque que já estava recusado e foi regravado não estorna de novo. */
+  const saquesAntes = new Map((antes.saques ?? []).map((s) => [s.id, s]))
+  for (const s of depois.saques ?? []) {
+    const anterior = saquesAntes.get(s.id)
+    if (anterior && anterior.status !== 'falhou' && s.status === 'falhou') {
+      pendentes.push(
+        lancamentoDeEstorno(s.userEmail, s.valorTotal, agora, s.id, `Estorno de saque recusado (${s.id})${s.motivoFalha ? ` — ${s.motivoFalha}` : ''}`),
+      )
+    }
+  }
+
   /* faturas mensais de custódia
    *
    * Um lançamento por fatura NOVA, e um quando ela passa a ser liquidada com

@@ -433,7 +433,24 @@ export interface Saque {
   pagoEm?: Timestamp | null
   comprovanteRef?: string | null
   atualizadoEm: Timestamp
+  /**
+   * Como o dinheiro foi (ou será) enviado — 14/10/2026. `mercadopago` = Pix pela API de Payouts,
+   * `manual` = a equipe pagou por fora e registrou o comprovante. Nulo = ainda não aprovado.
+   */
+  canal?: CanalDoSaque | null
+  /** Quem aprovou e quando (e-mail da equipe). Nulo enquanto estiver `solicitado`. */
+  aprovadoPor?: string | null
+  aprovadoEm?: Timestamp | null
+  /** Id do payout no Mercado Pago (`POP…`) e da transação dentro dele (`TOP…`). */
+  payoutId?: string | null
+  payoutTransacaoId?: string | null
+  /** Quantas vezes o envio foi tentado: a referência no Mercado Pago muda a cada tentativa. */
+  tentativas?: number
+  /** Última coisa que o Mercado Pago disse (status e detalhe), para a equipe ler. */
+  detalheGateway?: string | null
 }
+
+export type CanalDoSaque = 'mercadopago' | 'manual'
 
 /* ---------------------------------------------------------------------------
  * Faturamento mensal de custódia (Sessão B-5 / Bloco 8)

@@ -31,6 +31,7 @@ import { primeiroValor, type ParametrosDaUrl } from '@/domain/admin/periodo'
 import { normalizarEmail, temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { ABAS_FICHA, carregarFicha, lerAba } from '@/server/admin/ficha'
+import { carregarFilaDeSaques } from '@/server/admin/saques'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +78,8 @@ export default async function FichaDoUsuarioPage({
   }
 
   const { cabecalho, conteudo } = ficha
+  const saquesDaConta =
+    conteudo.aba === 'financeiro' && temPermissao(membro, 'saques.ver') ? await carregarFilaDeSaques({ userEmail: email, historico: 10 }) : null
   const base = `/admin/usuarios/${encodeURIComponent(email)}`
 
   return (
@@ -94,7 +97,7 @@ export default async function FichaDoUsuarioPage({
 
       <div className="panel">
         {conteudo.aba === 'cadastro' ? <AbaCadastro email={email} nome={cabecalho.resumo.nome} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
-        {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={temPermissao(membro, 'usuarios.editar')} /> : null}
+        {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={temPermissao(membro, 'usuarios.editar')} saques={saquesDaConta} podePagarSaques={temPermissao(membro, 'saques.pagar')} /> : null}
         {conteudo.aba === 'acervo' ? (
           <>
             {/* Cadastro direto: moeda que já está no armazém entra por aqui, sem

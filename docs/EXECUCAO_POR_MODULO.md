@@ -314,6 +314,10 @@ prova nada.
 
 ## 🔴 Trava antes de começar
 
+> **ATUALIZAÇÃO 14/10/2026:** o [RA-01](../RISCOS_ASSUMIDOS.md#ra-01) foi **encerrado pelo Gabriel em 11/09/2026** (o risco
+> regulatório foi assumido), então a trava abaixo não existe mais. O saque por Pix pelo Mercado Pago está em
+> [`docs/SAQUE_PIX_MERCADO_PAGO.md`](SAQUE_PIX_MERCADO_PAGO.md). O texto original segue como histórico.
+
 **Este módulo não é ligado em produção sem o parecer jurídico do
 [RA-01](../RISCOS_ASSUMIDOS.md#ra-01).** Construir a integração é seguro; ativá-la com
 dinheiro real depende da resposta escrita sobre arranjo de pagamento.

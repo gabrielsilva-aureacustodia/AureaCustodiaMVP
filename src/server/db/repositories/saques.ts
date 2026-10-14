@@ -23,6 +23,13 @@ type LinhaSaque = {
   pago_em: unknown | null
   comprovante_ref: string | null
   atualizado_em: unknown
+  canal: string | null
+  aprovado_por: string | null
+  aprovado_em: unknown | null
+  payout_id: string | null
+  payout_transacao_id: string | null
+  tentativas: unknown
+  detalhe_gateway: string | null
 }
 
 function linhaParaSaque(r: LinhaSaque): Saque {
@@ -45,6 +52,13 @@ function linhaParaSaque(r: LinhaSaque): Saque {
     pagoEm: r.pago_em !== null && r.pago_em !== undefined ? num(r.pago_em) : null,
     comprovanteRef: r.comprovante_ref ?? null,
     atualizadoEm: num(r.atualizado_em),
+    canal: r.canal === 'mercadopago' || r.canal === 'manual' ? r.canal : null,
+    aprovadoPor: r.aprovado_por ?? null,
+    aprovadoEm: r.aprovado_em !== null && r.aprovado_em !== undefined ? num(r.aprovado_em) : null,
+    payoutId: r.payout_id ?? null,
+    payoutTransacaoId: r.payout_transacao_id ?? null,
+    tentativas: r.tentativas === null || r.tentativas === undefined ? 0 : num(r.tentativas),
+    detalheGateway: r.detalhe_gateway ?? null,
   }
 }
 
@@ -54,7 +68,8 @@ export async function carregarSaques(tx: Consulta): Promise<Saque[]> {
   const { rows } = await tx.query<LinhaSaque>(
     `SELECT id, user_email, valor_total, taxa, valor_liquido, dados_bancarios,
             status, motivo_falha, criado_em, previsao_pagamento_em, pago_em,
-            comprovante_ref, atualizado_em
+            comprovante_ref, atualizado_em, canal, aprovado_por, aprovado_em,
+            payout_id, payout_transacao_id, tentativas, detalhe_gateway
        FROM ${S}.saques
       ORDER BY criado_em ASC`,
   )
@@ -68,8 +83,9 @@ export async function inserirSaque(tx: Consulta, s: Saque): Promise<void> {
     `INSERT INTO ${S}.saques (
        id, user_email, valor_total, taxa, valor_liquido, dados_bancarios,
        status, motivo_falha, criado_em, previsao_pagamento_em, pago_em,
-       comprovante_ref, atualizado_em
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+       comprovante_ref, atualizado_em, canal, aprovado_por, aprovado_em,
+       payout_id, payout_transacao_id, tentativas, detalhe_gateway
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
     [
       s.id,
       s.userEmail,
@@ -84,11 +100,18 @@ export async function inserirSaque(tx: Consulta, s: Saque): Promise<void> {
       s.pagoEm ?? null,
       s.comprovanteRef ?? null,
       s.atualizadoEm,
+      s.canal ?? null,
+      s.aprovadoPor ?? null,
+      s.aprovadoEm ?? null,
+      s.payoutId ?? null,
+      s.payoutTransacaoId ?? null,
+      s.tentativas ?? 0,
+      s.detalheGateway ?? null,
     ],
   )
 }
 
-/** Atualiza status, comprovante e motivo de falha de um saque existente. */
+/** Atualiza situação, comprovante, aprovação e dados do Mercado Pago de um saque existente. */
 export async function atualizarSaque(tx: Consulta, s: Saque): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
@@ -97,14 +120,28 @@ export async function atualizarSaque(tx: Consulta, s: Saque): Promise<void> {
        motivo_falha = $2,
        pago_em = $3,
        comprovante_ref = $4,
-       atualizado_em = $5
-     WHERE id = $6`,
+       atualizado_em = $5,
+       canal = $6,
+       aprovado_por = $7,
+       aprovado_em = $8,
+       payout_id = $9,
+       payout_transacao_id = $10,
+       tentativas = $11,
+       detalhe_gateway = $12
+     WHERE id = $13`,
     [
       s.status,
       s.motivoFalha ?? null,
       s.pagoEm ?? null,
       s.comprovanteRef ?? null,
       s.atualizadoEm,
+      s.canal ?? null,
+      s.aprovadoPor ?? null,
+      s.aprovadoEm ?? null,
+      s.payoutId ?? null,
+      s.payoutTransacaoId ?? null,
+      s.tentativas ?? 0,
+      s.detalheGateway ?? null,
       s.id,
     ],
   )
@@ -116,7 +153,8 @@ export async function buscarSaquePorId(tx: Consulta, id: string): Promise<Saque 
   const { rows } = await tx.query<LinhaSaque>(
     `SELECT id, user_email, valor_total, taxa, valor_liquido, dados_bancarios,
             status, motivo_falha, criado_em, previsao_pagamento_em, pago_em,
-            comprovante_ref, atualizado_em
+            comprovante_ref, atualizado_em, canal, aprovado_por, aprovado_em,
+            payout_id, payout_transacao_id, tentativas, detalhe_gateway
        FROM ${S}.saques
       WHERE id = $1`,
     [id],

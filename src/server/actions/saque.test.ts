@@ -5,10 +5,9 @@ vi.mock('server-only', () => ({}))
 const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
 vi.mock('@/server/session', () => ({ getSessionEmail }))
 
+import * as contaActions from './account'
 import {
-  confirmarLiquidacaoSaque,
   listarMeusSaques,
-  rejeitarSaque,
   salvarCadastro,
   solicitarSaque,
   type CadastroInput,
@@ -126,57 +125,13 @@ describe('Server Actions de Saque de Recursos (account.ts)', () => {
     })
   })
 
-  describe('confirmarLiquidacaoSaque e rejeitarSaque', () => {
-    it('permite liquidar um saque pendente gravando comprovante e data de pagamento', async () => {
-      await salvarCadastro(cadastroValido)
-      const res = await solicitarSaque(10_000)
-      expect(res.ok).toBe(true)
-      const saqueId = res.data!.saqueId
-
-      const resLiq = await confirmarLiquidacaoSaque(saqueId, 'PIX-AUT-123456789')
-      expect(resLiq.ok).toBe(true)
-
-      const lista = await listarMeusSaques()
-      const sq = lista.data!.find((item) => item.id === saqueId)
-      expect(sq?.status).toBe('pago')
-      expect(sq?.comprovanteRef).toBe('PIX-AUT-123456789')
-      expect(sq?.pagoEm).toBeDefined()
-
-      // Tentar liquidar novamente deve falhar
-      const resDupla = await confirmarLiquidacaoSaque(saqueId)
-      expect(resDupla.ok).toBe(false)
-      expect(resDupla.error).toContain('já foi liquidado')
-    })
-
-    it('rejeita/cancela um saque com motivo e estorna o saldo integral para o cliente', async () => {
-      await salvarCadastro(cadastroValido)
-      const res = await solicitarSaque(10_000)
-      expect(res.ok).toBe(true)
-      const saqueId = res.data!.saqueId
-
-      // Saldo após saque: 40.000
-      await mutateState((s) => {
-        expect(s.users[EMAIL_TESTE]?.balance).toBe(40_000)
-      })
-
-      // Rejeita com motivo
-      const resRejeicao = await rejeitarSaque(saqueId, 'Chave Pix não encontrada no banco de destino')
-      expect(resRejeicao.ok).toBe(true)
-
-      const lista = await listarMeusSaques()
-      const sq = lista.data!.find((item) => item.id === saqueId)
-      expect(sq?.status).toBe('falhou')
-      expect(sq?.motivoFalha).toBe('Chave Pix não encontrada no banco de destino')
-
-      // Saldo deve ter sido estornado integralmente (volta para 50.000)
-      await mutateState((s) => {
-        expect(s.users[EMAIL_TESTE]?.balance).toBe(50_000)
-      })
-
-      // Tentar liquidar um saque falho deve ser recusado
-      const resLiqFalho = await confirmarLiquidacaoSaque(saqueId)
-      expect(resLiqFalho.ok).toBe(false)
-      expect(resLiqFalho.error).toContain('marcado como falho')
+  describe('quem liquida e recusa saque', () => {
+    it('não é mais função de conta de cliente: liquidar e recusar só existem no painel, com permissão', () => {
+      // Até 14/10/2026 `confirmarLiquidacaoSaque` e `rejeitarSaque` viviam aqui e conferiam apenas que
+      // havia uma sessão — qualquer cliente logado podia marcar o saque de outro como pago, ou
+      // recusá-lo e estornar o valor. Todo export de um arquivo 'use server' vira endpoint.
+      expect('confirmarLiquidacaoSaque' in contaActions).toBe(false)
+      expect('rejeitarSaque' in contaActions).toBe(false)
     })
   })
 })

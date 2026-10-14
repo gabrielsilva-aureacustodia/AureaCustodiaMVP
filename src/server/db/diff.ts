@@ -330,6 +330,13 @@ export function normalizarSaque(s: Saque): Saque {
     pagoEm: s.pagoEm ?? null,
     comprovanteRef: s.comprovanteRef ?? null,
     atualizadoEm: s.atualizadoEm,
+    canal: s.canal ?? null,
+    aprovadoPor: s.aprovadoPor ?? null,
+    aprovadoEm: s.aprovadoEm ?? null,
+    payoutId: s.payoutId ?? null,
+    payoutTransacaoId: s.payoutTransacaoId ?? null,
+    tentativas: s.tentativas ?? 0,
+    detalheGateway: s.detalheGateway ?? null,
   }
 }
 

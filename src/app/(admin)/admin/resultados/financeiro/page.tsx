@@ -11,11 +11,13 @@
 import type { ReactNode } from 'react'
 
 import { SemPermissao } from '@/components/admin/Blocos'
+import { SecaoDeSaques } from '@/components/admin/saques/SecaoDeSaques'
 import { Financeiro } from '@/components/admin/resultados/Financeiro'
 import { lerPeriodo, type ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarFinanceiro } from '@/server/admin/resultados'
+import { carregarFilaDeSaques } from '@/server/admin/saques'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,5 +27,12 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
 
   const periodo = lerPeriodo(await searchParams, Date.now())
   const dados = await carregarFinanceiro(periodo)
-  return <Financeiro dados={dados} periodo={periodo} podeExportar={temPermissao(membro, 'resultados.exportar')} />
+  // Os saques esperando ficam no topo do Financeiro: dinheiro de cliente parado é a primeira coisa a ver.
+  const saques = temPermissao(membro, 'saques.ver') ? await carregarFilaDeSaques({ historico: 5 }) : null
+  return (
+    <>
+      {saques ? <SecaoDeSaques dados={saques} podePagar={temPermissao(membro, 'saques.pagar')} /> : null}
+      <Financeiro dados={dados} periodo={periodo} podeExportar={temPermissao(membro, 'resultados.exportar')} />
+    </>
+  )
 }

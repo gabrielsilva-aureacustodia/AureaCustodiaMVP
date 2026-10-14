@@ -36,6 +36,7 @@ import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { portaDeIdentidadeDoAmbiente } from '@/server/admin/portas'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { renomearEmailNoAppState, renomearEmailUsuarioNoBanco } from '@/server/db/repositories/users'
+import { avisarClienteDoSaque, avisarEquipeDoNovoSaque } from '@/server/saques/avisos'
 import { getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 
@@ -646,6 +647,17 @@ export async function solicitarSaque(
       }
     })
 
+    // Avisos DEPOIS de gravar, e sem nunca desfazer o saque (ver `server/saques/avisos.ts`): a equipe
+    // precisa saber que há um pedido esperando — foi a falta disso que deixou o saque do Sidnei parado.
+    if (result.ok && result.data) {
+      const state = await getState()
+      const saque = (state.saques ?? []).find((s) => s.id === result.data?.saqueId)
+      if (saque) {
+        await avisarEquipeDoNovoSaque(saque, state.users[email]?.name ?? email)
+        await avisarClienteDoSaque(saque.id, 'solicitado')
+      }
+    }
+
     return result
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -669,98 +681,3 @@ export async function listarMeusSaques(): Promise<ActionResult<Saque[]>> {
     return { ok: false, error: FALHA_GRAVACAO }
   }
 }
-
-/**
- * Marca um saque como liquidado/pago (gesto do sócio na liquidação manual RA-30).
- */
-export async function confirmarLiquidacaoSaque(
-  saqueId: string,
-  comprovanteRef?: string,
-): Promise<ActionResult> {
-  const email = await getSessionEmail()
-  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
-
-  try {
-    const { result } = await mutateState<ActionResult>((s) => {
-      const saques = s.saques ?? []
-      const saque = saques.find((sq) => sq.id === saqueId)
-      if (!saque) return { ok: false, error: 'Solicitação de saque não encontrada.' }
-
-      if (saque.status === 'pago') {
-        return { ok: false, error: 'Este saque já foi liquidado.' }
-      }
-      if (saque.status === 'falhou') {
-        return { ok: false, error: 'Não é possível liquidar um saque marcado como falho.' }
-      }
-
-      const agora = Date.now()
-      saque.status = 'pago'
-      saque.pagoEm = agora
-      saque.atualizadoEm = agora
-      if (comprovanteRef?.trim()) {
-        saque.comprovanteRef = comprovanteRef.trim()
-      }
-
-      return {
-        ok: true,
-        message: `Saque ${saqueId} marcado como pago com sucesso.`,
-      }
-    })
-
-    return result
-  } catch {
-    return { ok: false, error: FALHA_GRAVACAO }
-  }
-}
-
-/**
- * Rejeita ou marca um saque como falho, estornando o valor total para o saldo do usuário.
- */
-export async function rejeitarSaque(
-  saqueId: string,
-  motivo: string,
-): Promise<ActionResult> {
-  const email = await getSessionEmail()
-  if (!email) return { ok: false, error: SESSAO_EXPIRADA }
-
-  if (!motivo?.trim()) {
-    return { ok: false, error: 'Informe o motivo da recusa do saque.' }
-  }
-
-  try {
-    const { result } = await mutateState<ActionResult>((s) => {
-      const saques = s.saques ?? []
-      const saque = saques.find((sq) => sq.id === saqueId)
-      if (!saque) return { ok: false, error: 'Solicitação de saque não encontrada.' }
-
-      if (saque.status === 'pago') {
-        return { ok: false, error: 'Não é possível recusar um saque já pago.' }
-      }
-      if (saque.status === 'falhou') {
-        return { ok: false, error: 'Este saque já foi marcado como falho.' }
-      }
-
-      const agora = Date.now()
-      saque.status = 'falhou'
-      saque.motivoFalha = motivo.trim()
-      saque.atualizadoEm = agora
-
-      // Estorna o valor debitado de volta para o saldo da conta do usuário
-      const u = s.users[saque.userEmail]
-      if (u) {
-        u.balance += saque.valorTotal
-      }
-
-      return {
-        ok: true,
-        message: `Saque ${saqueId} cancelado/recusado. O saldo de ${brl(saque.valorTotal)} foi estornado para o cliente.`,
-      }
-    })
-
-    return result
-  } catch {
-    return { ok: false, error: FALHA_GRAVACAO }
-  }
-}
-
-

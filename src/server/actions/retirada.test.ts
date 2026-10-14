@@ -363,6 +363,18 @@ describe('Consultas e Relatórios de Retiradas (Bloco 13)', () => {
       expect(entregue.data?.status).toBe('entregue')
     })
 
+    it('quem não é da equipe não avança a expedição de retirada alheia (14/10/2026)', async () => {
+      const moeda = state.users[USER_EMAIL].coins[0]
+      const criacao = await solicitarRetirada(moeda.id, 'comum', ENDERECO_VALIDO)
+      const retiradaId = criacao.data!.retiradaId
+      await pagarRetiradaComSaldo(retiradaId)
+
+      getSessionEmailMock.mockResolvedValue('estranho@exemplo.com')
+      const res = await avancarStatusRetirada(retiradaId, 'separacao')
+      expect(res.ok).toBe(false)
+      expect(res.error).toContain('Acesso não autorizado')
+    })
+
     it('rejeita avanço se a retirada não existir', async () => {
       const res = await avancarStatusRetirada('RET-INEXISTENTE', 'separacao')
       expect(res.ok).toBe(false)

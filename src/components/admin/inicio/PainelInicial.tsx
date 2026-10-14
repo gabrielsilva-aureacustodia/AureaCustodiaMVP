@@ -18,10 +18,12 @@ import type { ReactNode } from 'react'
 
 import type { MembroAdmin } from '@/domain/admin/permissoes'
 import type { DadosPainelInicial } from '@/server/admin/resultados'
+import type { DadosDaFilaDeSaques } from '@/server/admin/saques'
 
 import { Cartao } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 import type { ItemNav } from '../navegacao'
+import { SecaoDeSaques } from '../saques/SecaoDeSaques'
 
 type Secao = 'resultados' | 'operacao' | 'sistema' | 'atalhos'
 
@@ -31,7 +33,19 @@ const ORDEM: Record<MembroAdmin['papel']['variantePainel'], readonly Secao[]> = 
   desenvolvimento: ['sistema', 'resultados', 'operacao', 'atalhos'],
 }
 
-export function PainelInicial({ membro, dados, atalhos }: { membro: MembroAdmin; dados: DadosPainelInicial; atalhos: readonly ItemNav[] }): ReactNode {
+export function PainelInicial({
+  membro,
+  dados,
+  atalhos,
+  saques = null,
+  podePagarSaques = false,
+}: {
+  membro: MembroAdmin
+  dados: DadosPainelInicial
+  atalhos: readonly ItemNav[]
+  saques?: DadosDaFilaDeSaques | null
+  podePagarSaques?: boolean
+}): ReactNode {
   const secoes: Record<Secao, ReactNode> = {
     resultados: dados.resultados ? (
       <section key="resultados" className="adm-secao" aria-labelledby="inicio-resultados">
@@ -131,6 +145,18 @@ export function PainelInicial({ membro, dados, atalhos }: { membro: MembroAdmin;
           {membro.origem === 'ambiente' ? ', pela lista de administradores do ambiente' : ''}. O menu mostra só o que ele alcança.
         </p>
       </div>
+      {saques && saques.resumo.quantidade > 0 ? (
+        <>
+          <div className="note adm-secao" role="alert">
+            <b>
+              {numero(saques.resumo.quantidade)} saque(s) esperando — {dinheiro(saques.resumo.valorLiquido)} a pagar.
+            </b>{' '}
+            {saques.resumo.atrasados ? `${numero(saques.resumo.atrasados)} já passou(aram) do prazo D+3 prometido ao cliente. ` : ''}
+            O dinheiro do cliente já saiu do saldo dele: aprove ou recuse abaixo.
+          </div>
+          <SecaoDeSaques dados={saques} podePagar={podePagarSaques} compacto />
+        </>
+      ) : null}
       {ORDEM[membro.papel.variantePainel].map((s) => secoes[s])}
     </>
   )

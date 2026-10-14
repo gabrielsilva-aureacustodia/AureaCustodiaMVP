@@ -70,8 +70,20 @@ export function resumirFinanceiro(entrada: {
     }
     return m
   }
+  // Saque recusado: o `estorno` devolve líquido + tarifa. A coluna de saques perde o líquido e a de
+  // tarifas perde a tarifa — o mesmo desconto que a DRE faz na linha 3.1.03.
+  const taxaPorSaque = new Map<string, Cents>()
+  for (const l of entrada.ledger) if (l.tipo === 'taxa_saque' && l.refInterna) taxaPorSaque.set(l.refInterna, l.valor)
   for (const l of noPer) {
     switch (l.tipo) {
+      case 'estorno': {
+        if (l.refInterna?.startsWith('SAQ-')) {
+          const taxa = taxaPorSaque.get(l.refInterna) ?? 0
+          mesDe(l.createdAt).saques -= l.valor - taxa
+          mesDe(l.createdAt).tarifas -= taxa
+        }
+        break
+      }
       case 'deposito':
         mesDe(l.createdAt).depositos += l.valor
         break

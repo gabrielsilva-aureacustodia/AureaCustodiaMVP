@@ -60,6 +60,14 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
         icone: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
       },
       {
+        href: '/admin/saques',
+        rotulo: 'Saques',
+        titulo: 'Saques',
+        subtitulo: 'Pedidos de saque dos clientes: aprovar e enviar o Pix, pagar por fora ou recusar com estorno.',
+        permissoes: ['saques.ver'],
+        icone: <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />,
+      },
+      {
         href: '/admin/resultados/contabil',
         rotulo: 'Contábil',
         titulo: 'Contábil',

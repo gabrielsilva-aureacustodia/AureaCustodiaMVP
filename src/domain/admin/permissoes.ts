@@ -60,7 +60,17 @@ export const PERMISSOES = [
   // gravidade. Quem pode uma coisa não precisa poder a outra.
   { chave: 'registros.editar', modulo: 'registros', rotulo: 'Editar registros', descricao: 'Corrigir ofertas do mercado, envios e planos de custódia de qualquer conta.' },
   { chave: 'registros.excluir', modulo: 'registros', rotulo: 'Excluir registros', descricao: 'Apagar ofertas, envios e planos de custódia. Irreversível — restrito a sócios e desenvolvimento.' },
+  // 14/10/2026: saque pelo painel. Nasceu do saque do Sidnei, que zerou o saldo e ficou parado: a
+  // solicitação era gravada, mas nenhuma tela mostrava a fila nem pagava. Ver e pagar são separadas
+  // porque quem acompanha a fila não precisa poder mandar dinheiro. Pagar manda Pix de verdade
+  // (ou registra um Pix feito por fora) e recusar estorna o saldo do cliente.
+  { chave: 'saques.ver', modulo: 'saques', rotulo: 'Ver saques', descricao: 'Fila de saques, chave Pix de destino e situação de cada pedido.' },
+  { chave: 'saques.pagar', modulo: 'saques', rotulo: 'Aprovar e recusar saques', descricao: 'Aprovar o saque (envia o Pix pelo Mercado Pago ou registra o pagamento feito por fora) e recusar com estorno ao saldo.' },
   { chave: 'logistica.ver', modulo: 'logistica', rotulo: 'Ver logística', descricao: 'Envios, retiradas e rastreio de todas as contas.' },
+  // 14/10/2026: avançar a expedição (separação, postagem, entrega) era conferido por `ehAdmin()`, a lista
+  // binária de antes dos papéis. Passou a ter permissão própria: quem opera a logística não precisa de
+  // `usuarios.editar`, e quem está só na lista do ambiente não ganha a ação por esse caminho.
+  { chave: 'logistica.expedir', modulo: 'logistica', rotulo: 'Avançar retiradas', descricao: 'Separar, postar e entregar retiradas físicas; informar o código de rastreio.' },
   { chave: 'logistica.etiquetas', modulo: 'logistica', rotulo: 'Emitir etiquetas', descricao: 'Reimprimir etiquetas de envio e de retirada.' },
   { chave: 'config.ver', modulo: 'config', rotulo: 'Ver configuração', descricao: 'Taxas, catálogo, parâmetros operacionais e integrações.' },
   // C3: a mesma permissão cobre os parâmetros operacionais, os prazos dos Termos e os canais de
@@ -87,6 +97,7 @@ export const MODULOS: ReadonlyArray<{ modulo: ModuloPermissao; rotulo: string }>
   { modulo: 'bancada', rotulo: 'Bancada e moedas' },
   { modulo: 'acervo', rotulo: 'Acervo' },
   { modulo: 'registros', rotulo: 'Registros (ofertas, envios e planos)' },
+  { modulo: 'saques', rotulo: 'Saques' },
   { modulo: 'logistica', rotulo: 'Logística' },
   { modulo: 'config', rotulo: 'Configuração do site' },
   { modulo: 'admin', rotulo: 'Equipe e auditoria' },

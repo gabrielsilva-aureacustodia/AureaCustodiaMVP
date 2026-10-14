@@ -237,9 +237,16 @@ export default function ContaPage(): ReactNode {
                 {saquesPendentes.map((sq) => (
                   <div key={sq.id} style={{ marginTop: 2, color: 'var(--text-muted)' }}>
                     {brl(sq.valorLiquido)} líquido · Previsão até{' '}
-                    {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ({sq.status})
+                    {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ·{' '}
+                    {sq.status === 'em_processamento'
+                      ? 'Pix enviado, aguardando confirmação'
+                      : 'aguardando aprovação da equipe'}
                   </div>
                 ))}
+                <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>
+                  O valor já saiu do seu saldo e fica reservado para o saque. Se o pedido for recusado, ele volta
+                  integralmente.
+                </div>
               </div>
             )}
           </div>

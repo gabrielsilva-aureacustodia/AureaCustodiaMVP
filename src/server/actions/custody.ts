@@ -413,7 +413,6 @@ import { criarCobrancaCartao, criarCobrancaPix } from '@/lib/payments/cobranca'
 import type { CobrancaCartao, CobrancaPix } from '@/lib/payments/types'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
-import { ehAdmin } from '@/server/relatorios/acesso'
 
 /**
  * Consulta CEP para preenchimento de endereço de remetente (zero persistência - LGPD).
@@ -1002,7 +1001,8 @@ export async function obterRetiradaPorCoin(coinId: string): Promise<ActionResult
 
 /**
  * Avança o status de uma solicitação de retirada física (separação, postagem, entrega ou cancelamento).
- * Exige permissão de operador/sócio (ehAdmin) para avançar a expedição, ou o próprio dono para cancelamento inicial.
+ * Exige a permissão `logistica.expedir` para avançar a expedição; o próprio dono só pode cancelar.
+ * (Até 14/10/2026 a conferência era `ehAdmin()`, a lista binária anterior aos papéis.)
  */
 export async function avancarStatusRetirada(
   retiradaId: string,
@@ -1016,7 +1016,7 @@ export async function avancarStatusRetirada(
   const retirada = await repo.buscarPorId(retiradaId)
   if (!retirada) return { ok: false, error: 'Solicitação de retirada não encontrada.' }
 
-  const admin = ehAdmin(session)
+  const admin = temPermissao(await carregarMembro(session), 'logistica.expedir')
   if (!admin && retirada.userEmail !== session) {
     return { ok: false, error: 'Acesso não autorizado a esta retirada.' }
   }
