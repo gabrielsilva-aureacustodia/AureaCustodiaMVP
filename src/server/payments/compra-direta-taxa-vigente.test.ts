@@ -31,6 +31,7 @@ import { GENESIS } from '@/domain/hash'
 import { seedState } from '@/domain/seed'
 import type { IntencaoDeposito } from '@/server/db/repositories/payments'
 import { derivarLancamentos } from '@/server/db/derivar'
+import { planejarDiff } from '@/server/db/diff'
 import { comCustodiaEmDia, custodiaEmDia } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 
@@ -121,7 +122,8 @@ async function criarIntencaoCompraDireta(
     metodo: 'pix',
     status: 'pendente',
     tipoOperacao: 'compra_direta',
-    metadata: { lotId, qty, tipoMoeda },
+    // 200 = o primeiro mês de custódia embutido na compra (21/10/2026), congelado na cobrança
+    metadata: { lotId, qty, tipoMoeda, custodiaPorMoeda: 200 },
     paymentId: null,
     motivoRecusa: null,
     createdAt: agora,
@@ -161,8 +163,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const coinIds: [string, string] = ['RO-E2-C1-1', 'RO-E2-C1-2']
 
     await prepararLote(lotId, coinIds, 20_000)
-    await criarIntencaoCompraDireta(ref, 40_000, lotId, 2, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_000))
+    await criarIntencaoCompraDireta(ref, 40_400, lotId, 2, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_400))
 
     const stateAntes = await getState()
     const saldoVendedorAntes = stateAntes.users[SELLER_EMAIL].balance
@@ -192,8 +194,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const coinIds: [string, string] = ['RO-E2-C2-1', 'RO-E2-C2-2']
 
     await prepararLote(lotId, coinIds, 20_000)
-    await criarIntencaoCompraDireta(ref, 40_000, lotId, 2, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_000))
+    await criarIntencaoCompraDireta(ref, 40_400, lotId, 2, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_400))
 
     await conciliarPagamento(`pay-${ref}`)
 
@@ -215,8 +217,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const coinIds: [string, string] = ['RO-E2-C3-1', 'RO-E2-C3-2']
 
     await prepararLote(lotId, coinIds, 20_000)
-    await criarIntencaoCompraDireta(ref, 40_000, lotId, 2, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_000))
+    await criarIntencaoCompraDireta(ref, 40_400, lotId, 2, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_400))
 
     const stateAntes = await getState()
     const saldoCompradorAntes = stateAntes.users[BUYER_EMAIL].balance
@@ -230,7 +232,7 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     // O registro em deposits reflete o valor pago
     const novoDeposito = stateDepois.deposits[stateDepois.deposits.length - 1]
     expect(novoDeposito.userEmail).toBe(BUYER_EMAIL)
-    expect(novoDeposito.valor).toBe(40_000)
+    expect(novoDeposito.valor).toBe(40_400)
   })
 
   it('leitura da tabela que falha cai na tabela padrão e a compra conclui', async () => {
@@ -240,8 +242,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const coinIds: [string, string] = ['RO-E2-C4-1', 'RO-E2-C4-2']
 
     await prepararLote(lotId, coinIds, 20_000)
-    await criarIntencaoCompraDireta(ref, 40_000, lotId, 2, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_000))
+    await criarIntencaoCompraDireta(ref, 40_400, lotId, 2, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, 40_400))
 
     const stateAntes = await getState()
     const saldoVendedorAntes = stateAntes.users[SELLER_EMAIL].balance
@@ -301,17 +303,17 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const intencao: IntencaoDeposito = {
       externalReference: 'CMP-e2-ledger',
       userEmail: BUYER_EMAIL,
-      valor: 40_000,
+      valor: 40_400,
       metodo: 'pix',
       status: 'creditando',
       tipoOperacao: 'compra_direta',
-      metadata: { lotId, qty: 2, tipoMoeda: 'Entrega da Bandeira Olímpica' },
+      metadata: { lotId, qty: 2, tipoMoeda: 'Entrega da Bandeira Olímpica', custodiaPorMoeda: 200 },
       paymentId: 'pay-ledger',
       motivoRecusa: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
-    const detalhes = aprovado('CMP-e2-ledger', 40_000)
+    const detalhes = aprovado('CMP-e2-ledger', 40_400)
 
     // o plano de custódia em dia só existe durante a liquidação: não pode entrar no diff do ledger
     comCustodiaEmDia(depois, () => LIQUIDADORES.compra_direta(depois, intencao, detalhes, { taxas: TAXAS_DO_PAINEL }))
@@ -319,7 +321,8 @@ describe('compra direta com a tabela vigente (P-C3-03)', () => {
     const derivado = derivarLancamentos({
       antes,
       depois,
-      ops: [],
+      // as operações do diff: é por elas que a fatura de custódia embutida na compra vira lançamento
+      ops: planejarDiff(antes, depois),
       semeadura: false,
       agora: Date.now(),
       hashAnterior: GENESIS,

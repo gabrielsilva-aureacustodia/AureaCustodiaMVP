@@ -179,3 +179,12 @@
 .tipo-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .tipo-nome{font-size:13.5px;font-weight:700;color:var(--text-strong)}
 .tipo-meta{font-size:11px;color:var(--text-muted);line-height:1.35}
+
+/* O sinal (i) com a explicação do item (21/10/2026) — linha "Custódia (1º mês)" dos pop-ups de compra.
+   O balão abre ao passar o mouse, ao focar pelo teclado ou ao tocar; a área de toque é de 44px. */
+.infotip{position:relative;display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle}
+.infotip-btn{position:relative;width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:11px;font-weight:700;font-style:italic;font-family:serif;line-height:1;cursor:help;display:inline-flex;align-items:center;justify-content:center}
+.infotip-btn::after{content:"";position:absolute;inset:-13px}
+.infotip-btn:hover,.infotip-btn:focus-visible{background:var(--gold-wash)}
+.infotip-balao{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);width:260px;max-width:70vw;padding:10px 12px;background:var(--navy-card2);border:1px solid var(--gold);border-radius:8px;box-shadow:var(--shadow-toast);z-index:60;font-size:12px;font-weight:400;font-style:normal;line-height:1.45;color:var(--text);text-align:left;white-space:normal}
+.infotip-balao a{color:var(--gold-bright);text-decoration:underline;display:inline-block;margin-top:6px;min-height:24px}

@@ -25,6 +25,7 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
+import { inicioDoDiaBrasilia } from '@/domain/ciclo-custodia'
 import { faturaBloqueia, fimDaCoberturaDaFatura, fimDaCompetencia, isInadimplente } from '@/domain/custody'
 import { expurgarOfertasSemCadastro, matchOrders } from '@/domain/market'
 
@@ -95,25 +96,57 @@ export function faturasAbertasDaMoeda(
 }
 
 /**
+ * Quem guarda a moeda AGORA, e desde quando — a pergunta de que toda cobertura de custódia depende.
+ *
+ * `desde` só existe para moeda que já trocou de dono (`transferido`): é o início do dia da compra, e
+ * fatura emitida antes disso é de outro período de guarda (de outro dono, ou do mesmo dono antes de
+ * vender e recomprar). Moeda que nunca foi vendida é do mesmo dono desde o início: `desde` é zero.
+ */
+export function donoAtualDaMoeda(
+  state: AppState,
+  coinId: string,
+): { email: UserEmail; desde: Timestamp } | null {
+  for (const [email, u] of Object.entries(state.users)) {
+    const coin = u.coins.find((c) => c.id === coinId)
+    if (!coin) continue
+    return { email, desde: coin.transferido ? (inicioDoDiaBrasilia(coin.entrada) ?? 0) : 0 }
+  }
+  return null
+}
+
+/** A fatura é de quem guarda a moeda agora, emitida dentro do período de guarda dele? */
+export function faturaDoGuardadoAtual(
+  f: Pick<FaturaCustodia, 'userEmail' | 'dataEmissao'>,
+  dono: { email: UserEmail; desde: Timestamp },
+): boolean {
+  return f.userEmail === dono.email && f.dataEmissao >= dono.desde
+}
+
+/**
  * Até que competência a custódia DESTA moeda está paga — ou `null` se nunca foi.
  *
  * A resposta vem de duas fontes, e vale a mais adiantada delas:
  *
- *  - plano vigente que cobre a moeda, por `pagoAteCompetencia`;
- *  - fatura PAGA que lista a moeda, pela competência dela.
+ *  - plano vigente do DONO ATUAL que cobre a moeda, por `pagoAteCompetencia`;
+ *  - fatura PAGA do DONO ATUAL que lista a moeda, pela competência dela.
  *
- * NÃO FILTRA POR DONO, e isso é deliberado. Quando uma moeda é vendida no meio
- * do mês, a custódia daquele mês já foi paga — pelo vendedor. Cobrar o
- * comprador de novo pelo mesmo mês seria cobrar duas vezes pela mesma guarda.
- * Do mês seguinte em diante o ciclo cobra o dono novo, que é o certo.
+ * FILTRA POR DONO desde 21/10/2026. Até 20/10 esta função respondia com a custódia paga por QUALQUER
+ * pessoa, sob o argumento de que cobrar o comprador pelo mesmo mês seria cobrar duas vezes pela mesma
+ * guarda. O Gabriel revogou a regra: "TODA moeda — enviada, cadastrada no admin ou comprada — precisa ter
+ * a custódia paga, inclusive se outro usuário já havia pago". Foi por esse buraco que o "Gerais" comprou
+ * moeda que o vendedor tinha pago e a anunciou sem pagar nada. O primeiro mês do comprador agora é
+ * embutido na compra (`src/domain/custodia-da-compra.ts`).
  */
 export function custodiaPagaAteCompetencia(
   state: AppState,
   coinId: string,
 ): string | null {
+  const dono = donoAtualDaMoeda(state, coinId)
+  if (!dono) return null
   let maisAdiantada: string | null = null
 
   for (const p of state.planosCustodia ?? []) {
+    if (p.userEmail !== dono.email) continue
     if (p.status !== 'vigente') continue
     if (!p.moedaIds?.includes(coinId)) continue
     if (p.pagoAteCompetencia && (!maisAdiantada || p.pagoAteCompetencia > maisAdiantada)) {
@@ -124,6 +157,7 @@ export function custodiaPagaAteCompetencia(
   for (const f of state.faturasCustodia ?? []) {
     if (f.status !== 'paga') continue
     if (!f.moedaIds?.includes(coinId)) continue
+    if (!faturaDoGuardadoAtual(f, dono)) continue
     if (!maisAdiantada || f.competencia > maisAdiantada) maisAdiantada = f.competencia
   }
 
@@ -135,18 +169,22 @@ export function custodiaPagaAteCompetencia(
  *
  * É a maior cobertura entre as faturas PAGAS que listam a moeda (`coberturaAte`, o fim do ciclo; nas
  * anteriores a 02/10/2026, o fim do mês da competência) e os planos vigentes que a cobrem. Fatura em
- * aberto NÃO cobre nada: é só uma conta a pagar. Não filtra por dono, de propósito: a custódia que o
- * vendedor pagou vale para a moeda que o comprador recebe.
+ * aberto NÃO cobre nada: é só uma conta a pagar. Só vale a do DONO ATUAL, dentro do período de guarda dele
+ * (21/10/2026): a custódia que o vendedor pagou NÃO vale para a moeda que o comprador recebe.
  */
 export function coberturaPagaDaMoeda(state: AppState, coinId: string): Timestamp | null {
+  const dono = donoAtualDaMoeda(state, coinId)
+  if (!dono) return null
   let maior: Timestamp | null = null
 
   for (const f of state.faturasCustodia ?? []) {
     if (f.status !== 'paga' || !(f.moedaIds ?? []).includes(coinId)) continue
+    if (!faturaDoGuardadoAtual(f, dono)) continue
     const fim = fimDaCoberturaDaFatura(f)
     if (maior === null || fim > maior) maior = fim
   }
   for (const p of state.planosCustodia ?? []) {
+    if (p.userEmail !== dono.email) continue
     if (p.status !== 'vigente' || !p.pagoAteCompetencia || !(p.moedaIds ?? []).includes(coinId)) continue
     const fim = fimDaCompetencia(p.pagoAteCompetencia)
     if (maior === null || fim > maior) maior = fim
@@ -314,8 +352,11 @@ export function custodiaNaoComprovadaNoEstado(
   agora: Timestamp = Date.now(),
 ): boolean {
   if (custodiaImpedeNegociar(state, coinId, agora)) return true
+  // Só a conta do dono atual: a fatura vencida do dono anterior é dívida DELE, não trava a moeda do novo.
+  const dono = donoAtualDaMoeda(state, coinId)
+  if (!dono) return true
   return (state.faturasCustodia ?? []).some(
-    (f) => (f.moedaIds ?? []).includes(coinId) && faturaBloqueia(f, agora),
+    (f) => (f.moedaIds ?? []).includes(coinId) && f.userEmail === dono.email && faturaBloqueia(f, agora),
   )
 }
 

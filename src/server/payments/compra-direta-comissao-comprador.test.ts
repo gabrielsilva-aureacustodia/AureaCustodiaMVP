@@ -32,6 +32,7 @@ import { TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { seedState } from '@/domain/seed'
 import { derivarLancamentos } from '@/server/db/derivar'
+import { planejarDiff } from '@/server/db/diff'
 import { custodiaEmDia } from '@/domain/testing/fixtures'
 import { getState, mutateState } from '@/server/state'
 
@@ -55,6 +56,8 @@ const PRECO = 20_000
 const COMISSAO_COMPRADOR_UNIT = 310
 /** 20_000 × 100 / 10_000 + 250 = 200 + 250 */
 const COMISSAO_VENDEDOR_UNIT = 450
+/** O primeiro mês de custódia embutido na compra (21/10/2026): R$ 2,00 por moeda. */
+const CUSTODIA_UNIT = 200
 
 function aprovado(ref: string, valor: number) {
   const agora = Date.now()
@@ -114,6 +117,7 @@ async function criarIntencao(
   lotId: string,
   qty: number,
   comissaoCompradorPorMoeda?: number,
+  custodiaPorMoeda?: number,
 ): Promise<void> {
   const agora = Date.now()
   await repositorioIntencoes().criar({
@@ -130,6 +134,7 @@ async function criarIntencao(
       sellerEmail: SELLER_EMAIL,
       unitPrice: PRECO,
       ...(comissaoCompradorPorMoeda === undefined ? {} : { comissaoCompradorPorMoeda }),
+      ...(custodiaPorMoeda === undefined ? {} : { custodiaPorMoeda }),
     },
     paymentId: null,
     motivoRecusa: null,
@@ -159,8 +164,8 @@ describe('Compra direta pelo gateway cobra e registra a comissão do comprador (
     const lotId = 'LOT-E8-1'
     await prepararLote(lotId, ['RO-E8-01', 'RO-E8-02'])
 
-    const valorCobrado = (PRECO + COMISSAO_COMPRADOR_UNIT) * 2 // 40_620
-    await criarIntencao('CMP-e8-1', valorCobrado, lotId, 2, COMISSAO_COMPRADOR_UNIT)
+    const valorCobrado = (PRECO + COMISSAO_COMPRADOR_UNIT + CUSTODIA_UNIT) * 2 // 41_020
+    await criarIntencao('CMP-e8-1', valorCobrado, lotId, 2, COMISSAO_COMPRADOR_UNIT, CUSTODIA_UNIT)
     consultarPagamentoMercadoPago.mockResolvedValue(aprovado('CMP-e8-1', valorCobrado))
 
     const r = await conciliarPagamento('pay-CMP-e8-1')
@@ -183,8 +188,8 @@ describe('Compra direta pelo gateway cobra e registra a comissão do comprador (
     await prepararLote(lotId, ['RO-E8-03', 'RO-E8-04'])
 
     const antes = structuredClone(await getState())
-    const valorCobrado = (PRECO + COMISSAO_COMPRADOR_UNIT) * 2
-    await criarIntencao('CMP-e8-2', valorCobrado, lotId, 2, COMISSAO_COMPRADOR_UNIT)
+    const valorCobrado = (PRECO + COMISSAO_COMPRADOR_UNIT + CUSTODIA_UNIT) * 2
+    await criarIntencao('CMP-e8-2', valorCobrado, lotId, 2, COMISSAO_COMPRADOR_UNIT, CUSTODIA_UNIT)
     consultarPagamentoMercadoPago.mockResolvedValue(aprovado('CMP-e8-2', valorCobrado))
     await conciliarPagamento('pay-CMP-e8-2')
 
@@ -192,7 +197,8 @@ describe('Compra direta pelo gateway cobra e registra a comissão do comprador (
     const derivado = derivarLancamentos({
       antes,
       depois,
-      ops: [],
+      // as operações do diff: é por elas que a fatura de custódia embutida na compra vira lançamento
+      ops: planejarDiff(antes, depois),
       semeadura: false,
       agora: Date.now(),
       hashAnterior: GENESIS,
@@ -210,15 +216,22 @@ describe('Compra direta pelo gateway cobra e registra a comissão do comprador (
     )
     expect(doComprador?.valor).toBe(COMISSAO_COMPRADOR_UNIT * 2) // 620
     expect(doVendedor?.valor).toBe(COMISSAO_VENDEDOR_UNIT * 2) // 900
+
+    // E o primeiro mês de custódia das duas moedas, pago junto, em nome do comprador (21/10/2026).
+    const custodias = derivado.lancamentos.filter((l) => l.tipo === 'custodia' && l.userEmail === BUYER_EMAIL)
+    expect(custodias.map((l) => [l.valor, l.sinal])).toEqual([
+      [CUSTODIA_UNIT, -1],
+      [CUSTODIA_UNIT, -1],
+    ])
   })
 
-  it('intenção aberta antes da E8, sem o campo na metadata, liquida com comissão zero', async () => {
+  it('intenção com custódia mas sem o campo da comissão (anterior à E8) liquida com comissão zero', async () => {
     const lotId = 'LOT-E8-3'
     await prepararLote(lotId, ['RO-E8-05'])
 
-    // O gateway cobrou só o preço, como antes da E8.
-    await criarIntencao('CMP-e8-3', PRECO, lotId, 1, undefined)
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado('CMP-e8-3', PRECO))
+    // O gateway cobrou o preço mais a custódia, sem comissão de compra.
+    await criarIntencao('CMP-e8-3', PRECO + CUSTODIA_UNIT, lotId, 1, undefined, CUSTODIA_UNIT)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado('CMP-e8-3', PRECO + CUSTODIA_UNIT))
 
     const r = await conciliarPagamento('pay-CMP-e8-3')
     expect(r.motivo).toBe('compra_direta_concluida')
@@ -228,6 +241,22 @@ describe('Compra direta pelo gateway cobra e registra a comissão do comprador (
     expect(trade.feeComprador).toBe(0)
     expect(trade.feeVendedor).toBe(COMISSAO_VENDEDOR_UNIT)
     expect(trade.fee).toBe(COMISSAO_VENDEDOR_UNIT)
+  })
+
+  it('intenção aberta ANTES da custódia embutida (sem o campo) não cobre a compra: o valor volta como saldo', async () => {
+    const lotId = 'LOT-E8-3B'
+    await prepararLote(lotId, ['RO-E8-05B'])
+
+    // O gateway cobrou só o preço, como antes de 21/10/2026: falta o primeiro mês de custódia.
+    await criarIntencao('CMP-e8-3b', PRECO, lotId, 1, undefined, undefined)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado('CMP-e8-3b', PRECO))
+
+    const saldoAntes = (await getState()).users[BUYER_EMAIL].balance
+    const r = await conciliarPagamento('pay-CMP-e8-3b')
+    expect(r.motivo).toBe('valor_pago_nao_cobre_o_anuncio_creditado_em_saldo')
+    const s = await getState()
+    expect(s.users[BUYER_EMAIL].balance).toBe(saldoAntes + PRECO)
+    expect(s.users[BUYER_EMAIL].coins.some((c) => c.id === 'RO-E8-05B')).toBe(false)
   })
 
   it('preço que sobe depois da cobrança não vira compra: o valor inteiro entra no saldo', async () => {

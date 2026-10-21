@@ -6,6 +6,7 @@ import { LegalDocument } from '@/components/legal/LegalDocument'
 import {
   comissaoPorMoeda,
   custoDeCompraPorMoeda,
+  custodiaDaCompraPorMoeda,
   liquidoDeVendaPorMoeda,
 } from '@/domain/fees'
 import { brl } from '@/domain/money'
@@ -30,6 +31,7 @@ export default async function FeesPage(): Promise<ReactNode> {
   const precoExemplo = 20_000
   const comissao = comissaoPorMoeda(precoExemplo, taxas)
   const custoTotalCompra = custoDeCompraPorMoeda(precoExemplo, taxas)
+  const custodiaDaCompra = custodiaDaCompraPorMoeda(taxas)
   const liquidoVenda = liquidoDeVendaPorMoeda(precoExemplo, taxas)
 
   return (
@@ -90,7 +92,8 @@ export default async function FeesPage(): Promise<ReactNode> {
           <h4>Exemplo Prático Demonstrativo — Moeda negociada a {brl(precoExemplo)}:</h4>
           <p>
             • <strong>Comprador:</strong> Preço base ({brl(precoExemplo)}) + Comissão (
-            {brl(comissao.comprador)}) = <strong>{brl(custoTotalCompra)}</strong> total pago.
+            {brl(comissao.comprador)}) + primeiro mês de custódia ({brl(custodiaDaCompra)}) ={' '}
+            <strong>{brl(custoTotalCompra)}</strong> total pago.
           </p>
           <p>
             • <strong>Vendedor:</strong> Preço base ({brl(precoExemplo)}) − Comissão (
@@ -98,7 +101,8 @@ export default async function FeesPage(): Promise<ReactNode> {
           </p>
           <p>
             • <strong>Real Olímpico:</strong> Recebe{' '}
-            <strong>{brl(comissao.comprador + comissao.vendedor)}</strong> no total ({brl(comissao.comprador)} do comprador + {brl(comissao.vendedor)} do vendedor).
+            <strong>{brl(comissao.comprador + comissao.vendedor)}</strong> de comissão no total ({brl(comissao.comprador)} do comprador + {brl(comissao.vendedor)} do vendedor), mais{' '}
+            <strong>{brl(custodiaDaCompra)}</strong> de custódia do primeiro mês, que remunera a guarda da moeda em nome do comprador.
           </p>
         </div>
       </section>
@@ -128,6 +132,12 @@ export default async function FeesPage(): Promise<ReactNode> {
             </tr>
           </tbody>
         </table>
+        <p>
+          <strong>Moeda comprada no marketplace:</strong> a custódia é sempre do titular atual da moeda, ainda que o
+          titular anterior já a tenha pago. Por isso o <strong>primeiro mês</strong> ({brl(taxas.custodiaMensalPorMoeda)} por
+          moeda) é cobrado <strong>dentro da própria compra</strong>, junto com o preço e a comissão — em qualquer forma de
+          pagamento —, e cobre os 30 dias seguintes à compra. A partir daí vale a renovação mensal, no mesmo dia do mês.
+        </p>
       </section>
 
       <section>

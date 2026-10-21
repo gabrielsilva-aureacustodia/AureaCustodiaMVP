@@ -55,6 +55,8 @@ const EMAIL_VENDEDOR = 'alex@testeaurea.com.br'
 const PRECO = 20_000
 /** round(20_000 × 80 / 10_000) + 150 */
 const COMISSAO_UNIT = 310
+/** O primeiro mês de custódia embutido na compra (21/10/2026). */
+const CUSTODIA_UNIT = 200
 
 async function completarCadastro() {
   await salvarCadastro({
@@ -124,10 +126,10 @@ describe('iniciarCompraDireta cobra preço + comissão de compra (E8)', () => {
     expect(res.ok).toBe(true)
     if (!res.ok || !res.data) throw new Error('Esperava sucesso')
 
-    // 2 × (20_000 + 310)
-    expect(res.data.valorCents).toBe(40_620)
+    // 2 × (20_000 + 310 de comissão + 200 de custódia)
+    expect(res.data.valorCents).toBe(41_020)
     expect(criarPixDeposito).toHaveBeenCalledWith(
-      expect.objectContaining({ valorCents: 40_620 }),
+      expect.objectContaining({ valorCents: 41_020 }),
     )
   })
 
@@ -145,8 +147,10 @@ describe('iniciarCompraDireta cobra preço + comissão de compra (E8)', () => {
 
     const intencao = await repositorioIntencoes().buscar(res.data.externalReference)
     expect(intencao?.metadata?.comissaoCompradorPorMoeda).toBe(COMISSAO_UNIT)
+    // a custódia fica congelada ao lado da comissão, e a comissão NÃO a inclui
+    expect(intencao?.metadata?.custodiaPorMoeda).toBe(CUSTODIA_UNIT)
     expect(intencao?.metadata?.unitPrice).toBe(PRECO)
-    expect(intencao?.valor).toBe(PRECO + COMISSAO_UNIT)
+    expect(intencao?.valor).toBe(PRECO + COMISSAO_UNIT + CUSTODIA_UNIT)
   })
 
   it('o cartão cobra o mesmo total do Pix', async () => {
@@ -161,9 +165,9 @@ describe('iniciarCompraDireta cobra preço + comissão de compra (E8)', () => {
     expect(res.ok).toBe(true)
     if (!res.ok || !res.data) throw new Error('Esperava sucesso')
 
-    expect(res.data.valorCents).toBe(PRECO + COMISSAO_UNIT)
+    expect(res.data.valorCents).toBe(PRECO + COMISSAO_UNIT + CUSTODIA_UNIT)
     expect(criarPreferenciaDeposito).toHaveBeenCalledWith(
-      expect.objectContaining({ valorCents: PRECO + COMISSAO_UNIT }),
+      expect.objectContaining({ valorCents: PRECO + COMISSAO_UNIT + CUSTODIA_UNIT }),
     )
   })
 

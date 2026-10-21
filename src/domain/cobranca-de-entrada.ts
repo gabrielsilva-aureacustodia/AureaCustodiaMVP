@@ -25,11 +25,13 @@
  *
  * O QUE ESTA REGRA NÃO FAZ
  * ------------------------
- * Não cobra moeda cujo ciclo já está resolvido: paga, ou com fatura aberta do
- * mesmo ciclo ou de um ciclo mais novo. É o caso da moeda comprada no
- * marketplace — o ciclo dela já foi quitado pelo vendedor, e cobrar o comprador
- * de novo seria cobrar duas vezes pela mesma guarda. Do ciclo seguinte em
- * diante, cobra o dono novo, que é o certo.
+ * Não cobra moeda cujo ciclo já está resolvido PARA O DONO ATUAL: paga por ele,
+ * ou com fatura aberta dele no mesmo ciclo ou num ciclo mais novo. A custódia
+ * que o dono anterior pagou NÃO resolve nada para o dono novo (decisão do
+ * Gabriel de 21/10/2026: toda moeda, inclusive a comprada, tem a custódia do
+ * titular atual paga). A moeda comprada já nasce com o primeiro mês pago pelo
+ * comprador, embutido na compra (`src/domain/custodia-da-compra.ts`), então o
+ * cron só a cobra de novo no ciclo seguinte.
  *
  * "Um ciclo mais novo" importa na transição de 02/10/2026: as faturas de
  * 01/10, emitidas pela regra antiga, valem como a cobrança do mês e não podem
@@ -40,7 +42,7 @@ import { cicloDaMoeda, dataBrasilia, type CicloDaMoeda } from '@/domain/ciclo-cu
 import { moedasFaturaveis } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import { moedasCobertas, type TabelaDeTaxasPlano } from '@/domain/plano-custodia'
-import { custodiaPagaAteCompetencia } from '@/domain/bloqueio-por-debito'
+import { custodiaPagaAteCompetencia, donoAtualDaMoeda, faturaDoGuardadoAtual } from '@/domain/bloqueio-por-debito'
 import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
 /**
@@ -59,11 +61,16 @@ export function custodiaResolvidaNaCompetencia(
   const pagaAte = custodiaPagaAteCompetencia(state, coinId)
   if (pagaAte && pagaAte >= competencia) return true
 
+  // Só a fatura de quem guarda a moeda agora, dentro do período de guarda dele: a conta em aberto do
+  // dono anterior não resolve a cobrança do dono novo (21/10/2026).
+  const dono = donoAtualDaMoeda(state, coinId)
+  if (!dono) return false
   return (state.faturasCustodia ?? []).some(
     (f) =>
       f.competencia >= competencia &&
       f.status !== 'cancelada' &&
-      (f.moedaIds ?? []).includes(coinId),
+      (f.moedaIds ?? []).includes(coinId) &&
+      faturaDoGuardadoAtual(f, dono),
   )
 }
 

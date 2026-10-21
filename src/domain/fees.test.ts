@@ -7,7 +7,9 @@ import {
   TAXAS_PADRAO,
   comissaoPorMoeda,
   custoDeCompraPorMoeda,
+  custodiaDaCompraPorMoeda,
   liquidoDeVendaPorMoeda,
+  precoComComissaoDeCompra,
   tradeFee,
 } from './fees'
 import { TAXAS_RETIRADA_PADRAO } from './retirada'
@@ -48,8 +50,21 @@ describe('Regras de Taxas e Tarifas (fees.ts)', () => {
       const { comprador, vendedor } = comissaoPorMoeda(20000)
       expect(comprador).toBe(200)
       expect(vendedor).toBe(200)
-      expect(custoDeCompraPorMoeda(20000)).toBe(20200)
+      // 21/10/2026: o comprador também paga o primeiro mês de custódia (R$ 2,00) — 20000 + 200 + 200.
+      expect(custoDeCompraPorMoeda(20000)).toBe(20400)
       expect(liquidoDeVendaPorMoeda(20000)).toBe(19800)
+    })
+
+    it('custodia embutida na compra: preço + comissão + 1º mês, e o histórico fica só com preço + comissão', () => {
+      expect(custodiaDaCompraPorMoeda()).toBe(200)
+      expect(precoComComissaoDeCompra(20000)).toBe(20200)
+      expect(custoDeCompraPorMoeda(20000)).toBe(precoComComissaoDeCompra(20000) + custodiaDaCompraPorMoeda())
+    })
+
+    it('a custódia da compra segue a tabela vigente, não o padrão do código', () => {
+      const t = { ...TAXAS_PADRAO, custodiaMensalPorMoeda: 350 }
+      expect(custodiaDaCompraPorMoeda(t)).toBe(350)
+      expect(custoDeCompraPorMoeda(20000, t)).toBe(20000 + 200 + 350)
     })
 
     it('equivalência da comissão do vendedor para todo preço de 1 a 1.000.000 centavos', () => {

@@ -64,13 +64,14 @@ describe('matchOrders — um livro por tipo', () => {
     expect(r.trades[0].feeComprador).toBe(feeComprador)
     expect(r.trades[0].feeVendedor).toBe(feeVendedor)
     expect(r.trades[0].fee).toBe(feeComprador + feeVendedor)
-    expect(s.users.c.balance).toBe(10_000_000 - (45_000 + feeComprador))
+    // comprador paga preço + comissão + o 1º mês de custódia (R$ 2,00), desde 21/10/2026
+    expect(s.users.c.balance).toBe(10_000_000 - (45_000 + feeComprador + 200))
     expect(s.users.v.balance).toBe(45_000 - feeVendedor)
     expect(s.users.c.coins).toHaveLength(1)
     expect(s.users.v.coins).toHaveLength(0)
   })
 
-  it('negociação canônica de R$ 200,00: comprador paga R$ 202, vendedor recebe R$ 198, Áurea retém R$ 4', () => {
+  it('negociação canônica de R$ 200,00: comprador paga R$ 202 + R$ 2 de custódia, vendedor recebe R$ 198, Áurea retém R$ 4 de comissão', () => {
     const s = estado({
       v: usuario('Vendedor', 0, [moeda('RO-000001', BAN)]),
       c: usuario('Comprador', 100_000, []),
@@ -86,7 +87,10 @@ describe('matchOrders — um livro por tipo', () => {
     expect(t.feeComprador).toBe(200) // R$ 2,00
     expect(t.feeVendedor).toBe(200) // R$ 2,00
     expect(t.fee).toBe(400) // R$ 4,00
-    expect(s.users.c.balance).toBe(100_000 - 20_200) // R$ 202,00 debitado
+    expect(s.users.c.balance).toBe(100_000 - 20_200 - 200) // R$ 202,00 + R$ 2,00 do 1º mês de custódia
+    // a custódia sai como fatura PAGA do comprador, em nome dele, e não vira comissão nem receita de corretagem
+    expect(s.faturasCustodia).toHaveLength(1)
+    expect(s.faturasCustodia![0]).toMatchObject({ userEmail: 'c', moedaIds: ['RO-000001'], valorCents: 200, status: 'paga', origem: 'compra' })
     expect(s.users.v.balance).toBe(19_800) // R$ 198,00 creditado
   })
 

@@ -103,6 +103,9 @@ export function ReservasEmAberto(): ReactNode {
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 {brl(r.precoCents)} de preço + {brl(r.comissaoCompradorCents)} de comissão
+                {r.totalCents - r.precoCents - r.comissaoCompradorCents > 0
+                  ? ` + ${brl(r.totalCents - r.precoCents - r.comissaoCompradorCents)} do primeiro mês de custódia`
+                  : ''}
               </div>
             </div>
 

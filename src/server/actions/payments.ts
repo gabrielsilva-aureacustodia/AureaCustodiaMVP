@@ -24,7 +24,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
-import { custoDeCompraPorMoeda } from '@/domain/fees'
+import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
 import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from '@/lib/payments'
@@ -229,7 +229,11 @@ export async function iniciarCompraDireta(
   // O Pix e o cartão cobram o mesmo total que o modal de /mercado mostra: preço mais a comissão de
   // compra da Tabela de Taxas vigente (RA-24). A comissão fica congelada na intenção, porque o valor
   // cobrado não muda depois de a cobrança abrir; a conciliação lê de lá, e não da tabela da aprovação.
-  const comissaoCompradorPorMoeda = custoDeCompraPorMoeda(price, taxas) - price
+  //
+  // Desde 21/10/2026 o total também leva o PRIMEIRO MÊS DE CUSTÓDIA da moeda (preço + comissão +
+  // custódia). Fica congelado na intenção junto com a comissão, pelo mesmo motivo.
+  const comissaoCompradorPorMoeda = comissaoPorMoeda(price, 'comprador', taxas)
+  const custodiaPorMoeda = custodiaDaCompraPorMoeda(taxas)
   const valorTotal = custoDeCompraPorMoeda(price, taxas) * qty
 
   if (valorTotal <= 0) return { ok: false, error: 'Valor da compra inválido.' }
@@ -255,6 +259,7 @@ export async function iniciarCompraDireta(
       sellerEmail: sellerId,
       unitPrice: price,
       comissaoCompradorPorMoeda,
+      custodiaPorMoeda,
     },
     paymentId: null,
     motivoRecusa: null,

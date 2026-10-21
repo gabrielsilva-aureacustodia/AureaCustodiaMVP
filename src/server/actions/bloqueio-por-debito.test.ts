@@ -629,3 +629,101 @@ describe('fatura de entrada PENDENTE e dentro do prazo não libera a venda (12/1
     expect((await getState()).sellOffers).toHaveLength(1)
   })
 })
+
+describe('moeda COMPRADA: o primeiro mês de custódia entra na compra (21/10/2026)', () => {
+  /**
+   * O caso do "Gerais": comprou moeda cuja custódia do mês o vendedor tinha pago e a anunciou sem pagar nada,
+   * porque o sistema contava a cobertura do vendedor como se fosse dele.
+   */
+  async function lotePagoPeloCliente(): Promise<{ coinId: string; lotId: string }> {
+    const [moeda] = await moedasDoCliente()
+    await mutateState((s) => {
+      s.planosCustodia = []
+      s.faturasCustodia = [
+        {
+          id: 'FAT-DO-VENDEDOR',
+          userEmail: CLIENTE,
+          competencia: competenciaAtual(Date.now()),
+          quantidadeMoedas: 1,
+          moedaIds: [moeda.id],
+          valorCents: 200,
+          status: 'paga',
+          dataEmissao: Date.now() - 3_600_000,
+          dataVencimento: Date.now() + 30 * 86_400_000,
+          dataPagamento: Date.now() - 3_000_000,
+          coberturaAte: Date.now() + 29 * 86_400_000,
+          formaPagamento: 'saldo',
+          paymentIntentId: null,
+          planoId: null,
+          origem: 'ciclo_mensal',
+        },
+      ]
+      s.sellOffers.push({
+        id: 'OF-DO-VENDEDOR',
+        coinId: moeda.id,
+        seller: CLIENTE,
+        price: 20_000,
+        obs: '',
+        lotId: 'LOT-DO-VENDEDOR',
+        createdAt: Date.now(),
+        prioridadeEm: Date.now(),
+        tipoMoeda: BANDEIRA,
+      })
+      s.users[ROGERIO].balance = 1_000_000
+    })
+    return { coinId: moeda.id, lotId: 'LOT-DO-VENDEDOR' }
+  }
+
+  it('buyLot cobra preço + comissão + R$ 2,00, e a fatura sai paga em nome do comprador', async () => {
+    const { coinId, lotId } = await lotePagoPeloCliente()
+    const antes = (await getState()).users[ROGERIO].balance
+
+    getSessionEmail.mockResolvedValue(ROGERIO)
+    const res = await buyLot(lotId, 1)
+
+    expect(res.ok).toBe(true)
+    const s = await getState()
+    expect(s.users[ROGERIO].balance).toBe(antes - 20_000 - 200 - 200)
+    const fatura = s.faturasCustodia?.find((f) => f.userEmail === ROGERIO && f.moedaIds.includes(coinId))
+    expect(fatura).toMatchObject({ status: 'paga', valorCents: 200, origem: 'compra' })
+  })
+
+  it('a moeda comprada é vendável na hora pelo comprador — com a custódia dele, e não a do vendedor', async () => {
+    const { coinId, lotId } = await lotePagoPeloCliente()
+    getSessionEmail.mockResolvedValue(ROGERIO)
+    await buyLot(lotId, 1)
+
+    // Rogério já tem a moeda e a custódia embutida: anuncia sem pagar nada.
+    const res = await publishOffer([coinId], 30_000, '')
+    expect(res.ok).toBe(true)
+  })
+
+  it('sem a custódia embutida a moeda comprada NÃO seria vendável: a fatura do vendedor não vale', async () => {
+    const { coinId, lotId } = await lotePagoPeloCliente()
+    getSessionEmail.mockResolvedValue(ROGERIO)
+    await buyLot(lotId, 1)
+    // Simula o buraco de antes: tira a fatura do comprador, deixando só a do vendedor.
+    await mutateState((s) => {
+      s.faturasCustodia = (s.faturasCustodia ?? []).filter((f) => f.userEmail !== ROGERIO)
+    })
+
+    const res = await publishOffer([coinId], 30_000, '')
+    expect(res.ok).toBe(false)
+    expect(res.error).toBe(MENSAGEM_CUSTODIA_NAO_PAGA)
+  })
+
+  it('saldo que cobre preço e comissão mas não a custódia: a compra é recusada e nada se move', async () => {
+    const { coinId, lotId } = await lotePagoPeloCliente()
+    await mutateState((s) => {
+      s.users[ROGERIO].balance = 20_000 + 200 // falta o R$ 2,00 da custódia
+    })
+
+    getSessionEmail.mockResolvedValue(ROGERIO)
+    const res = await buyLot(lotId, 1)
+
+    expect(res.ok).toBe(false)
+    const s = await getState()
+    expect(s.users[ROGERIO].balance).toBe(20_200)
+    expect(s.users[CLIENTE].coins.some((c) => c.id === coinId)).toBe(true)
+  })
+})

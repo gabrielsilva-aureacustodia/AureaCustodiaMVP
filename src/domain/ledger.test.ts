@@ -10,6 +10,7 @@ import { GENESIS } from '@/domain/hash'
 import {
   encadear,
   lancamentoDeDeposito,
+  lancamentoDeCustodia,
   lancamentoDeSaldoInicial,
   lancamentosDeTrade,
   saldoPorSoma,
@@ -32,10 +33,13 @@ describe('ledger', () => {
       lancamentoDeSaldoInicial('eu', 100_000, 1000, 'abertura'),
       lancamentoDeSaldoInicial('outro', 100_000, 1000, 'abertura'),
       ...lancamentosDeTrade(trades[0], { comprador: trades[0].feeComprador!, vendedor: trades[0].feeVendedor! }, 'TRADE-1'),
+      // O 1º mês de custódia embutido na compra (21/10/2026): fatura paga do comprador, que sai do saldo dele.
+      lancamentoDeCustodia('outro', s.faturasCustodia![0], 3000, s.faturasCustodia![0].id),
     ]
     const { lancamentos, saldos } = encadear(pendentes, {}, GENESIS)
 
-    expect(lancamentos.map((l) => l.tipo)).toEqual(['saldo_inicial', 'saldo_inicial', 'compra', 'comissao', 'venda', 'comissao'])
+    expect(lancamentos.map((l) => l.tipo)).toEqual(['saldo_inicial', 'saldo_inicial', 'compra', 'comissao', 'venda', 'comissao', 'custodia'])
+    expect(lancamentos[6]).toMatchObject({ tipo: 'custodia', valor: 200, sinal: -1, userEmail: 'outro' })
     expect(saldos.eu).toBe(s.users.eu.balance)
     expect(saldos.outro).toBe(s.users.outro.balance)
     expect(saldoPorSoma(lancamentos, 'eu')).toBe(s.users.eu.balance)

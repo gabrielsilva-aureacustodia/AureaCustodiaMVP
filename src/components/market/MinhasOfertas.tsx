@@ -294,7 +294,7 @@ export function MinhasOfertas(): ReactNode {
                     {souVendedor ? (
                       <span>Você recebeu: {brl(valorLiquido)}</span>
                     ) : (
-                      <span>Total pago: {brl(valorTotalPago)}</span>
+                      <span>Pago pelas moedas e taxa de compra: {brl(valorTotalPago)} (+ 1º mês de custódia)</span>
                     )}
                   </div>
                 </div>

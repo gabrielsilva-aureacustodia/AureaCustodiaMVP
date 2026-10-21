@@ -102,9 +102,12 @@ async function conferirExecucao(coinId: string): Promise<void> {
   expect(s.users[COMPRADOR]!.coins.some((c) => c.id === coinId)).toBe(true)
   expect(s.users[VENDEDOR]!.coins.some((c) => c.id === coinId)).toBe(false)
 
-  // 2. O dinheiro andou, com as duas taxas.
-  expect(s.users[COMPRADOR]!.balance).toBe(100_000 - (PRECO + TAXA_COMPRADOR))
+  // 2. O dinheiro andou, com as duas taxas — e o comprador paga também o 1º mês de custódia (R$ 2,00, desde 21/10/2026).
+  expect(s.users[COMPRADOR]!.balance).toBe(100_000 - (PRECO + TAXA_COMPRADOR + 200))
   expect(s.users[VENDEDOR]!.balance).toBe(PRECO - TAXA_VENDEDOR)
+
+  // 2b. A custódia entrou como fatura PAGA do comprador, cobrindo a moeda comprada.
+  expect(s.faturasCustodia?.some((f) => f.userEmail === COMPRADOR && f.moedaIds.includes(coinId) && f.status === 'paga' && f.origem === 'compra')).toBe(true)
 
   // 3. A oferta saiu do livro — moeda vendida não fica à venda.
   expect(s.sellOffers.some((o) => o.coinId === coinId)).toBe(false)

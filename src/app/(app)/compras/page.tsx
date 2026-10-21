@@ -12,6 +12,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ComoPrecoEFormado } from '@/components/market/ComoPrecoEFormado'
+import { LinhaCustodiaNaCompra } from '@/components/market/LinhaCustodiaNaCompra'
 import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAcontece'
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { TipoSelector } from '@/components/market/TipoSelector'
@@ -20,7 +21,7 @@ import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
-import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
+import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { publishBid } from '@/server/actions/market'
@@ -69,6 +70,8 @@ export default function ComprasPage(): ReactNode {
   const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador', taxas) : 0
   const bidSubtotal = bidPriceCents > 0 && bidQtyNum > 0 ? bidPriceCents * bidQtyNum : 0
   const bidComissaoTotal = bidComissaoUnit * bidQtyNum
+  // O primeiro mês de custódia entra em toda compra (21/10/2026), inclusive na que a oferta de compra faz sozinha.
+  const bidCustodiaTotal = bidPriceCents > 0 && bidQtyNum > 0 ? custodiaDaCompraPorMoeda(taxas) * bidQtyNum : 0
   const bidTotalComComissao = bidCustoUnit * bidQtyNum
   const bidMaxMoedasSaldo = bidCustoUnit > 0 ? Math.floor(me.balance / bidCustoUnit) : 0
 
@@ -167,8 +170,9 @@ export default function ComprasPage(): ReactNode {
               <span className="k">Taxa de compra (estimada no seu preço máximo)</span>
               <span className="v">{bidComissaoTotal > 0 ? `+ ${brl(bidComissaoTotal)}` : '—'}</span>
             </div>
+            {bidCustodiaTotal > 0 ? <LinhaCustodiaNaCompra cents={bidCustodiaTotal} /> : null}
             <div className="summary-row total">
-              <span className="k">Total com comissão</span>
+              <span className="k">Total com taxa e custódia</span>
               <span className="v" style={{ fontSize: '19px' }}>
                 {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
               </span>

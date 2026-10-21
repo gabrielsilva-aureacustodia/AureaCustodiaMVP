@@ -96,6 +96,8 @@ export interface AberturaDeReserva {
   bo: BuyOrder
   oferta: SellOffer
   comissaoCompradorCents: Cents
+  /** O primeiro mês de custódia, embutido no total da reserva (21/10/2026). */
+  custodiaCents?: Cents
   agora: Timestamp
 }
 
@@ -118,7 +120,8 @@ export function abrirReserva(e: AberturaDeReserva): ReservaDeCompra {
     // Congelada no casamento: a Tabela de Taxas pode mudar dentro dos dez
     // minutos, e o comprador paga o que viu quando a reserva abriu.
     comissaoCompradorCents: e.comissaoCompradorCents,
-    totalCents: e.oferta.price + e.comissaoCompradorCents,
+    // Preço + comissão + o primeiro mês de custódia (21/10/2026): a reserva paga a compra inteira.
+    totalCents: e.oferta.price + e.comissaoCompradorCents + (e.custodiaCents ?? 0),
     // Cópia rasa: a oferta some do livro agora e precisa voltar idêntica.
     oferta: { ...e.oferta },
     criadaEm: e.agora,

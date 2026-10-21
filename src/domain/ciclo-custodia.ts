@@ -90,6 +90,12 @@ export function lerDataBR(data: DateBR): { ano: number; mes: number; dia: number
   return { ano, mes, dia }
 }
 
+/** O instante em que começa o dia 'dd/mm/aaaa' em Brasília (00:00), ou `null` se a data não for legível. */
+export function inicioDoDiaBrasilia(data: DateBR): Timestamp | null {
+  const d = lerDataBR(data)
+  return d ? inicioDoDia(d.ano, d.mes, d.dia) : null
+}
+
 /** O dia de Brasília de um instante, em 'dd/mm/aaaa' — é o que vai em `Coin.entrada`. */
 export function dataBrasilia(ts: Timestamp): DateBR {
   const d = new Date(ts - BRASILIA_UTC_MENOS_3_MS)

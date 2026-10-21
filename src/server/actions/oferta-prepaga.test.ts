@@ -71,9 +71,9 @@ describe('oferta de compra pré-paga', () => {
     expect(bo.modalidade).toBe('prepago')
     expect(bo.buyer).toBe(ROGERIO)
     expect(bo.price).toBe(20_000)
-    // Preço mais a taxa de compra (0,5% + R$ 1,00): R$ 200,00 -> R$ 202,00.
-    expect(bo.pagoAntecipadoCents).toBe(20_200)
-    expect(s.users[ROGERIO]!.balance).toBe(antes - 20_200)
+    // Preço mais a taxa de compra (0,5% + R$ 1,00) e o 1º mês de custódia (R$ 2,00): R$ 200,00 -> R$ 204,00.
+    expect(bo.pagoAntecipadoCents).toBe(20_400)
+    expect(s.users[ROGERIO]!.balance).toBe(antes - 20_400)
   })
 
   it('a prioridade na fila conta do pagamento, não de uma publicação anterior', async () => {

@@ -11,7 +11,7 @@ import 'server-only'
 import { contaComPendenciaNoEstado, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
-import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
+import { comissaoPorMoeda, custodiaDaCompraPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { calcularPagoAte, mesesCobertos, somarMeses } from '@/domain/plano-custodia'
@@ -104,6 +104,13 @@ function liquidarCompraDireta(
   const bruta = Number(reivindicada.metadata?.comissaoCompradorPorMoeda)
   const feeCompradorUnit = Number.isInteger(bruta) && bruta > 0 ? bruta : 0
 
+  // O primeiro mês de custódia, congelado na cobrança (21/10/2026), como a comissão. Intenção aberta
+  // ANTES desse dia não tem o campo: vale a custódia da tabela vigente, e como o gateway cobrou menos, o
+  // pagamento não cobre a compra e volta como saldo — o comprador refaz a compra já com o valor novo.
+  const custodiaBruta = Number(reivindicada.metadata?.custodiaPorMoeda)
+  const custodiaUnit =
+    Number.isInteger(custodiaBruta) && custodiaBruta >= 0 ? custodiaBruta : custodiaDaCompraPorMoeda(regras.taxas)
+
   // O anúncio de quem tem fatura de custódia vencida não vende, nem quando o pagamento já entrou
   // (RA-53). `regras.contaBloqueavel` foi perguntado ANTES da transação, porque a isenção da equipe
   // é assíncrona. Se o dono do anúncio for outro e-mail, a isenção perguntada não vale para ele e a
@@ -123,7 +130,7 @@ function liquidarCompraDireta(
   // cobrou precisa cobrir o preço de agora mais a comissão congelada; se não cobrir, a compra não
   // acontece — senão o comprador levaria a moeda pagando menos do que ela custa hoje.
   const precoAgora = offers[0]?.price ?? 0
-  const cabeNoValorPago = (precoAgora + feeCompradorUnit) * qtyPedida <= reivindicada.valor
+  const cabeNoValorPago = (precoAgora + feeCompradorUnit + custodiaUnit) * qtyPedida <= reivindicada.valor
 
   const podeComprar =
     offers.length >= qtyPedida &&
@@ -175,12 +182,12 @@ function liquidarCompraDireta(
       // fecha a conta com um lançamento 'ajuste'.
       s.deposits.push({
         userEmail: reivindicada.userEmail,
-        valor: (price + feeCompradorUnit) * compradas,
+        valor: (price + feeCompradorUnit + custodiaUnit) * compradas,
         date: Date.now(),
       })
 
       // Se apenas parte das moedas do lote pôde ser transferida, o troco fica no saldo
-      const troco = reivindicada.valor - (price + feeCompradorUnit) * compradas
+      const troco = reivindicada.valor - (price + feeCompradorUnit + custodiaUnit) * compradas
       if (troco > 0) {
         buyer.balance += troco
         s.deposits.push({

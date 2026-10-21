@@ -239,7 +239,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
       if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, taxas)) continue
-      buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
+      buyer.balance -= custoUnit // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
       seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1
     }

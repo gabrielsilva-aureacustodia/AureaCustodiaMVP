@@ -513,7 +513,8 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]
         const price = bo.price
-        buyer.balance -= price + feeCompradorUnit // comprador paga preço + comissão
+        // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
+        buyer.balance -= custoDeCompraPorMoeda(price, taxas)
         seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
         transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, taxas)
       }

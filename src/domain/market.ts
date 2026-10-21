@@ -22,8 +22,16 @@ import type {
   UserEmail,
 } from '@/domain/types'
 import { isNegociavel } from '@/domain/constants'
+import { dataBrasilia } from '@/domain/ciclo-custodia'
+import { registrarCustodiaDaCompra } from '@/domain/custodia-da-compra'
 import { DAY_MS, fdate } from '@/domain/dates'
-import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
+import {
+  comissaoPorMoeda,
+  custoDeCompraPorMoeda,
+  custodiaDaCompraPorMoeda,
+  TAXAS_PADRAO,
+  type TabelaDeTaxas,
+} from '@/domain/fees'
 import { brl } from '@/domain/money'
 import { moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
 import { moedaComRetiradaEmAndamento } from '@/domain/retirada'
@@ -197,7 +205,9 @@ export function transferCoin(seller: User, buyer: User, coinId: string): Coin | 
   const idx = seller.coins.findIndex((c) => c.id === coinId)
   if (idx < 0) return null
   const [coin] = seller.coins.splice(idx, 1)
-  coin.entrada = fdate(Date.now())
+  // Dia de BRASÍLIA, e não o do servidor (UTC): `entrada` ancora o ciclo de custódia e o período de guarda do
+  // dono novo, e às 21h-23h59 daqui o dia UTC já é o seguinte.
+  coin.entrada = dataBrasilia(Date.now())
   coin.transferido = true // status digital "Alienado" na auditoria: já mudou de dono ao menos uma vez
   buyer.coins.push(coin)
   return coin
@@ -255,7 +265,11 @@ export function transferirMoedaVendida(
     }
   }
 
-  // O comprador recebe a moeda e pagará normalmente no próximo ciclo mensal
+  // O comprador recebe a moeda JÁ COM o primeiro mês de custódia pago em nome dele (21/10/2026): a
+  // fatura nasce aqui, na mesma transação da transferência, e o caminho de compra debita o valor junto
+  // com o preço e a comissão (`custoDeCompraPorMoeda`). A custódia que o vendedor pagou não vale para o
+  // comprador — ver `custodiaPagaAteCompetencia`. Daí em diante, o ciclo mensal cobra o dono novo.
+  registrarCustodiaDaCompra(state, buyerEmail, coin, _taxas, agora)
   return coin
 }
 
@@ -375,7 +389,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
   // o livro acumulava ordens mortas que pareciam vivas — o dono achava que
   // estava na fila, o vendedor via demanda que não existia. O pré-pago que
   // sobrar volta ao saldo antes de a ordem sair.
-  expurgarOrdensSemLastro(state, (preco) => preco + comissaoPorMoeda(preco, taxas).comprador)
+  expurgarOrdensSemLastro(state, (preco) => custoDeCompraPorMoeda(preco, taxas))
 
   let progress = true
   while (progress) {
@@ -421,6 +435,8 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       }
 
       const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
+      // Preço + comissão + o primeiro mês de custódia: é o que o comprador precisa ter e o que paga.
+      const custoUnit = custoDeCompraPorMoeda(so.price, taxas)
 
       // PÓS-PAGO: a moeda sai do livro e fica RESERVADA, sem trocar de dono.
       //
@@ -436,7 +452,13 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
         state.reservas = state.reservas ?? []
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         state.reservas.push(
-          abrirReserva({ bo, oferta: so, comissaoCompradorCents: feeComprador, agora: Date.now() }),
+          abrirReserva({
+            bo,
+            oferta: so,
+            comissaoCompradorCents: feeComprador,
+            custodiaCents: custodiaDaCompraPorMoeda(taxas),
+            agora: Date.now(),
+          }),
         )
         progress = true
         break
@@ -448,7 +470,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       // O que conta como dinheiro depende da modalidade: no saldo é o caixa da
       // conta; no pré-pago é o valor que já entrou preso a ESTE bid, e que por
       // isso não pode ser gasto em outra compra.
-      if (fundosDoBid(bo, buyer.balance) >= so.price + feeComprador) {
+      if (fundosDoBid(bo, buyer.balance) >= custoUnit) {
         const seller = state.users[so.seller]
         const price = so.price
 
@@ -482,9 +504,9 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
         // O pré-pago consome o que está preso à oferta; o saldo, o caixa da
         // conta. Nunca os dois: dinheiro de pré-pago entrou para esta compra.
         if (modalidadeDoBid(bo) === 'prepago') {
-          bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) - (price + feeComprador)
+          bo.pagoAntecipadoCents = (bo.pagoAntecipadoCents ?? 0) - custoUnit
         } else {
-          buyer.balance -= price + feeComprador // comprador paga preço + comissão de compra
+          buyer.balance -= custoUnit // comprador paga preço + comissão de compra + 1º mês de custódia
         }
         seller.balance += price - feeVendedor // vendedor recebe preço líquido da comissão
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)

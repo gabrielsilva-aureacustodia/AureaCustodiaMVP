@@ -30,6 +30,8 @@
  * paga aqui é exatamente o que a oferta precisa ter para poder executar.
  */
 
+import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
+import { LinhaCustodiaNaCompra } from './LinhaCustodiaNaCompra'
 import { useState, type ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
@@ -55,7 +57,7 @@ export function ModalOfertaPrePaga({
   precoUnit,
   totalCents,
 }: ModalOfertaPrePagaProps): ReactNode {
-  const { me, run } = useApp()
+  const { me, run, taxas } = useApp()
   const { close } = useModal()
 
   const [enviando, setEnviando] = useState(false)
@@ -63,7 +65,9 @@ export function ModalOfertaPrePaga({
   const [pix, setPix] = useState<{ qrCode?: string; qrCodeBase64?: string } | null>(null)
 
   const temSaldo = me.balance >= totalCents
-  const comissao = totalCents - precoUnit * qty
+  // O total tem três partes: as moedas, a taxa de compra e o primeiro mês de custódia (21/10/2026).
+  const comissao = comissaoPorMoeda(precoUnit, 'comprador', taxas) * qty
+  const custodia = custodiaDaCompraPorMoeda(taxas) * qty
 
   async function pagarComSaldo(): Promise<void> {
     setEnviando(true)
@@ -125,6 +129,7 @@ export function ModalOfertaPrePaga({
         <span className="k">Taxa de compra do Real Olímpico</span>
         <span className="v">+ {brl(comissao)}</span>
       </div>
+      <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">
         <span className="k">Total a pagar agora</span>
         <span className="v" style={{ fontWeight: 600 }}>

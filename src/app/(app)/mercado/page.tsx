@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { BidRow } from '@/components/market/BidRow'
+import { LinhaCustodiaNaCompra } from '@/components/market/LinhaCustodiaNaCompra'
 import { LotCard } from '@/components/market/LotCard'
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { ModalEditarBid } from '@/components/market/ModalEditarBid'
@@ -30,7 +31,7 @@ import { useModal } from '@/components/ui/Modal'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { COIN, LOGO_REAL_EMBLEMA, tiposNegociaveis } from '@/domain/constants'
-import { comissaoPorMoeda } from '@/domain/fees'
+import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { pctChange, roDailySeries } from '@/domain/selectors'
@@ -726,7 +727,9 @@ function ConfirmarCompraModal({
 
   const subtotal = lot.price * qty
   const comissaoComprador = comissaoPorMoeda(lot.price, 'comprador', taxas) * qty
-  const total = subtotal + comissaoComprador
+  // O primeiro mês de custódia entra na compra (21/10/2026): a moeda que passa a ser sua já nasce com a guarda paga.
+  const custodia = custodiaDaCompraPorMoeda(taxas) * qty
+  const total = subtotal + comissaoComprador + custodia
   const temSaldo = me.balance >= total
 
   async function confirmarComSaldo(): Promise<void> {
@@ -797,6 +800,7 @@ function ConfirmarCompraModal({
         <span className="k">Taxa de compra do Real Olímpico</span>
         <span className="v">+ {brl(comissaoComprador)}</span>
       </div>
+      <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">
         <span className="k">Total a pagar</span>
         <span className="v" style={{ fontWeight: 600 }}>
@@ -827,7 +831,7 @@ function ConfirmarCompraModal({
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
           {temSaldo
-            ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de taxa de compra) será debitado do seu saldo em conta.`
+            ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de taxa de compra e ${brl(custodia)} do primeiro mês de custódia) será debitado do seu saldo em conta.`
             : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - me.balance)}).`}
         </div>
         <button
@@ -855,7 +859,7 @@ function ConfirmarCompraModal({
           Comprar com Pix ou cartão
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Pague {brl(total)} direto por Pix ou cartão — as moedas e a taxa de compra —, sem
+          Pague {brl(total)} direto por Pix ou cartão — as moedas, a taxa de compra e o primeiro mês de custódia —, sem
           usar o saldo em conta. A moeda entra no seu acervo assim que o pagamento for aprovado.
           Se, nessa hora, o anúncio já tiver sido vendido, tiver subido de preço ou estiver
           pausado, o valor pago entra inteiro no seu saldo em conta.

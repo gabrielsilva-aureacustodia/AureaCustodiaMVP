@@ -88,7 +88,8 @@ async function criarIntencaoCompraDireta(
     metodo: 'pix',
     status: 'pendente',
     tipoOperacao: 'compra_direta',
-    metadata: { lotId, qty, tipoMoeda },
+    // 200 = o primeiro mês de custódia embutido na compra (21/10/2026), congelado na cobrança
+    metadata: { lotId, qty, tipoMoeda, custodiaPorMoeda: 200 },
     paymentId: null,
     motivoRecusa: null,
     createdAt: agora,
@@ -230,8 +231,9 @@ describe('conciliarPagamento', () => {
       custodiaEmDia(s) // o vendedor tem a custódia dessa moeda em dia (12/10/2026)
     })
 
-    await criarIntencaoCompraDireta(ref, precoUnitario, lotId, 1, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, precoUnitario))
+    const valorCobrado = precoUnitario + 200 // preço + 1º mês de custódia
+    await criarIntencaoCompraDireta(ref, valorCobrado, lotId, 1, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, valorCobrado))
 
     const saldoCompradorAntes = await saldo()
     const stateAntes = await getState()
@@ -308,8 +310,8 @@ describe('conciliarPagamento', () => {
       // nenhuma fatura paga nem plano cobre a moeda: é o caso do Sidnei
     })
 
-    await criarIntencaoCompraDireta(ref, preco, lotId, 1, 'Entrega da Bandeira Olímpica')
-    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, preco))
+    await criarIntencaoCompraDireta(ref, preco + 200, lotId, 1, 'Entrega da Bandeira Olímpica')
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, preco + 200))
 
     const saldoAntes = await saldo()
     const res = await conciliarPagamento('pay-sem-custodia')
@@ -318,7 +320,7 @@ describe('conciliarPagamento', () => {
     const depois = await getState()
     expect(depois.users[sellerEmail].coins.some((c) => c.id === coinId)).toBe(true)
     expect(depois.users[EMAIL].coins.some((c) => c.id === coinId)).toBe(false)
-    expect(depois.users[EMAIL].balance).toBe(saldoAntes + preco)
+    expect(depois.users[EMAIL].balance).toBe(saldoAntes + preco + 200)
   })
 
   it('compra direta quando o lote não está mais disponível: credita o dinheiro no saldo do comprador para evitar perda', async () => {

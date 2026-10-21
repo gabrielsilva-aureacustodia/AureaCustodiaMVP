@@ -191,6 +191,8 @@ export function rotuloDaOrigem(origem: FaturaCustodia['origem']): string {
       return 'Renovação do plano'
     case 'entrada_no_acervo':
       return 'Entrada de moeda na custódia'
+    case 'compra':
+      return 'Custódia do 1º mês, paga na compra'
     default:
       return 'Mensalidade de custódia'
   }

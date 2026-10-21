@@ -81,7 +81,7 @@ function verificarTradesNovos(
         } else if (t.buyer === session) {
           const tot = t.price * t.qty + (t.feeComprador ?? 0)
           toast(
-            `Sua oferta de compra foi executada: ${t.qty} ${t.tipoMoeda} a ${brl(t.price)}. Total pago: ${brl(tot)}.`,
+            `Sua oferta de compra foi executada: ${t.qty} ${t.tipoMoeda} a ${brl(t.price)}. Moedas e taxa de compra: ${brl(tot)}, mais o primeiro mês de custódia.`,
           )
         }
       })

@@ -165,9 +165,52 @@ describe('outras formas de a custódia estar paga — ou não', () => {
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
   })
 
-  it('custódia paga pelo dono anterior vale para quem comprou a moeda', () => {
-    const s = cenario([PAGA_DO_CICLO_1])
+  it('custódia paga pelo dono anterior NÃO vale para quem comprou a moeda (21/10/2026)', () => {
+    // Até 20/10 valia — foi por esse buraco que o "Gerais" comprou moeda já paga pelo vendedor e a
+    // anunciou sem pagar nada. A custódia é sempre do dono atual.
+    // cópia: a constante é compartilhada pelos outros testes
+    const s = cenario([{ ...PAGA_DO_CICLO_1 }])
     s.faturasCustodia![0]!.userEmail = 'vendedor.anterior@exemplo.com.br'
+    expect(coberturaPagaDaMoeda(s, COIN)).toBeNull()
+    expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
+  })
+
+  it('o plano do dono anterior também não vale para o dono novo', () => {
+    const s = cenario([])
+    s.planosCustodia = [
+      {
+        id: 'PLC-ANTERIOR',
+        userEmail: 'vendedor.anterior@exemplo.com.br',
+        protocoloEnvio: 'RO-ENV-0001',
+        modalidade: 'mensal',
+        quantidadeContratada: 1,
+        moedaIds: [COIN],
+        valorPorMoedaCents: 200,
+        valorTotalCents: 200,
+        parcelasMax: 1,
+        inicioCompetencia: '2026-10',
+        pagoAteCompetencia: '2026-12',
+        status: 'vigente',
+        formaPagamento: 'saldo',
+        paymentIntentRef: null,
+        assinaturaId: null,
+        estornadoCents: 0,
+        criadoEm: ENTRADA,
+        atualizadoEm: ENTRADA,
+      },
+    ]
+    expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
+  })
+
+  it('moeda COMPRADA: só vale a fatura emitida depois da compra, em nome de quem comprou', () => {
+    const s = cenario([])
+    s.users[SIDNEI]!.coins[0]!.transferido = true
+    s.users[SIDNEI]!.coins[0]!.entrada = '12/10/2026'
+    // paga pelo mesmo Sidnei ANTES de ele comprar a moeda (quando ela era de outra pessoa, ou antes de vendê-la e recomprá-la)
+    s.faturasCustodia = [fatura({ id: 'F-ANTES', status: 'paga', dataEmissao: brasilia(2026, 10, 1), dataPagamento: brasilia(2026, 10, 1), coberturaAte: FIM_DO_CICLO - 1 })]
+    expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
+    // a embutida na compra, emitida no dia da compra, vale
+    s.faturasCustodia.push(fatura({ id: 'F-COMPRA', status: 'paga', origem: 'compra', dataEmissao: ENTRADA, dataPagamento: ENTRADA, coberturaAte: FIM_DO_CICLO - 1 }))
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(false)
   })
 

@@ -81,7 +81,7 @@ describe('cobrarEntradaNoAcervo', () => {
     expect(s.faturasCustodia).toHaveLength(1)
   })
 
-  it('não cobra a moeda cuja competência já foi paga pelo vendedor — comprou no meio do mês', () => {
+  it('a custódia paga pelo VENDEDOR não vale para o comprador: o dono novo é cobrado (21/10/2026)', () => {
     const s = estado(0, [moeda('RO-000001')])
     const paga: FaturaCustodia = {
       id: 'FAT-ANTIGA',
@@ -99,7 +99,12 @@ describe('cobrarEntradaNoAcervo', () => {
     }
     s.faturasCustodia = [paga]
 
-    expect(cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], { custodiaMensalPorMoeda: 200 }, AGORA)).toBeNull()
+    // Até 20/10 o resultado era `null` (cobrar de novo seria cobrar duas vezes pela mesma guarda). O Gabriel
+    // revogou: toda moeda precisa ter a custódia do DONO ATUAL paga, mesmo que outra pessoa já tenha pago.
+    const f = cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], { custodiaMensalPorMoeda: 200 }, AGORA)
+    expect(f).not.toBeNull()
+    expect(f!.userEmail).toBe(DONO)
+    expect(f!.moedaIds).toEqual(['RO-000001'])
   })
 
   it('cobra só a parte não resolvida de um lote misto', () => {

@@ -423,8 +423,11 @@ function suite(alvo: Alvo): void {
       expect(lido.buyOrders).toEqual([])
       expect(lido.users[comprador].coins.some((c) => c.id === coinId)).toBe(true)
       expect(lido.users[vendedor].coins.some((c) => c.id === coinId)).toBe(false)
-      expect(lido.users[comprador].balance).toBe(semeado.users[comprador].balance - 30_000 - tradeFee(30_000, 'comprador'))
+      // preço + comissão + o 1º mês de custódia (R$ 2,00), desde 21/10/2026
+      expect(lido.users[comprador].balance).toBe(semeado.users[comprador].balance - 30_000 - tradeFee(30_000, 'comprador') - 200)
       expect(lido.users[vendedor].balance).toBe(semeado.users[vendedor].balance + 30_000 - tradeFee(30_000, 'vendedor'))
+      // e a fatura da custódia, paga, vai para o banco junto com a negociação
+      expect(lido.faturasCustodia?.some((f) => f.userEmail === comprador && f.moedaIds.includes(coinId) && f.origem === 'compra' && f.status === 'paga')).toBe(true)
       expect(lido.trades).toHaveLength(33)
       expect(lido.trades[32]).toMatchObject({
         price: 30_000,
@@ -929,12 +932,14 @@ function suite(alvo: Alvo): void {
 
       const livro = await executar((tx) => listarLancamentos(tx))
       const novos = livro.slice(antes.length)
-      expect(novos.map((l) => l.tipo)).toEqual(['compra', 'comissao', 'venda', 'comissao', 'deposito'])
+      // O 6º lançamento é o 1º mês de custódia embutido na compra (21/10/2026): fatura paga do comprador.
+      expect(novos.map((l) => l.tipo)).toEqual(['compra', 'comissao', 'venda', 'comissao', 'custodia', 'deposito'])
       expect(novos[0]).toMatchObject({ userEmail: comprador, valor: 30_000, sinal: -1, refInterna: 'TRADE-33' })
       expect(novos[1]).toMatchObject({ userEmail: comprador, valor: tradeFee(30_000, 'comprador'), sinal: -1, refInterna: 'TRADE-33' })
       expect(novos[2]).toMatchObject({ userEmail: vendedor, valor: 30_000, sinal: 1, refInterna: 'TRADE-33' })
       expect(novos[3]).toMatchObject({ userEmail: vendedor, valor: tradeFee(30_000, 'vendedor'), sinal: -1, refInterna: 'TRADE-33' })
-      expect(novos[4]).toMatchObject({ userEmail: comprador, valor: 5_000, sinal: 1, refInterna: 'DEP-1' })
+      expect(novos[4]).toMatchObject({ userEmail: comprador, tipo: 'custodia', valor: 200, sinal: -1 })
+      expect(novos[5]).toMatchObject({ userEmail: comprador, valor: 5_000, sinal: 1, refInterna: 'DEP-1' })
       expect(verificarCadeia(livro, GENESIS).ok).toBe(true)
 
       const lido = await lerEstado(executar)

@@ -792,8 +792,12 @@ export interface FaturaCustodia {
    * guarda pelo painel (cadastro direto, cadastro sem envio, ou envio cuja
    * análise fechou sem plano contratado). Sem ela a moeda ficava sem cobrança
    * nenhuma até a virada do mês — ver src/domain/cobranca-de-entrada.ts.
+   *
+   * `compra` é o primeiro mês de custódia EMBUTIDO na compra da moeda (21/10/2026): nasce já paga,
+   * na mesma transação da negociação, e cobre os 30 dias seguintes à compra — ver
+   * src/domain/custodia-da-compra.ts.
    */
-  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'entrada_no_acervo'
+  origem?: 'ciclo_mensal' | 'contratacao' | 'renovacao_anual' | 'entrada_no_acervo' | 'compra'
   /**
    * O último instante da guarda que esta fatura cobre — o fim do ciclo da moeda
    * (02/10/2026, ver src/domain/ciclo-custodia.ts). É a COBERTURA, e não o

@@ -170,8 +170,9 @@ describe('Server Action iniciarCompraDireta (payments.ts)', () => {
     expect(res.data.metodo).toBe('pix')
     expect(res.data.externalReference).toMatch(/^CMP-/)
     // Desde a E8 o gateway cobra o mesmo total da tela: preço mais a comissão de compra da tabela
-    // vigente. Sobre R$ 300,00 com a tabela padrão são 0,5% + R$ 1,00 = 150 + 100 = 250.
-    expect(res.data.valorCents).toBe(30_250)
+    // vigente. Sobre R$ 300,00 com a tabela padrão são 0,5% + R$ 1,00 = 150 + 100 = 250. Desde 21/10/2026
+    // o total leva também o 1º mês de custódia (R$ 2,00): 30.000 + 250 + 200.
+    expect(res.data.valorCents).toBe(30_450)
     expect(res.data.lotId).toBe(lotId)
     expect(res.data.qty).toBe(1)
     expect(res.data.qrCode).toBe('pix-copia-e-cola-test')

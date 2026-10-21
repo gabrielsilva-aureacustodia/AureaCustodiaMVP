@@ -140,10 +140,23 @@ cold start.
   **Histórico, porque a regra mudou quatro vezes em quatro dias e o código guarda cicatrizes:**
   existiram o plano de 24 meses (aposentado em 20/09), o anual de R$ 24,00 e um mensal de R$ 3,00
   (ambos em 21/09), e a transferência proporcional da custódia na venda — em que o comprador
-  herdava os meses restantes. **Nada disso vale mais.** Quem compra moeda em custódia simplesmente
-  paga o próximo mês, como qualquer outra moeda que guarde. `ModalidadePlanoCustodia` ainda aceita
+  herdava os meses restantes. **Nada disso vale mais.** (O que vale para a moeda comprada está no
+  item seguinte, de 21/10/2026.) `ModalidadePlanoCustodia` ainda aceita
   `'anual'` no union por causa de linhas antigas no banco; nenhum caminho de código cria uma.
   A antiga tabela anual de faixas (R$ 5/15/25/30/60) foi aposentada.
+- **TODA moeda tem a custódia do DONO ATUAL paga — inclusive a comprada, mesmo que o vendedor já tenha pago**
+  (Gabriel, 21/10/2026, depois que o "Gerais" comprou moeda já paga pelo vendedor e a anunciou sem pagar nada).
+  A cobertura de custódia é do dono, nunca da moeda: `custodiaPagaAteCompetencia`, `coberturaPagaDaMoeda` e
+  `custodiaResolvidaNaCompetencia` só contam plano e fatura **do dono atual**, emitidos depois da compra
+  (`donoAtualDaMoeda`, `src/domain/bloqueio-por-debito.ts`). Para isso não depender de ninguém lembrar de pagar, **o
+  primeiro mês entra na própria compra, em qualquer forma de pagamento**: `custoDeCompraPorMoeda` = preço +
+  comissão de compra + `custodiaDaCompraPorMoeda` (R$ 2,00, da tabela vigente), e `transferirMoedaVendida` cria, na
+  mesma transação, uma fatura **já paga** do comprador (`origem: 'compra'`, `src/domain/custodia-da-compra.ts`) que
+  cobre os 30 dias seguintes. O ciclo da moeda recomeça na compra (`transferCoin` grava o dia de **Brasília** em
+  `entrada`) e o cron cobra o dono novo no aniversário seguinte. Saldo que cobre preço + comissão mas não a custódia
+  não compra. A custódia **não** entra na comissão nem em `Trade.fee`: é receita de custódia (ledger `custodia`, DRE
+  3.1.02). Quem mexe numa compra nova precisa debitar `custoDeCompraPorMoeda` — e nunca `price + comissão`. Os pop-ups
+  de compra mostram a linha "Custódia (1º mês)" com o sinal (i) (`LinhaCustodiaNaCompra`).
 - **Saque é aprovado pela equipe, e só pela equipe** (14/10/2026, depois do saque do Sidnei que zerou o saldo e
   ficou parado). O cliente pede (`solicitarSaque`): o valor total — líquido + tarifa de R$ 5,00 — sai do saldo
   e o pedido fica `solicitado`, com aviso por e-mail à equipe e alerta no painel inicial. Aprovar, pagar por fora,

@@ -79,8 +79,31 @@ export function comissaoPorMoeda(
   return { comprador, vendedor }
 }
 
-/** Preço unitário + comissão do comprador. */
+/**
+ * O primeiro mês de custódia, embutido em TODA compra de moeda (decisão do Gabriel, 21/10/2026).
+ *
+ * Quem compra uma moeda passa a ser o guardado dela, e a custódia do dono novo é SEMPRE cobrada — nunca
+ * vale a que o dono anterior pagou. Em vez de depender de o comprador lembrar de pagar uma fatura depois
+ * (o buraco por onde o "Gerais" vendeu moeda sem pagar), os próximos 30 dias entram na própria compra,
+ * junto com a comissão, e a moeda já nasce com a guarda paga.
+ */
+export function custodiaDaCompraPorMoeda(t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
+  return t.custodiaMensalPorMoeda
+}
+
+/**
+ * Tudo o que o comprador paga por UMA moeda: preço + comissão de compra + o primeiro mês de custódia.
+ *
+ * É este o número que a tela mostra, que o gateway cobra, que o saldo precisa cobrir e que o pré-pago
+ * reserva. Até 21/10/2026 não incluía a custódia — quem precisa só do preço com comissão (a parte que vai
+ * para o histórico de negociações) usa `precoComComissaoDeCompra`.
+ */
 export function custoDeCompraPorMoeda(price: Cents, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
+  return precoComComissaoDeCompra(price, t) + custodiaDaCompraPorMoeda(t)
+}
+
+/** Preço unitário + comissão do comprador, SEM a custódia: o que o histórico de negociações registra. */
+export function precoComComissaoDeCompra(price: Cents, t: TabelaDeTaxas = TAXAS_PADRAO): Cents {
   return price + comissaoPorMoeda(price, t).comprador
 }
 
