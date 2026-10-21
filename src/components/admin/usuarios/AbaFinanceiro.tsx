@@ -129,7 +129,10 @@ export function AbaFinanceiro({
                       <td>{l.id}</td>
                       <td>{dataHora(l.createdAt)}</td>
                       <td>{TIPO_LEDGER[l.tipo] ?? l.tipo}</td>
-                      <td>{l.descricao}</td>
+                      <td>
+                        {l.descricao}
+                        {l.explicacao ? <div className="adm-fraco">Motivo (trilha do painel): {l.explicacao}</div> : null}
+                      </td>
                       <td className={l.sinal < 0 ? 'adm-num adm-negativo' : 'adm-num'}>{dinheiro(l.valor * (l.sinal < 0 ? -1 : 1))}</td>
                       <td className="adm-num">{dinheiro(l.saldoApos)}</td>
                       <td className="adm-mono">{l.hash.slice(0, 12)}…</td>

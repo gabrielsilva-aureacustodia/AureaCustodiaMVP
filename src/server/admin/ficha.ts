@@ -54,8 +54,9 @@ import {
   type EventoDeUsoDaConta,
   type NotaDoUsuario,
 } from '@/server/db/repositories/admin-usuarios'
-import type { EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria'
 import { conversasDaConta, type ConversaListada } from '@/server/db/repositories/cs'
+import { explicarAjuste, JANELA_DA_EXPLICACAO_MS } from '@/domain/admin/explicar-ajustes'
+import { listarAuditoria, type EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria'
 import { listarLancamentos, type LedgerEntryGravado } from '@/server/db/repositories/ledger'
 import {
   aceitesDaConta,
@@ -88,6 +89,23 @@ const LIMITE_RECEBIMENTOS = 100
  * aborta a transação inteira no Postgres), e a falha vira `null`: a aba mostra "indisponível"
  * no lugar daquele bloco, e o resto da ficha abre.
  */
+/** Acrescenta `explicacao` aos lançamentos `ajuste` que uma ação do painel explica. Falha na trilha = sem explicação. */
+async function explicarAjustesDoLedger(
+  ledger: readonly LedgerEntryGravado[],
+): Promise<Array<LedgerEntryGravado & { explicacao?: string }>> {
+  const ajustes = ledger.filter((l) => l.tipo === 'ajuste')
+  if (!ajustes.length) return [...ledger]
+  const explicacoes = new Map<number, string>()
+  for (const a of ajustes.slice(-20)) {
+    const trilha = await opcional((tx) =>
+      listarAuditoria(tx, { de: a.createdAt - JANELA_DA_EXPLICACAO_MS, ate: a.createdAt + JANELA_DA_EXPLICACAO_MS, limite: 50 }),
+    )
+    const texto = trilha ? explicarAjuste(a, trilha) : null
+    if (texto) explicacoes.set(a.id, texto)
+  }
+  return ledger.map((l) => (explicacoes.has(l.id) ? { ...l, explicacao: explicacoes.get(l.id) } : l))
+}
+
 async function opcional<T>(ler: (tx: Consulta) => Promise<T>): Promise<T | null> {
   if (!bancoConfigurado()) return null
   try {
@@ -179,7 +197,8 @@ export interface AbaFinanceiro {
   saldo: Cents
   extrato: StatementRow[]
   totais: StatementTotals
-  ledger: LedgerEntryGravado[] | null
+  /** `explicacao`: o motivo da ação do painel por trás de um `ajuste` (domain/admin/explicar-ajustes.ts). */
+  ledger: Array<LedgerEntryGravado & { explicacao?: string }> | null
   depositos: Deposit[]
   saques: Saque[]
   faturas: FaturaNaFicha[]
@@ -294,12 +313,14 @@ async function conteudoDaAba(aba: AbaFicha, state: AppState, email: string, reti
         opcional((tx) => listarLancamentos(tx, { userEmail: email, limite: LIMITE_LEDGER })),
         opcional((tx) => recebimentosDaConta(tx, email, LIMITE_RECEBIMENTOS)),
       ])
+      // O `ajuste` nasce com texto genérico e o livro-razão não se reescreve: o motivo vem da trilha do painel.
+      const ledgerExplicado = ledger ? await explicarAjustesDoLedger(ledger) : null
       return {
         aba,
         saldo: u.balance,
         extrato: extrato.slice(-LIMITE_EXTRATO).reverse(),
         totais: statementTotals(extrato),
-        ledger: ledger ? [...ledger].reverse() : null,
+        ledger: ledgerExplicado ? [...ledgerExplicado].reverse() : null,
         depositos: state.deposits.filter((d) => d.userEmail === email).reverse(),
         saques: (state.saques ?? []).filter((s) => s.userEmail === email).reverse(),
         faturas: (state.faturasCustodia ?? [])
