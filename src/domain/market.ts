@@ -114,6 +114,23 @@ export function medianSellPrice(state: AppState, tipo: string): Cents | null {
   return prices.length % 2 ? prices[mid] : Math.round((prices[mid - 1] + prices[mid]) / 2)
 }
 
+/**
+ * A MAIOR oferta de compra aberta de UM tipo — o preço que alguém está disposto a pagar agora, e por isso o
+ * que a plataforma põe em destaque na landing e no início (21/10/2026).
+ *
+ * Só conta ordem com moeda ainda a comprar (`qty > 0`). É o preço-limite do comprador, não o custo total
+ * dele: a comissão e a custódia entram por cima. `tipo` obrigatório pelo mesmo motivo de `medianSellPrice`:
+ * misturar os tipos devolveria o preço de uma moeda no cartão de outra.
+ */
+export function maiorOfertaDeCompra(state: AppState, tipo: string): Cents | null {
+  let maior: Cents | null = null
+  for (const b of state.buyOrders) {
+    if (b.tipoMoeda !== tipo || b.qty <= 0) continue
+    if (maior === null || b.price > maior) maior = b.price
+  }
+  return maior
+}
+
 /* ---------- ofertas e lotes ---------- */
 
 /**

@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { LandingPage } from '@/components/landing/LandingPage'
+import { carregarDestaquesDaLanding } from '@/server/mercado/destaques'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
@@ -27,5 +28,7 @@ export default async function HomePage(): Promise<ReactNode> {
     if (state.users[session]) redirect('/inicio')
   }
 
-  return <LandingPage />
+  // Só agregados do livro de ordens (maior oferta de compra e média por tipo): a vitrine não expõe ofertas nem pessoas.
+  const destaques = await carregarDestaquesDaLanding()
+  return <LandingPage destaques={destaques} />
 }

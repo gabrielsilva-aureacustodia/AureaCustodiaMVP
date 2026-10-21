@@ -90,6 +90,14 @@
 .moeda-bloco-valor{margin-top:12px;display:flex;flex-direction:column;gap:2px}
 .moeda-bloco-valor .lbl{font-size:12px;color:var(--text-muted);font-weight:600}
 .moeda-bloco-valor .val{font-size:19px;color:var(--gold);font-weight:700;font-family:var(--ff-display);font-variant-numeric:tabular-nums}
+/* O destaque do cartão (21/10/2026): a maior oferta de compra em primeiro plano; média e referência externa abaixo. */
+.moeda-bloco-destaque{padding:10px 14px;background:var(--gold-tint-14);border:1px solid var(--gold);border-radius:10px;box-shadow:0 0 14px rgba(201,162,75,.12)}
+.moeda-bloco-destaque .val-destaque{font-size:clamp(26px,3.4vw,32px);color:var(--gold-bright);line-height:1.1}
+.moeda-bloco-destaque .val-vazio{font-size:15px;color:var(--text-strong)}
+.moeda-bloco-refs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 0}
+.moeda-bloco-refs dt{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.3}
+.moeda-bloco-refs dd{margin:2px 0 0;font-size:17px;color:var(--text-strong);font-weight:700;font-family:var(--ff-display);font-variant-numeric:tabular-nums}
+.moeda-bloco-refs small{display:block;margin-top:1px;font-size:11px;line-height:1.35;color:var(--text-muted)}
 @media (max-width:900px){
   .moeda-blocos{grid-template-columns:1fr}
 }

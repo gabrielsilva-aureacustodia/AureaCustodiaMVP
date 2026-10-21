@@ -2,12 +2,15 @@
 
 /**
  * Dois cartões explicativos das moedas negociáveis, abaixo dos indicadores do
- * Início: foto real, história curta, tiragem e valor médio de mercado.
+ * Início: foto real, história curta, tiragem e os preços da moeda.
  *
- * O VALOR NÃO É CALCULADO AQUI: vem de `medianSellPrice` (domain/market.ts), a
- * mesma mediana por tipo que a conta, os recibos e o certificado usam. Sem
- * oferta nem negociação do tipo ela devolve null, e o cartão diz isso em vez de
- * inventar um número ou mostrar zero.
+ * OS PREÇOS NÃO SÃO CALCULADOS AQUI (21/10/2026): vêm de `destaqueDeMercado`
+ * (domain/destaques-de-mercado.ts), a mesma função que a landing usa. A MAIOR
+ * OFERTA DE COMPRA fica em destaque — é o que alguém paga agora —, e abaixo dela
+ * a média de mercado da plataforma (`medianSellPrice`, a mesma mediana que a
+ * conta, os recibos e o certificado usam) e a referência de mercado externo para
+ * flor de cunho. Sem oferta nem negociação o cartão diz isso em vez de inventar
+ * um número ou mostrar zero.
  *
  * As fotos são de public/moedas/: a da Direitos Humanos é domínio público
  * (Wikimedia Commons) e a da Bandeira é a imagem oficial do Banco Central
@@ -19,8 +22,8 @@
 
 import type { ReactNode } from 'react'
 
-import { COIN_TYPES } from '@/domain/constants'
-import { medianSellPrice } from '@/domain/market'
+import { COIN_TYPES, ROTULO_REFERENCIA_EXTERNA } from '@/domain/constants'
+import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
 import { MoedaRealista } from '@/components/ui/MoedaRealista'
@@ -56,7 +59,7 @@ export function BlocosDeMoedas(): ReactNode {
     <div className="moeda-blocos">
       {BLOCOS.map((b) => {
         const tipo = COIN_TYPES.find((t) => t.key === b.tipo)
-        const medio = medianSellPrice(state, b.tipo)
+        const d = destaqueDeMercado(state, b.tipo)
         return (
           <section key={b.tipo} className="moeda-bloco">
             <div className="moeda-bloco-foto">
@@ -66,10 +69,27 @@ export function BlocosDeMoedas(): ReactNode {
               <h3>{b.titulo}</h3>
               <p>{b.historia}</p>
               {tipo && <p className="moeda-bloco-ficha">Tiragem {tipo.tiragem} · Bimetálica 27mm</p>}
-              <div className="moeda-bloco-valor">
-                <span className="lbl">Valor médio de mercado</span>
-                <span className="val">{medio === null ? 'Sem ofertas no momento' : brl(medio)}</span>
+              <div className="moeda-bloco-valor moeda-bloco-destaque" data-destaque="maior-oferta-de-compra">
+                <span className="lbl">Maior oferta de compra</span>
+                <span className={d.maiorOfertaDeCompra === null ? 'val val-vazio' : 'val val-destaque'}>
+                  {d.maiorOfertaDeCompra === null ? 'Sem ofertas de compra no momento' : brl(d.maiorOfertaDeCompra)}
+                </span>
               </div>
+              <dl className="moeda-bloco-refs">
+                <div>
+                  <dt>Média de mercado</dt>
+                  <dd>{d.mediaDeMercado === null ? 'Sem negociações ainda' : brl(d.mediaDeMercado)}</dd>
+                </div>
+                {d.referenciaExterna ? (
+                  <div data-destaque="referencia-externa">
+                    <dt>{ROTULO_REFERENCIA_EXTERNA}</dt>
+                    <dd>{brl(d.referenciaExterna.valor)}</dd>
+                    <small>
+                      {d.referenciaExterna.fonte} · cotado em {d.referenciaExterna.cotadoEm}
+                    </small>
+                  </div>
+                ) : null}
+              </dl>
             </div>
           </section>
         )

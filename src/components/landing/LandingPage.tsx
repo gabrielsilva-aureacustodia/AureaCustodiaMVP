@@ -31,6 +31,11 @@ import {
 import { ScrollRevealInit } from './ScrollRevealInit'
 import { CoinSpecimenViewer } from './CoinSpecimenViewer'
 import { FeeSimulator } from './FeeSimulator'
+import { DestaqueDoCard } from './DestaqueDoCard'
+import type { DestaqueDeMercado } from '@/domain/destaques-de-mercado'
+
+const TIPO_BANDEIRA = 'Entrega da Bandeira Olímpica'
+const TIPO_DH = 'Direitos Humanos'
 
 const etapas = [
   {
@@ -76,7 +81,7 @@ const faqs = [
   },
 ] as const
 
-export function LandingPage(): ReactNode {
+export function LandingPage({ destaques = {} }: { destaques?: Record<string, DestaqueDeMercado> }): ReactNode {
   return (
     <main className="landing-page">
       <a href="#landing-conteudo" className="skip-link">
@@ -177,7 +182,7 @@ export function LandingPage(): ReactNode {
       {/* MARKET SNAPSHOT: Moedas de Destaque no Acervo */}
       <section className="landing-market reveal" aria-labelledby="market-title">
         <div className="landing-section-heading">
-          <p className="landing-eyebrow">Cotações de referência</p>
+          <p className="landing-eyebrow">Maior oferta de compra e referências de mercado</p>
           <h2 id="market-title">Moedas de Destaque no Acervo</h2>
         </div>
         <div className="landing-market-grid">
@@ -191,16 +196,7 @@ export function LandingPage(): ReactNode {
               <p className="landing-market-spec">
                 Moeda comemorativa de R$ 1 · Bimetálica · Londres 2012 &rarr; Rio 2016
               </p>
-              <div className="landing-market-metric">
-                <div>
-                  <span className="landing-market-label">Referência de mercado</span>
-                  <div className="landing-market-price">R$ 180,00</div>
-                </div>
-                <div className="landing-market-liquidity">
-                  <span className="landing-market-label">Demanda</span>
-                  <span className="landing-market-tag">Alta liquidez</span>
-                </div>
-              </div>
+              <DestaqueDoCard destaque={destaques[TIPO_BANDEIRA]} demanda="Alta liquidez" />
             </div>
             <div className="landing-market-card-footer">
               <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>
@@ -220,16 +216,7 @@ export function LandingPage(): ReactNode {
               <p className="landing-market-spec">
                 Moeda comemorativa de R$ 1 · Cuproníquel · Tiragem histórica de 600 mil
               </p>
-              <div className="landing-market-metric">
-                <div>
-                  <span className="landing-market-label">Referência de mercado</span>
-                  <div className="landing-market-price">R$ 450,00</div>
-                </div>
-                <div className="landing-market-liquidity">
-                  <span className="landing-market-label">Demanda</span>
-                  <span className="landing-market-tag">Raridade chave</span>
-                </div>
-              </div>
+              <DestaqueDoCard destaque={destaques[TIPO_DH]} demanda="Raridade chave" />
             </div>
             <div className="landing-market-card-footer">
               <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>

@@ -332,6 +332,57 @@ export const FAIXA_VALOR: Record<string, { min: Cents; max: Cents }> = {
   'Direitos Humanos': { min: 38000, max: 52000 },
 }
 
+/**
+ * O rótulo EXATO da referência de preço externa (pedido do Gabriel, 21/10/2026). "Valor de mercado" sozinho
+ * não diz de onde vem o número nem em que estado de conservação a moeda é cotada; este rótulo diz as duas
+ * coisas: é um preço de FORA da plataforma (lojas e catálogos numismáticos) e é o de moeda em flor de cunho
+ * (FC, sem circular).
+ */
+export const ROTULO_REFERENCIA_EXTERNA = 'Referência de mercado externo — flor de cunho'
+
+export interface ReferenciaExterna {
+  /** Preço de uma moeda em flor de cunho, em centavos. */
+  valor: Cents
+  /** De onde vem o número, para quem quiser conferir. */
+  fonte: string
+  /** Mês e ano da cotação: preço de mercado envelhece, e a tela precisa dizer de quando é. */
+  cotadoEm: string
+}
+
+/**
+ * Referência de preço de mercado EXTERNO por tipo, para moeda em flor de cunho (21/10/2026).
+ *
+ * É o único lugar onde esses números existem: a landing e o início leem daqui, e atualizar uma cotação é
+ * mudar uma linha. Não é preço da plataforma — o preço da plataforma é a maior oferta de compra e a média
+ * das negociações, calculados do livro de ordens.
+ *
+ *  - Direitos Humanos: R$ 600,00 — a cotação de lojas numismáticas em flor de cunho que este arquivo já
+ *    registrava em agosto/2026 (a faixa de recibo, R$ 380–520, é mais baixa de propósito: a plataforma não
+ *    classifica o estado de conservação). O catálogo Coan lista R$ 210,00 para a mesma condição e há blogs
+ *    que falam em R$ 650: a dispersão é grande, e por isso a tela diz que é referência externa.
+ *  - Entrega da Bandeira: R$ 260,00 — preços pedidos em lojas para a moeda FC ficam entre R$ 199,00 e
+ *    R$ 289,00, e uma matéria de 2025 cita R$ 260,00.
+ *
+ * Revisar de tempos em tempos: é dado de mercado, não regra de negócio.
+ */
+export const REFERENCIA_EXTERNA_FDC: Record<string, ReferenciaExterna> = {
+  'Entrega da Bandeira Olímpica': {
+    valor: 26000,
+    fonte: 'lojas e catálogos numismáticos, moeda em flor de cunho',
+    cotadoEm: 'outubro/2026',
+  },
+  'Direitos Humanos': {
+    valor: 60000,
+    fonte: 'lojas numismáticas, moeda em flor de cunho',
+    cotadoEm: 'outubro/2026',
+  },
+}
+
+/** A referência externa do tipo, ou `null` se ninguém cotou — a tela não inventa número. */
+export function referenciaExterna(tipo: string): ReferenciaExterna | null {
+  return REFERENCIA_EXTERNA_FDC[tipo] ?? null
+}
+
 /** Faixa do tipo, ou a genérica para as moedas sem cotação de referência. */
 export function faixaValor(tipo: string): { min: Cents; max: Cents } {
   return FAIXA_VALOR[tipo] ?? FAIXA_VALOR_PADRAO
