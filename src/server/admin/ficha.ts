@@ -55,7 +55,7 @@ import {
   type NotaDoUsuario,
 } from '@/server/db/repositories/admin-usuarios'
 import { conversasDaConta, type ConversaListada } from '@/server/db/repositories/cs'
-import { explicarAjuste, JANELA_DA_EXPLICACAO_MS } from '@/domain/admin/explicar-ajustes'
+import { ACAO_DE_ANOTACAO, explicarAjuste, JANELA_DA_EXPLICACAO_MS } from '@/domain/admin/explicar-ajustes'
 import { listarAuditoria, type EntradaAuditoriaGravada } from '@/server/db/repositories/auditoria'
 import { listarLancamentos, type LedgerEntryGravado } from '@/server/db/repositories/ledger'
 import {
@@ -96,11 +96,13 @@ async function explicarAjustesDoLedger(
   const ajustes = ledger.filter((l) => l.tipo === 'ajuste')
   if (!ajustes.length) return [...ledger]
   const explicacoes = new Map<number, string>()
+  // As anotações explícitas (o jeito de explicar depois um lançamento já gravado) valem em qualquer data.
+  const anotacoes = (await opcional((tx) => listarAuditoria(tx, { acao: ACAO_DE_ANOTACAO, limite: 500 }))) ?? []
   for (const a of ajustes.slice(-20)) {
     const trilha = await opcional((tx) =>
       listarAuditoria(tx, { de: a.createdAt - JANELA_DA_EXPLICACAO_MS, ate: a.createdAt + JANELA_DA_EXPLICACAO_MS, limite: 50 }),
     )
-    const texto = trilha ? explicarAjuste(a, trilha) : null
+    const texto = explicarAjuste(a, [...anotacoes, ...(trilha ?? [])])
     if (texto) explicacoes.set(a.id, texto)
   }
   return ledger.map((l) => (explicacoes.has(l.id) ? { ...l, explicacao: explicacoes.get(l.id) } : l))

@@ -5,6 +5,7 @@
  * cliente do banco — carrega a barreira.
  * ==========================================================================*/
 
+import { explicarAjuste } from '@/domain/admin/explicar-ajustes'
 import 'server-only'
 
 import { fdate } from '@/domain/dates'
@@ -260,7 +261,17 @@ export function montarDreDasFontes(fontes: Fontes, periodo: Periodo): Dre {
     recebimentosGateway: fontes.recebimentos,
     faturasCustodia: fontes.state.faturasCustodia,
     planosCustodia: fontes.state.planosCustodia,
+    ajustesExplicados: ajustesExplicadosPelaTrilha(fontes),
   })
+}
+
+/** Os `ajuste` do ledger cujo motivo a trilha do painel registra (ver `explicarAjuste`), por hash. */
+function ajustesExplicadosPelaTrilha(fontes: Fontes): Set<string> {
+  const explicados = new Set<string>()
+  for (const l of fontes.ledger) {
+    if (l.tipo === 'ajuste' && explicarAjuste(l, fontes.auditoria)) explicados.add(l.hash)
+  }
+  return explicados
 }
 
 function relatorioDre(fontes: Fontes, periodo: Periodo): Relatorio {
@@ -296,6 +307,7 @@ function relatorioAnalise(fontes: Fontes, periodo: Periodo): Relatorio {
     { Indicador: 'Volume negociado (R$)', Valor: reais(a.volumeNegociado), Detalhe: 'soma das vendas' },
     { Indicador: 'Comissão média por negociação (R$)', Valor: a.ticketMedioComissao === null ? '' : reais(a.ticketMedioComissao), Detalhe: '' },
     { Indicador: 'Ajustes não explicados (R$)', Valor: reais(a.ajustesNaoExplicados), Detalhe: 'precisa ser zero' },
+    { Indicador: 'Ajustes explicados pela trilha (qtd)', Valor: a.ajustesExplicados, Detalhe: 'motivo gravado pela equipe no painel' },
   ]
   for (const t of a.receitaPorTipo) {
     linhas.push({ Indicador: `Comissões — ${t.tipoMoeda} (R$)`, Valor: reais(t.receita), Detalhe: `${t.negociacoes} negociação(ões)` })
@@ -331,8 +343,10 @@ function relatorioLedger(fontes: Fontes, periodo: Periodo | null): Relatorio {
       Ref_Externa: l.refExterna ?? '',
       Descricao: l.descricao,
       Hash: l.hash,
+      // Última coluna, para não deslocar as que as planilhas já leem. Só os `ajuste` têm motivo na trilha.
+      Motivo_Trilha: (l.tipo === 'ajuste' && explicarAjuste(l, fontes.auditoria)) || '',
     }))
-  return comLinhas(r, linhas, ['Id', 'Data', 'Conta', 'Nome', 'Tipo', 'Valor', 'Saldo_Apos', 'Moeda', 'Quantidade', 'Ref_Interna', 'Ref_Externa', 'Descricao', 'Hash'])
+  return comLinhas(r, linhas, ['Id', 'Data', 'Conta', 'Nome', 'Tipo', 'Valor', 'Saldo_Apos', 'Moeda', 'Quantidade', 'Ref_Interna', 'Ref_Externa', 'Descricao', 'Hash', 'Motivo_Trilha'])
 }
 
 function relatorioAuditoria(fontes: Fontes, periodo: Periodo | null): Relatorio {

@@ -171,6 +171,37 @@ describe('montarDre', () => {
     expect(dre.totais.receitaTaxaSaque).toBe(500)
   })
 
+  it('ajuste com motivo na trilha do painel não é pendência da DRE (21/10/2026)', () => {
+    const base = { userEmail: 'a', tipoMoeda: null, quantidade: null, refInterna: null, refExterna: null }
+    const pendentes = [
+      lancamentoDeSaldoInicial('a', 100_000, new Date(2026, 7, 1).getTime(), 'abertura'),
+      { ...base, createdAt: new Date(2026, 7, 5).getTime(), tipo: 'ajuste' as const, valor: 200, sinal: -1 as const, descricao: 'Variação de saldo não explicada' },
+      { ...base, createdAt: new Date(2026, 7, 6).getTime(), tipo: 'ajuste' as const, valor: 200, sinal: 1 as const, descricao: 'Variação de saldo não explicada' },
+      { ...base, createdAt: new Date(2026, 7, 7).getTime(), tipo: 'ajuste' as const, valor: 700, sinal: 1 as const, descricao: 'Variação de saldo não explicada' },
+    ]
+    const ledger = encadear(pendentes, {}, GENESIS).lancamentos
+    const ajustes = ledger.filter((l) => l.tipo === 'ajuste')
+    const periodo = periodoMensal(2026, 8)
+
+    // sem a trilha: os três são pendência
+    const sem = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo })
+    expect(sem.pendencias.some((p) => p.startsWith('3 lançamento(s) de ajuste'))).toBe(true)
+    expect(sem.analise.ajustesNaoExplicados).toBe(-200 + 200 + 700)
+    expect(sem.analise.ajustesExplicados).toBe(0)
+
+    // os dois primeiros têm motivo na trilha; o terceiro continua pendente
+    const explicados = new Set([ajustes[0]!.hash, ajustes[1]!.hash])
+    const com = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo, ajustesExplicados: explicados })
+    expect(com.pendencias.some((p) => p.startsWith('1 lançamento(s) de ajuste'))).toBe(true)
+    expect(com.analise.ajustesNaoExplicados).toBe(700)
+    expect(com.analise.ajustesExplicados).toBe(2)
+
+    // todos explicados: some a pendência
+    const todos = montarDre({ ledger, manuais: [], parametros: PARAMETROS_VAZIOS, periodo, ajustesExplicados: new Set(ajustes.map((a) => a.hash)) })
+    expect(todos.pendencias.some((p) => p.includes('ajuste'))).toBe(false)
+    expect(todos.analise.ajustesNaoExplicados).toBe(0)
+  })
+
   it('sem alíquota configurada, impostos ficam zerados e a pendência é declarada', () => {
     const dre = montarDre({ ledger: ledgerDeExemplo(), manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 8) })
     expect(dre.totais.deducoes).toBe(0)

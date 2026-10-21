@@ -37,7 +37,7 @@ const TIPO_LEDGER: Record<string, string> = {
   comissao: 'Comissão',
   custodia: 'Custódia',
   estorno: 'Estorno',
-  ajuste: 'Ajuste',
+  ajuste: 'Ajuste / retificação',
 }
 
 export function AbaFinanceiro({
@@ -130,8 +130,9 @@ export function AbaFinanceiro({
                       <td>{dataHora(l.createdAt)}</td>
                       <td>{TIPO_LEDGER[l.tipo] ?? l.tipo}</td>
                       <td>
-                        {l.descricao}
-                        {l.explicacao ? <div className="adm-fraco">Motivo (trilha do painel): {l.explicacao}</div> : null}
+                        {/* A explicação da equipe é o texto principal; o do livro-razão, que não se reescreve, fica embaixo. */}
+                        {l.explicacao ?? l.descricao}
+                        {l.explicacao ? <div className="adm-fraco">Texto original do livro-razão: {l.descricao}</div> : null}
                       </td>
                       <td className={l.sinal < 0 ? 'adm-num adm-negativo' : 'adm-num'}>{dinheiro(l.valor * (l.sinal < 0 ? -1 : 1))}</td>
                       <td className="adm-num">{dinheiro(l.saldoApos)}</td>

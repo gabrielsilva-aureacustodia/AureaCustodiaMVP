@@ -53,6 +53,11 @@ export async function lerEstado(executar: Executor): Promise<AppState> {
 export interface ContextoMutacao {
   /** Quem está fazendo: e-mail da sessão, 'sistema', 'webhook:…', 'cron:…'. */
   ator: string
+  /**
+   * Quando o ajuste de saldo foi decisão de uma pessoa da equipe, o texto que descreve o lançamento (21/10/2026).
+   * Recebe o resultado da mutação, porque o motivo só existe depois de a regra validar o pedido.
+   */
+  descreverAjuste?: (resultado: unknown) => { email: string; texto: string } | undefined
 }
 
 /**
@@ -94,7 +99,7 @@ export async function mutarEstado<T>(
     if (ops.length > 0) {
       const agora = Date.now()
       const hashAnterior = await ultimoHash(tx)
-      const ctxDerivacao = { antes, depois: state, ops, semeadura, agora, hashAnterior }
+      const ctxDerivacao = { antes, depois: state, ops, semeadura, agora, hashAnterior, motivoDoAjuste: contexto.descreverAjuste?.(result) }
       const { lancamentos, ajustes } = derivarLancamentos(ctxDerivacao)
       await inserirLancamentos(tx, lancamentos)
       if (ajustes.length) {

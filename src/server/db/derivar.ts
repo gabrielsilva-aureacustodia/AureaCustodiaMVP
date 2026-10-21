@@ -52,7 +52,24 @@ export interface ContextoDerivacao {
   semeadura: boolean
   agora: number
   hashAnterior: string
+  /**
+   * O motivo escrito por uma pessoa da equipe para o ajuste de UMA conta (21/10/2026). Vai para a descrição
+   * do próprio lançamento, que não se reescreve depois: sem isto o `ajuste` nascia com um texto genérico
+   * ("variação não explicada") mesmo quando o painel sabia exatamente o que tinha acontecido.
+   */
+  motivoDoAjuste?: { email: UserEmail; texto: string }
 }
+
+/**
+ * O histórico do `ajuste` que o sistema gera sozinho, quando o saldo muda sem fato gerador (21/10/2026).
+ *
+ * A ITG 2000 (R1) exige que o histórico do lançamento represente a ESSÊNCIA ECONÔMICA da transação (item 6, d,
+ * e item 8) e não admite "variação sem explicação" como natureza de lançamento: o que sobra é uma diferença
+ * A REGULARIZAR, que se corrige por retificação — estorno, transferência ou complementação (itens 31 a 35).
+ * Até 20/10 o texto era "Variação de saldo não explicada por negociação, depósito ou abertura".
+ */
+export const DESCRICAO_DA_DIFERENCA_A_REGULARIZAR =
+  'Diferença de saldo a regularizar, sem negociação, depósito ou abertura que a justifique — pendente de retificação (ITG 2000)'
 
 export interface Derivado {
   lancamentos: LedgerEntry[]
@@ -61,7 +78,7 @@ export interface Derivado {
 }
 
 export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
-  const { antes, depois, ops, semeadura, agora, hashAnterior } = ctx
+  const { antes, depois, ops, semeadura, agora, hashAnterior, motivoDoAjuste } = ctx
   const nomes: Record<UserEmail, string> = {}
   for (const [email, u] of Object.entries(depois.users)) nomes[email] = u.name
 
@@ -217,7 +234,16 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
     if (diferenca === 0) continue
     ajustes.push({ email, diferenca })
     const { lancamentos: extra } = encadear(
-      [lancamentoDeAjuste(email, diferenca, agora, 'Variação de saldo não explicada por negociação, depósito ou abertura')],
+      [
+        lancamentoDeAjuste(
+          email,
+          diferenca,
+          agora,
+          motivoDoAjuste && motivoDoAjuste.email === email
+            ? motivoDoAjuste.texto
+            : DESCRICAO_DA_DIFERENCA_A_REGULARIZAR,
+        ),
+      ],
       { [email]: calculado },
       hashCorrente,
     )

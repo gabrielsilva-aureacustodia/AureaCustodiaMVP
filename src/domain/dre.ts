@@ -249,8 +249,10 @@ export interface AnaliseDre {
   receitaPorTipo: Array<{ tipoMoeda: string; receita: Cents; negociacoes: number }>
   /** Série mensal dentro do período: comissões, custódia e despesas. */
   porMes: Array<{ mes: string; comissoes: Cents; custodia: Cents; despesas: Cents }>
-  /** Soma dos `ajuste` do período — precisa ser zero num livro saudável. */
+  /** Soma dos `ajuste` do período SEM motivo na trilha do painel — precisa ser zero num livro saudável. */
   ajustesNaoExplicados: Cents
+  /** Quantos `ajuste` do período têm o motivo gravado na trilha (explicados, fora da pendência). */
+  ajustesExplicados: number
 }
 
 export interface Dre {
@@ -270,6 +272,12 @@ export interface EntradasDre {
   recebimentosGateway?: readonly { aprovadoEm: Timestamp; tarifaGateway: Cents }[]
   faturasCustodia?: readonly FaturaCustodia[]
   planosCustodia?: readonly PlanoCustodia[]
+  /**
+   * Hashes dos lançamentos `ajuste` que uma ação da equipe explica na trilha de auditoria (21/10/2026).
+   * O ledger não se reescreve, então o ajuste nasce genérico; quem sabe o motivo é a trilha, e quem junta os
+   * dois é `explicarAjuste` (domain/admin/explicar-ajustes.ts). O ajuste explicado deixa de ser pendência.
+   */
+  ajustesExplicados?: ReadonlySet<string>
 }
 
 export function montarDre({
@@ -280,6 +288,7 @@ export function montarDre({
   recebimentosGateway,
   faturasCustodia,
   planosCustodia,
+  ajustesExplicados,
 }: EntradasDre): Dre {
   const pendencias: string[] = []
 
@@ -472,9 +481,13 @@ export function montarDre({
   }
   const porMes = [...meses.entries()].map(([mes, v]) => ({ mes, ...v })).sort((a, b) => (a.mes < b.mes ? -1 : 1))
 
+  // Ajuste com motivo gravado na trilha pelo painel não é pendência: o livro-razão fecha e a causa está registrada.
   const ajustes = noPer.filter((l) => l.tipo === 'ajuste')
-  const ajustesNaoExplicados = ajustes.reduce((s, l) => s + l.valor * l.sinal, 0)
-  if (ajustes.length) pendencias.push(`${ajustes.length} lançamento(s) de ajuste no período — precisam de explicação`)
+  const semExplicacao = ajustes.filter((l) => !ajustesExplicados?.has(l.hash))
+  const ajustesNaoExplicados = semExplicacao.reduce((s, l) => s + l.valor * l.sinal, 0)
+  if (semExplicacao.length) pendencias.push(
+      `${semExplicacao.length} lançamento(s) de ajuste no período — a regularizar: precisam de histórico e retificação por estorno, transferência ou complementação (ITG 2000)`,
+    )
 
   const analise: AnaliseDre = {
     margemLiquidaBp: proporcaoBp(resultadoLiquido, receitaBruta),
@@ -486,6 +499,7 @@ export function montarDre({
     receitaPorTipo,
     porMes,
     ajustesNaoExplicados,
+    ajustesExplicados: ajustes.length - semExplicacao.length,
   }
 
   return { periodo, linhas, totais, analise, pendencias }

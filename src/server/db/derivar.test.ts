@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { seedState } from '@/domain/seed'
 import type { AppState, Saque } from '@/domain/types'
-import { derivarLancamentos } from './derivar'
+import { derivarLancamentos, DESCRICAO_DA_DIFERENCA_A_REGULARIZAR } from './derivar'
 
 describe('derivarLancamentos — Saques e Invariante do Ledger', () => {
   it('gera lançamentos de saque e taxa_saque e fecha com zero centavos de ajuste', () => {
@@ -119,5 +119,39 @@ describe('derivarLancamentos — saque recusado', () => {
     const derivado = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h' })
     expect(derivado.lancamentos).toHaveLength(0)
     expect(derivado.ajustes).toHaveLength(0)
+  })
+})
+
+describe('derivarLancamentos — histórico do ajuste (ITG 2000, 21/10/2026)', () => {
+  const email = 'gabrielsilva@testeaurea.com.br'
+
+  function comSaldoAlterado(): { antes: AppState; depois: AppState } {
+    const antes: AppState = seedState()
+    const depois: AppState = structuredClone(antes)
+    depois.users[email].balance -= 200
+    return { antes, depois }
+  }
+
+  it('sem motivo, o ajuste que o sistema gera diz que é uma diferença A REGULARIZAR — não "variação não explicada"', () => {
+    const { antes, depois } = comSaldoAlterado()
+    const d = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h' })
+    expect(d.lancamentos).toHaveLength(1)
+    expect(d.lancamentos[0].descricao).toBe(DESCRICAO_DA_DIFERENCA_A_REGULARIZAR)
+    expect(d.lancamentos[0].descricao).toContain('a regularizar')
+    expect(d.lancamentos[0].descricao).not.toContain('não explicada')
+  })
+
+  it('quando a equipe escreveu o motivo, ele vai para o histórico do PRÓPRIO lançamento', () => {
+    const { antes, depois } = comSaldoAlterado()
+    const motivo = { email, texto: 'Ajuste manual de saldo autorizado pela equipe — cobrança retroativa de custódia' }
+    const d = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h', motivoDoAjuste: motivo })
+    expect(d.lancamentos[0].descricao).toBe(motivo.texto)
+    expect(d.lancamentos[0]).toMatchObject({ tipo: 'ajuste', valor: 200, sinal: -1 })
+  })
+
+  it('o motivo de uma conta não é escrito no ajuste de outra', () => {
+    const { antes, depois } = comSaldoAlterado()
+    const d = derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: 5, hashAnterior: 'h', motivoDoAjuste: { email: 'outra@exemplo.com', texto: 'não é desta conta' } })
+    expect(d.lancamentos[0].descricao).toBe(DESCRICAO_DA_DIFERENCA_A_REGULARIZAR)
   })
 })

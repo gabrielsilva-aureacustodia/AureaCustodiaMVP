@@ -50,7 +50,12 @@ export interface PortaDeEstado {
    * Muta o estado e, quando há banco, grava a linha que `trilha` devolver NA MESMA
    * transação. `trilha` recebe o resultado da mutação: recusa devolve `null` e não grava.
    */
-  mutarComTrilha<T>(fn: (s: AppState) => T, trilha: (resultado: T) => AcaoAdmin | null): Promise<T>
+  mutarComTrilha<T>(
+    fn: (s: AppState) => T,
+    trilha: (resultado: T) => AcaoAdmin | null,
+    /** O texto do lançamento `ajuste` que a mutação gerar, escrito pela equipe (21/10/2026). */
+    descreverAjuste?: (resultado: T) => { email: string; texto: string } | undefined,
+  ): Promise<T>
 }
 
 /**
@@ -61,10 +66,13 @@ export interface PortaDeEstado {
 export function portaDeEstadoNoBanco(executar: Executor, ator: string): PortaDeEstado {
   return {
     ler: () => lerEstado(executar),
-    mutarComTrilha: (fn, trilha) =>
+    mutarComTrilha: (fn, trilha, descreverAjuste) =>
       executar(async (tx) => {
         const mesmaTransacao: Executor = (f) => f(tx)
-        const { result } = await mutarEstado(mesmaTransacao, fn, { ator })
+        const { result } = await mutarEstado(mesmaTransacao, fn, {
+          ator,
+          descreverAjuste: descreverAjuste ? (r) => descreverAjuste(r as never) : undefined,
+        })
         const linha = trilha(result)
         if (linha) await registrarAcaoAdmin(tx, linha)
         return result
@@ -302,6 +310,8 @@ export async function ajustarSaldo(
             agora,
           }
         : null,
+    // O motivo vai para a descrição do próprio lançamento: o livro-razão não se reescreve depois.
+    (res) => (res.ok && res.dados ? { email: conta, texto: `Ajuste manual de saldo autorizado pela equipe — ${res.dados.motivo}` } : undefined),
   )
   return r.ok ? { ok: true, mensagem: r.mensagem } : r
 }
