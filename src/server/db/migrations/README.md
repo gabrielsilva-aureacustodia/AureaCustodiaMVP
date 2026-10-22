@@ -111,3 +111,11 @@ capacidade e o tipo da caixa passam a valer no cadastro de moeda (`alocarNasCaix
 `src/domain/admin/caixas.ts`): a Bandeira não entra na caixa dos Direitos Humanos e a caixa que enche
 manda a moeda seguinte para a próxima do mesmo tipo. Aditiva — o código anterior ao deploy não lê a
 coluna, então entra **antes** do push. Aplicada em produção em 05/10/2026.
+
+## Migration 043 — contrato com os Correios (22/10/2026)
+
+`043_correios_contrato.sql` acrescenta `envios.frete` e `envios.pre_postagem` (jsonb: o frete pago pelo
+cliente no site e a pré-postagem de logística reversa que dá o código de rastreio), `retiradas.pre_postagem`
+(a etiqueta de saída emitida pelo painel), o tipo `frete` no ledger e o tipo `frete_envio` nas intenções de
+pagamento — as duas listas repetidas por inteiro, como a 012 e a 038 mandam. Aditiva: o código anterior ao
+deploy não lê as colunas, então entra **antes** do push. Integração em `docs/EXECUCAO_CORREIOS_CWS.md`.

@@ -21,6 +21,7 @@ import type {
   EnderecoEntrega,
   EventoHistoricoRetirada,
   ModalidadeRetirada,
+  PrePostagemRegistro,
   Retirada,
   StatusRetirada,
   Timestamp,
@@ -293,5 +294,97 @@ export function criarSolicitacaoRetirada(params: {
     solicitadoEm: params.solicitadoEm,
     dataLimiteD30,
     historico: [eventoInicial],
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Etiqueta oficial dos Correios (pré-postagem de saída) — 22/10/2026
+ *
+ * Com o contrato dos Correios, a expedição deixou de ser "o operador posta no balcão e digita o
+ * código". O painel emite a pré-postagem pela API e o código de rastreio nasce lá. Estas funções são
+ * a parte PURA disso: o que muda na retirada quando a etiqueta é emitida ou cancelada. A chamada à
+ * API mora na Server Action (`src/server/actions/admin/logistica.ts`).
+ *
+ * Por que a etiqueta leva a retirada só até `separacao`, e não até `postada`: emitir a etiqueta não
+ * põe a caixa nos Correios. Quem diz que a moeda foi postada é o rastreio, quando a agência registra
+ * o objeto (acordo 2 de docs/EXECUCAO_CORREIOS_CWS.md). Marcar `postada` na emissão faria o cliente
+ * ver "a caminho" de uma moeda que ainda está no cofre.
+ * ------------------------------------------------------------------------- */
+
+/** Situações em que a retirada aceita emitir (ou cancelar) a etiqueta: paga e ainda não postada. */
+export const STATUS_QUE_ACEITAM_ETIQUETA: readonly StatusRetirada[] = ['paga', 'separacao']
+
+/** A retirada tem uma pré-postagem dos Correios valendo (emitida e não cancelada)? */
+export function etiquetaAtivaDaRetirada(retirada: Retirada): PrePostagemRegistro | null {
+  const p = retirada.prePostagem
+  return p && !p.canceladaEm ? p : null
+}
+
+/**
+ * Grava a pré-postagem emitida: o código de rastreio passa a ser o do objeto dos Correios e a
+ * retirada vai de `paga` para `separacao` (se já estava em `separacao`, fica, e o histórico ganha a
+ * linha da emissão — sem ela, a etiqueta apareceria sem dizer quem a emitiu nem quando).
+ */
+export function registrarEtiquetaNaRetirada(
+  retirada: Retirada,
+  prePostagem: PrePostagemRegistro,
+  params: { data: Timestamp; autor?: string },
+): Retirada {
+  if (!STATUS_QUE_ACEITAM_ETIQUETA.includes(retirada.status)) {
+    throw new Error(`A etiqueta só é emitida para retirada paga ou em separação. Situação atual: "${retirada.status}".`)
+  }
+  if (etiquetaAtivaDaRetirada(retirada)) {
+    throw new Error(`Esta retirada já tem etiqueta emitida (${retirada.prePostagem?.codigoObjeto}). Cancele-a antes de emitir outra.`)
+  }
+
+  const motivo = `Etiqueta dos Correios emitida (${prePostagem.codigoObjeto}) — aguardando postagem`
+  const base: Retirada =
+    retirada.status === 'paga'
+      ? transicionarRetirada(retirada, 'separacao', { data: params.data, motivo, autor: params.autor })
+      : {
+          ...retirada,
+          historico: [
+            ...retirada.historico,
+            { de: retirada.status, para: retirada.status, data: params.data, motivo, autor: params.autor },
+          ],
+        }
+
+  return {
+    ...base,
+    prePostagem: { ...prePostagem, canceladaEm: null },
+    codigoRastreio: prePostagem.codigoObjeto,
+    updatedAt: params.data,
+  }
+}
+
+/**
+ * Tira a etiqueta cancelada da retirada. A situação NÃO volta para `paga` — a máquina de estados não
+ * anda para trás, e a moeda continua separada no cofre esperando a próxima etiqueta. O código e o id
+ * da pré-postagem cancelada ficam na linha do histórico, que é o que resta dela.
+ */
+export function removerEtiquetaDaRetirada(
+  retirada: Retirada,
+  params: { data: Timestamp; autor?: string },
+): Retirada {
+  const ativa = etiquetaAtivaDaRetirada(retirada)
+  if (!ativa) throw new Error('Esta retirada não tem etiqueta dos Correios emitida.')
+  if (!STATUS_QUE_ACEITAM_ETIQUETA.includes(retirada.status)) {
+    throw new Error(`A etiqueta não pode mais ser cancelada: a retirada está "${retirada.status}".`)
+  }
+  return {
+    ...retirada,
+    prePostagem: null,
+    codigoRastreio: undefined,
+    updatedAt: params.data,
+    historico: [
+      ...retirada.historico,
+      {
+        de: retirada.status,
+        para: retirada.status,
+        data: params.data,
+        motivo: `Etiqueta dos Correios cancelada (${ativa.codigoObjeto}, pré-postagem ${ativa.id})`,
+        autor: params.autor,
+      },
+    ],
   }
 }

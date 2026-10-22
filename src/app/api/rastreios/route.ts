@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { correiosConfigurado } from '@/lib/shipping/cws/config'
 import { getSessionEmail } from '@/server/session'
 import { rastreiosPorProtocolo } from '@/server/shipping/rastreios'
 import { getState } from '@/server/state'
@@ -36,7 +37,7 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
-  const correiosConfigurado = Boolean(process.env.CORREIOS_TOKEN)
-
-  return NextResponse.json({ rastreios: saida, correiosConfigurado })
+  // Lê a configuração do contrato, e não mais `CORREIOS_TOKEN` (que deixou de existir em
+  // 22/10/2026): com a variável antiga, a tela diria "Correios fora" num ambiente configurado.
+  return NextResponse.json({ rastreios: saida, correiosConfigurado: correiosConfigurado() })
 }

@@ -37,6 +37,8 @@ de falha de gravação, nunca um erro na tela.
 | | `verificarCorrenteNoPainel`, `urlDoVideoNoPainel` | `bancada.auditoria` |
 | `config.ts` (C3) | `salvarConfiguracaoNoPainel` (taxas, operacional, termos, canais), `publicarDocumentoNoPainel` | `config.taxas` |
 | | `salvarTipoDeMoedaNoPainel` | `config.catalogo` |
+| `logistica.ts` (22/10/2026) | `emitirEtiquetaRetirada` (pré-postagem de saída nos Correios; `paga` → `separacao`, nunca `postada`), `cancelarEtiquetaRetirada`, `marcarRetiradaPostadaManual` (sem contrato: código do balcão) | `logistica.expedir` |
+| `saques.ts` | `aprovarSaque`, `conferirSaque`, `marcarSaquePago`, `recusarSaque` | `saques.pagar` |
 | `acoes.test.ts` | 51 testes: cada ação pede a sua permissão e, recusada, não chama o serviço nem olha o banco; dados bancários pedem as duas; ator = e-mail do membro, e o membro é o operador da análise; o grupo `sistema` da configuração é recusado; tabela ausente vira a instrução do `db:migrate`; exceção vira mensagem | — |
 
 ## A trilha
@@ -60,6 +62,12 @@ Desde a C3: `admin.usuarios.quitar_fatura`, `admin.bancada.analisar` (com `orige
 `admin.config.operacional`, `admin.config.termos`, `admin.config.sac`,
 `admin.config.publicar_documento` e `admin.config.catalogo`. Mudança de configuração também entra em
 `aurea.config_historico`, com o valor antigo e o novo.
+
+Desde 22/10/2026 (contrato com os Correios): `admin.logistica.emitir_etiqueta`,
+`admin.logistica.cancelar_etiqueta` e `admin.logistica.postar_manual`. A recusa da API dos Correios
+também entra, com `ok: false` e a mensagem deles. Como em `saques.ts`, a trilha é gravada depois da
+ação, fora da transação: a chamada aos Correios não pode ficar dentro de uma, e a etiqueta já existe
+lá quando a linha é escrita.
 
 O polling da caixa de conversas (`atualizarAtendimentoNoPainel`) é leitura e não grava trilha.
 

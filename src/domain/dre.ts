@@ -27,6 +27,13 @@
  *    reemitida a cada recibo (e a plataforma guarda uma por usuário), conta-se
  *    a ÚLTIMA registrada por usuário dentro do período — a vigente —, e não a
  *    soma de todas as reemissões, que dobraria a receita.
+ *  - Frete repassado ao cliente (22/10/2026): lançamentos `frete` do período,
+ *    menos os devolvidos por `estorno` com o mesmo protocolo. NÃO é receita: o
+ *    cliente paga o preço do contrato dos Correios sem margem, e a Áurea só
+ *    repassa. Entra como RECUPERAÇÃO dentro das despesas, abatendo a fatura dos
+ *    Correios que o contador lança em 4.1.06 — repasse fecha em zero. Fica fora
+ *    da receita bruta de propósito: tratamento tributário de reembolso de frete
+ *    é decisão do contador, e o código não decide imposto (ver o aviso acima).
  *  - Outras receitas e TODAS as despesas: lançamentos manuais, por conta do
  *    plano de contas. Aluguel, pessoal, seguro do acervo — nada disso passa
  *    pela plataforma, então entra pela tela de relatórios.
@@ -221,6 +228,8 @@ export interface TotaisDre {
   receitaCustodia: Cents
   receitaTaxaSaque: Cents
   receitaTaxaRetirada: Cents
+  /** Frete pago pelo cliente e repassado aos Correios — recuperação de despesa, fora da receita bruta. */
+  freteRepassado: Cents
   outrasReceitas: Cents
   receitaBruta: Cents
   iss: Cents
@@ -330,6 +339,17 @@ export function montarDre({
   /* receita de tarifas de retirada física */
   const receitaTaxaRetirada = taxasRetirada.reduce((s, l) => s + l.valor, 0)
 
+  /* frete repassado ao cliente (22/10/2026): o pago no período, menos o devolvido no período por
+   * envio desconsiderado sem postar. O estorno acha o frete pela referência (o protocolo), em
+   * qualquer período — como na tarifa de saque, desconta quando acontece. */
+  const fretes = noPer.filter((l) => l.tipo === 'frete')
+  const fretePorProtocolo = new Map<string, Cents>()
+  for (const l of ledger) if (l.tipo === 'frete' && l.refInterna) fretePorProtocolo.set(l.refInterna, l.valor)
+  const fretesDevolvidos = noPer
+    .filter((l) => l.tipo === 'estorno' && l.refInterna !== null && fretePorProtocolo.has(l.refInterna))
+    .reduce((s, l) => s + l.valor, 0)
+  const freteRepassado = fretes.reduce((s, l) => s + l.valor, 0) - fretesDevolvidos
+
   /* lançamentos manuais, por conta */
   const porConta = new Map<string, Cents>()
   for (const m of manuaisNoPer) {
@@ -351,7 +371,9 @@ export function montarDre({
   const despesaGateway = recebimentosNoPer.reduce((s, r) => s + r.tarifaGateway, 0)
 
   const despesasManuais = somaNatureza('despesa')
-  const despesasOperacionais = despesasManuais + despesaGateway
+  // O frete repassado abate a despesa de frete: o custo dos Correios (4.1.06, manual) e o que o
+  // cliente pagou por ele se anulam, e o resultado não ganha nem perde com um repasse.
+  const despesasOperacionais = despesasManuais + despesaGateway - freteRepassado
 
   const receitaBruta = receitaComissoes + receitaCustodia + receitaTaxaSaque + receitaTaxaRetirada + outrasReceitas
 
@@ -397,6 +419,7 @@ export function montarDre({
     receitaCustodia,
     receitaTaxaSaque,
     receitaTaxaRetirada,
+    freteRepassado,
     outrasReceitas,
     receitaBruta,
     iss,
@@ -437,6 +460,10 @@ export function montarDre({
     } else {
       const v = porConta.get(c.codigo) ?? 0
       if (v !== 0) linha(c.codigo, c.nome, -v, 2, 'lançamento manual')
+      if (c.codigo === '4.1.06' && freteRepassado !== 0) {
+        // Linha própria logo abaixo do frete: positiva, porque recupera a despesa de cima.
+        linha('4.1.06a', 'Frete repassado ao cliente', freteRepassado, 2, `${fretes.length} envio(s) · repasse do contrato dos Correios, sem margem`)
+      }
     }
   }
   linha('4.9', '= RESULTADO OPERACIONAL', resultadoOperacional, 0)
@@ -480,6 +507,12 @@ export function montarDre({
     if (c && c.natureza === 'despesa') mesDe(m.data).despesas += m.valor
   }
   const porMes = [...meses.entries()].map(([mes, v]) => ({ mes, ...v })).sort((a, b) => (a.mes < b.mes ? -1 : 1))
+
+  if (freteRepassado !== 0) {
+    pendencias.push(
+      'Frete repassado ao cliente: lance a fatura dos Correios em 4.1.06 para o repasse fechar em zero; o tratamento tributário do reembolso de frete é do contador (hoje fora da receita bruta)',
+    )
+  }
 
   // Ajuste com motivo gravado na trilha pelo painel não é pendência: o livro-razão fecha e a causa está registrada.
   const ajustes = noPer.filter((l) => l.tipo === 'ajuste')

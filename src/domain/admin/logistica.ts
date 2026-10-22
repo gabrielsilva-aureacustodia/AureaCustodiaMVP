@@ -18,6 +18,7 @@
  * Regra pura: o relógio entra por parâmetro.
  */
 
+import { etiquetaAtivaDaRetirada } from '@/domain/retirada'
 import type { Envio, EventoHistoricoRetirada, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
 
 export interface PrazosLogistica {
@@ -86,6 +87,8 @@ export interface LinhaRetirada {
   pagoEm: number | null
   dataLimiteD30: number
   codigoRastreio: string | null
+  /** A etiqueta oficial dos Correios ainda ativa (pré-postagem não cancelada), ou `null`. */
+  etiqueta: { codigoObjeto: string; prazoPostagem: string | null } | null
   historico: EventoHistoricoRetirada[]
   aberta: boolean
   atrasada: boolean
@@ -151,6 +154,10 @@ export function linhaDeRetirada(r: Retirada, nome: string, agora: number): Linha
     pagoEm: r.pagoEm ?? null,
     dataLimiteD30: r.dataLimiteD30,
     codigoRastreio: r.codigoRastreio ?? null,
+    etiqueta: (() => {
+      const p = etiquetaAtivaDaRetirada(r)
+      return p ? { codigoObjeto: p.codigoObjeto, prazoPostagem: p.prazoPostagem } : null
+    })(),
     historico: r.historico ?? [],
     aberta,
     atrasada,

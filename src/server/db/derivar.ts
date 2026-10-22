@@ -31,6 +31,7 @@ import {
   lancamentoDeCustodia,
   lancamentoDeDeposito,
   lancamentoDeEstorno,
+  lancamentoDeFrete,
   lancamentoDeSaldoInicial,
   lancamentoDeSaque,
   lancamentoDeTaxaRetirada,
@@ -192,6 +193,41 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
       if (taxa > 0) {
         pendentes.push(lancamentoDeTaxaRetirada(email, taxa, agora, op.registro.coin.id))
       }
+    }
+  }
+
+  /* frete do envio pago pelo cliente (22/10/2026)
+   *
+   * Lança na TRANSIÇÃO para 'pago' — saldo debitado (pagarFreteComSaldo) ou depósito do gateway
+   * entrando e saindo na mesma mutação (liquidarFreteEnvio). E devolve na transição de 'pago' para
+   * 'estornado' (envio desconsiderado sem postar, desconsiderarEnvio), com a mesma referência — o
+   * protocolo —, que é como a DRE tira o frete devolvido do repasse. Regravar um frete que já estava
+   * pago (ou já estornado) não lança nada: sem isso, cada edição do envio debitaria de novo. */
+  const enviosAntes = new Map((antes.envios ?? []).map((e) => [e.protocolo, e]))
+  for (const e of depois.envios ?? []) {
+    const frete = e.frete
+    if (!frete) continue
+    const statusAntes = enviosAntes.get(e.protocolo)?.frete?.status
+    if (frete.status === 'pago' && statusAntes !== 'pago') {
+      const quando = frete.pagoEm || agora
+      pendentes.push(
+        lancamentoDeFrete(e.userEmail, frete.valorCents, semeadura ? quando : agora, e.protocolo, {
+          modalidade: frete.modalidade,
+          quantidade: e.quantidade,
+          tipoMoeda: e.tipoMoeda,
+          refExterna: frete.paymentIntentRef ?? null,
+        }),
+      )
+    } else if (frete.status === 'estornado' && statusAntes === 'pago') {
+      pendentes.push(
+        lancamentoDeEstorno(
+          e.userEmail,
+          frete.valorCents,
+          agora,
+          e.protocolo,
+          `Estorno do frete do envio ${e.protocolo} — desconsiderado sem postagem`,
+        ),
+      )
     }
   }
 

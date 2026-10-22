@@ -264,6 +264,8 @@ export function normalizarEnvio(e: Envio): Envio {
     observacao: e.observacao ?? null,
     desconsideradoEm: e.desconsideradoEm ?? null,
     motivoDesconsideracao: e.motivoDesconsideracao ?? null,
+    frete: e.frete ? { ...e.frete } : null,
+    prePostagem: e.prePostagem ? { ...e.prePostagem } : null,
   }
 }
 

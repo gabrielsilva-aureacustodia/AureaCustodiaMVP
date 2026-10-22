@@ -18,10 +18,15 @@
  *    - 'Em análise física'
  *    - 'Analisado' (recibo de custódia emitido)
  *
+ * 5. Desde 22/10/2026 o cliente paga o frete no site e recebe a etiqueta oficial dos Correios
+ *    (pré-postagem de logística reversa). Envio com etiqueta não é desconsiderado na leitura —
+ *    o servidor pergunta aos Correios antes —, e envio desconsiderado com frete pago devolve o
+ *    frete ao saldo (`desconsiderarEnvio`).
+ *
  * Módulo puro: sem I/O, sem dependências de framework ou servidor.
  */
 
-import type { Envio } from '@/domain/types'
+import type { AppState, Cents, Envio, PrePostagemRegistro, Timestamp } from '@/domain/types'
 
 /** Prazo limite para postagem nos Correios: 3 dias corridos (72 horas). */
 export const PRAZO_DESCARTE_ENVIO_MS = 3 * 24 * 60 * 60 * 1000
@@ -51,6 +56,17 @@ export interface InfoPrazoPostagem {
 }
 
 /**
+ * A pré-postagem dos Correios que ainda vale (emitida e não cancelada).
+ *
+ * Com ela, o código de rastreio nasceu nos Correios e a postagem é reconhecida
+ * pelo rastreio — não pelo cliente digitando o código (22/10/2026).
+ */
+export function prePostagemAtiva(envio: Envio): PrePostagemRegistro | null {
+  const p = envio.prePostagem
+  return p && !p.canceladaEm ? p : null
+}
+
+/**
  * Calcula o prazo de postagem de um envio e o tempo restante antes do descarte.
  */
 export function prazoPostagemEnvio(envio: Envio, agora: number = Date.now()): InfoPrazoPostagem {
@@ -77,6 +93,22 @@ export function prazoPostagemEnvio(envio: Envio, agora: number = Date.now()): In
 
   const jaDesconsiderado = Boolean(envio.desconsideradoEm)
   const restanteMs = Math.max(0, expiraEm - agora)
+
+  // Com etiqueta oficial, o prazo vencido NÃO desconsidera na leitura: o cliente pode ter postado e o
+  // rastreio ainda não ter passado por aqui. Quem decide é o servidor, depois de perguntar aos Correios
+  // (`desconsiderarEnviosVencidos`). Até lá a tela avisa, sem anunciar um descarte que pode não valer.
+  if (!jaDesconsiderado && restanteMs === 0 && prePostagemAtiva(envio)) {
+    return {
+      expirado: false,
+      restanteMs: 0,
+      horasRestantes: 0,
+      diasRestantes: 0,
+      expiraEm,
+      mensagemAlerta:
+        'O prazo de 3 dias para postar terminou. Se você já postou, a confirmação chega pelo rastreio dos Correios; se não, o protocolo será desconsiderado e o frete volta ao seu saldo.',
+    }
+  }
+
   const expirado = jaDesconsiderado || restanteMs === 0
 
   if (expirado) {
@@ -123,7 +155,67 @@ export function isEnvioDesconsiderado(envio: Envio, agora: number = Date.now()):
   if (envio.origem === 'cadastro_sem_envio') return false
   if (envio.dataPostagem !== null) return false
   if (envio.etapaAtual !== 'Protocolo gerado') return false
+  // Envio com etiqueta oficial dos Correios só cai com a marca gravada. A leitura não sabe se o
+  // pacote já está na agência — o rastreio pode estar um dia atrasado —, e desconsiderar um envio
+  // postado faria a moeda chegar à custódia sem protocolo válido. Ver `desconsiderarEnvio`.
+  if (prePostagemAtiva(envio)) return false
   return agora >= envio.createdAt + PRAZO_DESCARTE_ENVIO_MS
+}
+
+/**
+ * O envio passou do prazo de postagem e pode ser desconsiderado AGORA, sem perguntar nada a ninguém?
+ *
+ * Diferente de `isEnvioDesconsiderado`, ignora a pré-postagem: é a pergunta que o servidor faz antes
+ * de consultar os Correios. Envio com etiqueta só é desconsiderado depois de os Correios dizerem que
+ * ele não foi postado.
+ */
+export function envioVenceuPrazoDePostagem(envio: Envio, agora: number = Date.now()): boolean {
+  if (envio.desconsideradoEm) return false
+  if (envio.origem === 'cadastro_sem_envio') return false
+  if (envio.dataPostagem !== null) return false
+  if (envio.etapaAtual !== 'Protocolo gerado') return false
+  return agora >= envio.createdAt + PRAZO_DESCARTE_ENVIO_MS
+}
+
+export interface ResultadoDesconsideracao {
+  /** Quanto voltou ao saldo do dono (frete pago e não usado). Zero quando não havia frete pago. */
+  freteEstornadoCents: Cents
+  /** A pré-postagem que precisa ser cancelada nos Correios — I/O, fica para quem chamou, FORA da transação. */
+  prePostagemACancelar: PrePostagemRegistro | null
+}
+
+/**
+ * Grava a desconsideração do envio e devolve o frete pago ao saldo do dono (22/10/2026).
+ *
+ * O frete foi pago para um pacote que não saiu de casa: a pré-postagem não postada não gera cobrança
+ * dos Correios, então o dinheiro do cliente não pagou nada e volta inteiro. O status do frete vira
+ * `estornado` na MESMA mutação que credita o saldo — é essa transição que o ledger lê para gravar o
+ * `estorno`, e sem ela o crédito cairia na rede de segurança como `ajuste`.
+ *
+ * Idempotente: envio já desconsiderado não estorna de novo. Muta `state` — chame dentro do `mutateState`.
+ */
+export function desconsiderarEnvio(
+  state: AppState,
+  envio: Envio,
+  agora: Timestamp,
+  motivo = 'Prazo limite de 3 dias para postagem expirado.',
+): ResultadoDesconsideracao {
+  if (envio.desconsideradoEm) return { freteEstornadoCents: 0, prePostagemACancelar: null }
+
+  envio.desconsideradoEm = agora
+  envio.motivoDesconsideracao = motivo
+
+  let freteEstornadoCents: Cents = 0
+  const frete = envio.frete
+  const dono = state.users[envio.userEmail]
+  if (frete && frete.status === 'pago' && dono) {
+    dono.balance += frete.valorCents
+    frete.status = 'estornado'
+    frete.estornadoEm = agora
+    freteEstornadoCents = frete.valorCents
+  }
+
+  return { freteEstornadoCents, prePostagemACancelar: prePostagemAtiva(envio) }
 }
 
 export interface StatusFaseEnvio {

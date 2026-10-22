@@ -155,3 +155,77 @@ describe('derivarLancamentos — histórico do ajuste (ITG 2000, 21/10/2026)', (
     expect(d.lancamentos[0].descricao).toBe(DESCRICAO_DA_DIFERENCA_A_REGULARIZAR)
   })
 })
+
+describe('derivarLancamentos — frete do envio pago no site (22/10/2026)', () => {
+  const email = 'gabrielsilva@testeaurea.com.br'
+  const freteCotado = {
+    modalidade: 'PAC' as const,
+    codigoServico: '03301',
+    valorCents: 2114,
+    valorDeclaradoCents: 15000,
+    prazoDiasUteis: 5,
+    cotadoEm: 1,
+    status: 'cotado' as const,
+  }
+  function comEnvio(): AppState {
+    const s = seedState()
+    s.envios.push({
+      protocolo: 'RO-ENV-9001',
+      userEmail: email,
+      tipoMoeda: 'Entrega da Bandeira Olímpica',
+      ano: 2016,
+      quantidade: 1,
+      codigoRastreio: null,
+      dataPostagem: null,
+      dataRecebimento: null,
+      etapaAtual: 'Protocolo gerado',
+      createdAt: 1,
+      codigosAtivosGerados: [],
+      frete: { ...freteCotado },
+    })
+    return s
+  }
+  const derivar = (antes: AppState, depois: AppState) =>
+    derivarLancamentos({ antes, depois, ops: [], semeadura: false, agora: Date.now(), hashAnterior: 'h' })
+
+  it('frete pago com saldo vira um lançamento `frete` e fecha sem ajuste', () => {
+    const antes = comEnvio()
+    const depois = structuredClone(antes)
+    depois.users[email].balance -= 2114
+    depois.envios.at(-1)!.frete = { ...freteCotado, status: 'pago', pagoEm: 2, forma: 'saldo' }
+
+    const d = derivar(antes, depois)
+    expect(d.ajustes).toEqual([])
+    expect(d.lancamentos).toHaveLength(1)
+    expect(d.lancamentos[0]).toMatchObject({ tipo: 'frete', valor: 2114, sinal: -1, refInterna: 'RO-ENV-9001' })
+    expect(d.lancamentos[0].saldoApos).toBe(depois.users[email].balance)
+  })
+
+  it('frete pago pelo gateway: depósito e frete se anulam, sem ajuste', () => {
+    const antes = comEnvio()
+    const depois = structuredClone(antes)
+    depois.deposits.push({ userEmail: email, valor: 2114, date: Date.now() })
+    depois.envios.at(-1)!.frete = { ...freteCotado, status: 'pago', pagoEm: 2, forma: 'pix', paymentIntentRef: 'FRT-1' }
+
+    const d = derivar(antes, depois)
+    expect(d.ajustes).toEqual([])
+    expect(d.lancamentos.map((l) => l.tipo).sort()).toEqual(['deposito', 'frete'])
+    expect(d.lancamentos.find((l) => l.tipo === 'frete')?.refExterna).toBe('FRT-1')
+  })
+
+  it('frete estornado (envio desconsiderado) devolve por `estorno` com o protocolo, e regravar não lança de novo', () => {
+    const antes = comEnvio()
+    antes.envios.at(-1)!.frete = { ...freteCotado, status: 'pago', pagoEm: 2, forma: 'saldo' }
+    const depois = structuredClone(antes)
+    depois.users[email].balance += 2114
+    depois.envios.at(-1)!.frete = { ...freteCotado, status: 'estornado', pagoEm: 2, forma: 'saldo', estornadoEm: 3 }
+
+    const d = derivar(antes, depois)
+    expect(d.ajustes).toEqual([])
+    expect(d.lancamentos).toHaveLength(1)
+    expect(d.lancamentos[0]).toMatchObject({ tipo: 'estorno', valor: 2114, sinal: 1, refInterna: 'RO-ENV-9001' })
+
+    const deNovo = derivar(depois, structuredClone(depois))
+    expect(deNovo.lancamentos).toHaveLength(0)
+  })
+})

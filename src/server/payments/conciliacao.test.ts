@@ -26,6 +26,22 @@ vi.mock('@/lib/payments', async (importOriginal) => {
   return { ...original, consultarPagamentoMercadoPago }
 })
 
+// Correios do frete (22/10/2026): desligados por padrão — os testes antigos não sabem de frete — e
+// ligados só no bloco do frete, com a pré-postagem num dublê. Nada aqui chama a API de verdade.
+const { correiosConfigurado, criarPrePostagem, cancelarPrePostagem } = vi.hoisted(() => ({
+  correiosConfigurado: vi.fn(() => false),
+  criarPrePostagem: vi.fn(),
+  cancelarPrePostagem: vi.fn(),
+}))
+vi.mock('@/lib/shipping/cws/config', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/shipping/cws/config')>()
+  return { ...original, correiosConfigurado }
+})
+vi.mock('@/lib/shipping/cws/prepostagem', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/lib/shipping/cws/prepostagem')>()
+  return { ...original, criarPrePostagem, cancelarPrePostagem }
+})
+
 import { conciliarPagamento } from './conciliacao'
 import { _limparRecebimentosEmMemoria, buscarRecebimentoPorPaymentId } from './recebimentos'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
@@ -601,4 +617,138 @@ describe('conciliarPagamento', () => {
   })
 })
 
+describe('conciliarPagamento — frete do envio (22/10/2026)', () => {
+  const VALOR = 2_114
+  let protocolo = ''
 
+  async function criarEnvioComFreteCotado(): Promise<void> {
+    await mutateState((s) => {
+      protocolo = `RO-ENV-FRT-${s.envios.length + 1}`
+      s.users[EMAIL].cadastro = {
+        cpf: '529.982.247-25',
+        nomeCompleto: 'Gabriel Silva',
+        dataNascimento: '1990-01-01',
+        telefone: '(31) 99999-0000',
+        endereco: { logradouro: 'Rua A', numero: '10', bairro: 'Centro', cidade: 'São Paulo', uf: 'SP', cep: '01001-000' },
+        dadosBancarios: { chavePix: '52998224725', tipoChavePix: 'cpf' },
+        completadoEm: 1,
+      }
+      s.envios.push({
+        protocolo,
+        userEmail: EMAIL,
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        ano: 2016,
+        quantidade: 1,
+        codigoRastreio: null,
+        dataPostagem: null,
+        dataRecebimento: null,
+        etapaAtual: 'Protocolo gerado',
+        createdAt: Date.now(),
+        codigosAtivosGerados: [],
+        frete: {
+          modalidade: 'PAC',
+          codigoServico: '03301',
+          valorCents: VALOR,
+          valorDeclaradoCents: 15_000,
+          prazoDiasUteis: 5,
+          cotadoEm: Date.now(),
+          status: 'cotado',
+        },
+      })
+    })
+  }
+
+  async function criarIntencaoFrete(ref: string, valor = VALOR): Promise<void> {
+    const agora = Date.now()
+    await repositorioIntencoes().criar({
+      externalReference: ref,
+      userEmail: EMAIL,
+      valor,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'frete_envio',
+      metadata: { protocolo },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+  }
+
+  const envio = async () => (await getState()).envios.find((e) => e.protocolo === protocolo)!
+
+  beforeEach(async () => {
+    _limparRepositoriosEmMemoria()
+    _limparRecebimentosEmMemoria()
+    consultarPagamentoMercadoPago.mockReset()
+    criarPrePostagem.mockReset()
+    cancelarPrePostagem.mockReset()
+    correiosConfigurado.mockReturnValue(true)
+    await criarEnvioComFreteCotado()
+  })
+
+  it('paga o frete sem mexer no saldo e emite a etiqueta depois da transação', async () => {
+    const ref = 'FRT-ok'
+    await criarIntencaoFrete(ref)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR))
+    criarPrePostagem.mockResolvedValue({ id: 'PRI9', codigoObjeto: 'AP111222333BR', prazoPostagem: null, statusAtual: 2 })
+
+    const antes = await saldo()
+    const r = await conciliarPagamento('pay-1')
+
+    expect(r).toMatchObject({ creditado: true, motivo: 'frete_envio_liquidado', tipoOperacao: 'frete_envio' })
+    expect(await saldo()).toBe(antes)
+    const e = await envio()
+    expect(e.frete).toMatchObject({ status: 'pago', forma: 'pix', paymentIntentRef: ref })
+    expect(e.prePostagem?.codigoObjeto).toBe('AP111222333BR')
+    expect(e.codigoRastreio).toBe('AP111222333BR')
+    // Acordo 1: a etiqueta não é postagem.
+    expect(e.etapaAtual).toBe('Protocolo gerado')
+    expect(e.dataPostagem).toBeNull()
+    expect(criarPrePostagem.mock.calls[0][0]).toMatchObject({ logisticaReversa: true, codigoServico: '03301', observacao: protocolo })
+  })
+
+  it('falha dos Correios não desfaz o pagamento: frete pago, etiqueta pendente', async () => {
+    const ref = 'FRT-correios-fora'
+    await criarIntencaoFrete(ref)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR))
+    criarPrePostagem.mockRejectedValue(new Error('Correios fora do ar'))
+
+    const r = await conciliarPagamento('pay-1')
+
+    expect(r.creditado).toBe(true)
+    const e = await envio()
+    expect(e.frete?.status).toBe('pago')
+    expect(e.prePostagem ?? null).toBeNull()
+  })
+
+  it('frete já pago por outra forma: o segundo pagamento vira saldo', async () => {
+    await mutateState((s) => {
+      const e = s.envios.find((x) => x.protocolo === protocolo)!
+      e.frete = { ...e.frete!, status: 'pago', forma: 'saldo', pagoEm: Date.now() }
+    })
+    const ref = 'FRT-duplicado'
+    await criarIntencaoFrete(ref)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR))
+
+    const antes = await saldo()
+    const r = await conciliarPagamento('pay-1')
+
+    expect(r.motivo).toBe('frete_ja_pago_creditado_em_saldo')
+    expect(await saldo()).toBe(antes + VALOR)
+    expect(criarPrePostagem).not.toHaveBeenCalled()
+  })
+
+  it('frete recotado para outro valor depois da cobrança: o pago vira saldo', async () => {
+    const ref = 'FRT-recotado'
+    await criarIntencaoFrete(ref, VALOR - 100)
+    consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR - 100))
+
+    const antes = await saldo()
+    const r = await conciliarPagamento('pay-1')
+
+    expect(r.motivo).toBe('frete_recotado_creditado_em_saldo')
+    expect(await saldo()).toBe(antes + VALOR - 100)
+    expect((await envio()).frete?.status).toBe('cotado')
+  })
+})

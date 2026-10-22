@@ -11,7 +11,16 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { normalizarRastreio, rastreioValido } from './rastreio'
+import {
+  avancosDaRetiradaPeloRastreio,
+  instanteDaPostagem,
+  normalizarRastreio,
+  objetoJaComOsCorreios,
+  postagemDoEnvioPeloRastreio,
+  rastreioValido,
+  rotuloStatusRastreio,
+  textoDoRastreio,
+} from './rastreio'
 
 describe('normalizarRastreio', () => {
   it('aceita o código como os Correios imprimem no comprovante, em grupos', () => {
@@ -59,5 +68,81 @@ describe('rastreioValido', () => {
     ]) {
       expect(rastreioValido(codigo)).toBe(false)
     }
+  })
+})
+
+/*
+ * Status do rastreio e avanço automático (22/10/2026). Com o contrato, o código nasce na etiqueta,
+ * antes da postagem: "tem código" deixou de querer dizer "foi postado". Estes testes travam a
+ * regra que separa uma coisa da outra, e os textos em português dos dois status novos.
+ */
+
+describe('rótulos de status', () => {
+  it('os dois status da pré-postagem têm texto em português, e a tela não mostra o código cru', () => {
+    expect(rotuloStatusRastreio('aguardando_postagem')).toBe('Etiqueta emitida — aguardando postagem')
+    expect(rotuloStatusRastreio('cancelado')).toBe('Etiqueta cancelada')
+    // Prefere o rótulo combinado à frase do SRO, que muda de redação.
+    expect(textoDoRastreio({ statusAtual: 'aguardando_postagem', etapaDescricao: 'Etiqueta emitida' })).toBe(
+      'Etiqueta emitida — aguardando postagem',
+    )
+    // Para os outros vale a frase dos Correios, que é mais específica; sem ela, o rótulo.
+    expect(textoDoRastreio({ statusAtual: 'em_transito', etapaDescricao: 'Objeto em transferência' })).toBe('Objeto em transferência')
+    expect(textoDoRastreio({ statusAtual: 'em_transito', etapaDescricao: '' })).toBe('Em trânsito')
+    expect(rotuloStatusRastreio('status_que_nao_existe')).toBe('status_que_nao_existe')
+  })
+})
+
+describe('quando o objeto está com os Correios', () => {
+  const ETIQUETA = 1_000
+  const POSTAGEM = 2_000
+  const ENTREGA = 3_000
+  const base = { codigoRastreio: 'AP123456789BR', dataUltimaAtualizacao: 9_999 }
+
+  it('etiqueta emitida ou cancelada não é postagem', () => {
+    expect(objetoJaComOsCorreios('aguardando_postagem')).toBe(false)
+    expect(objetoJaComOsCorreios('cancelado')).toBe(false)
+    expect(objetoJaComOsCorreios('indisponivel')).toBe(false)
+    expect(objetoJaComOsCorreios('nao_encontrado')).toBe(false)
+    for (const s of ['postado', 'em_transito', 'saiu_para_entrega', 'aguardando_retirada', 'entregue']) {
+      expect(objetoJaComOsCorreios(s)).toBe(true)
+    }
+  })
+
+  it('a data da postagem é o primeiro evento depois da etiqueta, não a hora da consulta', () => {
+    const eventos = [
+      { status: 'em_transito' as const, dataHora: ENTREGA },
+      { status: 'postado' as const, dataHora: POSTAGEM },
+      { status: 'aguardando_postagem' as const, dataHora: ETIQUETA },
+    ]
+    expect(instanteDaPostagem(eventos)).toBe(POSTAGEM)
+    expect(instanteDaPostagem([{ status: 'aguardando_postagem', dataHora: ETIQUETA }])).toBeNull()
+  })
+
+  it('envio: só avança de "Protocolo gerado", sem postagem, não desconsiderado e com o mesmo código', () => {
+    const envio = { etapaAtual: 'Protocolo gerado' as const, dataPostagem: null, codigoRastreio: 'ap123456789br' }
+    const postado = { ...base, statusAtual: 'postado', eventos: [{ status: 'postado' as const, dataHora: POSTAGEM }] }
+    expect(postagemDoEnvioPeloRastreio(envio, postado)).toBe(POSTAGEM)
+    expect(postagemDoEnvioPeloRastreio({ ...envio, dataPostagem: 5 }, postado)).toBeNull()
+    expect(postagemDoEnvioPeloRastreio({ ...envio, etapaAtual: 'Envio postado' }, postado)).toBeNull()
+    expect(postagemDoEnvioPeloRastreio({ ...envio, desconsideradoEm: 5 }, postado)).toBeNull()
+    expect(postagemDoEnvioPeloRastreio({ ...envio, codigoRastreio: 'AP999999999BR' }, postado)).toBeNull()
+    expect(
+      postagemDoEnvioPeloRastreio(envio, { ...base, statusAtual: 'aguardando_postagem', eventos: [{ status: 'aguardando_postagem', dataHora: ETIQUETA }] }),
+    ).toBeNull()
+  })
+
+  it('retirada: separação → postada → entregue, nunca pulando a postagem', () => {
+    const transito = { ...base, statusAtual: 'em_transito', eventos: [{ status: 'postado' as const, dataHora: POSTAGEM }, { status: 'em_transito' as const, dataHora: ENTREGA }] }
+    const entregue = { ...base, statusAtual: 'entregue', eventos: [{ status: 'postado' as const, dataHora: POSTAGEM }, { status: 'entregue' as const, dataHora: ENTREGA }] }
+    const ret = (status: 'separacao' | 'postada' | 'entregue') => ({ status, codigoRastreio: 'AP123456789BR' })
+
+    expect(avancosDaRetiradaPeloRastreio(ret('separacao'), transito)).toEqual([{ para: 'postada', data: POSTAGEM }])
+    expect(avancosDaRetiradaPeloRastreio(ret('postada'), transito)).toEqual([])
+    expect(avancosDaRetiradaPeloRastreio(ret('postada'), entregue)).toEqual([{ para: 'entregue', data: ENTREGA }])
+    expect(avancosDaRetiradaPeloRastreio(ret('separacao'), entregue)).toEqual([
+      { para: 'postada', data: POSTAGEM },
+      { para: 'entregue', data: ENTREGA },
+    ])
+    expect(avancosDaRetiradaPeloRastreio(ret('entregue'), entregue)).toEqual([])
   })
 })

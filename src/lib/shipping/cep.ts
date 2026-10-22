@@ -9,6 +9,8 @@ import 'server-only'
  */
 
 import { normalizarCep } from './correios'
+import { consultarCepCorreios } from './cws/cep'
+import { correiosConfigurado } from './cws/config'
 import type { EnderecoCep } from './types'
 
 /**
@@ -40,12 +42,34 @@ export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
       cep: '30315-970',
       logradouro: 'Caixa Postal 7990',
       complemento: 'AGF Bandeirantes',
-      bairro: 'Mangabeiras',
+      bairro: 'Comiteco',
       cidade: 'Belo Horizonte',
       uf: 'MG',
       valido: true,
     }
   }
+
+  // Com o contrato (22/10/2026), a primeira fonte é a base oficial dos Correios — a mesma que vai
+  // validar o endereço na pré-postagem. CEP que ela não conhece é inválido; se a API cair, o
+  // ViaCEP responde no lugar.
+  const comContrato = correiosConfigurado()
+  if (comContrato) {
+    try {
+      const oficial = await consultarCepCorreios(cep)
+      if (oficial) return oficial
+      return { cep, logradouro: '', complemento: '', bairro: '', cidade: '', uf: '', valido: false }
+    } catch {
+      /* API dos Correios fora: segue para o ViaCEP */
+    }
+  }
+
+  // Sem conexão com nenhuma fonte, o endereço inventado do `fallbackCep` só vale sem contrato
+  // (desenvolvimento local). Com contrato, o endereço vai parar numa etiqueta de verdade, e um
+  // "Logradouro de Demonstração" ali é pacote extraviado — melhor dizer que o CEP não foi encontrado.
+  const semFonte = (): EnderecoCep =>
+    comContrato
+      ? { cep, logradouro: '', complemento: '', bairro: '', cidade: '', uf: '', valido: false }
+      : fallbackCep(cep)
 
   try {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
@@ -58,7 +82,7 @@ export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
     })
 
     if (!res.ok) {
-      return fallbackCep(cep)
+      return semFonte()
     }
 
     const data = (await res.json()) as {
@@ -93,7 +117,7 @@ export async function consultarCep(cepInput: string): Promise<EnderecoCep> {
       valido: true,
     }
   } catch {
-    return fallbackCep(cep)
+    return semFonte()
   }
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { desconsiderarEnviosVencidos } from '@/server/shipping/frete-envio'
 import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
 
 /**
@@ -14,7 +15,26 @@ import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
  *
  * O agendamento está em `vercel.json`. É DIÁRIO porque o plano Hobby da Vercel
  * só permite uma execução por dia; com plano Pro, a mesma rota aceita cadência
- * maior sem nenhuma mudança de código.
+ * maior sem nenhuma mudança de código. Consequência a conhecer: o envio só passa
+ * sozinho para "Envio postado" (e a retirada para `postada`/`entregue`) na rodada
+ * seguinte ao registro nos Correios — até um dia depois. A data gravada é a do
+ * evento dos Correios, não a da rodada, então o atraso é só de exibição.
+ *
+ * O QUE A RESPOSTA DIZ (22/10/2026)
+ * ---------------------------------
+ * Além do que foi consultado e gravado (`verificados`, `gravados`,
+ * `retiradasVerificadas`, `retiradasGravadas`), a rodada conta o que avançou
+ * sozinha — `enviosPostados`, `retiradasPostadas`, `retiradasEntregues` — e
+ * `retratosPreservados`: objetos em que os Correios não responderam e o último
+ * retrato bom foi mantido em vez de apagado. Os campos vêm de `ResumoAtualizacao`
+ * (`src/server/shipping/rastreios.ts`); nenhum código de rastreio de retirada sai
+ * na resposta, só contagens.
+ *
+ * A VARREDURA DOS ENVIOS VENCIDOS roda na mesma rodada, DEPOIS do rastreio (22/10/2026): envio que
+ * passou do prazo de postagem com frete pago tem o frete devolvido ao saldo e a pré-postagem
+ * cancelada (`desconsiderarEnviosVencidos`). A ordem importa — o rastreio primeiro marca como
+ * postado o que os Correios já receberam, e a varredura não desconsidera o que está a caminho.
+ * Uma falha na varredura não apaga o resultado do rastreio, e vice-versa.
  *
  * `CRON_SECRET`: a Vercel envia `Authorization: Bearer <valor>` sozinha quando a
  * variável existe no projeto. Em produção a rota EXIGE o cabeçalho — sem isso,
@@ -30,15 +50,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
   }
 
+  let resumo: Awaited<ReturnType<typeof atualizarRastreiosPendentes>>
   try {
-    const resumo = await atualizarRastreiosPendentes()
-    return NextResponse.json({
-      ok: true,
-      ...resumo,
-      executadoEm: new Date().toISOString(),
-    })
+    resumo = await atualizarRastreiosPendentes()
   } catch (error) {
     console.error('[Cron Rastreio] Erro ao atualizar rastreios:', error)
     return NextResponse.json({ ok: false, error: 'Falha ao atualizar rastreios' }, { status: 500 })
   }
+
+  let varredura: Awaited<ReturnType<typeof desconsiderarEnviosVencidos>> | { erro: string }
+  try {
+    varredura = await desconsiderarEnviosVencidos()
+  } catch (error) {
+    console.error('[Cron Rastreio] Erro na varredura de envios vencidos:', error)
+    varredura = { erro: 'Falha na varredura de envios vencidos' }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    ...resumo,
+    varredura,
+    executadoEm: new Date().toISOString(),
+  })
 }

@@ -16,6 +16,7 @@
 import type { ReactNode } from 'react'
 
 import { fdate } from '@/domain/dates'
+import { ROTULO_STATUS_RASTREIO } from '@/domain/rastreio'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { Envio, EtapaEnvio } from '@/domain/types'
 
@@ -32,9 +33,14 @@ function notaDaEtapa(etapa: EtapaEnvio, envio: Envio): string {
     case 'Protocolo gerado':
       return 'Protocolo registrado com sucesso.'
     case 'Envio postado':
-      return envio.dataPostagem
-        ? 'Objeto postado via Correios em ' + fdate(envio.dataPostagem) + '.'
-        : 'Aguardando postagem.'
+      if (envio.dataPostagem) return 'Objeto postado via Correios em ' + fdate(envio.dataPostagem) + '.'
+      // Com a etiqueta do contrato (22/10/2026), a postagem é reconhecida sozinha pelo rastreio —
+      // a tela diz isso, em vez de deixar o cliente procurar onde informar o código.
+      if (envio.prePostagem?.canceladaEm) return ROTULO_STATUS_RASTREIO.cancelado + '.'
+      if (envio.prePostagem) {
+        return ROTULO_STATUS_RASTREIO.aguardando_postagem + '. A postagem é reconhecida sozinha quando os Correios registrarem o objeto.'
+      }
+      return 'Aguardando postagem.'
     case 'Recebido pela custódia':
       return 'Objeto recebido em nosso centro de custódia.'
     case 'Em análise física':

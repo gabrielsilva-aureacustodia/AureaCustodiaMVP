@@ -21,6 +21,7 @@ import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/pay
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
 import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
+import { emitirPrePostagemDoEnvio, recusaDoEnvioParaFrete } from '@/server/shipping/frete-envio'
 import { mutateState } from '@/server/state'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
@@ -627,7 +628,54 @@ function liquidarReservaCompra(
   return { sucesso: true, motivo: 'reserva_liquidada', compraConcluida: true }
 }
 
+/**
+ * Liquidador do frete do envio à custódia (22/10/2026).
+ *
+ * Espelha `liquidarRetirada`: o valor que o gateway trouxe entra como `deposito` e sai como `frete`
+ * (o ledger lança o `frete` na transição para 'pago', derivar.ts) — os dois se anulam e o saldo do
+ * cliente não muda. Quando o frete não pode mais ser pago — envio desconsiderado, postado no balcão,
+ * já pago por outra forma, recotado para outro valor —, o dinheiro vira SALDO, como na compra direta:
+ * estornar no gateway exigiria uma chamada de saída que a conta não tem, e o cliente usa o saldo na
+ * hora (inclusive para pagar o frete de novo).
+ *
+ * A etiqueta NÃO nasce aqui: chamar os Correios dentro da transação prenderia a linha do estado
+ * durante uma chamada de rede. `conciliarPagamento` a pede depois, fora da transação.
+ */
+function liquidarFreteEnvio(
+  s: AppState,
+  reivindicada: IntencaoDeposito,
+): ResultadoLiquidacao {
+  const cliente = s.users[reivindicada.userEmail]
+  if (!cliente) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
+
+  const agora = Date.now()
+  const protocolo = (reivindicada.metadata?.protocolo as string) || ''
+  const envio = s.envios.find((e) => e.protocolo === protocolo && e.userEmail === reivindicada.userEmail)
+
+  const devolverComoSaldo = (motivo: string): ResultadoLiquidacao => {
+    cliente.balance += reivindicada.valor
+    s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+    return { sucesso: true, motivo }
+  }
+
+  if (!envio || !envio.frete) return devolverComoSaldo('frete_envio_nao_localizado_creditado_saldo')
+  if (envio.frete.status === 'pago') return devolverComoSaldo('frete_ja_pago_creditado_em_saldo')
+  if (recusaDoEnvioParaFrete(envio, agora)) return devolverComoSaldo('envio_encerrado_frete_creditado_em_saldo')
+  if (envio.frete.valorCents !== reivindicada.valor) return devolverComoSaldo('frete_recotado_creditado_em_saldo')
+
+  s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+  envio.frete = {
+    ...envio.frete,
+    status: 'pago',
+    pagoEm: agora,
+    forma: reivindicada.metodo === 'pix' ? 'pix' : 'cartao',
+    paymentIntentRef: reivindicada.externalReference,
+  }
+  return { sucesso: true, motivo: 'frete_envio_liquidado' }
+}
+
 export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
+  frete_envio: liquidarFreteEnvio,
   deposito: liquidarDeposito,
   compra_direta: liquidarCompraDireta,
   fatura_custodia: liquidarFaturaCustodia,
@@ -660,6 +708,7 @@ export const LIQUIDADORES: Record<TipoOperacaoPagamento, Liquidador> = {
  *     - `compra_direta`: transfere as moedas e credita o vendedor líquido da comissão da tabela vigente.
  *     - `fatura_custodia` / `plano_custodia` / `assinatura_custodia`: B2.
  *     - `retirada`: B3.
+ *     - `frete_envio`: frete do envio à custódia; a etiqueta dos Correios sai depois, fora da transação.
  *  5. **Separação contábil do gateway (Passo B1.3 / B1.4, F-5, RA-30, RA-32)**:
  *     Após a mutação de estado, grava o recebimento em `aurea.recebimentos_gateway`
  *     com valor bruto, taxa do gateway, valor líquido e competência contábil.
@@ -817,6 +866,21 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
   }
 
   await intencoes.concluir(ref, paymentId)
+
+  // Frete pago pelo gateway: agora, fora da transação, a etiqueta dos Correios (22/10/2026). Falha
+  // dos Correios NÃO desfaz o pagamento — o frete continua 'pago' e o cliente pede a etiqueta de novo
+  // na tela de envios. `emitirPrePostagemDoEnvio` não lança; o catch é para o imprevisto.
+  if (tipo === 'frete_envio' && resLiquidacao.motivo === 'frete_envio_liquidado') {
+    const protocolo = String(reivindicada.metadata?.protocolo ?? '')
+    try {
+      const emissao = await emitirPrePostagemDoEnvio(protocolo)
+      if (!emissao.ok && emissao.motivo !== 'sem_contrato') {
+        console.error(`[conciliarPagamento] frete do ${protocolo} pago, etiqueta pendente: ${emissao.erro}`)
+      }
+    } catch (errEtiqueta) {
+      console.error(`[conciliarPagamento] frete do ${protocolo} pago, etiqueta pendente:`, errEtiqueta)
+    }
+  }
 
   // Sincroniza assinaturas recorrentes no gateway conforme a nova quantidade de moedas
   if (tipo === 'compra_direta' && resLiquidacao.compraConcluida) {

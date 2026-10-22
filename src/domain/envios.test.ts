@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Envio } from '@/domain/types'
+import type { AppState, Envio } from '@/domain/types'
 import {
   PRAZO_DESCARTE_ENVIO_MS,
+  desconsiderarEnvio,
+  envioVenceuPrazoDePostagem,
   isEnvioDesconsiderado,
+  prePostagemAtiva,
   prazoPostagemEnvio,
   statusFaseEnvio,
 } from './envios'
@@ -176,5 +179,67 @@ describe('Domínio de Envios — Fases do ciclo de vida', () => {
     expect(s.rotulo).toBe('Analisado / Concluído')
     expect(s.descricao).toContain('RO-BAN-0001')
     expect(s.badgeVariant).toBe('success')
+  })
+})
+
+describe('Domínio de Envios — frete pago e etiqueta oficial (22/10/2026)', () => {
+  const PRE = {
+    id: 'PRI1',
+    codigoObjeto: 'AP123456789BR',
+    codigoServico: '03301',
+    criadaEm: 1000000,
+    prazoPostagem: null,
+    canceladaEm: null,
+  }
+  const FRETE = {
+    modalidade: 'PAC' as const,
+    codigoServico: '03301',
+    valorCents: 2114,
+    valorDeclaradoCents: 15000,
+    prazoDiasUteis: 5,
+    cotadoEm: 1000000,
+    status: 'pago' as const,
+    pagoEm: 1000000,
+    forma: 'saldo' as const,
+  }
+  const vencido = 1000000 + PRAZO_DESCARTE_ENVIO_MS + 1
+
+  it('envio com etiqueta vencido NÃO cai na leitura: quem decide é o servidor, depois de perguntar aos Correios', () => {
+    const envio = makeEnvio({ prePostagem: PRE, frete: FRETE })
+    expect(isEnvioDesconsiderado(envio, vencido)).toBe(false)
+    expect(envioVenceuPrazoDePostagem(envio, vencido)).toBe(true)
+    const prazo = prazoPostagemEnvio(envio, vencido)
+    expect(prazo.expirado).toBe(false)
+    expect(prazo.mensagemAlerta).toContain('frete volta ao seu saldo')
+  })
+
+  it('etiqueta cancelada volta à regra comum dos 3 dias', () => {
+    const envio = makeEnvio({ prePostagem: { ...PRE, canceladaEm: 2 } })
+    expect(prePostagemAtiva(envio)).toBeNull()
+    expect(isEnvioDesconsiderado(envio, vencido)).toBe(true)
+  })
+
+  it('desconsiderar com frete pago devolve o frete ao saldo uma vez só', () => {
+    const envio = makeEnvio({ frete: { ...FRETE }, prePostagem: PRE })
+    const state = { users: { [envio.userEmail]: { balance: 500 } }, envios: [envio] } as unknown as AppState
+
+    const r1 = desconsiderarEnvio(state, envio, vencido)
+    expect(r1.freteEstornadoCents).toBe(2114)
+    expect(r1.prePostagemACancelar?.id).toBe('PRI1')
+    expect(state.users[envio.userEmail].balance).toBe(2614)
+    expect(envio.frete?.status).toBe('estornado')
+    expect(envio.desconsideradoEm).toBe(vencido)
+
+    const r2 = desconsiderarEnvio(state, envio, vencido + 1)
+    expect(r2.freteEstornadoCents).toBe(0)
+    expect(state.users[envio.userEmail].balance).toBe(2614)
+  })
+
+  it('desconsiderar sem frete pago não mexe em saldo', () => {
+    const envio = makeEnvio({ frete: { ...FRETE, status: 'cotado' } })
+    const state = { users: { [envio.userEmail]: { balance: 500 } }, envios: [envio] } as unknown as AppState
+    expect(desconsiderarEnvio(state, envio, vencido).freteEstornadoCents).toBe(0)
+    expect(state.users[envio.userEmail].balance).toBe(500)
+    expect(envio.frete?.status).toBe('cotado')
   })
 })

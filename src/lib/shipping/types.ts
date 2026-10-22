@@ -53,6 +53,23 @@ export interface CotacaoFreteResult {
   valorTotalCents: Cents
   avisoRecebimento: boolean
   maoPropria: boolean
+  /**
+   * De onde veio o número: `'correios'` é o preço do contrato, devolvido pela API; `'tabela'` é a
+   * estimativa local, usada só quando o contrato não está configurado neste ambiente. A tela
+   * precisa dizer a diferença — cobrar um frete tabelado como se fosse o dos Correios não pode.
+   */
+  origem: 'correios' | 'tabela'
+  /** Código do serviço cotado (ex.: '03301' PAC reverso). */
+  codigoServico?: string
+}
+
+/**
+ * Dimensões do pacote para N moedas: a caixa padrão e 30 g a mais por moeda além da primeira
+ * (estojo + bolha). É estimativa — os Correios aferem na postagem e cobram o peso real se for maior.
+ */
+export function dimensoesParaMoedas(quantidade: number): DimensoesPacote {
+  const q = Math.max(1, Math.floor(quantidade))
+  return { ...PACOTE_PADRAO_MOEDA, pesoGramas: PACOTE_PADRAO_MOEDA.pesoGramas + 30 * (q - 1) }
 }
 
 /** Endereço de remetente ou destinatário para etiquetas. */
@@ -70,33 +87,10 @@ export interface EnderecoEnvio {
   email?: string
 }
 
-/** Parâmetros para geração de pré-postagem / etiqueta. */
-export interface CriarPrePostagemInput {
-  protocolo: string
-  remetente: EnderecoEnvio
-  destinatario?: Partial<EnderecoEnvio>
-  modalidade: ModalidadeEnvio
-  quantidadeMoedas: number
-  tipoMoeda: string
-  valorDeclaradoCents: Cents
-}
-
-/** Etiqueta e dados de pré-postagem gerados. */
-export interface PrePostagemResult {
-  numeroPrePostagem: string
-  codigoRastreio: string
-  modalidade: ModalidadeEnvio
-  protocolo: string
-  declaracaoConteudo: {
-    item: string
-    quantidade: number
-    valorTotalCents: Cents
-  }
-  destinatario: EnderecoEnvio
-  remetente: EnderecoEnvio
-  pdfEtiquetaUrl?: string
-  createdAt: Timestamp
-}
+/*
+ * `CriarPrePostagemInput` e `PrePostagemResult` saíram em 22/10/2026 junto com a pré-postagem
+ * simulada. O contrato da pré-postagem real está em `./cws/prepostagem.ts`.
+ */
 
 /** Status padronizado do rastreamento de objeto postal. */
 export type StatusRastreioCorreios =
@@ -108,6 +102,8 @@ export type StatusRastreioCorreios =
   | 'devolvido'
   | 'extraviado'
   | 'aguardando_postagem'
+  /** Pré-postagem cancelada antes de postar (evento FC/84 do SRO). */
+  | 'cancelado'
   | 'indisponivel'
   | 'nao_encontrado'
 

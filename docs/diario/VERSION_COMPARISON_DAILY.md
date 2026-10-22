@@ -1269,3 +1269,48 @@ ficou registrado como CD-13 para ser limpo quando alguém tocar em tema — não
 
 **CD-11 saiu do Critical Debugs**, resolvido: era a plataforma informando um preço de custódia
 que não era o vigente.
+
+
+# Entrada 016 — 22/10/2026 · O contrato dos Correios entra, e o frete passa a ser cobrado no site
+
+```
+Leitura:        local (servidor sem banco, contrato dos Correios real) + produção (migration)
+Branch:         feat/correios-cws, a partir de c68b24b
+Testes:         -> 1.346 (146 arquivos)
+Banco:          migration 043 aplicada em produção ANTES do commit (aditiva)
+```
+
+## O que entrou
+
+A API CWS do contrato Platinum 1 (nº 9912766936) substituiu o adaptador que fingia ser os Correios:
+token de 24 h renovado pelo servidor, preço e prazo reais, pré-postagem com etiqueta oficial em PDF,
+rastreio em lote de 50 e CEP oficial. Mapa em `src/lib/shipping/README.md`; execução em
+`docs/EXECUCAO_CORREIOS_CWS.md`; atalhos no RA-59.
+
+## Superfície protegida — mudança autorizada pelo Gabriel em 22/10/2026
+
+- **Regra de produto nova: o cliente paga o frete do envio no site**, pelo preço do contrato e sem margem
+  (saldo, Pix ou cartão — `frete_envio`). Pago, o servidor gera a pré-postagem de logística reversa. O ledger
+  ganhou o tipo `frete`; a DRE o mostra como "Frete repassado ao cliente", fora da receita bruta.
+- **`src/domain/types.ts`:** `Envio.frete`, `Envio.prePostagem`, `Retirada.prePostagem` e as interfaces
+  `FreteEnvio` e `PrePostagemRegistro`. Campos opcionais e persistidos em colunas próprias (migration 043):
+  com Postgres o estado vive em tabelas, então **não há rotação de `AUREA_STORE_KEY`**.
+- **Server Actions:** cotar, pagar e emitir a etiqueta do frete (`custody.ts`); emitir, cancelar e marcar a
+  postagem manual da retirada (`src/server/actions/admin/logistica.ts`, permissão `logistica.expedir`).
+- `constants.ts`, `fees.ts`, `market.ts` e o contrato do store **não mudaram**: comissão, custódia e
+  casamento seguem os mesmos.
+
+## Análise crítica do que entrou
+
+**A lição da Entrada 015 foi cumprida ao contrário, e de propósito.** Esta migration é aditiva — o código
+no ar não lê as colunas novas —, então ela foi aplicada ANTES do commit. O build local provou o risco do
+outro jeito: com o código novo e o banco velho, a página inicial respondeu `column "frete" does not exist`.
+
+**Os testes reais na API mostraram três defeitos que o adaptador escondia:** o token fixo vencia em 24 h e a
+falha caía calada no frete inventado; `parseFloat('31,59')` dava 31; o rastreio chamava `/sro` em vez de
+`/srorastro` e lia um campo que não existe. E a API de rastreio só enxerga objetos do contrato — o código
+digitado pelo cliente que postava no balcão nunca seria rastreado.
+
+**Ficou aberto (RA-59):** valor declarado fixo de R$ 150/moeda no envio, prazo de postagem de 3 dias contado
+da criação do protocolo e não do pagamento do frete, e o tratamento contábil do frete com o contador.
+

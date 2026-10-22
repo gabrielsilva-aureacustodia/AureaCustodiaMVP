@@ -860,6 +860,52 @@ export interface ReservaDeCompra {
 
 export interface Envio {
   modalidadeEnvio?: 'PAC' | 'SEDEX'
+  /**
+   * Frete do envio, pago pelo cliente no site pelo preço do contrato dos Correios (decisão do
+   * Gabriel, 22/10/2026). Ausente em envio anterior ao contrato: aquele era postado no balcão.
+   */
+  frete?: FreteEnvio | null
+  /**
+   * Pré-postagem de logística reversa nos Correios — é ela que dá o código de rastreio e a
+   * etiqueta oficial. Nasce quando o frete é pago.
+   */
+  prePostagem?: PrePostagemRegistro | null
+}
+
+/** O frete de um envio para a custódia, congelado na cotação e liquidado no pagamento. */
+export interface FreteEnvio {
+  modalidade: 'PAC' | 'SEDEX'
+  /** Serviço do contrato cotado (03301 PAC reverso, 03247 SEDEX reverso). */
+  codigoServico: string
+  valorCents: Cents
+  valorDeclaradoCents: Cents
+  prazoDiasUteis: number
+  cotadoEm: Timestamp
+  /** `cotado` ainda não foi pago; `estornado` voltou ao saldo (envio desconsiderado sem postar). */
+  status: 'cotado' | 'pago' | 'estornado'
+  pagoEm?: Timestamp | null
+  forma?: 'saldo' | 'pix' | 'cartao' | null
+  /** Referência da cobrança no gateway (`FRT-…`), quando a forma é Pix ou cartão. */
+  paymentIntentRef?: string | null
+  estornadoEm?: Timestamp | null
+}
+
+/** O que a plataforma guarda de uma pré-postagem feita na API dos Correios. */
+export interface PrePostagemRegistro {
+  /** Id da pré-postagem nos Correios ("PRI…"), usado para cancelar. */
+  id: string
+  /** Código de rastreio ("AP123456789BR"). */
+  codigoObjeto: string
+  codigoServico: string
+  criadaEm: Timestamp
+  /** Data-limite de postagem informada pelos Correios. */
+  prazoPostagem: string | null
+  canceladaEm?: Timestamp | null
+}
+
+export interface Retirada {
+  /** Pré-postagem de saída nos Correios, emitida pelo painel na expedição (22/10/2026). */
+  prePostagem?: PrePostagemRegistro | null
 }
 
 export interface Seq {

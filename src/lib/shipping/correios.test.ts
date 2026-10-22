@@ -1,16 +1,26 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import {
-  calcularFreteCorreios,
-  gerarPrePostagemCorreios,
-  normalizarCep,
-  validarModalidadeEnvio,
-} from './correios'
-import { DESCRICAO_CONTEUDO_PADRAO } from './types'
+import { _resetTokenParaTestes } from './cws/cliente'
+import { calcularFreteCorreios, CODIGOS_SERVICO_CORREIOS, normalizarCep, validarModalidadeEnvio } from './correios'
+import { dimensoesParaMoedas } from './types'
 
-describe('Correios — Cálculo de Frete e Pré-Postagem', () => {
+const ENV = {
+  CORREIOS_USUARIO: 'u',
+  CORREIOS_CODIGO_ACESSO: 'c',
+  CORREIOS_CARTAO_POSTAGEM: '0080378641',
+  CORREIOS_CONTRATO: '9912766936',
+  CORREIOS_DR: '20',
+}
+
+describe('Correios — Cálculo de Frete', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    _resetTokenParaTestes()
+  })
+
   it('normaliza CEPs para 8 dígitos numéricos', () => {
     expect(normalizarCep('01310-100')).toBe('01310100')
     expect(normalizarCep('20040-002')).toBe('20040002')
@@ -23,78 +33,75 @@ describe('Correios — Cálculo de Frete e Pré-Postagem', () => {
   })
 
   it('CRITÉRIO INEGOCIÁVEL: Rejeita expressamente Carta Comum (proibição regulatória)', () => {
-    expect(() => validarModalidadeEnvio('CARTA')).toThrow(
-      /Carta comum não é permitida por regimento postal/,
-    )
+    expect(() => validarModalidadeEnvio('CARTA')).toThrow(/Carta comum não é permitida por regimento postal/)
     expect(() => validarModalidadeEnvio('carta_comum')).toThrow()
     expect(() => validarModalidadeEnvio('impresso')).toThrow()
   })
 
-  it('calcula frete PAC com valor declarado e seguro', async () => {
+  it('sem contrato configurado, usa a tabela local e DIZ que é tabela', async () => {
     const res = await calcularFreteCorreios({
       cepOrigem: '01310-100',
-      cepDestino: '20040-002',
+      cepDestino: '30315-970',
       modalidade: 'PAC',
-      valorDeclaradoCents: 50000, // R$ 500,00
+      valorDeclaradoCents: 50000,
     })
-
-    expect(res.modalidade).toBe('PAC')
-    expect(res.prazoDiasUteis).toBeGreaterThan(0)
-    expect(res.valorFreteCents).toBeGreaterThan(0)
-    expect(res.valorSeguroCents).toBeGreaterThan(0)
+    expect(res.origem).toBe('tabela')
     expect(res.valorTotalCents).toBe(res.valorFreteCents + res.valorSeguroCents)
-    expect(res.avisoRecebimento).toBe(true)
-    expect(res.maoPropria).toBe(true)
+    expect(res.prazoDiasUteis).toBeGreaterThan(0)
   })
 
-  it('calcula frete SEDEX com prazo menor que PAC', async () => {
-    const pac = await calcularFreteCorreios({
-      cepOrigem: '01310-100',
-      cepDestino: '70040-010',
+  it('SEDEX tem prazo menor ou igual ao PAC na tabela', async () => {
+    const base = { cepOrigem: '01310-100', cepDestino: '70040-010', valorDeclaradoCents: 30000 }
+    const pac = await calcularFreteCorreios({ ...base, modalidade: 'PAC' })
+    const sedex = await calcularFreteCorreios({ ...base, modalidade: 'SEDEX' })
+    expect(sedex.prazoDiasUteis).toBeLessThanOrEqual(pac.prazoDiasUteis)
+  })
+
+  it('com contrato, cota o serviço reverso na entrada e o comum na saída', async () => {
+    for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v)
+    const urls: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        urls.push(url)
+        if (url.includes('/token/')) {
+          return new Response(JSON.stringify({ token: 't', expiraEm: '2099-01-01T00:00:00' }), { status: 201 })
+        }
+        if (url.includes('/preco/')) {
+          return new Response(JSON.stringify({ pcFinal: '31,59', pcProduto: '28,85', pcTotalServicosAdicionais: '2,74' }))
+        }
+        return new Response(JSON.stringify({ prazoEntrega: 1 }))
+      }),
+    )
+
+    const entrada = await calcularFreteCorreios({
+      cepOrigem: '01310100',
+      cepDestino: '30315970',
+      modalidade: 'SEDEX',
+      valorDeclaradoCents: 30000,
+    })
+    expect(entrada).toMatchObject({
+      origem: 'correios',
+      codigoServico: '03247',
+      valorTotalCents: 3159,
+      valorFreteCents: 2885,
+      valorSeguroCents: 274,
+      prazoDiasUteis: 1,
+    })
+
+    const saida = await calcularFreteCorreios({
+      cepOrigem: '30315970',
+      cepDestino: '01310100',
       modalidade: 'PAC',
       valorDeclaradoCents: 30000,
+      sentido: 'saida',
     })
-
-    const sedex = await calcularFreteCorreios({
-      cepOrigem: '01310-100',
-      cepDestino: '70040-010',
-      modalidade: 'SEDEX',
-      valorDeclaradoCents: 30000,
-    })
-
-    expect(sedex.modalidade).toBe('SEDEX')
-    expect(sedex.prazoDiasUteis).toBeLessThanOrEqual(pac.prazoDiasUteis)
-    expect(sedex.valorTotalCents).toBeGreaterThan(0)
+    expect(saida.codigoServico).toBe(CODIGOS_SERVICO_CORREIOS.PAC)
+    expect(urls.some((u) => u.includes('/preco/v1/nacional/03298'))).toBe(true)
   })
 
-  it('CRITÉRIO OBRIGATÓRIO: Declaração de conteúdo é SEMPRE "Moeda comemorativa / colecionável"', async () => {
-    const prePostagem = await gerarPrePostagemCorreios({
-      protocolo: 'RO-ENV-0042',
-      remetente: {
-        nome: 'Gabriel Silva',
-        cep: '01310-100',
-        logradouro: 'Rua de Teste',
-        numero: '100',
-        bairro: 'Centro',
-        cidade: 'São Paulo',
-        uf: 'SP',
-      },
-      modalidade: 'SEDEX',
-      quantidadeMoedas: 2,
-      tipoMoeda: 'Entrega da Bandeira Olímpica',
-      valorDeclaradoCents: 60000,
-    })
-
-    expect(prePostagem.declaracaoConteudo.item).toBe(DESCRICAO_CONTEUDO_PADRAO)
-    expect(prePostagem.declaracaoConteudo.item).toBe('Moeda comemorativa / colecionável')
-    expect(prePostagem.declaracaoConteudo.quantidade).toBe(2)
-    expect(prePostagem.declaracaoConteudo.valorTotalCents).toBe(60000)
-    // A pré-postagem NÃO traz mais código de rastreio (21/09/2026): o que saía
-    // aqui era `SL`/`PB` + 9 dígitos aleatórios + `BR`, um número com cara de
-    // rastreio que não existe nos Correios. Quem preenche o campo é o cliente,
-    // com o código do comprovante, em `markPosted`. O formato aceito está
-    // coberto por src/domain/rastreio.test.ts.
-    expect(prePostagem.codigoRastreio).toBe('')
-    expect(prePostagem.destinatario.nome).toContain('AUREA CUSTODIA LTDA')
+  it('o pacote ganha 30 g por moeda além da primeira', () => {
+    expect(dimensoesParaMoedas(1).pesoGramas).toBe(300)
+    expect(dimensoesParaMoedas(3).pesoGramas).toBe(360)
   })
 })

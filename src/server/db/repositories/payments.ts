@@ -47,6 +47,9 @@ export type TipoOperacaoPagamento =
   // 22/09/2026, oferta de compra sem saldo:
   | 'oferta_prepaga'
   | 'reserva_compra'
+  // 22/10/2026: frete do envio à custódia, pago no site pelo preço do contrato dos Correios
+  // (migration 043 aceita o valor na coluna tipo_operacao).
+  | 'frete_envio'
 
 /** Ciclo de vida da intenção: nasce pendente e termina creditada ou recusada. */
 export type StatusIntencao = 'pendente' | 'creditando' | 'creditado' | 'recusado'

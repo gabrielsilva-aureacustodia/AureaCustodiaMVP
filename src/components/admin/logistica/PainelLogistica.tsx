@@ -5,6 +5,11 @@
  * A reimpressão de etiqueta é um link para as rotas que já existem —
  * `/api/envios/etiqueta/[protocolo]` e `/api/retiradas/etiqueta/[id]` —, que conferem a permissão
  * `logistica.etiquetas` do painel além do dono (plano do Admin, 3.6).
+ *
+ * A expedição da retirada (22/10/2026, contrato com os Correios) é a única parte interativa:
+ * emitir, imprimir e cancelar a etiqueta oficial, ou — sem contrato — informar o código da postagem
+ * no balcão. Mora em `ExpedicaoDaRetirada.tsx`, um Client Component, para esta tela continuar sendo
+ * desenhada no servidor.
  */
 
 import Form from 'next/form'
@@ -13,6 +18,7 @@ import type { ReactNode } from 'react'
 
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_STATUS_RETIRADA, type FiltroLogistica } from '@/domain/admin/logistica'
 import { AcoesDoEnvio } from '../registros'
+import { ExpedicaoDaRetirada, type EtiquetaDaRetirada } from './ExpedicaoDaRetirada'
 import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { DadosDaLogistica } from '@/server/admin/logistica'
 
@@ -78,7 +84,24 @@ function Filtro({ filtro }: { filtro: FiltroLogistica }): ReactNode {
   )
 }
 
-export function PainelLogistica({ dados, filtro, podeEtiqueta }: { dados: DadosDaLogistica; filtro: FiltroLogistica; podeEtiqueta: boolean }): ReactNode {
+export function PainelLogistica({
+  dados,
+  filtro,
+  podeEtiqueta,
+  podeExpedir = false,
+  contratoCorreios = false,
+  etiquetas = {},
+}: {
+  dados: DadosDaLogistica
+  filtro: FiltroLogistica
+  podeEtiqueta: boolean
+  /** `logistica.expedir`: emitir/cancelar etiqueta e marcar a postagem. */
+  podeExpedir?: boolean
+  /** O contrato dos Correios está configurado neste ambiente (`correiosConfigurado()`). */
+  contratoCorreios?: boolean
+  /** Pré-postagem ativa de cada retirada visível, pelo id da retirada. */
+  etiquetas?: Record<string, EtiquetaDaRetirada>
+}): ReactNode {
   return (
     <>
       <div className="panel">
@@ -224,11 +247,14 @@ export function PainelLogistica({ dados, filtro, podeEtiqueta }: { dados: DadosD
                         <Rastreio rastreio={dados.rastreios[r.id]} />
                       </td>
                       <td>
-                        {podeEtiqueta ? (
-                          <a className="btn btn-outline adm-btn-compacto" href={`/api/retiradas/etiqueta/${encodeURIComponent(r.id)}`} target="_blank" rel="noreferrer">
-                            Etiqueta
-                          </a>
-                        ) : null}
+                        <ExpedicaoDaRetirada
+                          retiradaId={r.id}
+                          status={r.status}
+                          etiqueta={etiquetas[r.id] ?? null}
+                          contratoCorreios={contratoCorreios}
+                          podeExpedir={podeExpedir}
+                          podeEtiqueta={podeEtiqueta}
+                        />
                       </td>
                     </tr>
                   ))}

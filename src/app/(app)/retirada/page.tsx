@@ -183,6 +183,13 @@ export default function RetiradasPage(): ReactNode {
                       <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--green)' }}>
                         {r.codigoRastreio}
                       </div>
+                      {/* Etiqueta do contrato emitida pelo painel (22/10/2026): o código já existe, mas a
+                          caixa ainda não foi entregue aos Correios — quem marca "postada" é o rastreio. */}
+                      {r.status === 'separacao' ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
+                          Etiqueta emitida, aguardando postagem
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

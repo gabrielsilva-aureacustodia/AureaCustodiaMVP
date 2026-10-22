@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { temPermissao } from '@/domain/admin/permissoes'
+import { prePostagemAtiva } from '@/domain/envios'
 import { carregarMembro } from '@/server/admin/acesso'
 import { getState } from '@/server/state'
 import { getSessionEmail } from '@/server/session'
-import {
-  DESCRICAO_CONTEUDO_PADRAO,
-  ENDERECO_CENTRAL_AUREA,
-  gerarPrePostagemCorreios,
-} from '@/lib/shipping'
+import { DESCRICAO_CONTEUDO_PADRAO, ENDERECO_CENTRAL_AUREA } from '@/lib/shipping'
 import type { ModalidadeEnvio } from '@/lib/shipping'
+import { baixarRotuloPdf, correiosConfigurado, ErroCorreios } from '@/lib/shipping/cws'
 
 /**
- * Endpoint para Geração de Etiqueta e Declaração de Conteúdo dos Correios.
+ * Etiqueta do envio para a custódia.
  *
  * ROTA: GET /api/envios/etiqueta/[protocolo]
  *
+ * DUAS ETIQUETAS, CONFORME O ENVIO (22/10/2026)
+ * ---------------------------------------------
+ *  - Envio com frete pago no site tem PRÉ-POSTAGEM de logística reversa nos Correios: a rota devolve
+ *    o rótulo OFICIAL deles, em PDF, com o código de rastreio do contrato e o código de barras. É
+ *    esse papel que deixa o cliente postar de graça em qualquer agência.
+ *  - Envio sem pré-postagem (anterior ao contrato, ou ambiente sem contrato configurado) continua com
+ *    a etiqueta HTML abaixo, para impressão, e o cliente posta no balcão e digita o código.
+ *
+ * A rota NÃO cria pré-postagem. Até 22/10/2026 ela chamava `gerarPrePostagemCorreios`, que inventava
+ * um número `PP-<timestamp>` a cada visita; a pré-postagem de verdade nasce uma vez só, quando o frete
+ * é pago (src/server/shipping/frete-envio.ts). Abrir a etiqueta dez vezes não pode criar dez objetos
+ * no contrato.
+ *
  * REGRAS DE NEGÓCIO E CONFORMIDADE:
- *  1. Valida se o usuário está autenticado e se é o proprietário do protocolo.
+ *  1. Valida se o usuário está autenticado e se é o proprietário do protocolo (ou da equipe, com
+ *     `logistica.etiquetas`).
  *  2. Modalidade estritamente PAC ou SEDEX. Carta comum é proibida.
  *  3. Declaração de conteúdo obrigatória: "Moeda comemorativa / colecionável".
  *  4. Destinatário fixo: a caixa postal da Central de Custódia. A etiqueta imprime
@@ -24,8 +36,7 @@ import type { ModalidadeEnvio } from '@/lib/shipping'
  *     o papel (pedido do Gabriel, 18/09/2026). Os Correios entregam numa caixa postal
  *     com esses dois dados, e o endereço detalhado da central não precisa circular
  *     colado do lado de fora de uma encomenda de moeda.
- *  5. Suporta saída em HTML estilizado pronto para impressão (`window.print()`)
- *     ou saída em JSON se especificado `?format=json`.
+ *  5. A etiqueta HTML sai pronta para impressão (`window.print()`), ou em JSON com `?format=json`.
  */
 export async function GET(
   req: NextRequest,
@@ -49,43 +60,70 @@ export async function GET(
     return NextResponse.json({ ok: false, error: 'Protocolo de envio não encontrado.' }, { status: 404 })
   }
 
-  const modalidade: ModalidadeEnvio = 'SEDEX'
+  const { searchParams } = new URL(req.url)
+
+  // Etiqueta oficial dos Correios, quando o frete foi pago e a pré-postagem existe.
+  const prePostagem = prePostagemAtiva(envio)
+  if (prePostagem && searchParams.get('format') !== 'json') {
+    if (!correiosConfigurado()) {
+      return NextResponse.json(
+        { ok: false, error: 'O contrato dos Correios não está configurado neste ambiente: a etiqueta oficial não pode ser baixada.' },
+        { status: 503 },
+      )
+    }
+    try {
+      const pdf = await baixarRotuloPdf([prePostagem.codigoObjeto])
+      return new NextResponse(new Uint8Array(pdf), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          // inline: abre no visualizador do navegador, de onde o cliente imprime direto.
+          'Content-Disposition': `inline; filename="etiqueta-${envio.protocolo}-${prePostagem.codigoObjeto}.pdf"`,
+          'Cache-Control': 'private, no-store',
+        },
+      })
+    } catch (err) {
+      const status = err instanceof ErroCorreios && err.status >= 500 ? err.status : 502
+      return NextResponse.json(
+        {
+          ok: false,
+          error: err instanceof Error ? err.message : 'Os Correios não devolveram a etiqueta. Tente de novo em instantes.',
+        },
+        { status },
+      )
+    }
+  }
+  if (envio.prePostagem?.canceladaEm) {
+    // Pré-postagem cancelada (envio desconsiderado sem postar): imprimir a etiqueta antiga levaria um
+    // código que os Correios já não aceitam.
+    return NextResponse.json(
+      { ok: false, error: 'A etiqueta deste envio foi cancelada: o protocolo foi desconsiderado sem postagem.' },
+      { status: 410 },
+    )
+  }
+
+  const modalidade: ModalidadeEnvio = envio.modalidadeEnvio ?? 'SEDEX'
   // Remetente é o dono do envio — que, na reimpressão pelo painel, não é quem está logado.
   const dono = envio.userEmail
   const user = state.users[dono]
 
-  // Gera os dados da pré-postagem e etiqueta com o adaptador
-  const prePostagem = await gerarPrePostagemCorreios({
-    protocolo: envio.protocolo,
-    remetente: {
-      nome: user?.name || dono,
-      email: dono,
-      logradouro: 'Endereço do Remetente (Informado no envio)',
-      numero: 'S/N',
-      bairro: 'Centro',
-      cidade: 'São Paulo',
-      uf: 'SP',
-      cep: '01000-000',
-    },
-    destinatario: ENDERECO_CENTRAL_AUREA,
-    modalidade,
-    quantidadeMoedas: envio.quantidade,
-    tipoMoeda: envio.tipoMoeda,
-    valorDeclaradoCents: envio.quantidade * 15000, // R$ 150,00 por moeda como base declarada padrão
-  })
+  if (searchParams.get('format') === 'json') {
+    return NextResponse.json({
+      ok: true,
+      data: {
+        protocolo: envio.protocolo,
+        modalidade,
+        codigoRastreio: envio.codigoRastreio,
+        prePostagem: prePostagem ?? null,
+        destinatario: ENDERECO_CENTRAL_AUREA,
+        declaracaoConteudo: { conteudo: DESCRICAO_CONTEUDO_PADRAO, quantidade: envio.quantidade },
+      },
+    })
+  }
 
   // O nome cadastrado nos Correios ja traz a caixa postal colada ("AUREA CUSTODIA LTDA
   // - Caixa Postal 7990"), e na etiqueta a caixa tem linha propria. Sem isto, o papel
   // repete o numero duas vezes. Sem o separador, o split devolve o nome inteiro.
   const razaoSocial = ENDERECO_CENTRAL_AUREA.nome.split('—')[0].trim()
-
-  const { searchParams } = new URL(req.url)
-  if (searchParams.get('format') === 'json') {
-    return NextResponse.json({
-      ok: true,
-      data: prePostagem,
-    })
-  }
 
   // Renderiza página HTML formatada para impressão de etiqueta e declaração de conteúdo
   const html = `<!DOCTYPE html>

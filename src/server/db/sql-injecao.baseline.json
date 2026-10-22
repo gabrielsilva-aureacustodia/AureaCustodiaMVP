@@ -97,6 +97,7 @@
     "S"
   ],
   "src/server/db/repositories/rastreios.ts": [
+    "NAO_SOBRESCREVE_COM_FALHA",
     "S"
   ],
   "src/server/db/repositories/reservas.ts": [

@@ -356,6 +356,12 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                   <span className="k">Código de rastreio</span>
                   <span className="v" style={{ fontFamily: 'monospace', fontWeight: 700 }}>
                     {retirada.codigoRastreio}
+                    {/* Etiqueta dos Correios emitida pelo painel, caixa ainda no cofre (22/10/2026). */}
+                    {retirada.status === 'separacao' ? (
+                      <span style={{ display: 'block', fontFamily: 'inherit', fontWeight: 400, fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        etiqueta emitida, aguardando postagem
+                      </span>
+                    ) : null}
                   </span>
                 </div>
               ) : null}

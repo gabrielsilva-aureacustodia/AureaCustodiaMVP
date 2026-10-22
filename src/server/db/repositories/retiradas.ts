@@ -14,6 +14,7 @@ import type {
   EnderecoEntrega,
   EventoHistoricoRetirada,
   ModalidadeRetirada,
+  PrePostagemRegistro,
   Retirada,
   StatusRetirada,
 } from '@/domain/types'
@@ -39,6 +40,7 @@ type LinhaRetirada = {
   parcelas: unknown
   created_at: unknown
   updated_at: unknown
+  pre_postagem?: unknown
 }
 
 function linhaParaRetirada(r: LinhaRetirada): Retirada {
@@ -64,6 +66,8 @@ function linhaParaRetirada(r: LinhaRetirada): Retirada {
     parcelas: numOuNulo(r.parcelas) ?? 1,
     createdAt: num(r.created_at),
     updatedAt: num(r.updated_at),
+    // Migration 043 (contrato com os Correios, 22/10/2026).
+    prePostagem: json<PrePostagemRegistro>(r.pre_postagem) ?? null,
   }
 }
 
@@ -74,8 +78,9 @@ export async function inserirRetirada(tx: Consulta, r: Retirada): Promise<void> 
     `INSERT INTO ${S}.retiradas
        (id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
         endereco, solicitado_em, pago_em, data_limite_d30, codigo_rastreio, historico,
-        forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14, $15, $16, $17, $18)`,
+        forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at, pre_postagem)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13::jsonb, $14, $15, $16, $17, $18,
+             $19::jsonb)`,
     [
       r.id,
       r.coinId,
@@ -95,6 +100,7 @@ export async function inserirRetirada(tx: Consulta, r: Retirada): Promise<void> 
       r.parcelas ?? 1,
       r.createdAt ?? r.solicitadoEm ?? agora,
       r.updatedAt ?? agora,
+      r.prePostagem ? JSON.stringify(r.prePostagem) : null,
     ],
   )
 }
@@ -112,7 +118,8 @@ export async function atualizarRetirada(tx: Consulta, r: Retirada): Promise<void
             forma_pagamento = $7,
             payment_intent_ref = $8,
             parcelas = $9,
-            updated_at = $10
+            updated_at = $10,
+            pre_postagem = $11::jsonb
       WHERE id = $1`,
     [
       r.id,
@@ -125,6 +132,7 @@ export async function atualizarRetirada(tx: Consulta, r: Retirada): Promise<void
       r.paymentIntentRef ?? null,
       r.parcelas ?? 1,
       r.updatedAt ?? agora,
+      r.prePostagem ? JSON.stringify(r.prePostagem) : null,
     ],
   )
 }
@@ -134,7 +142,7 @@ export async function buscarRetiradaPorId(tx: Consulta, id: string): Promise<Ret
   const { rows } = await tx.query<LinhaRetirada>(
     `SELECT id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
             endereco, solicitado_em, pago_em, data_limite_d30, codigo_rastreio, historico,
-            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at
+            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at, pre_postagem
        FROM ${S}.retiradas
       WHERE id = $1`,
     [id],
@@ -147,7 +155,7 @@ export async function buscarRetiradasPorUsuario(tx: Consulta, userEmail: string)
   const { rows } = await tx.query<LinhaRetirada>(
     `SELECT id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
             endereco, solicitado_em, pago_em, data_limite_d30, codigo_rastreio, historico,
-            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at
+            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at, pre_postagem
        FROM ${S}.retiradas
       WHERE user_email = $1
       ORDER BY created_at DESC`,
@@ -161,7 +169,7 @@ export async function buscarRetiradaPorCoinId(tx: Consulta, coinId: string): Pro
   const { rows } = await tx.query<LinhaRetirada>(
     `SELECT id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
             endereco, solicitado_em, pago_em, data_limite_d30, codigo_rastreio, historico,
-            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at
+            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at, pre_postagem
        FROM ${S}.retiradas
       WHERE coin_id = $1
       ORDER BY created_at DESC
@@ -176,7 +184,7 @@ export async function listarTodasRetiradas(tx: Consulta): Promise<Retirada[]> {
   const { rows } = await tx.query<LinhaRetirada>(
     `SELECT id, coin_id, recibo_codigo, user_email, modalidade, status, valor_taxa_cents,
             endereco, solicitado_em, pago_em, data_limite_d30, codigo_rastreio, historico,
-            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at
+            forma_pagamento, payment_intent_ref, parcelas, created_at, updated_at, pre_postagem
        FROM ${S}.retiradas
       ORDER BY created_at DESC`,
   )

@@ -27,4 +27,14 @@ describe('estado das integrações', () => {
     expect(VARIAVEIS_NAO_SECRETAS).toEqual(['MP_SANDBOX', 'SUPABASE_STORAGE_BUCKET'])
     expect(NOMES_DE_VARIAVEIS).not.toContain('SESSION_SECRET')
   })
+
+  it('Correios pede as cinco variáveis do contrato, e não mais o token fixo (22/10/2026)', () => {
+    const contrato = ['CORREIOS_USUARIO', 'CORREIOS_CODIGO_ACESSO', 'CORREIOS_CARTAO_POSTAGEM', 'CORREIOS_CONTRATO', 'CORREIOS_DR']
+    expect(NOMES_DE_VARIAVEIS).not.toContain('CORREIOS_TOKEN')
+    const correios = (nomes: string[]) => estadoDasIntegracoes(presenca(nomes), {}).find((e) => e.chave === 'correios')
+    expect(correios(contrato)?.estado).toBe('ligado')
+    // Sem o código de acesso não há token: a integração não está ligada, por mais que o resto exista.
+    expect(correios(contrato.filter((n) => n !== 'CORREIOS_CODIGO_ACESSO'))?.estado).toBe('parcial')
+    expect(correios([])?.semEla).toContain('rastreio fica indisponível')
+  })
 })

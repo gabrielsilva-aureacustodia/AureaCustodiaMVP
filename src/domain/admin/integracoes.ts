@@ -89,11 +89,17 @@ const DEFINICOES: readonly Definicao[] = [
   {
     chave: 'correios',
     nome: 'Correios',
-    oQueFaz: 'Pré-postagem, etiqueta e rastreio dos envios e das retiradas.',
-    semEla: 'Etiqueta e rastreio usam o adaptador simulado.',
+    oQueFaz: 'Frete do contrato, pré-postagem, etiqueta oficial e rastreio dos envios e das retiradas.',
+    semEla: 'O frete vira estimativa local (a tela avisa) e o rastreio fica indisponível.',
+    // Desde 22/10/2026 o token não é variável: o servidor o gera com usuário + código de acesso e
+    // o renova antes de vencer (`src/lib/shipping/cws/`). `CORREIOS_TOKEN` saiu porque vencia em 24h
+    // e deixava a integração "ligada" na tela com o frete caindo calado na tabela.
     variaveis: [
-      { alternativas: ['CORREIOS_TOKEN'], obrigatoria: true },
+      { alternativas: ['CORREIOS_USUARIO'], obrigatoria: true },
+      { alternativas: ['CORREIOS_CODIGO_ACESSO'], obrigatoria: true },
       { alternativas: ['CORREIOS_CARTAO_POSTAGEM'], obrigatoria: true },
+      { alternativas: ['CORREIOS_CONTRATO'], obrigatoria: true },
+      { alternativas: ['CORREIOS_DR'], obrigatoria: true },
     ],
   },
   {

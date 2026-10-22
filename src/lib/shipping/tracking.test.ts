@@ -1,101 +1,99 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import {
-  _resetCacheRastreioParaTestes,
-  atualizarRastreiosEmLote,
-  consultarRastreioCorreios,
-  normalizarCodigoRastreio,
-} from './tracking'
+import { _resetTokenParaTestes } from './cws/cliente'
+import { atualizarRastreiosEmLote, consultarRastreioCorreios, normalizarCodigoRastreio } from './tracking'
 
-describe('Correios — Rastreamento de Encomendas (SRO)', () => {
-  const envOriginal = process.env.CORREIOS_TOKEN
+const ENV = {
+  CORREIOS_USUARIO: 'u',
+  CORREIOS_CODIGO_ACESSO: 'c',
+  CORREIOS_CARTAO_POSTAGEM: '0080378641',
+  CORREIOS_CONTRATO: '9912766936',
+  CORREIOS_DR: '20',
+}
 
-  beforeEach(() => {
-    _resetCacheRastreioParaTestes()
-    process.env.CORREIOS_TOKEN = envOriginal
-    vi.restoreAllMocks()
+const respostaToken = (): Response =>
+  new Response(JSON.stringify({ token: 't', expiraEm: '2099-01-01T00:00:00' }), { status: 201 })
+
+describe('Rastreamento SRO', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    _resetTokenParaTestes()
   })
 
-  it('normaliza o código de rastreamento para maiúsculas e sem espaços', () => {
-    expect(normalizarCodigoRastreio(' sl123456789br ')).toBe('SL123456789BR')
-    expect(normalizarCodigoRastreio('pb987654321br')).toBe('PB987654321BR')
+  it('normaliza o código', () => {
+    expect(normalizarCodigoRastreio(' ap647133258br ')).toBe('AP647133258BR')
   })
 
-  it('sem token configurado: retorna indisponivel sem inventar dados nem fingir que objeto não existe', async () => {
-    delete process.env.CORREIOS_TOKEN
-    const res = await consultarRastreioCorreios('SL123456789BR')
-
-    expect(res.codigoRastreio).toBe('SL123456789BR')
-    expect(res.statusAtual).toBe('indisponivel')
-    expect(res.etapaDescricao).toBe('Não foi possível consultar os Correios agora')
-    expect(res.eventos).toHaveLength(0)
-    expect(res.erro).toContain('CORREIOS_TOKEN')
+  it('sem contrato, devolve indisponível com o motivo — nunca evento inventado', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const r = await consultarRastreioCorreios('AP647133258BR')
+    expect(r.statusAtual).toBe('indisponivel')
+    expect(r.erro).toContain('não configurado')
+    expect(r.eventos).toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('com token e resposta da API: mapeia eventos reais', async () => {
-    process.env.CORREIOS_TOKEN = 'token_teste_123'
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        objetos: [
-          {
-            codObjeto: 'SL123456789BR',
-            eventos: [
+  it('com contrato, chama /srorastro e devolve os eventos convertidos', async () => {
+    for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v)
+    const urls: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        urls.push(url)
+        if (url.includes('/token/')) return respostaToken()
+        return new Response(
+          JSON.stringify({
+            objetos: [
               {
-                codigo: 'BDI',
-                descricao: 'Objeto entregue ao destinatário',
-                dtCriacao: '2026-09-21T14:30:00',
-                unidade: { tipo: 'Agência dos Correios', endereco: { cidade: 'São Paulo', uf: 'SP' } },
+                codObjeto: 'AP647133258BR',
+                eventos: [
+                  {
+                    codigo: 'BDE',
+                    tipo: '01',
+                    dtHrCriado: '2026-10-24T14:00:00',
+                    descricao: 'Objeto entregue ao destinatário',
+                    unidade: { tipo: 'Unidade de Distribuição', endereco: { cidade: 'BELO HORIZONTE', uf: 'MG' } },
+                  },
+                  {
+                    codigo: 'PO',
+                    tipo: '01',
+                    dtHrCriado: '2026-10-22T10:00:00',
+                    descricao: 'Objeto postado',
+                    unidade: { tipo: 'Agência dos Correios', endereco: { cidade: 'SAO PAULO', uf: 'SP' } },
+                  },
+                ],
               },
+              { codObjeto: 'AA123456789BR', mensagem: 'SRO-009: Objeto não pertence ao contrato' },
             ],
-          },
-        ],
+          }),
+        )
       }),
-    } as Response)
+    )
 
-    const res = await consultarRastreioCorreios('SL123456789BR')
-
-    expect(res.codigoRastreio).toBe('SL123456789BR')
-    expect(res.statusAtual).toBe('entregue')
-    expect(res.entregue).toBe(true)
-    expect(res.eventos).toHaveLength(1)
-    expect(res.eventos[0].cidade).toBe('São Paulo')
+    const r = await atualizarRastreiosEmLote(['AP647133258BR', 'aa123456789br', 'AP000000000BR'])
+    expect(urls.some((u) => u.includes('/srorastro/v1/objetos'))).toBe(true)
+    expect(r['AP647133258BR']).toMatchObject({ statusAtual: 'entregue', entregue: true })
+    expect(r['AP647133258BR'].eventos).toHaveLength(2)
+    expect(r['AA123456789BR'].statusAtual).toBe('nao_encontrado')
+    // Código que os Correios não devolveram também volta no mapa.
+    expect(r['AP000000000BR'].statusAtual).toBe('nao_encontrado')
   })
 
-  it('com token e 404: identifica que objeto ainda não consta na base dos Correios', async () => {
-    process.env.CORREIOS_TOKEN = 'token_teste_123'
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-    } as Response)
-
-    const res = await consultarRastreioCorreios('NL999999999BR')
-
-    expect(res.codigoRastreio).toBe('NL999999999BR')
-    expect(res.statusAtual).toBe('nao_encontrado')
-    expect(res.etapaDescricao).toContain('não consta na base de dados')
-  })
-
-  it('armazena resultado em cache evitando requisições redundantes', async () => {
-    delete process.env.CORREIOS_TOKEN
-    const res1 = await consultarRastreioCorreios('PB112233445BR')
-    const res2 = await consultarRastreioCorreios('PB112233445BR')
-
-    expect(res1.codigoRastreio).toBe(res2.codigoRastreio)
-    expect(res1.dataUltimaAtualizacao).toBe(res2.dataUltimaAtualizacao)
-  })
-
-  it('executa atualização de rastreamento em lote (suporte a Cron Job)', async () => {
-    delete process.env.CORREIOS_TOKEN
-    const codigos = ['SL111111111BR', 'PB222222222BR', 'SL333333333BR']
-    const resultados = await atualizarRastreiosEmLote(codigos)
-
-    expect(Object.keys(resultados).length).toBe(3)
-    expect(resultados['SL111111111BR']).toBeDefined()
-    expect(resultados['PB222222222BR']).toBeDefined()
-    expect(resultados['SL333333333BR']).toBeDefined()
+  it('com os Correios fora, todo código volta indisponível com o motivo', async () => {
+    for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('/token/')
+          ? respostaToken()
+          : new Response(JSON.stringify({ msgs: ['Serviço indisponível'] }), { status: 503 }),
+      ),
+    )
+    const r = await atualizarRastreiosEmLote(['AP647133258BR'])
+    expect(r['AP647133258BR']).toMatchObject({ statusAtual: 'indisponivel', erro: 'Serviço indisponível' })
   })
 })

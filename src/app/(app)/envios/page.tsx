@@ -54,15 +54,26 @@ import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
-import { consultarCepEnvio, cotarFreteEnvio, createProtocol, markPosted } from '@/server/actions/custody'
+import {
+  consultarCepEnvio,
+  cotarFreteDoEnvio,
+  cotarFreteEnvio,
+  createProtocol,
+  emitirEtiquetaDoEnvio,
+  iniciarCartaoFrete,
+  iniciarPixFrete,
+  markPosted,
+  pagarFreteComSaldo,
+} from '@/server/actions/custody'
+import type { CotacaoFreteDoEnvio } from '@/server/actions/custody'
 import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
 import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
-import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido } from '@/domain/rastreio'
+import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio } from '@/domain/rastreio'
 // Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
 // `correios.ts`, que é `server-only` e derrubaria o build deste Client Component.
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
-import { isEnvioDesconsiderado, prazoPostagemEnvio } from '@/domain/envios'
+import { isEnvioDesconsiderado, prazoPostagemEnvio, prePostagemAtiva } from '@/domain/envios'
 import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
 
 /** Os cinco passos da tela. */
@@ -142,7 +153,7 @@ function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
     <div className="note" style={{ marginTop: 14 }}>
       {rastreio ? (
         <>
-          <b>Correios:</b> {rastreio.etapaDescricao || rastreio.statusAtual}. Última consulta em{' '}
+          <b>Correios:</b> {textoDoRastreio(rastreio)}. Última consulta em{' '}
           {fdate(rastreio.atualizadoEm)}.
         </>
       ) : (
@@ -345,7 +356,7 @@ function retomada(state: AppState, session: UserEmail): EstadoWizard {
 }
 
 export default function EnviosPage(): ReactNode {
-  const { state, session, me, run, taxas, catalogo } = useApp()
+  const { state, session, me, run, refresh, taxas, catalogo } = useApp()
   // Catálogo e taxas vigentes (C3): só tipo ativo aceita envio novo, e o preço da custódia é o da Tabela.
   const tiposDeEnvio = tiposAtivos(catalogo)
   const primeiroTipoEnvio = tiposDeEnvio[0] ?? COIN_TYPES[0]
@@ -376,8 +387,20 @@ export default function EnviosPage(): ReactNode {
   const [erroRastreio, setErroRastreio] = useState('')
   const [cepOrigem, setCepOrigem] = useState<string>('')
   const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
-  const [cotacaoFrete, setCotacaoFrete] = useState<{ valorTotal: number; prazo: number } | null>(null)
+  const [cotacaoFrete, setCotacaoFrete] = useState<{
+    valorTotal: number
+    prazo: number
+    origem: 'correios' | 'tabela'
+  } | null>(null)
   const [buscandoCep, setBuscandoCep] = useState<boolean>(false)
+  /** PAC ou SEDEX escolhido no passo 4; `null` = o que ficou gravado no protocolo. */
+  const [modalidadeFreteEscolhida, setModalidadeFreteEscolhida] = useState<ModalidadeEnvio | null>(null)
+  const [freteDoEnvio, setFreteDoEnvio] = useState<CotacaoFreteDoEnvio | null>(null)
+  const [erroFrete, setErroFrete] = useState<string | null>(null)
+  const [cotandoFrete, setCotandoFrete] = useState<boolean>(false)
+  /** Muda para pedir a cotação de novo depois de uma falha. */
+  const [tentativaCotacao, setTentativaCotacao] = useState<number>(0)
+  const [emitindoEtiqueta, setEmitindoEtiqueta] = useState<boolean>(false)
   const [todosRastreios, setTodosRastreios] = useState<Record<string, RastreioNaTela>>({})
 
   // Carrega o retrato de rastreio de todos os envios do cliente
@@ -404,6 +427,7 @@ export default function EnviosPage(): ReactNode {
     (protocoloAlvo: string) => {
       const eAlvo = state.envios.find((e) => e.protocolo === protocoloAlvo)
       if (!eAlvo) return
+      setModalidadeFreteEscolhida(null)
       if (eAlvo.etapaAtual === 'Protocolo gerado') {
         const temPlano = (state.planosCustodia || []).some((p) => p.protocoloEnvio === protocoloAlvo)
         setWizard({ passo: temPlano ? 4 : 3, protocolo: protocoloAlvo })
@@ -428,11 +452,13 @@ export default function EnviosPage(): ReactNode {
       const res = await consultarCepEnvio(cepLimpo)
       if (res.ok && res.data) {
         setEnderecoDescricao(`${res.data.logradouro}, ${res.data.bairro} — ${res.data.cidade}/${res.data.uf}`)
-        const cot = await cotarFreteEnvio(cepLimpo, modalidade, quantidade * 15000)
+        // O servidor monta o pacote e o valor declarado pela quantidade; a tela só diz quantas são.
+        const cot = await cotarFreteEnvio(cepLimpo, modalidade, quantidade)
         if (cot.ok && cot.data) {
           setCotacaoFrete({
             valorTotal: cot.data.valorTotalCents,
             prazo: cot.data.prazoDiasUteis,
+            origem: cot.data.origem,
           })
         }
       } else {
@@ -520,6 +546,8 @@ export default function EnviosPage(): ReactNode {
     setConfirmOk(false)
     setRastreioDigitado('')
     setErroRastreio('')
+    setModalidadeFreteEscolhida(null)
+    setFreteDoEnvio(null)
     // VAI PARA O PASSO 1, SEMPRE. Chamava `retomada(...)`, que devolve ao
     // acompanhamento enquanto houver envio pendente — ou seja, o botão "Novo
     // envio" não fazia nada e a pessoa ficava presa na tela de espera. Quem
@@ -532,6 +560,62 @@ export default function EnviosPage(): ReactNode {
     state.envios.find((e) => e.protocolo === wizard.protocolo) ?? null
 
   const podeContinuar = quantidade >= 1 && Boolean(foto)
+
+  /* ---------- frete do envio (passo 4, 22/10/2026) ---------- */
+
+  /*
+   * O cliente paga o frete do contrato aqui e recebe a etiqueta oficial dos Correios. A cotação é
+   * pedida ao SERVIDOR ao abrir o passo e a cada troca de PAC/SEDEX: é ele que grava o valor que
+   * as ações de pagamento cobram, e a tela nunca manda valor nenhum. Com a etiqueta emitida (ou o
+   * frete já pago) não há o que cotar.
+   */
+  const modalidadeFrete: ModalidadeEnvio = modalidadeFreteEscolhida ?? envio?.modalidadeEnvio ?? 'SEDEX'
+  const precisaCotarFrete =
+    wizard.passo === 4 &&
+    envio !== null &&
+    envio.dataPostagem === null &&
+    prePostagemAtiva(envio) === null &&
+    envio.frete?.status !== 'pago' &&
+    !isEnvioDesconsiderado(envio)
+
+  useEffect(() => {
+    const protocolo = wizard.protocolo
+    if (!precisaCotarFrete || !protocolo) return
+    let ativo = true
+    void (async () => {
+      setCotandoFrete(true)
+      setErroFrete(null)
+      try {
+        const res = await cotarFreteDoEnvio(protocolo, modalidadeFrete)
+        if (!ativo) return
+        if (res.ok && res.data) {
+          setFreteDoEnvio(res.data)
+        } else {
+          setFreteDoEnvio(null)
+          setErroFrete(res.error ?? 'Não foi possível calcular o frete agora.')
+        }
+      } catch {
+        if (ativo) setErroFrete('Não foi possível calcular o frete agora.')
+      } finally {
+        if (ativo) setCotandoFrete(false)
+      }
+    })()
+    return () => {
+      ativo = false
+    }
+  }, [precisaCotarFrete, wizard.protocolo, modalidadeFrete, tentativaCotacao])
+
+  /** Repete a emissão da etiqueta de um frete já pago, quando os Correios falharam na hora. */
+  const emitirEtiqueta = useCallback(async () => {
+    const protocolo = wizard.protocolo
+    if (!protocolo || emitindoEtiqueta) return
+    setEmitindoEtiqueta(true)
+    try {
+      await run(() => emitirEtiquetaDoEnvio(protocolo))
+    } finally {
+      setEmitindoEtiqueta(false)
+    }
+  }, [run, wizard.protocolo, emitindoEtiqueta])
 
   /**
    * Gatilho de cadastro do envio (D-7, 11/09/2026).
@@ -649,6 +733,9 @@ export default function EnviosPage(): ReactNode {
                 {cotacaoFrete && (
                   <div style={{ marginTop: 4 }}>
                     📦 <b>Estimativa Correios:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
+                    {cotacaoFrete.origem === 'tabela' && (
+                      <> — <i>estimativa local — contrato não configurado</i></>
+                    )}
                   </div>
                 )}
               </div>
@@ -965,8 +1052,12 @@ export default function EnviosPage(): ReactNode {
                 marginBottom: '14px',
               }}
             >
-              Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado. Embale a
-              moeda com segurança e poste no endereço abaixo.
+              Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado.{' '}
+              {prePostagemAtiva(envio)
+                ? 'A etiqueta oficial dos Correios já está emitida: imprima, cole na caixa e poste em qualquer agência.'
+                : freteDoEnvio?.origem === 'tabela' || (!prePostagemAtiva(envio) && envio.dataPostagem)
+                  ? 'Embale a moeda com segurança e poste no endereço abaixo.'
+                  : 'Pague aqui o frete do contrato dos Correios e receba a etiqueta oficial — você posta sem pagar nada no balcão.'}
             </p>
 
             {/*
@@ -1010,27 +1101,6 @@ export default function EnviosPage(): ReactNode {
               Envio via PAC ou SEDEX com declaração de conteúdo obrigatória como &quot;Moeda comemorativa / colecionável&quot;.
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-              <a
-                href={`/api/envios/etiqueta/${envio.protocolo}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-gold"
-                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                🖨️ Imprimir Etiqueta Postal
-              </a>
-              <a
-                href="https://www.correios.com.br"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline"
-                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                Abrir Correios Online ↗
-              </a>
-            </div>
-
             {(() => {
               const prazo = prazoPostagemEnvio(envio)
               if (!envio.dataPostagem && prazo.mensagemAlerta && !prazo.expirado) {
@@ -1057,6 +1127,15 @@ export default function EnviosPage(): ReactNode {
               return null
             })()}
 
+            {/*
+              QUATRO SITUAÇÕES, NESTA ORDEM (22/10/2026):
+               1. já postado — o resumo de sempre;
+               2. etiqueta oficial emitida — imprimir e postar; o código não se digita, porque nasceu
+                  nos Correios e a postagem é reconhecida pelo rastreio do contrato;
+               3. frete pago sem etiqueta — os Correios falharam na hora; o botão pede de novo;
+               4. frete a pagar — cotação do servidor, PAC/SEDEX e o painel de pagamento. Sem contrato
+                  neste ambiente (cotação `tabela`), vale o fluxo antigo: balcão e código digitado.
+            */}
             {envio.dataPostagem ? (
               <>
                 <div className="summary-box" style={{ marginTop: 16 }}>
@@ -1072,7 +1151,7 @@ export default function EnviosPage(): ReactNode {
                 <button
                   type="button"
                   className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 10 }}
+                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
                   onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}
                 >
                   Continuar para acompanhamento
@@ -1086,8 +1165,100 @@ export default function EnviosPage(): ReactNode {
                   ‹ Voltar para o plano de custódia
                 </button>
               </>
-            ) : (
+            ) : prePostagemAtiva(envio) ? (
               <>
+                <div className="summary-box" style={{ marginTop: 16 }}>
+                  <div className="sr">
+                    <span className="k">Código de rastreio</span>
+                    <span className="v">{prePostagemAtiva(envio)?.codigoObjeto}</span>
+                  </div>
+                  {envio.frete && (
+                    <div className="sr">
+                      <span className="k">Frete pago ({envio.frete.modalidade})</span>
+                      <span className="v">{brl(envio.frete.valorCents)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <a
+                  href={`/api/envios/etiqueta/${envio.protocolo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-gold"
+                  style={{ width: '100%', minHeight: 44, marginTop: 12, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}
+                >
+                  🖨️ Imprimir etiqueta oficial dos Correios
+                </a>
+
+                <div className="note" style={{ marginTop: 12 }}>
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8v5M12 16.5v.5" />
+                  </svg>
+                  Poste em qualquer agência dos Correios — o frete já está pago. Cole a etiqueta na
+                  caixa e entregue no balcão, sem pagar nada. A postagem aparece aqui sozinha quando
+                  os Correios registrarem o pacote; não é preciso digitar código.
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                  onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}
+                >
+                  Ir para o acompanhamento
+                </button>
+              </>
+            ) : envio.frete?.status === 'pago' ? (
+              <>
+                <div className="warn-box" style={{ marginTop: 16 }}>
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 3l9 16H3z" />
+                    <path d="M12 10v4M12 17v.5" />
+                  </svg>
+                  Frete de {brl(envio.frete.valorCents)} pago. A etiqueta dos Correios ainda não foi
+                  emitida — os Correios não responderam na hora. O pagamento está garantido: peça a
+                  etiqueta de novo.
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-gold"
+                  style={{ width: '100%', marginTop: 12, minHeight: 44 }}
+                  disabled={emitindoEtiqueta}
+                  onClick={() => void emitirEtiqueta()}
+                >
+                  {emitindoEtiqueta ? 'Emitindo etiqueta…' : 'Emitir etiqueta dos Correios'}
+                </button>
+              </>
+            ) : freteDoEnvio?.origem === 'tabela' ? (
+              <>
+                <div className="note" style={{ marginTop: 14 }}>
+                  📦 <b>Frete estimado:</b> {brl(freteDoEnvio.valorCents)} ({freteDoEnvio.modalidade}, prazo{' '}
+                  {freteDoEnvio.prazoDiasUteis} dias úteis) — <i>estimativa local — contrato não configurado</i>.
+                  Neste ambiente o frete é pago na agência e o código do comprovante é digitado abaixo.
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <a
+                    href={`/api/envios/etiqueta/${envio.protocolo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-gold"
+                    style={{ flex: 1, minHeight: 44, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    🖨️ Imprimir Etiqueta Postal
+                  </a>
+                  <a
+                    href="https://www.correios.com.br"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline"
+                    style={{ flex: 1, minHeight: 44, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    Abrir Correios Online ↗
+                  </a>
+                </div>
+
                 <div className="field-lbl" style={{ marginTop: 16 }}>
                   Código de rastreio dos Correios
                 </div>
@@ -1120,7 +1291,7 @@ export default function EnviosPage(): ReactNode {
                 <button
                   type="button"
                   className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 12 }}
+                  style={{ width: '100%', marginTop: 12, minHeight: 44 }}
                   disabled={!rastreioValido(normalizarRastreio(rastreioDigitado))}
                   onClick={() => void marcarPostado()}
                 >
@@ -1132,6 +1303,100 @@ export default function EnviosPage(): ReactNode {
                   type="button"
                   className="btn btn-outline"
                   style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
+                >
+                  ‹ Voltar para o plano de custódia
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="field-lbl" style={{ marginTop: 16 }}>
+                  Modalidade dos Correios
+                </div>
+                <select
+                  className="tinput"
+                  value={modalidadeFrete}
+                  disabled={cotandoFrete}
+                  onChange={(e) => setModalidadeFreteEscolhida(e.target.value as ModalidadeEnvio)}
+                  style={{ minHeight: 44 }}
+                >
+                  <option value="SEDEX">SEDEX com seguro (mais rápido)</option>
+                  <option value="PAC">PAC com seguro (econômico)</option>
+                </select>
+
+                {cotandoFrete ? (
+                  <div className="note" style={{ marginTop: 10 }}>
+                    Calculando o frete pelo contrato dos Correios…
+                  </div>
+                ) : erroFrete ? (
+                  <>
+                    <div className="warn-box" style={{ marginTop: 10 }}>
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 3l9 16H3z" />
+                        <path d="M12 10v4M12 17v.5" />
+                      </svg>
+                      {erroFrete}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                      onClick={() => setTentativaCotacao((n) => n + 1)}
+                    >
+                      Calcular o frete de novo
+                    </button>
+                  </>
+                ) : freteDoEnvio && freteDoEnvio.modalidade === modalidadeFrete ? (
+                  <>
+                    <div className="summary-box" style={{ marginTop: 12 }}>
+                      <div className="sr">
+                        <span className="k">Frete {freteDoEnvio.modalidade} (contrato dos Correios)</span>
+                        <span className="v">{brl(freteDoEnvio.valorCents)}</span>
+                      </div>
+                      <div className="sr">
+                        <span className="k">Prazo de entrega</span>
+                        <span className="v">{freteDoEnvio.prazoDiasUteis} dia(s) útil(eis) após a postagem</span>
+                      </div>
+                      <div className="sr">
+                        <span className="k">Valor declarado (seguro)</span>
+                        <span className="v">{brl(envio.quantidade * 15000)}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6, marginBottom: 12 }}>
+                      Preço do contrato dos Correios, sem margem do Real Olímpico. Pago o frete, a etiqueta
+                      oficial sai na hora e você posta em qualquer agência sem pagar nada no balcão.
+                    </div>
+
+                    <PainelPagamento
+                      // Trocar PAC/SEDEX muda o valor: a chave descarta um Pix aberto para o valor anterior.
+                      key={`${envio.protocolo}-${freteDoEnvio.modalidade}-${freteDoEnvio.valorCents}`}
+                      valorCents={freteDoEnvio.valorCents}
+                      saldoDisponivel={me?.balance ?? 0}
+                      pagarComSaldo={async () => {
+                        const res = await pagarFreteComSaldo(envio.protocolo)
+                        if (!res.ok) throw new Error(res.error)
+                      }}
+                      iniciarPix={async () => {
+                        const res = await iniciarPixFrete(envio.protocolo)
+                        if (!res.ok) throw new Error(res.error)
+                        return res.data ?? null
+                      }}
+                      iniciarCartao={async () => {
+                        const res = await iniciarCartaoFrete(envio.protocolo)
+                        if (!res.ok) throw new Error(res.error)
+                        return res.data ?? null
+                      }}
+                      // Pago, o servidor já emitiu a etiqueta (saldo) ou emite ao conciliar (Pix e
+                      // cartão): reler o estado é o que faz a tela trocar para "Imprimir etiqueta".
+                      aoConcluir={() => void refresh()}
+                    />
+                  </>
+                ) : null}
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: '100%', marginTop: 14, minHeight: 44 }}
                   onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
                 >
                   ‹ Voltar para o plano de custódia

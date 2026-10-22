@@ -7,16 +7,23 @@
  * (`/admin/moedas/[codigo]`), ligada daqui.
  *
  * Os prazos que acendem o alerta vêm da aba Operacional da configuração.
+ *
+ * Expedição da retirada (22/10/2026): com `logistica.expedir`, cada retirada paga ou em separação ganha
+ * "Emitir etiqueta dos Correios" (ou, sem contrato no ambiente, o campo do código postado no balcão).
+ * A etiqueta ativa de cada retirada é lida aqui, do repositório, porque `LinhaRetirada`
+ * (src/domain/admin/logistica.ts) ainda não carrega a pré-postagem.
  */
 
 import type { ReactNode } from 'react'
 
 import { Cartao, SemPermissao } from '@/components/admin/Blocos'
 import { numero } from '@/components/admin/formatos'
+import type { EtiquetaDaRetirada } from '@/components/admin/logistica/ExpedicaoDaRetirada'
 import { PainelLogistica } from '@/components/admin/logistica/PainelLogistica'
 import { lerFiltroLogistica } from '@/domain/admin/logistica'
 import type { ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
+import { correiosConfigurado } from '@/lib/shipping/cws'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarLogistica } from '@/server/admin/logistica'
 import { carregarParametrosOperacionais } from '@/server/config/carregar'
@@ -31,6 +38,10 @@ export default async function LogisticaPage({ searchParams }: { searchParams: Pr
   const operacional = await carregarParametrosOperacionais()
   const dados = await carregarLogistica(filtro, operacional.prazos)
   const c = dados.contagem
+  // A etiqueta ativa vem na própria linha (`linhaDeRetirada`), lida junto com a retirada.
+  const etiquetas: Record<string, EtiquetaDaRetirada> = Object.fromEntries(
+    dados.retiradas.flatMap((r) => (r.etiqueta ? [[r.id, r.etiqueta] as const] : [])),
+  )
 
   return (
     <>
@@ -40,7 +51,14 @@ export default async function LogisticaPage({ searchParams }: { searchParams: Pr
         <Cartao rotulo="Retiradas em andamento" valor={numero(c.retiradasAbertas)} />
         <Cartao rotulo="Retiradas fora do prazo de postagem" valor={numero(c.retiradasAtrasadas)} tom={c.retiradasAtrasadas > 0 ? 'alerta' : 'normal'} />
       </div>
-      <PainelLogistica dados={dados} filtro={filtro} podeEtiqueta={temPermissao(membro, 'logistica.etiquetas')} />
+      <PainelLogistica
+        dados={dados}
+        filtro={filtro}
+        podeEtiqueta={temPermissao(membro, 'logistica.etiquetas')}
+        podeExpedir={temPermissao(membro, 'logistica.expedir')}
+        contratoCorreios={correiosConfigurado()}
+        etiquetas={etiquetas}
+      />
     </>
   )
 }

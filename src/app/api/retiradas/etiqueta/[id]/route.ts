@@ -6,6 +6,8 @@ import { ehAdmin } from '@/server/relatorios/acesso'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { carregarMembro } from '@/server/admin/acesso'
 import { DESCRICAO_CONTEUDO_PADRAO } from '@/lib/shipping/types'
+import { baixarRotuloPdf, ErroCorreios } from '@/lib/shipping/cws'
+import { etiquetaAtivaDaRetirada } from '@/domain/retirada'
 
 /**
  * Endpoint para Geração de Etiqueta e Declaração de Conteúdo de Saída (Retirada Física).
@@ -18,6 +20,11 @@ import { DESCRICAO_CONTEUDO_PADRAO } from '@/lib/shipping/types'
  *  3. Destinatário: endereço congelado na solicitação com Trava 2 de segurança.
  *  4. Declaração de conteúdo obrigatória com Aviso de Recebimento (AR) e seguro declarado.
  *  5. Suporta saída em JSON (`?format=json`) ou HTML estilizado para impressão (`window.print()`).
+ *  6. Desde 22/10/2026 (contrato com os Correios): com a pré-postagem emitida pelo painel
+ *     (`retirada.prePostagem`), devolve o RÓTULO OFICIAL em PDF, gerado pelos Correios — é ele que
+ *     vai colado na caixa, com o código de barras do contrato. A página HTML abaixo fica para a
+ *     retirada sem etiqueta do contrato: não tem código de barras e não serve para postar com o
+ *     frete a faturar.
  */
 export async function GET(
   req: NextRequest,
@@ -60,6 +67,31 @@ export async function GET(
         },
       },
     })
+  }
+
+  const etiqueta = etiquetaAtivaDaRetirada(retirada)
+  if (etiqueta) {
+    try {
+      const pdf = await baixarRotuloPdf([etiqueta.codigoObjeto])
+      return new NextResponse(new Uint8Array(pdf), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          // inline: abre no visualizador do navegador, de onde o operador imprime direto.
+          'Content-Disposition': `inline; filename="etiqueta-${retirada.id}-${etiqueta.codigoObjeto}.pdf"`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    } catch (err) {
+      // Sem cair na página HTML: ela não tem o código de barras do contrato, e a caixa postada com
+      // ela não seria a pré-postagem que os Correios esperam.
+      console.error('[etiqueta] rótulo dos Correios indisponível para a retirada', retirada.id, err)
+      const status = err instanceof ErroCorreios && err.status === 504 ? 504 : 502
+      const detalhe = err instanceof ErroCorreios && err.mensagens.length ? ` (${err.mensagens.join(' · ')})` : ''
+      return NextResponse.json(
+        { ok: false, error: `O rótulo dos Correios não pôde ser gerado agora${detalhe}. Tente de novo em instantes.` },
+        { status },
+      )
+    }
   }
 
   // Renderiza página HTML formatada para impressão de etiqueta e declaração de conteúdo

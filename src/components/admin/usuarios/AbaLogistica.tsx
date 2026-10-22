@@ -7,6 +7,7 @@
 
 import type { ReactNode } from 'react'
 
+import { textoDoRastreio } from '@/domain/rastreio'
 import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { AbaLogistica as DadosAbaLogistica } from '@/server/admin/ficha'
 
@@ -18,7 +19,7 @@ function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): Reac
   return (
     <details className="adm-detalhes" style={{ marginBottom: 0 }}>
       <summary>
-        {rastreio.etapaDescricao}
+        {textoDoRastreio(rastreio)}
         <span className="adm-fraco"> · {dataHora(rastreio.dataUltimaAtualizacao)}</span>
       </summary>
       <div className="adm-detalhes-corpo">
@@ -116,6 +117,8 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
                   <td>
                     {r.status}
                     {r.codigoRastreio ? <div className="adm-mono">{r.codigoRastreio}</div> : null}
+                    {/* O retrato da retirada é gravado com o id dela (migration 030), e a ficha já os carrega. */}
+                    {r.codigoRastreio ? <Rastreio rastreio={dados.rastreios[r.id]} /> : null}
                   </td>
                   <td className="adm-num">{dinheiro(r.valorTaxaCents)}</td>
                   <td>{data(r.dataLimiteD30)}</td>

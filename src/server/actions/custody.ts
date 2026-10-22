@@ -33,7 +33,7 @@ import { medianSellPrice } from '@/domain/market'
 import { moedaEmReservaAberta } from '@/domain/reserva-de-compra'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, StatusRecibo, User } from '@/domain/types'
+import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, FreteEnvio, StatusRecibo, User } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
@@ -43,7 +43,7 @@ import {
   RASTREIO_INVALIDO,
   rastreioValido,
 } from '@/domain/rastreio'
-import { isEnvioDesconsiderado } from '@/domain/envios'
+import { desconsiderarEnvio, isEnvioDesconsiderado, prePostagemAtiva } from '@/domain/envios'
 import { getSessionEmail } from '@/server/session'
 import { mutateState, getState } from '@/server/state'
 import {
@@ -86,6 +86,10 @@ const JA_POSTADO = 'Este envio já foi marcado como postado.'
 
 /** Protocolo desconsiderado após 3 dias sem postagem. */
 const PROTOCOLO_EXPIRADO = 'Este protocolo foi desconsiderado após 3 dias sem postagem. Gere um novo protocolo.'
+
+/** Envio com pré-postagem dos Correios: o código não se digita (22/10/2026). */
+const TEM_ETIQUETA_OFICIAL =
+  'Este envio tem etiqueta oficial dos Correios: a postagem é reconhecida sozinha pelo rastreio, sem digitar código.'
 
 /** Guarda de reentrância do avanço de etapa. Texto novo. */
 const JA_CONCLUIDO = 'Este envio já foi concluído.'
@@ -235,14 +239,18 @@ export async function markPosted(
       )
       if (!envio) return 'nao-encontrado' as const
 
-      // Envio não postado é desconsiderado em até 3 dias.
+      // Envio não postado é desconsiderado em até 3 dias. Se o frete foi pago no site e a
+      // etiqueta não chegou a sair, ele volta ao saldo aqui, na mesma transação (22/10/2026).
       if (isEnvioDesconsiderado(envio)) {
-        if (!envio.desconsideradoEm) {
-          envio.desconsideradoEm = Date.now()
-          envio.motivoDesconsideracao = 'Prazo limite de 3 dias para postagem expirado.'
-        }
-        return 'expirado' as const
+        const { freteEstornadoCents } = desconsiderarEnvio(state, envio, Date.now())
+        return freteEstornadoCents > 0
+          ? ({ tipo: 'expirado-com-estorno', valor: freteEstornadoCents } as const)
+          : ('expirado' as const)
       }
+
+      // Envio com etiqueta oficial dos Correios não aceita código digitado: o código já é o da
+      // pré-postagem, e quem reconhece a postagem é o rastreio do contrato (22/10/2026).
+      if (prePostagemAtiva(envio)) return 'tem-etiqueta' as const
 
       // Reentrância: o botão só aparece antes da postagem, mas um duplo clique
       // (ou um F5 no meio) mandaria a ação duas vezes, e a segunda sobrescreveria
@@ -260,6 +268,10 @@ export async function markPosted(
     if (result === 'nao-encontrado') return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
     if (result === 'ja-postado') return { ok: false, error: JA_POSTADO }
     if (result === 'expirado') return { ok: false, error: PROTOCOLO_EXPIRADO }
+    if (result === 'tem-etiqueta') return { ok: false, error: TEM_ETIQUETA_OFICIAL }
+    if (typeof result === 'object') {
+      return { ok: false, error: `${PROTOCOLO_EXPIRADO} O frete pago (${brl(result.valor)}) voltou ao seu saldo.` }
+    }
     return { ok: true, message: `Envio marcado como postado com o rastreio ${codigo}.` }
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -413,6 +425,15 @@ import { criarCobrancaCartao, criarCobrancaPix } from '@/lib/payments/cobranca'
 import type { CobrancaCartao, CobrancaPix } from '@/lib/payments/types'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
+import { correiosConfigurado } from '@/lib/shipping/cws/config'
+import {
+  cotacaoVencida,
+  cotarFreteDoServidor,
+  emitirPrePostagemDoEnvio,
+  recusaDoEnvioParaFrete,
+  SEM_CONTRATO_CORREIOS,
+  valorDeclaradoDoEnvio,
+} from '@/server/shipping/frete-envio'
 
 /**
  * Consulta CEP para preenchimento de endereço de remetente (zero persistência - LGPD).
@@ -430,19 +451,28 @@ export async function consultarCepEnvio(cep: string): Promise<ActionResult<Ender
 }
 
 /**
- * Cota prazo e frete para envio de moedas sob custódia (PAC ou SEDEX).
+ * Estimativa de prazo e frete do passo 1, antes de existir protocolo (PAC ou SEDEX).
+ *
+ * É o serviço de ENTRADA do contrato (logística reversa, cliente → custódia), com o pacote do tamanho
+ * da quantidade e o valor declarado de R$ 150,00 por moeda — o mesmo que o frete de verdade vai usar.
+ * Devolve `origem`: `'tabela'` é estimativa local, sem contrato neste ambiente, e a tela precisa dizer.
+ * Não grava nada: o frete que se paga é o de `cotarFreteDoEnvio`, sobre o protocolo.
  */
 export async function cotarFreteEnvio(
   cepOrigem: string,
   modalidade: ModalidadeEnvio,
-  valorDeclaradoCents: number = 30000,
+  quantidade: number = 1,
 ): Promise<ActionResult<CotacaoFreteResult>> {
+  if (modalidade !== 'PAC' && modalidade !== 'SEDEX') return { ok: false, error: MODALIDADE_FRETE_INVALIDA }
+  const qtd = Number.isInteger(quantidade) && quantidade >= 1 && quantidade <= QTD_MAX ? quantidade : 1
   try {
     const cotacao = await calcularFreteCorreios({
       cepOrigem,
       cepDestino: ENDERECO_CENTRAL_AUREA.cep,
       modalidade,
-      valorDeclaradoCents,
+      valorDeclaradoCents: valorDeclaradoDoEnvio(qtd),
+      sentido: 'entrada',
+      quantidade: qtd,
     })
     return { ok: true, data: cotacao }
   } catch (err) {
@@ -450,6 +480,355 @@ export async function cotarFreteEnvio(
       ok: false,
       error: err instanceof Error ? err.message : 'Falha ao calcular frete.',
     }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 4b. Frete do envio pago no site e etiqueta oficial dos Correios (22/10/2026)
+ * ------------------------------------------------------------------------- */
+
+/*
+ * O cliente paga o frete do envio aqui, pelo preço do contrato e sem margem (decisão do Gabriel), e
+ * recebe a etiqueta de logística reversa: posta de graça em qualquer agência, com o código de
+ * rastreio que nasceu nos Correios. A regra mora em src/server/shipping/frete-envio.ts; o que estas
+ * ações acrescentam é o que toda Server Action precisa conferir de novo — sessão, dono do protocolo,
+ * estado do envio — e o dinheiro.
+ *
+ * O VALOR É SEMPRE DO SERVIDOR. Nenhuma destas ações recebe valor: cotar grava o frete, pagar lê o
+ * frete gravado. Cotação com mais de 24 h é refeita antes de cobrar; se o preço mudou, a cobrança
+ * não acontece e o cliente vê o valor novo antes de pagar.
+ */
+
+const MODALIDADE_FRETE_INVALIDA = 'Modalidade de envio inválida. Escolha PAC ou SEDEX.'
+
+const SEM_ENDERECO_PARA_FRETE = 'Complete o cadastro com o seu endereço para calcular o frete.'
+
+/** O que a tela recebe de uma cotação sobre o protocolo. */
+export interface CotacaoFreteDoEnvio {
+  modalidade: ModalidadeEnvio
+  valorCents: number
+  prazoDiasUteis: number
+  cotadoEm: number
+  /** `'tabela'` = estimativa local, sem contrato: não se paga no site. */
+  origem: 'correios' | 'tabela'
+}
+
+/** Envio da sessão — `null` se não existe ou é de outra conta (o protocolo alheio é "não encontrado"). */
+async function envioDaSessao(
+  session: string,
+  protocolo: string,
+): Promise<{ envio: Envio; dono: User | undefined } | null> {
+  const state = await getState()
+  const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+  return envio ? { envio, dono: state.users[session] } : null
+}
+
+/**
+ * Cota o frete do envio (PAC ou SEDEX reverso) e GRAVA a cotação no protocolo, com status `cotado`.
+ * É ela que as ações de pagamento cobram. Estimativa local (sem contrato) volta para a tela mas não
+ * é gravada: um frete tabelado não pode ficar à espera de ser pago como se fosse o dos Correios.
+ */
+export async function cotarFreteDoEnvio(
+  protocolo: string,
+  modalidade: ModalidadeEnvio,
+): Promise<ActionResult<CotacaoFreteDoEnvio>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+  if (modalidade !== 'PAC' && modalidade !== 'SEDEX') return { ok: false, error: MODALIDADE_FRETE_INVALIDA }
+
+  try {
+    const achado = await envioDaSessao(session, protocolo)
+    if (!achado) return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
+    const recusa = recusaDoEnvioParaFrete(achado.envio)
+    if (recusa) return { ok: false, error: recusa }
+
+    const cep = achado.dono?.cadastro?.endereco?.cep
+    if (!cep) return { ok: false, error: SEM_ENDERECO_PARA_FRETE }
+
+    let cot: Awaited<ReturnType<typeof cotarFreteDoServidor>>
+    try {
+      cot = await cotarFreteDoServidor(achado.envio, cep, modalidade)
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Os Correios não responderam. Tente de novo.' }
+    }
+
+    if (cot.origem === 'correios') {
+      const { result } = await mutateState((state) => {
+        const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+        if (!envio) return PROTOCOLO_NAO_ENCONTRADO
+        const r = recusaDoEnvioParaFrete(envio)
+        if (r) return r
+        envio.frete = cot.frete
+        envio.modalidadeEnvio = modalidade
+        return null
+      })
+      if (result) return { ok: false, error: result }
+    }
+
+    return {
+      ok: true,
+      data: {
+        modalidade,
+        valorCents: cot.frete.valorCents,
+        prazoDiasUteis: cot.frete.prazoDiasUteis,
+        cotadoEm: cot.frete.cotadoEm,
+        origem: cot.origem,
+      },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/**
+ * O frete gravado, pronto para cobrar: contrato configurado, envio da sessão, nada que impeça, e a
+ * cotação dentro das 24 h. Vencida, é refeita aqui; se o preço mudou, a nova fica gravada e a
+ * cobrança é recusada com o valor novo — cobrar diferente do que a tela mostrou não pode.
+ */
+async function freteParaCobrar(
+  session: string,
+  protocolo: string,
+): Promise<{ ok: true; frete: FreteEnvio } | { ok: false; error: string }> {
+  if (!correiosConfigurado()) return { ok: false, error: SEM_CONTRATO_CORREIOS }
+
+  const achado = await envioDaSessao(session, protocolo)
+  if (!achado) return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
+  const recusa = recusaDoEnvioParaFrete(achado.envio)
+  if (recusa) return { ok: false, error: recusa }
+
+  const frete = achado.envio.frete
+  if (!frete || frete.status !== 'cotado') return { ok: false, error: 'Calcule o frete antes de pagar.' }
+  if (!cotacaoVencida(frete)) return { ok: true, frete }
+
+  const cep = achado.dono?.cadastro?.endereco?.cep
+  if (!cep) return { ok: false, error: SEM_ENDERECO_PARA_FRETE }
+  let nova: Awaited<ReturnType<typeof cotarFreteDoServidor>>
+  try {
+    nova = await cotarFreteDoServidor(achado.envio, cep, frete.modalidade)
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Os Correios não responderam. Tente de novo.' }
+  }
+  if (nova.origem !== 'correios') return { ok: false, error: SEM_CONTRATO_CORREIOS }
+
+  const { result } = await mutateState((state) => {
+    const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+    if (!envio) return PROTOCOLO_NAO_ENCONTRADO
+    const r = recusaDoEnvioParaFrete(envio)
+    if (r) return r
+    envio.frete = nova.frete
+    return null
+  })
+  if (result) return { ok: false, error: result }
+
+  if (nova.frete.valorCents !== frete.valorCents) {
+    return {
+      ok: false,
+      error: `A cotação tinha mais de 24 horas e os Correios recalcularam o frete: agora ${brl(nova.frete.valorCents)}. Confira o valor novo e pague de novo.`,
+    }
+  }
+  return { ok: true, frete: nova.frete }
+}
+
+/** Texto do resultado da emissão, para a mensagem do pagamento. */
+function avisoDaEmissao(emissao: Awaited<ReturnType<typeof emitirPrePostagemDoEnvio>>): string {
+  if (emissao.ok) {
+    return `Etiqueta dos Correios emitida — rastreio ${emissao.prePostagem.codigoObjeto}. Imprima e poste em qualquer agência: o frete já está pago.`
+  }
+  return `A etiqueta dos Correios não saiu agora (${emissao.erro}). O frete continua pago: use "Emitir etiqueta" de novo em instantes.`
+}
+
+/**
+ * Paga o frete com o saldo em conta e, em seguida, emite a etiqueta oficial.
+ *
+ * A emissão vem DEPOIS da transação do pagamento e não a desfaz se falhar: o dinheiro saiu do saldo
+ * para um frete que continua `pago`, e a etiqueta pode ser pedida de novo (`emitirEtiquetaDoEnvio`).
+ */
+export async function pagarFreteComSaldo(
+  protocolo: string,
+): Promise<ActionResult<{ codigoRastreio: string | null }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const pronto = await freteParaCobrar(session, protocolo)
+    if (!pronto.ok) return { ok: false, error: pronto.error }
+
+    const { result } = await mutateState((state) => {
+      const u = state.users[session]
+      if (!u) return { ok: false, error: SESSAO_EXPIRADA } as const
+      const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+      if (!envio) return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO } as const
+      const recusa = recusaDoEnvioParaFrete(envio)
+      if (recusa) return { ok: false, error: recusa } as const
+
+      const frete = envio.frete
+      // O frete conferido lá fora precisa ser o mesmo que está aqui dentro: outra aba pode ter
+      // recotado no meio, e o cliente aprovou o valor que viu.
+      if (!frete || frete.status !== 'cotado' || frete.valorCents !== pronto.frete.valorCents) {
+        return { ok: false, error: 'O frete mudou desde que você abriu a tela. Confira o valor e pague de novo.' } as const
+      }
+      if (u.balance < frete.valorCents) {
+        return {
+          ok: false,
+          error: `Saldo insuficiente para o frete (${brl(frete.valorCents)}). Seu saldo atual é ${brl(u.balance)}.`,
+        } as const
+      }
+
+      // O débito e a transição para 'pago' juntos: é a transição que o ledger lê para lançar o
+      // `frete` (derivar.ts), e sem ela o débito viraria um `ajuste` sem explicação.
+      u.balance -= frete.valorCents
+      envio.frete = { ...frete, status: 'pago', pagoEm: Date.now(), forma: 'saldo', paymentIntentRef: null }
+      return { ok: true, valor: frete.valorCents } as const
+    })
+
+    if (!result.ok) return { ok: false, error: result.error }
+
+    const emissao = await emitirPrePostagemDoEnvio(protocolo)
+    return {
+      ok: true,
+      message: `Frete de ${brl(result.valor)} pago com saldo. ${avisoDaEmissao(emissao)}`,
+      data: { codigoRastreio: emissao.ok ? emissao.prePostagem.codigoObjeto : null },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
+  }
+}
+
+/** Grava no frete a cobrança aberta no gateway — só se ele ainda for o mesmo, ainda não pago. */
+async function anotarCobrancaNoFrete(
+  session: string,
+  protocolo: string,
+  valorCents: number,
+  externalReference: string,
+  forma: 'pix' | 'cartao',
+): Promise<void> {
+  await mutateState((state) => {
+    const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
+    const frete = envio?.frete
+    if (!envio || !frete || frete.status !== 'cotado' || frete.valorCents !== valorCents) return
+    envio.frete = { ...frete, paymentIntentRef: externalReference, forma }
+  })
+}
+
+/**
+ * Abre a cobrança Pix do frete. Quem marca o frete como pago é a conciliação do gateway
+ * (`liquidarFreteEnvio`), e é ela que pede a etiqueta depois de liquidar.
+ */
+export async function iniciarPixFrete(
+  protocolo: string,
+): Promise<ActionResult<CobrancaPix & { forma: 'pix' }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const pronto = await freteParaCobrar(session, protocolo)
+    if (!pronto.ok) return { ok: false, error: pronto.error }
+    const { frete } = pronto
+
+    const externalReference = `FRT-${randomUUID()}`
+    const agora = Date.now()
+    const intencoes = repositorioIntencoes()
+    await intencoes.criar({
+      externalReference,
+      userEmail: session,
+      valor: frete.valorCents,
+      metodo: 'pix',
+      status: 'pendente',
+      tipoOperacao: 'frete_envio',
+      parcelasMax: 1,
+      metadata: { protocolo },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+
+    const pix = await criarCobrancaPix({
+      externalReference,
+      userEmail: session,
+      valorCents: frete.valorCents,
+      titulo: `Frete dos Correios — Real Olímpico (${protocolo})`,
+      descricao: `Frete ${frete.modalidade} do envio ${protocolo} para a custódia`,
+      parcelasMax: 1,
+    })
+    await intencoes.anotarPagamento(externalReference, pix.paymentId)
+    await anotarCobrancaNoFrete(session, protocolo, frete.valorCents, externalReference, 'pix')
+
+    return { ok: true, data: { ...pix, forma: 'pix' } }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Falha ao gerar Pix do frete.' }
+  }
+}
+
+/** Abre o Checkout Pro do frete (cartão, à vista — frete não se parcela). */
+export async function iniciarCartaoFrete(
+  protocolo: string,
+): Promise<ActionResult<CobrancaCartao & { forma: 'cartao' }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const pronto = await freteParaCobrar(session, protocolo)
+    if (!pronto.ok) return { ok: false, error: pronto.error }
+    const { frete } = pronto
+
+    const externalReference = `FRT-${randomUUID()}`
+    const agora = Date.now()
+    await repositorioIntencoes().criar({
+      externalReference,
+      userEmail: session,
+      valor: frete.valorCents,
+      metodo: 'checkout_pro',
+      status: 'pendente',
+      tipoOperacao: 'frete_envio',
+      parcelasMax: 1,
+      metadata: { protocolo },
+      paymentId: null,
+      motivoRecusa: null,
+      createdAt: agora,
+      updatedAt: agora,
+    })
+
+    const cartao = await criarCobrancaCartao({
+      externalReference,
+      userEmail: session,
+      valorCents: frete.valorCents,
+      titulo: `Frete dos Correios — Real Olímpico (${protocolo})`,
+      descricao: `Frete ${frete.modalidade} do envio ${protocolo} para a custódia`,
+      parcelasMax: 1,
+      voltarPara: { sucesso: '/envios', pendente: '/envios', falha: '/envios' },
+    })
+    await anotarCobrancaNoFrete(session, protocolo, frete.valorCents, externalReference, 'cartao')
+
+    return { ok: true, data: { ...cartao, forma: 'cartao' } }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Falha ao abrir o pagamento do frete no cartão.' }
+  }
+}
+
+/**
+ * Pede de novo a etiqueta de um frete já pago — para quando os Correios falharam logo depois do
+ * pagamento. Idempotente: com a etiqueta já emitida, devolve a mesma.
+ */
+export async function emitirEtiquetaDoEnvio(
+  protocolo: string,
+): Promise<ActionResult<{ codigoRastreio: string }>> {
+  const session = await getSessionEmail()
+  if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  try {
+    const achado = await envioDaSessao(session, protocolo)
+    if (!achado) return { ok: false, error: PROTOCOLO_NAO_ENCONTRADO }
+
+    const emissao = await emitirPrePostagemDoEnvio(protocolo)
+    if (!emissao.ok) return { ok: false, error: emissao.erro }
+    return {
+      ok: true,
+      message: `Etiqueta dos Correios emitida — rastreio ${emissao.prePostagem.codigoObjeto}.`,
+      data: { codigoRastreio: emissao.prePostagem.codigoObjeto },
+    }
+  } catch {
+    return { ok: false, error: FALHA_GRAVACAO }
   }
 }
 

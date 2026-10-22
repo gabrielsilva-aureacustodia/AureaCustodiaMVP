@@ -10,7 +10,7 @@
  * ordem da tela continuaria certa.
  */
 
-import type { Envio, EtapaEnvio } from '@/domain/types'
+import type { Envio, EtapaEnvio, FreteEnvio, PrePostagemRegistro } from '@/domain/types'
 
 import { json, nomeDoSchema, num, numOuNulo, type Consulta } from '../sql'
 
@@ -33,6 +33,8 @@ type LinhaEnvio = {
   observacao: string | null
   desconsiderado_em: unknown
   motivo_desconsideracao: string | null
+  frete: unknown
+  pre_postagem: unknown
 }
 
 export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
@@ -41,7 +43,7 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     `SELECT protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
             data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
             modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-            desconsiderado_em, motivo_desconsideracao
+            desconsiderado_em, motivo_desconsideracao, frete, pre_postagem
        FROM ${S}.envios
       ORDER BY ord`,
   )
@@ -64,6 +66,9 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     observacao: r.observacao,
     desconsideradoEm: numOuNulo(r.desconsiderado_em),
     motivoDesconsideracao: r.motivo_desconsideracao,
+    // Migration 043 (contrato com os Correios, 22/10/2026).
+    frete: json<FreteEnvio>(r.frete) ?? null,
+    prePostagem: json<PrePostagemRegistro>(r.pre_postagem) ?? null,
   }))
 }
 
@@ -74,8 +79,9 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
        (protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
         data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
         modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-        desconsiderado_em, motivo_desconsideracao)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, $16, $17, $18)`,
+        desconsiderado_em, motivo_desconsideracao, frete, pre_postagem)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, $16, $17, $18,
+             $19::jsonb, $20::jsonb)`,
     [
       e.protocolo,
       e.userEmail,
@@ -95,6 +101,8 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.observacao ?? null,
       e.desconsideradoEm ?? null,
       e.motivoDesconsideracao ?? null,
+      e.frete ? JSON.stringify(e.frete) : null,
+      e.prePostagem ? JSON.stringify(e.prePostagem) : null,
     ],
   )
 }
@@ -107,7 +115,8 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
             data_postagem = $7, data_recebimento = $8, etapa_atual = $9, created_at = $10,
             codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12, origem = $13,
             peso_inicial_mg = $14, caixa_inicial = $15, observacao = $16,
-            desconsiderado_em = $17, motivo_desconsideracao = $18
+            desconsiderado_em = $17, motivo_desconsideracao = $18,
+            frete = $19::jsonb, pre_postagem = $20::jsonb
       WHERE protocolo = $1`,
     [
       e.protocolo,
@@ -128,6 +137,8 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.observacao ?? null,
       e.desconsideradoEm ?? null,
       e.motivoDesconsideracao ?? null,
+      e.frete ? JSON.stringify(e.frete) : null,
+      e.prePostagem ? JSON.stringify(e.prePostagem) : null,
     ],
   )
 }

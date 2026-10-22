@@ -26,7 +26,10 @@ export const ENDERECO_CENTRAL_AUREA: EnderecoEnvio = {
   logradouro: 'Caixa Postal 7990',
   numero: 'S/N',
   complemento: 'AGF Bandeirantes — Avenida dos Bandeirantes',
-  bairro: 'Mangabeiras',
+  // 'Comiteco' é o bairro que a base oficial dos Correios devolve para o CEP 30315-970 (API CEP,
+  // 22/10/2026). Até essa data aqui estava 'Mangabeiras'; na pré-postagem o endereço do destino
+  // precisa bater com a base deles.
+  bairro: 'Comiteco',
   cidade: 'Belo Horizonte',
   uf: 'MG',
   cep: '30315-970',

@@ -20,6 +20,7 @@ import Link from 'next/link'
 
 import { fdate } from '@/domain/dates'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, statusFaseEnvio } from '@/domain/envios'
+import { rotuloStatusRastreio, textoDoRastreio } from '@/domain/rastreio'
 import type { Envio } from '@/domain/types'
 
 export interface RastreioNaLista {
@@ -223,7 +224,7 @@ export function HistoricoEnvios({
                       style={{ fontSize: '12px', padding: '6px 14px', minHeight: 34 }}
                       onClick={() => onContinuarEnvio(item.protocolo)}
                     >
-                      Informar código de postagem →
+                      {item.prePostagem ? 'Ver etiqueta e envio →' : 'Continuar envio →'}
                     </button>
                   )}
 
@@ -256,9 +257,24 @@ export function HistoricoEnvios({
                     <div style={{ color: 'var(--text-muted)' }}>
                       {prazo.mensagemAlerta}
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6 }}>
-                      Poste seu pacote nos Correios e confirme o código de rastreamento do comprovante para que nossa equipe acompanhe a chegada ao cofre.
-                    </div>
+                    {item.prePostagem ? (
+                      // Etiqueta do contrato (22/10/2026): o código já existe e a postagem é
+                      // reconhecida pelo rastreio — não há código para o cliente informar.
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6 }}>
+                        <b>Correios ({item.codigoRastreio}):</b>{' '}
+                        {rastreio
+                          ? textoDoRastreio(rastreio)
+                          : rotuloStatusRastreio(item.prePostagem.canceladaEm ? 'cancelado' : 'aguardando_postagem')}
+                        . Leve o pacote com a etiqueta a uma agência; a postagem aparece aqui sozinha quando os Correios a registrarem.
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6 }}>
+                        {/* Sem etiqueta ainda: com o contrato, o caminho é pagar o frete e imprimir a etiqueta
+                            oficial no passo dos Correios; sem contrato (ou envio antigo), postar no balcão e
+                            informar o código. O texto cobre os dois sem a lista precisar saber qual vale. */}
+                        Continue o envio para pagar o frete do contrato e imprimir a etiqueta oficial dos Correios. Se você já postou pagando no balcão, informe lá o código do comprovante.
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -52,6 +52,7 @@ const TIPOS = [
   'retirada',
   'oferta_prepaga',
   'reserva_compra',
+  'frete_envio',
 ] as const satisfies readonly TipoOperacaoPagamento[]
 
 function executorPGlite(db: PGlite): Executor {

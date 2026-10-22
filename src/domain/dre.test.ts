@@ -8,7 +8,14 @@ import { describe, expect, it } from 'vitest'
 
 import { PARAMETROS_VAZIOS, aplicarBp, fmtBp, montarDre, periodoMensal, periodoTrimestral } from '@/domain/dre'
 import { GENESIS } from '@/domain/hash'
-import { encadear, lancamentoDeCustodia, lancamentoDeSaldoInicial, lancamentosDeTrade } from '@/domain/ledger'
+import {
+  encadear,
+  lancamentoDeCustodia,
+  lancamentoDeEstorno,
+  lancamentoDeFrete,
+  lancamentoDeSaldoInicial,
+  lancamentosDeTrade,
+} from '@/domain/ledger'
 import type { Trade } from '@/domain/types'
 
 const BAN = 'Entrega da Bandeira Olímpica'
@@ -360,5 +367,44 @@ describe('montarDre', () => {
     expect(dre.totais.receitaCustodia).toBe(800)
     const linhaCustodia = dre.linhas.find((l) => l.codigo === '3.1.02')
     expect(linhaCustodia?.valor).toBe(800)
+  })
+})
+
+describe('DRE — frete repassado ao cliente (22/10/2026)', () => {
+  const dia = (d: number) => new Date(2026, 9, d).getTime()
+  const detalhe = { modalidade: 'PAC', quantidade: 1, tipoMoeda: BAN }
+
+  it('fica FORA da receita bruta e abate a despesa de frete: repasse fecha em zero', () => {
+    const { lancamentos } = encadear(
+      [
+        lancamentoDeSaldoInicial('a', 50_000, dia(1), 'abertura'),
+        lancamentoDeFrete('a', 2_114, dia(5), 'RO-ENV-0001', detalhe),
+        lancamentoDeFrete('a', 3_159, dia(6), 'RO-ENV-0002', { ...detalhe, modalidade: 'SEDEX' }),
+        // O segundo envio foi desconsiderado sem postar: o frete voltou ao saldo.
+        lancamentoDeEstorno('a', 3_159, dia(9), 'RO-ENV-0002', 'Estorno do frete'),
+      ],
+      {},
+      GENESIS,
+    )
+    const dre = montarDre({
+      ledger: lancamentos,
+      manuais: [{ data: dia(20), contaCodigo: '4.1.06', descricao: 'Fatura dos Correios', valor: 2_114, criadoPor: 'contador' }],
+      parametros: PARAMETROS_VAZIOS,
+      periodo: periodoMensal(2026, 10),
+    })
+
+    expect(dre.totais.freteRepassado).toBe(2_114)
+    expect(dre.totais.receitaBruta).toBe(0)
+    expect(dre.totais.despesasOperacionais).toBe(0)
+    expect(dre.totais.resultadoLiquido).toBe(0)
+    expect(dre.linhas.find((l) => l.codigo === '4.1.06a')).toMatchObject({ descricao: 'Frete repassado ao cliente', valor: 2_114 })
+    expect(dre.pendencias.some((p) => p.includes('Frete repassado'))).toBe(true)
+  })
+
+  it('sem frete no período não aparece linha nem pendência de frete', () => {
+    const dre = montarDre({ ledger: [], manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 10) })
+    expect(dre.totais.freteRepassado).toBe(0)
+    expect(dre.linhas.find((l) => l.codigo === '4.1.06a')).toBeUndefined()
+    expect(dre.pendencias.some((p) => p.includes('Frete repassado'))).toBe(false)
   })
 })

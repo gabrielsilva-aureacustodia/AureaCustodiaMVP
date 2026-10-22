@@ -187,6 +187,15 @@ cold start.
   catálogo vigente de `aurea.tipos_moeda` — nunca uma comparação com `COIN.name`, que
   era o atalho válido enquanto havia um ativo só.
 - **Dinheiro sempre em centavos inteiros** (`Cents`). Nunca `float` para valor monetário.
+- **Correios por contrato (Platinum 1, API CWS, 22/10/2026).** O envio do cliente para a custódia é
+  **logística reversa**: o cliente **paga o frete no site** pelo preço do contrato, sem margem (decisão do
+  Gabriel), por saldo, Pix ou cartão (`frete_envio`, ledger `frete`, fora da receita bruta na DRE); pago, o
+  servidor cria a pré-postagem e o cliente imprime a etiqueta oficial e posta de graça. O código de rastreio
+  nasce nos Correios — a API de rastreio só enxerga objetos do contrato. A retirada ganha etiqueta de saída
+  emitida no `/admin/logistica`. O job diário avança sozinho o envio para "Envio postado" e a retirada para
+  `postada`/`entregue`; "Recebido pela custódia" continua manual. Credenciais nas cinco variáveis
+  `CORREIOS_*` (o token de 24 h nasce no servidor); sem elas, frete vira estimativa local e a tela diz isso.
+  Mapa em `src/lib/shipping/README.md`; atalhos no RA-59.
 - **Depósito em conta é simulado** e limitado a `DEPOSITO_MAX` (R$ 100.000 por
   operação). Não há Pix, cartão nem conciliação — a tela precisa dizer isso.
 
@@ -237,7 +246,7 @@ código** ou a regra de casamento continua sendo mudança de produto.
 - **Hash do recibo é simulado.** Substituir por hash determinístico encadeado (SHA-256)
   é item de roadmap, não improviso.
 - Sem termos de uso com aceite versionado nem política de privacidade.
-- Sem Pix/cartão, Correios/Melhor Envio, login Google, e-mail transacional.
+- Sem Melhor Envio, login Google, e-mail transacional. (Correios: contrato e API CWS ligados em 22/10/2026 — ver a regra do frete acima.)
 - Contradição tributária em aberto (Lucro Presumido × Simples com Fator R) — **não
   codificar lógica de imposto** até o contador definir.
 

@@ -23,6 +23,10 @@
  *  - cobrança de custódia: `custodia`, com SINAL ZERO. A plataforma registra a
  *    taxa mas ainda não a debita (ver o extrato). Entra no ledger para a DRE
  *    conhecer a receita de custódia registrada, sem mexer no saldo de ninguém;
+ *  - frete do envio pago pelo cliente (22/10/2026): `frete` (−valor), com o
+ *    protocolo do envio como referência. É REPASSE do preço do contrato dos
+ *    Correios, sem margem — não é receita de serviço. Envio desconsiderado sem
+ *    postar devolve o frete por um `estorno` com a mesma referência;
  *  - `ajuste`: a válvula de escape. Se uma mutação alterar saldo por um caminho
  *    que o derivador não reconhece, a diferença vira um `ajuste` explícito em
  *    vez de sumir. Um ledger que não fecha é pior que um ledger com um ajuste
@@ -49,6 +53,8 @@ export type LedgerTipo =
   | 'saque'
   | 'taxa_saque'
   | 'taxa_retirada'
+  // 22/10/2026: frete do envio à custódia, pago pelo cliente no site e repassado aos Correios.
+  | 'frete'
 
 export type Sinal = -1 | 0 | 1
 
@@ -335,6 +341,35 @@ export function lancamentoDeTaxaRetirada(
     refInterna: coinId,
     refExterna: null,
     descricao,
+  }
+}
+
+/**
+ * Frete do envio à custódia, pago pelo cliente (22/10/2026).
+ *
+ * Saída do saldo (-1) também quando o pagamento veio por Pix ou cartão: nesse caso a conciliação
+ * grava antes um `deposito` do mesmo valor, e os dois se anulam — o mesmo desenho da taxa de
+ * retirada. A referência interna é o PROTOCOLO, e é por ela que o `estorno` de um envio
+ * desconsiderado acha o frete que está devolvendo.
+ */
+export function lancamentoDeFrete(
+  email: UserEmail,
+  valor: Cents,
+  quando: Timestamp,
+  protocolo: string,
+  detalhe: { modalidade: string; quantidade: number; tipoMoeda: string | null; refExterna?: string | null },
+): LancamentoPendente {
+  return {
+    createdAt: quando,
+    userEmail: email,
+    tipo: 'frete',
+    valor,
+    sinal: -1,
+    tipoMoeda: detalhe.tipoMoeda,
+    quantidade: detalhe.quantidade,
+    refInterna: protocolo,
+    refExterna: detalhe.refExterna ?? null,
+    descricao: `Frete ${detalhe.modalidade} do envio ${protocolo} — repasse do contrato dos Correios`,
   }
 }
 

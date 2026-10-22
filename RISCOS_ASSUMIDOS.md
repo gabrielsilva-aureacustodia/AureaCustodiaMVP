@@ -44,7 +44,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-11** | Repositório público de propósito | 🟡 | — |
 | **RA-12** | Senha do banco Supabase trafegou por chat **e foi commitada em documento** | 🔴 | `docs/` |
 | **RA-13** | Atalhos da migração para tabelas (M1): fila única, estado inteiro, extrato, verificação sem Supabase, `store/` mantido | 🟠 | `src/server/db/` |
-| **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; restam b e c, que dependem de credencial | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
+| **RA-14** | Atalhos da frente C — **a, d e e pagos em 03/09**; a parte Correios do b paga em 22/10 (contrato e API CWS, ver RA-59); resta c | 🟡 | `src/lib/payments/`, `src/lib/shipping/`, `src/app/api/` |
 | **RA-15** | Cadastro simulado e entrada sem senha — **pago em 06/09/2026** | ✅ | arquivos removidos |
 | **RA-16** | Atalhos do ledger, da DRE e dos relatórios (M4/M7): admin por variável, token na URL, sem teste de rota, Sheets não exercitado, ledger desde o seed, custódia com sinal zero, `ajuste` | 🟠 | `src/server/relatorios/`, `src/server/db/`, `src/app/api/relatorios/` |
 | **RA-17** | Contingência temporária do login do seed quando o Supabase não está configurado | 🟡 | `src/server/actions/auth.ts`, `src/server/auth/` |
@@ -75,6 +75,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-57** | Os documentos legais versionados (Termos de Uso, Política de Privacidade, Tabela de Taxas, Cláusula de Arbitragem) continuam escritos com a marca "Áurea" enquanto o site inteiro já diz "Real Olímpico" | 🟡 | `src/domain/documentos-legais/`, `src/domain/legal.ts` |
 | **RA-56** | Pagamento aprovado que não pode liquidar vira saldo em conta, sem devolução pelo gateway e sem aviso próprio na tela de pagamento | 🟡 | `src/server/payments/` |
 | **RA-58** | Saque aprovado pela equipe; o Pix automático pelo Mercado Pago nasce DESLIGADO e o aviso de status do gateway não é assinado (só aponta, a consulta decide) | 🟡 | `src/server/saques/`, `src/lib/payments/payouts*.ts`, `src/app/api/webhooks/mercadopago-payouts/` |
+| **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
 
 ---
 
@@ -1265,6 +1266,40 @@ trocar as referências à plataforma nos quatro documentos, subir a versão vige
 novo rodar. A razão social continua no preâmbulo e em todo ponto com CNPJ.
 
 Nota em `src/domain/documentos-legais/ATALHOS.md`.
+
+
+# RA-59 — Integração com o contrato dos Correios 🟡
+
+```
+Criado:  22/10/2026
+Pasta:   src/lib/shipping/ · src/server/shipping/ · src/server/actions/ · src/domain/dre.ts
+Execução: docs/EXECUCAO_CORREIOS_CWS.md
+```
+
+**O que foi feito:** a plataforma passou a usar a API CWS do contrato Platinum 1 — frete e prazo reais,
+pré-postagem de logística reversa paga pelo cliente no site (decisão do Gabriel, 22/10/2026), etiqueta
+oficial em PDF, rastreio em lote com avanço automático do envio e da retirada, e etiqueta de saída da
+retirada pelo painel. Os atalhos que ficaram:
+
+1. **Valor declarado do envio fixo em R$ 150,00 por moeda** — moeda mais cara viaja com seguro menor. A
+   retirada já usa a mediana de mercado do tipo.
+2. **Peso estimado** (300 g + 30 g por moeda). Diferença aferida na agência vem na fatura do contrato e não é
+   repassada.
+3. **O prazo de 3 dias para postar conta da criação do protocolo, não do pagamento do frete.** Quem paga no
+   fim do prazo tem pouco tempo para ir à agência. A varredura diária só desconsidera envio com etiqueta
+   depois de perguntar aos Correios se ele não foi postado, e devolve o frete ao saldo.
+4. **O frete fica fora da receita bruta** (linha "Frete repassado ao cliente" abatendo a despesa dos
+   Correios) e a DRE abre pendência pedindo ao contador o lançamento da fatura e o tratamento tributário.
+   Nenhuma alíquota no código.
+5. **Token da API em memória de cada instância**, pedido de novo em cada partida fria.
+6. **O avanço automático aparece até um dia depois** (cron diário do plano Hobby); a data gravada é a do
+   evento dos Correios.
+
+**Como se paga:** (1) mediana de mercado no envio; (2) medir os pacotes reais; (3) decidir com os sócios se o
+prazo conta do pagamento; (4) parecer do contador; (5) cache compartilhado se o limite aparecer; (6) plano Pro
+da Vercel para rodar o job mais vezes.
+
+Nota em `src/lib/shipping/ATALHOS.md`.
 
 
 # RA-58 — Saque aprovado pela equipe; Pix automático desligado por padrão 🟡
