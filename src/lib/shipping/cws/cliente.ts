@@ -147,6 +147,10 @@ export async function chamarCws<T>(caminho: string, opcoes: OpcoesChamada = {}):
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
+        // O `fetch` do Node manda `Accept-Language: *` sozinho, e a API de rastreio recusa o lote
+        // inteiro com "SRO-018: Permitido apenas os valores pt-BR, en e es-ES para o idioma"
+        // (achado na rodada de testes reais de 22/10/2026). Fixar o idioma resolve para todas.
+        'Accept-Language': 'pt-BR',
         ...(opcoes.corpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
       body: opcoes.corpo !== undefined ? JSON.stringify(opcoes.corpo) : undefined,

@@ -198,35 +198,79 @@ export async function consultarPrePostagem(codigoObjeto: string): Promise<Situac
 
 const esperar = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
+/** "PPN-288: Não é permitido imprimir rótulo de pré-postagem com status igual a Pendente." */
+const ROTULO_DE_PENDENTE = /PPN-288/
+/** "PPN-291: O rótulo ainda não foi gerado. Por favor, consulte novamente." — é só esperar. */
+const ROTULO_EM_GERACAO = /PPN-291|ainda n[ãa]o foi gerado/i
+
 /**
  * O rótulo oficial em PDF. A geração é assíncrona nos Correios: pede-se o rótulo, recebe-se um
  * recibo, e o PDF fica pronto em um ou dois segundos. Tentamos algumas vezes antes de desistir —
  * quem chama é uma rota de download, e o usuário prefere esperar três segundos a ver um erro.
+ *
+ * A ARMADILHA DO RECIBO PRESO (testes reais de 22/10/2026). Logo depois de criada, a pré-postagem
+ * fica ~1 s "Pendente" enquanto os Correios emitem a declaração de conteúdo. Um rótulo pedido nessa
+ * janela devolve, no download, `{ mensagem: "PPN-288: Não é permitido imprimir rótulo de
+ * pré-postagem com status igual a Pendente" }` — com HTTP 200 — e aquele recibo NUNCA mais vira PDF,
+ * nem depois que o status muda. Esperar o mesmo recibo é inútil: diante do PPN-288 pedimos um
+ * recibo NOVO. Diante do "PPN-291: O rótulo ainda não foi gerado", o mesmo recibo serve — é só
+ * consultar de novo.
+ *
+ * E NÃO SE CONSULTA O RECIBO NA HORA. Medido em 22/10/2026: consultado poucos milissegundos depois
+ * de criado, o recibo ficou preso em PPN-291 em todas as rodadas (e a etiqueta levava 10 s, pelo
+ * recibo novo); com 0,8 s de espera antes da primeira consulta, saiu em ~1,2 s em todas. Qualquer outra `mensagem` no lugar do PDF sobe como erro, com o texto dos Correios.
  */
 export async function baixarRotuloPdf(
   codigosObjeto: string[],
   opcoes: { tentativas?: number; intervaloMs?: number } = {},
 ): Promise<Buffer> {
-  const { idRecibo } = await chamarCws<{ idRecibo: string }>('/prepostagem/v1/prepostagens/rotulo/assincrono/pdf', {
-    metodo: 'POST',
-    corpo: { codigosObjeto, tipoRotulo: 'P', formatoRotulo: 'ET', imprimeRemetente: 'S', layoutImpressao: 'PADRAO' },
-  })
-  if (!idRecibo) throw new ErroCorreios('Os Correios não devolveram o recibo do rótulo.', 502)
+  const pedirRecibo = async (): Promise<string> => {
+    const { idRecibo } = await chamarCws<{ idRecibo: string }>('/prepostagem/v1/prepostagens/rotulo/assincrono/pdf', {
+      metodo: 'POST',
+      corpo: { codigosObjeto, tipoRotulo: 'P', formatoRotulo: 'ET', imprimeRemetente: 'S', layoutImpressao: 'PADRAO' },
+    })
+    if (!idRecibo) throw new ErroCorreios('Os Correios não devolveram o recibo do rótulo.', 502)
+    return idRecibo
+  }
 
-  const tentativas = opcoes.tentativas ?? 6
+  const tentativas = opcoes.tentativas ?? 10
   const intervaloMs = opcoes.intervaloMs ?? 1000
+  const CONSULTAS_POR_RECIBO = 4
+  let consultasNoRecibo = 0
+  let idRecibo = await pedirRecibo()
   let ultimoErro: unknown = null
   for (let i = 0; i < tentativas; i += 1) {
-    if (i > 0) await esperar(intervaloMs)
+    await esperar(i === 0 ? Math.min(intervaloMs, 800) : intervaloMs)
     try {
-      const r = await chamarCws<{ dados?: string }>(
+      const r = await chamarCws<{ dados?: string; mensagem?: string }>(
         `/prepostagem/v1/prepostagens/rotulo/download/assincrono/${encodeURIComponent(idRecibo)}`,
       )
       if (r?.dados) return Buffer.from(r.dados, 'base64')
+      if (r?.mensagem && ROTULO_DE_PENDENTE.test(r.mensagem)) {
+        ultimoErro = new ErroCorreios(r.mensagem, 409, [r.mensagem])
+        idRecibo = await pedirRecibo()
+        consultasNoRecibo = 0
+        continue
+      }
+      // PDF ainda em geração: o mesmo recibo costuma ficar pronto na consulta seguinte (abaixo de 1 s,
+      // medido em 22/10/2026). Mas houve recibo que nunca saiu do PPN-291 — então, depois de
+      // CONSULTAS_POR_RECIBO tentativas no mesmo, pede-se outro em vez de esperar o travado.
+      if (r?.mensagem && ROTULO_EM_GERACAO.test(r.mensagem)) {
+        ultimoErro = new ErroCorreios(r.mensagem, 409, [r.mensagem])
+        consultasNoRecibo += 1
+        if (consultasNoRecibo >= CONSULTAS_POR_RECIBO) {
+          idRecibo = await pedirRecibo()
+          consultasNoRecibo = 0
+        }
+        continue
+      }
+      if (r?.mensagem) throw new ErroCorreios(r.mensagem, 502, [r.mensagem])
     } catch (err) {
+      // Mensagem dos Correios que não é "ainda pendente" não melhora esperando: sobe na hora.
+      if (err instanceof ErroCorreios && err.status === 502 && err.mensagens.length > 0) throw err
       ultimoErro = err
     }
   }
-  if (ultimoErro instanceof ErroCorreios) throw ultimoErro
-  throw new ErroCorreios('O rótulo dos Correios ainda não ficou pronto. Tente de novo em instantes.', 504)
+  if (ultimoErro instanceof ErroCorreios && ultimoErro.status !== 409) throw ultimoErro
+  throw new ErroCorreios('A etiqueta dos Correios ainda não ficou pronta. Tente de novo em instantes.', 504)
 }

@@ -144,6 +144,78 @@ describe('CWS — cliente e token', () => {
     expect(downloads).toBe(2)
   })
 
+  it('etiqueta pedida com a pré-postagem ainda Pendente (PPN-288): pede recibo NOVO em vez de esperar o preso', async () => {
+    const recibos: string[] = []
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/token/')) return respostaToken()
+      if (url.endsWith('/rotulo/assincrono/pdf')) {
+        recibos.push(`rec${recibos.length + 1}`)
+        return json({ idRecibo: recibos[recibos.length - 1] })
+      }
+      // O primeiro recibo nasceu com a pré-postagem pendente e fica preso no PPN-288 (HTTP 200).
+      if (url.endsWith('/rec1')) {
+        return json({ mensagem: 'PPN-288: Não é permitido imprimir rótulo de pré-postagem com status igual a Pendente.' })
+      }
+      return json({ dados: Buffer.from('%PDF-1.4').toString('base64') })
+    })
+    const pdf = await baixarRotuloPdf(['AP647133258BR'], { intervaloMs: 1 })
+    expect(pdf.toString()).toBe('%PDF-1.4')
+    expect(recibos).toEqual(['rec1', 'rec2'])
+  })
+
+  it('PDF ainda em geração (PPN-291): consulta o MESMO recibo de novo até ficar pronto', async () => {
+    const recibos: string[] = []
+    let consultas = 0
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/token/')) return respostaToken()
+      if (url.endsWith('/rotulo/assincrono/pdf')) {
+        recibos.push('rec1')
+        return json({ idRecibo: 'rec1' })
+      }
+      consultas += 1
+      return consultas < 3
+        ? json({ mensagem: 'PPN-291: O rótulo ainda não foi gerado. Por favor, consulte novamente.' })
+        : json({ dados: Buffer.from('%PDF-1.4').toString('base64') })
+    })
+    const pdf = await baixarRotuloPdf(['AE061097728BR'], { intervaloMs: 1 })
+    expect(pdf.toString()).toBe('%PDF-1.4')
+    expect(recibos).toEqual(['rec1'])
+    expect(consultas).toBe(3)
+  })
+
+  it('recibo travado em PPN-291: depois de 4 consultas, pede outro recibo', async () => {
+    const recibos: string[] = []
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/token/')) return respostaToken()
+      if (url.endsWith('/rotulo/assincrono/pdf')) {
+        recibos.push(`rec${recibos.length + 1}`)
+        return json({ idRecibo: recibos[recibos.length - 1] })
+      }
+      return url.endsWith('/rec1')
+        ? json({ mensagem: 'PPN-291: O rótulo ainda não foi gerado. Por favor, consulte novamente.' })
+        : json({ dados: Buffer.from('%PDF-1.4').toString('base64') })
+    })
+    const pdf = await baixarRotuloPdf(['AE061097728BR'], { intervaloMs: 1 })
+    expect(pdf.toString()).toBe('%PDF-1.4')
+    expect(recibos).toEqual(['rec1', 'rec2'])
+  })
+
+  it('outra mensagem dos Correios no lugar do PDF sobe na hora, com o texto deles', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/token/')) return respostaToken()
+      if (url.endsWith('/rotulo/assincrono/pdf')) return json({ idRecibo: 'rec1' })
+      return json({ mensagem: 'PPN-999: Objeto cancelado.' })
+    })
+    await expect(baixarRotuloPdf(['AP1'], { intervaloMs: 1 })).rejects.toThrow('PPN-999')
+  })
+
+  it('manda Accept-Language pt-BR (o SRO recusa o "*" que o fetch do Node põe sozinho)', async () => {
+    fetchMock.mockImplementation(async (url: string) => (url.includes('/token/') ? respostaToken() : json({ ok: true })))
+    await chamarCws('/srorastro/v1/objetos')
+    const chamada = fetchMock.mock.calls.find(([u]) => String(u).includes('/srorastro/'))
+    expect(chamada?.[1].headers['Accept-Language']).toBe('pt-BR')
+  })
+
   it('rastreia em lotes de 50 e não perde código fora do contrato', async () => {
     const lotes: string[][] = []
     fetchMock.mockImplementation(async (url: string) => {
