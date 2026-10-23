@@ -27,4 +27,5 @@ Só servidor: carrega o certificado e-CNPJ A1 da empresa. Nada daqui pode ser im
 (`VERCEL_ENV=production`) sem `NFSE_AMBIENTE=producao`, nada é enviado: a fila espera e as notas saem com a
 data de cada fato quando a produção for ligada.
 
-Desenho e decisões: `docs/fiscal-contabil/NFSE_INTEGRACAO_NO_SITE.md`.
+Documentação completa da integração (arquitetura, diagramas, dados, códigos de retorno, operação):
+`docs/fiscal-contabil/API_NFSE_NACIONAL.md`. Desenho e decisões: `docs/fiscal-contabil/NFSE_INTEGRACAO_NO_SITE.md`.

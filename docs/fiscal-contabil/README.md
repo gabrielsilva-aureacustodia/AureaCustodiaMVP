@@ -10,6 +10,7 @@ contábeis brasileiras pedem. A emissão automática de NFS-e (custódia e comis
 |---|---|---|
 | `REGRAS_FISCAIS_E_CONTABEIS.md` | **O documento conclusivo.** As regras R1–R14 que o sistema sempre segue: o que é receita e o que não é (e por quê), NFS-e por fato, códigos de tributação, datas, partidas dobradas, colunas, históricos, correções do painel, taxas do Mercado Pago, conciliação, tributos e guarda | Antes de mexer em ledger, DRE, extrato, cobrança, saque ou painel de resultados |
 | `NFSE_MODELOS_DO_CONTADOR.md` | As três NFS-e que o contador emitiu (custódia, comissão de compra, comissão de venda), campo a campo, e o que a reunião de 16/10/2026 decidiu | Para saber de onde veio cada código |
+| `API_NFSE_NACIONAL.md` | **A documentação da integração com o governo**: arquitetura, onde a nota nasce, envio, cancelamento, endpoints, segurança, dados, códigos de retorno, operação e testes — com diagramas | Para entender ou mexer na emissão |
 | `NFSE_INTEGRACAO_NO_SITE.md` | A emissão automática (implementada em 23/10/2026 para custódia e comissões): o que foi entregue e como foi provado, API, pastas, tabela, fluxo, variáveis | Para mexer na emissão |
 | `TAXAS_MERCADO_PAGO.md` | Todas as taxas do Mercado Pago por fluxo da plataforma, com exemplos, como a integração atual registra cada uma e as lacunas | Para custo, DRE e conciliação |
 | `LACUNAS_E_PERGUNTAS.md` | O que o código faz hoje diferente das regras, e as perguntas abertas ao contador, ao Mercado Pago e de teste técnico | Para planejar a próxima tarefa |
