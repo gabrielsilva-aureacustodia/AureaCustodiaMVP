@@ -26,14 +26,14 @@ export interface DadosFiscais {
   impedimento: string | null
 }
 
-const STATUS_VALIDOS: readonly StatusNfse[] = ['pendente', 'processando', 'autorizada', 'rejeitada', 'erro', 'cancelada']
+const STATUS_VALIDOS: readonly StatusNfse[] = ['pendente', 'processando', 'autorizada', 'rejeitada', 'erro', 'cancelando', 'cancelada']
 
 export function lerStatus(v: string | undefined): StatusNfse | null {
   return v && (STATUS_VALIDOS as readonly string[]).includes(v) ? (v as StatusNfse) : null
 }
 
 export async function carregarFiscal(filtro: { status: StatusNfse | null; busca: string }): Promise<DadosFiscais> {
-  const vazio: Record<StatusNfse, number> = { pendente: 0, processando: 0, autorizada: 0, rejeitada: 0, erro: 0, cancelada: 0 }
+  const vazio: Record<StatusNfse, number> = { pendente: 0, processando: 0, autorizada: 0, rejeitada: 0, erro: 0, cancelando: 0, cancelada: 0 }
   if (!bancoConfigurado()) {
     return { semBanco: true, linhas: [], contagem: vazio, ambiente: ambienteConfigurado(), impedimento: impedimentoDaEmissao() }
   }

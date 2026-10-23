@@ -370,11 +370,11 @@ describe('montarDre', () => {
   })
 })
 
-describe('DRE — frete repassado ao cliente (22/10/2026)', () => {
+describe('DRE — frete do envio é despesa do cliente, fora do resultado (contador, 23/10/2026)', () => {
   const dia = (d: number) => new Date(2026, 9, d).getTime()
   const detalhe = { modalidade: 'PAC', quantidade: 1, tipoMoeda: BAN }
 
-  it('fica FORA da receita bruta e abate a despesa de frete: repasse fecha em zero', () => {
+  it('fica fora da receita E das despesas: não abate 4.1.06 e não vira linha da DRE', () => {
     const { lancamentos } = encadear(
       [
         lancamentoDeSaldoInicial('a', 50_000, dia(1), 'abertura'),
@@ -388,23 +388,24 @@ describe('DRE — frete repassado ao cliente (22/10/2026)', () => {
     )
     const dre = montarDre({
       ledger: lancamentos,
-      manuais: [{ data: dia(20), contaCodigo: '4.1.06', descricao: 'Fatura dos Correios', valor: 2_114, criadoPor: 'contador' }],
+      // Frete que a própria empresa assume (ex.: etiqueta de saída) continua sendo despesa dela.
+      manuais: [{ data: dia(20), contaCodigo: '4.1.06', descricao: 'Etiqueta de saída paga pela empresa', valor: 1_000, criadoPor: 'contador' }],
       parametros: PARAMETROS_VAZIOS,
       periodo: periodoMensal(2026, 10),
     })
 
     expect(dre.totais.freteRepassado).toBe(2_114)
     expect(dre.totais.receitaBruta).toBe(0)
-    expect(dre.totais.despesasOperacionais).toBe(0)
-    expect(dre.totais.resultadoLiquido).toBe(0)
-    expect(dre.linhas.find((l) => l.codigo === '4.1.06a')).toMatchObject({ descricao: 'Frete repassado ao cliente', valor: 2_114 })
-    expect(dre.pendencias.some((p) => p.includes('Frete repassado'))).toBe(true)
+    expect(dre.totais.despesasOperacionais).toBe(1_000)
+    expect(dre.totais.resultadoLiquido).toBe(-1_000)
+    expect(dre.linhas.find((l) => l.codigo === '4.1.06a')).toBeUndefined()
+    expect(dre.pendencias.some((p) => p.includes('Frete de clientes') && p.includes('despesa do cliente'))).toBe(true)
   })
 
   it('sem frete no período não aparece linha nem pendência de frete', () => {
     const dre = montarDre({ ledger: [], manuais: [], parametros: PARAMETROS_VAZIOS, periodo: periodoMensal(2026, 10) })
     expect(dre.totais.freteRepassado).toBe(0)
     expect(dre.linhas.find((l) => l.codigo === '4.1.06a')).toBeUndefined()
-    expect(dre.pendencias.some((p) => p.includes('Frete repassado'))).toBe(false)
+    expect(dre.pendencias.some((p) => p.includes('Frete de clientes'))).toBe(false)
   })
 })

@@ -27,7 +27,7 @@
  */
 
 import { estadoVazio } from '@/domain/estado-vazio'
-import { pedidosDeNfse } from '@/domain/nfse/pedidos'
+import { cancelamentosDeNfse, pedidosDeNfse } from '@/domain/nfse/pedidos'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
@@ -35,7 +35,7 @@ import { derivarHistoricoOfertas, derivarLancamentos, resumirParaAuditoria } fro
 import { normalizarTrade } from './diff'
 import { registrarAuditoria } from './repositories/auditoria'
 import { inserirLancamentos, ultimoHash } from './repositories/ledger'
-import { inserirPedidosNfse } from './repositories/nfse'
+import { inserirPedidosNfse, marcarParaCancelar } from './repositories/nfse'
 import { inserirHistoricoOfertas } from './repositories/ofertas-historico'
 import { carregarEstado, estaVazio, persistirEstado } from './repositories/state'
 import type { Executor } from './sql'
@@ -123,6 +123,9 @@ export async function mutarEstado<T>(
       // A semeadura de teste não pede nota: aquelas negociações são fixture, não receita.
       if (!semeadura) {
         nfsePedidas = await inserirPedidosNfse(tx, pedidosDeNfse(antes, state, agora), agora)
+        // Saque recusado: a tarifa volta ao saldo e a nota dela é cancelada (serviço não prestado).
+        const cancelamentos = cancelamentosDeNfse(antes, state)
+        if (cancelamentos.length) nfsePedidas += await marcarParaCancelar(tx, cancelamentos, agora)
       }
 
       const resumo = resumirParaAuditoria(ops, semeadura, ajustes)

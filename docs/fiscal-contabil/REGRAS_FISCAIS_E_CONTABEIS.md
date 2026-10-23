@@ -4,6 +4,9 @@
 Versão 1, 22/10/2026. Escrito a partir da reunião com o contador (16/10/2026), das três NFS-e-modelo que ele
 emitiu em 22/10/2026 e das pesquisas anexadas em `pesquisa/`.
 
+> **Respostas do contador (Túlio Monteiro, 23/10/2026)** estão aplicadas neste documento e no código — a lista
+> completa, uma a uma, está em `LACUNAS_E_PERGUNTAS.md` §0.
+>
 > **Status de cada regra.** Toda regra traz um selo:
 > **[CONFIRMADO]** — está nas notas emitidas pelo contador ou na fala dele na reunião;
 > **[LEI]** — sai de texto oficial lido (Planalto, CFC, CPC, gov.br/nfse, PBH);
@@ -45,14 +48,14 @@ não constam como receita").
 | Custódia do 1º mês cobrada na compra (`origem: 'compra'`) | **Receita de serviço (custódia)** | Mesma natureza da custódia mensal; nunca entra na comissão. | [CONFIRMADO] mesma natureza; regra de 21/10/2026 |
 | Comissão do comprador | **Receita de serviço (intermediação)** | Preço da intermediação cobrado do comprador. | [CONFIRMADO] NFS-e nº 2 |
 | Comissão do vendedor | **Receita de serviço (intermediação)** | Preço da intermediação cobrado do vendedor. | [CONFIRMADO] NFS-e nº 3 |
-| Tarifa de saque (R$ 5,00) | **Receita de serviço** | Preço do processamento do saque. Subitem da NFS-e em aberto. | [LEI] DL 1.598 art. 12, II; subitem: pergunta ao contador |
-| Taxa de retirada física (R$ 50 / R$ 180) | **Receita de serviço** | Preço do manuseio e expedição da moeda. Subitem em aberto. | idem |
+| Tarifa de saque (R$ 5,00) | **Receita de serviço (armazenamento)** | Movimentação do armazenamento onde o saque acontece: NFS-e 11.04.01, como a custódia. | [CONFIRMADO] contador, 23/10/2026 |
+| Taxa de retirada física (R$ 50 / R$ 180) | **Receita de serviço (armazenamento)** | Movimentação do armazenamento: NFS-e 11.04.01. | [CONFIRMADO] contador, 23/10/2026 |
 | Futuras taxas de logística com margem | **Receita de serviço** | Se houver margem sobre o custo dos Correios, a margem é preço de serviço. | [PROPOSTA] |
 | Depósito do cliente (Pix/cartão) | **Não é receita — passivo "Recursos de clientes"** | Dinheiro do cliente, guardado por ordem dele; a empresa tem a obrigação de devolvê-lo ou usá-lo por ordem do cliente. | [CONFIRMADO] contador, 16/10; CPC 00 item 4.26 |
 | Valor da moeda pago pelo comprador ao vendedor | **Não é receita — transferência entre clientes** | O Real Olímpico é **agente** na venda: não é dono da moeda, não assume risco de estoque nem define o preço. Só a comissão é receita. | [LEI] CPC 47 itens 47, B34–B37; DL 1.598 art. 12, III |
 | Saque do cliente (valor líquido) | **Não é receita nem despesa — baixa do passivo** | Devolução ao cliente de dinheiro que já era dele. | [LEI] CPC 00 |
 | Saldo inicial / migração | **Não é receita — abertura do passivo** | Registro do saldo que a conta já tinha. | [PROPOSTA] |
-| Frete do envio pago pelo cliente (preço do contrato, sem margem) | **EM ABERTO** — hoje tratado como repasse | Duas leituras legais: (A) repasse em nome do cliente, fora da receita; (B) reembolso que integra o preço, dentro da receita (SC Cosit 144/2023). O contrato dos Correios é no CNPJ do Real Olímpico, o que pesa para (B). **Decisão do contador.** | ver `pesquisa/PESQUISA_CONTABIL_E_TRIBUTARIA.md` §2.5 |
+| Frete do envio pago pelo cliente (preço do contrato, sem margem) | **Não é receita — despesa do cliente** | O Real Olímpico recebe o dinheiro do cliente e paga aos Correios uma despesa que é dele. Fica fora do resultado inteiro: não é receita, não gera NFS-e, e a fatura dos Correios desses envios também não é despesa da empresa. | [CONFIRMADO] contador, 23/10/2026 (leitura A de `pesquisa/PESQUISA_CONTABIL_E_TRIBUTARIA.md` §2.5) |
 | Taxa do Mercado Pago sobre qualquer recebimento | **Despesa** (não reduz a receita) | Custo de receber pelo gateway. A receita continua sendo o valor cobrado do cliente. | [LEI] CPC 26 item 32 (proibido compensar); STF Tema 1024 |
 | Estorno/cancelamento de serviço já faturado | **Dedução da receita (serviço cancelado)** | Serviço que não se concretizou sai da base de tributos. | [LEI] DL 1.598 art. 12 §1º, I; Lei 9.718 art. 3º §2º, I |
 | Chargeback de depósito | **Não é receita** — reverte o passivo; o que faltar vira crédito a recuperar ou perda | O cliente desfez a entrada de dinheiro dele. | [PROPOSTA] |
@@ -71,7 +74,10 @@ com a diferença explicada linha a linha (ver R11).
    - A comissão, no casamento da negociação.
    - A custódia, **somente no pagamento** da fatura, com a data e a hora do pagamento ([DECIDIDO] Gabriel,
      23/10/2026; ver R5.3). **Fatura não paga não gera nota e não gera imposto, nunca.**
-   - A tarifa de saque, quando o saque é processado. O pedido da nota (DPS) sai **na mesma transação lógica** que grava o lançamento; o envio à Sefin roda
+   - A tarifa de saque, **no pedido do saque**, que é quando o dinheiro sai do saldo ("o dia da movimentação do
+     dinheiro", contador, 23/10/2026). Se a equipe recusar o saque, a tarifa volta ao saldo e a nota é
+     **cancelada** na Sefin (evento 101101, motivo "serviço não prestado"). [CONFIRMADO + código]
+   - A taxa de retirada física, quando a retirada passa a **paga**, com a hora do pagamento. [CONFIRMADO] O pedido da nota (DPS) sai **na mesma transação lógica** que grava o lançamento; o envio à Sefin roda
    logo em seguida, com fila e nova tentativa. [PROPOSTA]
 2. **Uma nota por fato gerador, por tomador, por serviço — automática, sempre.** O leiaute aceita **uma** data de
    competência e **um** serviço por nota, então: uma NFS-e por ciclo de custódia de cada lote; uma NFS-e para a
@@ -91,7 +97,8 @@ com a diferença explicada linha a linha (ver R11).
      automação, que serão faturadas em retroativo, ou uma nota individual que ficou rejeitada. O painel bloqueia a
      inclusão de operação que já tem nota. A data de competência dela, já que reúne vários dias, é pergunta ao
      contador.
-3. **Tomador identificado sempre:** CPF (ou CNPJ) e nome. Na **intermediação** é **obrigatório** também o endereço
+3. **Tomador identificado sempre, com endereço em todas as notas** (contador, 23/10/2026: "pode colocar endereço
+   do cliente em todas as NFS-e, mesmo não sendo obrigatório na da custódia"): CPF (ou CNPJ) e nome. Na **intermediação** é **obrigatório** também o endereço
    completo com CEP — a Sefin rejeita sem ele (regras E0187/E0234), porque o IBS/CBS da intermediação pertence ao
    município do cliente (cIndOp 100301). O CPF precisa existir na base da Receita (E0207). **Consequência no produto:
    o cadastro precisa de endereço completo e CPF válido antes de a pessoa negociar.** [LEI] Anexo I v1.01
@@ -113,13 +120,17 @@ com a diferença explicada linha a linha (ver R11).
 | Custódia mensal / 1º mês na compra | **11.04.01** | **001** | **1.0602.90.00** | `CUSTODIA MENSAL - MM/AAAA - N MOEDA(S)` | **5%** | **050101** | 000 / 000001 | [CONFIRMADO] NFS-e nº 1 |
 | Comissão do comprador | **10.05.01** | **003** | **1.0201.00.00** | `INTERMEDIACAO NA COMPRA DE MOEDA` | **3%** | **100301** | 000 / 000001 | [CONFIRMADO] NFS-e nº 2 |
 | Comissão do vendedor | **10.05.01** | **003** | **1.0201.00.00** | `INTERMEDIACAO NA VENDA DE MOEDA` | **3%** | **100301** | 000 / 000001 | [CONFIRMADO] NFS-e nº 3 |
-| Tarifa de saque | ? (15.15 cai no regime financeiro; alternativas 10.05, 11.04 ou 17.02) | ? | ? | — | ? | ? | ? | **Perguntar** |
-| Retirada / devolução da moeda | candidato 11.04.02 (carga, descarga, arrumação) | ? | ? | — | provável 5% | ? | ? | **Perguntar** |
-| Frete (se leitura B) | candidato 26.01 | ? | ? | — | ? | 070101 | ? | **Perguntar** |
+| Tarifa de saque | **11.04.01** | **001** | **1.0602.90.00** | `TARIFA DE SAQUE - REF SAQ-…` | **5%** | **050101** | 000 / 000001 | [CONFIRMADO] contador, 23/10/2026 |
+| Taxa de retirada da moeda | **11.04.01** | **001** | **1.0602.90.00** | `TAXA DE RETIRADA DE MOEDA DA CUSTODIA - MOEDA RO-… - REF RET-…` | **5%** | **050101** | 000 / 000001 | [CONFIRMADO] contador, 23/10/2026 |
+| Frete do envio | — | — | — | **sem NFS-e**: despesa do cliente, não é serviço da empresa | — | — | — | [CONFIRMADO] contador, 23/10/2026 |
 
 Campos fixos em toda nota [CONFIRMADO salvo indicação]:
 
-- Prestador: CNPJ 68071452000106, **não optante do Simples** (`opSimpNac` = 1), regime especial nenhum.
+- Prestador: CNPJ 68071452000106, **inscrição municipal 1.795.745/001-4** (campo `IM` = `17957450014`, conselho do
+  contador de 23/10/2026), **não optante do Simples** (`opSimpNac` = 1), regime especial nenhum. A Sefin só aceita a
+  IM se BH a tiver no cadastro nacional complementar (CNC); sem esse registro ela recusa com **E0120**, e o envio
+  repete a mesma DPS sem a IM — foi o que a produção restrita respondeu em 23/10/2026, e as notas do contador também
+  saíram sem IM. Recusa não gera nota nem gasta número.
 - Local da prestação e município de incidência do ISS: **Belo Horizonte, IBGE 3106200**. Atenção: no subitem 11.04 o
   ISS é do município **onde a moeda está guardada** (LC 116 art. 3º, XVII) — se o cofre sair de BH, muda. [LEI]
 - ISS **não retido** (tomadores são pessoas físicas).
@@ -131,16 +142,20 @@ Campos fixos em toda nota [CONFIRMADO salvo indicação]:
 - IBS/CBS 2026: a DPS informa CST, cClassTrib e cIndOp; **quem calcula os valores é a Sefin**. Base = valor −
   ISS − PIS − COFINS (na custódia de R$ 2,00: 2,00 − 0,10 − 0,01 − 0,06 = **1,83**); CBS 0,9%, IBS estadual 0,1%. O
   total da nota **não** soma IBS/CBS em 2026. [LEI] LC 214 art. 12 §2º, arts. 343 e 346
+- **Indicador de operação (`cIndOp`) = 100301 na intermediação e 050101 na custódia** (e na tarifa de saque e na
+  retirada, que usam o código da custódia). [CONFIRMADO] contador, 23/10/2026.
 - **`tpOper` (tipo de operação), só nas notas de intermediação = `5`** ("fornecimento e recebimento do pagamento
-  concomitantes"). [PESQUISA, 23/10/2026; o contador pode trocar]
+  concomitantes"). [PESQUISA, 23/10/2026; a resposta do contador à pergunta tratou do indicador de operação acima]
   - **Por que é obrigatório:** a regra E0903 do Anexo I exige o `tpOper` em todo serviço 10.05, mesmo que o campo
     tenha sido desenhado para imóveis e compras governamentais (LC 214 arts. 10 §2º e 254 IV).
   - **Por que 5:** a comissão é debitada no mesmo instante em que a negociação casa, então o serviço e o pagamento
     acontecem juntos. Os valores 2 e 3 exigiriam referenciar outra NFS-e (E0905). O 1 e o 4 descrevem pagamento
     antes ou depois do serviço, o que não acontece aqui.
   - **Na custódia o campo não vai:** a regra E0904 rejeita o `tpOper` fora dos subitens 25.05, 15.09, 17.12 e 10.05.
-- **`indFinal` (uso ou consumo pessoal, LC 214 art. 57) = `0` (não)** nas duas notas. [PESQUISA, 23/10/2026; o
-  contador pode trocar]
+- **`indFinal` = `0` (não)** em todas as notas. [CONFIRMADO] contador, 23/10/2026: o "sim" é o da nota sem dados
+  do cliente (o cupom de um estacionamento); aqui todas têm cliente identificado.
+- **Grupo IBS/CBS sempre informado** — no Emissor Web é a pergunta do início do preenchimento, que o contador
+  manda responder "SIM" (23/10/2026). A DPS automática sempre leva o grupo `IBSCBS`. [CONFIRMADO]
   - **O que o campo marca:** o art. 57 lista bens e serviços de uso pessoal (joias, metais preciosos, obras de arte,
     antiguidades, recreativos…) para impedir que um **contribuinte** adquirente tome crédito de IBS/CBS sobre eles.
   - **Por que 0:** os tomadores são pessoas físicas, que não tomam crédito, e o serviço não é fornecido de graça nem
@@ -179,7 +194,8 @@ Campos fixos em toda nota [CONFIRMADO salvo indicação]:
    banco grava em UTC; relatório e nota mostram Brasília.
 3. **Competência da NFS-e (`dCompet`) = data do fato gerador.** Pode ser passada (o contador emitiu em 22/10 com
    competência 07/10), nunca futura. [LEI] Anexo I E0015
-   **Custódia: a nota sai no PAGAMENTO** ([DECIDIDO] Gabriel, 23/10/2026). São duas datas diferentes:
+   **Custódia: a nota sai no PAGAMENTO** ([DECIDIDO] Gabriel, 23/10/2026; [CONFIRMADO] contador, 23/10/2026: "tem
+   que ser o dia da movimentação do dinheiro, ou seja, o dia do pagamento"). São duas datas diferentes:
    - **Data da nota (emissão e competência) = data e hora do pagamento** da fatura. É a partir do pagamento que a nota
      conta. Fatura não paga não gera nota nem imposto, nunca.
    - **Período de guarda que a nota cobre = o ciclo da moeda**, que começa no **aceite**: a data e a hora exatas em
@@ -406,11 +422,12 @@ razonetes: `pesquisa/PESQUISA_CONTABIL_E_TRIBUTARIA.md` §6.3. Taxas do Mercado 
 | Custódia do 1º mês na compra | Recursos de clientes – comprador 2,00 | Receita de custódia 2,00 | 1 nota 11.04 |
 | Custódia paga com saldo | Recursos de clientes – cliente 2,00 | Receita de custódia 2,00 | 1 nota 11.04 |
 | Custódia paga no cartão (taxa ~4,98%) | MP em liberação 1,90 · Tarifas de meios de pagamento 0,10 | Receita de custódia 2,00 | 1 nota 11.04 |
-| Pedido de saque (R$ 100 + R$ 5) | Recursos de clientes – cliente 105,00 | Saques a pagar 100,00 · Receita de tarifa de saque 5,00 | 1 nota (subitem a definir) |
+| Pedido de saque (R$ 100 + R$ 5) | Recursos de clientes – cliente 105,00 | Saques a pagar 100,00 · Receita de tarifa de saque 5,00 | 1 nota 11.04.01, no pedido |
 | Pagamento do saque | Saques a pagar 100,00 | MP recursos de clientes 100,00 | não |
-| Saque recusado | Saques a pagar 100,00 · Serviço cancelado 5,00 | Recursos de clientes – cliente 105,00 | cancelar a nota |
-| Frete (leitura A, repasse) | Recursos de clientes – cliente | Fretes a repassar aos Correios | não |
-| Frete (leitura B, receita) | Recursos de clientes – cliente | Receita de frete (+ custo Correios em despesa) | sim |
+| Saque recusado | Saques a pagar 100,00 · Serviço cancelado 5,00 | Recursos de clientes – cliente 105,00 | nota cancelada sozinha (evento 101101) |
+| Frete do envio (despesa do cliente — contador, 23/10/2026) | Recursos de clientes – cliente | Fretes de clientes a pagar aos Correios (e, no pagamento da fatura: D Fretes a pagar / C caixa) | não |
+| Tarifa de saque | (já no pedido de saque, acima) | Receita de armazenamento 5,00 | 1 nota 11.04.01 |
+| Taxa de retirada paga | Recursos de clientes – cliente (ou caixa, se Pix/cartão) | Receita de armazenamento | 1 nota 11.04.01 |
 | Estorno de cobrança indevida | Receita (ou Serviço cancelado, se já houver nota) | Recursos de clientes – cliente | cancelar a nota |
 | Fechamento do mês | ISS, PIS, COFINS (deduções) | ISS, PIS, COFINS a recolher | — |
 | Segregação após cada receita cobrada do saldo | MP recursos próprios | MP recursos de clientes | — |

@@ -27,13 +27,13 @@
  *    reemitida a cada recibo (e a plataforma guarda uma por usuário), conta-se
  *    a ÚLTIMA registrada por usuário dentro do período — a vigente —, e não a
  *    soma de todas as reemissões, que dobraria a receita.
- *  - Frete repassado ao cliente (22/10/2026): lançamentos `frete` do período,
- *    menos os devolvidos por `estorno` com o mesmo protocolo. NÃO é receita: o
- *    cliente paga o preço do contrato dos Correios sem margem, e a Áurea só
- *    repassa. Entra como RECUPERAÇÃO dentro das despesas, abatendo a fatura dos
- *    Correios que o contador lança em 4.1.06 — repasse fecha em zero. Fica fora
- *    da receita bruta de propósito: tratamento tributário de reembolso de frete
- *    é decisão do contador, e o código não decide imposto (ver o aviso acima).
+ *  - Frete do envio pago pelo cliente (22/10/2026): lançamentos `frete` do
+ *    período, menos os devolvidos por `estorno` com o mesmo protocolo. É DESPESA
+ *    DO CLIENTE (contador, 23/10/2026): a Áurea recebe o dinheiro e paga aos
+ *    Correios uma despesa que é do cliente. Fica FORA DO RESULTADO inteiro — não
+ *    é receita, não abate despesa, e a fatura dos Correios desses envios também
+ *    não entra em 4.1.06. O total aparece em `totais.freteRepassado` e numa
+ *    observação, para a conciliação; até 23/10 ele abatia a despesa de frete.
  *  - Outras receitas e TODAS as despesas: lançamentos manuais, por conta do
  *    plano de contas. Aluguel, pessoal, seguro do acervo — nada disso passa
  *    pela plataforma, então entra pela tela de relatórios.
@@ -228,7 +228,7 @@ export interface TotaisDre {
   receitaCustodia: Cents
   receitaTaxaSaque: Cents
   receitaTaxaRetirada: Cents
-  /** Frete pago pelo cliente e repassado aos Correios — recuperação de despesa, fora da receita bruta. */
+  /** Frete pago pelo cliente e repassado aos Correios — despesa do cliente, fora do resultado (contador, 23/10/2026). */
   freteRepassado: Cents
   outrasReceitas: Cents
   receitaBruta: Cents
@@ -371,9 +371,10 @@ export function montarDre({
   const despesaGateway = recebimentosNoPer.reduce((s, r) => s + r.tarifaGateway, 0)
 
   const despesasManuais = somaNatureza('despesa')
-  // O frete repassado abate a despesa de frete: o custo dos Correios (4.1.06, manual) e o que o
-  // cliente pagou por ele se anulam, e o resultado não ganha nem perde com um repasse.
-  const despesasOperacionais = despesasManuais + despesaGateway - freteRepassado
+  // O frete do cliente NÃO entra aqui: é despesa do cliente, paga com o dinheiro dele (contador,
+  // 23/10/2026). Até essa data ele abatia 4.1.06 e o repasse fechava em zero; agora fica de fora dos
+  // dois lados.
+  const despesasOperacionais = despesasManuais + despesaGateway
 
   const receitaBruta = receitaComissoes + receitaCustodia + receitaTaxaSaque + receitaTaxaRetirada + outrasReceitas
 
@@ -460,10 +461,6 @@ export function montarDre({
     } else {
       const v = porConta.get(c.codigo) ?? 0
       if (v !== 0) linha(c.codigo, c.nome, -v, 2, 'lançamento manual')
-      if (c.codigo === '4.1.06' && freteRepassado !== 0) {
-        // Linha própria logo abaixo do frete: positiva, porque recupera a despesa de cima.
-        linha('4.1.06a', 'Frete repassado ao cliente', freteRepassado, 2, `${fretes.length} envio(s) · repasse do contrato dos Correios, sem margem`)
-      }
     }
   }
   linha('4.9', '= RESULTADO OPERACIONAL', resultadoOperacional, 0)
@@ -510,7 +507,7 @@ export function montarDre({
 
   if (freteRepassado !== 0) {
     pendencias.push(
-      'Frete repassado ao cliente: lance a fatura dos Correios em 4.1.06 para o repasse fechar em zero; o tratamento tributário do reembolso de frete é do contador (hoje fora da receita bruta)',
+      `Frete de clientes no período: ${fretes.length} envio(s), despesa do cliente repassada aos Correios — fora do resultado (contador, 23/10/2026). A fatura dos Correios desses envios também fica fora: não lance em 4.1.06`,
     )
   }
 

@@ -9,6 +9,7 @@ Só servidor: carrega o certificado e-CNPJ A1 da empresa. Nada daqui pode ser im
 | `sefin.ts` | Cliente HTTPS com TLS mútuo: `POST /nfse`, `GET /dps/{id}`, `GET /nfse/{chave}`. `NFSE_AMBIENTE=producao` emite de verdade; sem ela, produção restrita (notas sem validade jurídica) |
 | `municipio.ts` | CEP → código IBGE do município (ViaCEP), que a nota exige do tomador |
 | `emissao.ts` | `processarNotasPendentes`: reivindica a fila, barra cadastro incompleto, reserva número, monta, assina, envia, grava. Recupera envio interrompido sem emitir duas vezes; troca de formato em recusa de esquema (E1235) e de número em E0014 |
+| (cancelamento) | `processarNotasPendentes` também registra na Sefin o cancelamento das notas `cancelando` (`enviarEvento`, evento 101101) |
 | `agendar.ts` | Dispara o envio logo depois da operação, com `after()` |
 
 ## Fluxo

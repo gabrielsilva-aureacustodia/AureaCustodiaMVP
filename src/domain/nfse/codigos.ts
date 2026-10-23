@@ -11,8 +11,12 @@
  * A fonte de cada linha está em docs/fiscal-contabil/REGRAS_FISCAIS_E_CONTABEIS.md (R3).
  */
 
-/** O que cada nota descreve. Um lado da negociação é um tomador diferente, por isso dois tipos. */
-export type ServicoNfse = 'custodia' | 'intermediacao_compra' | 'intermediacao_venda'
+/**
+ * O que cada nota descreve. Um lado da negociação é um tomador diferente, por isso dois tipos. A tarifa
+ * de saque e a taxa de retirada da moeda são movimentações do armazenamento: mesmo código da custódia,
+ * 11.04.01 (contador, 23/10/2026).
+ */
+export type ServicoNfse = 'custodia' | 'intermediacao_compra' | 'intermediacao_venda' | 'tarifa_saque' | 'taxa_retirada'
 
 export interface CodigosDoServico {
   /** Código de tributação nacional (LC 116 desdobrada), 6 dígitos sem pontos. */
@@ -29,7 +33,8 @@ export interface CodigosDoServico {
   /**
    * Tipo de operação. Obrigatório no 10.05 (E0903) e proibido fora dele (E0904). `5` =
    * fornecimento e pagamento concomitantes: a comissão é debitada no instante do casamento.
-   * Escolha por pesquisa (23/10/2026), a confirmar com o contador.
+   * Escolha por pesquisa (23/10/2026). A resposta do contador à pergunta confirmou o indicador de
+   * operação (100301 na intermediação, 050101 na custódia), que é o campo `cIndOp`.
    */
   tpOper: string | null
   /** Alíquota de ISS de BH em pontos-base — só para os "tributos aproximados" da Lei 12.741. */
@@ -38,18 +43,24 @@ export interface CodigosDoServico {
   descricaoBase: string
 }
 
+/** Armazenamento, depósito e guarda (11.04.01 / 001), a base da custódia, da tarifa de saque e da retirada. */
+const ARMAZENAMENTO: Omit<CodigosDoServico, 'descricaoBase'> = {
+  cTribNac: '110401',
+  cTribMun: '001',
+  cNBS: '106029000',
+  cIndOp: '050101',
+  cst: '000',
+  cClassTrib: '000001',
+  tpOper: null,
+  issBp: 500,
+}
+
 export const CODIGOS_POR_SERVICO: Readonly<Record<ServicoNfse, CodigosDoServico>> = {
-  custodia: {
-    cTribNac: '110401',
-    cTribMun: '001',
-    cNBS: '106029000',
-    cIndOp: '050101',
-    cst: '000',
-    cClassTrib: '000001',
-    tpOper: null,
-    issBp: 500,
-    descricaoBase: 'CUSTODIA MENSAL',
-  },
+  custodia: { ...ARMAZENAMENTO, descricaoBase: 'CUSTODIA MENSAL' },
+  // Contador, 23/10/2026: "se a tarifa refere-se aos serviços do armazenamento, onde haverá o saque, o
+  // melhor código é o 11.04" e "a taxa de retirada da moeda é uma movimentação do armazenamento".
+  tarifa_saque: { ...ARMAZENAMENTO, descricaoBase: 'TARIFA DE SAQUE' },
+  taxa_retirada: { ...ARMAZENAMENTO, descricaoBase: 'TAXA DE RETIRADA DE MOEDA DA CUSTODIA' },
   intermediacao_compra: {
     cTribNac: '100501',
     cTribMun: '003',
@@ -79,6 +90,8 @@ export const ROTULO_DO_SERVICO: Readonly<Record<ServicoNfse, string>> = {
   custodia: 'Custódia',
   intermediacao_compra: 'Comissão de compra',
   intermediacao_venda: 'Comissão de venda',
+  tarifa_saque: 'Tarifa de saque',
+  taxa_retirada: 'Taxa de retirada',
 }
 
 /** Os serviços em que a Sefin exige o endereço do tomador (cIndOp 100301: E0187/E0234). */
@@ -90,6 +103,12 @@ export function exigeEnderecoDoTomador(servico: ServicoNfse): boolean {
 export const EMISSOR = {
   cnpj: '68071452000106',
   razaoSocial: 'AUREA CUSTODIA LTDA',
+  /**
+   * Inscrição municipal em BH, 1.795.745/001-4, só dígitos (o campo `IM` aceita até 15 caracteres).
+   * O contador aconselhou informar (23/10/2026). A Sefin só aceita a IM se BH a tiver no cadastro
+   * nacional complementar (CNC); se não tiver, recusa com E0120 — e o envio repete sem ela.
+   */
+  inscricaoMunicipal: '17957450014',
   /** Belo Horizonte — município emissor, da prestação e da incidência do ISS. */
   codigoMunicipio: '3106200',
   /** 1 = não optante do Simples Nacional. */
@@ -114,8 +133,7 @@ export const TRIBUTOS_FEDERAIS = {
 } as const
 
 /**
- * Uso ou consumo pessoal (LC 214 art. 57) — `0`, não. O tomador é pessoa física, que não toma
- * crédito, e o serviço não é cedido de graça. Escolha por pesquisa (23/10/2026); se o contador
- * enquadrar a custódia na alínea "g" (incluída pela LC 227/2026), vira `1` aqui.
+ * `indFinal` — `0`, não. Confirmado pelo contador (23/10/2026): o caso "sim" é o da nota sem dados do
+ * cliente, como o cupom de um estacionamento; aqui toda nota tem o cliente identificado.
  */
 export const INDICADOR_USO_PESSOAL = '0'

@@ -16,7 +16,7 @@ import type { ServicoNfse } from '@/domain/nfse/codigos'
 
 import { nomeDoSchema, num, numOuNulo, type Consulta } from '../sql'
 
-export type StatusNfse = 'pendente' | 'processando' | 'autorizada' | 'rejeitada' | 'erro' | 'cancelada'
+export type StatusNfse = 'pendente' | 'processando' | 'autorizada' | 'rejeitada' | 'erro' | 'cancelando' | 'cancelada'
 export type AmbienteGravado = 'producao' | 'restrita'
 
 export interface ErroNfse {
@@ -48,6 +48,8 @@ export interface EmissaoNfse {
   criadoEm: number
   atualizadoEm: number
   autorizadaEm: number | null
+  motivoCancelamento: string | null
+  canceladaEm: number | null
 }
 
 /** Rejeitada volta sozinha para a fila na rodada diária até este número de tentativas. */
@@ -56,7 +58,8 @@ export const TENTATIVAS_AUTOMATICAS = 5
 const PROCESSANDO_ABANDONADA_MS = 10 * 60_000
 
 const COLUNAS = `id, chave, servico, ref_fato, tomador_email, valor, ocorrido_em, competencia, descricao, quantidade_moedas,
-  status, ambiente, serie, n_dps, id_dps, chave_acesso, numero_nfse, erros, tentativas, criado_em, atualizado_em, autorizada_em`
+  status, ambiente, serie, n_dps, id_dps, chave_acesso, numero_nfse, erros, tentativas, criado_em, atualizado_em, autorizada_em,
+  motivo_cancelamento, cancelada_em`
 
 function errosDe(v: unknown): ErroNfse[] | null {
   if (v === null || v === undefined) return null
@@ -88,6 +91,8 @@ function paraEmissao(r: Record<string, unknown>): EmissaoNfse {
     criadoEm: num(r.criado_em),
     atualizadoEm: num(r.atualizado_em),
     autorizadaEm: numOuNulo(r.autorizada_em),
+    motivoCancelamento: (r.motivo_cancelamento as string | null) ?? null,
+    canceladaEm: numOuNulo(r.cancelada_em),
   }
 }
 
@@ -191,7 +196,8 @@ export async function gravarAutorizada(
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.nfse_emissoes
-        SET status = 'autorizada', chave_acesso = $2, numero_nfse = $3, xml_nfse = $4, erros = NULL,
+        SET status = CASE WHEN status = 'cancelando' THEN 'cancelando' ELSE 'autorizada' END,
+            chave_acesso = $2, numero_nfse = $3, xml_nfse = $4, erros = NULL,
             tentativas = tentativas + 1, autorizada_em = $5, atualizado_em = $5
       WHERE id = $1`,
     [id, dados.chaveAcesso, dados.numeroNfse, dados.xmlNfse, dados.agora],
@@ -206,7 +212,9 @@ export async function gravarFalha(
   const S = nomeDoSchema()
   await tx.query(
     `UPDATE ${S}.nfse_emissoes
-        SET status = $2, erros = $3::jsonb, tentativas = tentativas + 1, atualizado_em = $4
+        SET status = CASE WHEN status = 'cancelando' THEN 'cancelada' ELSE $2::text END,
+            cancelada_em = CASE WHEN status = 'cancelando' THEN $4::bigint ELSE cancelada_em END,
+            erros = $3::jsonb, tentativas = tentativas + 1, atualizado_em = $4::bigint
       WHERE id = $1`,
     [id, dados.status, JSON.stringify(dados.erros), dados.agora],
   )
@@ -254,7 +262,7 @@ export async function listarEmissoes(tx: Consulta, filtro: FiltroEmissoes = {}):
 export async function contarPorStatus(tx: Consulta): Promise<Record<StatusNfse, number>> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<{ status: string; n: unknown }>(`SELECT status, count(*) AS n FROM ${S}.nfse_emissoes GROUP BY status`)
-  const base: Record<StatusNfse, number> = { pendente: 0, processando: 0, autorizada: 0, rejeitada: 0, erro: 0, cancelada: 0 }
+  const base: Record<StatusNfse, number> = { pendente: 0, processando: 0, autorizada: 0, rejeitada: 0, erro: 0, cancelando: 0, cancelada: 0 }
   for (const r of rows) base[r.status as StatusNfse] = num(r.n)
   return base
 }
@@ -267,4 +275,72 @@ export async function xmlDaNfse(tx: Consulta, id: number): Promise<{ chaveAcesso
     [id],
   )
   return rows[0] ? { chaveAcesso: rows[0].chave_acesso, xml: rows[0].xml_nfse } : null
+}
+
+/* ---------- cancelamento (migration 045) ---------- */
+
+export interface PedidoDeCancelamento {
+  chave: string
+  motivo: '1' | '2' | '9'
+  justificativa: string
+}
+
+/**
+ * Pede o cancelamento das notas destes fatos. A que ainda não saiu (pendente, rejeitada, erro) é
+ * cancelada aqui mesmo — não há o que pedir à Sefin. A autorizada, ou a que está no meio do envio,
+ * vira `cancelando` e o envio registra o evento 101101 na Sefin. Devolve quantas esperam o evento.
+ */
+export async function marcarParaCancelar(tx: Consulta, pedidos: readonly PedidoDeCancelamento[], agora: number): Promise<number> {
+  const S = nomeDoSchema()
+  let aEnviar = 0
+  for (const p of pedidos) {
+    const { rows } = await tx.query<{ status: string }>(
+      `UPDATE ${S}.nfse_emissoes
+          SET status = CASE WHEN status IN ('autorizada', 'processando') THEN 'cancelando' ELSE 'cancelada' END,
+              cancelada_em = CASE WHEN status IN ('autorizada', 'processando') THEN NULL ELSE $3::bigint END,
+              motivo_cancelamento = $2, atualizado_em = $3::bigint
+        WHERE chave = $1 AND status NOT IN ('cancelando', 'cancelada')
+        RETURNING status`,
+      [p.chave, `${p.motivo}|${p.justificativa}`, agora],
+    )
+    if (rows[0]?.status === 'cancelando') aEnviar++
+  }
+  return aEnviar
+}
+
+/** Notas autorizadas esperando o evento de cancelamento. Marca o instante para dois envios não pegarem a mesma. */
+export async function reivindicarCancelamentos(tx: Consulta, limite: number, agora: number): Promise<EmissaoNfse[]> {
+  const S = nomeDoSchema()
+  const { rows } = await tx.query(
+    `SELECT ${COLUNAS} FROM ${S}.nfse_emissoes
+      WHERE status = 'cancelando' AND chave_acesso IS NOT NULL AND atualizado_em < $2
+      ORDER BY atualizado_em
+      LIMIT $1
+      FOR UPDATE SKIP LOCKED`,
+    [limite, agora - 60_000],
+  )
+  const emissoes = rows.map(paraEmissao)
+  if (emissoes.length) {
+    await tx.query(`UPDATE ${S}.nfse_emissoes SET atualizado_em = $2 WHERE id = ANY($1::bigint[])`, [emissoes.map((e) => e.id), agora])
+  }
+  return emissoes
+}
+
+export async function gravarCancelada(tx: Consulta, id: number, dados: { xmlCancelamento: string; agora: number }): Promise<void> {
+  const S = nomeDoSchema()
+  await tx.query(
+    `UPDATE ${S}.nfse_emissoes
+        SET status = 'cancelada', xml_cancelamento = $2, cancelada_em = $3, erros = NULL, atualizado_em = $3
+      WHERE id = $1`,
+    [id, dados.xmlCancelamento, dados.agora],
+  )
+}
+
+/** O evento foi recusado: a nota continua `cancelando`, com o motivo à vista no painel. */
+export async function gravarFalhaDoCancelamento(tx: Consulta, id: number, dados: { erros: ErroNfse[]; agora: number }): Promise<void> {
+  const S = nomeDoSchema()
+  await tx.query(
+    `UPDATE ${S}.nfse_emissoes SET erros = $2::jsonb, tentativas = tentativas + 1, atualizado_em = $3 WHERE id = $1`,
+    [id, JSON.stringify(dados.erros), dados.agora],
+  )
 }

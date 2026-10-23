@@ -152,6 +152,31 @@ export async function enviarDps(cert: CertificadoA1, ambiente: AmbienteNfse, dps
   }
 }
 
+/**
+ * Registra um evento (cancelamento) assinado: `POST /nfse/{chave}/eventos`. Sucesso devolve o XML do
+ * evento registrado; recusa de regra volta como `{ ok: false }`; rede e 5xx lançam.
+ */
+export async function enviarEvento(
+  cert: CertificadoA1,
+  ambiente: AmbienteNfse,
+  chaveAcesso: string,
+  pedidoAssinado: string,
+): Promise<{ ok: true; xmlEvento: string } | { ok: false; status: number; erros: MensagemSefin[] }> {
+  const documento = pedidoAssinado.startsWith('<?xml') ? pedidoAssinado : `${DECLARACAO_XML}${pedidoAssinado}`
+  const r = await chamar(cert, ambiente, 'POST', `/nfse/${chaveAcesso}/eventos`, { pedidoRegistroEventoXmlGZipB64: gzipBase64(documento) })
+  if (r.status >= 500) throw new FalhaTransitoriaSefin(`Sefin respondeu ${r.status} no evento: ${r.corpo.slice(0, 300)}`)
+  const corpo = json(r.corpo)
+  if (r.status === 200 || r.status === 201) {
+    return { ok: true, xmlEvento: typeof corpo.eventoXmlGZipB64 === 'string' ? deGzipBase64(corpo.eventoXmlGZipB64) : '' }
+  }
+  const erros = mensagens(corpo.erros ?? corpo.erro)
+  return {
+    ok: false,
+    status: r.status,
+    erros: erros.length ? erros : [{ codigo: `HTTP ${r.status}`, descricao: r.corpo.slice(0, 500) || 'Resposta sem corpo.' }],
+  }
+}
+
 /** A chave da nota que esta DPS já gerou, ou `null` se não gerou nenhuma. */
 export async function chaveDaDpsJaEmitida(cert: CertificadoA1, ambiente: AmbienteNfse, idDps: string): Promise<string | null> {
   const r = await chamar(cert, ambiente, 'GET', `/dps/${idDps}`)

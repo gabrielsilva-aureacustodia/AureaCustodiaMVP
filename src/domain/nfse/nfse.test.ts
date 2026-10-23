@@ -7,10 +7,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { estadoVazio } from '@/domain/estado-vazio'
-import type { AppState, FaturaCustodia, Trade } from '@/domain/types'
+import type { AppState, FaturaCustodia, Retirada, Saque, Trade } from '@/domain/types'
 
 import { idDaDps, leiauteNaData, montarDps, pisCofins, problemasDoPedido, textoFiscal, type TomadorNfse } from './dps'
-import { competenciaDe, pedidosDeNfse, type PedidoNfse } from './pedidos'
+import { montarCancelamento } from './eventos'
+import { cancelamentosDeNfse, competenciaDe, pedidosDeNfse, type PedidoNfse } from './pedidos'
 
 /** Instante em Brasília (UTC-3). */
 const brasilia = (ano: number, mes: number, dia: number, hora = 0, min = 0): number => Date.UTC(ano, mes - 1, dia, hora + 3, min)
@@ -252,5 +253,79 @@ describe('regras auxiliares', () => {
 
   it('idDaDps completa série e número com zeros', () => {
     expect(idDaDps(1, 123)).toBe('DPS310620026807145200010600001000000000000123')
+  })
+})
+
+describe('respostas do contador de 23/10/2026', () => {
+  const saque = (over: Partial<Saque> = {}): Saque => ({
+    id: 'SAQ-0001',
+    userEmail: 'cliente@exemplo.com.br',
+    valorTotal: 10_500,
+    taxa: 500,
+    valorLiquido: 10_000,
+    dadosBancarios: {} as Saque['dadosBancarios'],
+    status: 'solicitado',
+    criadoEm: brasilia(2026, 10, 23, 11, 0),
+    previsaoPagamentoEm: brasilia(2026, 10, 26),
+    atualizadoEm: brasilia(2026, 10, 23, 11, 0),
+    ...over,
+  })
+
+  it('1 — tarifa de saque: nota no PEDIDO do saque, código da custódia (11.04.01)', () => {
+    const depois = estadoVazio()
+    depois.saques = [saque()]
+    const [p] = pedidosDeNfse(estadoVazio(), depois, Date.now())
+    expect(p).toMatchObject({ servico: 'tarifa_saque', valorCents: 500, refFato: 'SAQ-0001', competencia: '2026-10-23' })
+    expect(p.descricao).toBe('TARIFA DE SAQUE - REF SAQ-0001')
+    const { xml } = montarDps({ pedido: p, tomador: ROGERIO, tpAmb: 2, serie: 1, numero: 1, emitidoEm: Date.now(), verAplic: 'x' })
+    expect(xml).toContain('<cTribNac>110401</cTribNac><cTribMun>001</cTribMun>')
+    expect(xml).toContain('<cIndOp>050101</cIndOp>')
+    expect(xml).not.toContain('tpOper')
+  })
+
+  it('saque recusado cancela a nota da tarifa (serviço não prestado); saque pago não', () => {
+    const antes = estadoVazio()
+    antes.saques = [saque(), saque({ id: 'SAQ-0002' })]
+    const depois = estadoVazio()
+    depois.saques = [saque({ status: 'falhou' }), saque({ id: 'SAQ-0002', status: 'pago' })]
+    expect(pedidosDeNfse(antes, depois, Date.now())).toEqual([])
+    expect(cancelamentosDeNfse(antes, depois)).toEqual([
+      { chave: 'tarifa_saque:SAQ-0001', motivo: '2', justificativa: 'Saque SAQ-0001 recusado: tarifa devolvida ao saldo do cliente, servico nao prestado' },
+    ])
+  })
+
+  it('2 — taxa de retirada: nota quando a retirada passa a paga, código 11.04.01', () => {
+    const pagaEm = brasilia(2026, 10, 24, 9, 0)
+    const retirada = { id: 'RET-000001', coinId: 'RO-000007', userEmail: 'c@e.com', status: 'solicitada', valorTaxaCents: 5_000 } as unknown as Retirada
+    const antes = estadoVazio()
+    antes.retiradas = [retirada]
+    const depois = estadoVazio()
+    depois.retiradas = [{ ...retirada, status: 'paga', pagoEm: pagaEm }]
+    const [p] = pedidosDeNfse(antes, depois, Date.now())
+    expect(p).toMatchObject({ servico: 'taxa_retirada', valorCents: 5_000, ocorridoEm: pagaEm, competencia: '2026-10-24' })
+    expect(p.descricao).toBe('TAXA DE RETIRADA DE MOEDA DA CUSTODIA - MOEDA RO-000007 - 1 MOEDA - REF RET-000001')
+    // Seguir para separação não pede outra nota.
+    const separacao = estadoVazio()
+    separacao.retiradas = [{ ...retirada, status: 'separacao', pagoEm: pagaEm }]
+    expect(pedidosDeNfse(depois, separacao, Date.now())).toEqual([])
+  })
+
+  it('8 — inscrição municipal 1.795.745/001-4 no prestador; sem ela só quando a Sefin recusa (E0120)', () => {
+    const p = { chave: 'x', servico: 'custodia' as const, refFato: 'x', tomadorEmail: 'x', valorCents: 200, ocorridoEm: 0, competencia: '2026-10-23', descricao: 'X', quantidadeMoedas: 1 }
+    const base = { pedido: p, tomador: ROGERIO, tpAmb: 2 as const, serie: 1, numero: 1, emitidoEm: Date.now(), verAplic: 'x' }
+    expect(montarDps(base).xml).toContain('<prest><CNPJ>68071452000106</CNPJ><IM>17957450014</IM><regTrib>')
+    expect(montarDps({ ...base, comInscricaoMunicipal: false }).xml).toContain('<prest><CNPJ>68071452000106</CNPJ><regTrib>')
+  })
+
+  it('evento de cancelamento: Id de 59 posições, motivo e justificativa no leiaute do Anexo II', () => {
+    const chave = '31062002268071452000106000000000000126107516971946'
+    const { id, xml } = montarCancelamento({ chaveAcesso: chave, tpAmb: 2, motivo: '2', justificativa: 'Saque recusado', emitidoEm: brasilia(2026, 10, 23, 10), verAplic: 'RealOlimpico-1.0' })
+    expect(id).toBe(`PRE${chave}101101`)
+    expect(id).toHaveLength(59)
+    expect(xml).toBe(
+      `<pedRegEvento xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.01"><infPedReg Id="${id}"><tpAmb>2</tpAmb><verAplic>RealOlimpico-1.0</verAplic>` +
+        `<dhEvento>2026-10-23T10:00:00-03:00</dhEvento><CNPJAutor>68071452000106</CNPJAutor><chNFSe>${chave}</chNFSe>` +
+        `<e101101><xDesc>Cancelamento de NFS-e</xDesc><cMotivo>2</cMotivo><xMotivo>SAQUE RECUSADO - CANCELAMENTO</xMotivo></e101101></infPedReg></pedRegEvento>`,
+    )
   })
 })

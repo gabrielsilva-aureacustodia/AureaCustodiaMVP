@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * A fila das NFS-e (23/10/2026): toda comissão e toda custódia paga, com a nota que gerou ou o motivo
- * de não ter gerado.
+ * A fila das NFS-e (23/10/2026): toda comissão, custódia paga, tarifa de saque e taxa de retirada, com a
+ * nota que gerou ou o motivo de não ter gerado — e as canceladas (saque recusado), com o motivo.
  *
  * O QUE CADA BOTÃO FAZ
  *  - "Enviar fila agora": manda à Sefin o que está pendente, sem esperar o cron diário.
@@ -33,6 +33,7 @@ const ROTULO_STATUS: Record<StatusNfse, string> = {
   autorizada: 'Autorizada',
   rejeitada: 'Recusada',
   erro: 'Erro de envio',
+  cancelando: 'Cancelando',
   cancelada: 'Cancelada',
 }
 
@@ -57,6 +58,8 @@ function situacao(l: LinhaFiscal): ReactNode {
   return (
     <>
       <b>{ROTULO_STATUS[e.status]}</b>
+      {e.numeroNfse && (e.status === 'cancelada' || e.status === 'cancelando') ? <span> · NFS-e nº {e.numeroNfse}</span> : null}
+      {e.motivoCancelamento ? <div className="adm-fraco">{e.motivoCancelamento.split('|').slice(1).join('|')}</div> : null}
       {e.erros?.length ? (
         <ul className="adm-fraco" style={{ margin: '4px 0 0', paddingLeft: 16 }}>
           {e.erros.map((x, i) => (
@@ -137,7 +140,7 @@ export function NotasFiscais({
 
       <div className="panel">
         <div className="adm-acoes" style={{ flexWrap: 'wrap' }}>
-          {([null, 'pendente', 'autorizada', 'rejeitada', 'erro'] as const).map((s) => (
+          {([null, 'pendente', 'autorizada', 'rejeitada', 'erro', 'cancelada'] as const).map((s) => (
             <Link key={s ?? 'todas'} href={filtro(s)} className={`btn adm-btn-compacto ${status === s ? 'btn-gold' : ''}`}>
               {s ? ROTULO_STATUS[s] : 'Todas'}
             </Link>

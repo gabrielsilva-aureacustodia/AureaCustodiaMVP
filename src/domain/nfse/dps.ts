@@ -93,6 +93,11 @@ export interface ParametrosDps {
   leiaute?: Leiaute
   /** Sobrepõe posições do leiaute (transição da NT 009 na produção restrita). */
   formato?: Partial<FormatoDps>
+  /**
+   * Informar a inscrição municipal do prestador (padrão: sim, conselho do contador). `false` só quando a
+   * Sefin recusou com E0120 — BH sem a IM no cadastro nacional complementar.
+   */
+  comInscricaoMunicipal?: boolean
 }
 
 /* ---------- formatação ---------- */
@@ -255,7 +260,9 @@ export function montarDps(p: ParametrosDps): { id: string; xml: string } {
 
   const prest = tag(
     'prest',
-    folha('CNPJ', EMISSOR.cnpj) + tag('regTrib', folha('opSimpNac', EMISSOR.opSimpNac) + folha('regEspTrib', EMISSOR.regEspTrib)),
+    folha('CNPJ', EMISSOR.cnpj) +
+      (p.comInscricaoMunicipal === false ? '' : folha('IM', EMISSOR.inscricaoMunicipal)) +
+      tag('regTrib', folha('opSimpNac', EMISSOR.opSimpNac) + folha('regEspTrib', EMISSOR.regEspTrib)),
   )
   const descricao = folha('xDescServ', textoFiscal(pedido.descricao, 1000))
   const serv = tag(

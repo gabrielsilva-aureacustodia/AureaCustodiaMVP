@@ -26,6 +26,7 @@ import 'server-only'
  * depois. Recusa de esquema (E1235) não gera nota nem consome número: o envio tenta o formato seguinte.
  */
 
+import { montarCancelamento, type MotivoCancelamento } from '@/domain/nfse/eventos'
 import { FORMATO_DO_LEIAUTE, leiauteNaData, montarDps, problemasDoPedido, type FormatoDps, type TomadorNfse } from '@/domain/nfse/dps'
 import type { AppState, UserEmail } from '@/domain/types'
 
@@ -33,9 +34,12 @@ import { bancoConfigurado, executarNoBanco } from '../db/client'
 import type { Executor } from '../db/sql'
 import {
   gravarAutorizada,
+  gravarCancelada,
   gravarDpsPreparada,
   gravarFalha,
+  gravarFalhaDoCancelamento,
   pedidoDaEmissao,
+  reivindicarCancelamentos,
   reivindicarParaEnvio,
   reservarNumeroDps,
   type EmissaoNfse,
@@ -50,6 +54,7 @@ import {
   chaveDaDpsJaEmitida,
   consultarNfse,
   enviarDps,
+  enviarEvento,
   numeroDaNfse,
   tpAmbDo,
   type AmbienteNfse,
@@ -147,23 +152,49 @@ async function emitirUma(
   let numero = mesmaDps && e.nDps ? e.nDps : await executar((tx) => reservarNumeroDps(tx, ambiente, serie))
   let erros: ErroNfse[] = []
 
+  // A inscrição municipal vai sempre (conselho do contador, 23/10/2026). Se a Sefin disser que BH não a
+  // tem no cadastro complementar (E0120), a mesma DPS segue sem ela — recusa não gera nota nem gasta número.
+  let comInscricaoMunicipal = true
+
   for (let trocasDeNumero = 0; trocasDeNumero < 3; trocasDeNumero++) {
     for (const formato of formatosATentar(ambiente, Date.now())) {
-      const emitidoEm = Date.now() - 30_000 // a Sefin recusa dhEmi no futuro (E0008); meio minuto de folga para o relógio
-      const { id, xml } = montarDps({ pedido, tomador, tpAmb: tpAmbDo(ambiente), serie, numero, emitidoEm, verAplic: VERSAO_APLICATIVO, formato })
-      const assinado = assinarXml(xml, cert, 'DPS', 'infDPS')
-      await executar((tx) => gravarDpsPreparada(tx, e.id, { ambiente, serie, nDps: numero, idDps: id, xmlDps: assinado, agora: Date.now() }))
-
       let r
-      try {
-        r = await enviarDps(cert, ambiente, assinado)
-      } catch (err) {
-        if (err instanceof FalhaTransitoriaSefin) return falhar('erro', [{ codigo: 'REDE', descricao: err.message }])
-        throw err
+      for (;;) {
+        const emitidoEm = Date.now() - 30_000 // a Sefin recusa dhEmi no futuro (E0008); meio minuto de folga para o relógio
+        const { id, xml } = montarDps({
+          pedido,
+          tomador,
+          tpAmb: tpAmbDo(ambiente),
+          serie,
+          numero,
+          emitidoEm,
+          verAplic: VERSAO_APLICATIVO,
+          formato,
+          comInscricaoMunicipal,
+        })
+        const assinado = assinarXml(xml, cert, 'DPS', 'infDPS')
+        await executar((tx) => gravarDpsPreparada(tx, e.id, { ambiente, serie, nDps: numero, idDps: id, xmlDps: assinado, agora: Date.now() }))
+        try {
+          r = await enviarDps(cert, ambiente, assinado)
+        } catch (err) {
+          if (err instanceof FalhaTransitoriaSefin) return falhar('erro', [{ codigo: 'REDE', descricao: err.message }])
+          throw err
+        }
+        if (!r.ok && comInscricaoMunicipal && r.erros.some((x) => x.codigo === 'E0120')) {
+          comInscricaoMunicipal = false
+          continue
+        }
+        break
       }
       if (r.ok) {
+        const autorizada = r
         await executar((tx) =>
-          gravarAutorizada(tx, e.id, { chaveAcesso: r.chaveAcesso, numeroNfse: r.numeroNfse, xmlNfse: r.xmlNfse, agora: Date.now() }),
+          gravarAutorizada(tx, e.id, {
+            chaveAcesso: autorizada.chaveAcesso,
+            numeroNfse: autorizada.numeroNfse,
+            xmlNfse: autorizada.xmlNfse,
+            agora: Date.now(),
+          }),
         )
         return 'autorizada'
       }
@@ -189,6 +220,8 @@ export interface RelatorioEmissao {
   autorizadas: number
   rejeitadas: number
   erros: number
+  /** Notas canceladas na Sefin nesta rodada (tarifa de saque de um saque recusado). */
+  canceladas: number
 }
 
 /**
@@ -207,22 +240,25 @@ export async function processarNotasPendentes(opcoes: OpcoesDeEnvio = {}): Promi
   const ambiente = ambienteConfigurado()
   const executar = opcoes.executar ?? executarNoBanco
   const impedimento = opcoes.executar && certificadoConfigurado() ? null : impedimentoDaEmissao()
-  const relatorio: RelatorioEmissao = { impedimento, ambiente, processadas: 0, autorizadas: 0, rejeitadas: 0, erros: 0 }
+  const relatorio: RelatorioEmissao = { impedimento, ambiente, processadas: 0, autorizadas: 0, rejeitadas: 0, erros: 0, canceladas: 0 }
   if (relatorio.impedimento) return relatorio
 
   const cert = certificadoDoAmbiente()
   const lote = await executar((tx) =>
     reivindicarParaEnvio(tx, { limite: opcoes.limite ?? 25, agora: Date.now(), ambiente, incluirRejeitadas: opcoes.incluirRejeitadas ?? false }),
   )
-  if (!lote.length) return relatorio
 
   // O estado inteiro, uma vez por lote, só para ler o cadastro dos tomadores.
-  const state = opcoes.carregarEstado ? await opcoes.carregarEstado() : await (await import('../state')).getState()
+  const state = lote.length
+    ? opcoes.carregarEstado
+      ? await opcoes.carregarEstado()
+      : await (await import('../state')).getState()
+    : null
 
-  for (const e of lote) {
+  for (const e of state ? lote : []) {
     relatorio.processadas++
     try {
-      const desfecho = await emitirUma(e, state, cert, ambiente, executar)
+      const desfecho = await emitirUma(e, state as AppState, cert, ambiente, executar)
       if (desfecho === 'autorizada') relatorio.autorizadas++
       else if (desfecho === 'rejeitada') relatorio.rejeitadas++
       else relatorio.erros++
@@ -233,10 +269,50 @@ export async function processarNotasPendentes(opcoes: OpcoesDeEnvio = {}): Promi
       await executar((tx) => gravarFalha(tx, e.id, { status: 'erro', erros: [{ codigo: 'INTERNO', descricao }], agora: Date.now() }))
     }
   }
-  if (relatorio.processadas) {
+  relatorio.canceladas = await processarCancelamentos(cert, executar)
+  if (relatorio.processadas || relatorio.canceladas) {
     console.info(
-      `[aurea] NFS-e (${ambiente}): ${relatorio.autorizadas} autorizada(s), ${relatorio.rejeitadas} rejeitada(s), ${relatorio.erros} com erro.`,
+      `[aurea] NFS-e (${ambiente}): ${relatorio.autorizadas} autorizada(s), ${relatorio.rejeitadas} rejeitada(s), ` +
+        `${relatorio.erros} com erro, ${relatorio.canceladas} cancelada(s).`,
     )
   }
   return relatorio
+}
+
+/**
+ * Registra na Sefin o cancelamento das notas `cancelando` (evento 101101), no ambiente em que cada uma
+ * foi autorizada. Recusa do evento (prazo de 730 dias vencido, nota já cancelada…) fica à vista no
+ * painel com a nota ainda `cancelando`; falha de rede tenta de novo na próxima rodada.
+ */
+async function processarCancelamentos(cert: CertificadoA1, executar: Executor): Promise<number> {
+  const lote = await executar((tx) => reivindicarCancelamentos(tx, 25, Date.now()))
+  let canceladas = 0
+  for (const e of lote) {
+    if (!e.chaveAcesso || !e.ambiente) continue
+    const [codigo, ...resto] = (e.motivoCancelamento ?? '2|Servico nao prestado').split('|')
+    const motivo: MotivoCancelamento = codigo === '1' || codigo === '9' ? codigo : '2'
+    try {
+      const { xml } = montarCancelamento({
+        chaveAcesso: e.chaveAcesso,
+        tpAmb: tpAmbDo(e.ambiente),
+        motivo,
+        justificativa: resto.join('|') || 'Servico nao prestado',
+        emitidoEm: Date.now() - 30_000,
+        verAplic: VERSAO_APLICATIVO,
+      })
+      const assinado = assinarXml(xml, cert, 'pedRegEvento', 'infPedReg')
+      const r = await enviarEvento(cert, e.ambiente, e.chaveAcesso, assinado)
+      if (r.ok) {
+        await executar((tx) => gravarCancelada(tx, e.id, { xmlCancelamento: r.xmlEvento, agora: Date.now() }))
+        canceladas++
+      } else {
+        await executar((tx) => gravarFalhaDoCancelamento(tx, e.id, { erros: r.erros, agora: Date.now() }))
+      }
+    } catch (err) {
+      const descricao = err instanceof Error ? err.message : String(err)
+      console.error(`[aurea] NFS-e ${e.chave}: falha ao cancelar: ${descricao}`)
+      await executar((tx) => gravarFalhaDoCancelamento(tx, e.id, { erros: [{ codigo: 'REDE', descricao }], agora: Date.now() }))
+    }
+  }
+  return canceladas
 }

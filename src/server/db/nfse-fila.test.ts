@@ -13,7 +13,16 @@ import type { FaturaCustodia } from '@/domain/types'
 import { bancoDeTeste, type BancoDeTeste } from '@/server/admin/testing/pglite'
 
 import { lerEstado, mutarEstado } from './estado'
-import { inserirPedidosNfse, listarEmissoes, reivindicarParaEnvio, reservarNumeroDps } from './repositories/nfse'
+import {
+  gravarAutorizada,
+  gravarCancelada,
+  inserirPedidosNfse,
+  listarEmissoes,
+  marcarParaCancelar,
+  reivindicarCancelamentos,
+  reivindicarParaEnvio,
+  reservarNumeroDps,
+} from './repositories/nfse'
 
 let banco: BancoDeTeste
 let comprador: string
@@ -143,5 +152,59 @@ describe('fila das NFS-e (aurea.nfse_emissoes)', () => {
     expect(segundo).toHaveLength(0)
     const fila = await banco.executar((tx) => listarEmissoes(tx))
     expect(new Set(fila.map((e) => e.status))).toEqual(new Set(['processando']))
+  })
+
+  it('045 — tarifa de saque entra na fila; recusada antes de sair, a nota é cancelada sem ir à Sefin', async () => {
+    const agora = Date.now()
+    const tarifa = (id: string) => ({
+      chave: `tarifa_saque:${id}`,
+      servico: 'tarifa_saque' as const,
+      refFato: id,
+      tomadorEmail: comprador,
+      valorCents: 500,
+      ocorridoEm: agora,
+      competencia: '2026-10-23',
+      descricao: `TARIFA DE SAQUE - REF ${id}`,
+      quantidadeMoedas: 0,
+    })
+    expect(await banco.executar((tx) => inserirPedidosNfse(tx, [tarifa('SAQ-A'), tarifa('SAQ-B')], agora))).toBe(2)
+
+    // SAQ-A ainda na fila: cancela direto. SAQ-B já autorizada: vira "cancelando" e espera o evento.
+    const [b] = await banco.executar((tx) => listarEmissoes(tx, { busca: 'SAQ-B' }))
+    await banco.executar((tx) => gravarAutorizada(tx, b.id, { chaveAcesso: 'CHAVE-B', numeroNfse: '9', xmlNfse: '<NFSe/>', agora }))
+    const motivo = { motivo: '2' as const, justificativa: 'Saque recusado' }
+    const aEnviar = await banco.executar((tx) =>
+      marcarParaCancelar(tx, [{ chave: 'tarifa_saque:SAQ-A', ...motivo }, { chave: 'tarifa_saque:SAQ-B', ...motivo }], agora),
+    )
+    expect(aEnviar).toBe(1)
+
+    const porRef = async (ref: string) => (await banco.executar((tx) => listarEmissoes(tx, { busca: ref })))[0]
+    expect((await porRef('SAQ-A')).status).toBe('cancelada')
+    expect((await porRef('SAQ-B')).status).toBe('cancelando')
+    expect((await porRef('SAQ-B')).motivoCancelamento).toBe('2|Saque recusado')
+
+    // O envio do evento pega a nota (passado um minuto) e grava o cancelamento.
+    const lote = await banco.executar((tx) => reivindicarCancelamentos(tx, 10, agora + 120_000))
+    expect(lote.map((e) => e.refFato)).toEqual(['SAQ-B'])
+    await banco.executar((tx) => gravarCancelada(tx, b.id, { xmlCancelamento: '<evento/>', agora }))
+    expect((await porRef('SAQ-B')).status).toBe('cancelada')
+  })
+
+  it('045 — autorização que chega depois do pedido de cancelamento não desfaz o cancelamento', async () => {
+    const agora = Date.now()
+    await banco.executar((tx) =>
+      inserirPedidosNfse(
+        tx,
+        [{ chave: 'taxa_retirada:RET-1', servico: 'taxa_retirada', refFato: 'RET-1', tomadorEmail: comprador, valorCents: 5_000, ocorridoEm: agora, competencia: '2026-10-23', descricao: 'X', quantidadeMoedas: 1 }],
+        agora,
+      ),
+    )
+    const [r] = await banco.executar((tx) => listarEmissoes(tx, { busca: 'RET-1' }))
+    await banco.executar((tx) => tx.query(`UPDATE aurea.nfse_emissoes SET status = 'processando' WHERE id = $1`, [r.id]))
+    await banco.executar((tx) => marcarParaCancelar(tx, [{ chave: 'taxa_retirada:RET-1', motivo: '9', justificativa: 'Teste' }], agora))
+    await banco.executar((tx) => gravarAutorizada(tx, r.id, { chaveAcesso: 'CHAVE-R', numeroNfse: '10', xmlNfse: '<NFSe/>', agora }))
+    const [depois] = await banco.executar((tx) => listarEmissoes(tx, { busca: 'RET-1' }))
+    expect(depois.status).toBe('cancelando')
+    expect(depois.chaveAcesso).toBe('CHAVE-R')
   })
 })

@@ -66,9 +66,10 @@ contrato em `docs/API_RELATORIOS.md`, integração com Sheets/Excel em
 `docs/INTEGRACAO_GOOGLE_SHEETS.md`.
 
 **Toda comissão e toda custódia PAGA pedem NFS-e na mesma transação** (23/10/2026): `mutarEstado` grava os
-pedidos em `aurea.nfse_emissoes` (migration 044) a partir do diff, como o ledger — duas notas por negociação
+pedidos em `aurea.nfse_emissoes` (migrations 044/045) a partir do diff, como o ledger — duas notas por negociação
 (comprador e vendedor), uma por fatura que passou a paga, com a data e a hora do pagamento; **fatura em aberto
-não gera nota nem imposto, jamais**. O envio à Sefin Nacional (API gratuita, e-CNPJ A1 nas variáveis
+não gera nota nem imposto, jamais**. A tarifa de saque (no pedido) e a taxa de retirada (na retirada paga) saem
+com o código da custódia, 11.04.01, e o saque recusado cancela a nota da tarifa (contador, 23/10/2026). O envio à Sefin Nacional (API gratuita, e-CNPJ A1 nas variáveis
 `NFSE_CERT_*`, nunca no Git) roda depois, em `src/server/nfse/`; os códigos fiscais vêm das notas do contador e
 moram só em `src/domain/nfse/codigos.ts`. Regras, fontes e decisões em `docs/fiscal-contabil/` — **decisão
 fiscal ou de cobrança não se toma sem o Gabriel**.
@@ -197,7 +198,8 @@ cold start.
 - **Dinheiro sempre em centavos inteiros** (`Cents`). Nunca `float` para valor monetário.
 - **Correios por contrato (Platinum 1, API CWS, 22/10/2026).** O envio do cliente para a custódia é
   **logística reversa**: o cliente **paga o frete no site** pelo preço do contrato, sem margem (decisão do
-  Gabriel), por saldo, Pix ou cartão (`frete_envio`, ledger `frete`, fora da receita bruta na DRE); pago, o
+  Gabriel), por saldo, Pix ou cartão (`frete_envio`, ledger `frete`). É **despesa do cliente** (contador, 23/10/2026):
+  sem NFS-e e fora do resultado da DRE inteiro — nem receita, nem abatimento de despesa; pago, o
   servidor cria a pré-postagem e o cliente imprime a etiqueta oficial e posta de graça. O código de rastreio
   nasce nos Correios — a API de rastreio só enxerga objetos do contrato. A retirada ganha etiqueta de saída
   emitida no `/admin/logistica`. O job diário avança sozinho o envio para "Envio postado" e a retirada para

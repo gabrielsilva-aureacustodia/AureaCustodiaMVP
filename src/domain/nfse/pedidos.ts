@@ -9,6 +9,8 @@
  *  - CUSTÓDIA: nota SOMENTE quando a fatura passa a PAGA, com a data e a hora do pagamento. Fatura
  *    em aberto não gera nota nem imposto, jamais. A nota descreve o período do ciclo que foi pago,
  *    que começa no aceite da moeda (ou na compra, quando o ciclo recomeça com o dono novo).
+ *  - TARIFA DE SAQUE e TAXA DE RETIRADA (contador, 23/10/2026): movimentações do armazenamento, com o
+ *    código da custódia (11.04.01), no dia em que o dinheiro se move.
  *
  * Por que derivar do diff, e não chamar "emitir nota" em cada Server Action: a negociação acontece
  * em seis caminhos (publishOffer, sellToBid, buyLot, compra direta, liquidador da conciliação,
@@ -21,7 +23,7 @@
  */
 
 import { dataBrasilia } from '@/domain/ciclo-custodia'
-import type { AppState, Cents, FaturaCustodia, Timestamp, Trade, UserEmail } from '@/domain/types'
+import type { AppState, Cents, FaturaCustodia, Retirada, Saque, Timestamp, Trade, UserEmail } from '@/domain/types'
 
 import { CODIGOS_POR_SERVICO, type ServicoNfse } from './codigos'
 
@@ -122,6 +124,71 @@ function pedidoDaFaturaPaga(f: FaturaCustodia, agora: Timestamp): PedidoNfse | n
 }
 
 /**
+ * Tarifa de saque: a nota sai no PEDIDO do saque — o dia em que o dinheiro se move (contador,
+ * 23/10/2026), e o mesmo instante em que o ledger lança `taxa_saque`. Se o saque for recusado, a tarifa
+ * volta ao saldo e a nota é cancelada (ver `cancelamentosDeNfse`).
+ */
+function pedidoDaTarifaDeSaque(s: Saque): PedidoNfse | null {
+  if (!s.taxa || s.taxa <= 0) return null
+  return {
+    chave: `tarifa_saque:${s.id}`,
+    servico: 'tarifa_saque',
+    refFato: s.id,
+    tomadorEmail: s.userEmail,
+    valorCents: s.taxa,
+    ocorridoEm: s.criadoEm,
+    competencia: competenciaDe(s.criadoEm),
+    descricao: `${CODIGOS_POR_SERVICO.tarifa_saque.descricaoBase} - REF ${s.id}`,
+    quantidadeMoedas: 0,
+  }
+}
+
+/** Taxa de retirada da moeda: a nota sai quando a retirada passa a PAGA, com a hora do pagamento. */
+function pedidoDaTaxaDeRetirada(r: Retirada, agora: Timestamp): PedidoNfse | null {
+  if (!r.valorTaxaCents || r.valorTaxaCents <= 0) return null
+  const pagaEm = r.pagoEm ?? agora
+  return {
+    chave: `taxa_retirada:${r.id}`,
+    servico: 'taxa_retirada',
+    refFato: r.id,
+    tomadorEmail: r.userEmail,
+    valorCents: r.valorTaxaCents,
+    ocorridoEm: pagaEm,
+    competencia: competenciaDe(pagaEm),
+    descricao: `${CODIGOS_POR_SERVICO.taxa_retirada.descricaoBase} - MOEDA ${r.coinId} - ${plural(1)} - REF ${r.id}`,
+    quantidadeMoedas: 1,
+  }
+}
+
+/** Uma nota que deixou de valer porque o serviço não aconteceu. */
+export interface CancelamentoNfse {
+  chave: string
+  /** 1 = erro na emissão; 2 = serviço não prestado; 9 = outros. */
+  motivo: '1' | '2' | '9'
+  justificativa: string
+}
+
+/**
+ * As notas a cancelar numa mutação. Hoje, uma causa: o saque que passou a `falhou` (recusado pela
+ * equipe ou devolvido pelo Pix) devolve a tarifa ao saldo — o serviço não foi prestado.
+ */
+export function cancelamentosDeNfse(antes: AppState, depois: AppState): CancelamentoNfse[] {
+  const saquesAntes = new Map((antes.saques ?? []).map((s) => [s.id, s]))
+  const cancelamentos: CancelamentoNfse[] = []
+  for (const s of depois.saques ?? []) {
+    const anterior = saquesAntes.get(s.id)
+    if (anterior && anterior.status !== 'falhou' && s.status === 'falhou' && s.taxa > 0) {
+      cancelamentos.push({
+        chave: `tarifa_saque:${s.id}`,
+        motivo: '2',
+        justificativa: `Saque ${s.id} recusado: tarifa devolvida ao saldo do cliente, servico nao prestado`,
+      })
+    }
+  }
+  return cancelamentos
+}
+
+/**
  * Os pedidos de nota de uma mutação. `antes` e `depois` são os dois retratos que `mutarEstado`
  * já tem; `agora` só entra quando a fatura paga não trouxe a hora do pagamento.
  *
@@ -140,6 +207,23 @@ export function pedidosDeNfse(antes: AppState, depois: AppState, agora: Timestam
     if (f.status !== 'paga') continue
     if (faturasAntes.get(f.id)?.status === 'paga') continue
     const pedido = pedidoDaFaturaPaga(f, agora)
+    if (pedido) pedidos.push(pedido)
+  }
+
+  // Saques novos, pela identidade e não pela posição: a lista é regravada inteira pelo painel.
+  const saquesAntes = new Set((antes.saques ?? []).map((s) => s.id))
+  for (const s of depois.saques ?? []) {
+    if (saquesAntes.has(s.id)) continue
+    const pedido = pedidoDaTarifaDeSaque(s)
+    if (pedido) pedidos.push(pedido)
+  }
+
+  const retiradasAntes = new Map((antes.retiradas ?? []).map((r) => [r.id, r]))
+  for (const r of depois.retiradas ?? []) {
+    if (r.status !== 'paga' || retiradasAntes.get(r.id)?.status === 'paga') continue
+    // Só a TRANSIÇÃO para paga: uma retirada que já seguiu para separação não pede nota de novo.
+    if (retiradasAntes.get(r.id) && retiradasAntes.get(r.id)?.status !== 'solicitada') continue
+    const pedido = pedidoDaTaxaDeRetirada(r, agora)
     if (pedido) pedidos.push(pedido)
   }
 

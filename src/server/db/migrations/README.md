@@ -128,3 +128,10 @@ começa em 6 na produção restrita por causa dos testes de integração). Aditi
 lê as tabelas. **Tem de entrar ANTES do push:** o código novo grava em `nfse_emissoes` dentro da transação de
 toda negociação e de todo pagamento de custódia (`src/server/db/estado.ts`); sem a tabela, essas operações
 falham inteiras. Emissão em `src/server/nfse/`.
+
+## Migration 045 — NFS-e da tarifa de saque e da retirada, e o cancelamento (23/10/2026)
+
+`045_nfse_tarifas_e_cancelamento.sql` aceita os serviços `tarifa_saque` e `taxa_retirada` (código 11.04.01, respostas
+do contador de 23/10/2026) e a situação `cancelando`, e acrescenta `motivo_cancelamento`, `cancelada_em` e
+`xml_cancelamento`. As duas listas (serviço e situação) são repetidas por inteiro. **Tem de entrar ANTES do push**,
+pelo mesmo motivo da 044: o código novo grava esses valores dentro da transação do saque e da retirada.
