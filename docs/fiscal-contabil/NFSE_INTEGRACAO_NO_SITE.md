@@ -102,6 +102,9 @@ Exige permissão própria (ex.: `resultados.nfse`) e grava `admin.fiscal.consoli
 
 ## 6. Variáveis de ambiente (novas)
 
+**Emissão real ligada em 23/10/2026:** `NFSE_AMBIENTE=producao` na Vercel, só em Production (o Preview
+continua na produção restrita, e o `.env.local` também — testar localmente não emite nota de verdade).
+
 `NFSE_CERT_PFX_BASE64` e `NFSE_CERT_SENHA` **já estão no `.env.local`** desde 23/10/2026, com o e-CNPJ A1 válido até
 04/08/2027 (o original fica em `docs/privado/certificados/`, fora do Git). **Na Vercel, cadastradas em 23/10/2026**
 como *Sensitive*, em Production e Preview. Demais: `NFSE_AMBIENTE` (`restrita` | `producao`),
