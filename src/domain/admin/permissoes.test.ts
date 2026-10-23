@@ -35,12 +35,12 @@ function papel(slug: string, permissoes: readonly string[], id = 7): PapelGravad
 }
 
 describe('catálogo de permissões', () => {
-  it('tem as 29 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
+  it('tem as 30 chaves do plano, sem repetição, cada uma com o prefixo do próprio módulo', () => {
     // 24 até 22/09/2026; 26 desde a gestão de registros (registros.editar e
     // registros.excluir), que entrou em 23/09; 29 desde 14/10/2026 (saques.ver, saques.pagar e
-    // logistica.expedir).
-    expect(CHAVES_PERMISSAO).toHaveLength(29)
-    expect(new Set(CHAVES_PERMISSAO).size).toBe(29)
+    // logistica.expedir); 30 desde 23/10/2026 (resultados.nfse, o reenvio das notas fiscais).
+    expect(CHAVES_PERMISSAO).toHaveLength(30)
+    expect(new Set(CHAVES_PERMISSAO).size).toBe(30)
     for (const p of PERMISSOES) expect(p.chave.startsWith(`${p.modulo}.`)).toBe(true)
   })
 
@@ -60,7 +60,7 @@ describe('papéis de sistema', () => {
   it('dev nasce com tudo; sócio com tudo menos papéis e membros; operação só bancada e logística', () => {
     expect(papelDeSistema('dev')?.permissoesIniciais).toEqual(CHAVES_PERMISSAO)
     const socio = papelDeSistema('socio')?.permissoesIniciais ?? []
-    expect(socio).toHaveLength(27)
+    expect(socio).toHaveLength(28)
     expect(socio).not.toContain('admin.papeis')
     expect(socio).not.toContain('admin.membros')
     expect(socio).toContain('admin.auditoria')

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { processarCicloFaturamento } from '@/server/custodia/faturamento'
+import { processarNotasPendentes } from '@/server/nfse/emissao'
 
 /**
  * Job agendado de faturamento de custódia (Sessão B-5 / Bloco 8).
@@ -25,9 +26,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const relatorio = await processarCicloFaturamento()
+    // NFS-e (23/10/2026): a rodada diária reenvia a fila — pendências de quando a Sefin estava fora do
+    // ar e recusas por cadastro incompleto que o cliente pode ter completado. Falhar aqui não desfaz o
+    // faturamento, que já commitou.
+    let nfse: unknown = null
+    try {
+      nfse = await processarNotasPendentes({ incluirRejeitadas: true, limite: 200 })
+    } catch (erroNfse) {
+      console.error('[Cron Faturamento] Falha no reenvio das NFS-e:', erroNfse)
+      nfse = { falhou: true }
+    }
     return NextResponse.json({
       ok: true,
       ...relatorio,
+      nfse,
       executadoEm: new Date().toISOString(),
     })
   } catch (error) {

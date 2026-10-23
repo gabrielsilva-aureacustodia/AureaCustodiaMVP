@@ -119,3 +119,12 @@ cliente no site e a pré-postagem de logística reversa que dá o código de ras
 (a etiqueta de saída emitida pelo painel), o tipo `frete` no ledger e o tipo `frete_envio` nas intenções de
 pagamento — as duas listas repetidas por inteiro, como a 012 e a 038 mandam. Aditiva: o código anterior ao
 deploy não lê as colunas, então entra **antes** do push. Integração em `docs/EXECUCAO_CORREIOS_CWS.md`.
+
+## Migration 044 — a fila das NFS-e (23/10/2026)
+
+`044_nfse_emissoes.sql` cria `nfse_emissoes` (uma linha por nota a emitir: comissão de cada lado da negociação
+e custódia paga, com o resultado da Sefin) e `nfse_numeracao` (o último número de DPS por ambiente e série, que
+começa em 6 na produção restrita por causa dos testes de integração). Aditiva — o código anterior ao deploy não
+lê as tabelas. **Tem de entrar ANTES do push:** o código novo grava em `nfse_emissoes` dentro da transação de
+toda negociação e de todo pagamento de custódia (`src/server/db/estado.ts`); sem a tabela, essas operações
+falham inteiras. Emissão em `src/server/nfse/`.

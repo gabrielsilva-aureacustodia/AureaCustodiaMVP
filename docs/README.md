@@ -45,6 +45,7 @@ docs/
 ├── EXECUCAO_AGENTE_B_LEDGER_DRE.md  🅱️ M4 + M7 entregues: ledger, auditoria, DRE, relatórios — e o que falta
 ├── API_RELATORIOS.md                O contrato da API de relatórios (JSON/CSV/XLSX, token, Sheets)
 ├── INTEGRACAO_GOOGLE_SHEETS.md      O que o Gabriel configura para Sheets e Excel, passo a passo
+├── fiscal-contabil/                 🧾 NFS-e Nacional, regras contábeis e taxas do Mercado Pago (22/10)
 │
 ├── publish_docs/                    📤 Planos do que ainda vai ao ar — descreve o FUTURO
 │   ├── PLANO_EXECUTIVO_BANCADA_WEBAPP.md   A bancada como tela do painel administrativo
@@ -109,6 +110,7 @@ faz alguém contar com uma feature que não existe. Plano cumprido sai de lá.
 | **Vai levar a bancada para dentro do painel administrativo** | `publish_docs/` — leia o README da pasta primeiro |
 | Quer saber o que a arquitetura ainda deve | `ARQUITETURA_O_QUE_FALTA.md` |
 | Vai ligar a planilha do contador | `INTEGRACAO_GOOGLE_SHEETS.md` → `API_RELATORIOS.md` |
+| **Vai mexer em nota fiscal, livro-razão, DRE ou taxas** | `fiscal-contabil/REGRAS_FISCAIS_E_CONTABEIS.md` |
 | Precisa criar uma conta ou serviço | `SETUP_CONTAS_E_SERVICOS.md` |
 | Quer saber que atalhos a plataforma deve | `../RISCOS_ASSUMIDOS.md` (raiz) |
 | Vai mexer numa pasta específica | O `README.md` da própria pasta |

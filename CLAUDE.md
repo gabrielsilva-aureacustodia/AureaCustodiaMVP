@@ -65,6 +65,14 @@ relatórios saem por `/relatorios` (só administradores) e por `/api/relatorios/
 contrato em `docs/API_RELATORIOS.md`, integração com Sheets/Excel em
 `docs/INTEGRACAO_GOOGLE_SHEETS.md`.
 
+**Toda comissão e toda custódia PAGA pedem NFS-e na mesma transação** (23/10/2026): `mutarEstado` grava os
+pedidos em `aurea.nfse_emissoes` (migration 044) a partir do diff, como o ledger — duas notas por negociação
+(comprador e vendedor), uma por fatura que passou a paga, com a data e a hora do pagamento; **fatura em aberto
+não gera nota nem imposto, jamais**. O envio à Sefin Nacional (API gratuita, e-CNPJ A1 nas variáveis
+`NFSE_CERT_*`, nunca no Git) roda depois, em `src/server/nfse/`; os códigos fiscais vêm das notas do contador e
+moram só em `src/domain/nfse/codigos.ts`. Regras, fontes e decisões em `docs/fiscal-contabil/` — **decisão
+fiscal ou de cobrança não se toma sem o Gabriel**.
+
 **O painel administrativo vive em `/admin`** (route group `src/app/(admin)/`, frente C), com
 layout, provider e CSS próprios — não carrega o `AppState` do cliente — e a mesma sessão do app,
 sem segundo login. **O link da equipe é `/painel`** (`src/app/painel/`): sem sessão ou com conta fora

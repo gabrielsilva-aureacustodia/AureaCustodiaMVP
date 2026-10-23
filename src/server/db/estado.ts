@@ -27,6 +27,7 @@
  */
 
 import { estadoVazio } from '@/domain/estado-vazio'
+import { pedidosDeNfse } from '@/domain/nfse/pedidos'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
 
@@ -34,6 +35,7 @@ import { derivarHistoricoOfertas, derivarLancamentos, resumirParaAuditoria } fro
 import { normalizarTrade } from './diff'
 import { registrarAuditoria } from './repositories/auditoria'
 import { inserirLancamentos, ultimoHash } from './repositories/ledger'
+import { inserirPedidosNfse } from './repositories/nfse'
 import { inserirHistoricoOfertas } from './repositories/ofertas-historico'
 import { carregarEstado, estaVazio, persistirEstado } from './repositories/state'
 import type { Executor } from './sql'
@@ -73,7 +75,7 @@ export async function mutarEstado<T>(
   executar: Executor,
   fn: (state: AppState) => T | Promise<T>,
   contexto: ContextoMutacao = { ator: 'sistema' },
-): Promise<{ state: AppState; result: T }> {
+): Promise<{ state: AppState; result: T; nfsePedidas: number }> {
   return executar(async (tx) => {
     const antes = await carregarEstado(tx, { travar: true })
     const semeadura = estaVazio(antes)
@@ -96,6 +98,7 @@ export async function mutarEstado<T>(
 
     // Nada gravado (recusa, leitura disfarçada de mutação): nem ledger nem
     // auditoria. Uma trilha cheia de "nada aconteceu" esconde o que aconteceu.
+    let nfsePedidas = 0
     if (ops.length > 0) {
       const agora = Date.now()
       const hashAnterior = await ultimoHash(tx)
@@ -114,6 +117,14 @@ export async function mutarEstado<T>(
         await inserirHistoricoOfertas(tx, historicoOfertas)
       }
 
+      // NFS-e (23/10/2026): toda comissão e toda fatura de custódia PAGA pede a sua nota na mesma
+      // transação que grava o dinheiro — ou os dois commitam, ou nenhum. O envio à Sefin é depois,
+      // fora daqui (src/server/nfse/emissao.ts): o governo fora do ar não desfaz uma negociação.
+      // A semeadura de teste não pede nota: aquelas negociações são fixture, não receita.
+      if (!semeadura) {
+        nfsePedidas = await inserirPedidosNfse(tx, pedidosDeNfse(antes, state, agora), agora)
+      }
+
       const resumo = resumirParaAuditoria(ops, semeadura, ajustes)
       await registrarAuditoria(tx, {
         createdAt: agora,
@@ -122,11 +133,11 @@ export async function mutarEstado<T>(
         entidade: null,
         entidadeId: null,
         usuariosAfetados: resumo.usuariosAfetados,
-        detalhes: { ...resumo.detalhes, lancamentos: lancamentos.length },
+        detalhes: { ...resumo.detalhes, lancamentos: lancamentos.length, ...(nfsePedidas ? { nfsePedidas } : {}) },
       })
     }
 
-    return { state, result }
+    return { state, result, nfsePedidas }
   })
 }
 

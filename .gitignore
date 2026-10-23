@@ -4,6 +4,9 @@ out/
 build/
 .DS_Store
 *.pem
+# Certificado digital da empresa (e-CNPJ A1): vive em docs/privado/certificados/ e no .env.local, nunca no Git.
+*.pfx
+*.p12
 
 .env*
 !.env.example

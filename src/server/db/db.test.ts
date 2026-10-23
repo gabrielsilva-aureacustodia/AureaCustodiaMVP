@@ -233,6 +233,9 @@ function suite(alvo: Alvo): void {
         'faturas_custodia',
         'lancamentos_manuais',
         'ledger_entries',
+        // Migration 044 — a fila das NFS-e e a numeração das DPS (23/10/2026).
+        'nfse_emissoes',
+        'nfse_numeracao',
         // Migration 015 — histórico append-only da fila de ofertas (A2).
         'ofertas_historico',
         'parametros_contabeis',

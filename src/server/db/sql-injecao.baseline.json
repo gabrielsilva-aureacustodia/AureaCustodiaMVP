@@ -76,6 +76,10 @@
     "param(filtro.limite)",
     "where"
   ],
+  "src/server/db/repositories/nfse.ts": [
+    "COLUNAS",
+    "S"
+  ],
   "src/server/db/repositories/ofertas-historico.ts": [
     "S",
     "conds.join(' AND ')",

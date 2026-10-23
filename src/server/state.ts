@@ -19,6 +19,7 @@ import type { AppState } from '@/domain/types'
 
 import { bancoConfigurado, executarNoBanco } from './db/client'
 import { lerEstado, mutarEstado } from './db/estado'
+import { agendarEmissaoNfse } from './nfse/agendar'
 import { getSessionEmail } from './session'
 import { getStore } from './store'
 
@@ -174,7 +175,12 @@ export async function getState(): Promise<AppState> {
 export async function mutateState<T>(
   fn: (state: AppState) => T | Promise<T>,
 ): Promise<{ state: AppState; result: T }> {
-  if (bancoConfigurado()) return mutarEstado(executarNoBanco, fn, { ator: await atorDaRequisicao() })
+  if (bancoConfigurado()) {
+    const r = await mutarEstado(executarNoBanco, fn, { ator: await atorDaRequisicao() })
+    // A operação pediu nota fiscal (comissão ou custódia paga): envia logo depois da resposta.
+    if (r.nfsePedidas > 0) agendarEmissaoNfse()
+    return r
+  }
 
   const store = getStore()
 

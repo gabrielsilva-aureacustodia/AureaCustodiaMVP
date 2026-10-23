@@ -36,6 +36,9 @@ import { normalizarEmail } from '@/domain/email'
 export const PERMISSOES = [
   { chave: 'resultados.ver', modulo: 'resultados', rotulo: 'Ver a Central de Resultados', descricao: 'Financeiro, contábil, KPIs e uso da plataforma.' },
   { chave: 'resultados.exportar', modulo: 'resultados', rotulo: 'Exportar relatórios', descricao: 'Baixar CSV e XLSX e enviar ao Google Sheets.' },
+  // 23/10/2026: a fila das NFS-e. Ver é `resultados.ver`; mandar reenviar à Sefin é separado porque
+  // emite documento fiscal com o certificado da empresa.
+  { chave: 'resultados.nfse', modulo: 'resultados', rotulo: 'Reenviar notas fiscais', descricao: 'Reprocessar NFS-e rejeitadas ou com erro e forçar o envio da fila à Sefin.' },
   { chave: 'contabil.lancar', modulo: 'contabil', rotulo: 'Lançar e estornar', descricao: 'Criar lançamentos manuais e estornar os existentes.' },
   { chave: 'contabil.parametros', modulo: 'contabil', rotulo: 'Editar alíquotas', descricao: 'Preencher os parâmetros contábeis que a DRE aplica.' },
   { chave: 'usuarios.ver', modulo: 'usuarios', rotulo: 'Ver usuários', descricao: 'Lista e ficha dos clientes.' },

@@ -1314,3 +1314,45 @@ digitado pelo cliente que postava no balcão nunca seria rastreado.
 **Ficou aberto (RA-59):** valor declarado fixo de R$ 150/moeda no envio, prazo de postagem de 3 dias contado
 da criação do protocolo e não do pagamento do frete, e o tratamento contábil do frete com o contador.
 
+
+# Entrada 017 — 23/10/2026 · Toda comissão e toda custódia paga passam a pedir NFS-e
+
+```
+Leitura:        local + produção restrita da Sefin Nacional (6 notas de teste autorizadas) + produção (migration)
+Branch:         nfse-nacional-emissao, a partir de 60fd10c
+Testes:         -> 1.376 (148 arquivos)
+Banco:          migration 044 aplicada em produção ANTES do commit (aditiva)
+Emissão real:   DESLIGADA — sem NFSE_AMBIENTE=producao, o site publicado só enfileira
+```
+
+## O que entrou
+
+A emissão automática de NFS-e pela API nacional (gratuita), com o e-CNPJ A1 da empresa nas variáveis
+`NFSE_CERT_*` (nunca no Git). Duas notas por negociação (comprador e vendedor, 10.05.01/003) e uma por fatura
+de custódia **paga** (11.04.01/001), com a data e a hora do pagamento e o período do ciclo. Os códigos copiam
+as três notas do contador de 22/10/2026 (`src/domain/nfse/codigos.ts`); `tpOper` = 5 e `indFinal` = 0 por
+pesquisa, a confirmar com ele. Painel em `/admin/resultados/fiscal` (permissão nova `resultados.nfse`).
+Regras, fontes e pesquisa em `docs/fiscal-contabil/`.
+
+## Superfície protegida — mudança autorizada pelo Gabriel em 23/10/2026
+
+- **Caminho do dinheiro:** `mutarEstado` (`src/server/db/estado.ts`) grava o pedido de nota na mesma transação
+  da negociação e do pagamento, derivado do diff como o ledger. Fatura em aberto não pede nota, jamais
+  (decisão do Gabriel: sem pagamento, sem nota e sem imposto).
+- **Server Actions:** `src/server/actions/admin/fiscal.ts` (enviar a fila, reprocessar, baixar o XML).
+- `constants.ts`, `fees.ts`, `market.ts`, `types.ts` e o contrato do store **não mudaram**: sem rotação de
+  `AUREA_STORE_KEY`.
+
+## Análise crítica do que entrou
+
+**A produção restrita ensinou três coisas que a documentação não dizia:** o .pfx da AC Safeweb usa a cifra
+antiga que o OpenSSL 3 recusa (a conexão usa chave e cadeia em PEM); sem `<?xml … encoding="UTF-8"?>` a Sefin
+recusa com E1229; e em 23/10 a restrita já roda parte da NT 009 — o envio tenta o formato seguinte quando a
+Sefin recusa o esquema (E1235), o que não gera nota nem gasta número.
+
+**Os valores batem com os do contador ao centavo** (ISS 0,10/0,06, base IBS/CBS 1,83/1,87, CBS 0,02), e o
+envio interrompido no meio foi recuperado sem segunda nota.
+
+**Ficou aberto:** ligar a produção (`NFSE_AMBIENTE=producao`, decisão do Gabriel); PDF da nota; cancelamento
+pelo painel; notas da tarifa de saque, da retirada e do frete (perguntas ao contador); emissão das operações
+anteriores a esta entrega; o formato da produção real até 30/11 só se prova na primeira nota de verdade.

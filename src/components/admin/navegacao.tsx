@@ -76,6 +76,14 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
         icone: <path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3zM5 17a3 3 0 013-3h11" />,
       },
       {
+        href: '/admin/resultados/fiscal',
+        rotulo: 'Notas fiscais',
+        titulo: 'Notas fiscais (NFS-e)',
+        subtitulo: 'Uma nota por comissão de cada lado e por custódia paga, emitida na Sefin Nacional.',
+        permissoes: ['resultados.ver'],
+        icone: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" />,
+      },
+      {
         href: '/admin/resultados/kpis',
         rotulo: 'Indicadores',
         titulo: 'Indicadores do negócio',
