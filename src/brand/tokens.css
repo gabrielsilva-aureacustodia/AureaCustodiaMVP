@@ -1,0 +1,279 @@
+/* ============================================================================
+   TOKENS DA MARCA REAL OLÍMPICO — camadas 1 (primitivos) e 2 (papéis).
+
+   Este arquivo é o embrião do package da marca (ver src/brand/README.md). Ele é
+   a ÚNICA fonte de cor literal do projeto: src/styles/tokens.css, que todo o CSS
+   legado lê, virou uma camada de ALIASES que aponta para cá — os nomes antigos
+   (--gold, --bg, --line...) continuam existindo, com o mesmo valor ou com o valor
+   corrigido por contraste, para nenhuma tela quebrar no merge.
+
+   Prefixo --ro- (Real Olímpico) em tudo: o CSS legado usa nomes curtos e
+   genéricos (--bg, --text, --border) e alguns deles são usados SEM estar
+   definidos; um prefixo próprio impede que um nome novo colida com um velho.
+
+   Camadas (modelo: espinha de tokens do aprendizado_frontend, doc 34):
+     1. primitivos  :root                      valores literais, sem papel
+     2. papéis      body[data-theme="..."]     só var() da camada 1
+     3. aliases     src/styles/tokens.css      só var() das camadas 1 e 2
+
+   O tema continua no atributo data-theme do <body> (o script anti-flash do
+   layout raiz depende disso). Origem de cada valor e contraste medido:
+   docs/marca/BRANDBOOK_REAL_OLIMPICO.md §4.
+   ========================================================================= */
+
+:root{
+  /* ---- Noite: o azul da prancha de identidade ------------------------------
+     Amostrado de public/brand/logo-real-olimpico.webp (fundo ≈ #001028). Os
+     tons 800-950 são os do monolito (--navy-card2, --navy-card, --navy,
+     --navy-deep) sem mudança: o azul já era o da marca. */
+  --ro-noite-50:#eef2f9;
+  --ro-noite-100:#d9e1ef;
+  --ro-noite-200:#b3c1da;
+  --ro-noite-300:#8fa0bd;
+  --ro-noite-400:#6a7d9f;
+  --ro-noite-450:#5a6b8c;
+  --ro-noite-500:#4a5d80;
+  --ro-noite-600:#34466a;
+  --ro-noite-700:#1e3054;
+  --ro-noite-750:#152a52;
+  --ro-noite-800:#132546;
+  --ro-noite-850:#10203f;
+  --ro-noite-900:#0d1b35;
+  --ro-noite-920:#0b1830;
+  --ro-noite-950:#081226;
+  --ro-noite-990:#050a16;
+
+  /* ---- Ouro: o metal do emblema ---------------------------------------------
+     Amostrado de logo-real-olimpico-marca.webp (do #4e3511 da sombra ao #f7de8a
+     do brilho). 500 é o #c9a24b do monolito; 700 é a serrilha da moeda e a
+     tinta do certificado; 800 é o único ouro que passa AA como TEXTO no claro. */
+  --ro-ouro-50:#fbf6e9;
+  --ro-ouro-100:#f8ecc6;
+  --ro-ouro-200:#f2dc95;
+  --ro-ouro-300:#ebc977;
+  --ro-ouro-350:#d4af6a;
+  --ro-ouro-400:#e3b95c;
+  --ro-ouro-500:#c9a24b;
+  --ro-ouro-600:#a07c2c;
+  --ro-ouro-650:#8a7444;
+  --ro-ouro-700:#8a6c2a;
+  --ro-ouro-800:#7a5d1c;
+  --ro-ouro-900:#5d4718;
+  --ro-ouro-950:#1a1608;
+
+  /* ---- Pergaminho: neutros quentes ------------------------------------------
+     O creme da prancha (#f0f0e8) e o papel do certificado. Neutro frio (cinza
+     puro) não entra: ao lado do ouro ele parece sujo. */
+  --ro-pergaminho-0:#ffffff;
+  --ro-pergaminho-50:#fdf9ef;
+  --ro-pergaminho-100:#f7f5f0;
+  --ro-pergaminho-150:#f4f1e9;
+  --ro-pergaminho-200:#f5f0e4;
+  --ro-pergaminho-250:#f2ede0;
+  --ro-pergaminho-300:#e3dbc0;
+  --ro-pergaminho-400:#d9cfae;
+  --ro-pergaminho-500:#a08e5e;
+  --ro-pergaminho-600:#6b6248;
+  --ro-pergaminho-950:#fdfaf2;
+
+  /* ---- Funcionais -------------------------------------------------------------
+     A prancha não define cor de estado. Aviso é BRONZE e não amarelo: amarelo
+     ao lado do ouro da marca seria lido como "destaque", não como "atenção".
+     Os tons 300/400 servem ao escuro, os 700 ao claro (contraste no brandbook). */
+  --ro-verde-300:#dff5e8;
+  --ro-verde-400:#4cc27c;
+  --ro-verde-500:#3fae6a;
+  --ro-verde-700:#1f7a45;
+  --ro-vermelho-300:#ffe3e3;
+  --ro-vermelho-400:#e07a7a;
+  --ro-vermelho-500:#d05555;
+  --ro-vermelho-700:#a33232;
+  --ro-bronze-300:#f7e7bd;
+  --ro-bronze-400:#e8913a;
+  --ro-bronze-700:#9a4f0f;
+  --ro-azul-400:#6ea8ff;
+  --ro-azul-700:#2f5fb3;
+  --ro-preto:#000000;
+
+  /* ---- Tipografia -------------------------------------------------------------
+     Newsreader (serifa de exibição, eixo óptico) e Inter (texto e números) vêm
+     de next/font (src/brand/fontes.ts), que publica --font-display e
+     --font-sans no <html>. O fallback dentro do var() é a rede de segurança
+     caso a classe .variable caia no elemento errado. */
+  --ro-fonte-display:var(--font-display,'Newsreader'),Georgia,'Times New Roman',serif;
+  --ro-fonte-texto:var(--font-sans,'Inter'),system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+
+  /* Escala fluida por PAPEL, não por tamanho: clamp(mínimo a 375px, ..., máximo
+     a 1440px). Quem escolhe um papel não precisa de media query. */
+  --ro-tipo-display-xl:clamp(2.5rem,1.7rem + 3.4vw,4.5rem);
+  --ro-tipo-display:clamp(2rem,1.5rem + 2.1vw,3.25rem);
+  --ro-tipo-titulo-1:clamp(1.625rem,1.35rem + 1.15vw,2.25rem);
+  --ro-tipo-titulo-2:clamp(1.25rem,1.12rem + .55vw,1.625rem);
+  --ro-tipo-titulo-3:1.125rem;
+  --ro-tipo-corpo-lg:1.0625rem;
+  --ro-tipo-corpo:1rem;
+  --ro-tipo-corpo-sm:.875rem;
+  --ro-tipo-legenda:.8125rem;
+  --ro-tipo-sobretitulo:.75rem;
+  --ro-entrelinha-display:1.08;
+  --ro-entrelinha-titulo:1.2;
+  --ro-entrelinha-corpo:1.55;
+  --ro-espacejamento-display:-.015em;
+  --ro-espacejamento-sobretitulo:.16em;
+  --ro-peso-regular:400;
+  --ro-peso-medio:500;
+  --ro-peso-semi:600;
+  --ro-peso-negrito:700;
+
+  /* ---- Espaço: grade de 4px --------------------------------------------------- */
+  --ro-esp-1:4px;
+  --ro-esp-2:8px;
+  --ro-esp-3:12px;
+  --ro-esp-4:16px;
+  --ro-esp-5:20px;
+  --ro-esp-6:24px;
+  --ro-esp-8:32px;
+  --ro-esp-10:40px;
+  --ro-esp-12:48px;
+  --ro-esp-16:64px;
+  --ro-esp-24:96px;
+  --ro-container:1200px;
+  --ro-container-texto:68ch;
+  --ro-alvo-toque:44px;
+
+  /* ---- Raio por elemento (não um raio só) ------------------------------------ */
+  --ro-raio-xs:4px;     /* selo, chip pequeno */
+  --ro-raio-sm:8px;     /* campo */
+  --ro-raio-md:10px;    /* botão */
+  --ro-raio-lg:14px;    /* painel, cartão */
+  --ro-raio-xl:20px;    /* modal, faixa de abertura */
+  --ro-raio-pilula:999px;
+
+  /* ---- Movimento --------------------------------------------------------------
+     Curva de saída longa (a mesma do .btn do monolito): começa rápido e assenta
+     devagar, como peça de metal pousando. Zerado em prefers-reduced-motion. */
+  --ro-dur-instante:90ms;
+  --ro-dur-rapida:150ms;
+  --ro-dur-base:220ms;
+  --ro-dur-lenta:400ms;
+  --ro-curva-saida:cubic-bezier(.16,1,.3,1);
+  --ro-curva-padrao:cubic-bezier(.2,.8,.2,1);
+
+  /* ---- Camadas (z-index nomeado) ---------------------------------------------- */
+  --ro-z-gaveta:40;
+  --ro-z-modal:50;
+  --ro-z-toast:60;
+  --ro-z-pular:9999;
+}
+
+@media (prefers-reduced-motion:reduce){
+  :root{
+    --ro-dur-instante:0ms;
+    --ro-dur-rapida:0ms;
+    --ro-dur-base:0ms;
+    --ro-dur-lenta:0ms;
+  }
+}
+
+/* ============================================================================
+   PAPÉIS — o que um componente deve ler. Nunca um primitivo direto.
+   Cada par fundo/conteúdo tem contraste medido no brandbook e conferido em
+   src/brand/__tests__/tokens.test.ts (AA: 4,5:1 texto, 3:1 borda de controle).
+   ========================================================================= */
+
+body[data-theme="dark"]{
+  color-scheme:dark;
+  --ro-fundo:var(--ro-noite-950);
+  --ro-superficie:var(--ro-noite-900);
+  --ro-superficie-sutil:color-mix(in srgb,var(--ro-pergaminho-0) 3%,transparent);
+  --ro-superficie-elevada:var(--ro-noite-800);
+  --ro-cartao:linear-gradient(160deg,var(--ro-noite-850) 0%,var(--ro-noite-900) 100%);
+  --ro-cartao-base:var(--ro-noite-850);
+  --ro-cartao-hover:var(--ro-noite-750);
+  --ro-campo:var(--ro-noite-920);
+
+  --ro-texto:var(--ro-pergaminho-250);
+  --ro-texto-forte:var(--ro-pergaminho-950);
+  --ro-texto-suave:var(--ro-noite-300);
+  --ro-texto-inverso:var(--ro-noite-900);
+
+  --ro-borda:color-mix(in srgb,var(--ro-ouro-500) 55%,transparent);
+  --ro-borda-suave:color-mix(in srgb,var(--ro-ouro-500) 28%,transparent);
+  --ro-borda-campo:var(--ro-ouro-650);
+
+  --ro-primaria:var(--ro-ouro-500);
+  --ro-primaria-forte:var(--ro-ouro-400);
+  --ro-sobre-primaria:var(--ro-ouro-950);
+  --ro-primaria-texto:var(--ro-ouro-500);
+  --ro-primaria-veu:color-mix(in srgb,var(--ro-ouro-500) 12%,transparent);
+
+  --ro-sucesso:var(--ro-verde-500);
+  --ro-sucesso-texto:var(--ro-verde-400);
+  --ro-sucesso-fundo:color-mix(in srgb,var(--ro-verde-500) 14%,transparent);
+  --ro-perigo:var(--ro-vermelho-500);
+  --ro-perigo-texto:var(--ro-vermelho-400);
+  --ro-perigo-fundo:color-mix(in srgb,var(--ro-vermelho-500) 12%,transparent);
+  --ro-aviso:var(--ro-bronze-400);
+  --ro-aviso-texto:var(--ro-bronze-400);
+  --ro-aviso-fundo:color-mix(in srgb,var(--ro-bronze-400) 14%,transparent);
+  --ro-info:var(--ro-azul-400);
+  --ro-info-texto:var(--ro-azul-400);
+  --ro-info-fundo:color-mix(in srgb,var(--ro-azul-400) 12%,transparent);
+
+  --ro-foco:var(--ro-ouro-400);
+  --ro-veu:color-mix(in srgb,var(--ro-noite-990) 70%,transparent);
+
+  --ro-sombra-1:0 1px 2px rgb(0 0 0 / .35);
+  --ro-sombra-2:0 8px 28px rgb(0 0 0 / .45);
+  --ro-sombra-3:0 14px 40px rgb(0 0 0 / .5);
+  --ro-sombra-4:0 20px 60px rgb(0 0 0 / .55);
+}
+
+body[data-theme="light"]{
+  color-scheme:light;
+  --ro-fundo:var(--ro-pergaminho-100);
+  --ro-superficie:var(--ro-pergaminho-0);
+  --ro-superficie-sutil:color-mix(in srgb,var(--ro-ouro-500) 5%,var(--ro-pergaminho-0));
+  --ro-superficie-elevada:var(--ro-pergaminho-0);
+  --ro-cartao:linear-gradient(160deg,var(--ro-pergaminho-0) 0%,var(--ro-pergaminho-150) 100%);
+  --ro-cartao-base:var(--ro-pergaminho-0);
+  --ro-cartao-hover:var(--ro-pergaminho-50);
+  --ro-campo:var(--ro-pergaminho-0);
+
+  --ro-texto:var(--ro-noite-900);
+  --ro-texto-forte:var(--ro-noite-950);
+  --ro-texto-suave:var(--ro-noite-450);
+  --ro-texto-inverso:var(--ro-pergaminho-250);
+
+  --ro-borda:color-mix(in srgb,var(--ro-ouro-600) 65%,transparent);
+  --ro-borda-suave:color-mix(in srgb,var(--ro-ouro-600) 32%,transparent);
+  --ro-borda-campo:var(--ro-ouro-600);
+
+  --ro-primaria:var(--ro-ouro-500);
+  --ro-primaria-forte:var(--ro-ouro-400);
+  --ro-sobre-primaria:var(--ro-ouro-950);
+  /* O ouro da marca dá 2,40:1 sobre branco: como TEXTO no claro, só o 800. */
+  --ro-primaria-texto:var(--ro-ouro-800);
+  --ro-primaria-veu:color-mix(in srgb,var(--ro-ouro-500) 12%,transparent);
+
+  --ro-sucesso:var(--ro-verde-500);
+  --ro-sucesso-texto:var(--ro-verde-700);
+  --ro-sucesso-fundo:color-mix(in srgb,var(--ro-verde-500) 12%,var(--ro-pergaminho-0));
+  --ro-perigo:var(--ro-vermelho-500);
+  --ro-perigo-texto:var(--ro-vermelho-700);
+  --ro-perigo-fundo:color-mix(in srgb,var(--ro-vermelho-500) 9%,var(--ro-pergaminho-0));
+  --ro-aviso:var(--ro-bronze-700);
+  --ro-aviso-texto:var(--ro-bronze-700);
+  --ro-aviso-fundo:color-mix(in srgb,var(--ro-bronze-400) 12%,var(--ro-pergaminho-0));
+  --ro-info:var(--ro-azul-700);
+  --ro-info-texto:var(--ro-azul-700);
+  --ro-info-fundo:color-mix(in srgb,var(--ro-azul-400) 10%,var(--ro-pergaminho-0));
+
+  --ro-foco:var(--ro-ouro-800);
+  --ro-veu:color-mix(in srgb,var(--ro-noite-990) 55%,transparent);
+
+  --ro-sombra-1:0 1px 2px rgb(13 27 53 / .06);
+  --ro-sombra-2:0 8px 24px rgb(13 27 53 / .10);
+  --ro-sombra-3:0 14px 36px rgb(13 27 53 / .14);
+  --ro-sombra-4:0 20px 60px rgb(13 27 53 / .22);
+}

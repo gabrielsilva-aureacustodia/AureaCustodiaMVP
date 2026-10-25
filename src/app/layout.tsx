@@ -4,11 +4,11 @@
  *
  * Três responsabilidades, e as três têm armadilha:
  *
- *  1. FONTES. Playfair Display e Source Sans 3 vinham de um @import de Google
- *     Fonts dentro do <style>; aqui vêm de next/font/google, que hospeda os
- *     arquivos junto da aplicação (sem requisição a terceiro, sem flash de
- *     fonte). As classes .variable PRECISAM ir no <html>, não no <body>:
- *     tokens.css declara --ff-sans:var(--font-sans,...) dentro de :root, e a
+ *  1. FONTES. As famílias da marca (Newsreader e Inter desde o Brandbook de
+ *     25/10/2026) moram em src/brand/fontes.ts e vêm de next/font/google, que
+ *     hospeda os arquivos junto da aplicação (sem requisição a terceiro, sem
+ *     flash de fonte). As classes .variable PRECISAM ir no <html>, não no <body>:
+ *     brand/tokens.css declara --ro-fonte-texto:var(--font-sans,...) em :root, e a
  *     substituição de uma custom property acontece no elemento onde ela é
  *     DECLARADA. Com as classes no <body>, --font-sans ainda não existiria no
  *     momento em que :root é resolvido e o site inteiro cairia no fallback.
@@ -20,30 +20,14 @@
  */
 
 import type { Metadata, Viewport } from 'next'
-import { Playfair_Display, Source_Sans_3 } from 'next/font/google'
 import type { ReactNode } from 'react'
 
 import './globals.css'
 
+import { classesDasFontes } from '@/brand/fontes'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ModalProvider } from '@/components/ui/Modal'
 import { ToastProvider } from '@/components/ui/Toast'
-
-/* Os mesmos pesos que o @import do monolito pedia (linha 10):
-   Playfair Display 500/600/700 e Source Sans 3 400/500/600/700. */
-const display = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-display',
-  display: 'swap',
-})
-
-const sans = Source_Sans_3({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Real Olímpico — Custódia de moedas comemorativas',
@@ -83,7 +67,7 @@ const APLICA_TEMA = `(function(){try{var t=localStorage.getItem('aurea-theme');i
 
 export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${sans.variable}`}>
+    <html lang="pt-BR" className={classesDasFontes}>
       {/* data-theme no HTML do servidor: sem ele, o primeiro frame sai sem
           nenhuma cor semântica. suppressHydrationWarning porque o script abaixo
           pode ter trocado o atributo para 'light' antes de o React hidratar —
