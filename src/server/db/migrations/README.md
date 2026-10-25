@@ -22,6 +22,7 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `014_comissao_dois_lados.sql` | Frente A: `fee_comprador` e `fee_vendedor` em `aurea.trades` (A1, RA-06) |
 | `015_prioridade_e_historico_ofertas.sql` | Frente A: `prioridade_em` em `sell_offers` e `buy_orders`, tabela append-only `ofertas_historico` (A2, Decisão F-3) |
 | `016_documentos_e_aceites.sql` | Frente A: `documentos_legais` e `aceites_documentos` com hash encadeado e RLS (A3) |
+| `046_controle_financeiro.sql` | Controle financeiro (25/10/2026): `setores_financeiros` (semeada), `lancamentos_recorrentes` e, em `lancamentos_manuais`, `recorrente_id`/`competencia`/`setor_id` com índice único parcial (a ocorrência não é lançada duas vezes). Aditiva |
 
 A próxima é a **034**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.

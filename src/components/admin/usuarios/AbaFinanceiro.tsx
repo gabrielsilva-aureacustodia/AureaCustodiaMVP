@@ -74,14 +74,15 @@ export function AbaFinanceiro({
           {dados.extrato.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Extrato da conta</caption>
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Evento</th>
-                    <th>Descrição</th>
-                    <th className="adm-num">Qtd</th>
-                    <th className="adm-num">Taxa</th>
-                    <th className="adm-num">Efeito no saldo</th>
+                    <th scope="col">Data</th>
+                    <th scope="col">Evento</th>
+                    <th scope="col">Descrição</th>
+                    <th scope="col" className="adm-num">Qtd</th>
+                    <th scope="col" className="adm-num">Taxa</th>
+                    <th scope="col" className="adm-num">Efeito no saldo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -112,15 +113,16 @@ export function AbaFinanceiro({
           ) : dados.ledger.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Livro-razão da conta</caption>
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Quando</th>
-                    <th>Tipo</th>
-                    <th>Descrição</th>
-                    <th className="adm-num">Valor</th>
-                    <th className="adm-num">Saldo após</th>
-                    <th>Hash</th>
+                    <th scope="col">#</th>
+                    <th scope="col">Quando</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Descrição</th>
+                    <th scope="col" className="adm-num">Valor</th>
+                    <th scope="col" className="adm-num">Saldo após</th>
+                    <th scope="col">Hash</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,14 +171,15 @@ export function AbaFinanceiro({
           ) : dados.saques.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Saques da conta</caption>
                 <thead>
                   <tr>
-                    <th>Pedido</th>
-                    <th>Situação</th>
-                    <th className="adm-num">Total</th>
-                    <th className="adm-num">Taxa</th>
-                    <th className="adm-num">Líquido</th>
-                    <th>Previsão</th>
+                    <th scope="col">Pedido</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col" className="adm-num">Total</th>
+                    <th scope="col" className="adm-num">Taxa</th>
+                    <th scope="col" className="adm-num">Líquido</th>
+                    <th scope="col">Previsão</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,15 +211,16 @@ export function AbaFinanceiro({
           {dados.faturas.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Faturas de custódia da conta</caption>
                 <thead>
                   <tr>
-                    <th>Competência</th>
-                    <th>Situação</th>
-                    <th className="adm-num">Moedas</th>
-                    <th className="adm-num">Valor</th>
-                    <th>Vencimento</th>
-                    <th>Pagamento</th>
-                    {podeEditar ? <th /> : null}
+                    <th scope="col">Competência</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col" className="adm-num">Moedas</th>
+                    <th scope="col" className="adm-num">Valor</th>
+                    <th scope="col">Vencimento</th>
+                    <th scope="col">Pagamento</th>
+                    {podeEditar ? <th scope="col" /> : null}
                   </tr>
                 </thead>
                 <tbody>

@@ -26,8 +26,8 @@ export function CriarUsuario(): ReactNode {
   const [ocupado, setOcupado] = useState(false)
 
   return (
-    <details className="adm-detalhes adm-secao">
-      <summary>Criar conta</summary>
+    <details className="adm-detalhes adm-secao adm-detalhes-acao">
+      <summary>+ Criar conta de cliente</summary>
       <div className="adm-detalhes-corpo">
         <form
           onSubmit={async (e) => {
@@ -41,7 +41,7 @@ export function CriarUsuario(): ReactNode {
           <div className="adm-form">
             <div className="field adm-campo-largo">
               <label htmlFor="novo-email">E-mail</label>
-              <input id="novo-email" className="tinput" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
+              <input id="novo-email" className="tinput" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" />
             </div>
             <div className="field adm-campo-largo">
               <label htmlFor="novo-nome">Nome</label>
@@ -49,10 +49,10 @@ export function CriarUsuario(): ReactNode {
             </div>
             <div className="field">
               <label htmlFor="novo-senha">Senha provisória (opcional)</label>
-              <input id="novo-senha" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" />
+              <input id="novo-senha" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" spellCheck={false} autoCapitalize="none" />
             </div>
           </div>
-          <div className="adm-acoes" style={{ marginTop: 10 }}>
+          <div className="adm-acoes adm-acima-10">
             <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso="usuarios-criar">
               {ocupado ? 'Criando…' : 'Criar conta'}
             </button>

@@ -11,6 +11,15 @@
  * permissão no servidor e a Server Action confere de novo. Esta lista decide só o que
  * aparece.
  *
+ * TRÊS GRUPOS POR TAREFA, E NÃO POR ORIGEM (25/10/2026, polimento do painel). Até aqui o
+ * menu seguia as etapas em que cada tela nasceu (Central de Resultados, Atendimento,
+ * Operação, Sistema), e Saques — a fila de dinheiro de cliente parado — morava entre
+ * relatórios. Agora: "Operação do dia" (o que alguém da equipe resolve hoje: saques,
+ * bancada, logística, atendimento, contas, acervo), "Gestão" (números para decidir) e
+ * "Configuração" (o que muda o site inteiro). É o desenho dos painéis de finanças e
+ * marketplace estudados em docs/polimento/admin/BENCHMARK.md. Rótulos únicos: o item de
+ * menu e o título do grupo nunca têm o mesmo nome.
+ *
  * Sem 'use client' de propósito: não há hook aqui, só dados. O menu (cliente) e o
  * painel inicial (servidor) leem a mesma lista, e o título da topbar sai dela também.
  */
@@ -27,6 +36,8 @@ export interface ItemNav {
   titulo: string
   /** Subtítulo da topbar, e a descrição do atalho no painel inicial. */
   subtitulo: string
+  /** Título da topbar dentro de uma ficha da lista (`/admin/usuarios/[email]`): "Ficha do cliente". */
+  tituloDoRegistro?: string
   /** Basta UMA destas. Lista vazia = qualquer membro do painel. */
   permissoes: readonly ChavePermissao[]
   icone: ReactNode
@@ -39,9 +50,9 @@ export interface GrupoNav {
 
 export const INICIO_ADMIN: ItemNav = {
   href: '/admin',
-  rotulo: 'Painel',
-  titulo: 'Painel administrativo',
-  subtitulo: 'Resultados, operação e equipe do Real Olímpico.',
+  rotulo: 'Central de trabalho',
+  titulo: 'Central de trabalho',
+  subtitulo: 'O que pede ação agora, os números do mês e o atalho para cada área.',
   permissoes: [],
   icone: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
 }
@@ -49,7 +60,80 @@ export const INICIO_ADMIN: ItemNav = {
 export const GRUPOS_NAV: readonly GrupoNav[] = [
   { rotulo: null, itens: [INICIO_ADMIN] },
   {
-    rotulo: 'Central de Resultados',
+    rotulo: 'Operação do dia',
+    itens: [
+      {
+        href: '/admin/saques',
+        rotulo: 'Saques',
+        titulo: 'Saques',
+        subtitulo: 'Pedidos de saque dos clientes: aprovar e enviar o Pix, pagar por fora ou recusar com estorno.',
+        permissoes: ['saques.ver'],
+        icone: <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />,
+      },
+      {
+        href: '/admin/bancada',
+        rotulo: 'Bancada',
+        titulo: 'Bancada de análise',
+        subtitulo: 'Análise física no navegador, na mesma corrente de hashes da estação.',
+        permissoes: ['bancada.ver'],
+        icone: (
+          <>
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-5-5" />
+          </>
+        ),
+      },
+      {
+        href: '/admin/logistica',
+        rotulo: 'Logística',
+        titulo: 'Logística',
+        subtitulo: 'Envios e retiradas de todas as contas, com rastreio e etiquetas.',
+        permissoes: ['logistica.ver'],
+        icone: (
+          <>
+            <path d="M3 6h11v9H3zM14 9h4l3 3v3h-7" />
+            <circle cx="7" cy="17" r="2" />
+            <circle cx="17" cy="17" r="2" />
+          </>
+        ),
+      },
+      {
+        href: '/admin/cs',
+        rotulo: 'Atendimento',
+        titulo: 'Atendimento',
+        subtitulo: 'Conversas de WhatsApp com a ficha do cliente ao lado.',
+        permissoes: ['cs.ver'],
+        icone: <path d="M4 5h16v11H9l-5 4z" />,
+      },
+      {
+        href: '/admin/usuarios',
+        rotulo: 'Usuários',
+        titulo: 'Usuários',
+        subtitulo: 'Lista e ficha completa de cada conta.',
+        tituloDoRegistro: 'Ficha do cliente',
+        permissoes: ['usuarios.ver'],
+        icone: (
+          <>
+            <circle cx="9" cy="8" r="4" />
+            <path d="M2 21c1-4 4-6 7-6s6 2 7 6M17 4a3.5 3.5 0 010 7M22 20c-.5-2.6-2-4.2-4-4.8" />
+          </>
+        ),
+      },
+      {
+        href: '/admin/moedas',
+        rotulo: 'Auditoria de moedas',
+        titulo: 'Auditoria de moedas',
+        subtitulo: 'Todo o acervo, com recibo, hash, caixa e verificação da corrente.',
+        tituloDoRegistro: 'Ficha da moeda',
+        permissoes: ['bancada.auditoria'],
+        icone: (
+          <path d="M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5" />
+        ),
+      },
+    ],
+  },
+  {
+    rotulo: 'Gestão',
     itens: [
       {
         href: '/admin/resultados/financeiro',
@@ -60,12 +144,12 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
         icone: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
       },
       {
-        href: '/admin/saques',
-        rotulo: 'Saques',
-        titulo: 'Saques',
-        subtitulo: 'Pedidos de saque dos clientes: aprovar e enviar o Pix, pagar por fora ou recusar com estorno.',
-        permissoes: ['saques.ver'],
-        icone: <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />,
+        href: '/admin/resultados/controle',
+        rotulo: 'Controle financeiro',
+        titulo: 'Controle financeiro',
+        subtitulo: 'Todos os custos, taxas, impostos e receitas — e os lançamentos recorrentes da empresa.',
+        permissoes: ['resultados.ver'],
+        icone: <path d="M3 5h18M3 12h18M3 19h18M7 3v4M17 10v4M11 17v4" />,
       },
       {
         href: '/admin/resultados/contabil',
@@ -93,7 +177,7 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
       },
       {
         href: '/admin/resultados/uso',
-        rotulo: 'Uso',
+        rotulo: 'Uso e auditoria',
         titulo: 'Uso da plataforma',
         subtitulo: 'Páginas mais abertas, jornadas, horário de pico e a trilha de auditoria.',
         permissoes: ['resultados.ver', 'admin.auditoria'],
@@ -102,79 +186,11 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
     ],
   },
   {
-    rotulo: 'Atendimento',
-    itens: [
-      {
-        href: '/admin/cs',
-        rotulo: 'CS',
-        titulo: 'Atendimento',
-        subtitulo: 'Conversas de WhatsApp com a ficha do cliente ao lado.',
-        permissoes: ['cs.ver'],
-        icone: <path d="M4 5h16v11H9l-5 4z" />,
-      },
-      {
-        href: '/admin/usuarios',
-        rotulo: 'Usuários',
-        titulo: 'Usuários',
-        subtitulo: 'Lista e ficha completa de cada conta.',
-        permissoes: ['usuarios.ver'],
-        icone: (
-          <>
-            <circle cx="9" cy="8" r="4" />
-            <path d="M2 21c1-4 4-6 7-6s6 2 7 6M17 4a3.5 3.5 0 010 7M22 20c-.5-2.6-2-4.2-4-4.8" />
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    rotulo: 'Operação',
-    itens: [
-      {
-        href: '/admin/bancada',
-        rotulo: 'Bancada',
-        titulo: 'Bancada de análise',
-        subtitulo: 'Análise física no navegador, na mesma corrente de hashes da estação.',
-        permissoes: ['bancada.ver'],
-        icone: (
-          <>
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-5-5" />
-          </>
-        ),
-      },
-      {
-        href: '/admin/moedas',
-        rotulo: 'Moedas',
-        titulo: 'Auditoria de moedas',
-        subtitulo: 'Todo o acervo, com recibo, hash, caixa e verificação da corrente.',
-        permissoes: ['bancada.auditoria'],
-        icone: (
-          <path d="M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5" />
-        ),
-      },
-      {
-        href: '/admin/logistica',
-        rotulo: 'Logística',
-        titulo: 'Logística',
-        subtitulo: 'Envios e retiradas de todas as contas, com rastreio e etiquetas.',
-        permissoes: ['logistica.ver'],
-        icone: (
-          <>
-            <path d="M3 6h11v9H3zM14 9h4l3 3v3h-7" />
-            <circle cx="7" cy="17" r="2" />
-            <circle cx="17" cy="17" r="2" />
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    rotulo: 'Sistema',
+    rotulo: 'Configuração',
     itens: [
       {
         href: '/admin/configuracao',
-        rotulo: 'Configuração',
+        rotulo: 'Configuração do site',
         titulo: 'Configuração do site',
         subtitulo: 'Taxas, catálogo de moedas, parâmetros operacionais e integrações.',
         permissoes: ['config.ver'],

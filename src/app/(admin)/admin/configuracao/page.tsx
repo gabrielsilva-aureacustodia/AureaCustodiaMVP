@@ -110,16 +110,31 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
         </div>
       ) : (
         <>
-          <div className="panel">
+          {/* Três formulários longos na mesma aba: o índice evita rolar a tela inteira para achar
+              os canais (25/10/2026). Mesmos campos, mesma ordem. */}
+          <nav aria-label="Nesta página">
+            <ul className="adm-nesta-pagina">
+              <li>
+                <a href="#config-operacional">Operacional</a>
+              </li>
+              <li>
+                <a href="#config-termos">Parâmetros dos Termos de Uso</a>
+              </li>
+              <li>
+                <a href="#config-canais">Canais de atendimento</a>
+              </li>
+            </ul>
+          </nav>
+          <div className="panel" id="config-operacional">
             <h3>Operacional</h3>
             <FormGrupoConfig key={JSON.stringify(config.operacional)} grupo="operacional" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} />
           </div>
-          <div className="panel">
+          <div className="panel" id="config-termos">
             <h3>Parâmetros dos Termos de Uso</h3>
             <DocumentoPublicado doc={docs.termos_de_uso} podePublicar={podeTaxas && !semTabela} />
             <FormGrupoConfig key={JSON.stringify(config.termos)} grupo="termos" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} aviso="Salvar publica versão nova dos Termos de Uso." />
           </div>
-          <div className="panel">
+          <div className="panel" id="config-canais">
             <h3>Canais de atendimento</h3>
             <p className="adm-fraco">Aparecem em /suporte. Não mudam o texto dos Termos.</p>
             <FormGrupoConfig key={JSON.stringify(config.canais)} grupo="sac" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} />
@@ -168,17 +183,21 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
         {linhas === null ? (
           <p className="adm-fraco">Sem banco com a migration 024, não há histórico gravado.</p>
         ) : linhas.length === 0 ? (
-          <p className="empty">Nenhuma mudança feita pelo painel ainda: tudo vale o padrão do código.</p>
+          <div className="adm-vazio">
+            <b>Nenhuma mudança feita pelo painel ainda.</b>
+            Tudo vale o padrão do código. Cada valor salvo nas outras abas aparece aqui, com quem mudou, o antes e o depois.
+          </div>
         ) : (
           <div className="table-scroll">
             <table className="audit-table">
+              <caption className="adm-sr">Histórico da configuração: quando, quem, o quê, valor antes e depois</caption>
               <thead>
                 <tr>
-                  <th>Quando</th>
-                  <th>Quem</th>
-                  <th>O quê</th>
-                  <th>Antes</th>
-                  <th>Depois</th>
+                  <th scope="col">Quando</th>
+                  <th scope="col">Quem</th>
+                  <th scope="col">O quê</th>
+                  <th scope="col">Antes</th>
+                  <th scope="col">Depois</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,14 +223,22 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
       {config.origem === 'padrao' && !bancoConfigurado() ? <AvisoSemBanco>A configuração vale o padrão do código e não pode ser editada.</AvisoSemBanco> : null}
       {config.origem === 'padrao' && bancoConfigurado() ? <p className="note adm-secao">O banco ainda não tem as tabelas de configuração (migration 024). Rode npm run db:migrate — até lá, vale o padrão do código.</p> : null}
       {config.origem === 'falha' ? <p className="note adm-secao adm-negativo">A leitura da configuração falhou agora; a tela mostra o padrão do código. Recarregue em instantes.</p> : null}
-      <nav className="adm-abas" aria-label="Abas da configuração">
-        {ABAS.map((a) => (
-          <Link key={a.id} href={`/admin/configuracao?aba=${a.id}`} className={`chart-tab${a.id === aba ? ' on' : ''}`} aria-current={a.id === aba ? 'page' : undefined}>
-            {a.rotulo}
-          </Link>
-        ))}
-      </nav>
-      {conteudo}
+      {/* Rodada 2 (25/10/2026): o desenho de "ajustes" — as seções numa coluna à esquerda e o conteúdo
+          à direita no computador; no celular, as abas voltam a ficar em cima. Mesmas abas, mesma URL. */}
+      <div className="adm-ajustes">
+        <nav className="adm-ajustes-nav" aria-label="Seções da configuração">
+          <ul>
+            {ABAS.map((a) => (
+              <li key={a.id}>
+                <Link href={`/admin/configuracao?aba=${a.id}`} aria-current={a.id === aba ? 'page' : undefined}>
+                  {a.rotulo}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="adm-ajustes-conteudo">{conteudo}</div>
+      </div>
     </>
   )
 }

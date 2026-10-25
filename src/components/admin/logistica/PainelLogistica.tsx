@@ -23,6 +23,7 @@ import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { DadosDaLogistica } from '@/server/admin/logistica'
 
 import { data, dataHora, dinheiro, numero } from '../formatos'
+import { Abas } from '../Pecas'
 
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
   if (!rastreio) return <span className="adm-fraco">rastreio ainda não consultado</span>
@@ -50,37 +51,39 @@ function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): Reac
 }
 
 function Filtro({ filtro }: { filtro: FiltroLogistica }): ReactNode {
+  const filtrosAtivos = [filtro.busca, filtro.situacao !== 'abertos'].filter(Boolean).length
   return (
-    <Form action="/admin/logistica" className="adm-form">
-      <div className="field adm-campo-largo">
-        <label htmlFor="logistica-busca">Protocolo, retirada, moeda, rastreio, nome ou e-mail</label>
-        <input id="logistica-busca" name="busca" className="tinput" defaultValue={filtro.busca} placeholder="ex.: RO-ENV-0003, BR123, Ana" />
-      </div>
-      <div className="field">
-        <label htmlFor="logistica-ver">Ver</label>
-        <select id="logistica-ver" name="ver" className="tinput" defaultValue={filtro.ver}>
-          <option value="tudo">Envios e retiradas</option>
-          <option value="envios">Só envios</option>
-          <option value="retiradas">Só retiradas</option>
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor="logistica-situacao">Situação</label>
-        <select id="logistica-situacao" name="situacao" className="tinput" defaultValue={filtro.situacao}>
-          <option value="abertos">Em andamento</option>
-          <option value="atrasados">Com prazo estourado</option>
-          <option value="todos">Todos</option>
-        </select>
-      </div>
-      <div className="adm-acoes">
-        <button type="submit" className="btn btn-gold adm-btn-compacto">
-          Filtrar
-        </button>
-        <Link href="/admin/logistica" className="btn btn-outline adm-btn-compacto">
-          Limpar
-        </Link>
-      </div>
-    </Form>
+    // Celular: os campos ficam numa gaveta "Filtros (N)", aberta quando há filtro valendo; no
+    // computador o resumo some e os campos ficam sempre à vista (admin.css, ::details-content).
+    <details className="adm-filtros-gaveta" open={filtrosAtivos > 0}>
+      <summary>Filtros{filtrosAtivos ? ` (${filtrosAtivos})` : ''}</summary>
+      <Form action="/admin/logistica" className="adm-form">
+        <div className="field adm-campo-largo">
+          <label htmlFor="logistica-busca">Protocolo, retirada, moeda, rastreio, nome ou e-mail</label>
+          <input id="logistica-busca" name="busca" className="tinput" defaultValue={filtro.busca} placeholder="ex.: RO-ENV-0003, BR123, Ana" />
+        </div>
+        {/* "Ver" virou as abas acima da lista (rodada 2); o filtro só leva a aba atual junto. */}
+        <input type="hidden" name="ver" value={filtro.ver} />
+        <div className="field">
+          <label htmlFor="logistica-situacao">Situação</label>
+          <select id="logistica-situacao" name="situacao" className="tinput" defaultValue={filtro.situacao}>
+            <option value="abertos">Em andamento</option>
+            <option value="atrasados">Com prazo estourado</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+        <div className="adm-acoes">
+          <button type="submit" className="btn btn-outline adm-btn-compacto">
+            Filtrar envios e retiradas
+          </button>
+          {filtrosAtivos ? (
+            <Link href={filtro.ver === 'tudo' ? '/admin/logistica' : `/admin/logistica?ver=${filtro.ver}`} className="btn btn-outline adm-btn-compacto">
+              Limpar filtros ({filtrosAtivos})
+            </Link>
+          ) : null}
+        </div>
+      </Form>
+    </details>
   )
 }
 
@@ -102,10 +105,29 @@ export function PainelLogistica({
   /** Pré-postagem ativa de cada retirada visível, pelo id da retirada. */
   etiquetas?: Record<string, EtiquetaDaRetirada>
 }): ReactNode {
+  // Abas por tipo (rodada 2, 25/10/2026): o "Ver" que estava escondido no filtro. Levam a situação
+  // e a busca junto; a contagem é a de "em andamento" que a página já calculou.
+  const resto = new URLSearchParams()
+  if (filtro.situacao !== 'abertos') resto.set('situacao', filtro.situacao)
+  if (filtro.busca) resto.set('busca', filtro.busca)
+  const url = (ver: string): string => {
+    const q = new URLSearchParams(resto)
+    if (ver !== 'tudo') q.set('ver', ver)
+    const t = q.toString()
+    return t ? `/admin/logistica?${t}` : '/admin/logistica'
+  }
+
   return (
     <>
-      <div className="panel">
-        <h3>Filtro</h3>
+      <Abas
+        rotulo="Envios e retiradas"
+        itens={[
+          { href: url('tudo'), rotulo: 'Tudo', atual: filtro.ver === 'tudo' },
+          { href: url('envios'), rotulo: 'Envios para a custódia', atual: filtro.ver === 'envios', contagem: dados.contagem.enviosAbertos },
+          { href: url('retiradas'), rotulo: 'Retiradas físicas', atual: filtro.ver === 'retiradas', contagem: dados.contagem.retiradasAbertas },
+        ]}
+      />
+      <div className="adm-secao">
         <Filtro filtro={filtro} />
         {dados.retiradasIndisponiveis ? <p className="note">As retiradas não puderam ser lidas agora.</p> : null}
         {dados.rastreiosIndisponiveis ? <p className="note">O último rastreio gravado não pôde ser lido agora; as etapas continuam valendo.</p> : null}
@@ -117,15 +139,16 @@ export function PainelLogistica({
           {dados.envios.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Envios para a custódia: protocolo, cliente, moedas, etapa e prazos</caption>
                 <thead>
                   <tr>
-                    <th>Protocolo</th>
-                    <th>Cliente</th>
-                    <th>Moedas</th>
-                    <th>Etapa</th>
-                    <th>Postagem e recebimento</th>
-                    <th>Rastreio</th>
-                    <th />
+                    <th scope="col">Protocolo</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Moedas</th>
+                    <th scope="col">Etapa</th>
+                    <th scope="col">Postagem e recebimento</th>
+                    <th scope="col">Rastreio</th>
+                    <th scope="col" />
                   </tr>
                 </thead>
                 <tbody>
@@ -176,7 +199,10 @@ export function PainelLogistica({
               </table>
             </div>
           ) : (
-            <p className="empty">Nenhum envio com este filtro.</p>
+            <div className="adm-vazio">
+              <b>Nenhum envio com este filtro.</b>
+              {filtro.situacao === 'abertos' ? 'Sem envio em andamento. Troque a Situação para "Todos" para ver os concluídos.' : 'Afrouxe a busca ou use "Limpar filtros" acima.'}
+            </div>
           )}
         </div>
       ) : null}
@@ -187,16 +213,17 @@ export function PainelLogistica({
           {dados.retiradas.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Retiradas físicas: cliente, moeda, situação, taxa e prazo</caption>
                 <thead>
                   <tr>
-                    <th>Retirada</th>
-                    <th>Cliente</th>
-                    <th>Moeda</th>
-                    <th>Situação</th>
-                    <th className="adm-num">Taxa</th>
-                    <th>Prazo</th>
-                    <th>Histórico e rastreio</th>
-                    <th />
+                    <th scope="col">Retirada</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Moeda</th>
+                    <th scope="col">Situação</th>
+                    <th scope="col" className="adm-num">Taxa</th>
+                    <th scope="col">Prazo</th>
+                    <th scope="col">Histórico e rastreio</th>
+                    <th scope="col" />
                   </tr>
                 </thead>
                 <tbody>
@@ -262,7 +289,10 @@ export function PainelLogistica({
               </table>
             </div>
           ) : (
-            <p className="empty">Nenhuma retirada com este filtro.</p>
+            <div className="adm-vazio">
+              <b>Nenhuma retirada com este filtro.</b>
+              {filtro.situacao === 'abertos' ? 'Sem retirada em andamento. Troque a Situação para "Todos" para ver as entregues.' : 'Afrouxe a busca ou use "Limpar filtros" acima.'}
+            </div>
           )}
         </div>
       ) : null}

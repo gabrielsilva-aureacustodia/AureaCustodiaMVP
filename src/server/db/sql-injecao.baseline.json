@@ -68,6 +68,9 @@
   "src/server/db/repositories/faturas.ts": [
     "S"
   ],
+  "src/server/db/repositories/financeiro.ts": [
+    "S"
+  ],
   "src/server/db/repositories/ledger.ts": [
     "COLUNAS",
     "S",

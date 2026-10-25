@@ -6,9 +6,13 @@
    mobile e o layout de celular sem uma media query nova: elas vivem em
    responsive.css, que continua sendo o último import de globals.css.
 
-   Por isso ESTE ARQUIVO NÃO TEM MEDIA QUERY. O que precisa se adaptar à largura usa
-   grade com auto-fit e minmax(min(100%, X), 1fr) e linhas com flex-wrap: encolhe
-   sozinho, sem depender da ordem da cascata.
+   O que precisa se adaptar à largura usa grade com auto-fit e minmax(min(100%, X), 1fr)
+   e linhas com flex-wrap: encolhe sozinho, sem depender da ordem da cascata.
+
+   EXCEÇÃO DE 25/10/2026 (polimento do painel): o bloco "Celular e tablet" no fim tem
+   media query própria, porque responsive.css é da frente da plataforma. Este arquivo é
+   importado ANTES de responsive.css, então toda regra dali leva .adm-* a mais no seletor
+   (especificidade maior) para não perder para uma regra de mesma especificidade.
 
    Cor só pelas variáveis de tokens.css. Toda classe nova começa com .adm- para não
    colidir com as do monolito. Alvo de toque de 44px em tudo que se clica.
@@ -24,7 +28,7 @@
 
 /* ---- Blocos de conteúdo -------------------------------------------------- */
 .adm-secao{margin-bottom:18px}
-.adm-titulo-secao{font-size:18px;color:var(--text-strong);font-weight:600;margin:6px 0 12px}
+.adm-titulo-secao{font-size:19px;color:var(--text-strong);font-weight:600;margin:18px 0 12px;font-family:var(--ff-display)}
 .adm-subtitulo{font-size:14px;color:var(--text-strong);font-weight:700;margin:16px 0 8px}
 
 /* Atalho do painel inicial: um cartão inteiro clicável, com ícone e descrição. */
@@ -195,3 +199,423 @@ body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
 .adm-config-rodape{flex:1 1 100%}
 .adm-integracao h3{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .adm-integracao code{font-size:12px;overflow-wrap:anywhere}
+
+/* ============================================================================
+   POLIMENTO DO PAINEL (25/10/2026) — casco, central de trabalho, tabelas largas,
+   confirmação com objeto, estados de carregando e vazio, celular.
+   Decisões e fontes: docs/polimento/admin/BENCHMARK.md.
+   ========================================================================= */
+
+/* ---- Utilitários de acessibilidade -------------------------------------- */
+/* Texto só para leitor de tela (legenda de tabela, "Carregando…", rótulo do campo da busca). */
+.adm-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.adm-pular{position:absolute;left:12px;top:-60px;z-index:200;background:var(--gold);color:var(--on-gold);font-weight:700;padding:12px 16px;border-radius:10px;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.adm-pular:focus{top:12px}
+.adm-main:focus{outline:none}
+.adm-main [id]{scroll-margin-top:16px}
+.adm-main h2,.adm-main h3{text-wrap:balance}
+.adm-main a,.adm-main button,.adm-main summary,.adm-main label,.adm-main input,.adm-main select,.adm-main textarea{touch-action:manipulation}
+
+/* Botão com cara de link/item: o <button> herda fonte e cor e perde o fundo do navegador. */
+.adm-nav-botao,.adm-botao-texto{font:inherit;background:transparent;border:1px solid transparent;width:100%;text-align:left;color:var(--text-muted)}
+.adm-botao-texto{width:auto;border:0}
+.adm-switch{padding:0;flex-shrink:0}
+.adm-switch:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+/* ---- Casco ---------------------------------------------------------------- */
+/* Mais largura que o app do cliente: o painel vive de tabela larga. */
+.adm-main{max-width:1480px;min-width:0}
+.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto}
+.adm-nav-titulo{border-top:1px solid var(--line-soft);padding-top:12px}
+.adm-topbar{align-items:flex-start;flex-wrap:nowrap}
+.adm-topbar .page-title{min-width:0}
+.adm-top-direita{flex-wrap:nowrap;justify-content:flex-end;gap:12px;flex-shrink:0}
+.adm-migalhas{font-size:12.5px;color:var(--text-muted);margin-bottom:2px;overflow-wrap:anywhere}
+.adm-migalhas a{color:var(--gold);text-decoration:underline;text-underline-offset:2px;display:inline-flex;align-items:center;min-height:24px}
+
+/* Menu da conta: o chip do membro abre tema, voltar ao app e sair. */
+.adm-conta{position:relative}
+.adm-conta > summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 8px;border:1px solid transparent;border-radius:12px}
+.adm-conta > summary::-webkit-details-marker{display:none}
+.adm-conta > summary:hover,.adm-conta[open] > summary{border-color:var(--line-soft)}
+.adm-conta-texto{display:flex;flex-direction:column;min-width:0}
+.adm-conta-seta{width:16px;height:16px;stroke:var(--text-muted);fill:none;stroke-width:2;flex-shrink:0;transition:transform .18s ease}
+.adm-conta[open] .adm-conta-seta{transform:rotate(180deg)}
+.adm-conta-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:220px;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.adm-conta-quem{display:flex;flex-direction:column;gap:2px;padding:8px 12px 10px;border-bottom:1px solid var(--line-soft);margin-bottom:4px;overflow-wrap:anywhere}
+.adm-conta-quem b{color:var(--text-strong);font-size:13.5px}
+.adm-conta-quem span{color:var(--gold);font-size:12.5px;font-weight:700}
+.adm-conta-item{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:9px;color:var(--text);text-decoration:none;font-size:14px;cursor:pointer}
+.adm-conta-item:hover{background:var(--card-hover);color:var(--text-strong)}
+.adm-main .adm-conta-tema.theme-box{display:flex;justify-content:space-between;min-height:44px;padding:0 12px}
+
+/* Gatilho da busca: parece um campo, é um botão (abre o <dialog>). */
+.adm-busca-gatilho{display:inline-flex;align-items:center;gap:10px;min-height:44px;min-width:min(100%,250px);padding:0 12px;border:1px solid var(--line-soft);border-radius:10px;background:var(--input-bg,transparent);color:var(--text-muted);font:inherit;font-size:13.5px;cursor:pointer;transition:border-color .18s ease}
+.adm-busca-gatilho:hover,.adm-busca-gatilho:focus-visible{border-color:var(--gold);outline:none}
+.adm-busca-gatilho svg{width:17px;height:17px;stroke:var(--gold);fill:none;stroke-width:1.8;flex-shrink:0}
+.adm-busca-gatilho span{flex:1;text-align:left}
+.adm-main kbd,.adm-busca kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px;color:var(--text-muted);background:var(--bg-panel)}
+.adm-busca{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--bg-panel);color:var(--text);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));margin:8vh auto auto;box-shadow:var(--shadow-modal)}
+.adm-busca::backdrop{background:var(--modal-backdrop,rgba(0,0,0,.55))}
+.adm-busca-caixa{display:flex;flex-direction:column;max-height:inherit}
+.adm-busca-campo.tinput{border:0;border-bottom:1px solid var(--line-soft);border-radius:0;min-height:52px;margin:0;font-size:16px;padding:0 16px}
+.adm-busca-lista{list-style:none;margin:0;padding:6px;overflow-y:auto}
+.adm-busca-lista li{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:9px;cursor:pointer;min-height:44px}
+.adm-busca-lista li b{color:var(--text-strong);font-size:14px}
+.adm-busca-lista li span{color:var(--text-muted);font-size:12.5px}
+.adm-busca-lista li.on{background:var(--gold-tint-14)}
+.adm-busca-lista li.adm-busca-vazio{cursor:default;color:var(--text-muted)}
+.adm-busca-dica{font-size:12px;color:var(--text-muted);padding:8px 16px 12px;border-top:1px solid var(--line-soft);margin:0}
+
+/* ---- Central de trabalho (/admin) ----------------------------------------- */
+.adm-fila{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:10px}
+.adm-fila-item{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;border:1px solid var(--line-soft);border-left:4px solid var(--gold);border-radius:12px;padding:12px 16px;background:var(--card)}
+.adm-fila-item.adm-urgente{border-left-color:var(--red)}
+.adm-fila-num{font-family:var(--ff-display);font-size:26px;font-weight:700;color:var(--gold);min-width:2.2ch;text-align:right;font-variant-numeric:tabular-nums}
+.adm-urgente .adm-fila-num{color:var(--red)}
+.adm-fila-texto{flex:1 1 260px;min-width:0}
+.adm-fila-texto b{display:block;color:var(--text-strong);font-size:15px}
+.adm-fila-texto span{display:block;color:var(--text-muted);font-size:13px;line-height:1.45;margin-top:2px}
+.adm-fila-item .btn{width:auto;min-height:44px}
+.adm-em-dia{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.adm-em-dia li{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);border:1px solid var(--green-line);border-radius:20px;padding:4px 10px;min-height:32px}
+.adm-em-dia li::before{content:'\2713';color:var(--green);font-weight:700}
+.adm-saudacao{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-bottom:14px;color:var(--text-muted);font-size:13.5px}
+.adm-saudacao b{color:var(--text-strong)}
+
+/* ---- Tabelas largas ------------------------------------------------------- */
+/* 1ª coluna FIXA ao rolar a tabela de lado (o nome do cliente, o protocolo, a data): sem ela, no
+   celular a pessoa perdia de qual linha era o número que estava lendo. Fundo opaco para o que
+   passa por baixo não aparecer; o hover da linha acompanha. Vale para todas as tabelas do painel
+   (.table-scroll > .audit-table), sem tocar em cada uma. */
+.adm-main .table-scroll{position:relative;border-radius:8px}
+.adm-main .table-scroll .audit-table th:first-child,
+.adm-main .table-scroll .audit-table td:first-child{position:sticky;left:0;z-index:1;background:var(--bg-panel);box-shadow:inset -1px 0 0 var(--line-soft)}
+.adm-main .panel .table-scroll .audit-table th:first-child,
+.adm-main .panel .table-scroll .audit-table td:first-child{background:var(--card)}
+.adm-main .audit-table tbody tr:hover td,
+.adm-main .panel .table-scroll .audit-table tbody tr:hover td:first-child{background:var(--card-hover)}
+.adm-main .audit-table caption{text-align:left}
+/* Coluna de ações nunca quebra o botão no meio. */
+.adm-acoes-linha{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.adm-linha-cheia{width:100%;text-align:right}
+.adm-campo-codigo.tinput{max-width:170px}
+.adm-pill-ao-lado{margin-left:6px}
+.adm-linha-apagada td{opacity:.65}
+.adm-acima-10{margin-top:10px}
+.adm-campo-motivo.tinput{width:100%;min-height:44px;margin:0}
+.adm-subnav.adm-subnav-interna{margin:0 0 12px}
+.adm-campo-inline{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;justify-content:flex-end}
+.adm-campo-inline label{font-size:12px;color:var(--text-muted)}
+.adm-campo-inline .tinput{max-width:140px;min-height:44px;margin:0}
+
+/* ---- Confirmação com o objeto no nome ------------------------------------- */
+.adm-confirmacao{border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--gold-tint-10);display:flex;flex-direction:column;gap:8px;min-width:min(100%,280px);text-align:left}
+.adm-confirmacao.adm-perigo{border-left-color:var(--red);background:var(--red-wash)}
+.adm-confirmacao p{margin:0;font-size:13px;line-height:1.45;color:var(--text)}
+.adm-confirmacao .adm-acoes{gap:8px}
+.adm-zona-perigo{border:1px dashed var(--red-line);border-radius:12px;padding:14px 16px;margin-top:14px}
+.adm-zona-perigo > h4{color:var(--red);font-size:14px;margin:0 0 6px}
+
+/* ---- Estados: carregando e vazio ------------------------------------------ */
+.adm-esqueleto{min-height:86px;background:linear-gradient(90deg,var(--bg-panel) 25%,var(--card-hover) 50%,var(--bg-panel) 75%);background-size:200% 100%;animation:adm-brilho 1.4s ease-in-out infinite}
+.adm-esqueleto-alto{min-height:320px}
+@keyframes adm-brilho{from{background-position:200% 0}to{background-position:-200% 0}}
+.adm-vazio{border:1px dashed var(--line-soft);border-radius:11px;padding:22px;text-align:center;color:var(--text-muted);font-size:14px;line-height:1.55}
+.adm-vazio b{display:block;color:var(--text-strong);margin-bottom:4px}
+.adm-vazio .adm-acoes{justify-content:center;margin-top:10px}
+
+/* ---- Subnavegação de uma área (Gestão: Financeiro, Contábil, Fiscal…) ----- */
+.adm-subnav{display:flex;gap:6px;flex-wrap:wrap;margin:-8px 0 18px;padding:0;list-style:none}
+.adm-subnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--line-soft);border-radius:22px;color:var(--text-muted);text-decoration:none;font-size:13.5px;font-weight:600}
+.adm-subnav a:hover{border-color:var(--gold);color:var(--text-strong)}
+.adm-subnav a[aria-current="page"]{border-color:var(--gold);color:var(--gold);background:var(--gold-tint-10)}
+
+/* Ficha do usuário: abas e conteúdo à esquerda, ações da conta à direita (empilha abaixo de 1280). */
+.adm-ficha{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+.adm-ficha-principal{min-width:0}
+.adm-ficha-lateral{min-width:0}
+@media (min-width:1280px){
+  .adm-main .adm-ficha{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+  .adm-main .adm-ficha-lateral{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}
+  .adm-main .adm-atalho-acoes{display:none}
+}
+.adm-atalho-acoes{margin:-6px 0 12px;font-size:13px}
+.adm-atalho-acoes a{color:var(--gold);display:inline-flex;align-items:center;min-height:44px}
+
+/* "Nesta página" das telas longas (configuração, ficha). */
+.adm-nesta-pagina{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none}
+.adm-nesta-pagina a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid var(--line-soft);font-size:13px;color:var(--text);text-decoration:none}
+.adm-nesta-pagina a:hover{border-color:var(--gold)}
+
+/* Selo com cor + texto: distinguível em escala de cinza. */
+.adm-selo{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:20px;padding:2px 9px;border:1px solid var(--line-soft);white-space:nowrap}
+.adm-selo-alerta{color:var(--red);border-color:var(--red-line)}
+.adm-selo-ok{color:var(--green);border-color:var(--green-line)}
+.adm-selo-ouro{color:var(--gold);border-color:var(--gold)}
+
+/* Gaveta de filtros: no celular, "Filtros (N)" recolhe os campos para a lista aparecer na
+   primeira tela; no computador o resumo some e o conteúdo fica sempre visível. Sem suporte a
+   ::details-content, o computador mostra o resumo clicável (aceitável). Tópico 35 passo 2. */
+.adm-filtros-gaveta{margin-bottom:12px}
+.adm-filtros-gaveta > summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line-soft);border-radius:10px;cursor:pointer;font-weight:700;color:var(--text-strong);list-style:none}
+.adm-filtros-gaveta > summary::-webkit-details-marker{display:none}
+.adm-filtros-gaveta > summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(45deg) translateY(-2px);transition:transform .18s ease}
+.adm-filtros-gaveta[open] > summary{margin-bottom:12px}
+.adm-filtros-gaveta[open] > summary::after{transform:rotate(-135deg)}
+@media (min-width:768px){
+  @supports selector(::details-content){
+    .adm-main .adm-filtros-gaveta > summary{display:none}
+    .adm-main .adm-filtros-gaveta::details-content{content-visibility:visible;block-size:auto}
+  }
+}
+
+/* ============================================================================
+   REMODELAGEM (25/10/2026, rodada 2) — a camada de trabalho do painel.
+   Régua: docs/polimento/admin/BRIEF_DE_DESIGN.md. Painel de trabalho, não vitrine:
+   menos sombra e movimento que o app do cliente, mais densidade e hierarquia.
+   Peças em src/components/admin/Pecas.tsx.
+   ========================================================================= */
+
+/* ---- Densidade e movimento dentro do painel ------------------------------ */
+.adm-main .panel{padding:18px 20px;border-radius:12px;box-shadow:none;margin-bottom:16px}
+.adm-main .panel .panel{margin-bottom:0}
+.adm-main .btn:hover:not([disabled]){transform:none}
+.adm-main .btn-gold{box-shadow:0 2px 8px rgba(201,162,75,.22)}
+.adm-main .adm-cartao:hover{transform:none;box-shadow:none}
+.adm-main .adm-atalho:hover{transform:none}
+.adm-main .audit-table td{padding:8px 10px;vertical-align:top}
+.adm-main .audit-table th{padding:8px 10px;white-space:nowrap}
+.adm-main .audit-table tbody tr:last-child td{border-bottom:0}
+
+/* O <Cartao> antigo (Blocos.tsx) ganha o desenho do <Indicador>: as telas que ainda o usam falam a
+   mesma língua visual sem trocar componente. */
+.adm-main .adm-cartao{padding:12px 14px;border-radius:10px;border-left:3px solid var(--line-soft)}
+.adm-main .adm-cartao-valor{font-size:22px;color:var(--text-strong)}
+.adm-main .adm-tom-alerta{border-left-color:var(--red)}
+.adm-main .adm-tom-alerta .adm-cartao-valor{color:var(--red)}
+.adm-main .adm-tom-positivo{border-left-color:var(--green)}
+.adm-main .adm-grade{gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+
+/* ---- Seção: título h2 + contexto + ações --------------------------------- */
+.adm-bloco{margin-bottom:16px;min-width:0}
+.adm-bloco-aberto{padding:0}
+.adm-bloco-cab{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.adm-bloco-cab-texto{flex:1 1 280px;min-width:0}
+.adm-bloco-cab h2{font-family:var(--ff-display);font-size:19px;font-weight:600;color:var(--text-strong);line-height:1.25;margin:0}
+.adm-bloco-cab p{font-size:13px;color:var(--text-muted);line-height:1.5;margin:3px 0 0;max-width:72ch}
+.adm-bloco-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adm-bloco-acoes .btn{width:auto;min-height:44px;padding:8px 14px;font-size:13.5px}
+
+/* ---- Indicadores ----------------------------------------------------------- */
+.adm-inds{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin-bottom:16px}
+.adm-ind{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border:1px solid var(--line-soft);border-left:3px solid var(--line-soft);border-radius:10px;background:var(--card);color:inherit;text-decoration:none}
+.adm-ind-rotulo{font-size:12px;color:var(--text-muted);font-weight:600}
+.adm-ind-valor{font-family:var(--ff-display);font-size:22px;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.2}
+.adm-ind-detalhe{font-size:12px;color:var(--text-muted);line-height:1.4}
+.adm-ind-ok{border-left-color:var(--green)}
+.adm-ind-alerta{border-left-color:var(--red)}
+.adm-ind-alerta .adm-ind-valor{color:var(--red)}
+.adm-ind-atencao{border-left-color:var(--gold)}
+.adm-ind-ouro .adm-ind-valor{color:var(--gold)}
+.adm-ind-link{transition:border-color .15s ease,background .15s ease;min-height:44px}
+.adm-ind-link:hover{border-color:var(--gold);background:var(--card-hover)}
+.adm-ind-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.adm-ind-link .adm-ind-rotulo::after{content:' \2192';color:var(--gold)}
+
+/* ---- Selo: cor + símbolo + texto ------------------------------------------- */
+.adm-selo2{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;line-height:1;border-radius:20px;padding:4px 9px;border:1px solid var(--line-soft);color:var(--text-muted);white-space:nowrap}
+.adm-selo2-ok{color:var(--green);border-color:var(--green-line)}
+.adm-selo2-alerta{color:var(--red);border-color:var(--red-line)}
+.adm-selo2-atencao,.adm-selo2-ouro{color:var(--gold);border-color:var(--gold)}
+
+/* ---- Abas sublinhadas (troca de visão da página) ---------------------------- */
+/* Vale para a peça nova (.adm-abas2) e para as abas antigas (.adm-abas com .chart-tab), que
+   passam a ter o mesmo desenho: a pílula dourada cheia competia com o botão primário. */
+.adm-abas2 ul{display:flex;gap:2px;flex-wrap:wrap;list-style:none;margin:0 0 16px;padding:0;border-bottom:1px solid var(--line-soft)}
+.adm-abas2 a,.adm-main .adm-abas .chart-tab{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 14px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--text-muted);font-size:14px;font-weight:600;text-decoration:none}
+.adm-abas2 a:hover,.adm-main .adm-abas .chart-tab:hover{color:var(--text-strong)}
+.adm-abas2 a[aria-current="page"],.adm-main .adm-abas .chart-tab.on,.adm-main .adm-abas .chart-tab[aria-current="page"]{color:var(--gold);border-bottom-color:var(--gold);background:transparent}
+.adm-main .adm-abas{gap:2px;border-bottom:1px solid var(--line-soft);margin-bottom:16px}
+.adm-abas2-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--gold-tint-14);color:var(--text-strong);font-size:11.5px;font-variant-numeric:tabular-nums}
+
+/* ---- Duas zonas: principal + lateral (≥1280 px) ---------------------------- */
+.adm-zonas{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.adm-zonas > *{min-width:0}
+@media (min-width:1280px){
+  .adm-main .adm-zonas{grid-template-columns:minmax(0,1fr) minmax(300px,380px)}
+  .adm-main .adm-zona-lateral{position:sticky;top:16px}
+}
+
+/* Na lateral, indicadores em duas colunas e número menor: a zona tem ~340 px. */
+.adm-zona-lateral .adm-inds{grid-template-columns:repeat(2,minmax(0,1fr))}
+.adm-zona-lateral .adm-ind-valor{font-size:18px}
+.adm-main .adm-codigo{white-space:nowrap;overflow-wrap:normal}
+
+/* "Ir para" da Central: lista de áreas com ícone, nome e o que se faz lá. */
+.adm-atalhos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.adm-atalhos a{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;min-height:44px;border-top:1px solid var(--line-soft);color:inherit;text-decoration:none}
+.adm-atalhos li:first-child a{border-top:0}
+.adm-atalhos a:hover b{color:var(--gold)}
+.adm-atalhos svg{width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:1.6;flex-shrink:0;margin-top:2px}
+.adm-atalhos b{display:block;font-size:13.5px;color:var(--text-strong)}
+.adm-atalhos span span{display:block;font-size:12px;color:var(--text-muted);line-height:1.4}
+.adm-atalhos.adm-atalhos-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:0 18px}
+.adm-atalhos.adm-atalhos-grade li a{border-top:1px solid var(--line-soft)}
+
+/* Bloco recolhível que é uma ação ("+ Criar conta de cliente"): o resumo tem cara de botão. */
+.adm-detalhes.adm-detalhes-acao{border-style:dashed}
+.adm-detalhes-acao > summary{color:var(--gold)}
+
+/* Cartão de identidade da ficha (cliente, moeda). */
+.adm-identidade{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin-bottom:16px}
+.adm-identidade-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--gold-tint-14);border:1.5px solid var(--gold);color:var(--text-strong);font-weight:700;font-size:17px}
+.adm-identidade-texto{flex:1 1 240px;min-width:0}
+.adm-identidade-texto h2{font-family:var(--ff-display);font-size:24px;font-weight:600;color:var(--text-strong);margin:0;line-height:1.2;overflow-wrap:anywhere}
+.adm-identidade-texto p{margin:3px 0 0;font-size:13px;color:var(--text-muted);overflow-wrap:anywhere}
+.adm-identidade-selos{justify-content:flex-end}
+
+/* Ficha da moeda: o "avatar" é o ano da moeda; linha do tempo de proveniência. */
+.adm-identidade-moeda{font-family:var(--ff-display);font-size:14px;border-radius:50%}
+.adm-pares .adm-par-largo{grid-column:1 / -1}
+.adm-linha-tempo{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line-soft)}
+.adm-linha-tempo li{position:relative;display:flex;flex-direction:column;gap:2px;padding:0 0 14px 12px;font-size:13.5px;color:var(--text)}
+.adm-linha-tempo li::before{content:'';position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px var(--bg-panel)}
+.adm-linha-tempo li:last-child{padding-bottom:0}
+.adm-linha-tempo-quando{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+/* Ajustes (configuração): seções à esquerda, conteúdo à direita. */
+.adm-ajustes{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.adm-ajustes-conteudo{min-width:0}
+.adm-ajustes-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line-soft)}
+.adm-ajustes-nav a{display:flex;align-items:center;min-height:44px;padding:0 14px;color:var(--text-muted);font-weight:600;font-size:14px;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.adm-ajustes-nav a:hover{color:var(--text-strong)}
+.adm-ajustes-nav a[aria-current="page"]{color:var(--gold);border-bottom-color:var(--gold)}
+@media (min-width:1080px){
+  .adm-main .adm-ajustes{grid-template-columns:200px minmax(0,1fr)}
+  .adm-main .adm-ajustes-nav{position:sticky;top:16px}
+  .adm-main .adm-ajustes-nav ul{flex-direction:column;border-bottom:0;border-left:1px solid var(--line-soft)}
+  .adm-main .adm-ajustes-nav a{border-bottom:0;margin:0 0 0 -1px;border-left:2px solid transparent;border-radius:0 8px 8px 0}
+  .adm-main .adm-ajustes-nav a[aria-current="page"]{border-left-color:var(--gold);background:var(--gold-tint-10)}
+}
+
+/* ---- Barra de ferramentas da página (período, exportar) -------------------- */
+.adm-ferramentas{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.adm-ferramentas > *{min-width:0}
+.adm-ferramentas > .adm-filtros{flex:1 1 auto}
+.adm-ferramentas.adm-ferramentas-coluna{flex-direction:column;align-items:stretch}
+/* Tabela na lateral: sem a largura mínima de 520 px que o .table-scroll dá às tabelas largas. */
+.adm-main .adm-zona-lateral .table-scroll .audit-table{min-width:0}
+
+/* ---- Lista de definição compacta (lateral) --------------------------------- */
+.adm-lista-def{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;margin:0;font-size:13.5px}
+.adm-lista-def dt{color:var(--text-muted)}
+.adm-lista-def dd{margin:0;text-align:right;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums}
+.adm-lista-def dd.adm-negativo{color:var(--red)}
+
+/* ---- Gráfico mensal (GraficoMensal.tsx) ------------------------------------- */
+.adm-graf{margin:0 0 14px;--adm-graf-cor:var(--gold)}
+body[data-theme="light"] .adm-graf{--adm-graf-cor:#9a7a2e}
+.adm-graf-area{display:flex;align-items:stretch;gap:2px;height:200px;padding:22px 0 26px;border-bottom:1px solid var(--line-soft);background:repeating-linear-gradient(to top,transparent 0,transparent 49px,var(--line-soft) 49px,var(--line-soft) 50px);background-position:0 -26px}
+.adm-graf-col{position:relative;flex:1 1 0;min-width:18px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;outline:none;cursor:default}
+.adm-graf-barra{display:block;width:min(24px,70%);background:var(--adm-graf-cor);border-radius:4px 4px 0 0;min-height:0;transition:opacity .15s ease}
+.adm-graf-col:hover .adm-graf-barra,.adm-graf-col:focus-visible .adm-graf-barra{opacity:.8}
+.adm-graf-col:focus-visible{box-shadow:inset 0 0 0 2px var(--gold);border-radius:6px}
+.adm-graf-eixo{position:absolute;bottom:-22px;font-size:11.5px;color:var(--text-muted);white-space:nowrap}
+.adm-graf-valor{font-size:11.5px;font-weight:700;color:var(--text-strong);white-space:nowrap;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.adm-graf-dica{position:absolute;bottom:calc(100% - 10px);left:50%;transform:translateX(-50%);z-index:5;display:none;flex-direction:column;gap:2px;min-width:140px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg-panel);box-shadow:var(--shadow);font-size:12.5px;color:var(--text);font-variant-numeric:tabular-nums;pointer-events:none}
+.adm-graf-dica b{color:var(--text-strong);font-size:12px}
+.adm-graf-dica small{color:var(--text-muted);font-size:11.5px}
+.adm-graf-col:hover .adm-graf-dica,.adm-graf-col:focus-visible .adm-graf-dica{display:flex}
+.adm-graf-col:hover .adm-graf-valor,.adm-graf-col:focus-visible .adm-graf-valor{visibility:hidden}
+
+/* ---- Controle financeiro (/admin/resultados/controle) ---------------------- */
+/* Cascata: do faturamento ao resultado. Entrada e resultado em ouro; saídas em vermelho suave
+   (polaridade); o valor e o peso vão escritos — a cor nunca é o único canal. */
+.adm-cascata{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.adm-cascata-passo{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr) minmax(0,150px);gap:12px;align-items:center}
+.adm-cascata-rotulo b{display:block;font-size:13.5px;color:var(--text-strong)}
+.adm-cascata-rotulo small,.adm-cascata-valor small{display:block;font-size:11.5px;color:var(--text-muted)}
+.adm-cascata-trilho{display:block;height:22px;background:var(--line-soft);border-radius:4px;overflow:hidden}
+.adm-cascata-barra{display:block;height:100%;border-radius:4px;background:var(--gold)}
+.adm-cascata-saida .adm-cascata-barra{background:var(--red);opacity:.55}
+.adm-cascata-resultado .adm-cascata-barra{background:var(--green)}
+.adm-cascata-prejuizo .adm-cascata-barra{background:var(--red);opacity:1}
+.adm-cascata-resultado{border-top:1px solid var(--line-soft);padding-top:10px}
+.adm-cascata-valor{text-align:right;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums}
+.adm-cascata-prejuizo .adm-cascata-valor{color:var(--red)}
+body[data-theme="light"] .adm-cascata-barra{background:#9a7a2e}
+body[data-theme="light"] .adm-cascata-saida .adm-cascata-barra,body[data-theme="light"] .adm-cascata-prejuizo .adm-cascata-barra{background:var(--red)}
+body[data-theme="light"] .adm-cascata-resultado:not(.adm-cascata-prejuizo) .adm-cascata-barra{background:var(--green)}
+
+/* Lista de barras (receitas por tipo, custos por setor). */
+.adm-barras{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.adm-barras li{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13.5px}
+.adm-barras-rotulo{color:var(--text);overflow-wrap:anywhere}
+.adm-barras-trilho{display:block;height:10px;background:var(--line-soft);border-radius:4px;overflow:hidden}
+.adm-barras-barra{display:block;height:100%;border-radius:4px;background:var(--gold)}
+body[data-theme="light"] .adm-barras-ouro .adm-barras-barra{background:#9a7a2e}
+.adm-barras-saida .adm-barras-barra{background:var(--red);opacity:.6}
+.adm-barras-valor{text-align:right;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
+.adm-barras-valor small{display:block;font-weight:400;font-size:11.5px;color:var(--text-muted)}
+
+/* Lista de definição com detalhe e total (impostos, tarifas, notas). */
+.adm-lista-def.adm-lista-def-detalhe{display:flex;flex-direction:column;gap:0}
+.adm-lista-def-linha{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line-soft)}
+.adm-lista-def-linha:first-child{border-top:0}
+.adm-lista-def-linha dt small{display:block;font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.adm-lista-def-total dt,.adm-lista-def-total dd{font-weight:700;color:var(--text-strong)}
+
+/* Formulário de recorrente. */
+.adm-sugestoes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.adm-form-financeiro{border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;padding:14px 16px;background:var(--gold-tint-10)}
+.adm-tipo-lancamento{border:0;padding:0;margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 18px}
+.adm-tipo-lancamento legend{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.adm-previa{font-size:13.5px;color:var(--text);background:var(--bg-panel);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin:6px 0 12px;line-height:1.5}
+
+/* Setores. */
+.adm-setores{list-style:none;margin:12px 0 0;padding:0}
+.adm-setor{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line-soft)}
+.adm-setor-nome{flex:1 1 200px}
+
+/* ---- Celular e tablet ------------------------------------------------------ */
+@media (max-width:1080px){
+  /* A gaveta (responsive.css) pede position:fixed; o sticky do desktop sairia por cima. */
+  /* align-self volta ao normal: em caixa fixa, "flex-start" faz o navegador dimensionar a gaveta
+     pelo conteúdo (1190 px) em vez de top/bottom, e o "Sair" ficava fora da tela. */
+  .adm-sidebar.sidebar{position:fixed;max-height:none;align-self:auto}
+  .adm-main.main{max-width:100%}
+  .adm-topbar.topbar{flex-wrap:wrap}
+  .adm-topbar .adm-top-direita{width:100%;justify-content:space-between;flex-shrink:1}
+  .adm-topbar .adm-busca-gatilho{flex:1 1 220px}
+}
+@media (max-width:560px){
+  .adm-topbar .adm-busca-gatilho kbd{display:none}
+  .adm-main .panel{padding:14px}
+  .adm-main .adm-cascata-passo{grid-template-columns:minmax(0,1fr) auto}
+  .adm-main .adm-cascata-trilho{grid-column:1 / -1;grid-row:2}
+  .adm-main .adm-barras li{grid-template-columns:minmax(0,1fr) auto}
+  .adm-main .adm-barras-trilho{grid-column:1 / -1;grid-row:2}
+  .adm-main .panel .panel{padding:12px}
+  /* Indicadores em duas colunas e número menor: um por linha ocupava a tela inteira. */
+  .adm-main .adm-inds,.adm-main .adm-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adm-main .adm-ind-valor,.adm-main .adm-cartao-valor{font-size:18px}
+  /* Abas numa linha só, rolando de lado (o celular mostra que há mais pelo corte). */
+  .adm-main .adm-abas2 ul,.adm-main .adm-abas,.adm-main .adm-ajustes-nav ul{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .adm-main .adm-abas2 a,.adm-main .adm-abas .chart-tab,.adm-main .adm-ajustes-nav a{white-space:nowrap}
+  /* responsive.css esconde .theme-box dentro de .top-right no celular (tema vai para o menu
+     lateral); aqui o tema mora no menu da conta e continua visível. */
+  .adm-topbar .adm-conta-menu .theme-box{display:flex}
+  /* No celular o chip fica só com o avatar; nome e papel aparecem dentro do menu. */
+  .adm-topbar .adm-conta-texto{display:none}
+  .adm-topbar .adm-top-direita{flex-wrap:nowrap;gap:8px}
+  .adm-topbar .adm-busca-gatilho{min-width:0}
+  .adm-main .adm-fila-item{padding:12px}
+  .adm-main .adm-fila-item .btn{width:100%}
+  /* Tabela no celular: a coluna fixa não pode tomar a tela inteira. */
+  .adm-main .table-scroll .audit-table th:first-child,
+  .adm-main .table-scroll .audit-table td:first-child{max-width:42vw}
+}
+@media (prefers-reduced-motion: reduce){
+  .adm-esqueleto{animation:none}
+}

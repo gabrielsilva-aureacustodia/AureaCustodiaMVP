@@ -46,14 +46,15 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
       {dados.envios.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Envios da conta para a custódia</caption>
             <thead>
               <tr>
-                <th>Protocolo</th>
-                <th>Moedas</th>
-                <th>Etapa</th>
-                <th>Postagem e recebimento</th>
-                <th>Rastreio</th>
-                <th />
+                <th scope="col">Protocolo</th>
+                <th scope="col">Moedas</th>
+                <th scope="col">Etapa</th>
+                <th scope="col">Postagem e recebimento</th>
+                <th scope="col">Rastreio</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>
@@ -91,14 +92,15 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
       {dados.retiradas.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Retiradas da conta</caption>
             <thead>
               <tr>
-                <th>Retirada</th>
-                <th>Moeda</th>
-                <th>Situação</th>
-                <th className="adm-num">Taxa</th>
-                <th>Prazo</th>
-                <th>Histórico</th>
+                <th scope="col">Retirada</th>
+                <th scope="col">Moeda</th>
+                <th scope="col">Situação</th>
+                <th scope="col" className="adm-num">Taxa</th>
+                <th scope="col">Prazo</th>
+                <th scope="col">Histórico</th>
               </tr>
             </thead>
             <tbody>

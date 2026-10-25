@@ -67,15 +67,16 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
       {dados.lotes.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Anúncios de venda da conta</caption>
             <thead>
               <tr>
-                <th>Lote</th>
-                <th>Tipo</th>
-                <th className="adm-num">Moedas</th>
-                <th className="adm-num">Preço por moeda</th>
-                <th>Publicado em</th>
-                <th>Posição na fila</th>
-                <th />
+                <th scope="col">Lote</th>
+                <th scope="col">Tipo</th>
+                <th scope="col" className="adm-num">Moedas</th>
+                <th scope="col" className="adm-num">Preço por moeda</th>
+                <th scope="col">Publicado em</th>
+                <th scope="col">Posição na fila</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>
@@ -105,15 +106,16 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
       {dados.ordensDeCompra.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Ofertas de compra da conta</caption>
             <thead>
               <tr>
-                <th>Oferta</th>
-                <th>Tipo</th>
-                <th className="adm-num">Quantidade restante</th>
-                <th className="adm-num">Preço-limite</th>
-                <th>Cadastrada em</th>
-                <th>Posição na fila</th>
-                <th />
+                <th scope="col">Oferta</th>
+                <th scope="col">Tipo</th>
+                <th scope="col" className="adm-num">Quantidade restante</th>
+                <th scope="col" className="adm-num">Preço-limite</th>
+                <th scope="col">Cadastrada em</th>
+                <th scope="col">Posição na fila</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>
@@ -143,14 +145,15 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
       {dados.negociacoes.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Negociações da conta</caption>
             <thead>
               <tr>
-                <th>Data</th>
-                <th>Lado</th>
-                <th>Tipo</th>
-                <th className="adm-num">Qtd</th>
-                <th className="adm-num">Preço</th>
-                <th>Contraparte</th>
+                <th scope="col">Data</th>
+                <th scope="col">Lado</th>
+                <th scope="col">Tipo</th>
+                <th scope="col" className="adm-num">Qtd</th>
+                <th scope="col" className="adm-num">Preço</th>
+                <th scope="col">Contraparte</th>
               </tr>
             </thead>
             <tbody>
@@ -176,14 +179,15 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
         dados.historicoDaFila.length ? (
           <div className="table-scroll">
             <table className="audit-table">
+              <caption className="adm-sr">Histórico da fila de ofertas da conta</caption>
               <thead>
                 <tr>
-                  <th>Quando</th>
-                  <th>Oferta</th>
-                  <th>Evento</th>
-                  <th>Preço</th>
-                  <th>Quantidade</th>
-                  <th>Perdeu a vez?</th>
+                  <th scope="col">Quando</th>
+                  <th scope="col">Oferta</th>
+                  <th scope="col">Evento</th>
+                  <th scope="col">Preço</th>
+                  <th scope="col">Quantidade</th>
+                  <th scope="col">Perdeu a vez?</th>
                 </tr>
               </thead>
               <tbody>

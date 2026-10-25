@@ -232,6 +232,8 @@ function suite(alvo: Alvo): void {
         // Migration 010 — faturamento de custódia (Sessão B-5).
         'faturas_custodia',
         'lancamentos_manuais',
+        // Migration 046 — controle financeiro: custos e receitas recorrentes por setor (25/10/2026).
+        'lancamentos_recorrentes',
         'ledger_entries',
         // Migration 044 — a fila das NFS-e e a numeração das DPS (23/10/2026).
         'nfse_emissoes',
@@ -258,6 +260,7 @@ function suite(alvo: Alvo): void {
         'schema_migrations',
         'sell_offers',
         'seq',
+        'setores_financeiros',
         'tipos_moeda',
         'trades',
         'users',

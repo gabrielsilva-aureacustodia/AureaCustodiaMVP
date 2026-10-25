@@ -20,6 +20,10 @@
  * desiste. Modal seria mais cerimonioso e menos claro sobre QUAL linha vai
  * sumir — aqui a confirmação acontece do lado do registro.
  *
+ * 25/10/2026: o segundo botão diz o objeto ("Confirmar: excluir o envio RO-ENV-0004") e a
+ * confirmação ganhou a caixa vermelha com a consequência — "Confirmar exclusão" repetido em cada
+ * linha era o mesmo nome para registros diferentes.
+ *
  * Quem não tem a permissão não recebe o botão. Isso é conveniência de tela: a
  * recusa de verdade está na Server Action, que confere por conta própria.
  */
@@ -66,41 +70,29 @@ export function AcoesDoRegistro({
   }
 
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+    <div className="adm-acoes-linha">
       {mostraEditar && !confirmando ? (
         <button type="button" className="btn btn-outline adm-btn-compacto" onClick={aoEditar}>
-          Editar
+          Editar<span className="adm-sr"> {descricao}</span>
         </button>
       ) : null}
 
       {mostraExcluir ? (
         confirmando ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-outline adm-btn-compacto"
-              disabled={ocupado}
-              onClick={() => setConfirmando(false)}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn btn-gold adm-btn-compacto"
-              disabled={ocupado}
-              onClick={() => void excluir()}
-              title={`Excluir ${descricao} definitivamente`}
-            >
-              {ocupado ? 'Excluindo…' : 'Confirmar exclusão'}
-            </button>
-          </>
+          <div className="adm-confirmacao adm-perigo" role="group" aria-label={`Confirmar: excluir ${descricao}`}>
+            <p>Irreversível: o registro some para o cliente e para a equipe. A trilha de auditoria guarda quem excluiu.</p>
+            <div className="adm-acoes">
+              <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void excluir()} autoFocus>
+                {ocupado ? 'Excluindo…' : `Confirmar: excluir ${descricao}`}
+              </button>
+              <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => setConfirmando(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-outline adm-btn-compacto"
-            onClick={() => setConfirmando(true)}
-          >
-            Excluir
+          <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setConfirmando(true)}>
+            Excluir<span className="adm-sr"> {descricao}</span>
           </button>
         )
       ) : null}

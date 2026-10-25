@@ -89,14 +89,15 @@ export function AbaCadastro({ email, nome, dados, semBanco }: { email: string; n
         dados.aceites.length ? (
           <div className="table-scroll">
             <table className="audit-table">
+              <caption className="adm-sr">Aceites dos documentos: versão, canal, data e IP</caption>
               <thead>
                 <tr>
-                  <th>Documento</th>
-                  <th>Versão</th>
-                  <th>Canal</th>
-                  <th>Quando</th>
-                  <th>IP</th>
-                  <th>Hash</th>
+                  <th scope="col">Documento</th>
+                  <th scope="col">Versão</th>
+                  <th scope="col">Canal</th>
+                  <th scope="col">Quando</th>
+                  <th scope="col">IP</th>
+                  <th scope="col">Hash</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,7 +294,7 @@ function DadosBancarios({
           >
             <div className="field adm-campo-largo">
               <label htmlFor="banco-pix">Chave Pix</label>
-              <input id="banco-pix" className="tinput" value={campos.chavePix} onChange={(e) => setCampos({ ...campos, chavePix: e.target.value })} />
+              <input id="banco-pix" className="tinput" autoComplete="off" spellCheck={false} autoCapitalize="none" value={campos.chavePix} onChange={(e) => setCampos({ ...campos, chavePix: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="banco-tipo-pix">Tipo da chave</label>
@@ -307,15 +308,15 @@ function DadosBancarios({
             </div>
             <div className="field">
               <label htmlFor="banco-banco">Banco</label>
-              <input id="banco-banco" className="tinput" value={campos.banco} onChange={(e) => setCampos({ ...campos, banco: e.target.value })} />
+              <input id="banco-banco" className="tinput" autoComplete="off" value={campos.banco} onChange={(e) => setCampos({ ...campos, banco: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="banco-agencia">Agência</label>
-              <input id="banco-agencia" className="tinput" value={campos.agencia} onChange={(e) => setCampos({ ...campos, agencia: e.target.value })} />
+              <input id="banco-agencia" className="tinput" autoComplete="off" inputMode="numeric" value={campos.agencia} onChange={(e) => setCampos({ ...campos, agencia: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="banco-conta">Conta</label>
-              <input id="banco-conta" className="tinput" value={campos.conta} onChange={(e) => setCampos({ ...campos, conta: e.target.value })} />
+              <input id="banco-conta" className="tinput" autoComplete="off" spellCheck={false} value={campos.conta} onChange={(e) => setCampos({ ...campos, conta: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="banco-tipo-conta">Tipo de conta</label>

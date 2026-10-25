@@ -82,39 +82,57 @@ export default async function FichaDoUsuarioPage({
     conteudo.aba === 'financeiro' && temPermissao(membro, 'saques.ver') ? await carregarFilaDeSaques({ userEmail: email, historico: 10 }) : null
   const base = `/admin/usuarios/${encodeURIComponent(email)}`
 
+  const podeEditar = temPermissao(membro, 'usuarios.editar')
+
+  // Disposição de 25/10/2026: as abas vêm logo depois do resumo (antes ficavam abaixo de cinco
+  // blocos de ação), e as "Ações da conta" vão para a coluna da direita no computador e para o
+  // fim da ficha no celular, com um atalho no topo. Mesmas abas, mesmas ações, mesmas permissões.
   return (
     <>
       <CabecalhoDaFicha cabecalho={cabecalho} />
-      {temPermissao(membro, 'usuarios.editar') ? <AcoesDaConta cabecalho={cabecalho} /> : null}
+      {podeEditar ? (
+        <p className="adm-atalho-acoes">
+          <a href="#ficha-acoes">Ir para as ações da conta</a>
+        </p>
+      ) : null}
 
-      <nav className="adm-abas" aria-label="Abas da ficha">
-        {ABAS_FICHA.map((a) => (
-          <Link key={a.chave} href={`${base}?aba=${a.chave}`} className={a.chave === aba ? 'chart-tab on' : 'chart-tab'} aria-current={a.chave === aba ? 'page' : undefined}>
-            {a.rotulo}
-          </Link>
-        ))}
-      </nav>
+      <div className={podeEditar ? 'adm-ficha' : undefined}>
+        <div className="adm-ficha-principal">
+          <nav className="adm-abas" aria-label="Abas da ficha">
+            {ABAS_FICHA.map((a) => (
+              <Link key={a.chave} href={`${base}?aba=${a.chave}`} className={a.chave === aba ? 'chart-tab on' : 'chart-tab'} aria-current={a.chave === aba ? 'page' : undefined}>
+                {a.rotulo}
+              </Link>
+            ))}
+          </nav>
 
-      <div className="panel">
-        {conteudo.aba === 'cadastro' ? <AbaCadastro email={email} nome={cabecalho.resumo.nome} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
-        {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={temPermissao(membro, 'usuarios.editar')} saques={saquesDaConta} podePagarSaques={temPermissao(membro, 'saques.pagar')} /> : null}
-        {conteudo.aba === 'acervo' ? (
-          <>
-            {/* Cadastro direto: moeda que já está no armazém entra por aqui, sem
-                envio postal nem fila de bancada. Só sócio e desenvolvimento veem. */}
-            {temPermissao(membro, 'acervo.cadastro_direto') ? (
-              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="direto" />
+          <div className="panel">
+            {conteudo.aba === 'cadastro' ? <AbaCadastro email={email} nome={cabecalho.resumo.nome} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
+            {conteudo.aba === 'financeiro' ? <AbaFinanceiro dados={conteudo} semBanco={cabecalho.semBanco} email={email} podeEditar={podeEditar} saques={saquesDaConta} podePagarSaques={temPermissao(membro, 'saques.pagar')} /> : null}
+            {conteudo.aba === 'acervo' ? (
+              <>
+                {/* Cadastro direto: moeda que já está no armazém entra por aqui, sem
+                    envio postal nem fila de bancada. Só sócio e desenvolvimento veem. */}
+                {temPermissao(membro, 'acervo.cadastro_direto') ? (
+                  <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="direto" />
+                ) : null}
+                {temPermissao(membro, 'acervo.cadastro_sem_envio') ? (
+                  <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="sem_envio" />
+                ) : null}
+                <AbaAcervo dados={conteudo} />
+              </>
             ) : null}
-            {temPermissao(membro, 'acervo.cadastro_sem_envio') ? (
-              <CadastroDiretoDeMoeda catalogo={catalogoVigente} emailFixo={email} modo="sem_envio" />
-            ) : null}
-            <AbaAcervo dados={conteudo} />
-          </>
+            {conteudo.aba === 'logistica' ? <AbaLogistica dados={conteudo} /> : null}
+            {conteudo.aba === 'mercado' ? <AbaMercado dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
+            {conteudo.aba === 'atividade' ? <AbaAtividade dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
+            {conteudo.aba === 'notas' ? <AbaNotas email={email} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
+          </div>
+        </div>
+        {podeEditar ? (
+          <aside className="adm-ficha-lateral" aria-label="Ações da conta">
+            <AcoesDaConta cabecalho={cabecalho} />
+          </aside>
         ) : null}
-        {conteudo.aba === 'logistica' ? <AbaLogistica dados={conteudo} /> : null}
-        {conteudo.aba === 'mercado' ? <AbaMercado dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
-        {conteudo.aba === 'atividade' ? <AbaAtividade dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
-        {conteudo.aba === 'notas' ? <AbaNotas email={email} dados={conteudo} semBanco={cabecalho.semBanco} /> : null}
       </div>
     </>
   )

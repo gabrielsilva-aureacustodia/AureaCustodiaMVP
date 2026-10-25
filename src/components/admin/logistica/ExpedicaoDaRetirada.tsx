@@ -10,6 +10,10 @@
  *  - sem contrato (desenvolvimento, ou contrato ainda não cadastrado no ambiente): o campo para
  *    digitar o código da postagem feita no balcão.
  *
+ * 25/10/2026: "Cancelar etiqueta" deixou o `window.confirm` pela confirmação no lugar, com o código
+ * do objeto no botão ("Confirmar: cancelar a etiqueta AA123…BR"); os links de etiqueta dizem de qual
+ * retirada são e que abrem em nova aba.
+ *
  * ESCONDER BOTÃO NÃO PROTEGE NADA. `podeExpedir` só decide o que aparece; cada Server Action de
  * `src/server/actions/admin/logistica.ts` confere `logistica.expedir` por conta própria.
  */
@@ -25,6 +29,7 @@ import {
 } from '@/server/actions/admin/logistica'
 
 import { useAdmin } from '../AdminProvider'
+import { ConfirmarAcao } from '../ConfirmarAcao'
 
 export interface EtiquetaDaRetirada {
   codigoObjeto: string
@@ -55,6 +60,8 @@ export function ExpedicaoDaRetirada({
   const href = `/api/retiradas/etiqueta/${encodeURIComponent(retiradaId)}`
   const expedivel = status === 'paga' || status === 'separacao'
 
+  const novaAba = <span className="adm-sr"> da retirada {retiradaId} (abre em nova aba)</span>
+
   async function executar(acao: () => Promise<{ ok: boolean }>): Promise<void> {
     setOcupado(true)
     const r = await run(acao)
@@ -67,15 +74,18 @@ export function ExpedicaoDaRetirada({
     return podeEtiqueta ? (
       <a className="btn btn-outline adm-btn-compacto" href={href} target="_blank" rel="noreferrer">
         Etiqueta
+        {novaAba}
       </a>
     ) : null
   }
 
   if (etiqueta) {
     return (
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        <div style={{ width: '100%', textAlign: 'right' }}>
-          <span className="adm-mono">{etiqueta.codigoObjeto}</span>
+      <div className="adm-acoes-linha">
+        <div className="adm-linha-cheia">
+          <span className="adm-mono" translate="no">
+            {etiqueta.codigoObjeto}
+          </span>
           <div className="adm-fraco">
             etiqueta emitida · aguardando postagem
             {etiqueta.prazoPostagem ? ` · postar até ${etiqueta.prazoPostagem}` : ''}
@@ -84,23 +94,19 @@ export function ExpedicaoDaRetirada({
         {podeEtiqueta ? (
           <a className="btn btn-gold adm-btn-compacto" href={href} target="_blank" rel="noreferrer" data-uso="retirada:imprimir_etiqueta">
             Imprimir etiqueta
+            {novaAba}
           </a>
         ) : null}
         {podeExpedir ? (
-          <button
-            type="button"
-            className="btn btn-outline adm-btn-compacto"
-            disabled={ocupado}
-            data-uso="retirada:cancelar_etiqueta"
-            onClick={() => {
-              const ok = window.confirm(
-                `Cancelar a etiqueta ${etiqueta.codigoObjeto} nos Correios?\n\nUse quando a caixa ainda NÃO foi postada (endereço errado, pacote refeito). Depois é preciso emitir outra.`,
-              )
-              if (ok) void executar(() => cancelarEtiquetaRetirada(retiradaId))
-            }}
-          >
-            Cancelar etiqueta
-          </button>
+          <ConfirmarAcao
+            rotulo="Cancelar etiqueta"
+            objeto={`cancelar a etiqueta ${etiqueta.codigoObjeto}`}
+            detalhe="Use só quando a caixa ainda NÃO foi postada (endereço errado, pacote refeito). Depois é preciso emitir outra."
+            aoConfirmar={() => executar(() => cancelarEtiquetaRetirada(retiradaId))}
+            perigo
+            desabilitado={ocupado}
+            usoNome="retirada:cancelar_etiqueta"
+          />
         ) : null}
       </div>
     )
@@ -110,6 +116,7 @@ export function ExpedicaoDaRetirada({
     return podeEtiqueta ? (
       <a className="btn btn-outline adm-btn-compacto" href={href} target="_blank" rel="noreferrer">
         Etiqueta
+        {novaAba}
       </a>
     ) : null
   }
@@ -124,6 +131,7 @@ export function ExpedicaoDaRetirada({
         onClick={() => void executar(() => emitirEtiquetaRetirada(retiradaId))}
       >
         {ocupado ? 'Emitindo…' : 'Emitir etiqueta dos Correios'}
+        <span className="adm-sr"> para a retirada {retiradaId}</span>
       </button>
     )
   }
@@ -131,30 +139,35 @@ export function ExpedicaoDaRetirada({
   // Sem contrato neste ambiente: posta-se no balcão e o código vem do comprovante.
   return (
     <form
-      style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
+      className="adm-acoes-linha"
       onSubmit={(ev) => {
         ev.preventDefault()
         void executar(() => marcarRetiradaPostadaManual(retiradaId, codigo))
       }}
     >
-      <div className="adm-fraco" style={{ width: '100%', textAlign: 'right' }}>
+      <div className="adm-fraco adm-linha-cheia">
         Contrato dos Correios não configurado: poste no balcão e informe o código.
       </div>
       <input
-        className="tinput adm-mono"
+        className="tinput adm-mono adm-campo-codigo"
         aria-label={`Código de rastreio da retirada ${retiradaId}`}
         placeholder="AA123456789BR"
         value={codigo}
         onChange={(ev) => setCodigo(ev.target.value)}
         maxLength={20}
-        style={{ maxWidth: 170 }}
+        autoComplete="off"
+        spellCheck={false}
+        autoCapitalize="characters"
+        translate="no"
       />
       <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado || !codigo.trim()} data-uso="retirada:postar_manual">
         Marcar como postada
+        <span className="adm-sr"> a retirada {retiradaId}</span>
       </button>
       {podeEtiqueta ? (
         <a className="btn btn-outline adm-btn-compacto" href={href} target="_blank" rel="noreferrer">
           Etiqueta
+          {novaAba}
         </a>
       ) : null}
     </form>

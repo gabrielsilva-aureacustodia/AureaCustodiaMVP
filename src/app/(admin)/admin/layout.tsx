@@ -43,9 +43,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <AdminProvider membro={membro}>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa (shell.css). */}
+        {/* Pular o menu: com 14 itens, quem navega por teclado atravessava todos antes do conteúdo. */}
+        <a href="#conteudo" className="adm-pular">
+          Pular para o conteúdo
+        </a>
         <div className="app active">
           <AdminSidebar />
-          <main className="main">
+          <main className="main adm-main" id="conteudo" tabIndex={-1}>
             <AdminTopbar />
             {children}
           </main>

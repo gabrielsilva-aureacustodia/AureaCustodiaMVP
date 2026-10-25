@@ -79,7 +79,7 @@ export function ListaDeConversas({
       >
         <div className="field adm-campo-largo">
           <label htmlFor="cs-busca">Nome ou telefone</label>
-          <input id="cs-busca" className="tinput" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="ex.: Ana, 11 99999" />
+          <input id="cs-busca" type="search" className="tinput" autoComplete="off" spellCheck={false} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="ex.: Ana, 11 99999" />
         </div>
         <button type="submit" className="btn btn-outline adm-btn-compacto">
           Buscar
@@ -208,11 +208,11 @@ function NovaConversa({ executar, aoCriar, aoCancelar }: { executar: Executar; a
     >
       <div className="field">
         <label htmlFor="cs-novo-telefone">Telefone (com DDD)</label>
-        <input id="cs-novo-telefone" className="tinput" inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-8888" />
+        <input id="cs-novo-telefone" className="tinput" type="tel" inputMode="tel" autoComplete="off" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-8888" />
       </div>
       <div className="field">
         <label htmlFor="cs-novo-nome">Nome (opcional)</label>
-        <input id="cs-novo-nome" className="tinput" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <input id="cs-novo-nome" className="tinput" autoComplete="off" autoCapitalize="words" value={nome} onChange={(e) => setNome(e.target.value)} />
       </div>
       <div className="field">
         <label htmlFor="cs-novo-texto">Primeira mensagem</label>

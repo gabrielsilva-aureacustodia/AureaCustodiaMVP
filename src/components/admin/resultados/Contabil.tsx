@@ -190,23 +190,24 @@ function Lancamentos({ contas, lancamentos }: { contas: ContaContabil[]; lancame
       {lancamentos.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Lançamentos contábeis do período</caption>
             <thead>
               <tr>
-                <th>Nº</th>
-                <th>Data</th>
-                <th>Conta</th>
-                <th>Descrição</th>
-                <th className="adm-num">Valor</th>
-                <th>Por</th>
-                <th>Situação</th>
-                {podeLancar ? <th /> : null}
+                <th scope="col">Nº</th>
+                <th scope="col">Data</th>
+                <th scope="col">Conta</th>
+                <th scope="col">Descrição</th>
+                <th scope="col" className="adm-num">Valor</th>
+                <th scope="col">Por</th>
+                <th scope="col">Situação</th>
+                {podeLancar ? <th scope="col" /> : null}
               </tr>
             </thead>
             <tbody>
               {lancamentos.map((l) => {
                 const situacao = l.estornaId !== null ? 'estorno' : estornados.has(l.id) ? 'estornado' : 'vigente'
                 return (
-                  <tr key={l.id} style={situacao !== 'vigente' ? { opacity: 0.65 } : undefined}>
+                  <tr key={l.id} className={situacao !== 'vigente' ? 'adm-linha-apagada' : undefined}>
                     <td>{l.id}</td>
                     <td>{data(l.data)}</td>
                     <td>{l.contaCodigo}</td>
@@ -220,18 +221,21 @@ function Lancamentos({ contas, lancamentos }: { contas: ContaContabil[]; lancame
                       <td>
                         {situacao === 'vigente' ? (
                           estornando === l.id ? (
-                            <span className="adm-acoes">
-                              <input className="tinput" style={{ width: 180, minHeight: 44, marginBottom: 0 }} placeholder="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label="Motivo do estorno" />
-                              <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => void estornar(l.id)}>
-                                Confirmar estorno
-                              </button>
-                              <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEstornando(null)}>
-                                Voltar
-                              </button>
-                            </span>
+                            <div className="adm-confirmacao adm-perigo">
+                              <p>Gera um lançamento de estorno de {dinheiro(l.valor)}; o original continua no livro.</p>
+                              <input className="tinput adm-campo-motivo" placeholder="motivo" autoComplete="off" value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label={`Motivo do estorno do lançamento nº ${l.id}`} />
+                              <span className="adm-acoes">
+                                <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void estornar(l.id)}>
+                                  Confirmar: estornar o lançamento nº {l.id}
+                                </button>
+                                <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEstornando(null)}>
+                                  Cancelar
+                                </button>
+                              </span>
+                            </div>
                           ) : (
                             <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEstornando(l.id)}>
-                              Estornar
+                              Estornar<span className="adm-sr"> o lançamento nº {l.id}</span>
                             </button>
                           )
                         ) : null}
@@ -294,12 +298,13 @@ function Aliquotas({ parametros, semBanco }: { parametros: ParametroGravado[]; s
       </p>
       <div className="table-scroll">
         <table className="audit-table">
+          <caption className="adm-sr">Alíquotas e parâmetros contábeis</caption>
           <thead>
             <tr>
-              <th>Parâmetro</th>
-              <th>Valor atual</th>
-              {podeEditar ? <th>Novo valor</th> : null}
-              <th>Atualizado</th>
+              <th scope="col">Parâmetro</th>
+              <th scope="col">Valor atual</th>
+              {podeEditar ? <th scope="col">Novo valor</th> : null}
+              <th scope="col">Atualizado</th>
             </tr>
           </thead>
           <tbody>
@@ -359,12 +364,13 @@ function PlanoDeContas({ contas }: { contas: ContaContabil[] }): ReactNode {
       </p>
       <div className="table-scroll">
         <table className="audit-table">
+          <caption className="adm-sr">Plano de contas</caption>
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Conta</th>
-              <th>Natureza</th>
-              <th>Origem</th>
+              <th scope="col">Código</th>
+              <th scope="col">Conta</th>
+              <th scope="col">Natureza</th>
+              <th scope="col">Origem</th>
             </tr>
           </thead>
           <tbody>
@@ -442,15 +448,16 @@ function Exportacoes(props: PropsContabil): ReactNode {
       {props.exportacoes.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Registro de exportações</caption>
             <thead>
               <tr>
-                <th>Quando</th>
-                <th>Relatório</th>
-                <th>Formato</th>
-                <th>Destino</th>
-                <th>Quem</th>
-                <th className="adm-num">Linhas</th>
-                <th>Resultado</th>
+                <th scope="col">Quando</th>
+                <th scope="col">Relatório</th>
+                <th scope="col">Formato</th>
+                <th scope="col">Destino</th>
+                <th scope="col">Quem</th>
+                <th scope="col" className="adm-num">Linhas</th>
+                <th scope="col">Resultado</th>
               </tr>
             </thead>
             <tbody>

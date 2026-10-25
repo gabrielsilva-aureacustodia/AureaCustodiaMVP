@@ -19,14 +19,15 @@ export function AbaAcervo({ dados }: { dados: DadosAbaAcervo }): ReactNode {
       <p className="adm-fraco">{numero(dados.moedas.length)} moeda(s), incluindo as já retiradas.</p>
       <div className="table-scroll">
         <table className="audit-table">
+          <caption className="adm-sr">Moedas da conta: recibo, caixa, laudo e valor estimado</caption>
           <thead>
             <tr>
-              <th>Moeda</th>
-              <th>Recibo</th>
-              <th>Caixa e posição</th>
-              <th>Laudo</th>
-              <th className="adm-num">Valor estimado</th>
-              <th>Retirada</th>
+              <th scope="col">Moeda</th>
+              <th scope="col">Recibo</th>
+              <th scope="col">Caixa e posição</th>
+              <th scope="col">Laudo</th>
+              <th scope="col" className="adm-num">Valor estimado</th>
+              <th scope="col">Retirada</th>
             </tr>
           </thead>
           <tbody>
