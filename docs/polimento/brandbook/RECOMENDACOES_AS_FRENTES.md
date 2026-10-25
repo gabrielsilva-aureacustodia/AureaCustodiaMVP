@@ -105,6 +105,16 @@ Registro **cofre**. Estrutura proposta:
 - **Pagamento** (`pagamento.css`): é o arquivo com mais fallback escuro escrito à mão; trocar os 28 literais pelos
   papéis e conferir no tema claro.
 
+**Medido nas telas logadas (25/10/2026, conta de teste, `/inicio`, `/mercado`, `/recibos`, `/conta`):** no escuro,
+nenhum texto abaixo do AA e nenhuma rolagem lateral a 375 px. No **claro**, os únicos textos reprovados são os que ainda
+usam `--gold` como cor de texto — exatamente a troca do §0.2:
+- saldo da barra superior `.ubal` (2,20:1) e os links "Ler termos" / "Tabela de Taxas" da barra de aviso (2,20:1) —
+  `shell.css`;
+- `.tour-etapa` do tutorial (2,40:1) — `tutorial.css`.
+
+Alvos de toque abaixo de 44 px: `.topbar-alert-btn` (36 e 40 px, `shell.css`), no `/mercado` 6 `.btn` de 32 px, 2–3 de
+36 px, `.chart-tab` de 33 px e 4 botões de 28 px (`market.css`).
+
 ## 3. Frente 5 — Admin (`admin.css`, `src/app/(admin)/**`)
 
 Registro **cofre, denso**. O admin não carrega o `AppState` do cliente, mas carrega `globals.css` — recebe tudo do §0.1.
