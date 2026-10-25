@@ -245,52 +245,60 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-grade-2">
         <div>
-          <label className="u-sutil">CPF</label>
+          <label className="u-sutil" htmlFor="cad-cpf">CPF</label>
           <input
             className="tinput"
             placeholder="000.000.000-00"
             value={cpf}
             onChange={(e) => setCpf(formatarCpf(e.target.value))}
             maxLength={14}
-            aria-label="CPF"
+            id="cad-cpf"
+            aria-invalid={cpfValido === false}
+            aria-describedby={cpfValido === false ? 'cad-cpf-erro' : undefined}
+            inputMode="numeric"
           />
           {cpfValido === false && (
-            <span className="u-f11 u-erro">CPF inválido</span>
+            <span id="cad-cpf-erro" className="u-f11 u-erro">CPF inválido</span>
           )}
         </div>
 
         <div>
-          <label className="u-sutil">Data de nascimento</label>
+          <label className="u-sutil" htmlFor="cad-nascimento">Data de nascimento</label>
           <input
             type="date"
             className="tinput"
             value={dataNascimento}
             onChange={(e) => setDataNascimento(e.target.value)}
-            aria-label="Data de nascimento"
+            id="cad-nascimento"
+            autoComplete="bday"
           />
         </div>
       </div>
 
       <div className="u-mt6">
-        <label className="u-sutil">Nome completo (do titular)</label>
+        <label className="u-sutil" htmlFor="cad-nome">Nome completo (do titular)</label>
         <input
           className="tinput"
           placeholder="Nome idêntico ao documento"
           value={nomeCompleto}
           onChange={(e) => setNomeCompleto(e.target.value)}
-          aria-label="Nome completo"
+          id="cad-nome"
+          autoComplete="name"
+          autoCapitalize="words"
         />
       </div>
 
       <div className="u-mt6">
-        <label className="u-sutil">Telefone com DDD</label>
+        <label className="u-sutil" htmlFor="cad-telefone">Telefone com DDD</label>
         <input
           className="tinput"
           placeholder="(11) 99999-9999"
           value={telefone}
           onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
           maxLength={15}
-          aria-label="Telefone com DDD"
+          id="cad-telefone"
+          type="tel"
+          autoComplete="tel-national"
         />
       </div>
 
@@ -301,7 +309,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-linha8 u-base">
         <div className="u-flex1">
-          <label className="u-sutil">CEP</label>
+          <label className="u-sutil" htmlFor="cad-cep">CEP</label>
           <input
             className="tinput"
             placeholder="00000-000"
@@ -314,7 +322,9 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
               }
             }}
             maxLength={9}
-            aria-label="CEP"
+            id="cad-cep"
+            inputMode="numeric"
+            autoComplete="postal-code"
           />
         </div>
         <button
@@ -332,69 +342,76 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       )}
 
       <div className="u-mt6">
-        <label className="u-sutil">Logradouro / Rua</label>
+        <label className="u-sutil" htmlFor="cad-logradouro">Logradouro / Rua</label>
         <input
           className="tinput"
           placeholder="Rua, Avenida, etc."
           value={logradouro}
           onChange={(e) => setLogradouro(e.target.value)}
-          aria-label="Logradouro"
+          id="cad-logradouro"
+          autoComplete="address-line1"
+          autoCapitalize="words"
         />
       </div>
 
       <div className="u-grade-1-2 u-mt6">
         <div>
-          <label className="u-sutil">Número</label>
+          <label className="u-sutil" htmlFor="cad-numero">Número</label>
           <input
             className="tinput"
             placeholder="123"
             value={numero}
             onChange={(e) => setNumero(e.target.value)}
-            aria-label="Número do endereço"
+            id="cad-numero"
           />
         </div>
         <div>
-          <label className="u-sutil">Complemento (opcional)</label>
+          <label className="u-sutil" htmlFor="cad-complemento">Complemento (opcional)</label>
           <input
             className="tinput"
             placeholder="Apto, Bloco, etc."
             value={complemento}
             onChange={(e) => setComplemento(e.target.value)}
-            aria-label="Complemento"
+            id="cad-complemento"
           />
         </div>
       </div>
 
       <div className="u-grade-3a u-mt6">
         <div>
-          <label className="u-sutil">Bairro</label>
+          <label className="u-sutil" htmlFor="cad-bairro">Bairro</label>
           <input
             className="tinput"
             placeholder="Bairro"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
-            aria-label="Bairro"
+            id="cad-bairro"
+            autoCapitalize="words"
           />
         </div>
         <div>
-          <label className="u-sutil">Cidade</label>
+          <label className="u-sutil" htmlFor="cad-cidade">Cidade</label>
           <input
             className="tinput"
             placeholder="Cidade"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
-            aria-label="Cidade"
+            id="cad-cidade"
+            autoComplete="address-level2"
+            autoCapitalize="words"
           />
         </div>
         <div>
-          <label className="u-sutil">UF</label>
+          <label className="u-sutil" htmlFor="cad-uf">UF</label>
           <input
             className="tinput"
             placeholder="UF"
             value={uf}
             onChange={(e) => setUf(e.target.value.toUpperCase())}
             maxLength={2}
-            aria-label="Estado UF"
+            id="cad-uf"
+            autoComplete="address-level1"
+            autoCapitalize="characters"
           />
         </div>
       </div>
@@ -426,12 +443,12 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       {metodoBancario === 'pix' ? (
         <div className="u-grade-12-2">
           <div>
-            <label className="u-sutil">Tipo de chave</label>
+            <label className="u-sutil" htmlFor="cad-tipo-pix">Tipo de chave</label>
             <select
               className="tinput"
               value={tipoChavePix}
               onChange={(e) => setTipoChavePix(e.target.value as TipoChavePix)}
-              aria-label="Tipo de chave Pix"
+              id="cad-tipo-pix"
             >
               <option value="cpf">CPF</option>
               <option value="email">E-mail</option>
@@ -440,7 +457,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
             </select>
           </div>
           <div>
-            <label className="u-sutil">Chave Pix</label>
+            <label className="u-sutil" htmlFor="cad-chave-pix">Chave Pix</label>
             <input
               className="tinput"
               placeholder={
@@ -454,50 +471,55 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
               }
               value={chavePix}
               onChange={(e) => setChavePix(e.target.value)}
-              aria-label="Chave Pix"
+              id="cad-chave-pix"
+              spellCheck={false}
+              autoCapitalize="none"
+              inputMode={tipoChavePix === 'email' ? 'email' : tipoChavePix === 'telefone' ? 'tel' : tipoChavePix === 'cpf' ? 'numeric' : 'text'}
             />
           </div>
         </div>
       ) : (
         <>
           <div className="u-mt6">
-            <label className="u-sutil">Banco</label>
+            <label className="u-sutil" htmlFor="cad-banco">Banco</label>
             <input
               className="tinput"
               placeholder="Ex: Banco do Brasil, Itaú, Bradesco, Nubank"
               value={banco}
               onChange={(e) => setBanco(e.target.value)}
-              aria-label="Nome ou código do banco"
+              id="cad-banco"
             />
           </div>
           <div className="u-grade-3c u-mt6">
             <div>
-              <label className="u-sutil">Agência</label>
+              <label className="u-sutil" htmlFor="cad-agencia">Agência</label>
               <input
                 className="tinput"
                 placeholder="0001"
                 value={agencia}
                 onChange={(e) => setAgencia(e.target.value)}
-                aria-label="Agência bancária"
+                id="cad-agencia"
+                inputMode="numeric"
               />
             </div>
             <div>
-              <label className="u-sutil">Conta com dígito</label>
+              <label className="u-sutil" htmlFor="cad-conta">Conta com dígito</label>
               <input
                 className="tinput"
                 placeholder="12345-6"
                 value={conta}
                 onChange={(e) => setConta(e.target.value)}
-                aria-label="Conta bancária"
+                id="cad-conta"
+                spellCheck={false}
               />
             </div>
             <div>
-              <label className="u-sutil">Tipo</label>
+              <label className="u-sutil" htmlFor="cad-tipo-conta">Tipo</label>
               <select
                 className="tinput"
                 value={tipoConta}
                 onChange={(e) => setTipoConta(e.target.value as TipoContaBancaria)}
-                aria-label="Tipo de conta bancária"
+                id="cad-tipo-conta"
               >
                 <option value="corrente">Corrente</option>
                 <option value="poupanca">Poupança</option>

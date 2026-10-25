@@ -134,7 +134,7 @@ export default function RecibosPage(): ReactNode {
             usuários (nenhum nome será exposto).
           </p>
 
-          <div className="tabela-fixa">
+          <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Auditoria do estoque (role para o lado no celular)">
             <table className="ro-tabela">
               <thead>
                 <tr>

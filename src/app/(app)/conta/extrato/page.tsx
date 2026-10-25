@@ -166,7 +166,7 @@ export default function ExtratoPage(): ReactNode {
             </p>
             {/* .tabela-fixa (shell.css): a data, que identifica a linha, fica parada enquanto as
                 outras sete colunas rolam no celular. */}
-            <div className="tabela-fixa">
+            <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Movimentações da conta (role para o lado no celular)">
               <table className="ro-tabela">
                 <thead>
                   <tr>

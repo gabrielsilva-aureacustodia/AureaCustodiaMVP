@@ -136,6 +136,8 @@ export function ModalDadosPessoais(): ReactNode {
         value={nome}
         onChange={(e) => setNome(e.target.value)}
         aria-label="Nome completo"
+        autoComplete="name"
+        autoCapitalize="words"
       />
 
       <div className="field-lbl">E-mail</div>
@@ -145,6 +147,9 @@ export function ModalDadosPessoais(): ReactNode {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         aria-label="E-mail"
+        autoComplete="email"
+        spellCheck={false}
+        autoCapitalize="none"
       />
 
       {erro ? (

@@ -124,10 +124,15 @@
   font-variant-numeric: tabular-nums;
 }
 .modalidade-desc {
+  display: block;
   font-size: 12px;
   color: var(--text-muted);
   line-height: 1.4;
 }
+
+/* A modalidade virou <button> (25/10/2026): desfaz o visual de botão do navegador e mantém o do cartão. */
+.modalidade-card{display:block;width:100%;text-align:left;font:inherit;color:inherit}
+.modalidade-card:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
 
 /* Selos de status da retirada: viraram <SeloDaRetirada> (Brandbook §9.4), sem CSS próprio. */
 

@@ -206,7 +206,7 @@ export function FaturasCustodia(): ReactNode {
             </div>
           ) : (
             <div className="panel">
-              <div className="tabela-fixa">
+              <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Faturas de custódia (role para o lado no celular)">
                 <table className="ro-tabela">
                   <thead>
                     <tr>

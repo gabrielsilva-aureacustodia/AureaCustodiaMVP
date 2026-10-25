@@ -208,3 +208,25 @@ disso e depois uma rodada de melhorias usando todo o nosso repo de frontend".
 **Testes:** `tsc` limpo; `eslint .` 0 erros / 15 avisos; `vitest` 1.392 passando (1 pulado); `npm run build` ok;
 navegador em `http://172.26.224.1:3104`: Início, Recibos, Minha custódia, Retirada, Faturas, Auditoria, Conta, Vender,
 Mercado, Extrato, Envios e Configurações sem erro de console; claro e escuro conferidos.
+
+**Merge (25/10/2026):** branch commitada (`6c7200c`) e mesclada no `main` local por fast-forward; o `origin/main` já
+tinha os 2 commits do painel administrativo (Frente 5), integrados com merge sem conflito (`200c0a0`). No `main`:
+`tsc` limpo, `eslint` 0 erros, 1.422 testes, build ok. **Sem push** — publicar fica com o Gabriel.
+
+### Rodada de melhorias com o `aprendizado_frontend` (tópicos 29 e 35) — 25/10/2026
+- **Formulários (tópico 35, passo 3):** cadastro formal e retirada com rótulo ligado ao campo (`htmlFor`/`id`) — na
+  retirada os 10 campos **não tinham nome acessível nenhum**; teclado e preenchimento por campo (`type="tel"`,
+  `inputMode` numérico/e-mail, `autoComplete` `name`/`bday`/`postal-code`/`address-*`, e `shipping …` no endereço de
+  entrega, que pode ser de outra pessoa); CPF/CNPJ sem teclado numérico (CNPJ alfanumérico); chave Pix com o teclado
+  do tipo escolhido. CPF inválido agora tem `aria-invalid` + `aria-describedby` na mensagem. Campos sem dica: 26 → 9
+  (os 9 restantes não têm dica que sirva: número, complemento, banco, listas).
+- **Validação sem JS (passo 3c):** `:user-invalid` e `aria-invalid` pintam a borda e o fundo de erro só depois que a
+  pessoa sai do campo.
+- **Modalidade da retirada:** os dois cartões eram `<div role="button">` com teclado feito à mão; viraram `<button
+  aria-pressed>`.
+- **axe-core 4.13 (WCAG 2.2 A/AA)** nas 13 rotas da área logada, nos dois temas, em desktop e 375 px, e nos modais de
+  cadastro e retirada abertos. Achados e correções: tabelas que rolam de lado sem foco de teclado (7 →
+  `tabIndex=0` + `role="region"` + nome) e `<dl>` inválido nos blocos de moeda do Início (a fonte da referência
+  externa entrou no `<dd>`). Depois: **0 violações**. Um falso positivo de contraste no menu aparece se a medição
+  roda durante a transição de tema — armadilha já registrada no tópico 35.
+- Sem rolagem horizontal a 375 px; tutorial e âncoras intactos.

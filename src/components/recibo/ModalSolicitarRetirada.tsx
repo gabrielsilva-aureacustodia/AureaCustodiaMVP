@@ -175,51 +175,44 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Recibo: <strong>{coin.recibo.codigo}</strong>
       </p>
 
-      {/* 1. Seleção de Modalidade (D-1) */}
+      {/* 1. Seleção de Modalidade (D-1). Botões de verdade desde 25/10/2026 (eram <div role="button">):
+          teclado e leitor de tela de graça, sem onKeyDown à mão (tópico 35, passo 1). */}
       <div className="field-lbl">1. Modalidade de envio e custódia</div>
-      <div
+      <button
+        type="button"
         className={`modalidade-card ${modalidade === 'comum' ? 'selecionada' : ''}`}
-        onClick={() => setModalidade('comum')}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setModalidade('comum')
-          }
-        }}
-        role="button"
         aria-pressed={modalidade === 'comum'}
-        tabIndex={0}
+        onClick={() => setModalidade('comum')}
       >
-        <div className="modalidade-header">
-          <span>📦 Comum (Correios com AR)</span>
+        <span className="modalidade-header">
+          <span>
+            <span aria-hidden="true">📦 </span>
+            Comum (Correios com AR)
+          </span>
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaComum)}</span>
-        </div>
-        <div className="modalidade-desc">
+        </span>
+        <span className="modalidade-desc">
           Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
-        </div>
-      </div>
+        </span>
+      </button>
 
-      <div
+      <button
+        type="button"
         className={`modalidade-card ${modalidade === 'segura' ? 'selecionada' : ''}`}
-        onClick={() => setModalidade('segura')}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setModalidade('segura')
-          }
-        }}
-        role="button"
         aria-pressed={modalidade === 'segura'}
-        tabIndex={0}
+        onClick={() => setModalidade('segura')}
       >
-        <div className="modalidade-header">
-          <span>🛡️ Segura (Transporte de valores blindado)</span>
+        <span className="modalidade-header">
+          <span>
+            <span aria-hidden="true">🛡️ </span>
+            Segura (Transporte de valores blindado)
+          </span>
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaSegura)} (em até {taxas.retiradaSeguraParcelasMax}x)</span>
-        </div>
-        <div className="modalidade-desc">
+        </span>
+        <span className="modalidade-desc">
           Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
-        </div>
-      </div>
+        </span>
+      </button>
 
       {/* 2. Endereço Completo (Trava 2) */}
       <div className="field-lbl u-mt16">
@@ -228,18 +221,24 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       <div className="u-grade-2">
         <div>
-          <label className="u-rotulo">Nome do Destinatário</label>
+          <label className="u-rotulo" htmlFor="ret-nome">Nome do Destinatário</label>
           <input
+            id="ret-nome"
             className="tinput"
+            autoComplete="shipping name"
+            autoCapitalize="words"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Nome completo"
           />
         </div>
         <div>
-          <label className="u-rotulo">CPF ou CNPJ</label>
+          <label className="u-rotulo" htmlFor="ret-documento">CPF ou CNPJ</label>
           <input
+            id="ret-documento"
             className="tinput"
+            spellCheck={false}
+            autoCapitalize="characters"
             value={cpfOuCnpj}
             onChange={(e) => setCpfOuCnpj(e.target.value)}
             placeholder="000.000.000-00"
@@ -249,11 +248,14 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       <div className="u-grade-1-2 u-mt6">
         <div>
-          <label className="u-rotulo">
-            CEP {buscandoCep ? '⏳...' : ''}
+          <label className="u-rotulo" htmlFor="ret-cep">
+            CEP {buscandoCep ? '· buscando…' : ''}
           </label>
           <input
+            id="ret-cep"
             className="tinput"
+            inputMode="numeric"
+            autoComplete="shipping postal-code"
             value={cep}
             onChange={(e) => void tratarCep(e.target.value)}
             placeholder="00000-000"
@@ -261,9 +263,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label className="u-rotulo">Logradouro / Rua</label>
+          <label className="u-rotulo" htmlFor="ret-logradouro">Logradouro / Rua</label>
           <input
+            id="ret-logradouro"
             className="tinput"
+            autoComplete="shipping address-line1"
+            autoCapitalize="words"
             value={logradouro}
             onChange={(e) => setLogradouro(e.target.value)}
             placeholder="Rua, Avenida, Praça..."
@@ -273,8 +278,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       <div className="u-grade-3 u-mt6">
         <div>
-          <label className="u-rotulo">Número</label>
+          <label className="u-rotulo" htmlFor="ret-numero">Número</label>
           <input
+            id="ret-numero"
             className="tinput"
             value={numero}
             onChange={(e) => setNumero(e.target.value)}
@@ -282,18 +288,22 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label className="u-rotulo">Complemento</label>
+          <label className="u-rotulo" htmlFor="ret-complemento">Complemento</label>
           <input
+            id="ret-complemento"
             className="tinput"
+            autoComplete="shipping address-line2"
             value={complemento}
             onChange={(e) => setComplemento(e.target.value)}
             placeholder="Apto, Bloco (opcional)"
           />
         </div>
         <div>
-          <label className="u-rotulo">Bairro</label>
+          <label className="u-rotulo" htmlFor="ret-bairro">Bairro</label>
           <input
+            id="ret-bairro"
             className="tinput"
+            autoCapitalize="words"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
             placeholder="Bairro"
@@ -303,18 +313,24 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       <div className="u-grade-3b u-mt6">
         <div>
-          <label className="u-rotulo">Cidade</label>
+          <label className="u-rotulo" htmlFor="ret-cidade">Cidade</label>
           <input
+            id="ret-cidade"
             className="tinput"
+            autoComplete="shipping address-level2"
+            autoCapitalize="words"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
             placeholder="Cidade"
           />
         </div>
         <div>
-          <label className="u-rotulo">UF</label>
+          <label className="u-rotulo" htmlFor="ret-uf">UF</label>
           <input
+            id="ret-uf"
             className="tinput"
+            autoComplete="shipping address-level1"
+            autoCapitalize="characters"
             value={uf}
             onChange={(e) => setUf(e.target.value.toUpperCase())}
             placeholder="MG"
@@ -322,9 +338,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label className="u-rotulo">Telefone / WhatsApp</label>
+          <label className="u-rotulo" htmlFor="ret-telefone">Telefone / WhatsApp</label>
           <input
+            id="ret-telefone"
             className="tinput"
+            type="tel"
+            autoComplete="shipping tel-national"
             value={telefone}
             onChange={(e) => setTelefone(e.target.value)}
             placeholder="(31) 99999-9999"

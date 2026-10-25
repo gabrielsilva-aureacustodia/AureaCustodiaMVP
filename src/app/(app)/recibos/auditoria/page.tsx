@@ -212,7 +212,7 @@ export default function AuditoriaPage(): ReactNode {
             </div>
 
             {/* .tabela-fixa: o código da moeda fica parado enquanto as outras colunas rolam. */}
-            <div className="tabela-fixa">
+            <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Estoque auditado (role para o lado no celular)">
               <table className="ro-tabela">
                 <thead>
                   <tr>

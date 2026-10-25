@@ -83,10 +83,13 @@ export function BlocosDeMoedas(): ReactNode {
                 {d.referenciaExterna ? (
                   <div data-destaque="referencia-externa">
                     <dt>{ROTULO_REFERENCIA_EXTERNA}</dt>
-                    <dd>{brl(d.referenciaExterna.valor)}</dd>
-                    <small>
-                      {d.referenciaExterna.fonte} · cotado em {d.referenciaExterna.cotadoEm}
-                    </small>
+                    <dd>
+                      {brl(d.referenciaExterna.valor)}
+                      {/* A fonte fica DENTRO do <dd>: filho solto de <dl> que não é dt/dd quebra a lista no leitor de tela (axe). */}
+                      <small>
+                        {d.referenciaExterna.fonte} · cotado em {d.referenciaExterna.cotadoEm}
+                      </small>
+                    </dd>
                   </div>
                 ) : null}
               </dl>

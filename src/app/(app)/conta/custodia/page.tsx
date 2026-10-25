@@ -288,7 +288,7 @@ export default function MinhaCustodiaPage(): ReactNode {
             Cada fatura paga aparece aqui, com a data, a forma de pagamento e as moedas que ela cobriu.
           </EstadoVazio>
         ) : (
-          <div className="tabela-fixa">
+          <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Pagamentos de custódia (role para o lado no celular)">
             <table className="ro-tabela">
               <thead>
                 <tr>
@@ -344,7 +344,7 @@ export default function MinhaCustodiaPage(): ReactNode {
         {r.emAberto.length > 0 && (
           <>
             <h4 className="sub-titulo">Em aberto</h4>
-            <div className="tabela-fixa">
+            <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Faturas em aberto (role para o lado no celular)">
               <table className="ro-tabela">
                 <thead>
                   <tr>

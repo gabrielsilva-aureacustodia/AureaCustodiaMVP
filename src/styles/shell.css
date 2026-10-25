@@ -230,6 +230,8 @@ span.switch{display:inline-block;flex-shrink:0}
 .tabela-fixa tbody tr:hover > *{background:var(--ro-superficie-sutil)}
 .tabela-fixa .num{text-align:right;white-space:nowrap}
 .tabela-fixa .nowrap{white-space:nowrap}
+/* A caixa rola sozinha no celular: com tabIndex=0 (axe scrollable-region-focusable) quem usa teclado rola com as setas. */
+.tabela-fixa:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
 
 /* Seletor de opção (forma de pagamento, modalidade): cartão clicável com estado marcado. */
 .opcoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
@@ -336,3 +338,9 @@ span.switch{display:inline-block;flex-shrink:0}
 .sb-marca:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
 .sb-marca .ro-logo{width:40px;height:40px;flex:none}
 .sb-marca-nome{font-family:var(--ro-fonte-display);font-size:1.15rem;font-weight:600;color:var(--ro-texto-forte);letter-spacing:.01em}
+
+/* Validação no navegador sem JS (tópico 35, passo 3c): :user-invalid só acende DEPOIS que a pessoa sai do campo
+   ou tenta enviar — enquanto digita, nada de vermelho. O aria-invalid cobre o erro que vem do servidor ou do
+   cálculo da tela (CPF inválido no cadastro). O servidor continua sendo quem valida. */
+.app-cliente .tinput:user-invalid,.modal .tinput:user-invalid,
+.app-cliente .tinput[aria-invalid="true"],.modal .tinput[aria-invalid="true"]{border-color:var(--ro-perigo-texto);background:var(--ro-perigo-fundo)}

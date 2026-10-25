@@ -314,7 +314,7 @@ export default function ConfiguracoesPage(): ReactNode {
         </div>
 
         {/* Tabela de Aceites Registrados — 1.ª coluna (o documento) fixa no celular. */}
-        <div className="tabela-fixa">
+        <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Histórico de aceites (role para o lado no celular)">
           <table className="ro-tabela">
             <thead>
               <tr>
