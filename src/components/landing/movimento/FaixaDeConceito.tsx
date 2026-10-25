@@ -1,16 +1,16 @@
-'use client'
-
 /**
  * Faixa que rola com as ideias da marca (proteger, valorizar, vender quando quiser…), receita de marquee do
- * tópico 14 do aprendizado_frontend: dois grupos iguais (o segundo `aria-hidden`), animação só de transform,
- * pausa no hover/foco e BOTÃO DE PAUSAR (WCAG 2.2.2 — movimento que dura mais de 5 s precisa de controle).
- * O texto não é essencial: as mesmas ideias estão escritas, paradas, nas seções da página.
+ * tópico 14 do aprendizado_frontend: dois grupos iguais (o segundo `aria-hidden`), animação só de transform e
+ * pausa quando o ponteiro passa por cima.
+ *
+ * Sem botão de pausar, por decisão do Gabriel (25/10/2026): a faixa é decorativa — as mesmas ideias estão
+ * escritas, paradas, nas seções da página — e o botão competia com ela. Quem pediu "reduzir movimento" ao
+ * sistema vê a faixa parada (CSS). Sem estado, sem 'use client'.
  */
 
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 export function FaixaDeConceito({ itens }: { itens: readonly string[] }): ReactNode {
-  const [pausada, setPausada] = useState(false)
   const grupo = (oculto: boolean): ReactNode => (
     <ul className="pub-faixa-grupo" aria-hidden={oculto || undefined}>
       {itens.map((t) => (
@@ -19,22 +19,13 @@ export function FaixaDeConceito({ itens }: { itens: readonly string[] }): ReactN
     </ul>
   )
   return (
-    <section className="pub-faixa" aria-label="O que o Real Olímpico faz por você" data-pausada={pausada || undefined}>
+    <section className="pub-faixa" aria-label="O que o Real Olímpico faz por você">
       <div className="pub-faixa-janela">
-        <div className="pub-faixa-trilho" id="faixa-conceito">
+        <div className="pub-faixa-trilho">
           {grupo(false)}
           {grupo(true)}
         </div>
       </div>
-      <button
-        type="button"
-        className="pub-faixa-pausa"
-        aria-controls="faixa-conceito"
-        aria-pressed={pausada}
-        onClick={() => setPausada((p) => !p)}
-      >
-        {pausada ? 'Continuar a faixa' : 'Pausar a faixa'}
-      </button>
     </section>
   )
 }

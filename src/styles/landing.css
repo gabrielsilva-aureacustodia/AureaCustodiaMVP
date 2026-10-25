@@ -620,7 +620,7 @@ html, body{overflow-x:clip}
   transform:translateX(-120%) skewX(-12deg);opacity:0;
 }
 
-/* Faixa de conceito (marquee do tópico 14, com pausa). */
+/* Faixa de conceito (marquee do tópico 14; pausa no hover, parada com movimento reduzido). */
 .pub-faixa{position:relative;display:flex;align-items:center;gap:12px;margin-top:28px;border-block:1px solid var(--line-soft);background:var(--pub-superficie)}
 .pub-faixa-janela{flex:1;min-width:0;overflow:hidden;
   mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
@@ -628,10 +628,6 @@ html, body{overflow-x:clip}
 .pub-faixa-grupo{list-style:none;margin:0;padding:0 2.5rem 0 0;display:flex;flex-shrink:0;gap:2.5rem;min-inline-size:100vw;justify-content:space-around}
 .pub-faixa-grupo li{display:flex;align-items:center;gap:2.5rem;padding:18px 0;white-space:nowrap;font-family:var(--ff-display);font-size:clamp(20px,2.4vw,28px);color:var(--text-strong)}
 .pub-faixa-grupo li::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--pub-ouro-linha)}
-.pub-faixa-pausa{
-  flex:0 0 auto;min-height:44px;margin-right:var(--pub-gutter);padding:0 14px;border-radius:999px;cursor:pointer;
-  background:var(--bg);border:1px solid var(--line-soft);color:var(--text);font-size:13px;font-weight:600;
-}
 
 /* Holofote nos pilares (Holofote escreve --hx/--hy). */
 .pub-reserva-pilares li{position:relative;overflow:hidden;isolation:isolate}
@@ -699,7 +695,7 @@ html, body{overflow-x:clip}
 
   /* Faixa: rola, pausa no hover/foco e pelo botão. */
   .pub-faixa-trilho{animation:pub-faixa 40s linear infinite}
-  .pub-faixa:hover .pub-faixa-trilho,.pub-faixa:focus-within .pub-faixa-trilho,.pub-faixa[data-pausada] .pub-faixa-trilho{animation-play-state:paused}
+  .pub-faixa:hover .pub-faixa-trilho{animation-play-state:paused}
   @keyframes pub-faixa{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
   /* Demonstração: só toca em cena (EmCena). 8 s: propostas chegam, fecha, recibo atravessa. */
@@ -839,8 +835,6 @@ html, body{overflow-x:clip}
   .pub-hero-fatos strong{display:inline;font-size:18px}
   .pub-acoes .pub-btn{flex:1 1 100%}
   .pub-demo-legenda{grid-template-columns:minmax(0,1fr)}
-  .pub-faixa{flex-direction:column;align-items:stretch;gap:0}
-  .pub-faixa-pausa{margin:0 var(--pub-gutter) 12px;align-self:flex-start}
   .pub-footer-cols{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pub-sim-linha{flex-direction:column;align-items:flex-start;gap:4px}
   .pub-sim-linha dd{text-align:left}

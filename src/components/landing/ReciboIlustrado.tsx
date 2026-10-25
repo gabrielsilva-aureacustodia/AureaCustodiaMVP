@@ -4,7 +4,7 @@
  * Starter (doc 15 §1.5 do aprendizado_frontend).
  *
  * NENHUM dado inventado: moeda, ano, tiragem e peso de referência vêm do catálogo (`COIN_TYPES`); o cofre é o
- * que a landing já diz. Não há número de recibo nem titular — o campo diz "exemplo", e o rodapé leva o rótulo
+ * que a landing já diz. Não há número de recibo; o titular é "Você", e o rodapé leva só o rótulo
  * "código simulado", o mesmo do QR do recibo real (deliberado, CLAUDE.md: não há blockchain).
  * Com a Frente 2, ganha a moldura de papel-moeda e o selo da perícia (SVG em currentColor, pintados por máscara
  * CSS na tinta dourada do certificado). Marcação pura, sem 'use client'.
@@ -26,7 +26,7 @@ export function ReciboIlustrado(): ReactNode {
   return (
     <figure
       className="pub-recibo"
-      aria-label="Exemplo ilustrativo de recibo de custódia"
+      aria-label="Recibo de custódia"
       style={
         FRENTE_2_MESCLADA
           ? ({ '--moldura': `url(${MOLDURA_GUILLOCHE})`, '--selo': `url(${SELO_PERICIA})` } as CSSProperties)
@@ -61,7 +61,7 @@ export function ReciboIlustrado(): ReactNode {
       </dl>
       <figcaption className="pub-recibo-pe">
         <span className="pub-recibo-qr" aria-hidden="true" />
-        <span>Exemplo ilustrativo · código simulado</span>
+        <span>Código simulado</span>
       </figcaption>
     </figure>
   )
