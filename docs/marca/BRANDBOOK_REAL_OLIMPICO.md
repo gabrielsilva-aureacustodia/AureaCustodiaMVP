@@ -340,6 +340,18 @@ Brilho que corre como luz sobre metal; parado com movimento reduzido.
 Toast: um só, com o ponto dourado de "selo", 3,6 s (regra do monolito mantida). Modal: topo com filete dourado de 2 px,
 raio 20, véu com desfoque de 4 px, entrada "assenta" (8 px + 2%), fecha só por botão (decisão do monolito mantida).
 
+### 9.10.1 Componentes que usam os ativos da Frente 2
+Os caminhos de imagem vivem num lugar só, o catálogo `src/brand/ativos.ts` (`ATIVOS`, `ILUSTRACOES`, `FOTO_REAL`), com a
+situação de cada ativo (aprovado/pendente e o motivo). Ativo pendente **nunca** aparece: o componente cai para a foto
+real.
+- `<ImagemDaMarca id sizes prioridade>` — `<picture>` com AVIF e WebP nas larguras entregues; reserva o espaço pela
+  proporção.
+- `<CartaoMoeda moeda nome selo href>` — cartão de vitrine (`.ro-cartao-moeda`): render em ¾ quando aprovado, senão a foto
+  real com a inclinação do `<MoedaRealista>`; dados (ano, valor estimado) por `children`, fora da imagem.
+- `<FaixaAbertura sobretitulo titulo acao arte fundo>` — faixa escura nos dois temas, fundo guilhoché (CSS) ou veludo
+  (textura da Frente 2); arte desce para baixo do texto no celular por `flex-wrap`.
+- `<EstadoVazio ilustracao>` — ilustração pelo nome do catálogo; quando há versão `-escuro`, o tema escolhe.
+
 ### 9.11 Assinatura visual
 - **Filete** (`.ro-filete`): duas linhas douradas finas = o aro em relevo da moeda; separa abertura de conteúdo.
 - **Serrilha** (`.ro-serrilha`): o bordo serrilhado, no topo de faixas e no rodapé — nunca no meio do texto.
@@ -443,6 +455,24 @@ referência de paleta — **nunca** reproduzir a logo).
 | Observações gerais | ⚠️ | os 3 OGs novos não têm a versão `-1200` (a rodada 1 tem); os PNG-mestre saíram em 1024 px, não 4K, e estão em `public/` em vez do Drive |
 
 Refação pela regra do §8.1 (composição sobre a foto real): `PEDIDOS_ANTIGRAVITY.md` §3.
+
+### 13.4.2 Rodada 3 — conferida em 25/10/2026
+O método de composição funcionou: legendas, "BRASIL", logo Rio 2016, mapa e figura saíram **letra por letra iguais** à
+foto real. Mas o `pipeline_composicao.py` lê a moeda com `cv2.imread` (ordem **BGR**) e a trata como RGB: o anel dourado
+saiu **azul-ciano** e os anéis olímpicos trocaram de cor nos 6 ativos compostos. Confirmado invertendo os canais de
+volta (o ouro reaparece certo).
+
+| Ativo | Situação |
+|---|---|
+| `moedas-*-tres-quartos-transparente` (2) | ⏳ pendente — desenho fiel, canais trocados |
+| `og-moeda-bandeira`, `og-moeda-direitos-humanos` | ⏳ pendente — canais trocados (agora com `-1200`) |
+| `cenarios-faixa-abertura-painel` | ⏳ pendente — canais trocados; desfoque correto |
+| `cenarios-lacre-de-custodia` | ❌ reprovado de novo — virou cartão branco com faixa dourada, sem bandeja nem envelope |
+| Extras desta rodada: 4 cenas da jornada, cofre em retrato, OG da landing, vídeo do cofre, moldura e selo, spots `-escuro`, spots "Proteja/Valorize/Ganhe" | ✅ — ressalva de vocabulário: "Ganhe" e a seta subindo encostam em "retorno" (§11); o texto é da Frente 3 |
+| Spots "neutros" (`onboarding-vazio-*`, os 5 da rodada 2) | ⚠️ desenhados para fundo claro; no cartão escuro ficam apagados — falta versão `-escuro` |
+
+O catálogo `src/brand/ativos.ts` marca os pendentes; os componentes caem para a foto real até a correção
+(`PEDIDOS_ANTIGRAVITY.md` §4).
 
 ### 13.5 O que ainda falta (pedido em `PEDIDOS_ANTIGRAVITY.md`)
 1. Moedas em **¾ isoladas** (fundo transparente) para `.ro-cartao-moeda` — 4K, 1:1, as duas.

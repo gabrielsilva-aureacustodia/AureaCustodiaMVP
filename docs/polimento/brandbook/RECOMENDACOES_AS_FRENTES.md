@@ -42,7 +42,9 @@ recibo 1 / 28 (o certificado é exceção: `--cert-*` fica) · reports 1 / 3 · 
 
 ### 0.3 Componentes novos para usar em vez de inventar
 `<Selo tom>` (situação), `<Aviso tom titulo>` (recado ao lado da ação), `<EstadoVazio titulo arte acao>`,
-`<Esqueleto>`, `<LogoMarca>`/`<LogoEmblema>`; classes `.ro-sobretitulo`, `.ro-display(-xl)`, `.ro-titulo-1/2/3`,
+`<Esqueleto>`, `<LogoMarca>`/`<LogoEmblema>`, **`<CartaoMoeda>`, `<FaixaAbertura>`, `<ImagemDaMarca>`** e
+`<EstadoVazio ilustracao="semItens">` — imagem da Frente 2 **só pelo catálogo `src/brand/ativos.ts`**, nunca caminho
+escrito à mão (o catálogo sabe o que está pendente e cai para a foto real); classes `.ro-sobretitulo`, `.ro-display(-xl)`, `.ro-titulo-1/2/3`,
 `.ro-valor`, `.ro-tabela`, `.ro-abas`, `.ro-chip`, `.ro-passos`, `.ro-cartao(-interativo|-moeda)`, `.ro-vitrine-luz`,
 `.ro-faixa` + `.ro-guilloche`, `.ro-filete`, `.ro-serrilha`, `.ro-container`, `.ro-secao`, `.ro-grade-auto`,
 `.ro-revela`; variantes `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.btn-lg`.

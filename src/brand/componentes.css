@@ -96,6 +96,40 @@
 .ro-faixa .ro-sobretitulo{color:var(--ro-ouro-400)}
 .ro-faixa :is(.ro-display,.ro-display-xl,.ro-titulo-1,.ro-titulo-2,.ro-valor){color:var(--ro-pergaminho-950)}
 .ro-faixa .ro-legenda,.ro-faixa .ro-corpo-lg{color:var(--ro-noite-200)}
+/* A faixa é escura nos DOIS temas: os papéis de texto do tema claro (ouro-800, noite-450) somem
+   nela. Por isso a ênfase e os centavos usam primitivos de fundo escuro, fixos. */
+.ro-faixa :is(.ro-display,.ro-display-xl,.ro-titulo-1,.ro-titulo-2) em{color:var(--ro-ouro-400)}
+.ro-faixa .ro-valor small{color:var(--ro-noite-200)}
+/* Componente <FaixaAbertura>: texto à esquerda, arte à direita. flex-wrap em vez de media query:
+   quando não cabem lado a lado (celular), a arte desce para baixo do texto sozinha. */
+.ro-faixa{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ro-esp-6) var(--ro-esp-10)}
+.ro-faixa__texto{flex:1 1 300px;min-width:0;display:grid;gap:var(--ro-esp-3)}
+.ro-faixa__apoio{color:var(--ro-noite-200);max-width:var(--ro-container-texto)}
+.ro-faixa__acao{margin-top:var(--ro-esp-2)}
+.ro-faixa__acao .btn-gold{width:auto}
+.ro-faixa__arte{flex:0 1 220px;margin-inline:auto;filter:drop-shadow(0 18px 30px rgb(0 0 0 / .45))}
+.ro-faixa--guilloche{
+  background-color:var(--ro-noite-950);
+  background-image:
+    repeating-radial-gradient(circle at 78% 30%,color-mix(in srgb,var(--ro-ouro-500) 9%,transparent) 0 1px,transparent 1px 9px),
+    repeating-radial-gradient(circle at 22% 120%,color-mix(in srgb,var(--ro-ouro-500) 6%,transparent) 0 1px,transparent 1px 13px),
+    radial-gradient(120% 90% at 80% 0%,var(--ro-noite-800) 0%,var(--ro-noite-950) 60%);
+}
+/* Veludo da Frente 2 (public/visuais/fundos/). Sem o arquivo, sobra o azul-noite da cor de fundo. */
+.ro-faixa--veludo{
+  background:
+    radial-gradient(90% 120% at 85% 50%,color-mix(in srgb,var(--ro-ouro-500) 10%,transparent) 0%,transparent 60%),
+    url('/visuais/fundos/fundos-veludo-noite-1440.webp') center/cover,
+    var(--ro-noite-900);
+}
+
+/* Imagem do catálogo (<ImagemDaMarca>): ocupa a largura do contêiner, sem distorcer. */
+.ro-imagem{display:block}
+.ro-imagem img{display:block;width:100%;height:auto}
+
+/* Ilustração com versão para fundo escuro: o HTML leva as duas e o tema escolhe. */
+body[data-theme="dark"] .ro-so-claro,
+body[data-theme="light"] .ro-so-escuro{display:none}
 
 /* ---- Luz de vitrine para fotografia de moeda --------------------------------
    Spot quente atrás da peça + sombra de contato embaixo: a moeda "pousa" no
@@ -126,6 +160,9 @@ body[data-theme="light"] .ro-vitrine-luz{
 .ro-cartao-interativo:hover{transform:translateY(-2px);border-color:var(--ro-borda);box-shadow:var(--ro-sombra-3)}
 .ro-cartao-moeda{display:grid;gap:var(--ro-esp-3);container-type:inline-size}
 .ro-cartao-moeda .ro-vitrine-luz{padding:12%}
+.ro-cartao-moeda .ro-vitrine-luz > *{width:100%;max-width:100%}
+.ro-cartao-moeda .moeda-realista{width:min(100%,240px);justify-self:center}
+.ro-cartao-moeda .moeda-realista-img{width:100%;height:auto}
 .ro-cartao-moeda__nome{font-family:var(--ro-fonte-display);font-size:1.125rem;font-weight:var(--ro-peso-semi);color:var(--ro-texto-forte);line-height:1.25}
 .ro-cartao-moeda__meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
 
