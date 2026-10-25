@@ -222,7 +222,7 @@ function NovaConversa({ executar, aoCriar, aoCancelar }: { executar: Executar; a
         <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado}>
           {ocupado ? 'Enviando…' : 'Enviar e abrir'}
         </button>
-        <button type="button" className="btn btn-outline adm-btn-compacto" onClick={aoCancelar}>
+        <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={aoCancelar}>
           Cancelar
         </button>
       </div>

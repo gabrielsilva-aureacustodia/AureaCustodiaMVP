@@ -135,7 +135,7 @@ export function PainelLogistica({
 
       {filtro.ver !== 'retiradas' ? (
         <div className="panel">
-          <h3>Envios para a custódia</h3>
+          <h2>Envios para a custódia</h2>
           {dados.envios.length ? (
             <div className="table-scroll">
               <table className="audit-table">
@@ -209,7 +209,7 @@ export function PainelLogistica({
 
       {filtro.ver !== 'envios' ? (
         <div className="panel">
-          <h3>Retiradas físicas</h3>
+          <h2>Retiradas físicas</h2>
           {dados.retiradas.length ? (
             <div className="table-scroll">
               <table className="audit-table">

@@ -12,6 +12,11 @@ O painel lê ledger, trilha, papéis e indicadores — nada disso está no `AppS
 provider (`AdminProvider`) e a folha (`src/styles/admin.css`) são próprios. Os parênteses fazem o
 grupo não aparecer na URL: as rotas são `/admin/...`.
 
+O desenho segue o brandbook do Real Olímpico (registro "cofre, denso"): `admin.css` lê os tokens `--ro-*`, e as
+peças do painel (`src/components/admin/Pecas.tsx`) delegam para os componentes da marca — `Selo`, `EstadoVazio`,
+`Aviso`, `Esqueleto`, `LogoEmblema`, em `src/components/ui/`. Ação irreversível usa `ConfirmarAcao perigo`
+(`.btn-danger`); título de painel é h2, logo abaixo do h1 da topbar.
+
 ## Estrutura
 
 ```

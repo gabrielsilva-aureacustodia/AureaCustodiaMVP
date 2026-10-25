@@ -330,7 +330,7 @@ function DadosBancarios({
               <button type="submit" className="btn btn-gold adm-btn-compacto">
                 Salvar dados bancários
               </button>
-              <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEditando(false)}>
+              <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setEditando(false)}>
                 Cancelar
               </button>
             </div>

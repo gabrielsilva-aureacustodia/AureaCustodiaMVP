@@ -25,7 +25,7 @@ import type { StatusNfse } from '@/server/db/repositories/nfse'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
-import { Abas } from '../Pecas'
+import { Abas, Selo } from '../Pecas'
 import { Cartao } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
@@ -49,7 +49,7 @@ function situacao(l: LinhaFiscal): ReactNode {
   if (e.status === 'autorizada') {
     return (
       <>
-        <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
+        <Selo tom="ok">Autorizada</Selo> <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
         {e.ambiente === 'restrita' ? <span className="adm-fraco"> · teste (sem validade jurídica)</span> : null}
         <div className="adm-fraco" style={{ wordBreak: 'break-all' }}>
           {e.chaveAcesso}
@@ -59,7 +59,7 @@ function situacao(l: LinhaFiscal): ReactNode {
   }
   return (
     <>
-      <b>{ROTULO_STATUS[e.status]}</b>
+      <Selo tom={e.status === 'rejeitada' || e.status === 'erro' ? 'alerta' : e.status === 'cancelada' ? 'neutro' : 'atencao'}>{ROTULO_STATUS[e.status]}</Selo>
       {e.numeroNfse && (e.status === 'cancelada' || e.status === 'cancelando') ? <span> · NFS-e nº {e.numeroNfse}</span> : null}
       {e.motivoCancelamento ? <div className="adm-fraco">{e.motivoCancelamento.split('|').slice(1).join('|')}</div> : null}
       {e.erros?.length ? (

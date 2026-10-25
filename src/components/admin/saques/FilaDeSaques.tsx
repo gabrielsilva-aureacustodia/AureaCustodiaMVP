@@ -32,6 +32,7 @@ import type { DadosDaFilaDeSaques, LinhaDeSaque } from '@/server/admin/saques'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
+import { Selo, type Tom } from '../Pecas'
 import { data, dataHora, dinheiro } from '../formatos'
 
 function destino(l: LinhaDeSaque): string {
@@ -41,6 +42,9 @@ function destino(l: LinhaDeSaque): string {
 }
 
 type Painel = { id: string; modo: 'pagar' | 'recusar' } | null
+
+/** Brandbook §9.4: esperando → aviso, no Mercado Pago → neutro, pago → sucesso, falhou → perigo. */
+const TOM_DO_SAQUE: Record<keyof typeof SITUACAO_DO_SAQUE, Tom> = { solicitado: 'atencao', em_processamento: 'neutro', pago: 'ok', falhou: 'alerta' }
 
 export function FilaDeSaques({
   dados,
@@ -94,12 +98,11 @@ export function FilaDeSaques({
       ) : null}
 
       <div className="table-scroll">
-        <table className="audit-table">
+        <table className="audit-table adm-tabela-cartoes">
           <caption className="adm-sr">Pedidos de saque{comCliente ? '' : ' desta conta'}: pedido, valor, destino, previsão e situação</caption>
           <thead>
             <tr>
-              {comCliente ? <th scope="col">Cliente</th> : null}
-              <th scope="col">Pedido</th>
+              <th scope="col">{comCliente ? 'Cliente e pedido' : 'Pedido'}</th>
               <th scope="col" className="adm-num">A pagar</th>
               <th scope="col">Destino</th>
               <th scope="col">Previsão</th>
@@ -115,35 +118,38 @@ export function FilaDeSaques({
               const semPayout = s.status === 'em_processamento' && !s.payoutId
               return (
                 <tr key={s.id}>
-                  {comCliente ? (
-                    <td>
-                      <Link href={`/admin/usuarios/${encodeURIComponent(s.userEmail)}`}>{l.nome}</Link>
-                      <div className="adm-fraco">{s.userEmail}</div>
-                    </td>
-                  ) : null}
-                  <td>
-                    <span className="adm-mono adm-codigo">{s.id}</span>
-                    <div className="adm-fraco">{dataHora(s.criadoEm)}</div>
+                  {/* Rodada 3: pedido dentro da 1ª coluna — com sete colunas, a de ações (a que importa)
+                      ficava fora da tela a 1440 px. */}
+                  <td data-rotulo={comCliente ? 'Cliente e pedido' : 'Pedido'}>
+                    {comCliente ? (
+                      <>
+                        <Link href={`/admin/usuarios/${encodeURIComponent(s.userEmail)}`}>{l.nome}</Link>
+                        <div className="adm-fraco">{s.userEmail}</div>
+                      </>
+                    ) : null}
+                    <div className="adm-fraco">
+                      <span className="adm-mono adm-codigo">{s.id}</span> · {dataHora(s.criadoEm)}
+                    </div>
                   </td>
-                  <td className="adm-num">
+                  <td className="adm-num" data-rotulo="A pagar">
                     {dinheiro(s.valorLiquido)}
                     <div className="adm-fraco">
                       debitado {dinheiro(s.valorTotal)} · tarifa {dinheiro(s.taxa)}
                     </div>
                   </td>
-                  <td>{destino(l)}</td>
-                  <td>
+                  <td data-rotulo="Destino">{destino(l)}</td>
+                  <td data-rotulo="Previsão">
                     {data(s.previsaoPagamentoEm)}
                     {l.atrasado ? <div className="adm-alerta-texto">! prazo vencido</div> : null}
                   </td>
-                  <td>
-                    {SITUACAO_DO_SAQUE[s.status]}
+                  <td data-rotulo="Situação">
+                    <Selo tom={TOM_DO_SAQUE[s.status]}>{SITUACAO_DO_SAQUE[s.status]}</Selo>
                     {s.canal ? <div className="adm-fraco">{s.canal === 'mercadopago' ? 'Mercado Pago' : 'pago por fora'}{s.comprovanteRef ? ` · ${s.comprovanteRef}` : ''}</div> : null}
                     {s.detalheGateway ? <div className="adm-fraco">{s.detalheGateway}</div> : null}
                     {s.motivoFalha ? <div className="adm-fraco">Motivo: {s.motivoFalha}</div> : null}
                   </td>
                   {podePagar ? (
-                    <td>
+                    <td data-rotulo="Ações" className="adm-celula-acoes">
                       {emAberto ? (
                         <div className="adm-acoes-linha">
                           {s.status === 'solicitado' && dados.envio.ativo ? (
@@ -186,7 +192,7 @@ export function FilaDeSaques({
                             </button>
                           ) : null}
                           {s.status === 'solicitado' ? (
-                            <button type="button" className="btn btn-outline adm-btn-compacto" disabled={trabalhando} aria-expanded={aberto?.id === s.id && aberto.modo === 'recusar'} onClick={() => { setAberto({ id: s.id, modo: 'recusar' }); setTexto('') }}>
+                            <button type="button" className="btn btn-danger adm-btn-compacto" disabled={trabalhando} aria-expanded={aberto?.id === s.id && aberto.modo === 'recusar'} onClick={() => { setAberto({ id: s.id, modo: 'recusar' }); setTexto('') }}>
                               Recusar<span className="adm-sr"> o saque de {l.nome}</span>
                             </button>
                           ) : null}
@@ -213,7 +219,7 @@ export function FilaDeSaques({
                           <div className="adm-acoes">
                             <button
                               type="button"
-                              className="btn btn-gold adm-btn-compacto"
+                              className={`btn ${aberto.modo === 'recusar' ? 'btn-danger' : 'btn-gold'} adm-btn-compacto`}
                               disabled={trabalhando || texto.trim().length < 3}
                               aria-describedby={texto.trim().length < 3 ? `saque-${s.id}-falta` : undefined}
                               onClick={() => void executar(s.id, () => (aberto.modo === 'pagar' ? marcarSaquePago(s.id, texto) : recusarSaque(s.id, texto)))}
@@ -222,7 +228,7 @@ export function FilaDeSaques({
                                 ? `Confirmar: pagar o saque de ${dinheiro(s.valorLiquido)} a ${l.nome}`
                                 : `Confirmar: recusar e devolver ${dinheiro(s.valorTotal)} a ${l.nome}`}
                             </button>
-                            <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setAberto(null)}>
+                            <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setAberto(null)}>
                               Cancelar
                             </button>
                           </div>

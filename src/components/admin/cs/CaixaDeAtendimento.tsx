@@ -26,6 +26,7 @@ import type { FiltroConversas } from '@/domain/admin/cs'
 import type { ActionResult } from '@/domain/types'
 import type { DadosAtendimento } from '@/server/admin/atendimento'
 import { atualizarAtendimentoNoPainel } from '@/server/actions/admin/cs'
+import { Aviso } from '@/components/ui/Aviso'
 import { useToast } from '@/components/ui/Toast'
 
 import { CartaoDoCliente } from './CartaoDoCliente'
@@ -126,11 +127,10 @@ export function CaixaDeAtendimento({ inicial, filtroInicial, conversaInicial, eq
 
   if (dados.semBanco) {
     return (
-      <div className="note adm-secao">
-        <span>
-          Este ambiente está sem <code>POSTGRES_URL</code>: o atendimento guarda as conversas no banco, e sem ele não há caixa
-          de conversas.
-        </span>
+      <div className="adm-secao">
+        <Aviso tom="info" titulo="Ambiente sem banco de dados">
+          <p>Este ambiente está sem <code>POSTGRES_URL</code>: o atendimento guarda as conversas no banco, e sem ele não há caixa de conversas.</p>
+        </Aviso>
       </div>
     )
   }

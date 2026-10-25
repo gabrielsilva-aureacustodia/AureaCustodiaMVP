@@ -104,7 +104,7 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
     conteudo =
       aba === 'taxas' ? (
         <div className="panel">
-          <h3>Taxas e comissões</h3>
+          <h2>Taxas e comissões</h2>
           <DocumentoPublicado doc={docs.tabela_de_taxas} podePublicar={podeTaxas && !semTabela} />
           <FormGrupoConfig key={JSON.stringify(config.taxas)} grupo="taxas" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} aviso="Salvar vale para as próximas operações e publica versão nova da Tabela de Taxas." />
         </div>
@@ -126,16 +126,16 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
             </ul>
           </nav>
           <div className="panel" id="config-operacional">
-            <h3>Operacional</h3>
+            <h2>Operacional</h2>
             <FormGrupoConfig key={JSON.stringify(config.operacional)} grupo="operacional" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} />
           </div>
           <div className="panel" id="config-termos">
-            <h3>Parâmetros dos Termos de Uso</h3>
+            <h2>Parâmetros dos Termos de Uso</h2>
             <DocumentoPublicado doc={docs.termos_de_uso} podePublicar={podeTaxas && !semTabela} />
             <FormGrupoConfig key={JSON.stringify(config.termos)} grupo="termos" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} aviso="Salvar publica versão nova dos Termos de Uso." />
           </div>
           <div className="panel" id="config-canais">
-            <h3>Canais de atendimento</h3>
+            <h2>Canais de atendimento</h2>
             <p className="adm-fraco">Aparecem em /suporte. Não mudam o texto dos Termos.</p>
             <FormGrupoConfig key={JSON.stringify(config.canais)} grupo="sac" valores={config.valores} gravados={gravados} podeEditar={podeTaxas && !semTabela} />
           </div>
@@ -148,7 +148,7 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
     const tipos: TipoMoedaGravado[] = config.tipos && config.tipos.length > 0 ? config.tipos : linhasIniciaisDoCatalogo().map((t) => ({ ...t, criadoPor: 'código', criadoEm: 0 }))
     conteudo = (
       <div className="panel">
-        <h3>Catálogo de moedas</h3>
+        <h2>Catálogo de moedas</h2>
         <CatalogoDeMoedas tipos={tipos} moedasPorTipo={moedasPorTipo} podeEditar={podeCatalogo} semTabela={semTabela || !config.tipos || config.tipos.length === 0} />
       </div>
     )
@@ -158,9 +158,9 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
       <div className="adm-grade-larga">
         {integracoes.map((i) => (
           <div key={i.chave} className={`panel adm-integracao adm-integracao-${i.estado}`}>
-            <h3>
+            <h2>
               {i.nome} <span className={i.estado === 'ligado' ? 'pill g' : i.estado === 'parcial' ? 'pill y' : 'pill n'}>{i.estado === 'ligado' ? 'ligado' : i.estado === 'parcial' ? 'incompleto' : 'desligado'}</span>
-            </h3>
+            </h2>
             <p className="adm-fraco">{i.oQueFaz}</p>
             <ul className="adm-lista">
               {i.variaveis.map((v) => (
@@ -179,7 +179,7 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
     const linhas = await historico()
     conteudo = (
       <div className="panel">
-        <h3>Histórico da configuração</h3>
+        <h2>Histórico da configuração</h2>
         {linhas === null ? (
           <p className="adm-fraco">Sem banco com a migration 024, não há histórico gravado.</p>
         ) : linhas.length === 0 ? (

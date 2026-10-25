@@ -21,7 +21,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
-import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
+import { LogoEmblema } from '@/brand/componentes/Logo'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useLogout, useSidebar } from '@/components/shell/Sidebar'
 
@@ -47,8 +47,8 @@ export function AdminSidebar(): ReactNode {
       <aside className={open ? 'sidebar open adm-sidebar' : 'sidebar adm-sidebar'} id="sidebar" aria-label="Menu do painel administrativo">
         <div className="sb-brand adm-marca">
           <div className="logo-box logo-sidebar">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" />
+            {/* O emblema oficial pelo componente da marca (brandbook §3), nunca caminho à mão. */}
+            <LogoEmblema largura={72} prioridade />
           </div>
           <div className="adm-marca-tag">Painel administrativo</div>
         </div>

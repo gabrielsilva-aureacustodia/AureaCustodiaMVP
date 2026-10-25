@@ -21,6 +21,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { Aviso } from '@/components/ui/Aviso'
 import type { PeriodoEscolhido } from '@/domain/admin/periodo'
 import { CATALOGO_PARAMETROS, type ContaContabil } from '@/domain/dre'
 import { parsePrice } from '@/domain/money'
@@ -73,11 +74,10 @@ export function Contabil(props: PropsContabil): ReactNode {
   return (
     <>
       {props.semBanco ? (
-        <div className="note adm-secao">
-          <span>
-            Este ambiente está sem <code>POSTGRES_URL</code>: não há lançamentos, alíquotas nem registro de exportações. O
-            plano de contas abaixo é o do código.
-          </span>
+        <div className="adm-secao">
+          <Aviso tom="info" titulo="Ambiente sem banco de dados">
+            <p>Este ambiente está sem <code>POSTGRES_URL</code>: não há lançamentos, alíquotas nem registro de exportações. O plano de contas abaixo é o do código.</p>
+          </Aviso>
         </div>
       ) : null}
 
@@ -225,10 +225,10 @@ function Lancamentos({ contas, lancamentos }: { contas: ContaContabil[]; lancame
                               <p>Gera um lançamento de estorno de {dinheiro(l.valor)}; o original continua no livro.</p>
                               <input className="tinput adm-campo-motivo" placeholder="motivo" autoComplete="off" value={motivo} onChange={(e) => setMotivo(e.target.value)} aria-label={`Motivo do estorno do lançamento nº ${l.id}`} />
                               <span className="adm-acoes">
-                                <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void estornar(l.id)}>
+                                <button type="button" className="btn btn-danger adm-btn-compacto" disabled={ocupado} onClick={() => void estornar(l.id)}>
                                   Confirmar: estornar o lançamento nº {l.id}
                                 </button>
-                                <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEstornando(null)}>
+                                <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setEstornando(null)}>
                                   Cancelar
                                 </button>
                               </span>
@@ -286,11 +286,10 @@ function Aliquotas({ parametros, semBanco }: { parametros: ParametroGravado[]; s
   return (
     <>
       {!semBanco && nulos.length ? (
-        <div className="note adm-secao">
-          <span>
-            <b>{nulos.length} de {CATALOGO_PARAMETROS.length} alíquotas ainda estão nulas</b> — {nulos.map((n) => n.rotulo).join(', ')}. A
-            DRE zera essas linhas e declara a pendência até o contador preencher.
-          </span>
+        <div className="adm-secao">
+          <Aviso tom="aviso" titulo={`${nulos.length} de ${CATALOGO_PARAMETROS.length} alíquotas ainda estão nulas`}>
+            <p>{nulos.map((n) => n.rotulo).join(', ')}. A DRE zera essas linhas e declara a pendência até o contador preencher.</p>
+          </Aviso>
         </div>
       ) : null}
       <p className="adm-fraco adm-secao">

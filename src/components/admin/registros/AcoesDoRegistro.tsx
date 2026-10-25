@@ -82,16 +82,16 @@ export function AcoesDoRegistro({
           <div className="adm-confirmacao adm-perigo" role="group" aria-label={`Confirmar: excluir ${descricao}`}>
             <p>Irreversível: o registro some para o cliente e para a equipe. A trilha de auditoria guarda quem excluiu.</p>
             <div className="adm-acoes">
-              <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void excluir()} autoFocus>
+              <button type="button" className="btn btn-danger adm-btn-compacto" disabled={ocupado} onClick={() => void excluir()} autoFocus>
                 {ocupado ? 'Excluindo…' : `Confirmar: excluir ${descricao}`}
               </button>
-              <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => setConfirmando(false)}>
+              <button type="button" className="btn btn-ghost adm-btn-compacto" disabled={ocupado} onClick={() => setConfirmando(false)}>
                 Cancelar
               </button>
             </div>
           </div>
         ) : (
-          <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setConfirmando(true)}>
+          <button type="button" className="btn btn-danger adm-btn-compacto" onClick={() => setConfirmando(true)}>
             Excluir<span className="adm-sr"> {descricao}</span>
           </button>
         )

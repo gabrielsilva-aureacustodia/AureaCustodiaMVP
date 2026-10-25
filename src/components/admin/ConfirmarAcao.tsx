@@ -12,6 +12,9 @@
  * Primeiro clique abre a caixa logo abaixo do botão (a confirmação acontece do lado do registro,
  * como já fazia `AcoesDoRegistro`); o foco vai para "Confirmar"; Esc ou "Cancelar" desiste.
  * Quem decide se pode é a Server Action — este componente só pergunta.
+ *
+ * Marca (rodada 3): ação irreversível (`perigo`) usa `.btn-danger` no gatilho e na confirmação, e
+ * "Cancelar" é `.btn-ghost` — brandbook §9.1 e recomendação à Frente 5.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -62,7 +65,7 @@ export function ConfirmarAcao({
     return (
       <button
         type="button"
-        className={`btn ${variante === 'gold' ? 'btn-gold' : 'btn-outline'} adm-btn-compacto`}
+        className={`btn ${perigo ? 'btn-danger' : variante === 'gold' ? 'btn-gold' : 'btn-outline'} adm-btn-compacto`}
         disabled={desabilitado}
         onClick={() => setAberto(true)}
         aria-expanded={false}
@@ -84,10 +87,10 @@ export function ConfirmarAcao({
     >
       {detalhe ? <p>{detalhe}</p> : null}
       <div className="adm-acoes">
-        <button ref={confirmar} type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void executar()} data-uso={usoNome ? `${usoNome}:confirmar` : undefined}>
+        <button ref={confirmar} type="button" className={`btn ${perigo ? 'btn-danger' : 'btn-gold'} adm-btn-compacto`} disabled={ocupado} onClick={() => void executar()} data-uso={usoNome ? `${usoNome}:confirmar` : undefined}>
           {ocupado ? 'Enviando…' : `Confirmar: ${objeto}`}
         </button>
-        <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => setAberto(false)}>
+        <button type="button" className="btn btn-ghost adm-btn-compacto" disabled={ocupado} onClick={() => setAberto(false)}>
           Cancelar
         </button>
       </div>

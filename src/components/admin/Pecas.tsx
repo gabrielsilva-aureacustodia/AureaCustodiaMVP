@@ -6,9 +6,9 @@
  *    tela montava o seu `<div className="panel"><h3>`, com h3 direto abaixo do h1 da topbar.
  *  - `Indicador`: o número com rótulo, detalhe e tom; vira link quando tem `href` (o número que
  *    pede ação leva à lista que o explica).
- *  - `Selo`: situação com cor + símbolo + texto, legível em escala de cinza (Carbon, tópico 35).
+ *  - `Selo`: situação — desde a rodada 3, o `<Selo>` da marca (src/components/ui/Selo.tsx).
  *  - `Abas`: troca de visão dentro da página por URL (`?aba=`, `?ver=`), com contagem opcional.
- *  - `Vazio`: lista vazia que diz por quê e o que fazer.
+ *  - `Vazio`: lista vazia que diz por quê e o que fazer — o `<EstadoVazio>` da marca.
  *
  * Sem 'use client' e sem hook: só marcação, desenhada no servidor ou dentro de componente de
  * cliente (doc 35 §4 do aprendizado_frontend). Nada aqui lê dado nem decide permissão.
@@ -16,6 +16,9 @@
 
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { Selo as SeloDaMarca, type TomDoSelo } from '@/components/ui/Selo'
 
 export function Secao({
   id,
@@ -83,15 +86,12 @@ export function Indicador({
   )
 }
 
-const SIMBOLO: Record<Tom, string> = { neutro: '•', ok: '✓', alerta: '!', atencao: '◷', ouro: '★' }
+/** Os tons do painel no vocabulário do `<Selo>` da marca (brandbook §9.4). */
+const TOM_DA_MARCA: Record<Tom, TomDoSelo> = { neutro: 'neutro', ok: 'sucesso', alerta: 'perigo', atencao: 'aviso', ouro: 'ouro' }
 
+/** Rodada 3 (25/10/2026): o selo do painel É o `<Selo>` da marca — texto + ponto + fundo suave. */
 export function Selo({ tom = 'neutro', children }: { tom?: Tom; children: ReactNode }): ReactNode {
-  return (
-    <span className={`adm-selo2 adm-selo2-${tom}`}>
-      <span aria-hidden="true">{SIMBOLO[tom]}</span>
-      {children}
-    </span>
-  )
+  return <SeloDaMarca tom={TOM_DA_MARCA[tom]}>{children}</SeloDaMarca>
 }
 
 export interface ItemAba {
@@ -118,12 +118,7 @@ export function Abas({ rotulo, itens }: { rotulo: string; itens: readonly ItemAb
   )
 }
 
+/** O `<EstadoVazio>` da marca (§9.8), sem arte: o painel é registro cofre, nada de vitrine. */
 export function Vazio({ titulo, children, acao }: { titulo: string; children?: ReactNode; acao?: ReactNode }): ReactNode {
-  return (
-    <div className="adm-vazio">
-      <b>{titulo}</b>
-      {children}
-      {acao ? <div className="adm-acoes">{acao}</div> : null}
-    </div>
-  )
+  return <EstadoVazio titulo={titulo} acao={acao ? <div className="adm-acoes">{acao}</div> : undefined}>{children}</EstadoVazio>
 }

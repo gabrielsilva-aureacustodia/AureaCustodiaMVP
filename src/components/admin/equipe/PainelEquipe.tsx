@@ -20,6 +20,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { Aviso } from '@/components/ui/Aviso'
 import { MODULOS, PERMISSOES, SLUG_DEV, VARIANTES, type VariantePainel } from '@/domain/admin/permissoes'
 import type { VisaoEquipe } from '@/server/admin/rbac'
 import {
@@ -58,11 +59,10 @@ export function PainelEquipe({
   return (
     <>
       {semBanco ? (
-        <div className="note adm-secao">
-          <span>
-            Este ambiente está sem <code>POSTGRES_URL</code>: não há tabela de membros nem de papéis. Entra no painel, como
-            dev, quem está na lista do ambiente — abaixo.
-          </span>
+        <div className="adm-secao">
+          <Aviso tom="info" titulo="Ambiente sem banco de dados">
+            <p>Este ambiente está sem <code>POSTGRES_URL</code>: não há tabela de membros nem de papéis. Entra no painel, como dev, quem está na lista do ambiente — abaixo.</p>
+          </Aviso>
         </div>
       ) : null}
       <Abas
@@ -113,7 +113,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
 
   return (
     <div className="panel adm-secao">
-      <h3>Membros do painel</h3>
+      <h2>Membros do painel</h2>
       <p className="adm-fraco adm-secao">
         Quem está aqui entra em <code>/admin</code> com o mesmo login do app, sem segunda senha. O papel decide o que cada um
         vê e faz. Desativar vale na tela seguinte da pessoa.
@@ -238,7 +238,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
 
       {soAmbiente.length ? (
         <>
-          <h4 className="adm-subtitulo">Entram pela lista do ambiente, como dev</h4>
+          <h3 className="adm-subtitulo">Entram pela lista do ambiente, como dev</h3>
           <p className="adm-fraco adm-secao">
             São os e-mails de <code>AUREA_ADMIN_EMAILS</code> — ou, sem a variável, as contas de demonstração. Definir um papel
             para um deles cadastra a pessoa na tabela, e a partir daí vale o papel escolhido.
@@ -335,7 +335,7 @@ function MatrizDePermissoes({
 function Papeis({ equipe, podeEditar }: { equipe: VisaoEquipe; podeEditar: boolean }): ReactNode {
   return (
     <div className="panel adm-secao">
-      <h3>Papéis e permissões</h3>
+      <h2>Papéis e permissões</h2>
       <p className="adm-fraco adm-secao">
         O menu, as telas e as ações perguntam pela permissão, não pelo nome do papel: um papel novo com &ldquo;Ver a Central
         de Resultados&rdquo; já enxerga o Financeiro. A ordem (rank) só organiza esta lista. O papel dev tem todas as
@@ -378,7 +378,7 @@ function NovoPapel(): ReactNode {
 
   return (
     <div className="adm-cartao-papel">
-      <h4>Novo papel</h4>
+      <h3 className="adm-subtitulo">Novo papel</h3>
       <div className="adm-form">
         <div className="field">
           <label htmlFor="papel-nome">Nome</label>
@@ -408,7 +408,7 @@ function NovoPapel(): ReactNode {
         <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void criar()} data-uso="equipe:criar-papel">
           Criar
         </button>
-        <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setAberto(false)}>
+        <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setAberto(false)}>
           Cancelar
         </button>
       </div>
@@ -449,14 +449,14 @@ function CartaoPapel({ papel, podeEditar }: { papel: VisaoEquipe['papeis'][numbe
 
   return (
     <div className="adm-cartao-papel">
-      <h4>
+      <h3>
         {papel.nome}
         <span className="pill n">{papel.slug}</span>
         {papel.sistema ? <span className="pill y">de sistema</span> : null}
         <span className="adm-fraco">
           rank {papel.rank} · {numero(papel.membros)} membro(s) · {numero(papel.permissoes.length)} permissão(ões)
         </span>
-      </h4>
+      </h3>
       {podeEditar ? (
         <div className="adm-form">
           <div className="field">

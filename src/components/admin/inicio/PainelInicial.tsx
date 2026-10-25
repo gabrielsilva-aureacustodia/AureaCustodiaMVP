@@ -190,7 +190,7 @@ export function PainelInicial({
     sistema: dados.sistema ? (
       <Secao key="sistema" id="inicio-sistema" titulo="Saúde do painel" descricao="Banco, cadeia do livro-razão, registro de uso e o seu acesso.">
         <div className="adm-inds">
-          <Indicador rotulo="Banco de dados" valor={dados.sistema.bancoConfigurado ? 'conectado' : 'sem POSTGRES_URL'} tom={dados.sistema.bancoConfigurado ? 'ok' : 'alerta'} />
+          <Indicador rotulo="Banco de dados" valor={dados.sistema.bancoConfigurado ? 'conectado' : 'sem banco'} tom={dados.sistema.bancoConfigurado ? 'ok' : 'alerta'} detalhe={dados.sistema.bancoConfigurado ? undefined : 'falta POSTGRES_URL'} />
           <Indicador
             rotulo="Cadeia do livro-razão"
             valor={dados.sistema.cadeiaOk === null ? '—' : dados.sistema.cadeiaOk ? 'íntegra' : 'quebrada'}

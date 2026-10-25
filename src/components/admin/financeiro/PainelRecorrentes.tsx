@@ -314,7 +314,7 @@ export function PainelRecorrentes({
                     variante="gold"
                     desabilitado={centavos <= 0 || r.descricao.trim().length < 3}
                   />
-                  <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setAberto(false)}>
+                  <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setAberto(false)}>
                     Cancelar
                   </button>
                 </div>

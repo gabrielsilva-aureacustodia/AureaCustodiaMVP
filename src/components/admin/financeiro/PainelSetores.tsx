@@ -38,7 +38,7 @@ function LinhaDoSetor({ setor, total, podeEditar }: { setor: Setor; total: numbe
           <button type="submit" className="btn btn-gold adm-btn-compacto">
             Salvar nome
           </button>
-          <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setEditando(false)}>
+          <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setEditando(false)}>
             Cancelar
           </button>
         </form>

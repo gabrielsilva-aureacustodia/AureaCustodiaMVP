@@ -90,7 +90,7 @@ function CampoInline({
       >
         {ocupado ? 'Salvando…' : `Salvar ${rotulo.toLowerCase()}`}
       </button>
-      <button type="button" className="btn btn-outline adm-btn-compacto" onClick={aoFechar}>
+      <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={aoFechar}>
         Cancelar
       </button>
     </div>
