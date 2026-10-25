@@ -36,16 +36,36 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
     <>
       {semBanco ? <AvisoSemBanco>Os indicadores abaixo saem do estado em memória.</AvisoSemBanco> : null}
 
-      <div className="panel adm-secao">
+      <div className="adm-ferramentas">
         <SeletorPeriodo ano={periodo.ano} mes={periodo.mes} trimestre={periodo.trimestre} />
-        <p className="adm-fraco" style={{ marginTop: 10 }}>
+      </div>
+      <div className="adm-secao">
+        <p className="adm-fraco">
           Negociações, envios, laudos e faturas são do período ({periodo.periodo.rotulo}). Acervo, contas, faturas em aberto e
           fila de ofertas são a situação de agora.
         </p>
       </div>
 
+      {/* Página longa: índice "Nesta página" (rodada 2, tópico 35 passo 4). */}
+      <nav aria-label="Nesta página">
+        <ul className="adm-nesta-pagina">
+          <li>
+            <a href="#kpi-mercado">Mercado</a>
+          </li>
+          <li>
+            <a href="#kpi-acervo">Acervo e contas</a>
+          </li>
+          <li>
+            <a href="#kpi-envios">Envios e análise</a>
+          </li>
+          <li>
+            <a href="#kpi-faturas">Faturas de custódia e planos</a>
+          </li>
+        </ul>
+      </nav>
+
       {/* ---------- mercado ---------- */}
-      <h3 className="adm-titulo-secao">Mercado</h3>
+      <h2 className="adm-titulo-secao" id="kpi-mercado">Mercado</h2>
       <div className="adm-grade">
         <Cartao rotulo="Volume negociado" valor={dinheiro(mercado.volume)} detalhe={`${numero(mercado.moedasNegociadas)} moeda(s)`} />
         <Cartao rotulo="Negociações" valor={numero(mercado.negociacoes)} detalhe={`ticket médio ${dinheiro(mercado.ticketMedio)}`} />
@@ -63,13 +83,14 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           {mercado.receitaPorTipo.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Receita de comissão por tipo de moeda</caption>
                 <thead>
                   <tr>
-                    <th>Moeda</th>
-                    <th className="adm-num">Negociações</th>
-                    <th className="adm-num">Moedas</th>
-                    <th className="adm-num">Volume</th>
-                    <th className="adm-num">Comissões</th>
+                    <th scope="col">Moeda</th>
+                    <th scope="col" className="adm-num">Negociações</th>
+                    <th scope="col" className="adm-num">Moedas</th>
+                    <th scope="col" className="adm-num">Volume</th>
+                    <th scope="col" className="adm-num">Comissões</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -95,13 +116,14 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           {fila.porTipo.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Fila de ofertas agora, por tipo de moeda</caption>
                 <thead>
                   <tr>
-                    <th>Moeda</th>
-                    <th className="adm-num">À venda</th>
-                    <th className="adm-num">Menor venda</th>
-                    <th className="adm-num">Pedidas</th>
-                    <th className="adm-num">Maior compra</th>
+                    <th scope="col">Moeda</th>
+                    <th scope="col" className="adm-num">À venda</th>
+                    <th scope="col" className="adm-num">Menor venda</th>
+                    <th scope="col" className="adm-num">Pedidas</th>
+                    <th scope="col" className="adm-num">Maior compra</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -144,7 +166,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
       </div>
 
       {/* ---------- acervo e contas ---------- */}
-      <h3 className="adm-titulo-secao">Acervo e contas</h3>
+      <h2 className="adm-titulo-secao" id="kpi-acervo">Acervo e contas</h2>
       <div className="adm-grade">
         <Cartao rotulo="Moedas em custódia" valor={numero(acervo.moedasEmCustodia)} detalhe={`${numero(acervo.porStatusFisico.armazenado)} armazenada(s) · ${numero(acervo.porStatusFisico.recebido)} recebida(s)`} />
         <Cartao rotulo="Retiradas em andamento" valor={numero(acervo.emRetirada)} detalhe={`${numero(acervo.retiradasPorStatus.entregue)} entregue(s) no total`} />
@@ -176,7 +198,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
       </div>
 
       {/* ---------- envios e análise ---------- */}
-      <h3 className="adm-titulo-secao">Envios e análise</h3>
+      <h2 className="adm-titulo-secao" id="kpi-envios">Envios e análise</h2>
       <div className="adm-grade">
         <Cartao rotulo="Envios criados" valor={numero(envios.criados)} detalhe={`${numero(envios.concluidos)} com recibo emitido`} />
         <Cartao rotulo="Aprovação na análise" valor={percentual(envios.taxaAprovacaoBp)} detalhe={`${numero(envios.moedasAprovadas)} de ${numero(envios.moedasDeclaradas)} moeda(s)`} />
@@ -200,11 +222,12 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           {envios.recusasPorMotivo.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Recusas da bancada por motivo</caption>
                 <thead>
                   <tr>
-                    <th>Motivo</th>
-                    <th className="adm-num">Moedas</th>
-                    <th className="adm-num">Das recusas</th>
+                    <th scope="col">Motivo</th>
+                    <th scope="col" className="adm-num">Moedas</th>
+                    <th scope="col" className="adm-num">Das recusas</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,7 +251,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
       </div>
 
       {/* ---------- faturas e planos ---------- */}
-      <h3 className="adm-titulo-secao">Faturas de custódia e planos</h3>
+      <h2 className="adm-titulo-secao" id="kpi-faturas">Faturas de custódia e planos</h2>
       <div className="adm-grade">
         <Cartao rotulo="Faturado no período" valor={dinheiro(faturas.valorEmitido)} detalhe={`${numero(faturas.emitidasNoPeriodo)} fatura(s) · ${dinheiro(faturas.valorPago)} pago`} />
         <Cartao rotulo="Faturas em aberto" valor={dinheiro(faturas.emAberto.valor)} detalhe={`${numero(faturas.emAberto.quantidade)} fatura(s), de qualquer mês`} />
@@ -267,11 +290,12 @@ function TabelaContagem({
   return (
     <div className="table-scroll">
       <table className="audit-table">
+        <caption className="adm-sr">Quantidades do indicador</caption>
         <thead>
           <tr>
-            <th>{coluna}</th>
-            <th className="adm-num">Quantidade</th>
-            <th style={{ width: '35%' }} aria-hidden="true" />
+            <th scope="col">{coluna}</th>
+            <th scope="col" className="adm-num">Quantidade</th>
+            <th scope="col" style={{ width: '35%' }} aria-hidden="true" />
           </tr>
         </thead>
         <tbody>

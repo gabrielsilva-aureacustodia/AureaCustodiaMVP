@@ -11,7 +11,8 @@
 
 import type { ReactNode } from 'react'
 
-import { Cartao, SemPermissao } from '@/components/admin/Blocos'
+import { SemPermissao } from '@/components/admin/Blocos'
+import { Indicador, Secao } from '@/components/admin/Pecas'
 import { FiltroDeMoedas } from '@/components/admin/moedas/FiltroDeMoedas'
 import { TabelaDeMoedas } from '@/components/admin/moedas/TabelaDeMoedas'
 import { VerificarCorrente } from '@/components/admin/moedas/VerificarCorrente'
@@ -34,29 +35,27 @@ export default async function MoedasPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <div className="adm-grade">
-        <Cartao rotulo="Moedas no sistema" valor={numero(r.total)} detalhe={`${numero(r.comAnalise)} passaram pela bancada`} />
-        <Cartao rotulo="Custodiadas" valor={numero(r.custodiadas)} tom="positivo" />
-        <Cartao rotulo="Em retirada" valor={numero(r.emRetirada)} detalhe={`${numero(r.retiradas)} já retirada(s)`} />
-        <Cartao rotulo="Análises sem vídeo" valor={numero(r.semVideo)} detalhe="o vídeo não é obrigatório (RA-23)" tom={r.semVideo > 0 ? 'alerta' : 'normal'} />
-        <Cartao rotulo="Recibo × análise" valor={r.hashDivergente === 0 ? 'Confere' : `${numero(r.hashDivergente)} divergente(s)`} tom={r.hashDivergente === 0 ? 'positivo' : 'alerta'} />
+      <div className="adm-inds">
+        <Indicador rotulo="Moedas no sistema" valor={numero(r.total)} detalhe={`${numero(r.comAnalise)} passaram pela bancada`} />
+        <Indicador rotulo="Custodiadas" valor={numero(r.custodiadas)} tom="ok" />
+        <Indicador rotulo="Em retirada" valor={numero(r.emRetirada)} detalhe={`${numero(r.retiradas)} já retirada(s)`} />
+        <Indicador rotulo="Análises sem vídeo" valor={numero(r.semVideo)} detalhe="o vídeo não é obrigatório (RA-23)" tom={r.semVideo > 0 ? 'atencao' : 'neutro'} />
+        <Indicador rotulo="Recibo × análise" valor={r.hashDivergente === 0 ? 'Confere' : `${numero(r.hashDivergente)} divergente(s)`} tom={r.hashDivergente === 0 ? 'ok' : 'alerta'} />
       </div>
 
-      <div className="panel">
-        <h3>Integridade</h3>
-        <p className="adm-fraco">
-          Cada análise carrega o hash da anterior, e o recibo de uma moeda que passou pela bancada é o hash da análise que a aprovou. Alterar um
-          registro antigo quebra a corrente dali em diante.
-        </p>
+      <Secao
+        id="moedas-integridade"
+        titulo="Integridade da corrente"
+        descricao="Cada análise carrega o hash da anterior, e o recibo de uma moeda que passou pela bancada é o hash da análise que a aprovou. Alterar um registro antigo quebra a corrente dali em diante."
+      >
         <VerificarCorrente />
-      </div>
+      </Secao>
 
-      <div className="panel">
-        <h3>Acervo</h3>
+      <Secao id="moedas-acervo" titulo="Acervo" descricao="Clique no código para abrir a ficha da moeda: recibo, análise, proveniência e retiradas.">
         {dados.retiradasIndisponiveis ? <p className="note">As retiradas não puderam ser lidas agora: toda moeda aparece como custodiada.</p> : null}
         <FiltroDeMoedas filtro={filtro} tipos={dados.tipos} caixas={dados.caixas} />
         <TabelaDeMoedas linhas={dados.linhas} total={dados.totalFiltrado} />
-      </div>
+      </Secao>
     </>
   )
 }

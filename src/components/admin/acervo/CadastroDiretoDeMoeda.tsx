@@ -152,6 +152,7 @@ export function CadastroDiretoDeMoeda({
                 className="tinput"
                 type="number"
                 min={0}
+                inputMode="numeric"
                 value={pesoMg}
                 onChange={(ev) => setPesoMg(ev.target.value)}
                 placeholder="deixe vazio se não houve pesagem"
@@ -160,7 +161,7 @@ export function CadastroDiretoDeMoeda({
 
             <div className="field">
               <label htmlFor={`${prefixoId}-caixa`}>Caixa física (opcional)</label>
-              <input id={`${prefixoId}-caixa`} className="tinput" value={caixa} onChange={(ev) => setCaixa(ev.target.value)} placeholder="EB-001" />
+              <input id={`${prefixoId}-caixa`} className="tinput" autoComplete="off" spellCheck={false} autoCapitalize="characters" value={caixa} onChange={(ev) => setCaixa(ev.target.value)} placeholder="EB-001" />
             </div>
 
             <div className="field adm-campo-largo">
@@ -175,13 +176,13 @@ export function CadastroDiretoDeMoeda({
             </div>
           </div>
 
-          <div className="adm-acoes" style={{ marginTop: 10 }}>
+          <div className="adm-acoes adm-acima-10">
             <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso={direto ? 'acervo-cadastro-direto' : 'acervo-cadastro-sem-envio'}>
               {ocupado ? 'Registrando…' : direto ? 'Registrar no acervo' : 'Enviar para a bancada'}
             </button>
           </div>
 
-          <p className="adm-fraco" style={{ marginTop: 10 }}>
+          <p className="adm-fraco adm-acima-10">
             {direto
               ? 'Cada moeda registrada aqui emite recibo sem passar pela pesagem da bancada. O seu e-mail fica gravado como operador e aprovador.'
               : 'Nenhuma moeda nem recibo é criado agora. A bancada fará a análise normal e emitirá os recibos apenas para as unidades aprovadas.'}

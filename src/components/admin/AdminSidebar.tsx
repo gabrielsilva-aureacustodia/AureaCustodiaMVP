@@ -9,6 +9,9 @@
  * ganha a gaveta mobile sem uma linha de CSS nova — e sem um segundo breakpoint para
  * divergir do primeiro. O estado da gaveta também é o do app (`SidebarProvider`).
  *
+ * Tema e Sair do celular são <button> desde 25/10/2026 (antes, <div role="button"> que não
+ * respondia ao Espaço): o leitor de tela anuncia o interruptor com o estado ligado/desligado.
+ *
  * O item aparece quando o membro tem UMA das permissões do item. Ativo é o item cuja
  * rota é a mais longa que casa com a atual — `/admin` não fica aceso dentro de
  * `/admin/resultados/kpis`.
@@ -82,22 +85,22 @@ export function AdminSidebar(): ReactNode {
         </div>
 
         {/* Tema e Sair só no celular, como no menu do app: no desktop estão na topbar. */}
-        <div className="nav-item sb-only" onClick={toggle} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' ? toggle() : undefined)}>
+        <button type="button" className="nav-item sb-only adm-nav-botao" onClick={toggle} role="switch" aria-checked={dark}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="4.5" />
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M19.5 4.5l-2 2M6.5 17.5l-2 2" />
           </svg>
           Modo escuro
-          <div className={dark ? 'switch on' : 'switch'} />
-        </div>
+          <span className={dark ? 'switch on' : 'switch'} aria-hidden="true" />
+        </button>
 
         <div className="sb-bottom sb-only">
-          <div className="nav-item" onClick={() => void sair()} role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' ? void sair() : undefined)}>
+          <button type="button" className="nav-item adm-nav-botao" onClick={() => void sair()}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 17l5-5-5-5M20 12H9M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h5" />
             </svg>
             Sair
-          </div>
+          </button>
         </div>
       </aside>
     </>

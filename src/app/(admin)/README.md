@@ -18,11 +18,14 @@ grupo não aparecer na URL: as rotas são `/admin/...`.
 (admin)/
 └── admin/
     ├── layout.tsx              sessão + membro (servidor), casco do painel, registro de uso
-    ├── page.tsx                painel inicial por variante do papel
+    ├── page.tsx                Central de trabalho: "Pede ação agora" × "Em dia" e o painel por variante do papel
+    ├── loading.tsx             esqueleto "carregando" de toda tela (o casco fica parado)
     ├── error.tsx               falha ao carregar uma tela, sem derrubar o casco
     ├── resultados/
+    │   ├── layout.tsx          só a faixa Financeiro · Contábil · Notas fiscais · Indicadores · Uso (leva o período)
     │   ├── page.tsx            redireciona para financeiro
     │   ├── financeiro/         DRE, receita por linha, cartões e fluxo mês a mês     resultados.ver
+    │   ├── controle/           controle financeiro: custos, taxas, impostos, receitas e recorrentes  resultados.ver (cadastro: contabil.lancar)
     │   ├── contabil/           lançamentos, alíquotas, plano de contas, exportações  resultados.ver
     │   ├── kpis/               indicadores do negócio                                resultados.ver
     │   └── uso/                uso da plataforma e trilha de auditoria               resultados.ver | admin.auditoria
@@ -39,6 +42,27 @@ grupo não aparecer na URL: as rotas são `/admin/...`.
 
 O menu nasceu completo na C1; CS e usuários entraram na C2; bancada, moedas, logística e
 configuração, na C3.
+
+## Como o menu agrupa (25/10/2026)
+
+As URLs acima não mudaram; mudou a disposição no menu, que agora segue a tarefa e não a etapa em que cada tela nasceu
+(decisões em `docs/polimento/admin/BENCHMARK.md`):
+
+| Grupo | Itens |
+|---|---|
+| — | Central de trabalho (`/admin`) |
+| Operação do dia | Saques · Bancada · Logística · Atendimento (`/cs`) · Usuários · Auditoria de moedas |
+| Gestão | Financeiro · Contábil · Notas fiscais · Indicadores · Uso e auditoria |
+| Configuração | Configuração do site · Equipe e papéis |
+
+Dentro das telas (rodada 2): Saques em abas (`?ver=esperando|mercadopago|resolvidos`), Logística em abas pelo `?ver=` que
+já existia, Notas fiscais em abas por `?status=`, Equipe em abas (`?aba=membros|papeis`), Configuração com as seções numa
+coluna à esquerda; Central de trabalho, Financeiro e as duas fichas em duas zonas. Mapa do que mudou de lugar em
+`docs/polimento/admin/INVENTARIO.md` §9.
+
+A topbar mostra a migalha nas fichas (`Usuários › e-mail`, `Auditoria de moedas › código`), a busca **Ctrl+K** (ou
+`/`) e o menu da conta (tema, voltar ao app, sair). A busca só navega: abre a área ou a lista já filtrada pela URL que
+ela sempre aceitou; quem filtra e confere permissão é a página.
 
 ## A regra de toda página daqui
 

@@ -5,9 +5,15 @@
  * inadimplência, ativar e desativar, redefinir senha. Editar cadastro e anotar ficam nas
  * abas Cadastro e Notas, perto do que mudam.
  *
- * Cada ação é um bloco recolhível com o que ela precisa e nada mais — nenhuma caixa de
- * "tem certeza?". O que protege é o servidor: o ajuste vira lançamento no livro-razão com o
- * motivo na trilha, e a conta da equipe não é desativada por aqui.
+ * Cada ação é um bloco recolhível com o que ela precisa e nada mais. O que protege é o
+ * servidor: o ajuste vira lançamento no livro-razão com o motivo na trilha, e a conta da
+ * equipe não é desativada por aqui.
+ *
+ * 25/10/2026 (polimento do painel): as ações do dia a dia (saldo, inadimplência, aviso) ficam
+ * em cima; desativar a conta e trocar a senha descem para a "Zona de perigo", à parte. Creditar
+ * ou debitar e desativar pedem a confirmação com o objeto no botão ("Confirmar: creditar R$ 50,00
+ * na conta de Ana") — dinheiro e acesso de cliente não mudam num clique solto. As mesmas Server
+ * Actions, com os mesmos argumentos.
  */
 
 import { useState } from 'react'
@@ -24,22 +30,30 @@ import {
 import { reenviarAvisoDeReservaNoPainel, reenviarRedefinicaoSenhaNoPainel } from '@/server/actions/admin/emails'
 
 import { useAdmin } from '../AdminProvider'
+import { ConfirmarAcao } from '../ConfirmarAcao'
 import { dataHora, dinheiro } from '../formatos'
 
 export function AcoesDaConta({ cabecalho }: { cabecalho: CabecalhoFicha }): ReactNode {
   const { resumo } = cabecalho
   return (
-    <div className="adm-secao">
-      <AjustarSaldo email={resumo.email} saldo={resumo.saldo} />
+    <section className="adm-secao" aria-labelledby="ficha-acoes">
+      <h3 className="adm-titulo-secao" id="ficha-acoes">
+        Ações da conta
+      </h3>
+      <AjustarSaldo email={resumo.email} nome={resumo.nome} saldo={resumo.saldo} />
       <Inadimplencia email={resumo.email} marcaManual={resumo.marcaManual} inadimplentePorFatura={resumo.inadimplente && !resumo.marcaManual} />
-      <Situacao email={resumo.email} ativa={cabecalho.situacao.ativa} ehDaEquipe={cabecalho.ehDaEquipe} semBanco={cabecalho.semBanco} />
-      <Senha email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} ultimoEnvio={cabecalho.ultimosEnvios.redefinicao_senha ?? null} />
       <AvisoDeReserva email={resumo.email} reservas={cabecalho.reservasAbertas} envios={cabecalho.ultimosEnvios} />
-    </div>
+      <div className="adm-zona-perigo">
+        <h4>Zona de perigo</h4>
+        <p className="adm-fraco">Mexem no acesso do cliente. Ficam registradas na trilha com quem fez e o motivo.</p>
+        <Situacao email={resumo.email} nome={resumo.nome} ativa={cabecalho.situacao.ativa} ehDaEquipe={cabecalho.ehDaEquipe} semBanco={cabecalho.semBanco} />
+        <Senha email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} ultimoEnvio={cabecalho.ultimosEnvios.redefinicao_senha ?? null} />
+      </div>
+    </section>
   )
 }
 
-function AjustarSaldo({ email, saldo }: { email: string; saldo: number }): ReactNode {
+function AjustarSaldo({ email, nome, saldo }: { email: string; nome: string; saldo: number }): ReactNode {
   const { run } = useAdmin()
   const [valor, setValor] = useState('')
   const [sentido, setSentido] = useState<'credito' | 'debito'>('credito')
@@ -57,16 +71,8 @@ function AjustarSaldo({ email, saldo }: { email: string; saldo: number }): React
         </p>
         <form
           className="adm-form"
-          onSubmit={async (e) => {
-            e.preventDefault()
-            setOcupado(true)
-            const r = await run(() => ajustarSaldoNoPainel(email, centavos, sentido, motivo))
-            setOcupado(false)
-            if (r.ok) {
-              setValor('')
-              setMotivo('')
-            }
-          }}
+          // Enter no campo não manda nada: o lançamento só sai pelo "Confirmar: …".
+          onSubmit={(e) => e.preventDefault()}
         >
           <div className="field">
             <label htmlFor="ajuste-sentido">Sentido</label>
@@ -77,15 +83,29 @@ function AjustarSaldo({ email, saldo }: { email: string; saldo: number }): React
           </div>
           <div className="field">
             <label htmlFor="ajuste-valor">Valor (R$)</label>
-            <input id="ajuste-valor" className="tinput" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+            <input id="ajuste-valor" className="tinput" inputMode="decimal" autoComplete="off" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
           </div>
           <div className="field adm-campo-largo">
             <label htmlFor="ajuste-motivo">Motivo</label>
-            <input id="ajuste-motivo" className="tinput" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="ex.: estorno de tarifa cobrada em dobro" />
+            <input id="ajuste-motivo" className="tinput" autoComplete="off" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="ex.: estorno de tarifa cobrada em dobro" />
           </div>
-          <button type="submit" className="btn btn-gold adm-btn-compacto" disabled={ocupado} data-uso="usuarios-ajustar-saldo">
-            {centavos > 0 ? `${sentido === 'credito' ? 'Creditar' : 'Debitar'} ${dinheiro(centavos)}` : 'Ajustar'}
-          </button>
+          <ConfirmarAcao
+            rotulo={centavos > 0 ? `${sentido === 'credito' ? 'Creditar' : 'Debitar'} ${dinheiro(centavos)}` : 'Ajustar'}
+            objeto={`${sentido === 'credito' ? 'creditar' : 'debitar'} ${dinheiro(centavos)} ${sentido === 'credito' ? 'na' : 'da'} conta de ${nome}`}
+            detalhe={`Saldo passa de ${dinheiro(saldo)} para ${dinheiro(sentido === 'credito' ? saldo + centavos : saldo - centavos)}. Entra no livro-razão como ajuste.`}
+            aoConfirmar={async () => {
+              setOcupado(true)
+              const r = await run(() => ajustarSaldoNoPainel(email, centavos, sentido, motivo))
+              setOcupado(false)
+              if (r.ok) {
+                setValor('')
+                setMotivo('')
+              }
+            }}
+            variante="gold"
+            desabilitado={ocupado || centavos <= 0}
+            usoNome="usuarios-ajustar-saldo"
+          />
         </form>
       </div>
     </details>
@@ -116,7 +136,7 @@ function Inadimplencia({ email, marcaManual, inadimplentePorFatura }: { email: s
         >
           <div className="field adm-campo-largo">
             <label htmlFor="inadimplencia-motivo">Motivo (opcional)</label>
-            <input id="inadimplencia-motivo" className="tinput" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+            <input id="inadimplencia-motivo" className="tinput" autoComplete="off" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           </div>
           <button type="submit" className="btn btn-outline adm-btn-compacto">
             {marcaManual ? 'Retirar a marca manual' : 'Marcar como inadimplente'}
@@ -127,7 +147,7 @@ function Inadimplencia({ email, marcaManual, inadimplentePorFatura }: { email: s
   )
 }
 
-function Situacao({ email, ativa, ehDaEquipe, semBanco }: { email: string; ativa: boolean; ehDaEquipe: boolean; semBanco: boolean }): ReactNode {
+function Situacao({ email, nome, ativa, ehDaEquipe, semBanco }: { email: string; nome: string; ativa: boolean; ehDaEquipe: boolean; semBanco: boolean }): ReactNode {
   const { run } = useAdmin()
   const [motivo, setMotivo] = useState('')
   return (
@@ -145,21 +165,21 @@ function Situacao({ email, ativa, ehDaEquipe, semBanco }: { email: string; ativa
                 ? 'Desativar bloqueia o login pelo Supabase (senha e Google) e registra quem desativou e por quê.'
                 : 'Reativar desbloqueia o login pelo Supabase e registra quem reativou.'}
             </p>
-            <form
-              className="adm-form"
-              onSubmit={async (e) => {
-                e.preventDefault()
-                const r = await run(() => mudarSituacaoDaContaNoPainel(email, !ativa, motivo))
-                if (r.ok) setMotivo('')
-              }}
-            >
+            <form className="adm-form" onSubmit={(e) => e.preventDefault()}>
               <div className="field adm-campo-largo">
                 <label htmlFor="situacao-motivo">Motivo</label>
-                <input id="situacao-motivo" className="tinput" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                <input id="situacao-motivo" className="tinput" autoComplete="off" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
               </div>
-              <button type="submit" className="btn btn-outline adm-btn-compacto">
-                {ativa ? 'Desativar' : 'Reativar'}
-              </button>
+              <ConfirmarAcao
+                rotulo={ativa ? 'Desativar' : 'Reativar'}
+                objeto={`${ativa ? 'desativar' : 'reativar'} a conta de ${nome}`}
+                detalhe={ativa ? 'O login por senha e por Google para de funcionar na hora.' : 'O login volta a funcionar na hora.'}
+                aoConfirmar={async () => {
+                  const r = await run(() => mudarSituacaoDaContaNoPainel(email, !ativa, motivo))
+                  if (r.ok) setMotivo('')
+                }}
+                perigo={ativa}
+              />
             </form>
           </>
         )}
@@ -200,7 +220,7 @@ function Senha({ email, ehDoCatalogo, ultimoEnvio }: { email: string; ehDoCatalo
             >
               <div className="field adm-campo-largo">
                 <label htmlFor="senha-provisoria">Senha provisória</label>
-                <input id="senha-provisoria" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" />
+                <input id="senha-provisoria" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" spellCheck={false} autoCapitalize="none" />
               </div>
               <button type="submit" className="btn btn-outline adm-btn-compacto">
                 Definir senha provisória

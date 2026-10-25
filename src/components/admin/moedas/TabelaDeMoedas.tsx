@@ -19,7 +19,14 @@ export function hashCurto(h: string): string {
 }
 
 export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total: number }): ReactNode {
-  if (linhas.length === 0) return <p className="empty">Nenhuma moeda com este filtro.</p>
+  if (linhas.length === 0) {
+    return (
+      <div className="adm-vazio">
+        <b>{total === 0 ? 'O acervo ainda está vazio.' : 'Nenhuma moeda com este filtro.'}</b>
+        {total === 0 ? 'Uma moeda entra no acervo quando a análise da bancada é fechada, ou pelo cadastro direto.' : 'Afrouxe a busca ou use "Limpar filtros" acima.'}
+      </div>
+    )
+  }
   return (
     <>
       <p className="adm-fraco">
@@ -27,15 +34,16 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
       </p>
       <div className="table-scroll">
         <table className="audit-table">
+          <caption className="adm-sr">Acervo: moeda, dono, recibo, caixa e análise</caption>
           <thead>
             <tr>
-              <th>Moeda</th>
-              <th>Dono</th>
-              <th>Recibo</th>
-              <th>Caixa</th>
-              <th>Análise</th>
-              <th>Situação</th>
-              <th className="adm-num">Valor estimado</th>
+              <th scope="col">Moeda</th>
+              <th scope="col">Dono</th>
+              <th scope="col">Recibo</th>
+              <th scope="col">Caixa</th>
+              <th scope="col">Análise</th>
+              <th scope="col">Situação</th>
+              <th scope="col" className="adm-num">Valor estimado</th>
             </tr>
           </thead>
           <tbody>

@@ -59,6 +59,11 @@ const m = vi.hoisted(() => ({
   publicarDocumentoVigente: vi.fn(),
   salvarTipoDeMoeda: vi.fn(),
   pagarFaturaCustodiaComSaldo: vi.fn(),
+  // controle financeiro (migration 046)
+  salvarRecorrente: vi.fn(),
+  alternarRecorrente: vi.fn(),
+  lancarVencidos: vi.fn(),
+  salvarSetor: vi.fn(),
 }))
 
 vi.mock('@/server/admin/acesso', () => ({
@@ -127,6 +132,12 @@ vi.mock('@/server/admin/contabil', () => ({
   definirAliquota: m.definirAliquota,
   verificarLedger: m.verificarLedger,
 }))
+vi.mock('@/server/admin/financeiro', () => ({
+  salvarRecorrente: m.salvarRecorrente,
+  alternarRecorrente: m.alternarRecorrente,
+  lancarVencidos: m.lancarVencidos,
+  salvarSetor: m.salvarSetor,
+}))
 vi.mock('@/server/relatorios/sincronizar', () => ({ sincronizarSheetsComoAtor: m.sincronizarSheetsComoAtor }))
 vi.mock('@/server/admin/auditar', () => ({ registrarAcaoAdmin: m.registrarAcaoAdmin }))
 vi.mock('@/server/admin/rbac', () => ({
@@ -161,6 +172,7 @@ import {
   mudarSituacaoDaConversaNoPainel,
   responderNoPainel,
 } from './cs'
+import { alternarRecorrenteNoPainel, lancarVencidosNoPainel, salvarRecorrenteNoPainel, salvarSetorNoPainel } from './financeiro'
 import { adicionarMembroNoPainel, alterarMembroNoPainel, alterarPapelNoPainel, criarPapelNoPainel, excluirPapelNoPainel } from './equipe'
 import {
   ajustarSaldoNoPainel,
@@ -188,6 +200,28 @@ const casos: Array<[string, string, () => Promise<{ ok: boolean }>, ReturnType<t
   ['lançar manual', 'contabil.lancar', () => lancarManualNoPainel('2026-09-01', '4.1.03', 'Aluguel', 1000), m.lancarManual],
   ['estornar', 'contabil.lancar', () => estornarManualNoPainel(1, 'duplicado'), m.estornarManual],
   ['alíquota', 'contabil.parametros', () => definirAliquotaNoPainel('issBp', 500), m.definirAliquota],
+  // controle financeiro: escrever gera lançamento contábil, então pede o mesmo `contabil.lancar`
+  [
+    'salvar custo recorrente',
+    'contabil.lancar',
+    () =>
+      salvarRecorrenteNoPainel(null, {
+        tipo: 'custo',
+        descricao: 'HostGator',
+        fornecedor: '',
+        contaCodigo: '4.1.04',
+        setorId: null,
+        valorCents: 4990,
+        periodicidade: 'mensal',
+        inicio: '2026-10-05',
+        fim: '',
+        observacao: '',
+      }),
+    m.salvarRecorrente,
+  ],
+  ['desativar recorrente', 'contabil.lancar', () => alternarRecorrenteNoPainel(1, false), m.alternarRecorrente],
+  ['lançar o que venceu', 'contabil.lancar', () => lancarVencidosNoPainel(), m.lancarVencidos],
+  ['salvar setor', 'contabil.lancar', () => salvarSetorNoPainel(null, 'Nuvem', true), m.salvarSetor],
   ['conferir livro-razão', 'resultados.ver', () => verificarLedgerNoPainel(), m.verificarLedger],
   ['enviar ao Sheets', 'resultados.exportar', () => enviarAoSheetsNoPainel({ ano: '2026' }), m.sincronizarSheetsComoAtor],
   ['adicionar membro', 'admin.membros', () => adicionarMembroNoPainel('x@exemplo.com.br', 'X', 'socio'), m.adicionarMembro],
