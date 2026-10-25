@@ -16,12 +16,13 @@ export function TabelaDre({ linhas }: { linhas: readonly LinhaDre[] }): ReactNod
   return (
     <div className="table-scroll">
       <table className="audit-table">
+        <caption className="adm-sr">Demonstração do resultado (DRE) do período</caption>
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Descrição</th>
-            <th className="adm-num">Valor</th>
-            <th>Observação</th>
+            <th scope="col">Código</th>
+            <th scope="col">Descrição</th>
+            <th scope="col" className="adm-num">Valor</th>
+            <th scope="col">Observação</th>
           </tr>
         </thead>
         <tbody>

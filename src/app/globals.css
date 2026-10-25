@@ -16,11 +16,20 @@
             -> reports -> account -> responsive
    ========================================================================= */
 
-/* Cores e tipografia. Precisa vir primeiro: todo o resto lê var(--...). */
+/* Tokens da marca Real Olímpico (primitivos e papéis --ro-*). Antes de tudo:
+   styles/tokens.css é só uma camada de aliases que aponta para cá. */
+@import '../brand/tokens.css';
+
+/* Cores e tipografia legadas (aliases). Todo o CSS de tela lê var(--...). */
 @import '../styles/tokens.css';
 
 /* Reset + componentes compartilhados (.btn, .field, .panel, .toast, .modal). */
 @import '../styles/base.css';
+
+/* Componentes da marca (.ro-*): padrões novos do Brandbook — selo, aviso,
+   tabela, abas, faixa de abertura, aro e serrilha. Depois de base, antes das
+   telas: uma tela ainda pode ajustar um .ro-* pela especificidade dela. */
+@import '../brand/componentes.css';
 
 /* Telas, na ordem em que apareciam no <style> do monolito. */
 @import '../styles/login.css';

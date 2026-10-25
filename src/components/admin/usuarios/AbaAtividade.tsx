@@ -32,12 +32,13 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
           ) : dados.trilha.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Trilha de auditoria da conta</caption>
                 <thead>
                   <tr>
-                    <th>Quando</th>
-                    <th>Quem</th>
-                    <th>Ação</th>
-                    <th>Detalhes</th>
+                    <th scope="col">Quando</th>
+                    <th scope="col">Quem</th>
+                    <th scope="col">Ação</th>
+                    <th scope="col">Detalhes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -66,13 +67,14 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
           ) : dados.uso.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Registro de uso da conta</caption>
                 <thead>
                   <tr>
-                    <th>Quando</th>
-                    <th>Tipo</th>
-                    <th>Página</th>
-                    <th>Gesto</th>
-                    <th>Aparelho</th>
+                    <th scope="col">Quando</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Página</th>
+                    <th scope="col">Gesto</th>
+                    <th scope="col">Aparelho</th>
                   </tr>
                 </thead>
                 <tbody>

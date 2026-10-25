@@ -13,6 +13,7 @@ import { cancelBid } from '@/server/actions/market'
 import { cancelLot } from '@/server/actions/sell'
 import { ModalEditarBid } from './ModalEditarBid'
 import { ModalEditarLote } from './ModalEditarLote'
+import { Selo } from '@/components/ui/Selo'
 
 export function MinhasOfertas(): ReactNode {
   const { state, session, run } = useApp()
@@ -49,81 +50,47 @@ export function MinhasOfertas(): ReactNode {
   }
 
   return (
-    <div className="panel" style={{ marginBottom: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg
-            viewBox="0 0 24 24"
-            style={{ width: 20, height: 20, stroke: 'var(--gold)', fill: 'none', strokeWidth: 2 }}
-          >
+    <section className="panel minhas-ofertas" aria-labelledby="minhas-ofertas-titulo">
+      <div className="panel-cab">
+        <h3 id="minhas-ofertas-titulo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           Minhas ofertas no mercado
         </h3>
-        {(meusLotes.length > 0 || meusBids.length > 0) ? (
-          <span className="badge" style={{ fontSize: 12, padding: '4px 10px' }}>
-            {meusLotes.length + meusBids.length} ativa(s)
-          </span>
-        ) : null}
+        {temOfertas ? <Selo tom="ouro">{meusLotes.length + meusBids.length} ativa(s)</Selo> : null}
       </div>
 
       {minhaContaBloqueada ? (
-        <div className="note" style={{ marginBottom: 14 }}>
+        <div className="note" role="status">
           Seus anúncios estão pausados enquanto houver fatura de custódia vencida.
         </div>
       ) : null}
 
       {!temOfertas ? (
-        <div className="empty" style={{ padding: '16px', fontSize: 13 }}>
-          Você não possui ofertas ativas no mercado no momento.
-        </div>
+        <p className="minhas-vazio">Você não possui ofertas ativas no mercado no momento.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <ul className="minhas-lista">
           {/* Lotes de Venda */}
           {meusLotes.map((lote) => {
             const coinIdPrimeira = lote.coinIds[0]
             const pos = coinIdPrimeira ? posicaoNaFila(state, 'venda', coinIdPrimeira) : null
+            const objeto = `o anúncio de ${lote.coinIds.length} ${lote.tipoMoeda} a ${brl(lote.price)}`
             return (
-              <div
-                key={lote.lotId}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  background: 'var(--card-bg, rgba(255,255,255,0.03))',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  gap: 16,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ flex: '1 1 280px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: '0.05em',
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        background: 'rgba(212, 175, 55, 0.15)',
-                        color: 'var(--gold)',
-                        border: '1px solid rgba(212, 175, 55, 0.3)',
-                      }}
-                    >
-                      VENDA
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 15 }}>{lote.tipoMoeda}</span>
+              <li key={lote.lotId} className="minha-oferta">
+                <div className="mo-info">
+                  <div className="mo-cab">
+                    <span className="mo-lado venda">VENDA</span>
+                    <span className="mo-tipo">{lote.tipoMoeda}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  <div className="mo-meta">
                     <b>{lote.coinIds.length} moeda(s)</b> a <b>{brl(lote.price)}</b> cada
                     {lote.obs ? <span> · &ldquo;{lote.obs}&rdquo;</span> : null}
                     <br />
                     <span>Cadastrada em {fdatetime(lote.createdAt)}</span>
                   </div>
                   {pos ? (
-                    <div style={{ fontSize: 12.5, color: 'var(--gold)', marginTop: 4, fontWeight: 500 }}>
+                    <div className="mo-fila venda">
                       {/* A FILA É ÚNICA, POR PREÇO-TEMPO, DENTRO DO TIPO DE MOEDA — não
                           uma fila por preço (regra protegida, ver CLAUDE.md). Um anúncio
                           pode ser o único no SEU preço e ainda assim ter ofertas mais
@@ -139,71 +106,36 @@ export function MinhasOfertas(): ReactNode {
                   ) : null}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ minHeight: 44, minWidth: 44, padding: '8px 16px', fontSize: 13 }}
-                    onClick={() => abrirEdicaoLote(lote)}
-                  >
-                    Editar
+                <div className="mo-acoes">
+                  <button type="button" className="btn btn-outline" onClick={() => abrirEdicaoLote(lote)}>
+                    Editar<span className="sr-only"> {objeto}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ minHeight: 44, minWidth: 44, padding: '8px 16px', fontSize: 13 }}
-                    onClick={() => void cancelarLote(lote)}
-                  >
-                    Cancelar
+                  <button type="button" className="btn btn-outline" onClick={() => void cancelarLote(lote)}>
+                    Cancelar<span className="sr-only"> {objeto}</span>
                   </button>
                 </div>
-              </div>
+              </li>
             )
           })}
 
           {/* Ordens de Compra (Bids) */}
           {meusBids.map((bid) => {
             const pos = posicaoNaFila(state, 'compra', bid.id)
+            const objeto = `a oferta de compra de ${bid.qty} ${bid.tipoMoeda} a ${brl(bid.price)}`
             return (
-              <div
-                key={bid.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  background: 'var(--card-bg, rgba(255,255,255,0.03))',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  gap: 16,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ flex: '1 1 280px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: '0.05em',
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        background: 'rgba(76, 175, 80, 0.15)',
-                        color: 'var(--green, #4caf50)',
-                        border: '1px solid rgba(76, 175, 80, 0.3)',
-                      }}
-                    >
-                      COMPRA
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 15 }}>{bid.tipoMoeda}</span>
+              <li key={bid.id} className="minha-oferta">
+                <div className="mo-info">
+                  <div className="mo-cab">
+                    <span className="mo-lado compra">COMPRA</span>
+                    <span className="mo-tipo">{bid.tipoMoeda}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  <div className="mo-meta">
                     <b>{bid.qty} moeda(s)</b> até <b>{brl(bid.price)}</b> cada
                     <br />
                     <span>Cadastrada em {fdatetime(bid.createdAt)}</span>
                   </div>
                   {pos ? (
-                    <div style={{ fontSize: 12.5, color: 'var(--green, #4caf50)', marginTop: 4, fontWeight: 500 }}>
+                    <div className="mo-fila compra">
                       {pos.posicao}ª no seu preço de {brl(bid.price)}
                       {pos.aFrente > 0
                         ? ` · ${pos.aFrente} oferta(s) com lance maior compram primeiro`
@@ -212,51 +144,33 @@ export function MinhasOfertas(): ReactNode {
                   ) : null}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ minHeight: 44, minWidth: 44, padding: '8px 16px', fontSize: 13 }}
-                    onClick={() => abrirEdicaoBid(bid)}
-                  >
-                    Editar
+                <div className="mo-acoes">
+                  <button type="button" className="btn btn-outline" onClick={() => abrirEdicaoBid(bid)}>
+                    Editar<span className="sr-only"> {objeto}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ minHeight: 44, minWidth: 44, padding: '8px 16px', fontSize: 13 }}
-                    onClick={() => void cancelarBid(bid)}
-                  >
-                    Cancelar
+                  <button type="button" className="btn btn-outline" onClick={() => void cancelarBid(bid)}>
+                    Cancelar<span className="sr-only"> {objeto}</span>
                   </button>
                 </div>
-              </div>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
 
-      {/* Subseção: Executadas recentemente */}
-      <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-        <h4
-          style={{
-            margin: '0 0 10px 0',
-            fontSize: 13,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--muted)',
-          }}
-        >
-          Executadas recentemente
-        </h4>
+      {/* Subseção: Executadas recentemente. Recolhida num <details> desde 25/10/2026: as dez
+          linhas empurravam o livro de ofertas para baixo da dobra em /mercado, e o histórico é
+          consulta, não o primeiro passo. O resumo diz quantas são; nada sumiu. */}
+      <details className="mo-executadas">
+        <summary>
+          <h4>Executadas recentemente</h4>
+          <span className="n">({minhasNegociacoes.length})</span>
+        </summary>
 
         {minhasNegociacoes.length === 0 ? (
-          <div className="empty" style={{ padding: '10px 0', fontSize: 12.5 }}>
-            Nenhuma negociação recente nesta conta.
-          </div>
+          <p className="minhas-vazio">Nenhuma negociação recente nesta conta.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ul className="mo-exec-lista">
             {minhasNegociacoes.map((t, idx) => {
               const souVendedor = t.seller === session
               const dataFormatada = t.date ? fdatetime(t.date) : '—'
@@ -264,45 +178,29 @@ export function MinhasOfertas(): ReactNode {
               const valorTotalPago = (t.price * t.qty) + (t.feeComprador ?? 0)
 
               return (
-                <div
-                  key={`${t.date}-${t.buyer}-${t.seller}-${idx}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: 12.5,
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    background: 'var(--bg-subtle, rgba(255,255,255,0.02))',
-                    border: '1px solid var(--border)',
-                    gap: 12,
-                    flexWrap: 'wrap',
-                  }}
-                >
+                <li key={`${t.date}-${t.buyer}-${t.seller}-${idx}`} className="mo-exec">
                   <div>
-                    <span style={{ fontWeight: 600, color: souVendedor ? 'var(--gold)' : 'var(--green, #4caf50)' }}>
+                    <span className={souVendedor ? 'mo-exec-lado venda' : 'mo-exec-lado compra'}>
                       {souVendedor ? 'Venda realizada: ' : 'Compra realizada: '}
                     </span>
                     <span>
                       {t.qty} {t.tipoMoeda} a {brl(t.price)} cada
                     </span>
-                    <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-                      · {dataFormatada}
-                    </span>
+                    <span className="mo-exec-data">· {dataFormatada}</span>
                   </div>
-                  <div style={{ fontWeight: 600 }}>
+                  <div className="mo-exec-valor">
                     {souVendedor ? (
                       <span>Você recebeu: {brl(valorLiquido)}</span>
                     ) : (
                       <span>Pago pelas moedas e taxa de compra: {brl(valorTotalPago)} (+ 1º mês de custódia)</span>
                     )}
                   </div>
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
-      </div>
-    </div>
+      </details>
+    </section>
   )
 }

@@ -24,6 +24,8 @@ import type { DadosFiscais, LinhaFiscal } from '@/server/admin/fiscal'
 import type { StatusNfse } from '@/server/db/repositories/nfse'
 
 import { useAdmin } from '../AdminProvider'
+import { ConfirmarAcao } from '../ConfirmarAcao'
+import { Abas, Selo } from '../Pecas'
 import { Cartao } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
@@ -47,7 +49,7 @@ function situacao(l: LinhaFiscal): ReactNode {
   if (e.status === 'autorizada') {
     return (
       <>
-        <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
+        <Selo tom="ok">Autorizada</Selo> <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
         {e.ambiente === 'restrita' ? <span className="adm-fraco"> · teste (sem validade jurídica)</span> : null}
         <div className="adm-fraco" style={{ wordBreak: 'break-all' }}>
           {e.chaveAcesso}
@@ -57,7 +59,7 @@ function situacao(l: LinhaFiscal): ReactNode {
   }
   return (
     <>
-      <b>{ROTULO_STATUS[e.status]}</b>
+      <Selo tom={e.status === 'rejeitada' || e.status === 'erro' ? 'alerta' : e.status === 'cancelada' ? 'neutro' : 'atencao'}>{ROTULO_STATUS[e.status]}</Selo>
       {e.numeroNfse && (e.status === 'cancelada' || e.status === 'cancelando') ? <span> · NFS-e nº {e.numeroNfse}</span> : null}
       {e.motivoCancelamento ? <div className="adm-fraco">{e.motivoCancelamento.split('|').slice(1).join('|')}</div> : null}
       {e.erros?.length ? (
@@ -138,48 +140,79 @@ export function NotasFiscais({
       {dados.semBanco ? <div className="note adm-secao">Sem banco de dados configurado: a fila de notas vive no Postgres.</div> : null}
       {dados.impedimento ? <div className="note adm-secao">{dados.impedimento}</div> : null}
 
-      <div className="panel">
-        <div className="adm-acoes" style={{ flexWrap: 'wrap' }}>
-          {([null, 'pendente', 'autorizada', 'rejeitada', 'erro', 'cancelada'] as const).map((s) => (
-            <Link key={s ?? 'todas'} href={filtro(s)} className={`btn adm-btn-compacto ${status === s ? 'btn-gold' : ''}`}>
-              {s ? ROTULO_STATUS[s] : 'Todas'}
-            </Link>
-          ))}
-          <form method="get" style={{ display: 'flex', gap: 8 }}>
-            {status ? <input type="hidden" name="status" value={status} /> : null}
-            <input className="tinput" name="busca" defaultValue={busca} placeholder="e-mail, TRADE-12, FAT-… ou nº da nota" aria-label="Buscar nota" />
-            <button type="submit" className="btn adm-btn-compacto">
-              Buscar
-            </button>
-          </form>
-          {podeEmitir ? (
-            <>
-              <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado !== null} onClick={() => void executar('fila', () => enviarFilaDeNotas())}>
-                {ocupado === 'fila' ? 'Enviando…' : 'Enviar fila agora'}
-              </button>
-              {recusadas ? (
-                <button type="button" className="btn adm-btn-compacto" disabled={ocupado !== null} onClick={() => void executar('todas', () => reprocessarNotas('todas'))}>
-                  {ocupado === 'todas' ? 'Reprocessando…' : `Reprocessar todas as recusadas (${recusadas})`}
-                </button>
-              ) : null}
-            </>
-          ) : null}
+      {/* Envio à Sefin num bloco à parte, com confirmação que diz quantas notas saem (25/10/2026):
+          é documento fiscal saindo da empresa. Mesmas actions, mesma permissão (resultados.nfse). */}
+      {podeEmitir ? (
+        <div className="panel adm-secao">
+          <h3>Envio à Sefin Nacional</h3>
+          <div className="adm-acoes">
+            <ConfirmarAcao
+              rotulo={ocupado === 'fila' ? 'Enviando…' : 'Enviar fila agora'}
+              objeto={`enviar ${numero(c.pendente + c.processando)} nota(s) da fila à Sefin`}
+              detalhe={dados.ambiente === 'producao' ? 'Ambiente de produção: as notas autorizadas têm validade fiscal.' : 'Ambiente de teste: notas sem validade jurídica.'}
+              aoConfirmar={() => executar('fila', () => enviarFilaDeNotas())}
+              variante="gold"
+              desabilitado={ocupado !== null}
+            />
+            {recusadas ? (
+              <ConfirmarAcao
+                rotulo={ocupado === 'todas' ? 'Reprocessando…' : `Reprocessar todas as recusadas (${recusadas})`}
+                objeto={`reprocessar ${numero(recusadas)} nota(s) recusada(s) ou com erro`}
+                detalhe="Volta para a fila e é reenviada com os dados de hoje."
+                aoConfirmar={() => executar('todas', () => reprocessarNotas('todas'))}
+                desabilitado={ocupado !== null}
+              />
+            ) : null}
+          </div>
         </div>
+      ) : null}
+
+      <div className="panel">
+        <Abas
+          rotulo="Situação das notas"
+          itens={([null, 'pendente', 'autorizada', 'rejeitada', 'erro', 'cancelada'] as const).map((st) => ({
+            href: filtro(st) === '?' ? '/admin/resultados/fiscal' : `/admin/resultados/fiscal${filtro(st)}`,
+            rotulo: st ? ROTULO_STATUS[st] : 'Todas',
+            atual: status === st,
+            contagem: st ? c[st] : undefined,
+          }))}
+        />
+        <form method="get" className="adm-form" role="search">
+          {status ? <input type="hidden" name="status" value={status} /> : null}
+          <div className="field adm-campo-largo">
+            <label htmlFor="nfse-busca">E-mail, TRADE-12, FAT-… ou nº da nota</label>
+            <input id="nfse-busca" type="search" className="tinput" name="busca" defaultValue={busca} autoComplete="off" spellCheck={false} />
+          </div>
+          <button type="submit" className="btn btn-outline adm-btn-compacto">
+            Buscar notas
+          </button>
+          {busca ? (
+            <Link href={filtro(status)} className="btn btn-outline adm-btn-compacto">
+              Limpar busca
+            </Link>
+          ) : null}
+        </form>
 
         {dados.linhas.length === 0 ? (
-          <p className="adm-fraco">Nenhuma nota {status ? `com a situação "${ROTULO_STATUS[status]}"` : 'ainda'}.</p>
+          <div className="adm-vazio">
+            <b>Nenhuma nota {status ? `com a situação "${ROTULO_STATUS[status]}"` : busca ? 'com essa busca' : 'ainda'}.</b>
+            {status || busca ? 'Troque a situação ou a busca acima.' : 'Uma nota nasce a cada comissão de negociação (uma por lado) e a cada fatura de custódia paga.'}
+          </div>
         ) : (
           <div className="table-scroll">
             <table className="audit-table">
+              <caption className="adm-sr">Notas fiscais (NFS-e): fato, serviço, cliente, valor, competência e situação</caption>
               <thead>
                 <tr>
-                  <th>Fato</th>
-                  <th>Serviço</th>
-                  <th>Cliente (tomador)</th>
-                  <th>Valor</th>
-                  <th>Competência</th>
-                  <th>Nota</th>
-                  <th />
+                  <th scope="col">Fato</th>
+                  <th scope="col">Serviço</th>
+                  <th scope="col">Cliente (tomador)</th>
+                  <th scope="col" className="adm-num">Valor</th>
+                  <th scope="col">Competência</th>
+                  <th scope="col">Nota</th>
+                  <th scope="col">
+                    <span className="adm-sr">Ações</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -196,23 +229,24 @@ export function NotasFiscais({
                         {l.nome}
                         <div className="adm-fraco">{e.tomadorEmail}</div>
                       </td>
-                      <td>{dinheiro(e.valorCents)}</td>
+                      <td className="adm-num">{dinheiro(e.valorCents)}</td>
                       <td>{competencia(e.competencia)}</td>
                       <td>{situacao(l)}</td>
                       <td>
                         {e.status === 'autorizada' ? (
-                          <button type="button" className="btn adm-btn-compacto" disabled={ocupado !== null} onClick={() => void xml(e.id)}>
-                            XML
+                          <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado !== null} onClick={() => void xml(e.id)}>
+                            XML<span className="adm-sr"> da nota de {e.refFato}</span>
                           </button>
                         ) : null}
                         {podeEmitir && (e.status === 'rejeitada' || e.status === 'erro') ? (
                           <button
                             type="button"
-                            className="btn adm-btn-compacto"
+                            className="btn btn-outline adm-btn-compacto"
                             disabled={ocupado !== null}
                             onClick={() => void executar(`linha-${e.id}`, () => reprocessarNotas([e.id]))}
                           >
                             {ocupado === `linha-${e.id}` ? 'Enviando…' : 'Reprocessar'}
+                            <span className="adm-sr"> a nota de {e.refFato}</span>
                           </button>
                         ) : null}
                       </td>

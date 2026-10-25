@@ -100,14 +100,10 @@ export function LotCard({
         </div>
 
         {/* A observação do vendedor entre aspas e em itálico, como na linha 1255. */}
-        {lot.obs ? (
-          <div className="o-meta" style={{ fontStyle: 'italic' }}>
-            &quot;{lot.obs}&quot;
-          </div>
-        ) : null}
+        {lot.obs ? <div className="o-meta o-obs">&quot;{lot.obs}&quot;</div> : null}
 
         {mine ? null : (
-          <div className="stepper" style={{ marginTop: '10px' }}>
+          <div className="stepper" role="group" aria-label={`Quantidade de ${lot.tipoMoeda} a comprar deste anúncio`}>
             {/* O sinal é o menos matemático (U+2212), não o hífen: é o que
                 alinha com o "+" no mesmo peso visual. */}
             <button
@@ -127,7 +123,7 @@ export function LotCard({
             >
               +
             </button>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>de {qtyAvail}</span>
+            <span className="stepper-de">de {qtyAvail}</span>
           </div>
         )}
       </div>
@@ -139,17 +135,19 @@ export function LotCard({
         {mine ? null : (
           <>
             {/* Total da quantidade escolhida — muda junto com o seletor. */}
-            <div style={{ marginTop: '8px', fontWeight: 700, color: 'var(--text-strong)' }}>
+            <div className="o-total">
+              <span className="sr-only">Total: </span>
               {brl(total)}
             </div>
             {/* Sempre habilitado: a escolha da forma de pagamento é da modal. */}
-            <button
-              type="button"
-              className="btn btn-gold"
-              style={{ marginTop: '8px', padding: '8px 16px', fontSize: '13px' }}
-              onClick={() => onBuy(lot, chosen)}
-            >
+            {/* Nome acessível único por anúncio (doc 35 §6): "Comprar" repetido em cada cartão não diz
+                ao leitor de tela QUAL lote compra. O texto visível continua "Comprar" — é a âncora do tutorial. */}
+            <button type="button" className="btn btn-gold o-comprar" onClick={() => onBuy(lot, chosen)}>
               Comprar
+              <span className="sr-only">
+                {' '}
+                {chosen} {lot.tipoMoeda} a {brl(lot.price)} cada ({apelidoVendedor(lot.lotId)})
+              </span>
             </button>
           </>
         )}

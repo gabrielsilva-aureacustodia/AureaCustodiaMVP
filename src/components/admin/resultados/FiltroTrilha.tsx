@@ -57,8 +57,8 @@ export function FiltroTrilha({ ator, acao, periodo }: { ator: string; acao: stri
           <label htmlFor="trilha-acao">Ação (começa com)</label>
           <input id="trilha-acao" className="tinput" value={acaoDigitada} onChange={(e) => setAcaoDigitada(e.target.value)} placeholder="ex.: admin." />
         </div>
-        <button type="submit" className="btn btn-gold adm-btn-compacto">
-          Filtrar
+        <button type="submit" className="btn btn-outline adm-btn-compacto">
+          Filtrar a trilha
         </button>
       </form>
       <div className="adm-abas" aria-label="Atalhos de filtro">

@@ -117,51 +117,127 @@ export default function ComprasPage(): ReactNode {
           Por isso vem antes de tudo, inclusive do formulário. */}
       <ReservasEmAberto />
 
-      <div className="cols-rev">
-        <div>
-          <div className="panel" style={{ marginBottom: '18px' }}>
-            <h3>
-              <svg viewBox="0 0 24 24">
-                <path d="M6 7h12l1.5 13h-15zM9 7a3 3 0 016 0" />
-              </svg>
-              Fazer oferta de compra
-            </h3>
+      {/* ORDEM DO FORMULÁRIO (25/10/2026): o que comprar → quanto e por quanto → como pagar → o total →
+          publicar. O resumo com o total ficava entre o preço e a forma de pagamento; agora fica logo
+          acima do botão, onde a decisão é tomada (padrão de checkout — BENCHMARK.md). Os campos, as
+          contas e a ação são os mesmos. */}
+      <div className="cols-rev compras">
+        <div className="panel compra-form">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 7h12l1.5 13h-15zM9 7a3 3 0 016 0" />
+            </svg>
+            Fazer oferta de compra
+          </h3>
 
-            {/* Quantos anúncios existem de cada tipo vem para cá junto com o
-                seletor: escolhendo o que comprar, saber que um tipo tem zero
-                anúncio à venda é o que evita publicar uma oferta que não tem
-                com quem casar. */}
-            <TipoSelector
-              name="tipo-bid"
-              titulo="Moeda que deseja comprar"
-              tipos={NEGOCIAVEIS}
-              valor={tipoAtivo}
-              onChange={trocarTipo}
-              detalhePorTipo={lotesPorTipo}
-            />
+          {/* Quantos anúncios existem de cada tipo vem para cá junto com o
+              seletor: escolhendo o que comprar, saber que um tipo tem zero
+              anúncio à venda é o que evita publicar uma oferta que não tem
+              com quem casar. */}
+          <TipoSelector
+            name="tipo-bid"
+            titulo="Moeda que deseja comprar"
+            tipos={NEGOCIAVEIS}
+            valor={tipoAtivo}
+            onChange={trocarTipo}
+            detalhePorTipo={lotesPorTipo}
+          />
 
-            <div className="field-lbl">Quantidade desejada</div>
-            <input
-              id="bidQty"
-              type="number"
-              min="1"
-              className="tinput"
-              value={bidQty}
-              onChange={(e) => setBidQty(e.target.value)}
-            />
-
-            <div className="field-lbl">Preço unitário máximo</div>
-            <div className="price-input">
-              <span>R$</span>
+          <div className="campos-dupla">
+            <div className="campo">
+              <label className="field-lbl" htmlFor="bidQty">
+                Quantidade desejada
+              </label>
               <input
-                id="bidPrice"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={bidPrice}
-                onChange={(e) => setBidPrice(e.target.value)}
+                id="bidQty"
+                type="number"
+                min="1"
+                inputMode="numeric"
+                className="tinput"
+                value={bidQty}
+                onChange={(e) => setBidQty(e.target.value)}
               />
             </div>
 
+            <div className="campo">
+              <label className="field-lbl" htmlFor="bidPrice">
+                Preço unitário máximo (R$)
+              </label>
+              <div className="price-input">
+                <span aria-hidden="true">R$</span>
+                <input
+                  id="bidPrice"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="0,00"
+                  value={bidPrice}
+                  onChange={(e) => setBidPrice(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* -----------------------------------------------------------
+              Como o comprador banca a oferta (22/09/2026).
+
+              Antes desta data o saldo era a única forma, e a quantidade era
+              cortada ao que o caixa aguentava. Continuar exigindo dinheiro
+              parado na plataforma trancava quem não quer deixá-lo lá.
+              ------------------------------------------------------- */}
+          <div className="field-lbl" id="como-pagar">
+            Como você quer pagar
+          </div>
+          <div className="opcoes" role="group" aria-labelledby="como-pagar">
+            {(
+              [
+                {
+                  chave: 'saldo' as const,
+                  titulo: 'Com saldo',
+                  detalhe: `Debitado da conta quando a oferta casar. Permite até ${bidMaxMoedasSaldo} moeda(s) neste preço.`,
+                },
+                {
+                  chave: 'prepago' as const,
+                  titulo: 'Pré-pago',
+                  detalhe: 'Você paga agora e a compra acontece sozinha quando alguém vender.',
+                },
+                /*
+                 * PÓS-PAGO OCULTO (28/09/2026, decisão do Gabriel).
+                 *
+                 * "Não precisa excluir a feature, só não mostra ela no site,
+                 * acho inseguro usar ela por enquanto até outros aspectos
+                 * estarem mais seguros e testados entre os usuários."
+                 *
+                 * Tudo continua de pé — a reserva de dez minutos, o e-mail, o
+                 * liquidador, a fila que anda quando o prazo vence, os testes.
+                 * O que sai é a OPÇÃO NA TELA. Para voltar, basta
+                 * descomentar este bloco: nada foi removido.
+                 *
+                 * {
+                 *   chave: 'pospago' as const,
+                 *   titulo: 'Pós-pago',
+                 *   detalhe: 'Não paga nada agora. Quando a oferta casar, você tem 10 minutos para pagar.',
+                 * },
+                 */
+              ]
+            ).map((o) => {
+              const ativa = modalidadeBid === o.chave
+              const semSaldo = o.chave === 'saldo' && bidMaxMoedasSaldo <= 0 && bidPriceCents > 0
+              return (
+                <button
+                  key={o.chave}
+                  type="button"
+                  className={semSaldo && !ativa ? 'opcao apagada' : 'opcao'}
+                  aria-pressed={ativa}
+                  onClick={() => setModalidadeBid(o.chave)}
+                >
+                  <div className="t">{o.titulo}</div>
+                  <div className="d">{semSaldo ? 'Seu saldo não cobre nenhuma moeda neste preço.' : o.detalhe}</div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="resumo-compra" aria-live="polite">
             <div className="summary-row">
               <span className="k">Subtotal das moedas</span>
               <span className="v">{bidSubtotal > 0 ? brl(bidSubtotal) : '—'}</span>
@@ -173,115 +249,36 @@ export default function ComprasPage(): ReactNode {
             {bidCustodiaTotal > 0 ? <LinhaCustodiaNaCompra cents={bidCustodiaTotal} /> : null}
             <div className="summary-row total">
               <span className="k">Total com taxa e custódia</span>
-              <span className="v" style={{ fontSize: '19px' }}>
-                {bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}
-              </span>
+              <span className="v">{bidTotalComComissao > 0 ? brl(bidTotalComComissao) : '—'}</span>
             </div>
-            {/* -----------------------------------------------------------
-                Como o comprador banca a oferta (22/09/2026).
+          </div>
 
-                Antes desta data o saldo era a única forma, e a quantidade era
-                cortada ao que o caixa aguentava. Continuar exigindo dinheiro
-                parado na plataforma trancava quem não quer deixá-lo lá.
-                ------------------------------------------------------- */}
-            <div className="field-lbl" style={{ marginTop: 10 }}>
-              Como você quer pagar
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: 8,
-                marginBottom: 10,
-              }}
-            >
-              {(
-                [
-                  {
-                    chave: 'saldo' as const,
-                    titulo: 'Com saldo',
-                    detalhe: `Debitado da conta quando a oferta casar. Permite até ${bidMaxMoedasSaldo} moeda(s) neste preço.`,
-                  },
-                  {
-                    chave: 'prepago' as const,
-                    titulo: 'Pré-pago',
-                    detalhe: 'Você paga agora e a compra acontece sozinha quando alguém vender.',
-                  },
-                  /*
-                   * PÓS-PAGO OCULTO (28/09/2026, decisão do Gabriel).
-                   *
-                   * "Não precisa excluir a feature, só não mostra ela no site,
-                   * acho inseguro usar ela por enquanto até outros aspectos
-                   * estarem mais seguros e testados entre os usuários."
-                   *
-                   * Tudo continua de pé — a reserva de dez minutos, o e-mail, o
-                   * liquidador, a fila que anda quando o prazo vence, os testes.
-                   * O que sai é a OPÇÃO NA TELA. Para voltar, basta
-                   * descomentar este bloco: nada foi removido.
-                   *
-                   * {
-                   *   chave: 'pospago' as const,
-                   *   titulo: 'Pós-pago',
-                   *   detalhe: 'Não paga nada agora. Quando a oferta casar, você tem 10 minutos para pagar.',
-                   * },
-                   */
-                ]
-              ).map((o) => {
-                const ativa = modalidadeBid === o.chave
-                const semSaldo = o.chave === 'saldo' && bidMaxMoedasSaldo <= 0 && bidPriceCents > 0
-                return (
-                  <button
-                    key={o.chave}
-                    type="button"
-                    onClick={() => setModalidadeBid(o.chave)}
-                    style={{
-                      textAlign: 'left',
-                      padding: 10,
-                      minHeight: 44,
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      border: ativa ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
-                      background: ativa ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
-                      color: 'var(--text-main)',
-                      opacity: semSaldo && !ativa ? 0.6 : 1,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{o.titulo}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3 }}>
-                      {semSaldo ? 'Seu saldo não cobre nenhuma moeda neste preço.' : o.detalhe}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {modalidadeBid === 'prepago' && bidTotalComComissao > 0 && (
-              <div className="note" style={{ marginBottom: 10 }}>
-                O pagamento de <b>{brl(bidTotalComComissao)}</b> vem primeiro: a oferta é publicada
-                quando ele for confirmado, e até lá não aparece no mercado para ninguém.
-              </div>
-            )}
-
-            <button type="button" className="btn btn-gold" onClick={() => void publicarBid()}>
-              {modalidadeBid === 'prepago' ? 'Pagar e publicar oferta' : 'Publicar oferta de compra'}
-            </button>
-
+          {modalidadeBid === 'prepago' && bidTotalComComissao > 0 && (
             <div className="note">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16.5v.5" />
-              </svg>
-              Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
-              acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
-              consideradas — cada tipo de moeda tem seu próprio livro.
+              O pagamento de <b>{brl(bidTotalComComissao)}</b> vem primeiro: a oferta é publicada
+              quando ele for confirmado, e até lá não aparece no mercado para ninguém.
             </div>
+          )}
+
+          <button type="button" className="btn btn-gold compra-cta" onClick={() => void publicarBid()}>
+            {modalidadeBid === 'prepago' ? 'Pagar e publicar oferta' : 'Publicar oferta de compra'}
+          </button>
+
+          <div className="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            Se já existir uma oferta de venda de {tipoAtivo} igual ou abaixo desse preço, a compra
+            acontece automaticamente ao publicar. Ofertas de outros tipos de moeda não são
+            consideradas — cada tipo de moeda tem seu próprio livro.
           </div>
         </div>
 
-        <div>
-          <div className="panel" style={{ marginBottom: 18 }}>
+        <div className="coluna-pilha">
+          <div className="panel">
             <h3>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 5h18l-7 8v6l-4 2v-8z" />
               </svg>
               Mercado
@@ -292,7 +289,7 @@ export default function ComprasPage(): ReactNode {
                 lado está mirando. Ter a mesma escolha em dois blocos da mesma
                 tela não dá poder nenhum a mais — só duas coisas para manter
                 em sincronia e uma dúvida sobre qual delas vale. */}
-            <div className="avg-box" style={{ marginTop: 14 }}>
+            <div className="avg-box">
               <div className="l">Média de mercado — 7 dias</div>
               <div className="v">{media7 ? brl(media7) : '—'}</div>
               <div className="s">{tipoAtivo} · negociações concluídas na plataforma</div>
@@ -306,9 +303,7 @@ export default function ComprasPage(): ReactNode {
                   10s
                 </span>
               </div>
-              <div className="v" style={{ fontSize: '19px' }}>
-                {ultima ? fmtTrade(ultima) : '—'}
-              </div>
+              <div className="v v-menor">{ultima ? fmtTrade(ultima) : '—'}</div>
               <div className="s">
                 {ultima ? fdate(ultima.date) : ''} · {tipoAtivo}
               </div>
@@ -316,11 +311,7 @@ export default function ComprasPage(): ReactNode {
 
             <div className="hist">
               <div className="hist-head">Últimas negociações</div>
-              {!historico.length ? (
-                <div className="empty" style={{ marginTop: 8 }}>
-                  Nenhuma negociação de {tipoAtivo} ainda.
-                </div>
-              ) : null}
+              {!historico.length ? <div className="empty">Nenhuma negociação de {tipoAtivo} ainda.</div> : null}
               {historico.map(({ trade, idx }) => (
                 <div className="hist-row" key={idx}>
                   <span className="d">{fdate(trade.date)}</span>
@@ -330,16 +321,17 @@ export default function ComprasPage(): ReactNode {
             </div>
           </div>
 
-          <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
+          <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} />
           <ComoNegociacaoAcontece />
         </div>
       </div>
-      <div style={{ marginTop: 24 }}>
+
+      <div className="bloco-seguinte">
         <MinhasOfertas />
       </div>
 
-      <div className="note" style={{ justifyContent: 'center', marginTop: '14px' }}>
-        <svg viewBox="0 0 24 24">
+      <div className="note nota-rodape">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
         </svg>
         Todas as moedas são armazenadas com segurança no Real Olímpico. A plataforma não recomenda

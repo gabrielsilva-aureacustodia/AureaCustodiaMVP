@@ -50,7 +50,7 @@ export function Uso({
     return (
       <>
         <AvisoSemBanco>O registro de uso e a trilha só existem com o banco.</AvisoSemBanco>
-        <div className="panel">
+        <div className="adm-ferramentas">
           <SeletorPeriodo ano={periodo.ano} mes={periodo.mes} trimestre={periodo.trimestre} />
         </div>
       </>
@@ -62,18 +62,34 @@ export function Uso({
 
   return (
     <>
-      <div className="panel adm-secao">
+      <div className="adm-ferramentas adm-ferramentas-coluna">
         <SeletorPeriodo ano={periodo.ano} mes={periodo.mes} trimestre={periodo.trimestre} manter={{ ...(filtro.ator ? { ator: filtro.ator } : {}), ...(filtro.acao ? { acao: filtro.acao } : {}) }} />
         {dados.eventosNoLimite ? (
-          <p className="adm-fraco" style={{ marginTop: 10 }}>
+          <p className="adm-fraco adm-acima-10">
             O período tem mais registros do que a tela lê de uma vez; os números abaixo cobrem o começo dele. Escolha um período
             menor para ver tudo.
           </p>
         ) : null}
       </div>
 
+      {podeVerUso && r && podeVerTrilha ? (
+        <nav aria-label="Nesta página">
+          <ul className="adm-nesta-pagina">
+            <li>
+              <a href="#uso-plataforma">Uso da plataforma</a>
+            </li>
+            <li>
+              <a href="#uso-trilha">Trilha de auditoria</a>
+            </li>
+          </ul>
+        </nav>
+      ) : null}
+
       {podeVerUso && r ? (
         <>
+          <h2 className="adm-titulo-secao" id="uso-plataforma">
+            Uso da plataforma
+          </h2>
           <div className="adm-grade">
             <Cartao rotulo="Páginas abertas" valor={numero(r.paginasVistas)} detalhe={`${numero(r.sessoes)} sessão(ões) de navegação`} />
             <Cartao rotulo="Contas que usaram" valor={numero(r.contas)} />
@@ -91,11 +107,12 @@ export function Uso({
               {r.paginasMaisAbertas.length ? (
                 <div className="table-scroll">
                   <table className="audit-table">
+                    <caption className="adm-sr">Páginas mais abertas</caption>
                     <thead>
                       <tr>
-                        <th>Página</th>
-                        <th className="adm-num">Vezes</th>
-                        <th className="adm-num">Contas</th>
+                        <th scope="col">Página</th>
+                        <th scope="col" className="adm-num">Vezes</th>
+                        <th scope="col" className="adm-num">Contas</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -118,11 +135,12 @@ export function Uso({
               <h3>Horário de pico (Brasília)</h3>
               <div className="table-scroll">
                 <table className="audit-table">
+                  <caption className="adm-sr">Horário de pico, hora de Brasília</caption>
                   <thead>
                     <tr>
-                      <th>Hora</th>
-                      <th className="adm-num">Atividade</th>
-                      <th style={{ width: '55%' }} aria-hidden="true" />
+                      <th scope="col">Hora</th>
+                      <th scope="col" className="adm-num">Atividade</th>
+                      <th scope="col" style={{ width: '55%' }} aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody>
@@ -152,13 +170,14 @@ export function Uso({
               {r.acoesPorConta.length ? (
                 <div className="table-scroll">
                   <table className="audit-table">
+                    <caption className="adm-sr">Ações por conta</caption>
                     <thead>
                       <tr>
-                        <th>Conta</th>
-                        <th className="adm-num">Páginas</th>
-                        <th className="adm-num">Cliques</th>
-                        <th className="adm-num">Operações</th>
-                        <th>Última atividade</th>
+                        <th scope="col">Conta</th>
+                        <th scope="col" className="adm-num">Páginas</th>
+                        <th scope="col" className="adm-num">Cliques</th>
+                        <th scope="col" className="adm-num">Operações</th>
+                        <th scope="col">Última atividade</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -188,12 +207,13 @@ export function Uso({
                 <>
                   <div className="table-scroll">
                     <table className="audit-table">
+                      <caption className="adm-sr">Jornada até a primeira venda</caption>
                       <thead>
                         <tr>
-                          <th>Conta</th>
-                          <th>Primeira venda</th>
-                          <th className="adm-num">Páginas antes</th>
-                          <th className="adm-num">Tempo</th>
+                          <th scope="col">Conta</th>
+                          <th scope="col">Primeira venda</th>
+                          <th scope="col" className="adm-num">Páginas antes</th>
+                          <th scope="col" className="adm-num">Tempo</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -234,19 +254,20 @@ export function Uso({
       ) : null}
 
       {podeVerTrilha ? (
-        <div className="panel adm-secao">
+        <div className="panel adm-secao" id="uso-trilha">
           <h3>Trilha de auditoria</h3>
           <FiltroTrilha ator={filtro.ator} acao={filtro.acao} periodo={periodo} />
           {dados.trilha && dados.trilha.length ? (
             <div className="table-scroll">
               <table className="audit-table">
+                <caption className="adm-sr">Trilha de auditoria: quando, quem, ação e contas afetadas</caption>
                 <thead>
                   <tr>
-                    <th>Quando</th>
-                    <th>Quem</th>
-                    <th>Ação</th>
-                    <th>Sobre</th>
-                    <th>Contas afetadas</th>
+                    <th scope="col">Quando</th>
+                    <th scope="col">Quem</th>
+                    <th scope="col">Ação</th>
+                    <th scope="col">Sobre</th>
+                    <th scope="col">Contas afetadas</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -1,0 +1,283 @@
+/* ============================================================================
+   COMPONENTES DA MARCA — os padrões novos do Brandbook (§9), prefixo .ro-.
+
+   base.css repagina o que JÁ existia (.btn, .panel, .field...) sem mudar nome.
+   Este arquivo traz o que faltava ao sistema e que as telas resolviam cada uma
+   do seu jeito: sobretítulo, selo de situação, aviso, número de vitrine,
+   tabela, abas, esqueleto de carregamento, faixa de abertura e a assinatura
+   visual da marca (o aro e a serrilha da moeda).
+
+   Por que prefixo e não os nomes do monolito: o monolito não tinha estes
+   padrões, e um nome genérico novo (.badge, .alert) colidiria com regras
+   soltas das telas. Entra logo depois de base.css em app/globals.css.
+
+   Sem media query de LARGURA aqui (regra de src/styles/README.md: essas vivem
+   em responsive.css): o que muda com a largura usa clamp(), auto-fit ou
+   @container. As únicas media queries são as de movimento reduzido.
+   ========================================================================= */
+
+/* ---- Tipografia por papel ------------------------------------------------
+   Sobretítulo é a ÚNICA caixa-alta da interface: espaçada como o "OLÍMPICO"
+   da logo, em serifa, no ouro de texto. */
+.ro-sobretitulo{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--ro-fonte-texto);font-size:var(--ro-tipo-sobretitulo);font-weight:var(--ro-peso-semi);
+  letter-spacing:var(--ro-espacejamento-sobretitulo);text-transform:uppercase;
+  color:var(--ro-primaria-texto);
+}
+.ro-sobretitulo::before{content:'';width:22px;height:1px;background:currentColor;opacity:.7}
+.ro-display-xl,.ro-display,.ro-titulo-1,.ro-titulo-2,.ro-titulo-3{
+  font-family:var(--ro-fonte-display);font-optical-sizing:auto;color:var(--ro-texto-forte);text-wrap:balance;
+}
+.ro-display-xl{font-size:var(--ro-tipo-display-xl);line-height:var(--ro-entrelinha-display);letter-spacing:var(--ro-espacejamento-display);font-weight:var(--ro-peso-medio)}
+.ro-display{font-size:var(--ro-tipo-display);line-height:var(--ro-entrelinha-display);letter-spacing:var(--ro-espacejamento-display);font-weight:var(--ro-peso-medio)}
+.ro-titulo-1{font-size:var(--ro-tipo-titulo-1);line-height:var(--ro-entrelinha-titulo);font-weight:var(--ro-peso-semi)}
+.ro-titulo-2{font-size:var(--ro-tipo-titulo-2);line-height:var(--ro-entrelinha-titulo);font-weight:var(--ro-peso-semi)}
+.ro-titulo-3{font-size:var(--ro-tipo-titulo-3);line-height:1.3;font-weight:var(--ro-peso-semi)}
+/* Itálico da serifa para a palavra que carrega a ideia ("custódia que se
+   negocia"): ênfase sem negrito nem cor nova. */
+.ro-display em,.ro-display-xl em,.ro-titulo-1 em{font-style:italic;font-weight:inherit;color:var(--ro-primaria-texto)}
+.ro-corpo-lg{font-size:var(--ro-tipo-corpo-lg);line-height:1.6;color:var(--ro-texto-suave);max-width:var(--ro-container-texto)}
+.ro-legenda{font-size:var(--ro-tipo-legenda);line-height:1.45;color:var(--ro-texto-suave)}
+.ro-numero{font-variant-numeric:tabular-nums lining-nums;font-feature-settings:'tnum' 1,'lnum' 1;white-space:nowrap}
+/* Valor de vitrine (saldo, preço estimado): serifa grande, centavos menores. */
+.ro-valor{
+  font-family:var(--ro-fonte-display);font-optical-sizing:auto;font-weight:var(--ro-peso-medio);
+  font-size:clamp(1.75rem,1.3rem + 1.8vw,2.75rem);line-height:1;color:var(--ro-texto-forte);
+  font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;white-space:nowrap;
+}
+.ro-valor small{font-size:.5em;font-weight:var(--ro-peso-regular);color:var(--ro-texto-suave);margin-left:.1em}
+
+/* ---- Estrutura --------------------------------------------------------------- */
+.ro-container{width:100%;max-width:var(--ro-container);margin-inline:auto;padding-inline:clamp(16px,4vw,40px)}
+.ro-secao{padding-block:clamp(48px,6vw + 1rem,112px)}
+.ro-pilha{display:flex;flex-direction:column;gap:var(--ro-pilha-gap,var(--ro-esp-4))}
+.ro-grade-auto{display:grid;gap:var(--ro-esp-5);grid-template-columns:repeat(auto-fit,minmax(min(100%,var(--ro-grade-min,260px)),1fr))}
+
+/* ---- Assinatura visual: o aro e a serrilha da moeda -----------------------
+   Filete duplo dourado = o aro em relevo da moeda; usado para separar a
+   abertura do conteúdo. A serrilha = o bordo serrilhado; vai no topo de
+   faixas e no rodapé, nunca no meio do texto. */
+.ro-filete{
+  height:5px;border:0;margin:0;
+  background:
+    linear-gradient(var(--ro-primaria),var(--ro-primaria)) top/100% 1px no-repeat,
+    linear-gradient(var(--ro-primaria),var(--ro-primaria)) bottom/100% 1px no-repeat;
+  opacity:.75;
+}
+.ro-serrilha{
+  height:8px;
+  background:repeating-linear-gradient(90deg,var(--ro-ouro-500) 0 2px,transparent 2px 5px);
+  -webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  opacity:.55;
+}
+/* Guilhoché em CSS puro (sem imagem): círculos concêntricos finos, como o
+   fundo de segurança de cédula. Só em superfície escura e grande. */
+.ro-guilloche{
+  background-color:var(--ro-noite-950);
+  background-image:
+    repeating-radial-gradient(circle at 78% 30%,color-mix(in srgb,var(--ro-ouro-500) 9%,transparent) 0 1px,transparent 1px 9px),
+    repeating-radial-gradient(circle at 22% 120%,color-mix(in srgb,var(--ro-ouro-500) 6%,transparent) 0 1px,transparent 1px 13px),
+    radial-gradient(120% 90% at 80% 0%,var(--ro-noite-800) 0%,var(--ro-noite-950) 60%);
+}
+
+/* ---- Faixa de abertura -----------------------------------------------------
+   Bloco escuro no topo de uma área (início do cliente, painel): saudação,
+   número principal e a moeda. Escura nos DOIS temas — é a "vitrine". */
+.ro-faixa{
+  position:relative;overflow:hidden;isolation:isolate;
+  border-radius:var(--ro-raio-xl);padding:clamp(22px,1rem + 2.4vw,44px);
+  color:var(--ro-pergaminho-250);
+  border:1px solid color-mix(in srgb,var(--ro-ouro-500) 35%,transparent);
+  box-shadow:var(--ro-sombra-3);
+}
+.ro-faixa::after{content:'';position:absolute;inset:auto 0 0 0;height:1px;background:linear-gradient(90deg,transparent,var(--ro-ouro-500),transparent);opacity:.6}
+.ro-faixa .ro-sobretitulo{color:var(--ro-ouro-400)}
+.ro-faixa :is(.ro-display,.ro-display-xl,.ro-titulo-1,.ro-titulo-2,.ro-valor){color:var(--ro-pergaminho-950)}
+.ro-faixa .ro-legenda,.ro-faixa .ro-corpo-lg{color:var(--ro-noite-200)}
+/* A faixa é escura nos DOIS temas: os papéis de texto do tema claro (ouro-800, noite-450) somem
+   nela. Por isso a ênfase e os centavos usam primitivos de fundo escuro, fixos. */
+.ro-faixa :is(.ro-display,.ro-display-xl,.ro-titulo-1,.ro-titulo-2) em{color:var(--ro-ouro-400)}
+.ro-faixa .ro-valor small{color:var(--ro-noite-200)}
+/* Componente <FaixaAbertura>: texto à esquerda, arte à direita. flex-wrap em vez de media query:
+   quando não cabem lado a lado (celular), a arte desce para baixo do texto sozinha. */
+.ro-faixa{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ro-esp-6) var(--ro-esp-10)}
+.ro-faixa__texto{flex:1 1 300px;min-width:0;display:grid;gap:var(--ro-esp-3)}
+.ro-faixa__apoio{color:var(--ro-noite-200);max-width:var(--ro-container-texto)}
+.ro-faixa__acao{margin-top:var(--ro-esp-2)}
+.ro-faixa__acao .btn-gold{width:auto}
+.ro-faixa__arte{flex:0 1 220px;margin-inline:auto;filter:drop-shadow(0 18px 30px rgb(0 0 0 / .45))}
+.ro-faixa--guilloche{
+  background-color:var(--ro-noite-950);
+  background-image:
+    repeating-radial-gradient(circle at 78% 30%,color-mix(in srgb,var(--ro-ouro-500) 9%,transparent) 0 1px,transparent 1px 9px),
+    repeating-radial-gradient(circle at 22% 120%,color-mix(in srgb,var(--ro-ouro-500) 6%,transparent) 0 1px,transparent 1px 13px),
+    radial-gradient(120% 90% at 80% 0%,var(--ro-noite-800) 0%,var(--ro-noite-950) 60%);
+}
+/* Veludo da Frente 2 (public/visuais/fundos/). Sem o arquivo, sobra o azul-noite da cor de fundo. */
+.ro-faixa--veludo{
+  background:
+    radial-gradient(90% 120% at 85% 50%,color-mix(in srgb,var(--ro-ouro-500) 10%,transparent) 0%,transparent 60%),
+    url('/visuais/fundos/fundos-veludo-noite-1440.webp') center/cover,
+    var(--ro-noite-900);
+}
+
+/* Imagem do catálogo (<ImagemDaMarca>): ocupa a largura do contêiner, sem distorcer. */
+.ro-imagem{display:block}
+.ro-imagem img{display:block;width:100%;height:auto}
+
+/* Ilustração com versão para fundo escuro: o HTML leva as duas e o tema escolhe. */
+body[data-theme="dark"] .ro-so-claro,
+body[data-theme="light"] .ro-so-escuro{display:none}
+
+/* ---- Luz de vitrine para fotografia de moeda --------------------------------
+   Spot quente atrás da peça + sombra de contato embaixo: a moeda "pousa" no
+   cartão em vez de flutuar recortada. */
+.ro-vitrine-luz{
+  position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:var(--ro-raio-lg);
+  background:
+    radial-gradient(48% 48% at 50% 46%,color-mix(in srgb,var(--ro-ouro-300) 22%,transparent) 0%,transparent 70%),
+    radial-gradient(40% 8% at 50% 88%,rgb(0 0 0 / .35) 0%,transparent 100%),
+    linear-gradient(180deg,var(--ro-noite-850),var(--ro-noite-950));
+}
+body[data-theme="light"] .ro-vitrine-luz{
+  background:
+    radial-gradient(48% 48% at 50% 46%,color-mix(in srgb,var(--ro-ouro-200) 45%,transparent) 0%,transparent 70%),
+    radial-gradient(40% 8% at 50% 88%,rgb(13 27 53 / .16) 0%,transparent 100%),
+    linear-gradient(180deg,var(--ro-pergaminho-50),var(--ro-pergaminho-200));
+}
+
+/* ---- Cartões ---------------------------------------------------------------- */
+.ro-cartao{
+  background:var(--ro-cartao);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-lg);
+  padding:var(--ro-esp-5);box-shadow:var(--ro-sombra-1);
+}
+.ro-cartao-interativo{
+  cursor:pointer;text-decoration:none;color:inherit;display:block;
+  transition:transform var(--ro-dur-base) var(--ro-curva-saida),box-shadow var(--ro-dur-base) ease,border-color var(--ro-dur-base) ease;
+}
+.ro-cartao-interativo:hover{transform:translateY(-2px);border-color:var(--ro-borda);box-shadow:var(--ro-sombra-3)}
+.ro-cartao-moeda{display:grid;gap:var(--ro-esp-3);container-type:inline-size}
+.ro-cartao-moeda .ro-vitrine-luz{padding:12%}
+.ro-cartao-moeda .ro-vitrine-luz > *{width:100%;max-width:100%}
+.ro-cartao-moeda .moeda-realista{width:min(100%,240px);justify-self:center}
+.ro-cartao-moeda .moeda-realista-img{width:100%;height:auto}
+.ro-cartao-moeda__nome{font-family:var(--ro-fonte-display);font-size:1.125rem;font-weight:var(--ro-peso-semi);color:var(--ro-texto-forte);line-height:1.25}
+.ro-cartao-moeda__meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
+
+/* ---- Indicador (KPI) ---------------------------------------------------------- */
+.ro-kpi{display:grid;gap:6px;container-type:inline-size}
+.ro-kpi__rotulo{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);font-weight:var(--ro-peso-medio)}
+.ro-kpi__valor{font-family:var(--ro-fonte-display);font-size:clamp(1.5rem,14cqi,2.25rem);font-weight:var(--ro-peso-medio);line-height:1.05;color:var(--ro-texto-forte);font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
+.ro-kpi__nota{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave)}
+
+/* ---- Selo de situação ------------------------------------------------------
+   Sempre TEXTO + cor + ponto (nunca só cor). Fundo suave, texto AA. */
+.ro-selo{
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:24px;padding:3px 10px;border-radius:var(--ro-raio-pilula);
+  font-size:.75rem;font-weight:var(--ro-peso-semi);line-height:1.2;white-space:nowrap;
+  color:var(--ro-texto);background:var(--ro-superficie-sutil);border:1px solid var(--ro-borda-suave);
+}
+.ro-selo::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ro-selo--sucesso{color:var(--ro-sucesso-texto);background:var(--ro-sucesso-fundo);border-color:color-mix(in srgb,var(--ro-sucesso) 35%,transparent)}
+.ro-selo--perigo{color:var(--ro-perigo-texto);background:var(--ro-perigo-fundo);border-color:color-mix(in srgb,var(--ro-perigo) 35%,transparent)}
+.ro-selo--aviso{color:var(--ro-aviso-texto);background:var(--ro-aviso-fundo);border-color:color-mix(in srgb,var(--ro-aviso) 35%,transparent)}
+.ro-selo--info{color:var(--ro-info-texto);background:var(--ro-info-fundo);border-color:color-mix(in srgb,var(--ro-info) 35%,transparent)}
+.ro-selo--ouro{color:var(--ro-primaria-texto);background:var(--ro-primaria-veu);border-color:color-mix(in srgb,var(--ro-primaria) 45%,transparent)}
+
+/* ---- Aviso em bloco ---------------------------------------------------------- */
+.ro-aviso{
+  display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;
+  padding:14px 16px;border-radius:var(--ro-raio-md);
+  border:1px solid var(--ro-borda-suave);border-left-width:3px;
+  background:var(--ro-superficie-sutil);color:var(--ro-texto);font-size:.9375rem;line-height:1.5;
+}
+.ro-aviso__icone{width:20px;height:20px;margin-top:1px;color:var(--ro-aviso-cor,var(--ro-primaria-texto))}
+.ro-aviso__titulo{font-weight:var(--ro-peso-semi);color:var(--ro-texto-forte)}
+.ro-aviso > :not(.ro-aviso__icone){grid-column:2}
+.ro-aviso--sucesso{--ro-aviso-cor:var(--ro-sucesso-texto);border-left-color:var(--ro-sucesso);background:var(--ro-sucesso-fundo)}
+.ro-aviso--perigo{--ro-aviso-cor:var(--ro-perigo-texto);border-left-color:var(--ro-perigo);background:var(--ro-perigo-fundo)}
+.ro-aviso--aviso{--ro-aviso-cor:var(--ro-aviso-texto);border-left-color:var(--ro-aviso);background:var(--ro-aviso-fundo)}
+.ro-aviso--info{--ro-aviso-cor:var(--ro-info-texto);border-left-color:var(--ro-info);background:var(--ro-info-fundo)}
+
+/* ---- Tabela de dados ----------------------------------------------------------
+   Cabeçalho discreto em caixa pequena, linhas arejadas, número à direita.
+   Envolver em .table-scroll (base.css) quando puder passar da largura. */
+.ro-tabela{width:100%;border-collapse:separate;border-spacing:0;font-size:.9375rem}
+.ro-tabela th{
+  text-align:left;font-size:.75rem;font-weight:var(--ro-peso-semi);letter-spacing:.04em;
+  color:var(--ro-texto-suave);padding:10px 14px;border-bottom:1px solid var(--ro-borda);white-space:nowrap;
+}
+.ro-tabela td{padding:12px 14px;border-bottom:1px solid var(--ro-borda-suave);vertical-align:middle}
+.ro-tabela tbody tr{transition:background-color var(--ro-dur-rapida) ease}
+.ro-tabela tbody tr:hover{background:var(--ro-superficie-sutil)}
+.ro-tabela :is(th,td).num{text-align:right;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap}
+.ro-tabela tbody tr:last-child td{border-bottom:0}
+
+/* ---- Abas / segmento ----------------------------------------------------------
+   Cada aba é um link ou botão com aria-current="page" ou aria-selected="true":
+   o estado vem do atributo que o leitor de tela já anuncia. */
+.ro-abas{
+  display:inline-flex;gap:4px;padding:4px;border-radius:var(--ro-raio-md);
+  background:var(--ro-superficie-sutil);border:1px solid var(--ro-borda-suave);
+  max-width:100%;overflow-x:auto;scrollbar-width:none;
+}
+.ro-abas > :is(a,button){
+  display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;border-radius:var(--ro-raio-sm);
+  font:inherit;font-size:.875rem;font-weight:var(--ro-peso-medio);color:var(--ro-texto-suave);
+  background:transparent;border:0;cursor:pointer;text-decoration:none;white-space:nowrap;
+  transition:background-color var(--ro-dur-rapida) ease,color var(--ro-dur-rapida) ease;
+}
+.ro-abas > :is(a,button):hover{color:var(--ro-texto-forte)}
+.ro-abas > :is([aria-current="page"],[aria-selected="true"]){
+  background:var(--ro-cartao-base);color:var(--ro-texto-forte);box-shadow:var(--ro-sombra-1);
+  outline:1px solid var(--ro-borda-suave);
+}
+
+/* ---- Passos numerados (como funciona, tutorial) -------------------------------
+   O número vem num disco dourado, o mesmo desenho da moeda. */
+.ro-passos{list-style:none;counter-reset:ro-passo;display:grid;gap:var(--ro-esp-5)}
+.ro-passos > li{counter-increment:ro-passo;display:grid;grid-template-columns:44px 1fr;gap:4px 16px;align-items:start}
+.ro-passos > li::before{
+  content:counter(ro-passo);grid-row:span 2;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;
+  font-family:var(--ro-fonte-display);font-weight:var(--ro-peso-semi);font-size:1.125rem;color:var(--ro-sobre-primaria);
+  background:radial-gradient(circle at 35% 30%,var(--ro-ouro-200),var(--ro-ouro-500) 60%,var(--ro-ouro-700));
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ro-ouro-700) 60%,transparent),0 2px 6px rgb(0 0 0 / .2);
+}
+
+/* ---- Estado vazio ilustrado ---------------------------------------------------- */
+.ro-vazio{display:grid;justify-items:center;text-align:center;gap:10px;padding:clamp(28px,2vw + 1rem,48px) 20px}
+.ro-vazio__arte{width:min(160px,40vw);height:auto;opacity:.95}
+.ro-vazio__titulo{font-family:var(--ro-fonte-display);font-size:1.25rem;font-weight:var(--ro-peso-semi);color:var(--ro-texto-forte)}
+.ro-vazio__texto{color:var(--ro-texto-suave);max-width:44ch}
+
+/* ---- Esqueleto de carregamento --------------------------------------------------
+   Brilho que corre, como luz sobre metal. Parado com movimento reduzido. */
+.ro-esqueleto{
+  display:block;border-radius:var(--ro-raio-sm);min-height:1em;
+  background:linear-gradient(100deg,var(--ro-superficie-sutil) 30%,color-mix(in srgb,var(--ro-ouro-500) 10%,transparent) 50%,var(--ro-superficie-sutil) 70%) 0 0/300% 100%;
+  animation:ro-brilho 1.6s linear infinite;
+}
+@keyframes ro-brilho{from{background-position:100% 0}to{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){
+  .ro-esqueleto{animation:none}
+}
+
+/* ---- Chip (filtro, rótulo de tipo de moeda) --------------------------------------- */
+.ro-chip{
+  display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:4px 12px;border-radius:var(--ro-raio-pilula);
+  font-size:.8125rem;font-weight:var(--ro-peso-medio);color:var(--ro-texto);
+  background:transparent;border:1px solid var(--ro-borda-suave);cursor:pointer;text-decoration:none;
+}
+.ro-chip:is([aria-pressed="true"],[aria-current="true"]){background:var(--ro-primaria-veu);border-color:var(--ro-primaria);color:var(--ro-primaria-texto)}
+
+/* ---- Revelação ao rolar --------------------------------------------------------
+   Só onde há suporte a animation-timeline; sem ele (ou com movimento reduzido),
+   o conteúdo aparece direto — nada fica escondido à espera de JavaScript. */
+@supports (animation-timeline:view()){
+  @media (prefers-reduced-motion:no-preference){
+    .ro-revela{animation:ro-assenta linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
+  }
+}

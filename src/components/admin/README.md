@@ -10,12 +10,15 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
 | `navegacao.tsx` | **A navegação inteira, declarada uma vez**, com a permissão de cada item — inclusive os de C2 e C3. Título da topbar e atalhos do painel inicial saem daqui | não (dados) |
 | `AdminProvider.tsx` | Contexto do painel: `membro`, `pode(chave)` e `run(acao)` (toast + `router.refresh()`) | sim |
 | `AdminSidebar.tsx` | Menu lateral filtrado por permissão, com as classes do casco do app (gaveta mobile de graça) | sim |
-| `AdminTopbar.tsx` | Título pela rota, nome e papel do membro, tema, voltar ao app, sair | sim |
+| `AdminTopbar.tsx` | Título pela rota (migalha nas fichas), busca, e o menu da conta com papel, tema, voltar ao app e sair | sim |
+| `BuscaDoPainel.tsx` | "Buscar ou ir para…" (Ctrl+K e `/`): áreas do papel e listas já filtradas por `?busca=`. Só navega | sim |
+| `ConfirmarAcao.tsx` | Confirmação em dois passos no próprio lugar, com o objeto no botão ("Confirmar: pagar o saque de R$ X a Fulano"). Substitui `window.confirm` | sim |
 | `Blocos.tsx` | `Cartao`, `SemPermissao`, `AreaEmConstrucao`, `Indisponivel`, `AvisoSemBanco` | não |
+| `Pecas.tsx` | **As peças de composição (rodada 2):** `Secao` (h2 + contexto + ações), `Indicador` (número que vira link), `Selo`, `Abas` (por URL, com contagem), `Vazio`. Tela nova monta com elas | não |
 | `SeletorPeriodo.tsx` | Ano, mês ou trimestre — navega trocando `?ano=&mes=&trimestre=` | sim |
 | `BotaoAcao.tsx` | Botão que dispara uma Server Action pelo `run()`; deixa as páginas serem Server Components | sim |
 | `formatos.ts` | `dinheiro`, `dataHora` e `horaOuData` (sempre no fuso de Brasília), `percentual`, `duracao`, `numero` | não |
-| `resultados/` | Financeiro, Contábil, Indicadores e Uso. Ver [README](resultados/README.md) | misto |
+| `resultados/` | Financeiro, Contábil, Indicadores e Uso, a faixa `SubnavGestao` entre elas e o `GraficoMensal` (colunas de uma série, sem JS). Ver [README](resultados/README.md) | misto |
 | `equipe/` | Membros e papéis. Ver [README](equipe/README.md) | sim |
 | `inicio/` | Painel inicial por variante do papel. Ver [README](inicio/README.md) | não |
 | `cs/` | **C2.** A caixa de conversas do WhatsApp em três colunas, com polling de 5 s. Ver [README](cs/README.md) | sim |
@@ -38,10 +41,17 @@ Tudo que o painel `/admin` desenha. As páginas estão em `src/app/(admin)/`; o 
    página inteira a cada mensagem.
 4. **Data e hora sempre por `formatos.ts`**, com fuso explícito — senão o HTML do servidor (UTC)
    diverge do navegador.
-5. **CSS em `src/styles/admin.css`, classes `.adm-*`, sem media query** — a gaveta e o layout de
-   celular vêm das classes do casco (`.sidebar`, `.main`, `.nav-item`), que `responsive.css` já ajusta.
+5. **CSS em `src/styles/admin.css`, classes `.adm-*`** — a gaveta e o layout de celular vêm das classes do casco
+   (`.sidebar`, `.main`, `.nav-item`), que `responsive.css` já ajusta. Desde 25/10/2026 o fim do arquivo tem um bloco
+   "Celular e tablet" com media query própria (o `responsive.css` é de outra frente); como `admin.css` é importado
+   antes dele, toda regra ali leva `.adm-*` a mais no seletor para ganhar na especificidade.
 6. **Alvo de toque de 44 px** em todo botão, campo e item de menu.
 7. **Elementos que valem contar no registro de uso ganham `data-uso="area:gesto"`.**
+8. **Ação sensível confirma com o objeto no nome** (`ConfirmarAcao`), nunca com `window.confirm`; tabela nova entra em
+   `.table-scroll > table.audit-table` com `<caption className="adm-sr">` e `th scope="col"` — a 1ª coluna fica fixa
+   sozinha pelo `admin.css`.
+9. **Uma peça por papel** (`Pecas.tsx`) e a régua de `docs/polimento/admin/BRIEF_DE_DESIGN.md`: seção com h2, número
+   que pede ação é link, duas zonas (`.adm-zonas`) a partir de 1280 px, tabela de 7+ colunas na largura toda.
 
 ## Conexões
 

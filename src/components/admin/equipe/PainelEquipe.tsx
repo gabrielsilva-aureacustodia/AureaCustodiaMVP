@@ -20,6 +20,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { Aviso } from '@/components/ui/Aviso'
 import { MODULOS, PERMISSOES, SLUG_DEV, VARIANTES, type VariantePainel } from '@/domain/admin/permissoes'
 import type { VisaoEquipe } from '@/server/admin/rbac'
 import {
@@ -32,6 +33,8 @@ import {
 import { reenviarConviteDeEquipeNoPainel } from '@/server/actions/admin/emails'
 
 import { useAdmin } from '../AdminProvider'
+import { ConfirmarAcao } from '../ConfirmarAcao'
+import { Abas } from '../Pecas'
 import { dataHora, numero } from '../formatos'
 
 const ROTULO_VARIANTE: Record<VariantePainel, string> = {
@@ -40,20 +43,37 @@ const ROTULO_VARIANTE: Record<VariantePainel, string> = {
   operacional: 'Operacional — execução do dia',
 }
 
-export function PainelEquipe({ equipe, semBanco, convites = {} }: { equipe: VisaoEquipe; semBanco: boolean; convites?: Record<string, number> }): ReactNode {
+export function PainelEquipe({
+  equipe,
+  semBanco,
+  convites = {},
+  aba = 'membros',
+}: {
+  equipe: VisaoEquipe
+  semBanco: boolean
+  convites?: Record<string, number>
+  /** Rodada 2 (25/10/2026): membros e papéis em abas (`?aba=`), em vez de uma página só de rolar. */
+  aba?: 'membros' | 'papeis'
+}): ReactNode {
   const { pode } = useAdmin()
   return (
     <>
       {semBanco ? (
-        <div className="note adm-secao">
-          <span>
-            Este ambiente está sem <code>POSTGRES_URL</code>: não há tabela de membros nem de papéis. Entra no painel, como
-            dev, quem está na lista do ambiente — abaixo.
-          </span>
+        <div className="adm-secao">
+          <Aviso tom="info" titulo="Ambiente sem banco de dados">
+            <p>Este ambiente está sem <code>POSTGRES_URL</code>: não há tabela de membros nem de papéis. Entra no painel, como dev, quem está na lista do ambiente — abaixo.</p>
+          </Aviso>
         </div>
       ) : null}
-      <Membros equipe={equipe} podeEditar={pode('admin.membros') && !semBanco} convites={convites} />
-      <Papeis equipe={equipe} podeEditar={pode('admin.papeis') && !semBanco} />
+      <Abas
+        rotulo="Equipe e papéis"
+        itens={[
+          { href: '/admin/equipe?aba=membros', rotulo: 'Membros do painel', atual: aba === 'membros', contagem: equipe.membros.length },
+          { href: '/admin/equipe?aba=papeis', rotulo: 'Papéis e permissões', atual: aba === 'papeis', contagem: equipe.papeis.length },
+        ]}
+      />
+      {aba === 'membros' ? <Membros equipe={equipe} podeEditar={pode('admin.membros') && !semBanco} convites={convites} /> : null}
+      {aba === 'papeis' ? <Papeis equipe={equipe} podeEditar={pode('admin.papeis') && !semBanco} /> : null}
     </>
   )
 }
@@ -93,7 +113,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
 
   return (
     <div className="panel adm-secao">
-      <h3>Membros do painel</h3>
+      <h2>Membros do painel</h2>
       <p className="adm-fraco adm-secao">
         Quem está aqui entra em <code>/admin</code> com o mesmo login do app, sem segunda senha. O papel decide o que cada um
         vê e faz. Desativar vale na tela seguinte da pessoa.
@@ -109,11 +129,11 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
         >
           <div className="field adm-campo-largo">
             <label htmlFor="membro-email">E-mail</label>
-            <input id="membro-email" type="email" className="tinput" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@aureacustodia.com.br" required />
+            <input id="membro-email" type="email" className="tinput" autoComplete="off" spellCheck={false} autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@aureacustodia.com.br" required />
           </div>
           <div className="field">
             <label htmlFor="membro-nome">Nome</label>
-            <input id="membro-nome" className="tinput" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
+            <input id="membro-nome" className="tinput" autoComplete="off" autoCapitalize="words" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="field">
             <label htmlFor="membro-papel">Papel</label>
@@ -134,12 +154,13 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
       {equipe.membros.length ? (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Membros do painel: papel, situação e cadastro</caption>
             <thead>
               <tr>
-                <th>Membro</th>
-                <th>Papel</th>
-                <th>Situação</th>
-                <th>Cadastro</th>
+                <th scope="col">Membro</th>
+                <th scope="col">Papel</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Cadastro</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +168,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                 <tr key={m.email} style={m.status === 'inativo' ? { opacity: 0.65 } : undefined}>
                   <td>
                     <b>{m.nomeExibicao || m.email}</b>
-                    {m.email === membro.email ? <span className="pill n" style={{ marginLeft: 6 }}>você</span> : null}
+                    {m.email === membro.email ? <span className="pill n adm-pill-ao-lado">você</span> : null}
                     <div className="adm-fraco">{m.email}</div>
                   </td>
                   <td>
@@ -173,14 +194,19 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                   <td>
                     <span className="adm-acoes">
                       <span className={m.status === 'ativo' ? 'pill g' : 'pill n'}>{m.status}</span>
-                      {podeEditar ? (
-                        <button
-                          type="button"
-                          className="btn btn-outline adm-btn-compacto"
-                          disabled={ocupado}
-                          onClick={() => void alterar(m.email, { status: m.status === 'ativo' ? 'inativo' : 'ativo' })}
-                        >
-                          {m.status === 'ativo' ? 'Desativar' : 'Reativar'}
+                      {podeEditar && m.status === 'ativo' ? (
+                        <ConfirmarAcao
+                          rotulo="Desativar"
+                          objeto={`tirar o acesso de ${m.email} ao painel`}
+                          detalhe="Vale na próxima tela que a pessoa abrir. Reativar devolve o mesmo papel."
+                          aoConfirmar={() => alterar(m.email, { status: 'inativo' })}
+                          perigo
+                          desabilitado={ocupado}
+                        />
+                      ) : null}
+                      {podeEditar && m.status !== 'ativo' ? (
+                        <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => void alterar(m.email, { status: 'ativo' })}>
+                          Reativar<span className="adm-sr"> {m.email}</span>
                         </button>
                       ) : null}
                       {podeEditar && m.status === 'ativo' ? (
@@ -191,7 +217,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                           data-uso="equipe:reenviar-convite"
                           onClick={() => void reenviar(m.email)}
                         >
-                          Reenviar
+                          Reenviar aviso<span className="adm-sr"> para {m.email}</span>
                         </button>
                       ) : null}
                     </span>
@@ -212,17 +238,18 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
 
       {soAmbiente.length ? (
         <>
-          <h4 className="adm-subtitulo">Entram pela lista do ambiente, como dev</h4>
+          <h3 className="adm-subtitulo">Entram pela lista do ambiente, como dev</h3>
           <p className="adm-fraco adm-secao">
             São os e-mails de <code>AUREA_ADMIN_EMAILS</code> — ou, sem a variável, as contas de demonstração. Definir um papel
             para um deles cadastra a pessoa na tabela, e a partir daí vale o papel escolhido.
           </p>
           <div className="table-scroll">
             <table className="audit-table">
+              <caption className="adm-sr">Contas que entram pela lista do ambiente, como desenvolvimento</caption>
               <thead>
                 <tr>
-                  <th>E-mail</th>
-                  <th>Papel</th>
+                  <th scope="col">E-mail</th>
+                  <th scope="col">Papel</th>
                 </tr>
               </thead>
               <tbody>
@@ -308,7 +335,7 @@ function MatrizDePermissoes({
 function Papeis({ equipe, podeEditar }: { equipe: VisaoEquipe; podeEditar: boolean }): ReactNode {
   return (
     <div className="panel adm-secao">
-      <h3>Papéis e permissões</h3>
+      <h2>Papéis e permissões</h2>
       <p className="adm-fraco adm-secao">
         O menu, as telas e as ações perguntam pela permissão, não pelo nome do papel: um papel novo com &ldquo;Ver a Central
         de Resultados&rdquo; já enxerga o Financeiro. A ordem (rank) só organiza esta lista. O papel dev tem todas as
@@ -351,15 +378,15 @@ function NovoPapel(): ReactNode {
 
   return (
     <div className="adm-cartao-papel">
-      <h4>Novo papel</h4>
+      <h3 className="adm-subtitulo">Novo papel</h3>
       <div className="adm-form">
         <div className="field">
           <label htmlFor="papel-nome">Nome</label>
-          <input id="papel-nome" className="tinput" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder="Contador" />
+          <input id="papel-nome" className="tinput" autoComplete="off" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} placeholder="Contador" />
         </div>
         <div className="field">
           <label htmlFor="papel-slug">Identificador</label>
-          <input id="papel-slug" className="tinput" value={slug} maxLength={40} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="contador" />
+          <input id="papel-slug" className="tinput" autoComplete="off" spellCheck={false} autoCapitalize="none" value={slug} maxLength={40} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="contador" />
         </div>
         <div className="field">
           <label htmlFor="papel-rank">Ordem (rank)</label>
@@ -381,7 +408,7 @@ function NovoPapel(): ReactNode {
         <button type="button" className="btn btn-gold adm-btn-compacto" disabled={ocupado} onClick={() => void criar()} data-uso="equipe:criar-papel">
           Criar
         </button>
-        <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => setAberto(false)}>
+        <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={() => setAberto(false)}>
           Cancelar
         </button>
       </div>
@@ -422,19 +449,19 @@ function CartaoPapel({ papel, podeEditar }: { papel: VisaoEquipe['papeis'][numbe
 
   return (
     <div className="adm-cartao-papel">
-      <h4>
+      <h3>
         {papel.nome}
         <span className="pill n">{papel.slug}</span>
         {papel.sistema ? <span className="pill y">de sistema</span> : null}
         <span className="adm-fraco">
           rank {papel.rank} · {numero(papel.membros)} membro(s) · {numero(papel.permissoes.length)} permissão(ões)
         </span>
-      </h4>
+      </h3>
       {podeEditar ? (
         <div className="adm-form">
           <div className="field">
             <label htmlFor={`nome-${papel.slug}`}>Nome</label>
-            <input id={`nome-${papel.slug}`} className="tinput" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
+            <input id={`nome-${papel.slug}`} className="tinput" autoComplete="off" value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="field">
             <label htmlFor={`rank-${papel.slug}`}>Ordem (rank)</label>
@@ -459,12 +486,19 @@ function CartaoPapel({ papel, podeEditar }: { papel: VisaoEquipe['papeis'][numbe
       {podeEditar ? (
         <div className="adm-acoes">
           <button type="button" className="btn btn-gold adm-btn-compacto" disabled={!mudou || ocupado} onClick={() => void salvar()} data-uso="equipe:salvar-papel">
-            Salvar alterações
+            Salvar o papel {papel.nome}
           </button>
+          {!mudou ? <span className="adm-fraco">Mude um campo ou uma permissão para salvar.</span> : null}
           {!papel.sistema ? (
-            <button type="button" className="btn btn-outline adm-btn-compacto" disabled={ocupado} onClick={() => void excluir()} data-uso="equipe:excluir-papel">
-              Excluir papel
-            </button>
+            <ConfirmarAcao
+              rotulo="Excluir papel"
+              objeto={`excluir o papel ${papel.nome}`}
+              detalhe={`${numero(papel.membros)} membro(s) usam este papel hoje. O servidor recusa se ainda houver alguém nele.`}
+              aoConfirmar={excluir}
+              perigo
+              desabilitado={ocupado}
+              usoNome="equipe:excluir-papel"
+            />
           ) : null}
         </div>
       ) : null}

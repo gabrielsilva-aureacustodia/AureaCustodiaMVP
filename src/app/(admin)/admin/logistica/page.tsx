@@ -16,10 +16,11 @@
 
 import type { ReactNode } from 'react'
 
-import { Cartao, SemPermissao } from '@/components/admin/Blocos'
+import { SemPermissao } from '@/components/admin/Blocos'
 import { numero } from '@/components/admin/formatos'
 import type { EtiquetaDaRetirada } from '@/components/admin/logistica/ExpedicaoDaRetirada'
 import { PainelLogistica } from '@/components/admin/logistica/PainelLogistica'
+import { Indicador } from '@/components/admin/Pecas'
 import { lerFiltroLogistica } from '@/domain/admin/logistica'
 import type { ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
@@ -45,11 +46,23 @@ export default async function LogisticaPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <div className="adm-grade">
-        <Cartao rotulo="Envios em andamento" valor={numero(c.enviosAbertos)} />
-        <Cartao rotulo="Envios com prazo estourado" valor={numero(c.enviosAtrasados)} tom={c.enviosAtrasados > 0 ? 'alerta' : 'normal'} detalhe={`validação em ${operacional.prazos.validacaoDiasUteis} dia(s) útil(eis) · trânsito em ${operacional.prazos.transitoEnvioDias} dias`} />
-        <Cartao rotulo="Retiradas em andamento" valor={numero(c.retiradasAbertas)} />
-        <Cartao rotulo="Retiradas fora do prazo de postagem" valor={numero(c.retiradasAtrasadas)} tom={c.retiradasAtrasadas > 0 ? 'alerta' : 'normal'} />
+      {/* Indicadores que levam à lista que explicam (rodada 2): o prazo estourado abre já filtrado. */}
+      <div className="adm-inds">
+        <Indicador rotulo="Envios em andamento" valor={numero(c.enviosAbertos)} href="/admin/logistica?ver=envios" />
+        <Indicador
+          rotulo="Envios com prazo estourado"
+          valor={numero(c.enviosAtrasados)}
+          tom={c.enviosAtrasados > 0 ? 'alerta' : 'ok'}
+          detalhe={`validação em ${operacional.prazos.validacaoDiasUteis} dia(s) útil(eis) · trânsito em ${operacional.prazos.transitoEnvioDias} dias`}
+          href={c.enviosAtrasados > 0 ? '/admin/logistica?ver=envios&situacao=atrasados' : undefined}
+        />
+        <Indicador rotulo="Retiradas em andamento" valor={numero(c.retiradasAbertas)} href="/admin/logistica?ver=retiradas" />
+        <Indicador
+          rotulo="Retiradas fora do prazo de postagem"
+          valor={numero(c.retiradasAtrasadas)}
+          tom={c.retiradasAtrasadas > 0 ? 'alerta' : 'ok'}
+          href={c.retiradasAtrasadas > 0 ? '/admin/logistica?ver=retiradas&situacao=atrasados' : undefined}
+        />
       </div>
       <PainelLogistica
         dados={dados}

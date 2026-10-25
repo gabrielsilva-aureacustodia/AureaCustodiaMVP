@@ -42,17 +42,19 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
 
   if (!res.ok || !res.data) {
     return (
-      <main className="legal-page" style={{ padding: '40px 20px', textAlign: 'center' }}>
-        <div className="panel" style={{ maxWidth: 500, margin: '40px auto' }}>
+      // <div>, não <main>: a página já está dentro do <main> do casco (layout de (app)), e dois
+      // marcos principais confundem quem navega por leitor de tela (25/10/2026).
+      <div className="aceite-pagina">
+        <div className="panel vazio aceite-nao-achado">
           <h3>Comprovante não localizado</h3>
-          <p style={{ color: 'var(--text-muted)', margin: '14px 0' }}>
+          <p>
             {res.error || 'O registro de aceite solicitado não existe ou não pertence à sua conta.'}
           </p>
           <Link href="/conta/configuracoes" className="btn btn-gold">
             ‹ Voltar para configurações
           </Link>
         </div>
-      </main>
+      </div>
     )
   }
 
@@ -66,29 +68,26 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
   })
 
   return (
-    <main className="legal-page" style={{ padding: '24px 16px' }}>
-      <div style={{ maxWidth: 800, margin: '0 auto 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href="/conta/configuracoes" className="back-link" style={{ margin: 0 }}>
+    <div className="aceite-pagina">
+      <div className="aceite-barra">
+        <Link href="/conta/configuracoes" className="back-link">
           ‹ Voltar para configurações
         </Link>
         <PrintButton />
       </div>
 
       <article className="legal-proof-sheet">
-        <header style={{ borderBottom: '2px solid #222', paddingBottom: 16, marginBottom: 24 }}>
-          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#666', margin: '0 0 4px' }}>
-            Registro de Manifestação de Vontade e Aceite Formal
-          </p>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#111' }}>
-            Comprovante de Aceite de Documento Legal #{a.id}
-          </h1>
-          <p style={{ fontSize: 13, color: '#555', margin: '6px 0 0' }}>
+        {/* Título do documento é h2: o h1 da página é o da topbar. */}
+        <header className="aceite-cab">
+          <p className="aceite-sobre">Registro de Manifestação de Vontade e Aceite Formal</p>
+          <h2 className="aceite-titulo">Comprovante de Aceite de Documento Legal #{a.id}</h2>
+          <p className="aceite-emissor">
             ÁUREA CUSTÓDIA LTDA · CNPJ 68.071.452/0001-06 · Sistema de Custódia e Marketplace
           </p>
         </header>
 
         <section>
-          <h2>1. Identificação do Documento</h2>
+          <h3>1. Identificação do Documento</h3>
           <div className="legal-proof-grid">
             <span className="legal-proof-label">Documento:</span>
             <span className="legal-proof-val">
@@ -104,14 +103,14 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
         </section>
 
         <section>
-          <h2>2. Dados da Manifestação e Autoria</h2>
+          <h3>2. Dados da Manifestação e Autoria</h3>
           <div className="legal-proof-grid">
             <span className="legal-proof-label">Titular / E-mail:</span>
             <span className="legal-proof-val">{a.userEmail}</span>
 
             <span className="legal-proof-label">Data e Hora:</span>
             <span className="legal-proof-val">
-              {dataFormatada} <small style={{ color: '#666' }}>({new Date(a.createdAt).toISOString()})</small>
+              {dataFormatada} <small className="aceite-iso">({new Date(a.createdAt).toISOString()})</small>
             </span>
 
             <span className="legal-proof-label">Canal de Aceite:</span>
@@ -123,7 +122,7 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
             {a.nomeDigitado && (
               <>
                 <span className="legal-proof-label">Nome Digitado (Assinatura):</span>
-                <span className="legal-proof-val" style={{ fontWeight: 700, color: '#000' }}>
+                <span className="legal-proof-val forte">
                   {a.nomeDigitado}
                 </span>
               </>
@@ -133,15 +132,15 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
             <span className="legal-proof-val code">{a.ip || 'Não capturado'}</span>
 
             <span className="legal-proof-label">Dispositivo / Agente:</span>
-            <span className="legal-proof-val" style={{ fontSize: 12, color: '#444' }}>
+            <span className="legal-proof-val menor">
               {a.userAgent || 'Não informado'}
             </span>
           </div>
         </section>
 
         <section>
-          <h2>3. Prova Matemática e Encadeamento Criptográfico</h2>
-          <p style={{ fontSize: 13, color: '#555', margin: '0 0 12px' }}>
+          <h3>3. Prova Matemática e Encadeamento Criptográfico</h3>
+          <p className="aceite-explica">
             Cada registro de aceite no Real Olímpico é vinculado matematicamente ao elo histórico
             anterior da tabela através do algoritmo SHA-256 (Lei 14.063/2020 e Código de Processo Civil, art. 411, II).
           </p>
@@ -150,24 +149,24 @@ export default async function ComprovanteAceitePage({ params }: PageProps): Prom
             <span className="legal-proof-val code">{a.hashAnterior}</span>
 
             <span className="legal-proof-label">Hash do Registro (Elo N):</span>
-            <span className="legal-proof-val code" style={{ fontWeight: 700 }}>
+            <span className="legal-proof-val code forte">
               {a.hash}
             </span>
           </div>
         </section>
 
         <section>
-          <h2>4. Texto Exibido no Momento do Consentimento</h2>
+          <h3>4. Texto Exibido no Momento do Consentimento</h3>
           <blockquote className="legal-proof-text">
             &ldquo;{a.textoExibido}&rdquo;
           </blockquote>
         </section>
 
-        <footer style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #ddd', fontSize: 11, color: '#777', textAlign: 'center' }}>
+        <footer className="aceite-rodape">
           Este documento constitui meio de prova eletrônica de declaração de vontade e aceitação de termos,
           gerado a partir dos registros auditáveis mantidos de forma imutável nos servidores do Real Olímpico.
         </footer>
       </article>
-    </main>
+    </div>
   )
 }

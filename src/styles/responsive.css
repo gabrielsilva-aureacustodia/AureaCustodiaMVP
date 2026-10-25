@@ -72,7 +72,7 @@
 
   /* MINHAS MOEDAS — pilha 1 (arte) + pilha 2 (3 linhas) */
   .acct-row{align-items:center;gap:12px;padding:12px}
-  .acct-row .pill{margin-left:0}   /* no mobile quem alinha é o space-between da linha 3 */
+  .acct-row .ro-selo{margin-left:0}   /* no mobile quem alinha é o space-between da linha 3 */
   .acct-row .coin-svg{width:89px;height:89px;flex-shrink:0;align-self:center}
   .acct-row .a-info{flex:1;min-width:0;flex-direction:column;align-items:stretch;gap:6px}
   .acct-row .a-name{width:100%;white-space:normal;line-height:1.25}
@@ -87,6 +87,86 @@
      divergir depois. O flex-shrink continua porque é ele que impede o botão de
      ser espremido pela pill ao lado. */
   .acct-row .a-actions .btn{flex-shrink:0}
+}
+
+/* ============ CASCO DO CLIENTE (.app-cliente) — 25/10/2026 ============
+   A área do cliente tem a sua própria fronteira da gaveta: 1024px (o `lg` do doc 35 §5),
+   e não os 1080px do monolito, que continuam valendo para o /admin nas regras acima.
+   Entre 1024 e 1080 a regra geral já virou gaveta; aqui ela volta a ser coluna fixa só
+   para o cliente (.app-cliente .sidebar vence .sidebar por especificidade). */
+@media(min-width:1024px){
+  .app.active.app-cliente{display:flex}
+  .app-cliente .sidebar{position:sticky;top:0;height:100vh;transform:none;width:248px;max-width:none;z-index:auto;transition:none}
+  .app-cliente .menu-btn{display:none}
+  .app-cliente .main{padding:28px 36px}
+}
+@media(max-width:1023px){
+  .app-cliente .sidebar{position:fixed;top:0;left:0;bottom:0;height:auto;z-index:70;width:280px;max-width:84vw;transform:translateX(-100%);transition:transform .25s ease}
+  .app-cliente .sidebar.open{transform:translateX(0)}
+  .app-cliente .menu-btn{display:inline-flex}
+  .app.active.app-cliente{display:block}
+  /* Cabeçalho fixo no topo ao rolar: o menu e o saldo ficam a um toque em telas longas. O
+     contêiner vira display:contents para a .topbar grudar em relação ao <main> inteiro (o sticky
+     do filho ficaria preso à altura do pai), e a faixa de termos, quando existe, rola junto da página. */
+  .app-cliente .topbar-container{display:contents}
+  .app-cliente .topbar{
+    position:sticky;top:0;z-index:40;background:var(--bg);
+    margin:0 -20px 18px;padding:10px 20px;border-bottom:1px solid var(--line-soft);flex-wrap:nowrap;
+  }
+  .app-cliente .page-title h1{font-size:20px}
+  .app-cliente .page-title p{display:none}
+  .app-cliente .tb-left{flex:1 1 auto}
+  .app-cliente .top-right{gap:10px;flex-shrink:0}
+  .app-cliente .avatar{width:38px;height:38px;font-size:13px}
+}
+
+/* Grades das telas do cliente que viram uma coluna antes do celular. */
+@media (max-width:1200px){
+  .inicio-secao .blocks{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .moeda-blocos{grid-template-columns:minmax(0,1fr)}
+  .inicio-topo{grid-template-columns:minmax(0,1fr)}
+  .livro{grid-template-columns:minmax(0,1fr)}
+  .explicacoes{grid-template-columns:minmax(0,1fr)}
+  .conta-topo{grid-template-columns:minmax(0,1fr)}
+  .conta-contadores{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .conta-contadores .kpi{flex-direction:column;align-items:flex-start;gap:2px}
+}
+
+@media(max-width:560px){
+  .app-cliente .topbar{margin:0 -14px 14px;padding:8px 14px}
+  .app-cliente .page-title h1{font-size:18px}
+  .app-cliente .user-chip .uname{display:none}
+  .app-cliente .user-chip .avatar{display:none}
+  .ubal-lbl{display:block;margin:0}
+  .app-cliente .user-chip .ubal{text-align:right;font-size:14px}
+  /* No celular o chip é alvo de toque; no desktop 36px basta para o mouse (tópico 35). */
+  .chip{min-height:44px}
+  .acoes{flex-direction:column;align-items:stretch}
+  .acoes > .btn{width:100%}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px}
+  .kpi .val{font-size:18px}
+  .moeda-bloco{flex-direction:column;text-align:center}
+  .inicio-secao .blocks{grid-template-columns:minmax(0,1fr)}
+  .inicio-conta-cab{align-items:stretch;flex-direction:column}
+  .inicio-cta{width:100%}
+  .inicio-numeros dd{font-size:19px}
+  /* Mercado: alvos de toque de 44px no seletor de quantidade e ações da oferta em largura cheia. */
+  .stepper button{width:44px;height:44px}
+  .mo-acoes{width:100%}
+  .mo-acoes .btn{flex:1}
+  .offer .o-comprar{width:100%}
+  .campos-dupla{grid-template-columns:minmax(0,1fr)}
+  .cotacoes-grade{grid-template-columns:minmax(0,1fr)}
+  .aviso-sem-custodia .link-btn{min-height:44px}
+  .cotacao-numeros dd{font-size:15px}
+  .jornada{gap:2px}
+  .jornada-rotulo{font-size:10.5px}
+  .passo-acoes > .btn{flex-basis:100%}
+  /* Grades das modais (endereço, CPF/telefone) viram uma coluna no celular. */
+  .u-grade-2,.u-grade-1-2,.u-grade-12-2,.u-grade-3,.u-grade-3a,.u-grade-3b,.u-grade-3c{grid-template-columns:minmax(0,1fr)}
 }
 
 /* ---- Acessibilidade: redução de movimento conforme preferência do sistema operacional ---- */

@@ -116,11 +116,11 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
   if (etapa === 'pagamento' && retiradaIdCriada) {
     return (
-      <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-        <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+      <div className="u-estreito">
+        <h3 className="serif u-modal-titulo">
           Pagamento da taxa de retirada
         </h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+        <p className="u-modal-lead">
           Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Retirada: <strong>{retiradaIdCriada}</strong>
         </p>
 
@@ -149,16 +149,15 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           }}
         />
 
-        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+        <div className="u-mt16 u-centro">
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline u-toque u-cheio"
             onClick={() => {
               toast('Solicitação de retirada registrada! Você pode pagar a taxa a qualquer momento em Minhas Retiradas.')
               close()
               onSuccess?.()
             }}
-            style={{ minHeight: '44px', width: '100%' }}
           >
             Pagar depois (manter solicitação e pagar mais tarde)
           </button>
@@ -168,79 +167,78 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   }
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-      <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+    <div className="u-estreito">
+      <h3 className="serif u-modal-titulo">
         Solicitar Retirada Física
       </h3>
-      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+      <p className="u-modal-lead">
         Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Recibo: <strong>{coin.recibo.codigo}</strong>
       </p>
 
-      {/* 1. Seleção de Modalidade (D-1) */}
+      {/* 1. Seleção de Modalidade (D-1). Botões de verdade desde 25/10/2026 (eram <div role="button">):
+          teclado e leitor de tela de graça, sem onKeyDown à mão (tópico 35, passo 1). */}
       <div className="field-lbl">1. Modalidade de envio e custódia</div>
-      <div
+      <button
+        type="button"
         className={`modalidade-card ${modalidade === 'comum' ? 'selecionada' : ''}`}
-        onClick={() => setModalidade('comum')}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setModalidade('comum')
-          }
-        }}
-        role="button"
         aria-pressed={modalidade === 'comum'}
-        tabIndex={0}
+        onClick={() => setModalidade('comum')}
       >
-        <div className="modalidade-header">
-          <span>📦 Comum (Correios com AR)</span>
+        <span className="modalidade-header">
+          <span>
+            <span aria-hidden="true">📦 </span>
+            Comum (Correios com AR)
+          </span>
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaComum)}</span>
-        </div>
-        <div className="modalidade-desc">
+        </span>
+        <span className="modalidade-desc">
           Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
-        </div>
-      </div>
+        </span>
+      </button>
 
-      <div
+      <button
+        type="button"
         className={`modalidade-card ${modalidade === 'segura' ? 'selecionada' : ''}`}
-        onClick={() => setModalidade('segura')}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setModalidade('segura')
-          }
-        }}
-        role="button"
         aria-pressed={modalidade === 'segura'}
-        tabIndex={0}
+        onClick={() => setModalidade('segura')}
       >
-        <div className="modalidade-header">
-          <span>🛡️ Segura (Transporte de valores blindado)</span>
+        <span className="modalidade-header">
+          <span>
+            <span aria-hidden="true">🛡️ </span>
+            Segura (Transporte de valores blindado)
+          </span>
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaSegura)} (em até {taxas.retiradaSeguraParcelasMax}x)</span>
-        </div>
-        <div className="modalidade-desc">
+        </span>
+        <span className="modalidade-desc">
           Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
-        </div>
-      </div>
+        </span>
+      </button>
 
       {/* 2. Endereço Completo (Trava 2) */}
-      <div className="field-lbl" style={{ marginTop: '16px' }}>
+      <div className="field-lbl u-mt16">
         2. Endereço de entrega (Trava de segurança)
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div className="u-grade-2">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Nome do Destinatário</label>
+          <label className="u-rotulo" htmlFor="ret-nome">Nome do Destinatário</label>
           <input
+            id="ret-nome"
             className="tinput"
+            autoComplete="shipping name"
+            autoCapitalize="words"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Nome completo"
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>CPF ou CNPJ</label>
+          <label className="u-rotulo" htmlFor="ret-documento">CPF ou CNPJ</label>
           <input
+            id="ret-documento"
             className="tinput"
+            spellCheck={false}
+            autoCapitalize="characters"
             value={cpfOuCnpj}
             onChange={(e) => setCpfOuCnpj(e.target.value)}
             placeholder="000.000.000-00"
@@ -248,13 +246,16 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-1-2 u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>
-            CEP {buscandoCep ? '⏳...' : ''}
+          <label className="u-rotulo" htmlFor="ret-cep">
+            CEP {buscandoCep ? '· buscando…' : ''}
           </label>
           <input
+            id="ret-cep"
             className="tinput"
+            inputMode="numeric"
+            autoComplete="shipping postal-code"
             value={cep}
             onChange={(e) => void tratarCep(e.target.value)}
             placeholder="00000-000"
@@ -262,9 +263,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Logradouro / Rua</label>
+          <label className="u-rotulo" htmlFor="ret-logradouro">Logradouro / Rua</label>
           <input
+            id="ret-logradouro"
             className="tinput"
+            autoComplete="shipping address-line1"
+            autoCapitalize="words"
             value={logradouro}
             onChange={(e) => setLogradouro(e.target.value)}
             placeholder="Rua, Avenida, Praça..."
@@ -272,10 +276,11 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-3 u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Número</label>
+          <label className="u-rotulo" htmlFor="ret-numero">Número</label>
           <input
+            id="ret-numero"
             className="tinput"
             value={numero}
             onChange={(e) => setNumero(e.target.value)}
@@ -283,18 +288,22 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Complemento</label>
+          <label className="u-rotulo" htmlFor="ret-complemento">Complemento</label>
           <input
+            id="ret-complemento"
             className="tinput"
+            autoComplete="shipping address-line2"
             value={complemento}
             onChange={(e) => setComplemento(e.target.value)}
             placeholder="Apto, Bloco (opcional)"
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Bairro</label>
+          <label className="u-rotulo" htmlFor="ret-bairro">Bairro</label>
           <input
+            id="ret-bairro"
             className="tinput"
+            autoCapitalize="words"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
             placeholder="Bairro"
@@ -302,20 +311,26 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-3b u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Cidade</label>
+          <label className="u-rotulo" htmlFor="ret-cidade">Cidade</label>
           <input
+            id="ret-cidade"
             className="tinput"
+            autoComplete="shipping address-level2"
+            autoCapitalize="words"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
             placeholder="Cidade"
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>UF</label>
+          <label className="u-rotulo" htmlFor="ret-uf">UF</label>
           <input
+            id="ret-uf"
             className="tinput"
+            autoComplete="shipping address-level1"
+            autoCapitalize="characters"
             value={uf}
             onChange={(e) => setUf(e.target.value.toUpperCase())}
             placeholder="MG"
@@ -323,9 +338,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Telefone / WhatsApp</label>
+          <label className="u-rotulo" htmlFor="ret-telefone">Telefone / WhatsApp</label>
           <input
+            id="ret-telefone"
             className="tinput"
+            type="tel"
+            autoComplete="shipping tel-national"
             value={telefone}
             onChange={(e) => setTelefone(e.target.value)}
             placeholder="(31) 99999-9999"
@@ -335,7 +353,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       {/* 3. Cláusula de Equiparação de Acervo (Bloco 10) */}
       <div
-        className={`confirm-box ${cienteEquiparacao ? 'on' : ''}`}
+        className={`confirm-box u-ciente ${cienteEquiparacao ? 'on' : ''}`}
         onClick={() => setCienteEquiparacao(!cienteEquiparacao)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -346,17 +364,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         role="checkbox"
         aria-checked={cienteEquiparacao}
         tabIndex={0}
-        style={{
-          marginTop: '16px',
-          background: 'var(--gold-wash)',
-          padding: '12px',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          minHeight: '44px',
-        }}
       >
         <div className="cb">{cienteEquiparacao ? '✓' : ''}</div>
-        <div style={{ fontSize: '12.5px', color: 'var(--text-strong)' }}>
+        <div className="u-f125 u-forte-cor">
           <strong>Cláusula de devolução de acervo equiparável:</strong> Declaro que estou ciente e
           concordo que a moeda física devolvida <em>não é necessariamente a mesma que foi depositada</em>,
           mas moeda idêntica e equiparável em mesmo padrão e estado de conservação, conforme as regras de custódia do Real Olímpico.
@@ -364,10 +374,10 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       </div>
 
       {/* 4. Resumo Financeiro */}
-      <div className="summary-box" style={{ marginTop: '14px' }}>
+      <div className="summary-box u-mt14">
         <div className="sr">
           <span className="k">Taxa da retirada ({modalidade === 'comum' ? 'Comum' : 'Segura'})</span>
-          <span className="v" style={{ color: 'var(--gold)' }}>{brl(taxaCents)}</span>
+          <span className="v u-ouro">{brl(taxaCents)}</span>
         </div>
         <div className="sr">
           <span className="k">Formas de pagamento</span>
@@ -376,7 +386,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       </div>
 
       {erro ? (
-        <div className="warn-box" style={{ marginTop: '8px' }}>
+        <div className="warn-box u-mt8">
           <svg viewBox="0 0 24 24">
             <path d="M12 3l9 16H3z" />
             <path d="M12 10v4M12 17v.5" />
@@ -385,22 +395,20 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       ) : null}
 
-      <div className="m-actions" style={{ marginTop: '18px' }}>
+      <div className="m-actions u-mt18">
         <button
-          className="btn btn-outline"
+          className="btn btn-outline u-toque"
           type="button"
           onClick={close}
           disabled={submetendo}
-          style={{ minHeight: '44px' }}
         >
           Cancelar
         </button>
         <button
-          className="btn btn-gold"
+          className="btn btn-gold u-toque"
           type="button"
           disabled={!cienteEquiparacao || submetendo}
           onClick={() => void avancarParaPagamento()}
-          style={{ minHeight: '44px' }}
         >
           {submetendo ? 'Processando...' : 'Avançar para pagamento'}
         </button>
@@ -424,11 +432,11 @@ export function ModalPagarRetirada({
   const toast = useToast()
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-      <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+    <div className="u-estreito">
+      <h3 className="serif u-modal-titulo">
         Pagar taxa de retirada
       </h3>
-      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+      <p className="u-modal-lead">
         Retirada: <strong>{retirada.id}</strong> · Moeda: <strong>{retirada.coinId}</strong> ({retirada.modalidade === 'segura' ? 'Transporte Seguro' : 'Comum'})
       </p>
 
@@ -457,12 +465,11 @@ export function ModalPagarRetirada({
         }}
       />
 
-      <div style={{ marginTop: '16px', textAlign: 'center' }}>
+      <div className="u-mt16 u-centro">
         <button
           type="button"
-          className="btn btn-outline"
+          className="btn btn-outline u-toque u-cheio"
           onClick={close}
-          style={{ minHeight: '44px', width: '100%' }}
         >
           Fechar
         </button>

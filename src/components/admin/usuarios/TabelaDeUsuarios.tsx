@@ -12,6 +12,7 @@ import { formatarCpf } from '@/domain/cadastro'
 import type { LinhaUsuario } from '@/domain/admin/usuarios'
 
 import { data, dataHora, dinheiro, numero } from '../formatos'
+import { Selo } from '../Pecas'
 
 export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsuario[]; total: number }): ReactNode {
   return (
@@ -20,19 +21,32 @@ export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsua
         {linhas.length === total ? `${numero(total)} contas.` : `${numero(linhas.length)} de ${numero(total)} contas.`}
       </p>
       {linhas.length === 0 ? (
-        <div className="empty">Nenhuma conta com este filtro.</div>
+        <div className="adm-vazio">
+          {total === 0 ? (
+            <>
+              <b>Nenhuma conta ainda.</b>
+              Uma conta aparece aqui quando alguém se cadastra no site ou a equipe cria pelo botão “Criar conta”.
+            </>
+          ) : (
+            <>
+              <b>Nenhuma conta com este filtro.</b>
+              Afrouxe a busca ou use “Limpar filtros” acima.
+            </>
+          )}
+        </div>
       ) : (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Contas de clientes: CPF, saldo, moedas e situação</caption>
             <thead>
               <tr>
-                <th>Conta</th>
-                <th>CPF</th>
-                <th className="adm-num">Saldo</th>
-                <th className="adm-num">Moedas</th>
-                <th>Situação</th>
-                <th>Criada em</th>
-                <th>Último acesso</th>
+                <th scope="col">Conta</th>
+                <th scope="col">CPF</th>
+                <th scope="col" className="adm-num">Saldo</th>
+                <th scope="col" className="adm-num">Moedas</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Criada em</th>
+                <th scope="col">Último acesso</th>
               </tr>
             </thead>
             <tbody>
@@ -49,9 +63,9 @@ export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsua
                   <td className="adm-num">{numero(l.moedas)}</td>
                   <td>
                     <span className="adm-etiquetas">
-                      <span className={l.comCadastro ? 'pill g' : 'pill n'}>{l.comCadastro ? 'Cadastro completo' : 'Sem cadastro'}</span>
-                      {l.inadimplente ? <span className="pill adm-pill-vermelho">Inadimplente</span> : null}
-                      {!l.ativa ? <span className="pill adm-pill-vermelho">Desativada</span> : null}
+                      <Selo tom={l.comCadastro ? 'ok' : 'neutro'}>{l.comCadastro ? 'Cadastro completo' : 'Sem cadastro'}</Selo>
+                      {l.inadimplente ? <Selo tom="alerta">Inadimplente</Selo> : null}
+                      {!l.ativa ? <Selo tom="alerta">Desativada</Selo> : null}
                     </span>
                   </td>
                   <td>{data(l.criadoEm)}</td>

@@ -63,16 +63,16 @@ export function ReservasEmAberto(): ReactNode {
   if (reservas.length === 0) return null
 
   return (
-    <div className="panel warn-box" style={{ marginBottom: 18 }}>
-      <h3 style={{ marginTop: 0 }}>
-        <svg viewBox="0 0 24 24">
+    <section className="panel warn-box reservas" role="region" aria-label="Compras reservadas aguardando pagamento">
+      <h3>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 3" />
         </svg>
         {reservas.length === 1 ? 'Compra reservada' : `${reservas.length} compras reservadas`}
       </h3>
 
-      <p style={{ marginTop: 0, fontSize: 13 }}>
+      <p className="reservas-intro">
         A sua oferta foi aceita e a moeda está reservada no seu nome. Pague dentro do prazo, ou ela
         volta ao mercado e a sua oferta vai para o fim da fila do mesmo preço.
       </p>
@@ -85,23 +85,12 @@ export function ReservasEmAberto(): ReactNode {
         const restante = Math.max(0, r.expiraEm - Date.now())
         const acabando = restante <= 120_000
         return (
-          <div
-            key={r.id}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 10,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 0',
-              borderTop: '1px solid var(--line-soft)',
-            }}
-          >
+          <div key={r.id} className="reserva">
             <div>
-              <div style={{ fontWeight: 600 }}>
+              <div className="reserva-t">
                 1 {r.tipoMoeda} · {brl(r.totalCents)}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <div className="reserva-d">
                 {brl(r.precoCents)} de preço + {brl(r.comissaoCompradorCents)} de comissão
                 {r.totalCents - r.precoCents - r.comissaoCompradorCents > 0
                   ? ` + ${brl(r.totalCents - r.precoCents - r.comissaoCompradorCents)} do primeiro mês de custódia`
@@ -110,12 +99,7 @@ export function ReservasEmAberto(): ReactNode {
             </div>
 
             <div
-              style={{
-                fontVariantNumeric: 'tabular-nums',
-                fontWeight: 700,
-                fontSize: 18,
-                color: acabando ? 'var(--danger, #c0392b)' : 'var(--gold)',
-              }}
+              className={acabando ? 'reserva-tempo acabando' : 'reserva-tempo'}
               aria-label={`Tempo restante: ${mmss(restante)}`}
             >
               {mmss(restante)}
@@ -123,23 +107,22 @@ export function ReservasEmAberto(): ReactNode {
 
             <button
               type="button"
-              className="btn btn-gold"
-              style={{ minHeight: 44 }}
+              className="btn btn-gold auto"
               disabled={restante <= 0}
               onClick={async () => {
                 const res = await run(() => pagarReservaComSaldo(r.id))
                 if (res.ok) await carregar()
               }}
             >
-              Pagar com saldo
+              Pagar com saldo<span className="sr-only"> a reserva de 1 {r.tipoMoeda} por {brl(r.totalCents)}</span>
             </button>
           </div>
         )
       })}
 
-      <div className="note" style={{ marginTop: 10 }}>
+      <div className="note">
         Sem saldo suficiente? Deposite em Minha Conta e volte aqui — o prazo continua correndo.
       </div>
-    </div>
+    </section>
   )
 }

@@ -12,6 +12,9 @@ import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { cancelarSolicitacaoRetirada, obterMinhasRetiradas } from '@/server/actions/custody'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { SeloDaRetirada } from '@/components/recibo/SeloDaRetirada'
+import { Esqueleto } from '@/components/ui/Esqueleto'
 
 export default function RetiradasPage(): ReactNode {
   const { session, run } = useApp()
@@ -73,53 +76,39 @@ export default function RetiradasPage(): ReactNode {
     <div className="cols-rev">
       <div className="panel">
         <h3>
-          <svg viewBox="0 0 24 24">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           Minhas retiradas físicas
         </h3>
 
         {carregando ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Carregando histórico de retiradas...
+          <div className="carregando" role="status" aria-busy="true" aria-label="Carregando histórico de retiradas...">
+            <Esqueleto altura="14px" largura="100%" />
+            <Esqueleto altura="14px" largura="82%" />
+            <Esqueleto altura="14px" largura="64%" />
           </div>
         ) : retiradas.length === 0 ? (
-          <div className="empty">
-            Você ainda não solicitou a retirada de nenhuma moeda física da custódia.
-            <br />
-            Para pedir a saída de uma moeda, acesse{' '}
-            <Link href="/recibos" style={{ color: 'var(--gold)', fontWeight: 600 }}>
-              Meus recibos
-            </Link>{' '}
-            e clique em &quot;Solicitar retirada&quot;.
-          </div>
+          <EstadoVazio
+            titulo="Você ainda não solicitou a retirada de nenhuma moeda física da custódia."
+            ilustracao="retirada"
+            acao={
+              <Link href="/recibos" className="btn btn-outline">
+                Abrir Meus recibos
+              </Link>
+            }
+          >
+            Para pedir a saída de uma moeda, acesse Meus recibos, abra o recibo da moeda e clique em
+            &quot;Solicitar retirada&quot;.
+          </EstadoVazio>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <ul className="retiradas">
             {retiradas.map((r) => (
-              <div
-                key={r.id}
-                style={{
-                  border: '1px solid var(--line-soft)',
-                  borderRadius: '11px',
-                  padding: '18px 20px',
-                  background: 'var(--card)',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: '12px',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                  }}
-                >
+              <li key={r.id} className="retirada">
+                <div className="retirada-cab">
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-strong)' }}>
-                      Retirada {r.id}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <div className="retirada-t">Retirada {r.id}</div>
+                    <div className="retirada-d">
                       Solicitada em {fdate(r.solicitadoEm)}
                       {r.status === 'solicitada' ? (
                         ' · Aguardando pagamento da taxa'
@@ -128,140 +117,79 @@ export default function RetiradasPage(): ReactNode {
                       ) : (
                         <>
                           {' · Recibo extinto: '}
-                          <Link
-                            href={`/recibos/${r.coinId}`}
-                            style={{ color: 'var(--gold)', fontWeight: 600 }}
-                          >
+                          <Link href={`/recibos/${r.coinId}`} className="link-ouro">
                             {r.reciboCodigo}
                           </Link>
                         </>
                       )}
                     </div>
                   </div>
-                  <span className={`badge-retirada badge-${r.status}`}>
-                    {r.status}
-                  </span>
+                  <SeloDaRetirada status={r.status} />
                 </div>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '12px',
-                    padding: '12px 14px',
-                    background: 'var(--bg-panel)',
-                    borderRadius: '8px',
-                    marginBottom: '12px',
-                    fontSize: '13px',
-                  }}
-                >
+                {/* A jornada da retirada em etapas (tópico 35 passo 4b): onde está e o que falta. Só
+                    desenho do status que já existe; cancelada não tem jornada. */}
+                {r.status !== 'cancelada' ? <JornadaDaRetirada status={r.status} /> : null}
+
+                <dl className="retirada-dados">
                   <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>Modalidade</div>
-                    <div style={{ fontWeight: 600 }}>
-                      {r.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios (AR)'}
-                    </div>
+                    <dt>Modalidade</dt>
+                    <dd>{r.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios (AR)'}</dd>
                   </div>
                   <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
-                      {r.status === 'solicitada' ? 'Taxa a Pagar' : 'Taxa Paga'}
-                    </div>
-                    <div style={{ fontWeight: 600 }}>{brl(r.valorTaxaCents)}</div>
+                    <dt>{r.status === 'solicitada' ? 'Taxa a Pagar' : 'Taxa Paga'}</dt>
+                    <dd>{brl(r.valorTaxaCents)}</dd>
                   </div>
                   <div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
-                      {r.status === 'solicitada' ? 'Prazo para postar (30 dias corridos)' : 'Limite para postar (30 dias corridos)'}
-                    </div>
-                    <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
+                    <dt>
                       {r.status === 'solicitada'
-                        ? 'Inicia após pagamento'
-                        : fdate(r.dataLimiteD30)}
-                    </div>
+                        ? 'Prazo para postar (30 dias corridos)'
+                        : 'Limite para postar (30 dias corridos)'}
+                    </dt>
+                    <dd className="ouro">{r.status === 'solicitada' ? 'Inicia após pagamento' : fdate(r.dataLimiteD30)}</dd>
                   </div>
                   {r.codigoRastreio ? (
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>Código de Rastreio</div>
-                      <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--green)' }}>
-                        {r.codigoRastreio}
-                      </div>
+                      <dt>Código de Rastreio</dt>
+                      <dd className="codigo verde">{r.codigoRastreio}</dd>
                       {/* Etiqueta do contrato emitida pelo painel (22/10/2026): o código já existe, mas a
                           caixa ainda não foi entregue aos Correios — quem marca "postada" é o rastreio. */}
-                      {r.status === 'separacao' ? (
-                        <div style={{ color: 'var(--text-muted)', fontSize: '11.5px' }}>
-                          Etiqueta emitida, aguardando postagem
-                        </div>
-                      ) : null}
+                      {r.status === 'separacao' ? <dd className="sub">Etiqueta emitida, aguardando postagem</dd> : null}
                     </div>
                   ) : null}
-                </div>
+                </dl>
 
-                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                <p className="retirada-destino">
                   <strong>Destinatário:</strong> {r.endereco.nome} ({r.endereco.cpfOuCnpj}) —{' '}
                   {r.endereco.logradouro}, {r.endereco.numero}
                   {r.endereco.complemento ? ` (${r.endereco.complemento})` : ''} - {r.endereco.bairro},{' '}
                   {r.endereco.cidade}/{r.endereco.uf} - CEP {r.endereco.cep}
-                </div>
+                </p>
 
-                <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="acoes">
                   {r.status === 'solicitada' ? (
                     <>
-                      <button
-                        type="button"
-                        className="btn btn-gold"
-                        onClick={() => abrirPagamento(r)}
-                        style={{
-                          padding: '6px 16px',
-                          fontSize: '13px',
-                          minHeight: '44px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        💳 Pagar taxa ({brl(r.valorTaxaCents)})
+                      <button type="button" className="btn btn-gold" onClick={() => abrirPagamento(r)}>
+                        Pagar taxa ({brl(r.valorTaxaCents)})<span className="sr-only"> da retirada {r.id}</span>
                       </button>
+                      <Link href={`/recibos/${r.coinId}`} className="btn btn-outline">
+                        Ver recibo<span className="sr-only"> {r.reciboCodigo}</span>
+                      </Link>
+                      {/* Desfazer fica por último e é o .btn-danger do Brandbook (§9.2): destrutivo, com confirmação. */}
                       <button
                         type="button"
-                        className="btn btn-outline"
+                        className="btn btn-danger"
                         disabled={cancelandoId === r.id}
                         onClick={() => void handleCancelar(r.id)}
-                        style={{
-                          padding: '6px 14px',
-                          fontSize: '13px',
-                          minHeight: '44px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          color: 'var(--red)',
-                        }}
                       >
                         {cancelandoId === r.id ? 'Cancelando...' : 'Cancelar solicitação'}
+                        <span className="sr-only"> da retirada {r.id}</span>
                       </button>
-                      <Link
-                        href={`/recibos/${r.coinId}`}
-                        className="btn btn-outline"
-                        style={{
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          minHeight: '44px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        Ver recibo
-                      </Link>
                     </>
                   ) : (
                     <>
-                      <Link
-                        href={`/recibos/${r.coinId}`}
-                        className="btn btn-outline"
-                        style={{
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          minHeight: '44px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        Ver recibo extinto
+                      <Link href={`/recibos/${r.coinId}`} className="btn btn-outline">
+                        Ver recibo extinto<span className="sr-only"> {r.reciboCodigo}</span>
                       </Link>
                       {r.status !== 'cancelada' ? (
                         <a
@@ -269,28 +197,21 @@ export default function RetiradasPage(): ReactNode {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-outline"
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            minHeight: '44px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                          }}
                         >
-                          🏷️ Imprimir etiqueta Correios
+                          Imprimir etiqueta Correios<span className="sr-only"> da retirada {r.id} (abre em nova aba)</span>
                         </a>
                       ) : null}
                     </>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
 
-      <div>
-        <div className="panel" style={{ marginBottom: '18px' }}>
+      <div className="coluna-pilha">
+        <div className="panel">
           <h3>Resumo de saídas</h3>
           <div className="summary-row">
             <span className="k">Total solicitadas</span>
@@ -308,7 +229,7 @@ export default function RetiradasPage(): ReactNode {
 
         <div className="panel">
           <div className="note">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
             Ao solicitar a retirada física, o recibo de custódia é extinto imediatamente e a moeda deixa
@@ -318,5 +239,40 @@ export default function RetiradasPage(): ReactNode {
         </div>
       </div>
     </div>
+  )
+}
+
+/** Etapas na ordem em que o status avança (o tipo StatusRetirada, sem 'cancelada'). */
+const ETAPAS: { status: Exclude<Retirada['status'], 'cancelada'>; rotulo: string }[] = [
+  { status: 'solicitada', rotulo: 'Solicitada' },
+  { status: 'paga', rotulo: 'Taxa paga' },
+  { status: 'separacao', rotulo: 'Em separação' },
+  { status: 'postada', rotulo: 'Postada' },
+  { status: 'entregue', rotulo: 'Entregue' },
+]
+
+/**
+ * A jornada da retirada como lista ordenada: cada etapa diz se já passou, se é a atual ou se
+ * falta. O "✓" e o "atual" também vão em texto para o leitor de tela — a cor não é o único sinal.
+ */
+function JornadaDaRetirada({ status }: { status: Exclude<Retirada['status'], 'cancelada'> }): ReactNode {
+  const atual = ETAPAS.findIndex((e) => e.status === status)
+  return (
+    <ol className="jornada" aria-label="Etapas da retirada">
+      {ETAPAS.map((e, i) => {
+        const estado = i < atual ? 'feita' : i === atual ? 'atual' : 'falta'
+        return (
+          <li key={e.status} className={`jornada-etapa ${estado}`} aria-current={estado === 'atual' ? 'step' : undefined}>
+            <span className="jornada-ponto" aria-hidden="true">
+              {estado === 'feita' ? '✓' : i + 1}
+            </span>
+            <span className="jornada-rotulo">
+              {e.rotulo}
+              <span className="sr-only">{estado === 'feita' ? ' (concluída)' : estado === 'atual' ? ' (etapa atual)' : ''}</span>
+            </span>
+          </li>
+        )
+      })}
+    </ol>
   )
 }

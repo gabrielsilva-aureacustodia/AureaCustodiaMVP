@@ -31,7 +31,9 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
   const saques = temPermissao(membro, 'saques.ver') ? await carregarFilaDeSaques({ historico: 5 }) : null
   return (
     <>
-      {saques ? <SecaoDeSaques dados={saques} podePagar={temPermissao(membro, 'saques.pagar')} /> : null}
+      {/* Rodada 2: a fila aparece aqui só quando há pedido esperando, na versão compacta (a fila
+          inteira, com os resolvidos, mora em /admin/saques). */}
+      {saques && saques.resumo.quantidade > 0 ? <SecaoDeSaques dados={saques} podePagar={temPermissao(membro, 'saques.pagar')} compacto /> : null}
       <Financeiro dados={dados} periodo={periodo} podeExportar={temPermissao(membro, 'resultados.exportar')} />
     </>
   )

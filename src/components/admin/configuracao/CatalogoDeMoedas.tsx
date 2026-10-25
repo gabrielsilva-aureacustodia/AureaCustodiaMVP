@@ -100,15 +100,16 @@ export function CatalogoDeMoedas({ tipos, moedasPorTipo, podeEditar, semTabela }
       {semTabela ? <p className="note">O catálogo editável precisa do banco com a migration 024. Até lá, vale o catálogo do código, mostrado abaixo sem edição.</p> : null}
       <div className="table-scroll">
         <table className="audit-table">
+          <caption className="adm-sr">Catálogo de tipos de moeda: ordem, pasta, mercado e envio</caption>
           <thead>
             <tr>
-              <th className="adm-num">Ordem</th>
-              <th>Tipo</th>
-              <th>Pasta</th>
-              <th>Mercado</th>
-              <th>Envio</th>
-              <th className="adm-num">Moedas</th>
-              <th />
+              <th scope="col" className="adm-num">Ordem</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Pasta</th>
+              <th scope="col">Mercado</th>
+              <th scope="col">Envio</th>
+              <th scope="col" className="adm-num">Moedas</th>
+              <th scope="col" />
             </tr>
           </thead>
           <tbody>

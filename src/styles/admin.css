@@ -6,55 +6,63 @@
    mobile e o layout de celular sem uma media query nova: elas vivem em
    responsive.css, que continua sendo o último import de globals.css.
 
-   Por isso ESTE ARQUIVO NÃO TEM MEDIA QUERY. O que precisa se adaptar à largura usa
-   grade com auto-fit e minmax(min(100%, X), 1fr) e linhas com flex-wrap: encolhe
-   sozinho, sem depender da ordem da cascata.
+   O que precisa se adaptar à largura usa grade com auto-fit e minmax(min(100%, X), 1fr)
+   e linhas com flex-wrap: encolhe sozinho, sem depender da ordem da cascata.
+
+   EXCEÇÃO DE 25/10/2026 (polimento do painel): o bloco "Celular e tablet" no fim tem
+   media query própria, porque responsive.css é da frente da plataforma. Este arquivo é
+   importado ANTES de responsive.css, então toda regra dali leva .adm-* a mais no seletor
+   (especificidade maior) para não perder para uma regra de mesma especificidade.
 
    Cor só pelas variáveis de tokens.css. Toda classe nova começa com .adm- para não
    colidir com as do monolito. Alvo de toque de 44px em tudo que se clica.
    ========================================================================= */
 
+/* Único token próprio do painel: o texto miúdo de apoio (contagem, hora, dica de teclado). O resto
+   vem dos papéis --ro-* da marca (src/brand/tokens.css, contrato da Frente 1). */
+:root{--adm-tipo-micro:.75rem}
+
 /* ---- Casco -------------------------------------------------------------- */
 .adm-marca{margin-bottom:18px}
-.adm-marca-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.adm-marca-tag{font-size:var(--ro-tipo-sobretitulo);letter-spacing:.1em;text-transform:uppercase;color:var(--ro-primaria-texto);font-weight:700}
 .adm-nav-grupo{margin-bottom:10px}
-.adm-nav-titulo{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:700;margin:12px 14px 6px}
+.adm-nav-titulo{font-size:var(--ro-tipo-sobretitulo);letter-spacing:.08em;text-transform:uppercase;color:var(--ro-texto-suave);font-weight:700;margin:12px 14px 6px}
 .adm-sidebar .nav-item{min-height:44px}
-.adm-papel-chip{font-size:13px}
+.adm-papel-chip{font-size:var(--ro-tipo-legenda)}
 
 /* ---- Blocos de conteúdo -------------------------------------------------- */
 .adm-secao{margin-bottom:18px}
-.adm-titulo-secao{font-size:18px;color:var(--text-strong);font-weight:600;margin:6px 0 12px}
-.adm-subtitulo{font-size:14px;color:var(--text-strong);font-weight:700;margin:16px 0 8px}
+.adm-titulo-secao{font-size:var(--ro-tipo-titulo-3);color:var(--ro-texto-forte);font-weight:600;margin:18px 0 12px;font-family:var(--ro-fonte-display)}
+.adm-subtitulo{font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto-forte);font-weight:700;margin:16px 0 8px}
 
 /* Atalho do painel inicial: um cartão inteiro clicável, com ícone e descrição. */
-.adm-atalho{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-height:44px;transition:background .18s ease,border-color .18s ease,transform .2s cubic-bezier(0.16, 1, 0.3, 1),box-shadow .2s ease}
-.adm-atalho:hover{background:var(--card-hover);border-color:var(--line);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
-.adm-atalho-titulo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-strong);font-size:15px}
-.adm-atalho-titulo svg{width:19px;height:19px;stroke:var(--gold);fill:none;stroke-width:1.6;flex-shrink:0}
+.adm-atalho{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;min-height:44px;transition:background var(--ro-dur-rapida) var(--ro-curva-padrao),border-color var(--ro-dur-rapida) var(--ro-curva-padrao),transform var(--ro-dur-rapida) var(--ro-curva-saida),box-shadow var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-atalho:hover{background:var(--ro-cartao-hover);border-color:var(--ro-borda);transform:translateY(-2px);box-shadow:var(--ro-sombra-2)}
+.adm-atalho-titulo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo)}
+.adm-atalho-titulo svg{width:19px;height:19px;stroke:var(--ro-primaria-texto);fill:none;stroke-width:1.6;flex-shrink:0}
 .adm-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px;margin-bottom:18px}
 .adm-grade-larga{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px;margin-bottom:18px}
 .adm-grade-larga > *{min-width:0}
 
-.adm-cartao{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0;transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1),border-color .2s ease,box-shadow .2s ease}
-.adm-cartao:hover{transform:translateY(-1px);border-color:var(--line);box-shadow:var(--shadow-sm)}
-.adm-cartao-rotulo{font-size:12.5px;color:var(--text-muted);font-weight:600}
-.adm-cartao-valor{font-size:21px;color:var(--gold);font-weight:700;font-family:var(--ff-display);overflow-wrap:anywhere;margin-top:2px;font-variant-numeric:tabular-nums}
-.adm-cartao-detalhe{font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.4}
-.adm-tom-alerta{border-color:var(--red-line-soft)}
-.adm-tom-alerta .adm-cartao-valor{color:var(--red)}
-.adm-tom-positivo{border-color:var(--green-line)}
+.adm-cartao{background:var(--ro-cartao);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:16px 18px;min-width:0;transition:transform var(--ro-dur-rapida) var(--ro-curva-saida),border-color var(--ro-dur-rapida) var(--ro-curva-padrao),box-shadow var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-cartao:hover{transform:translateY(-1px);border-color:var(--ro-borda);box-shadow:var(--ro-sombra-2)}
+.adm-cartao-rotulo{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);font-weight:600}
+.adm-cartao-valor{font-size:var(--ro-tipo-titulo-2);color:var(--ro-primaria-texto);font-weight:700;font-family:var(--ro-fonte-display);overflow-wrap:anywhere;margin-top:2px;font-variant-numeric:tabular-nums}
+.adm-cartao-detalhe{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);margin-top:4px;line-height:1.4}
+.adm-tom-alerta{border-color:color-mix(in srgb,var(--ro-perigo) 45%,transparent)}
+.adm-tom-alerta .adm-cartao-valor{color:var(--ro-perigo-texto)}
+.adm-tom-positivo{border-color:color-mix(in srgb,var(--ro-sucesso) 45%,transparent)}
 
-.adm-indisponivel{border:1px dashed var(--line-soft);border-radius:12px;padding:16px 18px;min-width:0}
-.adm-indisponivel-texto{font-size:13px;color:var(--text-muted);margin-top:6px;line-height:1.45}
+.adm-indisponivel{border:1px dashed var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:16px 18px;min-width:0}
+.adm-indisponivel-texto{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);margin-top:6px;line-height:1.45}
 
-.adm-aviso p{font-size:14px;color:var(--text-muted);line-height:1.55;margin-bottom:8px}
-.adm-lista{margin:0 0 10px 20px;font-size:14px;color:var(--text);line-height:1.6}
-.adm-nota-tecnica{font-size:12px;color:var(--text-muted)}
+.adm-aviso p{font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto-suave);line-height:1.55;margin-bottom:8px}
+.adm-lista{margin:0 0 10px 20px;font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto);line-height:1.6}
+.adm-nota-tecnica{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave)}
 
 .adm-acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .adm-acoes .btn{width:auto;min-height:44px}
-.adm-btn-compacto{padding:8px 14px;font-size:13.5px;min-height:44px;width:auto}
+.adm-btn-compacto{padding:8px 14px;font-size:var(--ro-tipo-corpo-sm);min-height:44px;width:auto}
 
 /* ---- Filtros e formulários ---------------------------------------------- */
 .adm-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
@@ -64,30 +72,30 @@
 .adm-form .field{margin-bottom:0;flex:1 1 min(100%,180px)}
 .adm-form .field.adm-campo-largo{flex:3 1 min(100%,260px)}
 .adm-form .tinput{min-height:44px;margin-bottom:0}
-.adm-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:13.5px;cursor:pointer}
-.adm-check input{width:18px;height:18px;flex-shrink:0;accent-color:var(--gold)}
+.adm-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:var(--ro-tipo-corpo-sm);cursor:pointer}
+.adm-check input{width:18px;height:18px;flex-shrink:0;accent-color:var(--ro-primaria)}
 
 /* ---- Abas ----------------------------------------------------------------- */
 .adm-abas{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .adm-abas .chart-tab{min-height:44px;display:inline-flex;align-items:center;background:transparent;font-family:inherit}
-.adm-abas .chart-tab.on{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
+.adm-abas .chart-tab.on{background:linear-gradient(180deg,var(--ro-primaria-forte),var(--ro-primaria))}
 
 /* ---- Tabelas e números ---------------------------------------------------- */
 .adm-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.adm-negativo{color:var(--red)}
-.adm-fraco{color:var(--text-muted);font-size:12px}
-.adm-linha-total td{font-weight:700;color:var(--text-strong)}
-.adm-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+.adm-negativo{color:var(--ro-perigo-texto)}
+.adm-fraco{color:var(--ro-texto-suave);font-size:var(--adm-tipo-micro)}
+.adm-linha-total td{font-weight:700;color:var(--ro-texto-forte)}
+.adm-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--adm-tipo-micro);overflow-wrap:anywhere}
 
 /* Barra proporcional numa célula de tabela (horário de pico, páginas mais abertas). */
-.adm-trilho{background:var(--line-soft);border-radius:4px;height:8px;overflow:hidden;min-width:60px}
-.adm-barra{background:var(--gold);height:100%;border-radius:4px}
+.adm-trilho{background:var(--ro-borda-suave);border-radius:var(--ro-raio-xs);height:8px;overflow:hidden;min-width:60px}
+.adm-barra{background:var(--ro-primaria);height:100%;border-radius:var(--ro-raio-xs)}
 
 /* ---- Matriz de permissões (Equipe e papéis) ------------------------------- */
 .adm-matriz{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:4px 16px;margin:8px 0 14px}
-.adm-matriz-modulo{grid-column:1 / -1;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-top:10px}
-.adm-cartao-papel{border:1px solid var(--line-soft);border-radius:12px;padding:16px 18px;margin-bottom:14px}
-.adm-cartao-papel h4{font-size:16px;color:var(--text-strong);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adm-matriz-modulo{grid-column:1 / -1;font-size:var(--adm-tipo-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--ro-primaria-texto);font-weight:700;margin-top:10px}
+.adm-cartao-papel{border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:16px 18px;margin-bottom:14px}
+.adm-main .adm-cartao-papel h3{font-size:var(--ro-tipo-corpo);color:var(--ro-texto-forte);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
 /* ============================================================================
    C2 — Atendimento (/admin/cs) e administração de usuários (/admin/usuarios).
@@ -96,17 +104,16 @@
    ========================================================================= */
 
 /* ---- Selos ---------------------------------------------------------------- */
-.adm-pill-vermelho{color:var(--chip-down-ink);background:var(--red-wash-22);border:1px solid var(--red-line)}
-body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
-.adm-etiqueta{display:inline-flex;align-items:center;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;border:1px solid var(--line-soft);color:var(--text-muted);white-space:nowrap}
-.adm-etiqueta-ouro{border-color:var(--gold);color:var(--gold)}
-.adm-etiqueta-verde{border-color:var(--green-line);color:var(--green)}
-.adm-etiqueta-vermelho{border-color:var(--red-line);color:var(--red)}
-.adm-etiqueta-cinza{border-color:var(--line-soft);color:var(--text-muted)}
+.adm-pill-vermelho{color:var(--chip-down-ink);background:var(--ro-perigo-fundo);border:1px solid color-mix(in srgb,var(--ro-perigo) 45%,transparent)}
+.adm-etiqueta{display:inline-flex;align-items:center;font-size:var(--adm-tipo-micro);font-weight:700;border-radius:var(--ro-raio-xs);padding:2px 8px;border:1px solid var(--ro-borda-suave);color:var(--ro-texto-suave);white-space:nowrap}
+.adm-etiqueta-ouro{border-color:var(--ro-primaria);color:var(--ro-primaria-texto)}
+.adm-etiqueta-verde{border-color:color-mix(in srgb,var(--ro-sucesso) 45%,transparent);color:var(--ro-sucesso-texto)}
+.adm-etiqueta-vermelho{border-color:color-mix(in srgb,var(--ro-perigo) 45%,transparent);color:var(--ro-perigo-texto)}
+.adm-etiqueta-cinza{border-color:var(--ro-borda-suave);color:var(--ro-texto-suave)}
 .adm-etiquetas{display:flex;flex-wrap:wrap;gap:6px}
 /* Etiqueta clicável (aplicar e retirar): alvo de toque inteiro. */
 .adm-etiqueta-botao{min-height:44px;padding:6px 12px;background:transparent;cursor:pointer;font-family:inherit}
-.adm-etiqueta-botao[aria-pressed="true"]{background:var(--gold-tint-14)}
+.adm-etiqueta-botao[aria-pressed="true"]{background:var(--ro-primaria-veu)}
 
 /* ---- CS: as três colunas --------------------------------------------------- */
 .adm-cs{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
@@ -115,45 +122,45 @@ body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
 .adm-cs-thread{flex:3 1 420px}
 .adm-cs-cliente{flex:1 1 260px}
 .adm-cs .panel{padding:16px}
-.adm-cs-contagem{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:12.5px;color:var(--text-muted)}
+.adm-cs-contagem{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave)}
 .adm-cs-itens{display:flex;flex-direction:column;max-height:70vh;overflow-y:auto;margin:0 -16px}
-.adm-cs-item{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;min-height:44px;padding:10px 16px;background:transparent;border:0;border-top:1px solid var(--line-soft);color:inherit;font-family:inherit;cursor:pointer}
-.adm-cs-item:hover{background:var(--card-hover)}
-.adm-cs-item.on{background:var(--gold-tint-14)}
+.adm-cs-item{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;min-height:44px;padding:10px 16px;background:transparent;border:0;border-top:1px solid var(--ro-borda-suave);color:inherit;font-family:inherit;cursor:pointer}
+.adm-cs-item:hover{background:var(--ro-cartao-hover)}
+.adm-cs-item.on{background:var(--ro-primaria-veu)}
 .adm-cs-item-topo{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.adm-cs-nome{font-weight:700;color:var(--text-strong);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.adm-cs-hora{font-size:11.5px;color:var(--text-muted);white-space:nowrap}
-.adm-cs-previa{font-size:12.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.adm-cs-naolidas{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--gold);color:var(--on-gold);font-size:11px;font-weight:700}
+.adm-cs-nome{font-weight:700;color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-cs-hora{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);white-space:nowrap}
+.adm-cs-previa{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-cs-naolidas{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--ro-raio-md);background:var(--ro-primaria);color:var(--ro-sobre-primaria);font-size:var(--adm-tipo-micro);font-weight:700}
 
 /* ---- CS: a conversa -------------------------------------------------------- */
 .adm-cs-cabecalho{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
 .adm-cs-cabecalho h3{margin-bottom:2px}
 .adm-cs-mensagens{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;padding:4px 2px 8px}
-.adm-cs-msg{max-width:min(85%,560px);border:1px solid var(--line-soft);border-radius:12px;padding:8px 12px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
-.adm-cs-msg.entrada{align-self:flex-start;background:var(--bg-panel)}
-.adm-cs-msg.saida{align-self:flex-end;background:var(--gold-tint-10);border-color:var(--line)}
-.adm-cs-msg.falhou{border-color:var(--red-line)}
+.adm-cs-msg{max-width:min(85%,560px);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:8px 12px;font-size:var(--ro-tipo-corpo-sm);line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.adm-cs-msg.entrada{align-self:flex-start;background:var(--ro-superficie)}
+.adm-cs-msg.saida{align-self:flex-end;background:var(--ro-primaria-veu);border-color:var(--ro-borda)}
+.adm-cs-msg.falhou{border-color:color-mix(in srgb,var(--ro-perigo) 45%,transparent)}
 .adm-cs-msg.registrada{border-style:dashed}
-.adm-cs-msg-rodape{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;font-size:11px;color:var(--text-muted);margin-top:4px;white-space:normal}
-.adm-cs-msg.falhou .adm-cs-msg-rodape{color:var(--red)}
-.adm-cs-midia{font-size:12.5px;color:var(--gold);display:block;margin-bottom:2px}
-.adm-cs-nota{border-left:3px solid var(--gold);background:var(--gold-tint-10);border-radius:8px;padding:8px 12px;font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.adm-cs-msg-rodape{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);margin-top:4px;white-space:normal}
+.adm-cs-msg.falhou .adm-cs-msg-rodape{color:var(--ro-perigo-texto)}
+.adm-cs-midia{font-size:var(--ro-tipo-legenda);color:var(--ro-primaria-texto);display:block;margin-bottom:2px}
+.adm-cs-nota{border-left:3px solid var(--ro-primaria);background:var(--ro-primaria-veu);border-radius:var(--ro-raio-sm);padding:8px 12px;font-size:var(--ro-tipo-corpo-sm);white-space:pre-wrap;overflow-wrap:anywhere}
 .adm-cs-nota + .adm-cs-nota{margin-top:8px}
 .adm-cs-resposta{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.adm-cs-resposta textarea.obs{min-height:88px;font-size:14.5px}
+.adm-cs-resposta textarea.obs{min-height:88px;font-size:var(--ro-tipo-corpo-sm)}
 
 /* ---- Ficha: pares rótulo/valor e blocos recolhíveis ----------------------------- */
 .adm-pares{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px 18px;margin:0 0 12px}
 .adm-pares > div{min-width:0}
-.adm-pares dt{font-size:12px;color:var(--text-muted);font-weight:600}
-.adm-pares dd{margin:2px 0 0;font-size:14px;color:var(--text-strong);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.adm-detalhes{border:1px solid var(--line-soft);border-radius:10px;margin-bottom:10px;transition:border-color .18s ease}
-.adm-detalhes > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 14px;font-weight:700;color:var(--text-strong);font-size:14px;transition:background .18s ease}
-.adm-detalhes > summary:hover{background:var(--card-hover)}
+.adm-pares dt{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);font-weight:600}
+.adm-pares dd{margin:2px 0 0;font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto-forte);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.adm-detalhes{border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);margin-bottom:10px;transition:border-color var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-detalhes > summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;padding:8px 14px;font-weight:700;color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo-sm);transition:background var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-detalhes > summary:hover{background:var(--ro-cartao-hover)}
 .adm-detalhes > .adm-detalhes-corpo{padding:0 14px 14px}
 .adm-topo-ficha{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:14px}
-.adm-topo-ficha h2{font-size:22px;color:var(--text-strong);margin:0}
+.adm-topo-ficha h2{font-size:var(--ro-tipo-titulo-2);color:var(--ro-texto-forte);margin:0}
 
 
 /* === C3 · Bancada, moedas, logística e configuração ================================= */
@@ -166,32 +173,578 @@ body[data-theme="light"] .adm-pill-vermelho{color:var(--chip-down-ink-light)}
 .adm-bancada-procedimento{flex:3 1 480px}
 .adm-bancada-caixas{flex:1 1 100%}
 .adm-bancada-video{margin-bottom:14px}
-.adm-bancada-previa{display:block;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--bg-panel);border:1px solid var(--line-soft);border-radius:10px;object-fit:contain}
-.adm-bancada-cronometro{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text-muted);min-width:56px}
-.adm-bancada-cronometro.on{color:var(--red)}
-.adm-bancada-moeda{border:1px solid var(--line-soft);border-radius:10px;padding:10px 14px 14px;margin:0 0 12px;min-width:0}
-.adm-bancada-moeda legend{font-weight:700;color:var(--text-strong);font-size:14px;padding:0 6px}
+.adm-bancada-previa{display:block;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--ro-superficie);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);object-fit:contain}
+.adm-bancada-cronometro{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ro-texto-suave);min-width:56px}
+.adm-bancada-cronometro.on{color:var(--ro-perigo-texto)}
+.adm-bancada-moeda{border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:10px 14px 14px;margin:0 0 12px;min-width:0}
+.adm-bancada-moeda legend{font-weight:700;color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo-sm);padding:0 6px}
 
 /* ---- Auditoria de moedas e verificação da corrente ------------------------------- */
 .adm-verificacao{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:12px 0}
-.adm-verificacao > div{border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px;min-width:0}
-.adm-verificacao .ok{border-color:var(--green-line)}
-.adm-verificacao .quebra{border-color:var(--red-line)}
-.adm-verificacao b{display:block;color:var(--text-strong);margin-bottom:4px}
+.adm-verificacao > div{border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);padding:12px 14px;min-width:0}
+.adm-verificacao .ok{border-color:color-mix(in srgb,var(--ro-sucesso) 45%,transparent)}
+.adm-verificacao .quebra{border-color:color-mix(in srgb,var(--ro-perigo) 45%,transparent)}
+.adm-verificacao b{display:block;color:var(--ro-texto-forte);margin-bottom:4px}
 
 /* ---- Logística: linha com prazo estourado --------------------------------------- */
-.adm-linha-alerta td:first-child{box-shadow:inset 3px 0 0 var(--red)}
-.adm-alerta-texto{color:var(--red);font-size:12.5px;margin-top:2px}
+.adm-linha-alerta td:first-child{box-shadow:inset 3px 0 0 var(--ro-perigo)}
+.adm-alerta-texto{color:var(--ro-perigo-texto);font-size:var(--ro-tipo-legenda);margin-top:2px}
 /* ---- Configuração: campos de um grupo, simulação ao lado ------------------------- */
 .adm-config{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
 .adm-config-campos{flex:3 1 min(100%,520px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px 18px;min-width:0}
 .adm-config-campo{margin-bottom:0;min-width:0;display:flex;flex-direction:column;gap:3px}
 .adm-config-campo .tinput{min-height:44px;margin-bottom:0}
 .adm-config-campo small{line-height:1.4}
-.adm-simulacao{flex:1 1 min(100%,260px);border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--gold-tint-10);min-width:0}
-.adm-simulacao > b{display:block;color:var(--text-strong);margin-bottom:8px}
+.adm-simulacao{flex:1 1 min(100%,260px);border:1px solid var(--ro-borda);border-radius:var(--ro-raio-md);padding:14px 16px;background:var(--ro-primaria-veu);min-width:0}
+.adm-simulacao > b{display:block;color:var(--ro-texto-forte);margin-bottom:8px}
 .adm-simulacao .field{margin-bottom:10px}
 .adm-simulacao .tinput{min-height:44px}
 .adm-config-rodape{flex:1 1 100%}
-.adm-integracao h3{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.adm-integracao code{font-size:12px;overflow-wrap:anywhere}
+.adm-integracao h2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adm-integracao code{font-size:var(--adm-tipo-micro);overflow-wrap:anywhere}
+
+/* ============================================================================
+   POLIMENTO DO PAINEL (25/10/2026) — casco, central de trabalho, tabelas largas,
+   confirmação com objeto, estados de carregando e vazio, celular.
+   Decisões e fontes: docs/polimento/admin/BENCHMARK.md.
+   ========================================================================= */
+
+/* ---- Utilitários de acessibilidade -------------------------------------- */
+/* Texto só para leitor de tela (legenda de tabela, "Carregando…", rótulo do campo da busca). */
+.adm-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.adm-pular{position:absolute;left:12px;top:-60px;z-index:200;background:var(--ro-primaria);color:var(--ro-sobre-primaria);font-weight:700;padding:12px 16px;border-radius:var(--ro-raio-md);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.adm-pular:focus{top:12px}
+.adm-main:focus{outline:none}
+.adm-main [id]{scroll-margin-top:16px}
+.adm-main h2,.adm-main h3{text-wrap:balance}
+.adm-main a,.adm-main button,.adm-main summary,.adm-main label,.adm-main input,.adm-main select,.adm-main textarea{touch-action:manipulation}
+
+/* Botão com cara de link/item: o <button> herda fonte e cor e perde o fundo do navegador. */
+.adm-nav-botao,.adm-botao-texto{font:inherit;background:transparent;border:1px solid transparent;width:100%;text-align:left;color:var(--ro-texto-suave)}
+.adm-botao-texto{width:auto;border:0}
+.adm-switch{padding:0;flex-shrink:0}
+.adm-switch:focus-visible{outline:2px solid var(--ro-primaria);outline-offset:3px}
+
+/* ---- Casco ---------------------------------------------------------------- */
+/* Mais largura que o app do cliente: o painel vive de tabela larga. */
+.adm-main{max-width:1480px;min-width:0}
+.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto}
+.adm-nav-titulo{border-top:1px solid var(--ro-borda-suave);padding-top:12px}
+.adm-topbar{align-items:flex-start;flex-wrap:nowrap}
+.adm-topbar .page-title{min-width:0}
+.adm-top-direita{flex-wrap:nowrap;justify-content:flex-end;gap:12px;flex-shrink:0}
+.adm-migalhas{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);margin-bottom:2px;overflow-wrap:anywhere}
+.adm-migalhas a{color:var(--ro-primaria-texto);text-decoration:underline;text-underline-offset:2px;display:inline-flex;align-items:center;min-height:24px}
+
+/* Menu da conta: o chip do membro abre tema, voltar ao app e sair. */
+.adm-conta{position:relative}
+.adm-conta > summary{list-style:none;cursor:pointer;min-height:44px;padding:4px 8px;border:1px solid transparent;border-radius:var(--ro-raio-md)}
+.adm-conta > summary::-webkit-details-marker{display:none}
+.adm-conta > summary:hover,.adm-conta[open] > summary{border-color:var(--ro-borda-suave)}
+.adm-conta-texto{display:flex;flex-direction:column;min-width:0}
+.adm-conta-seta{width:16px;height:16px;stroke:var(--ro-texto-suave);fill:none;stroke-width:2;flex-shrink:0;transition:transform var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-conta[open] .adm-conta-seta{transform:rotate(180deg)}
+.adm-conta-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:220px;background:var(--ro-superficie);border:1px solid var(--ro-borda);border-radius:var(--ro-raio-md);padding:6px;box-shadow:var(--ro-sombra-2);display:flex;flex-direction:column}
+.adm-conta-quem{display:flex;flex-direction:column;gap:2px;padding:8px 12px 10px;border-bottom:1px solid var(--ro-borda-suave);margin-bottom:4px;overflow-wrap:anywhere}
+.adm-conta-quem b{color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo-sm)}
+.adm-conta-quem span{color:var(--ro-primaria-texto);font-size:var(--ro-tipo-legenda);font-weight:700}
+.adm-conta-item{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:var(--ro-raio-sm);color:var(--ro-texto);text-decoration:none;font-size:var(--ro-tipo-corpo-sm);cursor:pointer}
+.adm-conta-item:hover{background:var(--ro-cartao-hover);color:var(--ro-texto-forte)}
+.adm-main .adm-conta-tema.theme-box{display:flex;justify-content:space-between;min-height:44px;padding:0 12px}
+
+/* Gatilho da busca: parece um campo, é um botão (abre o <dialog>). */
+.adm-busca-gatilho{display:inline-flex;align-items:center;gap:10px;min-height:44px;min-width:min(100%,250px);padding:0 12px;border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);background:var(--ro-campo);color:var(--ro-texto-suave);font:inherit;font-size:var(--ro-tipo-corpo-sm);cursor:pointer;transition:border-color var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-busca-gatilho:hover,.adm-busca-gatilho:focus-visible{border-color:var(--ro-primaria);outline:none}
+.adm-busca-gatilho svg{width:17px;height:17px;stroke:var(--ro-primaria-texto);fill:none;stroke-width:1.8;flex-shrink:0}
+.adm-busca-gatilho span{flex:1;text-align:left}
+.adm-main kbd,.adm-busca kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--adm-tipo-micro);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-xs);padding:1px 6px;color:var(--ro-texto-suave);background:var(--ro-superficie)}
+.adm-busca{border:1px solid var(--ro-borda);border-radius:var(--ro-raio-lg);padding:0;background:var(--ro-superficie);color:var(--ro-texto);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));margin:8vh auto auto;box-shadow:var(--ro-sombra-4)}
+.adm-busca::backdrop{background:var(--ro-veu)}
+.adm-busca-caixa{display:flex;flex-direction:column;max-height:inherit}
+.adm-busca-campo.tinput{border:0;border-bottom:1px solid var(--ro-borda-suave);border-radius:0;min-height:52px;margin:0;font-size:var(--ro-tipo-corpo);padding:0 16px}
+.adm-busca-lista{list-style:none;margin:0;padding:6px;overflow-y:auto}
+.adm-busca-lista li{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--ro-raio-sm);cursor:pointer;min-height:44px}
+.adm-busca-lista li b{color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo-sm)}
+.adm-busca-lista li span{color:var(--ro-texto-suave);font-size:var(--ro-tipo-legenda)}
+.adm-busca-lista li.on{background:var(--ro-primaria-veu)}
+.adm-busca-lista li.adm-busca-vazio{cursor:default;color:var(--ro-texto-suave)}
+.adm-busca-dica{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);padding:8px 16px 12px;border-top:1px solid var(--ro-borda-suave);margin:0}
+
+/* ---- Central de trabalho (/admin) ----------------------------------------- */
+.adm-fila{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:10px}
+.adm-fila-item{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;border:1px solid var(--ro-borda-suave);border-left:4px solid var(--ro-primaria);border-radius:var(--ro-raio-md);padding:12px 16px;background:var(--ro-cartao)}
+.adm-fila-item.adm-urgente{border-left-color:var(--ro-perigo)}
+.adm-fila-num{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-2);font-weight:700;color:var(--ro-primaria-texto);min-width:2.2ch;text-align:right;font-variant-numeric:tabular-nums}
+.adm-urgente .adm-fila-num{color:var(--ro-perigo-texto)}
+.adm-fila-texto{flex:1 1 260px;min-width:0}
+.adm-fila-texto b{display:block;color:var(--ro-texto-forte);font-size:var(--ro-tipo-corpo)}
+.adm-fila-texto span{display:block;color:var(--ro-texto-suave);font-size:var(--ro-tipo-legenda);line-height:1.45;margin-top:2px}
+.adm-fila-item .btn{width:auto;min-height:44px}
+.adm-em-dia{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.adm-em-dia li{display:inline-flex;align-items:center;gap:6px;font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);border:1px solid color-mix(in srgb,var(--ro-sucesso) 45%,transparent);border-radius:var(--ro-raio-pilula);padding:4px 10px;min-height:32px}
+.adm-em-dia li::before{content:'\2713';color:var(--ro-sucesso-texto);font-weight:700}
+.adm-saudacao{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-bottom:14px;color:var(--ro-texto-suave);font-size:var(--ro-tipo-corpo-sm)}
+.adm-saudacao b{color:var(--ro-texto-forte)}
+
+/* ---- Tabelas largas ------------------------------------------------------- */
+/* 1ª coluna FIXA ao rolar a tabela de lado (o nome do cliente, o protocolo, a data): sem ela, no
+   celular a pessoa perdia de qual linha era o número que estava lendo. Fundo opaco para o que
+   passa por baixo não aparecer; o hover da linha acompanha. Vale para todas as tabelas do painel
+   (.table-scroll > .audit-table), sem tocar em cada uma. */
+.adm-main .table-scroll{position:relative;border-radius:var(--ro-raio-sm)}
+.adm-main .table-scroll .audit-table th:first-child,
+.adm-main .table-scroll .audit-table td:first-child{position:sticky;left:0;z-index:1;background:var(--ro-superficie);box-shadow:inset -1px 0 0 var(--ro-borda-suave)}
+.adm-main .panel .table-scroll .audit-table th:first-child,
+.adm-main .panel .table-scroll .audit-table td:first-child{background:var(--ro-cartao)}
+.adm-main .audit-table tbody tr:hover td,
+.adm-main .panel .table-scroll .audit-table tbody tr:hover td:first-child{background:var(--ro-cartao-hover)}
+.adm-main .audit-table caption{text-align:left}
+/* Coluna de ações nunca quebra o botão no meio. */
+.adm-acoes-linha{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.adm-linha-cheia{width:100%;text-align:right}
+.adm-campo-codigo.tinput{max-width:170px}
+.adm-pill-ao-lado{margin-left:6px}
+.adm-linha-apagada td{opacity:.65}
+.adm-acima-10{margin-top:10px}
+.adm-campo-motivo.tinput{width:100%;min-height:44px;margin:0}
+.adm-subnav.adm-subnav-interna{margin:0 0 12px}
+.adm-campo-inline{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;justify-content:flex-end}
+.adm-campo-inline label{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave)}
+.adm-campo-inline .tinput{max-width:140px;min-height:44px;margin:0}
+
+/* ---- Confirmação com o objeto no nome ------------------------------------- */
+.adm-confirmacao{border:1px solid var(--ro-borda);border-left:4px solid var(--ro-primaria);border-radius:var(--ro-raio-md);padding:10px 12px;margin-top:8px;background:var(--ro-primaria-veu);display:flex;flex-direction:column;gap:8px;min-width:min(100%,280px);text-align:left}
+.adm-confirmacao.adm-perigo{border-left-color:var(--ro-perigo);background:var(--ro-perigo-fundo)}
+.adm-confirmacao p{margin:0;font-size:var(--ro-tipo-legenda);line-height:1.45;color:var(--ro-texto)}
+.adm-confirmacao .adm-acoes{gap:8px}
+.adm-zona-perigo{border:1px dashed color-mix(in srgb,var(--ro-perigo) 45%,transparent);border-radius:var(--ro-raio-md);padding:14px 16px;margin-top:14px}
+.adm-zona-perigo > h4{color:var(--ro-perigo-texto);font-size:var(--ro-tipo-corpo-sm);margin:0 0 6px}
+
+/* ---- Estados: carregando e vazio ------------------------------------------ */
+.adm-esqueleto{min-height:86px;background:linear-gradient(90deg,var(--ro-superficie) 25%,var(--ro-cartao-hover) 50%,var(--ro-superficie) 75%);background-size:200% 100%;animation:adm-brilho 1.4s ease-in-out infinite}
+.adm-esqueleto-alto{min-height:320px}
+@keyframes adm-brilho{from{background-position:200% 0}to{background-position:-200% 0}}
+.adm-vazio{border:1px dashed var(--ro-borda-suave);border-radius:11px;padding:22px;text-align:center;color:var(--ro-texto-suave);font-size:var(--ro-tipo-corpo-sm);line-height:1.55}
+.adm-vazio b{display:block;color:var(--ro-texto-forte);margin-bottom:4px}
+.adm-vazio .adm-acoes{justify-content:center;margin-top:10px}
+
+/* ---- Subnavegação de uma área (Gestão: Financeiro, Contábil, Fiscal…) ----- */
+.adm-subnav{display:flex;gap:6px;flex-wrap:wrap;margin:-8px 0 18px;padding:0;list-style:none}
+.adm-subnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-pilula);color:var(--ro-texto-suave);text-decoration:none;font-size:var(--ro-tipo-corpo-sm);font-weight:600}
+.adm-subnav a:hover{border-color:var(--ro-primaria);color:var(--ro-texto-forte)}
+.adm-subnav a[aria-current="page"]{border-color:var(--ro-primaria);color:var(--ro-primaria-texto);background:var(--ro-primaria-veu)}
+
+/* Ficha do usuário: abas e conteúdo à esquerda, ações da conta à direita (empilha abaixo de 1280). */
+.adm-ficha{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+.adm-ficha-principal{min-width:0}
+.adm-ficha-lateral{min-width:0}
+@media (min-width:1280px){
+  .adm-main .adm-ficha{grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+  .adm-main .adm-ficha-lateral{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}
+  .adm-main .adm-atalho-acoes{display:none}
+}
+.adm-atalho-acoes{margin:-6px 0 12px;font-size:var(--ro-tipo-legenda)}
+.adm-atalho-acoes a{color:var(--ro-primaria-texto);display:inline-flex;align-items:center;min-height:44px}
+
+/* "Nesta página" das telas longas (configuração, ficha). */
+.adm-nesta-pagina{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none}
+.adm-nesta-pagina a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:var(--ro-raio-sm);border:1px solid var(--ro-borda-suave);font-size:var(--ro-tipo-legenda);color:var(--ro-texto);text-decoration:none}
+.adm-nesta-pagina a:hover{border-color:var(--ro-primaria)}
+
+/* Selo com cor + texto: distinguível em escala de cinza. */
+.adm-selo{display:inline-flex;align-items:center;gap:5px;font-size:var(--adm-tipo-micro);font-weight:700;border-radius:var(--ro-raio-pilula);padding:2px 9px;border:1px solid var(--ro-borda-suave);white-space:nowrap}
+.adm-selo-alerta{color:var(--ro-perigo-texto);border-color:color-mix(in srgb,var(--ro-perigo) 45%,transparent)}
+.adm-selo-ok{color:var(--ro-sucesso-texto);border-color:color-mix(in srgb,var(--ro-sucesso) 45%,transparent)}
+.adm-selo-ouro{color:var(--ro-primaria-texto);border-color:var(--ro-primaria)}
+
+/* Gaveta de filtros: no celular, "Filtros (N)" recolhe os campos para a lista aparecer na
+   primeira tela; no computador o resumo some e o conteúdo fica sempre visível. Sem suporte a
+   ::details-content, o computador mostra o resumo clicável (aceitável). Tópico 35 passo 2. */
+.adm-filtros-gaveta{margin-bottom:12px}
+.adm-filtros-gaveta > summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);cursor:pointer;font-weight:700;color:var(--ro-texto-forte);list-style:none}
+.adm-filtros-gaveta > summary::-webkit-details-marker{display:none}
+.adm-filtros-gaveta > summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid var(--ro-primaria);border-bottom:2px solid var(--ro-primaria);transform:rotate(45deg) translateY(-2px);transition:transform var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-filtros-gaveta[open] > summary{margin-bottom:12px}
+.adm-filtros-gaveta[open] > summary::after{transform:rotate(-135deg)}
+@media (min-width:768px){
+  @supports selector(::details-content){
+    .adm-main .adm-filtros-gaveta > summary{display:none}
+    .adm-main .adm-filtros-gaveta::details-content{content-visibility:visible;block-size:auto}
+  }
+}
+
+/* ============================================================================
+   REMODELAGEM (25/10/2026, rodada 2) — a camada de trabalho do painel.
+   Régua: docs/polimento/admin/BRIEF_DE_DESIGN.md. Painel de trabalho, não vitrine:
+   menos sombra e movimento que o app do cliente, mais densidade e hierarquia.
+   Peças em src/components/admin/Pecas.tsx.
+   ========================================================================= */
+
+/* ---- Densidade e movimento dentro do painel ------------------------------ */
+.adm-main .panel{padding:18px 20px;border-radius:var(--ro-raio-md);box-shadow:none;margin-bottom:16px}
+.adm-main .panel .panel{margin-bottom:0}
+.adm-main .btn:hover:not([disabled]){transform:none}
+.adm-main .btn-gold{box-shadow:0 2px 8px rgba(201,162,75,.22)}
+.adm-main .adm-cartao:hover{transform:none;box-shadow:none}
+.adm-main .adm-atalho:hover{transform:none}
+.adm-main .audit-table td{padding:8px 10px;vertical-align:top}
+.adm-main .audit-table th{padding:8px 10px;white-space:nowrap}
+.adm-main .audit-table tbody tr:last-child td{border-bottom:0}
+
+/* O <Cartao> antigo (Blocos.tsx) ganha o desenho do <Indicador>: as telas que ainda o usam falam a
+   mesma língua visual sem trocar componente. */
+.adm-main .adm-cartao{padding:12px 14px;border-radius:var(--ro-raio-md);border-left:3px solid var(--ro-borda-suave)}
+.adm-main .adm-cartao-valor{font-size:var(--ro-tipo-titulo-2);color:var(--ro-texto-forte)}
+.adm-main .adm-tom-alerta{border-left-color:var(--ro-perigo)}
+.adm-main .adm-tom-alerta .adm-cartao-valor{color:var(--ro-perigo-texto)}
+.adm-main .adm-tom-positivo{border-left-color:var(--ro-sucesso)}
+.adm-main .adm-grade{gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+
+/* ---- Seção: título h2 + contexto + ações --------------------------------- */
+.adm-bloco{margin-bottom:16px;min-width:0}
+.adm-bloco-aberto{padding:0}
+.adm-bloco-cab{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.adm-bloco-cab-texto{flex:1 1 280px;min-width:0}
+.adm-bloco-cab h2{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-3);font-weight:600;color:var(--ro-texto-forte);line-height:1.25;margin:0}
+.adm-bloco-cab p{font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);line-height:1.5;margin:3px 0 0;max-width:72ch}
+.adm-bloco-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adm-bloco-acoes .btn{width:auto;min-height:44px;padding:8px 14px;font-size:var(--ro-tipo-corpo-sm)}
+
+/* ---- Indicadores ----------------------------------------------------------- */
+.adm-inds{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin-bottom:16px}
+.adm-ind{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border:1px solid var(--ro-borda-suave);border-left:3px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);background:var(--ro-cartao);color:inherit;text-decoration:none}
+.adm-ind-rotulo{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);font-weight:600}
+.adm-ind-valor{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-2);font-weight:700;color:var(--ro-texto-forte);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.2}
+.adm-ind-detalhe{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);line-height:1.4}
+.adm-ind-ok{border-left-color:var(--ro-sucesso)}
+.adm-ind-alerta{border-left-color:var(--ro-perigo)}
+.adm-ind-alerta .adm-ind-valor{color:var(--ro-perigo-texto)}
+.adm-ind-atencao{border-left-color:var(--ro-primaria)}
+.adm-ind-ouro .adm-ind-valor{color:var(--ro-primaria-texto)}
+.adm-ind-link{transition:border-color var(--ro-dur-rapida) var(--ro-curva-padrao),background var(--ro-dur-rapida) var(--ro-curva-padrao);min-height:44px}
+.adm-ind-link:hover{border-color:var(--ro-primaria);background:var(--ro-cartao-hover)}
+.adm-ind-link:focus-visible{outline:2px solid var(--ro-primaria);outline-offset:2px}
+.adm-ind-link .adm-ind-rotulo::after{color:var(--ro-primaria-texto)}
+
+/* ---- Duas zonas: principal + lateral (≥1280 px) ---------------------------- */
+.adm-zonas{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.adm-zonas > *{min-width:0}
+@media (min-width:1280px){
+  .adm-main .adm-zonas{grid-template-columns:minmax(0,1fr) minmax(300px,380px)}
+  .adm-main .adm-zona-lateral{position:sticky;top:16px}
+}
+
+/* Na lateral, indicadores em duas colunas e número menor: a zona tem ~340 px. */
+.adm-zona-lateral .adm-inds{grid-template-columns:repeat(2,minmax(0,1fr))}
+.adm-zona-lateral .adm-ind-valor{font-size:var(--ro-tipo-titulo-3)}
+.adm-main .adm-codigo{white-space:nowrap;overflow-wrap:normal}
+
+/* "Ir para" da Central: lista de áreas com ícone, nome e o que se faz lá. */
+.adm-atalhos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.adm-atalhos a{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;min-height:44px;border-top:1px solid var(--ro-borda-suave);color:inherit;text-decoration:none}
+.adm-atalhos li:first-child a{border-top:0}
+.adm-atalhos a:hover b{color:var(--ro-primaria-texto)}
+.adm-atalhos svg{width:18px;height:18px;stroke:var(--ro-primaria-texto);fill:none;stroke-width:1.6;flex-shrink:0;margin-top:2px}
+.adm-atalhos b{display:block;font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto-forte)}
+.adm-atalhos span span{display:block;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);line-height:1.4}
+.adm-atalhos.adm-atalhos-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:0 18px}
+.adm-atalhos.adm-atalhos-grade li a{border-top:1px solid var(--ro-borda-suave)}
+
+/* Bloco recolhível que é uma ação ("+ Criar conta de cliente"): o resumo tem cara de botão. */
+.adm-detalhes.adm-detalhes-acao{border-style:dashed}
+.adm-detalhes-acao > summary{color:var(--ro-primaria-texto)}
+
+/* Cartão de identidade da ficha (cliente, moeda). */
+.adm-identidade{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin-bottom:16px}
+.adm-identidade-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--ro-primaria-veu);border:1.5px solid var(--ro-primaria);color:var(--ro-texto-forte);font-weight:700;font-size:var(--ro-tipo-titulo-3)}
+.adm-identidade-texto{flex:1 1 240px;min-width:0}
+.adm-identidade-texto h2{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-2);font-weight:600;color:var(--ro-texto-forte);margin:0;line-height:1.2;overflow-wrap:anywhere}
+.adm-identidade-texto p{margin:3px 0 0;font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave);overflow-wrap:anywhere}
+.adm-identidade-selos{justify-content:flex-end}
+
+/* Ficha da moeda: o "avatar" é o ano da moeda; linha do tempo de proveniência. */
+.adm-identidade-moeda{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-corpo-sm);border-radius:50%}
+.adm-pares .adm-par-largo{grid-column:1 / -1}
+.adm-linha-tempo{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--ro-borda-suave)}
+.adm-linha-tempo li{position:relative;display:flex;flex-direction:column;gap:2px;padding:0 0 14px 12px;font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto)}
+.adm-linha-tempo li::before{content:'';position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--ro-primaria);box-shadow:0 0 0 3px var(--ro-superficie)}
+.adm-linha-tempo li:last-child{padding-bottom:0}
+.adm-linha-tempo-quando{font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);font-variant-numeric:tabular-nums}
+
+/* Ajustes (configuração): seções à esquerda, conteúdo à direita. */
+.adm-ajustes{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.adm-ajustes-conteudo{min-width:0}
+.adm-ajustes-nav ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--ro-borda-suave)}
+.adm-ajustes-nav a{display:flex;align-items:center;min-height:44px;padding:0 14px;color:var(--ro-texto-suave);font-weight:600;font-size:var(--ro-tipo-corpo-sm);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.adm-ajustes-nav a:hover{color:var(--ro-texto-forte)}
+.adm-ajustes-nav a[aria-current="page"]{color:var(--ro-primaria-texto);border-bottom-color:var(--ro-primaria)}
+@media (min-width:1080px){
+  .adm-main .adm-ajustes{grid-template-columns:200px minmax(0,1fr)}
+  .adm-main .adm-ajustes-nav{position:sticky;top:16px}
+  .adm-main .adm-ajustes-nav ul{flex-direction:column;border-bottom:0;border-left:1px solid var(--ro-borda-suave)}
+  .adm-main .adm-ajustes-nav a{border-bottom:0;margin:0 0 0 -1px;border-left:2px solid transparent;border-radius:0 8px 8px 0}
+  .adm-main .adm-ajustes-nav a[aria-current="page"]{border-left-color:var(--ro-primaria);background:var(--ro-primaria-veu)}
+}
+
+/* ---- Barra de ferramentas da página (período, exportar) -------------------- */
+.adm-ferramentas{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.adm-ferramentas > *{min-width:0}
+.adm-ferramentas > .adm-filtros{flex:1 1 auto}
+.adm-ferramentas.adm-ferramentas-coluna{flex-direction:column;align-items:stretch}
+/* Tabela na lateral: sem a largura mínima de 520 px que o .table-scroll dá às tabelas largas. */
+.adm-main .adm-zona-lateral .table-scroll .audit-table{min-width:0}
+
+/* ---- Lista de definição compacta (lateral) --------------------------------- */
+.adm-lista-def{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;margin:0;font-size:var(--ro-tipo-corpo-sm)}
+.adm-lista-def dt{color:var(--ro-texto-suave)}
+.adm-lista-def dd{margin:0;text-align:right;font-weight:700;color:var(--ro-texto-forte);font-variant-numeric:tabular-nums}
+.adm-lista-def dd.adm-negativo{color:var(--ro-perigo-texto)}
+
+/* ---- Gráfico mensal (GraficoMensal.tsx) ------------------------------------- */
+.adm-graf{margin:0 0 14px;--adm-graf-cor:var(--ro-primaria)}
+.adm-graf-area{display:flex;align-items:stretch;gap:2px;height:200px;padding:22px 0 26px;border-bottom:1px solid var(--ro-borda-suave);background:repeating-linear-gradient(to top,transparent 0,transparent 49px,var(--ro-borda-suave) 49px,var(--ro-borda-suave) 50px);background-position:0 -26px}
+.adm-graf-col{position:relative;flex:1 1 0;min-width:18px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;outline:none;cursor:default}
+.adm-graf-barra{display:block;width:min(24px,70%);background:var(--adm-graf-cor);border-radius:var(--ro-raio-xs) 4px 0 0;min-height:0;transition:opacity var(--ro-dur-rapida) var(--ro-curva-padrao)}
+.adm-graf-col:hover .adm-graf-barra,.adm-graf-col:focus-visible .adm-graf-barra{opacity:.8}
+.adm-graf-col:focus-visible{box-shadow:inset 0 0 0 2px var(--ro-primaria);border-radius:var(--ro-raio-xs)}
+.adm-graf-eixo{position:absolute;bottom:-22px;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);white-space:nowrap}
+.adm-graf-valor{font-size:var(--adm-tipo-micro);font-weight:700;color:var(--ro-texto-forte);white-space:nowrap;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.adm-graf-dica{position:absolute;bottom:calc(100% - 10px);left:50%;transform:translateX(-50%);z-index:5;display:none;flex-direction:column;gap:2px;min-width:140px;padding:8px 10px;border:1px solid var(--ro-borda);border-radius:var(--ro-raio-sm);background:var(--ro-superficie);box-shadow:var(--ro-sombra-2);font-size:var(--ro-tipo-legenda);color:var(--ro-texto);font-variant-numeric:tabular-nums;pointer-events:none}
+.adm-graf-dica b{color:var(--ro-texto-forte);font-size:var(--adm-tipo-micro)}
+.adm-graf-dica small{color:var(--ro-texto-suave);font-size:var(--adm-tipo-micro)}
+.adm-graf-col:hover .adm-graf-dica,.adm-graf-col:focus-visible .adm-graf-dica{display:flex}
+.adm-graf-col:hover .adm-graf-valor,.adm-graf-col:focus-visible .adm-graf-valor{visibility:hidden}
+
+/* ---- Controle financeiro (/admin/resultados/controle) ---------------------- */
+/* Cascata: do faturamento ao resultado. Entrada e resultado em ouro; saídas em vermelho suave
+   (polaridade); o valor e o peso vão escritos — a cor nunca é o único canal. */
+.adm-cascata{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.adm-cascata-passo{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr) minmax(0,150px);gap:12px;align-items:center}
+.adm-cascata-rotulo b{display:block;font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto-forte)}
+.adm-cascata-rotulo small,.adm-cascata-valor small{display:block;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave)}
+.adm-cascata-trilho{display:block;height:22px;background:var(--ro-borda-suave);border-radius:var(--ro-raio-xs);overflow:hidden}
+.adm-cascata-barra{display:block;height:100%;border-radius:var(--ro-raio-xs);background:var(--ro-primaria)}
+.adm-cascata-saida .adm-cascata-barra{background:var(--ro-perigo);opacity:.55}
+.adm-cascata-resultado .adm-cascata-barra{background:var(--ro-sucesso)}
+.adm-cascata-prejuizo .adm-cascata-barra{background:var(--ro-perigo);opacity:1}
+.adm-cascata-resultado{border-top:1px solid var(--ro-borda-suave);padding-top:10px}
+.adm-cascata-valor{text-align:right;font-weight:700;color:var(--ro-texto-forte);font-variant-numeric:tabular-nums}
+.adm-cascata-prejuizo .adm-cascata-valor{color:var(--ro-perigo-texto)}
+
+/* Lista de barras (receitas por tipo, custos por setor). */
+.adm-barras{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.adm-barras li{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:var(--ro-tipo-corpo-sm)}
+.adm-barras-rotulo{color:var(--ro-texto);overflow-wrap:anywhere}
+.adm-barras-trilho{display:block;height:10px;background:var(--ro-borda-suave);border-radius:var(--ro-raio-xs);overflow:hidden}
+.adm-barras-barra{display:block;height:100%;border-radius:var(--ro-raio-xs);background:var(--ro-primaria)}
+.adm-barras-saida .adm-barras-barra{background:var(--ro-perigo);opacity:.6}
+.adm-barras-valor{text-align:right;font-weight:700;color:var(--ro-texto-forte);font-variant-numeric:tabular-nums;white-space:nowrap}
+.adm-barras-valor small{display:block;font-weight:400;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave)}
+
+/* Lista de definição com detalhe e total (impostos, tarifas, notas). */
+.adm-lista-def.adm-lista-def-detalhe{display:flex;flex-direction:column;gap:0}
+.adm-lista-def-linha{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--ro-borda-suave)}
+.adm-lista-def-linha:first-child{border-top:0}
+.adm-lista-def-linha dt small{display:block;font-size:var(--adm-tipo-micro);color:var(--ro-texto-suave);margin-top:2px}
+.adm-lista-def-total dt,.adm-lista-def-total dd{font-weight:700;color:var(--ro-texto-forte)}
+
+/* Formulário de recorrente. */
+.adm-sugestoes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center}
+.adm-form-financeiro{border:1px solid var(--ro-borda);border-left:4px solid var(--ro-primaria);border-radius:var(--ro-raio-md);padding:14px 16px;background:var(--ro-primaria-veu)}
+.adm-tipo-lancamento{border:0;padding:0;margin:0 0 10px;display:flex;flex-wrap:wrap;gap:4px 18px}
+.adm-tipo-lancamento legend{font-size:var(--ro-tipo-legenda);font-weight:600;color:var(--ro-texto);margin-bottom:4px}
+.adm-previa{font-size:var(--ro-tipo-corpo-sm);color:var(--ro-texto);background:var(--ro-superficie);border:1px dashed var(--ro-borda);border-radius:var(--ro-raio-sm);padding:10px 12px;margin:6px 0 12px;line-height:1.5}
+
+/* Setores. */
+.adm-setores{list-style:none;margin:12px 0 0;padding:0}
+.adm-setor{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--ro-borda-suave)}
+.adm-setor-nome{flex:1 1 200px}
+
+/* ============================================================================
+   A MARCA NO PAINEL (25/10/2026, rodada 3) — registro COFRE, DENSO.
+   Fonte: docs/marca/BRANDBOOK_REAL_OLIMPICO.md §1.2, §9 e §12, e
+   docs/polimento/brandbook/RECOMENDACOES_AS_FRENTES.md §3 (Frente 5).
+   Mesma paleta do site, raio menor, botão pequeno no desktop, tabela .ro-tabela com a 1ª coluna
+   fixa, <Selo> em toda situação, .btn-danger no irreversível, nada de vitrine nem guilhoché.
+   Componentes novos usam <Selo>/<Aviso>/<EstadoVazio>/<Esqueleto> de src/components/ui; as
+   classes antigas (.pill, .note, .adm-etiqueta) ganham aqui o MESMO desenho, para nenhuma tela do
+   painel ficar com duas línguas visuais.
+   ========================================================================= */
+
+/* ---- Menu lateral: denso, um item por linha ------------------------------- */
+.adm-sidebar .nav-item{font-size:var(--ro-tipo-corpo-sm);padding:9px 12px;gap:10px;border-radius:var(--ro-raio-sm);line-height:1.25}
+.adm-sidebar .nav-item svg{width:18px;height:18px}
+.adm-sidebar .nav-item.active{color:var(--ro-primaria-texto);border-left-color:var(--ro-primaria);background:linear-gradient(90deg,var(--ro-primaria-veu),transparent);box-shadow:none}
+.adm-sidebar .nav-item:hover:not(.active){background:var(--ro-superficie-sutil);transform:none}
+.adm-marca-tag{white-space:nowrap}
+
+/* ---- Superfícies ---------------------------------------------------------- */
+.adm-sidebar.sidebar{background:var(--ro-superficie);border-right:1px solid var(--ro-borda-suave)}
+.adm-main .panel{border-radius:var(--ro-raio-md);border-color:var(--ro-borda-suave)}
+.adm-main .panel:hover{border-color:var(--ro-borda-suave)}
+
+/* ---- Tipografia: títulos em Newsreader, sobretítulo é a única caixa-alta ---- */
+.adm-nav-titulo{font-size:var(--ro-tipo-sobretitulo);letter-spacing:var(--ro-espacejamento-sobretitulo);font-weight:600;color:var(--ro-texto-suave)}
+.adm-marca-tag{font-size:var(--ro-tipo-sobretitulo);letter-spacing:var(--ro-espacejamento-sobretitulo);color:var(--ro-primaria-texto)}
+.adm-bloco-cab h2,.adm-titulo-secao,.adm-identidade-texto h2{font-family:var(--ro-fonte-display);font-weight:600;letter-spacing:-.005em}
+.adm-ind-valor,.adm-cartao-valor,.adm-fila-num{font-family:var(--ro-fonte-display);font-weight:500;font-variant-numeric:tabular-nums lining-nums}
+
+/* ---- Selo: .pill e .adm-etiqueta com o desenho do <Selo> -------------------- */
+.adm-main .pill,.adm-main .adm-etiqueta:not(.adm-etiqueta-botao){
+  display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:3px 10px;border-radius:var(--ro-raio-pilula);
+  font-size:.75rem;font-weight:600;line-height:1.2;white-space:nowrap;
+  color:var(--ro-texto);background:var(--ro-superficie-sutil);border:1px solid var(--ro-borda-suave);
+}
+.adm-main .pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.adm-main .pill.g,.adm-main .adm-etiqueta-verde{color:var(--ro-sucesso-texto);background:var(--ro-sucesso-fundo);border-color:color-mix(in srgb,var(--ro-sucesso) 35%,transparent)}
+.adm-main .pill.y{color:var(--ro-aviso-texto);background:var(--ro-aviso-fundo);border-color:color-mix(in srgb,var(--ro-aviso) 35%,transparent)}
+.adm-main .pill.adm-pill-vermelho,.adm-main .adm-etiqueta-vermelho{color:var(--ro-perigo-texto);background:var(--ro-perigo-fundo);border-color:color-mix(in srgb,var(--ro-perigo) 35%,transparent)}
+.adm-main .adm-etiqueta-ouro{color:var(--ro-primaria-texto);background:var(--ro-primaria-veu);border-color:color-mix(in srgb,var(--ro-primaria) 45%,transparent)}
+.adm-main .adm-etiqueta-botao{border-radius:var(--ro-raio-pilula);border-color:var(--ro-borda-campo);color:var(--ro-texto)}
+.adm-main .adm-etiqueta-botao:hover{border-color:var(--ro-primaria);color:var(--ro-texto-forte)}
+.adm-main .adm-etiqueta-botao[aria-pressed="true"]{background:var(--ro-primaria-veu);border-color:var(--ro-primaria);color:var(--ro-primaria-texto)}
+
+/* ---- Aviso: .note com o desenho do <Aviso tom="info"> ---------------------- */
+.adm-main .note{
+  display:flex;gap:10px;align-items:flex-start;margin-top:0;
+  padding:12px 14px;border-radius:var(--ro-raio-md);
+  border:1px solid var(--ro-borda-suave);border-left:3px solid var(--ro-info);
+  background:var(--ro-info-fundo);color:var(--ro-texto);font-size:var(--ro-tipo-corpo-sm);line-height:1.5;
+}
+.adm-main .note svg{stroke:var(--ro-info-texto)}
+.adm-main .note.adm-negativo{border-left-color:var(--ro-perigo);background:var(--ro-perigo-fundo)}
+.adm-main .ro-aviso{margin-bottom:var(--ro-esp-4)}
+
+/* ---- Tabela: .audit-table com o desenho de .ro-tabela, mais denso --------------- */
+.adm-main .audit-table{font-size:var(--ro-tipo-corpo-sm);border-collapse:separate;border-spacing:0}
+.adm-main .audit-table th{
+  text-transform:none;font-size:.75rem;font-weight:600;letter-spacing:.04em;color:var(--ro-texto-suave);
+  padding:10px 12px;border-bottom:1px solid var(--ro-borda);white-space:nowrap;
+}
+.adm-main .audit-table td{padding:10px 12px;border-bottom:1px solid var(--ro-borda-suave);color:var(--ro-texto)}
+.adm-main .audit-table tbody tr{transition:background-color var(--ro-dur-rapida) ease}
+.adm-main .table-scroll .audit-table th:first-child,
+.adm-main .table-scroll .audit-table td:first-child,
+.adm-main .panel .table-scroll .audit-table th:first-child,
+.adm-main .panel .table-scroll .audit-table td:first-child{background:var(--ro-cartao-base)}
+.adm-main .audit-table tbody tr:hover td,
+.adm-main .panel .table-scroll .audit-table tbody tr:hover td:first-child{background:color-mix(in srgb,var(--ro-cartao-base) 92%,var(--ro-primaria))}
+.adm-main .adm-fraco{color:var(--ro-texto-suave);font-size:var(--ro-tipo-legenda)}
+.adm-main .adm-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* ---- Botões: pequeno no desktop denso, 44 px no toque --------------------------- */
+.adm-main .adm-btn-compacto{min-height:36px;padding:7px 14px;font-size:var(--ro-tipo-corpo-sm);border-radius:var(--ro-raio-sm)}
+.adm-main .btn-danger{border:1px solid var(--ro-perigo-texto)}
+.adm-main .btn-ghost{border:1px solid transparent}
+
+/* ---- Abas: o segmento da marca (.ro-abas), uma linha que rola ------------------- */
+.adm-main .adm-abas2 ul,.adm-main .adm-abas{
+  display:flex;flex-wrap:nowrap;gap:4px;padding:4px;margin:0 0 var(--ro-esp-4);list-style:none;
+  width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none;
+  border-radius:var(--ro-raio-md);background:var(--ro-superficie-sutil);border:1px solid var(--ro-borda-suave);
+}
+.adm-main .adm-abas2 a,.adm-main .adm-abas .chart-tab,.adm-main .adm-abas > button{
+  display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:6px 14px;margin:0;
+  border:0;border-radius:var(--ro-raio-sm);background:transparent;
+  font:inherit;font-size:var(--ro-tipo-corpo-sm);font-weight:500;color:var(--ro-texto-suave);text-decoration:none;white-space:nowrap;
+  transition:background-color var(--ro-dur-rapida) ease,color var(--ro-dur-rapida) ease;
+}
+.adm-main .adm-abas2 a:hover,.adm-main .adm-abas .chart-tab:hover{color:var(--ro-texto-forte)}
+.adm-main .adm-abas2 a[aria-current="page"],.adm-main .adm-abas .chart-tab.on,.adm-main .adm-abas .chart-tab[aria-current="page"]{
+  background:var(--ro-cartao-base);color:var(--ro-texto-forte);box-shadow:var(--ro-sombra-1);outline:1px solid var(--ro-borda-suave);
+}
+.adm-abas2-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--ro-raio-pilula);background:var(--ro-primaria-veu);color:var(--ro-primaria-texto);font-size:var(--adm-tipo-micro);font-weight:600;font-variant-numeric:tabular-nums}
+.adm-subnav{gap:4px}
+.adm-subnav a{min-height:36px;border-radius:var(--ro-raio-pilula);border-color:var(--ro-borda-suave);font-weight:500}
+.adm-subnav a[aria-current="page"]{color:var(--ro-primaria-texto);border-color:var(--ro-primaria);background:var(--ro-primaria-veu)}
+
+/* ---- Indicador: o .ro-kpi da marca ------------------------------------------ */
+/* O número encolhe com o CARTÃO (container query), não com a tela: na lateral de 340 px e na grade
+   de 6 colunas o mesmo valor cabe sem quebrar no meio da palavra (a Inter é ~12% mais larga). */
+.adm-ind{container-type:inline-size;border-radius:var(--ro-raio-md);border-color:var(--ro-borda-suave);background:var(--ro-cartao-base);box-shadow:var(--ro-sombra-1)}
+.adm-ind-valor{font-size:clamp(1rem,13cqi,1.625rem);overflow-wrap:break-word;word-break:normal}
+.adm-ind-link .adm-ind-rotulo::after{content:'\00a0\2192'}
+.adm-ind-ouro .adm-ind-valor{color:var(--ro-primaria-texto)}
+.adm-ind-alerta .adm-ind-valor{color:var(--ro-perigo-texto)}
+
+/* ---- Fila "Pede ação agora": a assinatura (filete à esquerda) ---------------- */
+.adm-fila-item{border-radius:var(--ro-raio-md);background:var(--ro-cartao-base);border-color:var(--ro-borda-suave);border-left-color:var(--ro-primaria);box-shadow:var(--ro-sombra-1)}
+.adm-fila-item.adm-urgente{border-left-color:var(--ro-perigo)}
+.adm-fila-num{color:var(--ro-primaria-texto)}
+.adm-urgente .adm-fila-num{color:var(--ro-perigo-texto)}
+
+/* ---- Confirmação: a de perigo usa o vermelho da marca ------------------------ */
+.adm-confirmacao{border-radius:var(--ro-raio-md);border-color:var(--ro-borda-suave);border-left-color:var(--ro-primaria);background:var(--ro-primaria-veu)}
+.adm-confirmacao.adm-perigo{border-left-color:var(--ro-perigo);background:var(--ro-perigo-fundo)}
+
+/* ---- Estado vazio da marca, compacto no painel -------------------------------- */
+.adm-main .audit-table .btn{white-space:nowrap}
+/* Valor fica numa linha; o detalhe embaixo dele pode quebrar (era o que empurrava as ações para fora). */
+.adm-main .audit-table .adm-num .adm-fraco{white-space:normal;min-width:12ch}
+.adm-main .audit-table .adm-acoes-linha{justify-content:flex-start}
+.adm-carregando-linha{padding:12px 0;border-top:1px solid var(--ro-borda-suave)}
+.adm-main .ro-vazio{padding:24px 16px;border:1px dashed var(--ro-borda-suave);border-radius:var(--ro-raio-md)}
+.adm-main .ro-vazio__titulo{font-weight:600;color:var(--ro-texto-forte)}
+.adm-main .ro-vazio__texto{color:var(--ro-texto-suave);font-size:var(--ro-tipo-corpo-sm);max-width:60ch}
+
+/* ---- Celular e tablet ------------------------------------------------------ */
+@media (max-width:1080px){
+  /* Regra do toque (brandbook §6): o botão pequeno e a aba só existem com mouse. */
+  .adm-main .adm-btn-compacto,.adm-main .adm-abas2 a,.adm-main .adm-abas .chart-tab,.adm-main .adm-subnav a{min-height:44px}
+  /* A gaveta (responsive.css) pede position:fixed; o sticky do desktop sairia por cima. */
+  /* align-self volta ao normal: em caixa fixa, "flex-start" faz o navegador dimensionar a gaveta
+     pelo conteúdo (1190 px) em vez de top/bottom, e o "Sair" ficava fora da tela. */
+  .adm-sidebar.sidebar{position:fixed;max-height:none;align-self:auto}
+  .adm-main.main{max-width:100%}
+  .adm-topbar.topbar{flex-wrap:wrap}
+  .adm-topbar .adm-top-direita{width:100%;justify-content:space-between;flex-shrink:1}
+  .adm-topbar .adm-busca-gatilho{flex:1 1 220px}
+}
+@media (max-width:560px){
+  .adm-topbar .adm-busca-gatilho kbd{display:none}
+  .adm-main .panel{padding:14px}
+  .adm-main .adm-cascata-passo{grid-template-columns:minmax(0,1fr) auto}
+  .adm-main .adm-cascata-trilho{grid-column:1 / -1;grid-row:2}
+  .adm-main .adm-barras li{grid-template-columns:minmax(0,1fr) auto}
+  .adm-main .adm-barras-trilho{grid-column:1 / -1;grid-row:2}
+  .adm-main .panel .panel{padding:12px}
+  /* Indicadores em duas colunas e número menor: um por linha ocupava a tela inteira. */
+  .adm-main .adm-inds,.adm-main .adm-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adm-main .adm-ind-valor,.adm-main .adm-cartao-valor{font-size:var(--ro-tipo-titulo-3)}
+  /* Abas numa linha só, rolando de lado (o celular mostra que há mais pelo corte). */
+  .adm-main .adm-abas2 ul,.adm-main .adm-abas,.adm-main .adm-ajustes-nav ul{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .adm-main .adm-abas2 a,.adm-main .adm-abas .chart-tab,.adm-main .adm-ajustes-nav a{white-space:nowrap}
+  /* responsive.css esconde .theme-box dentro de .top-right no celular (tema vai para o menu
+     lateral); aqui o tema mora no menu da conta e continua visível. */
+  .adm-topbar .adm-conta-menu .theme-box{display:flex}
+  /* No celular o chip fica só com o avatar; nome e papel aparecem dentro do menu. */
+  .adm-topbar .adm-conta-texto{display:none}
+  .adm-topbar .adm-top-direita{flex-wrap:nowrap;gap:8px}
+  .adm-topbar .adm-busca-gatilho{min-width:0}
+  .adm-main .adm-fila-item{padding:12px}
+  .adm-main .adm-fila-item .btn{width:100%}
+  /* Tabela no celular: a coluna fixa não pode tomar a tela inteira. */
+  .adm-main .table-scroll .audit-table th:first-child,
+  .adm-main .table-scroll .audit-table td:first-child{max-width:42vw}
+}
+/* Tabela que vira cartões no celular (o TabelaDados do K2CON, B4b): cada linha é um cartão, cada
+   célula mostra o seu rótulo (data-rotulo). Só CSS; a mesma tabela, as mesmas ações. */
+@media (max-width:560px){
+  .adm-main .adm-tabela-cartoes,.adm-main .adm-tabela-cartoes tbody,.adm-main .adm-tabela-cartoes tr,.adm-main .adm-tabela-cartoes td{display:block;width:100%}
+  .adm-main .table-scroll .adm-tabela-cartoes{min-width:0}
+  .adm-main .adm-tabela-cartoes thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .adm-main .adm-tabela-cartoes tr{border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md);margin-bottom:var(--ro-esp-3);background:var(--ro-cartao-base);overflow:hidden}
+  .adm-main .adm-tabela-cartoes td,.adm-main .table-scroll .adm-tabela-cartoes td:first-child{position:static;box-shadow:none;background:transparent;text-align:left;padding:8px 12px;border-bottom:1px solid var(--ro-borda-suave);max-width:none}
+  .adm-main .adm-tabela-cartoes td::before{content:attr(data-rotulo);display:block;font-size:var(--adm-tipo-micro);font-weight:600;color:var(--ro-texto-suave);margin-bottom:2px}
+  .adm-main .adm-tabela-cartoes td:last-child{border-bottom:0}
+  .adm-main .adm-tabela-cartoes .adm-celula-acoes .btn{flex:1 1 auto}
+}
+/* Hierarquia (rodada 3, revisão de design, conceito 14): o título de painel era h3 logo abaixo do h1 da
+   topbar. Virou h2, com o mesmo desenho do `.panel h3` de base.css; o h4 de dentro virou h3 com o desenho de antes. */
+.adm-main .panel > h2{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-3);color:var(--ro-texto-forte);font-weight:var(--ro-peso-semi);margin:0 0 var(--ro-esp-4);display:flex;align-items:center;gap:9px;line-height:1.25}
+.adm-main .panel h3.adm-subtitulo{display:block;font-family:inherit;font-size:var(--ro-tipo-corpo-sm);font-weight:700;margin:16px 0 8px}
+.adm-main .panel .adm-cartao-papel h3{font-family:inherit;font-size:var(--ro-tipo-corpo);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+@media (prefers-reduced-motion: reduce){
+  .adm-esqueleto{animation:none}
+}

@@ -36,7 +36,7 @@ export function ModalEditarBid({ bid }: { bid: BuyOrder }): ReactNode {
     <>
       <h3 className="serif">Editar oferta de compra</h3>
       <p>
-        Moeda: <b style={{ color: 'var(--gold)' }}>{bid.tipoMoeda}</b>
+        Moeda: <b className="u-ouro">{bid.tipoMoeda}</b>
       </p>
 
       <div className="field-lbl">Quantidade desejada</div>
@@ -60,23 +60,21 @@ export function ModalEditarBid({ bid }: { bid: BuyOrder }): ReactNode {
         />
       </div>
 
-      <div className="note" style={{ marginTop: 12, marginBottom: 12 }}>
+      <div className="note u-mt12 u-mb12">
         Mudar o preço ou aumentar a quantidade leva a oferta para o fim da fila.
       </div>
 
       <div className="m-actions">
         <button
           type="button"
-          className="btn btn-outline"
-          style={{ minHeight: '44px', minWidth: '44px' }}
+          className="btn btn-outline u-toque"
           onClick={close}
         >
           Cancelar
         </button>
         <button
           type="button"
-          className="btn btn-gold"
-          style={{ minHeight: '44px', minWidth: '44px' }}
+          className="btn btn-gold u-toque"
           onClick={() => void salvar()}
         >
           Salvar alterações

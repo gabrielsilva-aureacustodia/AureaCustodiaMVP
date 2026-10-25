@@ -11,6 +11,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { Aviso } from '@/components/ui/Aviso'
 import { PERMISSOES, type ChavePermissao } from '@/domain/admin/permissoes'
 
 export function Cartao({
@@ -98,12 +99,11 @@ export function Indisponivel({ titulo, quando }: { titulo: string; quando: strin
 /** O aviso de ambiente sem banco, igual em toda tela que depende de tabela. */
 export function AvisoSemBanco({ children }: { children?: ReactNode }): ReactNode {
   return (
-    <div className="note adm-secao">
-      <IconeAviso />
-      <span>
-        Este ambiente está sem <code>POSTGRES_URL</code>: o estado vem da memória e não existem ledger, trilha,
-        papéis nem registro de uso. {children}
-      </span>
-    </div>
+    <Aviso tom="info" titulo="Ambiente sem banco de dados">
+      <p>
+        Sem <code>POSTGRES_URL</code>, o estado vem da memória e não existem ledger, trilha, papéis nem registro de uso.{' '}
+        {children}
+      </p>
+    </Aviso>
   )
 }

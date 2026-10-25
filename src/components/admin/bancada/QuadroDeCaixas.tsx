@@ -119,13 +119,14 @@ export function QuadroDeCaixas({
       ) : (
         <div className="table-scroll">
           <table className="audit-table">
+            <caption className="adm-sr">Caixas do cofre: local, ocupação e moedas</caption>
             <thead>
               <tr>
-                <th>Caixa</th>
-                <th>Local</th>
-                <th className="adm-num">Ocupação</th>
-                <th>Moedas</th>
-                <th />
+                <th scope="col">Caixa</th>
+                <th scope="col">Local</th>
+                <th scope="col" className="adm-num">Ocupação</th>
+                <th scope="col">Moedas</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>

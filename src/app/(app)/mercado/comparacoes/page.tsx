@@ -35,6 +35,7 @@ import type { CryptoData } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { LineChart } from '@/components/charts/LineChart'
 import { CHART_MOBILE_MAX_PX, compareChartSize } from '@/lib/charts'
+import { Esqueleto } from '@/components/ui/Esqueleto'
 import type { ChartPoint } from '@/lib/charts'
 
 /** Janela do comparativo, em dias — o `roDailySeries(30)` da linha 2532. */
@@ -152,20 +153,20 @@ export default function ComparacoesPage(): ReactNode {
                 alt=""
                 width={18}
                 height={18}
-                style={{ borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }}
+                className="comp-logo"
               />
               Real Olímpico
             </span>
             <span className="li">
-              <span className="sw" style={{ background: COR_BTC }} />
+              <span className="sw" aria-hidden="true" style={{ background: COR_BTC }} />
               BTC
             </span>
             <span className="li">
-              <span className="sw" style={{ background: COR_ETH }} />
+              <span className="sw" aria-hidden="true" style={{ background: COR_ETH }} />
               ETH
             </span>
             <span className="li">
-              <span className="sw" style={{ background: COR_USDT }} />
+              <span className="sw" aria-hidden="true" style={{ background: COR_USDT }} />
               USDT
             </span>
           </div>
@@ -174,7 +175,11 @@ export default function ComparacoesPage(): ReactNode {
             // Mesma caixa e mesmo texto do estado de carregamento da tela 2.0
             // (linha 2448). O MVP não precisava dele aqui porque as cotações já
             // estavam em memória desde o login.
-            <div className="empty">Carregando cotações…</div>
+            <div className="carregando" role="status" aria-busy="true" aria-label="Carregando cotações…">
+              <Esqueleto altura="14px" largura="100%" />
+              <Esqueleto altura="14px" largura="82%" />
+              <Esqueleto altura="14px" largura="64%" />
+            </div>
           ) : (
             /* A ordem das séries é a ordem de pintura: o Real Olímpico vem por
                ÚLTIMO para ficar por cima das três linhas de cripto. */
@@ -193,41 +198,35 @@ export default function ComparacoesPage(): ReactNode {
             />
           )}
 
-          <div className="stats" style={{ marginTop: 16 }}>
-            <div className="stat">
-              <div>
-                <div className="lbl">Período analisado</div>
-                <div className="val small">30 dias</div>
-              </div>
+          <div className="kpis kpis-justos">
+            <div className="kpi">
+              <div className="lbl">Período analisado</div>
+              <div className="val">30 dias</div>
             </div>
-            <div className="stat">
-              <div>
-                <div className="lbl">Base de comparação</div>
-                <div className="val small">Índice 100</div>
-              </div>
+            <div className="kpi">
+              <div className="lbl">Base de comparação</div>
+              <div className="val">Índice 100</div>
             </div>
-            <div className="stat">
-              <div>
+            <div className="kpi">
                 <div className="lbl">Atualização</div>
                 {/* '—' enquanto não há cotação, como no `cryptoData?...:'—'` do
                     original. Não é mismatch de hidratação: o servidor sempre
                     pinta o traço, e a data só entra depois da resposta. */}
-                <div className="val small">{crypto ? fdate(crypto.lastUpdate) : '—'}</div>
-              </div>
+                <div className="val">{crypto ? fdate(crypto.lastUpdate) : '—'}</div>
             </div>
           </div>
 
         </div>
 
-        <div>
-          <div className="panel" style={{ marginBottom: 16 }}>
+        <div className="coluna-pilha">
+          <div className="panel">
             <div className="how-row">
               <div className="hi">
                 <svg viewBox="0 0 24 24">
                   <path d="M4 21h16M5 21V10h3v11M10.5 21V10h3v11M16 21V10h3v11M3 9l9-6 9 6z" />
                 </svg>
               </div>
-              <b style={{ color: 'var(--gold)' }}>Real Olímpico:</b>&nbsp;recibo de custódia com
+              <b className="ouro">Real Olímpico:</b>&nbsp;recibo de custódia com
               lastro físico.
             </div>
             <div className="how-row">

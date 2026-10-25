@@ -15,7 +15,7 @@
  * `AcoesDoRegistro`, que estes quatro compartilham.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { parsePrice } from '@/domain/money'
@@ -30,6 +30,7 @@ import {
 } from '@/server/actions/admin/registros'
 
 import { useAdmin } from '../AdminProvider'
+import { ConfirmarAcao } from '../ConfirmarAcao'
 import { AcoesDoRegistro } from './AcoesDoRegistro'
 
 export { AcoesDoRegistro }
@@ -47,25 +48,31 @@ function CampoInline({
   aoSalvar,
   aoFechar,
   tipo = 'text',
+  modoTeclado,
 }: {
   rotulo: string
   valorInicial: string
   aoSalvar: (valor: string) => Promise<void>
   aoFechar: () => void
   tipo?: 'text' | 'number'
+  /** Teclado do celular: "decimal" para R$ (vírgula), "numeric" para quantidade. */
+  modoTeclado?: 'decimal' | 'numeric'
 }): ReactNode {
   const [valor, setValor] = useState(valorInicial)
   const [ocupado, setOcupado] = useState(false)
+  const id = useId()
 
   return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
-      <label style={{ fontSize: 12 }}>{rotulo}</label>
+    <div className="adm-campo-inline">
+      <label htmlFor={id}>{rotulo}</label>
       <input
+        id={id}
         className="tinput"
         type={tipo}
+        inputMode={modoTeclado}
+        autoComplete="off"
         value={valor}
         onChange={(e) => setValor(e.target.value)}
-        style={{ maxWidth: 140 }}
       />
       <button
         type="button"
@@ -81,9 +88,9 @@ function CampoInline({
           }
         }}
       >
-        {ocupado ? 'Salvando…' : 'Salvar'}
+        {ocupado ? 'Salvando…' : `Salvar ${rotulo.toLowerCase()}`}
       </button>
-      <button type="button" className="btn btn-outline adm-btn-compacto" onClick={aoFechar}>
+      <button type="button" className="btn btn-ghost adm-btn-compacto" onClick={aoFechar}>
         Cancelar
       </button>
     </div>
@@ -98,13 +105,14 @@ export function AcoesDoLote({ lotId, precoCents }: { lotId: string; precoCents: 
   return (
     <>
       <AcoesDoRegistro
-        descricao="o anúncio"
+        descricao={`o anúncio ${lotId}`}
         aoExcluir={() => excluirLoteDeVenda(lotId)}
         aoEditar={() => setEditando(true)}
       />
       {editando ? (
         <CampoInline
-          rotulo="Preço unitário"
+          rotulo="Preço unitário (R$)"
+          modoTeclado="decimal"
           valorInicial={(precoCents / 100).toFixed(2).replace('.', ',')}
           aoFechar={() => setEditando(false)}
           aoSalvar={async (v) => {
@@ -121,7 +129,7 @@ export function AcoesDoLote({ lotId, precoCents }: { lotId: string; precoCents: 
 /** Ordem de compra: só exclusão — preço e quantidade o cliente edita na tela dele. */
 export function AcoesDaOrdemDeCompra({ bidId }: { bidId: string }): ReactNode {
   return (
-    <AcoesDoRegistro descricao="a ordem de compra" aoExcluir={() => excluirOrdemDeCompra(bidId)} />
+    <AcoesDoRegistro descricao={`a ordem de compra ${bidId}`} aoExcluir={() => excluirOrdemDeCompra(bidId)} />
   )
 }
 
@@ -147,6 +155,7 @@ export function AcoesDoEnvio({
         <CampoInline
           rotulo="Quantidade"
           tipo="number"
+          modoTeclado="numeric"
           valorInicial={String(quantidade)}
           aoFechar={() => setEditando(false)}
           aoSalvar={async (v) => {
@@ -167,26 +176,18 @@ export function AcoesDoEnvio({
  */
 export function AcoesDoPlano({ planoId, cancelado }: { planoId: string; cancelado: boolean }): ReactNode {
   const { pode, run } = useAdmin()
-  const [ocupado, setOcupado] = useState(false)
 
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+    <div className="adm-acoes-linha">
+      {/* Confirmação desde 25/10/2026: um clique só parava a cobrança do cliente sem volta pela tela. */}
       {pode('registros.editar') && !cancelado ? (
-        <button
-          type="button"
-          className="btn btn-outline adm-btn-compacto"
-          disabled={ocupado}
-          onClick={async () => {
-            setOcupado(true)
-            try {
-              await run(() => cancelarPlanoCustodia(planoId))
-            } finally {
-              setOcupado(false)
-            }
-          }}
-        >
-          {ocupado ? 'Cancelando…' : 'Cancelar plano'}
-        </button>
+        <ConfirmarAcao
+          rotulo="Cancelar plano"
+          objeto={`cancelar o plano ${planoId}`}
+          detalhe="A cobrança recorrente para; o registro fica para explicar o que houve."
+          aoConfirmar={() => run(() => cancelarPlanoCustodia(planoId))}
+          perigo
+        />
       ) : null}
       <AcoesDoRegistro
         descricao={`o plano ${planoId}`}

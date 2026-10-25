@@ -27,6 +27,7 @@
  * motivo de a moeda não estar disponível.
  */
 
+import Link from 'next/link'
 import type { KeyboardEvent, ReactNode } from 'react'
 
 import { coinTypeInfo } from '@/domain/constants'
@@ -34,6 +35,7 @@ import type { Coin } from '@/domain/types'
 import { Folder } from '@/components/market/Folder'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
 
 export interface CoinPickerProps {
   /** Moedas negociáveis do usuário, na ordem do inventário. */
@@ -72,10 +74,19 @@ export function CoinPicker({
   // citar só uma delas mandaria o usuário procurar a moeda errada.
   if (!moedas.length) {
     return (
-      <div className="empty">
-        Você ainda não tem moedas negociáveis em custódia. Envie uma moeda em
-        &quot;Envios&quot; para poder anunciá-la aqui.
-      </div>
+      // Vazio por motivo e com o próximo passo (25/10/2026): o texto é o de antes, e o link leva
+      // direto para onde a pessoa resolve isso.
+      <EstadoVazio
+        titulo="Você ainda não tem moedas negociáveis em custódia."
+        ilustracao="semItens"
+        acao={
+          <Link href="/envios" className="btn btn-outline">
+            Ir para Envios
+          </Link>
+        }
+      >
+        Envie uma moeda em &quot;Envios&quot; para poder anunciá-la aqui.
+      </EstadoVazio>
     )
   }
 
@@ -101,7 +112,8 @@ export function CoinPicker({
     <>
       {[...porCategoria.entries()].map(([categoria, tipos]) => {
         const todas = [...tipos.values()].flat()
-        const livres = todas.filter((c) => !anunciadas.has(c.id)).length
+        // Moeda com custódia não paga não está disponível para anunciar: o resumo da pasta não pode contá-la.
+        const livres = todas.filter((c) => !anunciadas.has(c.id) && !(semCustodia?.has(c.id) ?? false)).length
         const temTipoAtivo = tipos.has(tipoAtivo)
 
         return (
@@ -135,7 +147,7 @@ export function CoinPicker({
                   return (
                     <div
                       key={c.id}
-                      className={`sell-coin ${sel ? 'selected' : ''} ${inerte ? 'listed' : ''}`}
+                      className={`sell-coin ${sel ? 'selected' : ''} ${inerte ? 'listed' : ''} ${custodiaPendente ? 'sem-custodia' : ''}`}
                       onClick={inerte ? undefined : () => onToggle(c.id)}
                       onKeyDown={
                         inerte
@@ -164,14 +176,25 @@ export function CoinPicker({
                           Código {c.id} · Entrada {c.entrada}
                         </div>
                         {custodiaPendente ? (
-                          <span
-                            className="badge-red"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onMoedaSemCustodia?.(c.id)
-                            }}
-                          >
-                            ⚠ CUSTÓDIA NÃO PAGA
+                          // Aviso na própria moeda (25/10/2026): ela não pode ser marcada até a custódia ser paga,
+                          // e o botão abre o pop-up com as faturas e o caminho para pagar.
+                          <span className="aviso-sem-custodia">
+                            <span className="badge-red">Custódia não paga</span>
+                            <span className="aviso-sem-custodia-tx">
+                              Esta moeda não pode ser anunciada até a custódia ser paga.
+                            </span>
+                            {onMoedaSemCustodia ? (
+                              <button
+                                type="button"
+                                className="link-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onMoedaSemCustodia(c.id)
+                                }}
+                              >
+                                Ver como pagar<span className="sr-only"> a custódia da moeda {c.id}</span>
+                              </button>
+                            ) : null}
                           </span>
                         ) : listed ? (
                           <span className="badge-gold">JÁ ANUNCIADA</span>

@@ -1,148 +1,146 @@
 /* ============================================================================
-   TOKENS — a única fonte de cor do projeto.
+   TOKENS LEGADOS — camada de ALIASES sobre a marca (src/brand/tokens.css).
 
-   Regra do port: NENHUMA cor literal existe fora deste arquivo. O monolito
-   espalhava rgba() e hex soltos no meio dos componentes (véus de dourado,
-   tintas do certificado, fundos de sobreposição); tudo isso virou token aqui,
-   com o MESMO valor numérico de antes.
+   Até 25/10/2026 este arquivo era a única fonte de cor do projeto, com os
+   valores copiados do monolito. Com o Brandbook do Real Olímpico
+   (docs/marca/BRANDBOOK_REAL_OLIMPICO.md), a fonte passou a ser
+   src/brand/tokens.css, importado ANTES deste em app/globals.css.
 
-   A divisão é a do original:
-     :root                      -> paleta bruta + valores que NÃO mudam com o tema
-     body[data-theme="dark"]    -> papéis semânticos no escuro
-     body[data-theme="light"]   -> papéis semânticos no claro
+   CONTRATO, que as outras frentes do polimento esperam: TODO nome que existia
+   aqui continua existindo, agora apontando para um primitivo ou papel --ro-*.
+   O valor resolvido é o mesmo de antes, salvo onde o comentário diz o motivo.
+   CSS de tela novo deve ler --ro-* direto; estes nomes ficam para o legado não
+   quebrar e somem quando ninguém mais os usar (RECOMENDACOES_AS_FRENTES.md).
 
-   O tema continua sendo trocado pelo atributo data-theme no <body>, como no MVP.
+   Regra que continua valendo: nada de cor literal em CSS de componente. Os
+   translúcidos abaixo são color-mix() sobre o primitivo, com a mesma opacidade
+   do original, para a cor ter uma origem só.
    ========================================================================= */
 
 :root{
-  --navy-deep:#081226;
-  --navy:#0d1b35;
-  --navy-card:#10203f;
-  --navy-card2:#132546;
-  --gold:#c9a24b;
-  --gold-bright:#e3b95c;
-  --gold-soft:#d4af6a;
-  --cream:#f5f0e4;
-  --white:#ffffff;
-  --green:#3fae6a;
-  --red:#d05555;
-  --muted:#8fa0bd;
+  --navy-deep:var(--ro-noite-950);
+  --navy:var(--ro-noite-900);
+  --navy-card:var(--ro-noite-850);
+  --navy-card2:var(--ro-noite-800);
+  --gold:var(--ro-ouro-500);
+  --gold-bright:var(--ro-ouro-400);
+  --gold-soft:var(--ro-ouro-350);
+  --cream:var(--ro-pergaminho-200);
+  --white:var(--ro-pergaminho-0);
+  --green:var(--ro-verde-500);
+  --red:var(--ro-vermelho-500);
+  --muted:var(--ro-noite-300);
 
-  /* ---- Tipografia --------------------------------------------------------
-     O @import de Google Fonts do monolito morreu: quem carrega Playfair Display
-     e Source Sans 3 agora é next/font/google, que publica --font-display e
-     --font-sans. Essas duas variáveis precisam ser aplicadas no <html> (mesmo
-     elemento que :root) — se caírem no <body>, a substituição já terá
-     acontecido aqui em cima e não haverá o que resolver.
-     O fallback dentro do var() é a rede de segurança para esse caso: em vez de
-     invalidar a família inteira, cai na fonte local de mesmo nome. */
-  --ff-sans:var(--font-sans,'Source Sans 3'),sans-serif;
-  --ff-display:var(--font-display,'Playfair Display'),serif;
+  /* Tipografia: as famílias mudaram (Playfair Display + Source Sans 3 →
+     Newsreader + Inter, decisão do benchmark); os nomes, não. */
+  --ff-sans:var(--ro-fonte-texto);
+  --ff-display:var(--ro-fonte-display);
+  /* Usado por components/svg/CoinArt.tsx sem nunca ter sido definido (caía no
+     Georgia do fallback). Agora é a serifa da marca. */
+  --ff-serif:var(--ro-fonte-display);
 
-  /* ---- Tinta sobre superfície dourada ------------------------------------
-     Marrom quase preto usado no texto do .btn-gold, no check das seleções,
-     no número da etapa concluída e na aba de gráfico ativa. Só faz sentido
-     por cima do dourado, por isso não pertence a nenhum tema. */
-  --on-gold:#1a1608;
+  /* Tinta sobre superfície dourada (texto do .btn-gold, check, etapa feita). */
+  --on-gold:var(--ro-ouro-950);
 
-  /* ---- Véus de dourado ---------------------------------------------------
-     Translúcidos: funcionam igual nos dois temas porque deixam o fundo passar.
-     Os sufixos são a opacidade original, para dar rastreabilidade ao port. */
-  --gold-wash:rgba(201,162,75,.12);   /* hover do botão contornado */
-  --gold-tint-10:rgba(201,162,75,.10);/* caixa de média, cartão da caixa postal */
-  --gold-tint-14:rgba(201,162,75,.14);/* item de menu ativo */
-  --gold-tint-18:rgba(201,162,75,.18);/* pill amarela */
+  /* Véus de dourado — o sufixo é a opacidade do monolito. */
+  --gold-wash:color-mix(in srgb,var(--ro-ouro-500) 12%,transparent);
+  --gold-tint-10:color-mix(in srgb,var(--ro-ouro-500) 10%,transparent);
+  --gold-tint-14:color-mix(in srgb,var(--ro-ouro-500) 14%,transparent);
+  --gold-tint-18:color-mix(in srgb,var(--ro-ouro-500) 18%,transparent);
+  /* Usados por recibo.css e pagamento.css sem definição (caíam no fallback
+     escrito à mão dentro do var()). */
+  --gold-tint-30:color-mix(in srgb,var(--ro-ouro-500) 30%,transparent);
+  --gold-subtle:var(--gold-tint-10);
 
-  /* ---- Verde e vermelho translúcidos -------------------------------------
-     As opacidades divergem entre .comp-chip (.25/.22) e .pill (.22/—) no
-     original. Divergência preservada: são tokens diferentes de propósito. */
-  --green-line:rgba(63,174,106,.5);
-  --green-wash:rgba(63,174,106,.1);
-  --green-wash-22:rgba(63,174,106,.22);
-  --green-wash-25:rgba(63,174,106,.25);
-  --red-line:rgba(208,85,85,.5);
-  --red-line-soft:rgba(208,85,85,.4);
-  --red-wash:rgba(208,85,85,.08);
-  --red-wash-22:rgba(208,85,85,.22);
+  /* Verde e vermelho translúcidos — opacidades divergentes preservadas. */
+  --green-line:color-mix(in srgb,var(--ro-verde-500) 50%,transparent);
+  --green-wash:color-mix(in srgb,var(--ro-verde-500) 10%,transparent);
+  --green-wash-22:color-mix(in srgb,var(--ro-verde-500) 22%,transparent);
+  --green-wash-25:color-mix(in srgb,var(--ro-verde-500) 25%,transparent);
+  --red-line:color-mix(in srgb,var(--ro-vermelho-500) 50%,transparent);
+  --red-line-soft:color-mix(in srgb,var(--ro-vermelho-500) 40%,transparent);
+  --red-wash:color-mix(in srgb,var(--ro-vermelho-500) 8%,transparent);
+  --red-wash-22:color-mix(in srgb,var(--ro-vermelho-500) 22%,transparent);
+  /* Usado em ReservasEmAberto.tsx sem definição (caía num #c0392b solto). */
+  --danger:var(--ro-vermelho-500);
 
-  /* ---- Tintas de chip e pill ---------------------------------------------
-     No claro o texto pastel some no fundo branco, então o monolito trocava a
-     cor via body[data-theme="light"]. As regras continuam existindo nos
-     arquivos de componente; aqui ficam só os valores. */
-  --chip-up-ink:#dff5e8;
-  --chip-up-ink-light:#1f7a45;
-  --chip-down-ink:#ffe3e3;
-  --chip-down-ink-light:#a33232;
-  --pill-y-ink:#f7e7bd;
-  --pill-y-ink-light:#7a5d1c;
+  /* Tintas de chip e pill (claro/escuro trocados nos arquivos de componente). */
+  --chip-up-ink:var(--ro-verde-300);
+  --chip-up-ink-light:var(--ro-verde-700);
+  --chip-down-ink:var(--ro-vermelho-300);
+  --chip-down-ink-light:var(--ro-vermelho-700);
+  --pill-y-ink:var(--ro-bronze-300);
+  --pill-y-ink-light:var(--ro-ouro-800);
 
-  /* ---- Sobreposições ------------------------------------------------------ */
-  --backdrop:rgba(5,10,22,.6);        /* fundo da gaveta lateral no mobile */
-  --modal-backdrop:rgba(5,10,22,.7);
-  --photo-rm-bg:rgba(8,18,38,.75);    /* botãozinho de remover foto do wizard */
+  /* Sobreposições. */
+  --backdrop:color-mix(in srgb,var(--ro-noite-990) 60%,transparent);
+  --modal-backdrop:color-mix(in srgb,var(--ro-noite-990) 70%,transparent);
+  --photo-rm-bg:color-mix(in srgb,var(--ro-noite-950) 75%,transparent);
 
-  /* ---- Sombras fixas ------------------------------------------------------
-     Diferente de --shadow, estas NÃO trocam com o tema no original. */
-  --shadow-gold-hover:0 4px 16px rgba(201,162,75,.4);
-  --shadow-toast:0 10px 30px rgba(0,0,0,.4);
-  --shadow-modal:0 20px 60px rgba(0,0,0,.5);
+  /* Sombras fixas (não trocam com o tema no original). */
+  --shadow-gold-hover:0 4px 16px color-mix(in srgb,var(--ro-ouro-500) 40%,transparent);
+  --shadow-toast:0 10px 30px rgb(0 0 0 / .4);
+  --shadow-modal:0 20px 60px rgb(0 0 0 / .5);
 
-  /* ---- Papel do certificado ----------------------------------------------
-     O certificado é impresso em creme nos DOIS temas — é um documento, não uma
-     tela. Por isso as tintas dele são fixas e vivem fora dos blocos de tema. */
-  --cert-border:#d9cfae;
-  --cert-divider:#e3dbc0;
-  --cert-ink-gold:#8a6c2a;
-  --cert-ink-label:#6b6248;
+  /* ---- Papel do certificado — INALTERADO ----------------------------------
+     O certificado é o mesmo documento do PDF, creme nos dois temas. Os valores
+     não mudam com o Brandbook: só passam a apontar para os primitivos que têm
+     o mesmo hex (ouro-700 = #8a6c2a, pergaminho-400 = #d9cfae etc.). Os dois
+     sem primitivo equivalente ficam literais aqui, de propósito. */
+  --cert-border:var(--ro-pergaminho-400);
+  --cert-divider:var(--ro-pergaminho-300);
+  --cert-ink-gold:var(--ro-ouro-700);
+  --cert-ink-label:var(--ro-pergaminho-600);
   --cert-ink-foot:#8a7550;
-  --cert-ink-qr:#a08e5e;
-  /* Tinta do padrão pseudo-QR. Mesmo marrom quase preto do --on-gold, mas com
-     nome próprio: ali ele é texto sobre dourado, aqui é trama sobre o creme do
-     certificado. Separados para que um possa mudar sem arrastar o outro. */
-  --qr-ink:#1a1608;
+  --cert-ink-qr:var(--ro-pergaminho-500);
+  --qr-ink:var(--ro-ouro-950);
 
-  /* ---- Metal da moeda -----------------------------------------------------
-     A arte do Real Olímpico (components/svg/CoinArt.tsx) descreve METAL, não
-     tema: a moeda é dourada no claro e no escuro. Por isso estes valores —
-     todos copiados do coinSVG do monolito — ficam fora dos blocos de tema.
-     O corpo do disco usa --gold direto: o token já é o #c9a24b do original. */
-  --coin-rim:#8a6c2a;      /* serrilha da borda */
-  --coin-core:#cfd4dc;     /* núcleo prateado da bimetálica */
-  --coin-light:#eef1f5;    /* preenchimento claro do motivo */
-  --coin-shade:#7d8694;    /* contorno do motivo claro */
-  --coin-engrave:#3a3f47;  /* gravação dos motivos esportivos */
-  --coin-legend:#5d4718;   /* "BRASIL" e o ano cunhado */
+  /* ---- Metal da moeda — INALTERADO ----------------------------------------
+     Descreve metal, não tema (components/svg/CoinArt.tsx). Mesmos hex de antes;
+     os que coincidem com um primitivo apontam para ele, os pratas ficam aqui. */
+  --coin-rim:var(--ro-ouro-700);
+  --coin-core:#cfd4dc;
+  --coin-light:#eef1f5;
+  --coin-shade:#7d8694;
+  --coin-engrave:#3a3f47;
+  --coin-legend:var(--ro-ouro-900);
 
-  /* ---- Seta do <select> ---------------------------------------------------
-     var() não interpola dentro de url(), então o token guarda a imagem inteira
-     em vez de só a cor: é o único jeito de manter o dourado (%23c9a24b) dentro
-     deste arquivo. */
+  /* Seta do <select>: var() não interpola em url(), então o hex do ouro-500
+     (%23c9a24b) fica aqui por necessidade técnica. */
   --select-caret:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23c9a24b" d="M7 10l5 5 5-5z"/></svg>');
 }
 
-body[data-theme="dark"]{
-  --bg:var(--navy-deep);
-  --bg-panel:var(--navy);
-  --card:linear-gradient(160deg,#10203f 0%,#0d1b35 100%);
-  --card-hover:#152a52;
-  --text:#f2ede0;
-  --text-strong:#fdfaf2;
-  --text-muted:#8fa0bd;
-  --line:rgba(201,162,75,.55);
-  --line-soft:rgba(201,162,75,.28);
-  --input-bg:#0b1830;
-  --shadow:0 8px 28px rgba(0,0,0,.45);
-}
-body[data-theme="light"]{
-  --bg:#f7f5f0;
-  --bg-panel:#ffffff;
-  --card:linear-gradient(160deg,#ffffff 0%,#f4f1e9 100%);
-  --card-hover:#fdf9ef;
-  --text:#0d1b35;
-  --text-strong:#081226;
-  --text-muted:#5a6b8c;
-  --line:rgba(160,124,44,.65);
-  --line-soft:rgba(160,124,44,.32);
-  --input-bg:#ffffff;
-  --shadow:0 8px 24px rgba(13,27,53,.10);
+/* Papéis do tema. Um bloco só para os dois temas: cada nome aponta para o papel
+   --ro-*, e quem troca de valor entre claro e escuro é o papel (brand/tokens.css).
+   Custom property com var() se resolve no elemento onde é declarada — aqui o
+   <body>, que é onde data-theme mora —, então o alias acompanha o tema. */
+body[data-theme]{
+  --bg:var(--ro-fundo);
+  --bg-panel:var(--ro-superficie);
+  --card:var(--ro-cartao);
+  --card-hover:var(--ro-cartao-hover);
+  --text:var(--ro-texto);
+  --text-strong:var(--ro-texto-forte);
+  --text-muted:var(--ro-texto-suave);
+  --line:var(--ro-borda);
+  --line-soft:var(--ro-borda-suave);
+  --input-bg:var(--ro-campo);
+  --shadow:var(--ro-sombra-2);
+
+  /* Nomes usados sem definição em pagamento.css, account.css, login.css,
+     legal.css, admin.css, FaturasCustodia, MinhasOfertas e compras/page.
+     Antes caíam no fallback branco-translúcido escrito para o escuro — e no
+     tema claro o texto (#f8fafc) sumia no fundo. Agora seguem o tema. */
+  --text-main:var(--ro-texto);
+  --border:var(--ro-borda-suave);
+  --card-bg:var(--ro-superficie-sutil);
+  --card-subtle:var(--ro-superficie-sutil);
+  --bg-subtle:var(--ro-superficie-sutil);
+  --bg-card-subtle:var(--ro-superficie-sutil);
+  --bg-card:var(--ro-cartao-base);
+  --bg-card-hover:var(--ro-cartao-hover);
+  --bg-alt:var(--ro-superficie-sutil);
+  --shadow-sm:var(--ro-sombra-1);
+  --shadow-md:var(--ro-sombra-2);
+  --shadow-lg:var(--ro-sombra-3);
 }

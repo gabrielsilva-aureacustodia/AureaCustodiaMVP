@@ -236,7 +236,10 @@ export function BancadaWeb({
           </button>
         </div>
         {fila.length === 0 ? (
-          <p className="empty">Nenhum envio recebido esperando análise.</p>
+          <div className="adm-vazio">
+            <b>Nenhum envio esperando análise.</b>
+            Um envio entra nesta fila quando é marcado como “Recebido pela custódia” na Logística.
+          </div>
         ) : (
           <div className="adm-cs-itens">
             {fila.map((item) => (

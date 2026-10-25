@@ -50,17 +50,14 @@ export default async function BancadaPage(): Promise<ReactNode> {
 
   const catalogoVigente = await carregarCatalogo().catch(() => COIN_TYPES)
 
+  const podeDireto = temPermissao(membro, 'acervo.cadastro_direto')
+  const podeSemEnvio = temPermissao(membro, 'acervo.cadastro_sem_envio')
+
+  // 25/10/2026: a fila e o procedimento vêm primeiro — é o trabalho de todo dia da bancada. Os
+  // dois cadastros (uso eventual, só sócio e desenvolvimento) desceram para o fim da tela, sob um
+  // título que diz para que servem. Mesmos formulários, mesmas permissões.
   return (
     <>
-      {/* Moeda que já está no armazém e não tem envio para analisar entra por
-          aqui. Só sócio e desenvolvimento veem — `operacao` recebe apenas
-          bancada.* e logistica.*, e esta permissão é do módulo acervo. */}
-      {temPermissao(membro, 'acervo.cadastro_direto') ? (
-        <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="direto" />
-      ) : null}
-      {temPermissao(membro, 'acervo.cadastro_sem_envio') ? (
-        <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="sem_envio" />
-      ) : null}
       <BancadaWeb
         filaInicial={fila}
         caixasIniciais={ocupacaoDasCaixas(caixas ?? [], ocupantesDoCofre({ ...state, retiradas }))}
@@ -70,6 +67,19 @@ export default async function BancadaPage(): Promise<ReactNode> {
         videoConfigurado={videoConfigurado()}
         videoFaltando={variaveisDoVideoFaltando()}
       />
+      {/* Moeda que já está no armazém e não tem envio para analisar entra por
+          aqui. Só sócio e desenvolvimento veem — `operacao` recebe apenas
+          bancada.* e logistica.*, e esta permissão é do módulo acervo. */}
+      {podeDireto || podeSemEnvio ? (
+        <section className="adm-secao" aria-labelledby="bancada-sem-envio">
+          <h3 className="adm-titulo-secao" id="bancada-sem-envio">
+            Entradas sem envio postal
+          </h3>
+          <p className="adm-fraco adm-secao">Para moeda que já está no armazém: registrar direto no acervo ou colocar na fila desta bancada.</p>
+          {podeDireto ? <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="direto" /> : null}
+          {podeSemEnvio ? <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="sem_envio" /> : null}
+        </section>
+      ) : null}
     </>
   )
 }

@@ -35,7 +35,7 @@
  * do item, sem frente e verso obrigatórios.
  */
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -75,6 +75,7 @@ import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio 
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, prePostagemAtiva } from '@/domain/envios'
 import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
+import { Esqueleto } from '@/components/ui/Esqueleto'
 
 /** Os cinco passos da tela. */
 type Passo = 1 | 2 | 3 | 4 | 5
@@ -133,24 +134,29 @@ function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
 
   if (!correiosConfigurado || rastreio?.statusAtual === 'indisponivel') {
     return (
-      <div className="note" style={{ marginTop: 14 }}>
-        <b>Correios:</b> não foi possível consultar os Correios agora. A consulta é feita por rotina
-        agendada quando a integração postal estiver disponível.
+      <div className="note nota-rastreio">
+        <span>
+          <b>Correios:</b> não foi possível consultar os Correios agora. A consulta é feita por rotina
+          agendada quando a integração postal estiver disponível.
+        </span>
       </div>
     )
   }
 
   if (rastreio?.statusAtual === 'nao_encontrado') {
     return (
-      <div className="note" style={{ marginTop: 14 }}>
-        <b>Correios:</b> o objeto ainda não consta na base de dados dos Correios. Pode levar algumas
-        horas após a postagem para a agência registrar o pacote.
+      <div className="note nota-rastreio">
+        <span>
+          <b>Correios:</b> o objeto ainda não consta na base de dados dos Correios. Pode levar algumas
+          horas após a postagem para a agência registrar o pacote.
+        </span>
       </div>
     )
   }
 
   return (
-    <div className="note" style={{ marginTop: 14 }}>
+    <div className="note nota-rastreio" role="status">
+      <span>
       {rastreio ? (
         <>
           <b>Correios:</b> {textoDoRastreio(rastreio)}. Última consulta em{' '}
@@ -162,6 +168,7 @@ function RastreioCorreios({ protocolo }: { protocolo: string }): ReactNode {
           agendada, uma vez por dia — a tela nunca consulta os Correios sozinha.
         </>
       )}
+      </span>
     </div>
   )
 }
@@ -210,89 +217,43 @@ function CartaoDePlano({
   selos: string[]
   vantagens: string[]
 }): ReactNode {
+  // <button aria-pressed> desde 25/10/2026 (era <div role="button"> com estilo inline). O conteúdo é
+  // todo <span> porque botão só aceita conteúdo de frase; o desenho mora em wizard.css.
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-pressed={selecionado}
-      className="plan-card"
-      onClick={aoEscolher}
-      onKeyDown={(e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault()
-          aoEscolher()
-        }
-      }}
-      style={{
-        padding: 16,
-        borderRadius: 8,
-        border: selecionado ? '2px solid var(--gold)' : '1px solid var(--line-soft)',
-        background: selecionado ? 'rgba(212, 175, 55, 0.08)' : 'var(--input-bg)',
-        cursor: 'pointer',
-        position: 'relative',
-        minHeight: 180,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div>
+    <button type="button" aria-pressed={selecionado} className="plan-card" onClick={aoEscolher}>
+      <span className="plan-topo">
         {selos.length > 0 && (
-          <div style={{ position: 'absolute', top: -10, right: 12, display: 'flex', gap: 6 }}>
+          <span className="plan-selos">
             {selos.map((selo, i) => (
-              <span
-                key={selo}
-                style={{
-                  background: i === 0 ? 'var(--gold)' : '#1a7f37',
-                  color: i === 0 ? '#000' : '#fff',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 12,
-                  textTransform: i === 0 ? 'uppercase' : 'none',
-                }}
-              >
+              <span key={selo} className={i === 0 ? 'plan-selo destaque' : 'plan-selo'}>
                 {selo}
               </span>
             ))}
-          </div>
+          </span>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 4 }}>
-          <span style={{ fontWeight: 700, fontSize: '15px' }}>{titulo}</span>
-          <span
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              border: '2px solid var(--gold)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              color: 'var(--gold)',
-            }}
-          >
+        <span className="plan-cab">
+          <span className="plan-titulo">{titulo}</span>
+          <span className="plan-radio" aria-hidden="true">
             {selecionado ? '●' : ''}
           </span>
-        </div>
-        <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--gold)' }}>
+        </span>
+        <span className="plan-preco">
           {brl(total)}
-          <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}> {periodo}</span>
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 }}>{porMoeda}</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 2 }}>{parcela}</div>
-      </div>
+          <span className="plan-periodo"> {periodo}</span>
+        </span>
+        <span className="plan-linha">{porMoeda}</span>
+        <span className="plan-linha">{parcela}</span>
+      </span>
 
-      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.4 }}>
+      <span className="plan-vantagens">
         {vantagens.map((v) => (
           <span key={v}>
-            {'✓'} {v}
-            <br />
+            <span aria-hidden="true">✓</span> {v}
           </span>
         ))}
-      </div>
-    </div>
+      </span>
+    </button>
   )
 }
 
@@ -361,7 +322,6 @@ export default function EnviosPage(): ReactNode {
   const tiposDeEnvio = tiposAtivos(catalogo)
   const primeiroTipoEnvio = tiposDeEnvio[0] ?? COIN_TYPES[0]
   const modal = useModal()
-  const router = useRouter()
 
   // Inicializador preguiçoso: a derivação roda uma vez, no primeiro render (que
   // acontece no servidor e no cliente com o MESMO state, então hidrata limpo).
@@ -654,8 +614,11 @@ export default function EnviosPage(): ReactNode {
               Dados do envio
             </h3>
 
-            <div className="field-lbl">Tipo de moeda</div>
+            <label className="field-lbl" htmlFor="envio-tipo">
+              Tipo de moeda
+            </label>
             <select
+              id="envio-tipo"
               className="tinput"
               value={tipoMoeda}
               onChange={(e) => {
@@ -672,8 +635,11 @@ export default function EnviosPage(): ReactNode {
               ))}
             </select>
 
-            <div className="field-lbl">Ano</div>
+            <label className="field-lbl" htmlFor="envio-ano">
+              Ano
+            </label>
             <select
+              id="envio-ano"
               className="tinput"
               value={ano}
               onChange={(e) => setAno(parseInt(e.target.value, 10))}
@@ -685,36 +651,48 @@ export default function EnviosPage(): ReactNode {
               ))}
             </select>
 
-            <div className="field-lbl">Quantidade</div>
+            <label className="field-lbl" htmlFor="envio-qtd">
+              Quantidade
+            </label>
             <input
+              id="envio-qtd"
               type="number"
               min={1}
+              inputMode="numeric"
               className="tinput"
               value={qtdTexto}
               onChange={(e) => setQtdTexto(e.target.value)}
             />
 
-            <div className="field-lbl">Modalidade dos Correios</div>
+            <label className="field-lbl" htmlFor="envio-modalidade">
+              Modalidade dos Correios
+            </label>
             <select
+              id="envio-modalidade"
               className="tinput"
+              aria-describedby="envio-modalidade-nota"
               value={modalidade}
               onChange={(e) => setModalidade(e.target.value as ModalidadeEnvio)}
             >
               <option value="SEDEX">SEDEX com seguro (Mais rápido — 1 a 2 dias úteis)</option>
               <option value="PAC">PAC com seguro (Econômico — 4 a 6 dias úteis)</option>
             </select>
-            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 2, marginBottom: 12 }}>
-              🔒 Carta comum não é permitida por regimento postal para envio de valores/moedas.
-            </div>
+            <p className="campo-dica" id="envio-modalidade-nota">
+              Carta comum não é permitida por regimento postal para envio de valores/moedas.
+            </p>
 
-            <div className="field-lbl">CEP de Origem (Remetente)</div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <label className="field-lbl" htmlFor="envio-cep">
+              CEP de Origem (Remetente)
+            </label>
+            <div className="campo-com-botao">
               <input
+                id="envio-cep"
                 type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
                 placeholder="00000-000"
                 maxLength={9}
                 className="tinput"
-                style={{ flex: 1 }}
                 value={cepOrigem}
                 onChange={(e) => setCepOrigem(e.target.value)}
               />
@@ -725,14 +703,15 @@ export default function EnviosPage(): ReactNode {
                 onClick={() => void handleBuscarCep()}
               >
                 {buscandoCep ? 'Buscando...' : 'Buscar CEP'}
+                <span className="sr-only"> de origem</span>
               </button>
             </div>
             {enderecoDescricao && (
-              <div className="note" style={{ marginTop: -4, marginBottom: 12 }}>
-                📍 <b>Endereço:</b> {enderecoDescricao}
+              <div className="note nota-endereco" role="status">
+                <b>Endereço:</b> {enderecoDescricao}
                 {cotacaoFrete && (
-                  <div style={{ marginTop: 4 }}>
-                    📦 <b>Estimativa Correios:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
+                  <div>
+                    <b>Estimativa Correios:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
                     {cotacaoFrete.origem === 'tabela' && (
                       <> — <i>estimativa local — contrato não configurado</i></>
                     )}
@@ -741,7 +720,9 @@ export default function EnviosPage(): ReactNode {
               </div>
             )}
 
-            <div className="field-lbl">Foto do item</div>
+            <div className="field-lbl" id="envio-foto">
+              Foto do item
+            </div>
             <div className="photo-row single">
               <PhotoSlot data={foto} onSelect={escolherFoto} onRemove={removerFoto} />
             </div>
@@ -775,10 +756,10 @@ export default function EnviosPage(): ReactNode {
 
           {/* A coluna direita do .cols-rev existe como <div> avulsa também no
               original — é ela que o responsive.css empilha abaixo no celular. */}
-          <div>
+          <div className="coluna-pilha">
             {/* Antes das instruções: quem chega aqui para enviar outra moeda
                 precisa ver primeiro que a custódia da anterior está em aberto. */}
-            <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
+            <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 0 }} />
 
             <div className="panel">
               <h3>
@@ -821,9 +802,9 @@ export default function EnviosPage(): ReactNode {
 
       {/* ============================ PASSO 2 ============================ */}
       {wizard.passo === 2 && (
-        <div className="panel" style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div className="panel passo-estreito">
           <h3>
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 3h9l4 4v14H6z" />
               <path d="M9 11h7M9 15h7" />
             </svg>
@@ -883,25 +864,29 @@ export default function EnviosPage(): ReactNode {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="passo-acoes">
             <button
               type="button"
               className="btn btn-outline"
-              style={{ flex: 1 }}
               onClick={() => setWizard((w) => ({ ...w, passo: 1 }))}
             >
-              Voltar
+              Voltar<span className="sr-only"> para os dados do envio</span>
             </button>
             <button
               type="button"
               className="btn btn-gold"
-              style={{ flex: 1 }}
+              aria-describedby={confirmOk ? undefined : 'envio-confirma-motivo'}
               disabled={!confirmOk}
               onClick={() => void gerarProtocolo()}
             >
               Gerar protocolo
             </button>
           </div>
+          {!confirmOk ? (
+            <p className="motivo" id="envio-confirma-motivo">
+              Marque a confirmação acima para gerar o protocolo.
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -910,15 +895,15 @@ export default function EnviosPage(): ReactNode {
         (!envio ? (
           <div className="empty">Protocolo não encontrado.</div>
         ) : (
-          <div className="panel" style={{ maxWidth: 680, margin: '0 auto' }}>
+          <div className="panel passo-estreito">
             <h3>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               Plano de custódia
             </h3>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 18 }}>
-              Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
+            <p className="lead">
+              Protocolo <b className="ouro">{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
               A custódia no Real Olímpico é de {brl(taxas.custodiaMensalPorMoeda)} por moeda / mês.
             </p>
 
@@ -926,16 +911,8 @@ export default function EnviosPage(): ReactNode {
               const prazo = prazoPostagemEnvio(envio)
               if (!envio.dataPostagem && prazo.mensagemAlerta && !prazo.expirado) {
                 return (
-                  <div
-                    className="warn-box"
-                    style={{
-                      marginBottom: 16,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" style={{ flexShrink: 0, width: 20, height: 20 }}>
+                  <div className="warn-box aviso-prazo" role="status">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M12 8v5M12 16.5v.5" />
                       <circle cx="12" cy="12" r="9" />
                     </svg>
@@ -948,7 +925,7 @@ export default function EnviosPage(): ReactNode {
               return null
             })()}
 
-            <div style={{ maxWidth: 380, margin: '0 auto 20px' }}>
+            <div className="plan-unico">
               <CartaoDePlano
                 titulo="Plano Mensal"
                 selecionado={true}
@@ -967,15 +944,18 @@ export default function EnviosPage(): ReactNode {
               />
             </div>
 
-            <div className="note" style={{ marginBottom: 16 }}>
-              🛡️ <b>Garantia Real Olímpico:</b> Caso alguma moeda seja recusada na análise física, o valor da custódia pago correspondente é <b>estornado integralmente</b> para o seu saldo.
+            <div className="note">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+              </svg>
+              <span>
+              <b>Garantia Real Olímpico:</b> Caso alguma moeda seja recusada na análise física, o valor da custódia pago correspondente é <b>estornado integralmente</b> para o seu saldo.
+              </span>
             </div>
 
             {/* Painel de Pagamento Inline */}
-            <div style={{ marginTop: 20, marginBottom: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: 10 }}>
-                Pagar custódia agora
-              </div>
+            <div className="passo-bloco">
+              <h4 className="passo-sub">Pagar custódia agora</h4>
               {faturaId ? (
                 <PainelPagamento
                   valorCents={(state.faturasCustodia ?? []).find((f) => f.id === faturaId)?.valorCents ?? valorDoPlano(modalidadePlano, envio.quantidade, { ...taxas }).total}
@@ -998,35 +978,26 @@ export default function EnviosPage(): ReactNode {
                   }}
                 />
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
-                  Carregando opções de pagamento...
+                <div className="carregando" role="status" aria-busy="true" aria-label="Carregando opções de pagamento...">
+                  <Esqueleto altura="14px" largura="100%" />
+                  <Esqueleto altura="14px" largura="82%" />
                 </div>
               )}
             </div>
 
             {/* Ação secundária: Pagar depois */}
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--line-soft)', textAlign: 'center' }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ width: '100%', minHeight: 44 }}
-                onClick={() => void handlePagarDepois()}
-              >
+            <div className="passo-rodape">
+              <button type="button" className="btn btn-outline" onClick={() => void handlePagarDepois()}>
                 Pagar depois (avançar para postagem nos Correios) →
               </button>
-              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 8 }}>
+              <p className="campo-dica">
                 Você pode enviar a moeda agora e quitar a fatura a qualquer momento em <b>Minha conta › Faturas</b>.
-              </div>
+              </p>
 
               {/* Voltar para a conferência dos dados. O protocolo JÁ FOI
                   GERADO e continua valendo — voltar aqui é rever o que foi
                   declarado, não desfazer o envio. Por isso o passo 2, e não o 1. */}
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ width: '100%', minHeight: 44, marginTop: 10 }}
-                onClick={() => setWizard((w) => ({ ...w, passo: 2 }))}
-              >
+              <button type="button" className="link-btn" onClick={() => setWizard((w) => ({ ...w, passo: 2 }))}>
                 ‹ Voltar para os dados do envio
               </button>
             </div>
@@ -1038,21 +1009,15 @@ export default function EnviosPage(): ReactNode {
         (!envio ? (
           <div className="empty">Protocolo não encontrado.</div>
         ) : (
-          <div className="panel" style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div className="panel passo-estreito">
             <h3>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
               </svg>
               Enviar pelos Correios
             </h3>
-            <p
-              style={{
-                fontSize: '13.5px',
-                color: 'var(--text-muted)',
-                marginBottom: '14px',
-              }}
-            >
-              Protocolo <b style={{ color: 'var(--gold)' }}>{envio.protocolo}</b> gerado.{' '}
+            <p className="lead">
+              Protocolo <b className="ouro">{envio.protocolo}</b> gerado.{' '}
               {prePostagemAtiva(envio)
                 ? 'A etiqueta oficial dos Correios já está emitida: imprima, cole na caixa e poste em qualquer agência.'
                 : freteDoEnvio?.origem === 'tabela' || (!prePostagemAtiva(envio) && envio.dataPostagem)
@@ -1105,16 +1070,8 @@ export default function EnviosPage(): ReactNode {
               const prazo = prazoPostagemEnvio(envio)
               if (!envio.dataPostagem && prazo.mensagemAlerta && !prazo.expirado) {
                 return (
-                  <div
-                    className="warn-box"
-                    style={{
-                      marginTop: 14,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" style={{ flexShrink: 0, width: 20, height: 20 }}>
+                  <div className="warn-box aviso-prazo" role="status">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M12 8v5M12 16.5v.5" />
                       <circle cx="12" cy="12" r="9" />
                     </svg>
@@ -1138,7 +1095,7 @@ export default function EnviosPage(): ReactNode {
             */}
             {envio.dataPostagem ? (
               <>
-                <div className="summary-box" style={{ marginTop: 16 }}>
+                <div className="summary-box passo-resumo">
                   <div className="sr">
                     <span className="k">Código de rastreio</span>
                     <span className="v">{envio.codigoRastreio}</span>
@@ -1148,26 +1105,18 @@ export default function EnviosPage(): ReactNode {
                     <span className="v">{fdate(envio.dataPostagem)}</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
-                  onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}
-                >
-                  Continuar para acompanhamento
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
-                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
-                >
-                  ‹ Voltar para o plano de custódia
-                </button>
+                <div className="passo-pilha">
+                  <button type="button" className="btn btn-gold" onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}>
+                    Continuar para acompanhamento
+                  </button>
+                  <button type="button" className="link-btn" onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}>
+                    ‹ Voltar para o plano de custódia
+                  </button>
+                </div>
               </>
             ) : prePostagemAtiva(envio) ? (
               <>
-                <div className="summary-box" style={{ marginTop: 16 }}>
+                <div className="summary-box passo-resumo">
                   <div className="sr">
                     <span className="k">Código de rastreio</span>
                     <span className="v">{prePostagemAtiva(envio)?.codigoObjeto}</span>
@@ -1184,14 +1133,13 @@ export default function EnviosPage(): ReactNode {
                   href={`/api/envios/etiqueta/${envio.protocolo}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-gold"
-                  style={{ width: '100%', minHeight: 44, marginTop: 12, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}
+                  className="btn btn-gold btn-link-cheio"
                 >
-                  🖨️ Imprimir etiqueta oficial dos Correios
+                  Imprimir etiqueta oficial dos Correios<span className="sr-only"> (abre em nova aba)</span>
                 </a>
 
-                <div className="note" style={{ marginTop: 12 }}>
-                  <svg viewBox="0 0 24 24">
+                <div className="note">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 8v5M12 16.5v.5" />
                   </svg>
@@ -1202,8 +1150,7 @@ export default function EnviosPage(): ReactNode {
 
                 <button
                   type="button"
-                  className="btn btn-outline"
-                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                  className="btn btn-outline btn-link-cheio"
                   onClick={() => setWizard((w) => ({ ...w, passo: 5 }))}
                 >
                   Ir para o acompanhamento
@@ -1211,8 +1158,8 @@ export default function EnviosPage(): ReactNode {
               </>
             ) : envio.frete?.status === 'pago' ? (
               <>
-                <div className="warn-box" style={{ marginTop: 16 }}>
-                  <svg viewBox="0 0 24 24">
+                <div className="warn-box passo-resumo" role="alert">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 3l9 16H3z" />
                     <path d="M12 10v4M12 17v.5" />
                   </svg>
@@ -1222,8 +1169,7 @@ export default function EnviosPage(): ReactNode {
                 </div>
                 <button
                   type="button"
-                  className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 12, minHeight: 44 }}
+                  className="btn btn-gold btn-link-cheio"
                   disabled={emitindoEtiqueta}
                   onClick={() => void emitirEtiqueta()}
                 >
@@ -1232,56 +1178,57 @@ export default function EnviosPage(): ReactNode {
               </>
             ) : freteDoEnvio?.origem === 'tabela' ? (
               <>
-                <div className="note" style={{ marginTop: 14 }}>
-                  📦 <b>Frete estimado:</b> {brl(freteDoEnvio.valorCents)} ({freteDoEnvio.modalidade}, prazo{' '}
-                  {freteDoEnvio.prazoDiasUteis} dias úteis) — <i>estimativa local — contrato não configurado</i>.
-                  Neste ambiente o frete é pago na agência e o código do comprovante é digitado abaixo.
+                {/* O texto vai num <span>: .note é flex, e cada <b>/<i> solto virava uma coluna. */}
+                <div className="note">
+                  <span>
+                    <b>Frete estimado:</b> {brl(freteDoEnvio.valorCents)} ({freteDoEnvio.modalidade}, prazo{' '}
+                    {freteDoEnvio.prazoDiasUteis} dias úteis) — <i>estimativa local — contrato não configurado</i>.
+                    Neste ambiente o frete é pago na agência e o código do comprovante é digitado abaixo.
+                  </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <div className="passo-acoes">
                   <a
                     href={`/api/envios/etiqueta/${envio.protocolo}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-gold"
-                    style={{ flex: 1, minHeight: 44, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    🖨️ Imprimir Etiqueta Postal
-                  </a>
-                  <a
-                    href="https://www.correios.com.br"
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="btn btn-outline"
-                    style={{ flex: 1, minHeight: 44, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    Abrir Correios Online ↗
+                    Imprimir Etiqueta Postal<span className="sr-only"> (abre em nova aba)</span>
+                  </a>
+                  <a href="https://www.correios.com.br" target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+                    Abrir Correios Online ↗<span className="sr-only"> (abre em nova aba)</span>
                   </a>
                 </div>
 
-                <div className="field-lbl" style={{ marginTop: 16 }}>
+                <label className="field-lbl" htmlFor="envio-rastreio">
                   Código de rastreio dos Correios
-                </div>
+                </label>
                 <input
+                  id="envio-rastreio"
                   type="text"
+                  className="tinput"
                   inputMode="text"
                   autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  translate="no"
                   placeholder="AA123456789BR"
-                  aria-label="Código de rastreio dos Correios"
+                  aria-invalid={erroRastreio ? true : undefined}
+                  aria-describedby="envio-rastreio-nota"
                   value={rastreioDigitado}
                   onChange={(e) => {
                     setRastreioDigitado(e.target.value)
                     if (erroRastreio) setErroRastreio('')
                   }}
-                  style={{ width: '100%', minHeight: 44 }}
                 />
 
                 {erroRastreio ? (
-                  <div className="note" style={{ marginTop: 8 }}>
+                  <div className="note msg-erro" id="envio-rastreio-nota" role="alert">
                     {erroRastreio}
                   </div>
                 ) : (
-                  <div className="note" style={{ marginTop: 8 }}>
+                  <div className="note" id="envio-rastreio-nota">
                     Depois de postar na agência, digite aqui o código impresso no comprovante dos
                     Correios. É com ele que você e a nossa equipe acompanham o pacote até a central
                     de custódia.
@@ -1290,48 +1237,42 @@ export default function EnviosPage(): ReactNode {
 
                 <button
                   type="button"
-                  className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 12, minHeight: 44 }}
+                  className="btn btn-gold btn-link-cheio"
                   disabled={!rastreioValido(normalizarRastreio(rastreioDigitado))}
                   onClick={() => void marcarPostado()}
                 >
-                  Confirmar postagem
+                  Confirmar postagem<span className="sr-only"> do envio {envio.protocolo}</span>
                 </button>
                 {/* Ainda dá para rever o plano antes de postar: nada foi
                     entregue aos Correios até o código de rastreio existir. */}
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ width: '100%', marginTop: 10, minHeight: 44 }}
-                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
-                >
+                <button type="button" className="link-btn" onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}>
                   ‹ Voltar para o plano de custódia
                 </button>
               </>
             ) : (
               <>
-                <div className="field-lbl" style={{ marginTop: 16 }}>
+                <label className="field-lbl" htmlFor="envio-frete-modalidade">
                   Modalidade dos Correios
-                </div>
+                </label>
                 <select
+                  id="envio-frete-modalidade"
                   className="tinput"
                   value={modalidadeFrete}
                   disabled={cotandoFrete}
                   onChange={(e) => setModalidadeFreteEscolhida(e.target.value as ModalidadeEnvio)}
-                  style={{ minHeight: 44 }}
                 >
                   <option value="SEDEX">SEDEX com seguro (mais rápido)</option>
                   <option value="PAC">PAC com seguro (econômico)</option>
                 </select>
 
                 {cotandoFrete ? (
-                  <div className="note" style={{ marginTop: 10 }}>
+                  <div className="note" role="status">
                     Calculando o frete pelo contrato dos Correios…
                   </div>
                 ) : erroFrete ? (
                   <>
-                    <div className="warn-box" style={{ marginTop: 10 }}>
-                      <svg viewBox="0 0 24 24">
+                    <div className="warn-box passo-resumo" role="alert">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 3l9 16H3z" />
                         <path d="M12 10v4M12 17v.5" />
                       </svg>
@@ -1339,8 +1280,7 @@ export default function EnviosPage(): ReactNode {
                     </div>
                     <button
                       type="button"
-                      className="btn btn-outline"
-                      style={{ width: '100%', marginTop: 10, minHeight: 44 }}
+                      className="btn btn-outline btn-link-cheio"
                       onClick={() => setTentativaCotacao((n) => n + 1)}
                     >
                       Calcular o frete de novo
@@ -1348,7 +1288,7 @@ export default function EnviosPage(): ReactNode {
                   </>
                 ) : freteDoEnvio && freteDoEnvio.modalidade === modalidadeFrete ? (
                   <>
-                    <div className="summary-box" style={{ marginTop: 12 }}>
+                    <div className="summary-box passo-resumo">
                       <div className="sr">
                         <span className="k">Frete {freteDoEnvio.modalidade} (contrato dos Correios)</span>
                         <span className="v">{brl(freteDoEnvio.valorCents)}</span>
@@ -1362,10 +1302,10 @@ export default function EnviosPage(): ReactNode {
                         <span className="v">{brl(envio.quantidade * 15000)}</span>
                       </div>
                     </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6, marginBottom: 12 }}>
+                    <p className="campo-dica">
                       Preço do contrato dos Correios, sem margem do Real Olímpico. Pago o frete, a etiqueta
                       oficial sai na hora e você posta em qualquer agência sem pagar nada no balcão.
-                    </div>
+                    </p>
 
                     <PainelPagamento
                       // Trocar PAC/SEDEX muda o valor: a chave descarta um Pix aberto para o valor anterior.
@@ -1393,12 +1333,7 @@ export default function EnviosPage(): ReactNode {
                   </>
                 ) : null}
 
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  style={{ width: '100%', marginTop: 14, minHeight: 44 }}
-                  onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}
-                >
+                <button type="button" className="link-btn" onClick={() => setWizard((w) => ({ ...w, passo: 3 }))}>
                   ‹ Voltar para o plano de custódia
                 </button>
               </>
@@ -1411,9 +1346,9 @@ export default function EnviosPage(): ReactNode {
         (!envio ? (
           <div className="empty">Protocolo não encontrado.</div>
         ) : (
-          <div className="panel" style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div className="panel passo-estreito">
             <h3>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
               </svg>
               Acompanhamento — {envio.protocolo}
@@ -1425,7 +1360,7 @@ export default function EnviosPage(): ReactNode {
 
             {envio.etapaAtual === 'Recibo emitido' ? (
               <>
-                <div className="summary-box" style={{ marginTop: 18 }}>
+                <div className="summary-box passo-resumo">
                   <div className="sr">
                     <span className="k">Moeda(s) gerada(s)</span>
                     <span className="v">{envio.codigosAtivosGerados.join(', ')}</span>
@@ -1452,29 +1387,19 @@ export default function EnviosPage(): ReactNode {
                     )
                   })()}
                 </div>
-                <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ flex: 1 }}
-                    onClick={() => router.push('/recibos')}
-                  >
+                <div className="passo-acoes">
+                  <Link className="btn btn-outline" href="/recibos">
                     Ver meus recibos
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-gold"
-                    style={{ flex: 1 }}
-                    onClick={novoEnvio}
-                  >
+                  </Link>
+                  <button type="button" className="btn btn-gold" onClick={novoEnvio}>
                     Novo envio
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <div className="note" style={{ marginTop: 18 }}>
-                  <svg viewBox="0 0 24 24">
+                <div className="note">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 8v5M12 16.5v.5" />
                   </svg>
@@ -1485,25 +1410,13 @@ export default function EnviosPage(): ReactNode {
                 {/* O botão existia só depois do recibo emitido, então quem
                     estava esperando a análise não tinha saída nenhuma desta
                     tela. Esperar a bancada não impede mandar outra moeda. */}
-                <button
-                  type="button"
-                  className="btn btn-gold"
-                  style={{ width: '100%', marginTop: 14, minHeight: 44 }}
-                  onClick={novoEnvio}
-                >
+                <button type="button" className="btn btn-gold btn-link-cheio" onClick={novoEnvio}>
                   Fazer outro envio
                 </button>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: 'var(--text-muted)',
-                    marginTop: 8,
-                    textAlign: 'center',
-                  }}
-                >
+                <p className="campo-dica centro">
                   Este envio continua em andamento — acompanhe por ele no bloco abaixo, em
                   &ldquo;Acompanhamento de todos os seus envios&rdquo;.
-                </div>
+                </p>
               </>
             )}
           </div>

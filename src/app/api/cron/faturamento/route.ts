@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { processarCicloFaturamento } from '@/server/custodia/faturamento'
 import { processarNotasPendentes } from '@/server/nfse/emissao'
+import { lancarVencidos } from '@/server/admin/financeiro'
+import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 
 /**
  * Job agendado de faturamento de custódia (Sessão B-5 / Bloco 8).
@@ -11,6 +13,8 @@ import { processarNotasPendentes } from '@/server/nfse/emissao'
  * src/domain/ciclo-custodia.ts) —, então a cada passada só aparece o que venceu naquele dia: debita
  * em saldo quando há e emite a fatura pendente quando não há. Até 02/10/2026 rodava só no dia 1º e
  * cobrava o acervo inteiro de todo mundo de uma vez.
+ *
+ * Também lança os custos e receitas recorrentes do controle financeiro que venceram (25/10/2026).
  *
  * Segurança: protegido por `CRON_SECRET` via cabeçalho `Authorization: Bearer <CRON_SECRET>`.
  */
@@ -36,10 +40,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       console.error('[Cron Faturamento] Falha no reenvio das NFS-e:', erroNfse)
       nfse = { falhou: true }
     }
+    // Controle financeiro (migration 046, 25/10/2026): cada custo ou receita recorrente vencido vira o
+    // lançamento manual da conta escolhida, e entra na DRE. Idempotente (índice único da 046); falhar
+    // aqui não desfaz o faturamento nem as notas.
+    let recorrentes: unknown = null
+    if (bancoConfigurado()) {
+      try {
+        const r = await lancarVencidos(executarNoBanco, 'sistema:faturamento')
+        recorrentes = r.ok ? { lancados: r.dados?.lancadas.length ?? 0 } : { falhou: true }
+      } catch (erroRecorrentes) {
+        console.error('[Cron Faturamento] Falha ao lançar custos e receitas recorrentes:', erroRecorrentes)
+        recorrentes = { falhou: true }
+      }
+    }
     return NextResponse.json({
       ok: true,
       ...relatorio,
       nfse,
+      recorrentes,
       executadoEm: new Date().toISOString(),
     })
   } catch (error) {
