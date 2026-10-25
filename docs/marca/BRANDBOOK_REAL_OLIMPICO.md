@@ -265,6 +265,12 @@ Só as duas negociáveis — **Entrega da Bandeira Olímpica** (2012) e **Direit
 bimetálica, núcleo prata, anel ouro, legenda e desenho fiéis às fotos de `public/moedas/`. Moeda inventada, moeda de
 outro país ou "moeda genérica dourada" não entram.
 
+**A moeda não se gera do zero — compõe-se** (regra de 25/10/2026, depois da rodada 2 da Frente 2): quando o gerador
+desenha a moeda, ele inventa legenda, troca o desenho do núcleo e erra a grafia (medido: 6 de 14 ativos reprovados,
+ver §13.4). Toda imagem em que a face da moeda aparece legível usa **os pixels da foto real** (`public/moedas/*.png`
+recortada), posta na cena por perspectiva, luz e sombra; o gerador só faz o que está em volta (fundo, superfície, luz,
+desfoque). Moeda gerada só é aceita fora de foco ou de perfil, onde nenhuma letra se lê.
+
 ### 8.2 Luz e cena (padrão "vitrine")
 - **Luz**: chave quente rasante a 30–45° vinda de cima-esquerda (revela o relevo, como o TrueView da PCGS), contraluz
   fria fraca na borda, **sem** reflexo estourado no núcleo prata.
@@ -420,6 +426,24 @@ referência de paleta — **nunca** reproduzir a logo).
 | OG | padrão e marketplace (1200×630) | ✅ |
 | onboarding / admin | 6 spots + 2 estados vazios; 2 spots de admin | ✅ base da série §8.4 |
 
+### 13.4.1 Rodada 2 (pedidos de `PEDIDOS_ANTIGRAVITY.md` §2) — conferida pela Frente 1 em 25/10/2026
+| Ativo | Situação | Motivo |
+|---|---|---|
+| `moedas-bandeira-tres-quartos-transparente` | ❌ reprovado | sem "BRASIL" e sem o logo Rio 2016 no núcleo; "1 REAL 2012" inventado sob a bandeira |
+| `moedas-direitos-humanos-tres-quartos-transparente` | ❌ reprovado | mapa quadriculado virou globo genérico, figura dourada virou boneco prateado, "★ 1998 ★" inventado, legenda "DEECLARAÇÃO" |
+| `macros-perfil-serrilha-duas-moedas` | ✅ com ressalva | uma moeda só (pedido falava em duas); serrilha e luz corretas, nenhuma letra legível |
+| `cenarios-lacre-de-custodia` | ❌ reprovado | código de barras e texto legível no lacre ("LACRAÇÃO", número de série), moeda comum de 1 real em vez das negociáveis, faixa azul chapada colada no topo |
+| `fundos-veludo-noite` | ✅ com ressalva | manchas escuras visíveis no centro; serve sob `.ro-vitrine-luz` |
+| `cenarios-faixa-abertura-painel` | ❌ reprovado | moeda inventada (mão segurando a bandeira, "BRASIL" duas vezes no anel) e **nítida** — o pedido era fora de foco |
+| `onboarding-spot-*` (5) | ✅ | mesma linguagem da série; prontos para `<EstadoVazio>` |
+| `og-moeda-bandeira` | ❌ reprovado | moeda monometálica inventada, anéis duas vezes, legenda "ENTTTREGA" |
+| `og-moeda-direitos-humanos` | ❌ reprovado | moeda inventada (mapa-múndi, "1 REAL 1998", "BRASIL" no anel) |
+| `og-recibo-de-custodia` | ✅ | papel e ardósia corretos; a moeda é pequena e sem leitura |
+| ícones do emblema (`marca/icon-180/192/512`, `favicon-16/32`) | ✅ | emblema oficial redimensionado, sem redesenho |
+| Observações gerais | ⚠️ | os 3 OGs novos não têm a versão `-1200` (a rodada 1 tem); os PNG-mestre saíram em 1024 px, não 4K, e estão em `public/` em vez do Drive |
+
+Refação pela regra do §8.1 (composição sobre a foto real): `PEDIDOS_ANTIGRAVITY.md` §3.
+
 ### 13.5 O que ainda falta (pedido em `PEDIDOS_ANTIGRAVITY.md`)
 1. Moedas em **¾ isoladas** (fundo transparente) para `.ro-cartao-moeda` — 4K, 1:1, as duas.
 2. **Perfil 80°** da serrilha das duas moedas (cartão de detalhe do recibo).
@@ -444,3 +468,4 @@ número de negócio fica fora dele.
 |---|---|---|
 | 25/10/2026 | v1.0 criada: paleta amostrada da logo, papéis com AA medido, Newsreader + Inter, escala fluida, componentes `.ro-*`, assinatura (aro, serrilha, guilhoché) | Frente 1 do polimento; benchmark de 25 referências |
 | 25/10/2026 | anéis olímpicos liberados quando parte da moeda real retratada | decisão do Gabriel |
+| 25/10/2026 | moeda legível nunca é gerada do zero: composição sobre a foto real (§8.1); rodada 2 conferida (§13.4.1) | 6 de 14 ativos da rodada 2 com moeda inventada |

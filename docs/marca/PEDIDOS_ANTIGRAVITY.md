@@ -159,3 +159,69 @@ Uso: `<EstadoVazio arte>` e os avisos da plataforma (Frente 4).
 ### 2.9 `icone-app-a-partir-do-emblema` (NÃO é geração)
 Redimensionar `public/brand/logo-real-olimpico-emblema.png` existente para 180, 192, 512 px e 32/16 px (favicon), sobre
 fundo `#081226` com área de proteção de 12%. Sem redesenhar, recolorir ou simplificar o emblema.
+
+---
+
+## 3. Rodada 3 — refazer 6 ativos por COMPOSIÇÃO sobre a foto real (25/10/2026)
+
+Conferência da rodada 2 no Brandbook §13.4.1: 6 ativos reprovados porque o gerador **inventou a moeda** (legenda
+trocada, núcleo redesenhado, "1 REAL" acrescentado, "DEECLARAÇÃO", "ENTTTREGA"). Regra nova (Brandbook §8.1): **a face
+legível da moeda vem sempre dos pixels da foto real**; o modelo de imagem só gera o entorno.
+
+### 3.1 Prompt-mestre da rodada 3 (colar no Antigravity)
+
+```text
+Você é o agente da Frente 2 — Ativos do Real Olímpico, rodada 3. Trabalhe SOMENTE em C:\dev\AureaCustodiaMVP-assets
+(Touch: .agents/**, public/visuais/**, docs/polimento/assets/**). Não commite.
+
+LEIA ANTES: C:\dev\AureaCustodiaMVP-brandbook\docs\marca\BRANDBOOK_REAL_OLIMPICO.md §8.1 (regra nova: a moeda não se gera,
+compõe-se) e §13.4.1 (por que cada ativo foi reprovado); e este arquivo, §3.2 e §3.3.
+
+O PROBLEMA: na rodada 2, toda imagem em que o modelo desenhou a moeda saiu com a moeda errada. Não tente de novo
+"melhorando o prompt". Mude o método: a moeda entra por COMPOSIÇÃO, com os pixels de
+public/moedas/moeda-entrega-da-bandeira-2012.png e public/moedas/moeda-direitos-humanos-1998.png.
+
+PIPELINE (Python com Pillow + OpenCV, rodando na sua sandbox ou localmente; scripts em docs/polimento/assets/composicao/):
+1. RECORTE: a foto real tem fundo preto. Gere a máscara do disco (círculo ajustado por HoughCircles ou pelo limiar
+   do fundo), aplique alfa com borda suavizada de 1–2 px. Resultado: moeda-<nome>-recorte.png, 1024×1024, RGBA.
+2. PERSPECTIVA (para ¾): transforme o disco em elipse com cv2.getPerspectiveTransform — rotação de 35° no eixo
+   vertical (largura × cos 35° ≈ 0,82) e 10° no horizontal. Nunca redimensione só um eixo: use os 4 cantos.
+3. ESPESSURA DO BORDO: empilhe 10–14 cópias da elipse deslocadas 1 px para a direita/baixo, escurecidas de 15% a 45%
+   em gradiente, por baixo da face — vira a lateral da moeda. Para a serrilha, sobreponha à lateral um padrão de
+   listras verticais finas (2 px claro / 3 px escuro) em multiply a 35%.
+4. LUZ: sobre a face, uma camada "soft light" com gradiente radial quente (#f2dc95 a 18%) vindo de cima-esquerda e
+   um escurecimento linear (preto a 12%) para baixo-direita. Não pinte por cima das letras: só luz e sombra.
+5. CENA: gere com o modelo de imagem SÓ o fundo (veludo, ardósia, cofre, papel), já com a luz e a sombra de contato
+   onde a moeda vai pousar — e SEM moeda nenhuma no quadro (diga "empty surface, no coin, no object" e ponha
+   "coin" no bloco evitar). Em 4K.
+6. ENCAIXE: cole a moeda composta na posição combinada, acrescente a sombra de contato (elipse preta desfocada a 35%,
+   deslocada 2% para baixo) e, se o pedido pede desfoque, aplique o desfoque NA COMPOSIÇÃO FINAL (gaussiano + bokeh),
+   não na moeda isolada.
+7. PORTÃO 3 OBRIGATÓRIO: ponha lado a lado o recorte da moeda no ativo final e a foto de referência; a legenda tem de
+   ser letra por letra a mesma. Anexe esse lado a lado no .json de registro (campo "conferencia_fidelidade").
+
+SAÍDA: mesmos nomes e caminhos da rodada 2 (sobrescreva os reprovados), PNG-mestre 4K no Drive (fora do Git),
+AVIF/WebP 640/960/1440/1920 e, nos OG, também -1200. .json de registro com "metodo": "composicao-foto-real".
+
+NUNCA: desenhar ou "repintar" a face da moeda; texto, código de barras ou número de série legível em qualquer objeto
+da cena; a logo; pessoa ou mão; arquivo > 5 MB no repositório; as palavras token, NFT, cripto, ativo digital,
+investimento em nome de arquivo ou JSON.
+
+FECHAMENTO: varredura de segredo, nenhum arquivo > 5 MB, seção "Sessões" do seu MD_EXECUCAO com Feito / Não feito
+(motivo) / Próximo, e avise o Gabriel que a rodada 3 está pronta para conferência.
+```
+
+### 3.2 Os 6 ativos a refazer
+
+| Ativo | Moeda (foto real) | Cena gerada (sem moeda) | Posição e tratamento |
+|---|---|---|---|
+| `moedas-bandeira-tres-quartos-transparente` | Bandeira | nenhuma — fundo transparente | ¾ (35°/10°), 78% da largura, centralizada; sem sombra projetada |
+| `moedas-direitos-humanos-tres-quartos-transparente` | Direitos Humanos | nenhuma — fundo transparente | igual ao de cima |
+| `cenarios-lacre-de-custodia` | Direitos Humanos | bandeja de aço escovado de cofre, envelope plástico de segurança **vazio e sem nenhuma impressão**, etiqueta creme em branco; terço superior escuro e limpo (sem faixa chapada colada) | moeda dentro da área do envelope, ¾ suave (20°); por cima, uma camada de reflexo do plástico (branco 8%) |
+| `cenarios-faixa-abertura-painel` | Bandeira | veludo `#0d1b35`→`#081226` com guilhoché a 6% (pode reaproveitar `fundos-veludo-noite`) | ¾ grande à direita, **desfocada depois da composição** (gaussiano 18–24 px na 1920), anel dourado capturando brilho; 60% da esquerda livre |
+| `og-moeda-bandeira` | Bandeira | noite com guilhoché à direita (como na rodada 2) | ¾, metade direita; nítida; -1200 obrigatório |
+| `og-moeda-direitos-humanos` | Direitos Humanos | idem | idem |
+
+### 3.3 O que NÃO refazer
+`macros-perfil-serrilha-duas-moedas`, `fundos-veludo-noite`, os 5 `onboarding-spot-*`, `og-recibo-de-custodia` e os
+ícones (`marca/`) estão aprovados (Brandbook §13.4.1). Só falta gerar a versão `-1200` do `og-recibo-de-custodia`.
