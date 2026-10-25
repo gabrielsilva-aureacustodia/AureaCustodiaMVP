@@ -2,10 +2,10 @@
  * Catálogo dos ativos visuais da marca (public/visuais/, gerados pela Frente 2 e conferidos no
  * Brandbook §13.4). Um lugar só para tela nenhuma escrever caminho de imagem à mão.
  *
- * POR QUE A SITUAÇÃO MORA AQUI: a rodada 3 entregou as duas moedas em ¾ com os canais vermelho e
- * azul trocados (o anel dourado saiu azul). Em vez de cada tela lembrar disso, o ativo pendente fica
- * marcado, e os componentes caem para a foto real de public/moedas/ — que está sempre certa. Quando
- * a Frente 2 corrigir, basta trocar `situacao` para 'aprovado'.
+ * POR QUE A SITUAÇÃO MORA AQUI: a rodada 3 entregou as moedas compostas com os canais vermelho e
+ * azul trocados (o anel dourado saiu azul), corrigidos na 3b. Ativo reprovado fica marcado, com o
+ * motivo, e os componentes caem para a foto real de public/moedas/ — que está sempre certa. Liberar
+ * um ativo é trocar `situacao` para 'aprovado' depois de conferir (Brandbook §13.4).
  *
  * Os arquivos raster existem em quatro larguras (640/960/1440/1920), em AVIF e WebP, com o nome
  * `<base>-<largura>.<formato>`; os OG têm também 1200.
@@ -46,23 +46,16 @@ const raster = (
   larguras: readonly number[] = LARGURAS,
 ): AtivoRaster => ({ tipo: 'raster', base, larguras, proporcao, alt, situacao, motivo })
 
-const CANAIS_TROCADOS =
-  'rodada 3: canais vermelho e azul trocados no pipeline de composição (anel dourado saiu azul) — Brandbook §13.4.2'
-
 export const ATIVOS = {
   moedaBandeiraTresQuartos: raster(
     '/visuais/moedas/moedas-bandeira-tres-quartos-transparente',
     [1, 1],
     'Moeda comemorativa de 1 real Entrega da Bandeira Olímpica, vista em três quartos',
-    'pendente',
-    CANAIS_TROCADOS,
   ),
   moedaDireitosHumanosTresQuartos: raster(
     '/visuais/moedas/moedas-direitos-humanos-tres-quartos-transparente',
     [1, 1],
     'Moeda comemorativa de 1 real dos 50 anos da Declaração Universal dos Direitos Humanos, vista em três quartos',
-    'pendente',
-    CANAIS_TROCADOS,
   ),
   moedaBandeiraReverso: raster('/visuais/moedas/moedas-bandeira-reverso', [1, 1], 'Reverso da moeda Entrega da Bandeira Olímpica'),
   moedaDireitosHumanosReverso: raster('/visuais/moedas/moedas-direitos-humanos-reverso', [1, 1], 'Reverso da moeda dos Direitos Humanos'),
@@ -71,28 +64,18 @@ export const ATIVOS = {
   cofre: raster('/visuais/cenarios/cenarios-cofre-custodia-hero', [16, 9], 'Interior do cofre de custódia, com gavetas de aço'),
   gavetas: raster('/visuais/cenarios/cenarios-gavetas-seguranca-card', [4, 3], 'Gaveteiro modular de custódia'),
   veludo: raster('/visuais/fundos/fundos-veludo-noite', [1, 1], ''),
-  faixaPainel: raster(
-    '/visuais/cenarios/cenarios-faixa-abertura-painel',
-    [21, 9],
-    '',
-    'pendente',
-    CANAIS_TROCADOS,
-  ),
-  lacre: raster(
-    '/visuais/cenarios/cenarios-lacre-de-custodia',
-    [4, 3],
-    'Moeda lacrada em envelope de segurança sobre bandeja do cofre',
-    'pendente',
-    'rodada 3: cena virou um cartão branco com faixa dourada, sem bandeja nem envelope, e moeda com canais trocados',
-  ),
+  faixaPainel: raster('/visuais/cenarios/cenarios-faixa-abertura-painel', [21, 9], ''),
+  /* Não existe ativo de "lacre": o cenarios-lacre-de-custodia foi reprovado nas rodadas 2, 3 e 3b e o
+     Gabriel decidiu (25/10/2026) usar a cena do cofre no lugar. Quem precisar mostrar "a moeda fica
+     guardada no cofre" usa `jornadaCofre` (Brandbook §13.4.3). */
   jornadaEnvio: raster('/visuais/cenarios/jornada-cena-01-envio', [4, 3], 'Caixa de envio lacrada com fita dourada e etiqueta em branco'),
   jornadaPericia: raster('/visuais/cenarios/jornada-cena-02-pericia', [4, 3], 'Balança de precisão, paquímetro e lupa sobre feltro azul'),
   jornadaCofre: raster('/visuais/cenarios/jornada-cena-03-cofre', [4, 3], 'Gaveta do cofre aberta, com forro de veludo'),
   jornadaRecibo: raster('/visuais/cenarios/jornada-cena-04-recibo', [4, 3], 'Recibo de custódia aberto na tela do celular'),
   ogLanding: raster('/visuais/og/og-landing-real-olimpico', [16, 9], '', 'aprovado', undefined, LARGURAS_OG),
   ogRecibo: raster('/visuais/og/og-recibo-de-custodia', [16, 9], '', 'aprovado', undefined, LARGURAS_OG),
-  ogMoedaBandeira: raster('/visuais/og/og-moeda-bandeira', [16, 9], '', 'pendente', CANAIS_TROCADOS, LARGURAS_OG),
-  ogMoedaDireitosHumanos: raster('/visuais/og/og-moeda-direitos-humanos', [16, 9], '', 'pendente', CANAIS_TROCADOS, LARGURAS_OG),
+  ogMoedaBandeira: raster('/visuais/og/og-moeda-bandeira', [16, 9], '', 'aprovado', undefined, LARGURAS_OG),
+  ogMoedaDireitosHumanos: raster('/visuais/og/og-moeda-direitos-humanos', [16, 9], '', 'aprovado', undefined, LARGURAS_OG),
 } as const satisfies Record<string, AtivoRaster>
 
 export type IdDoAtivo = keyof typeof ATIVOS
@@ -107,13 +90,13 @@ const vetor = (nome: string, escuro = false): AtivoVetor => ({
 })
 
 export const ILUSTRACOES = {
-  semItens: vetor('onboarding-vazio-sem-itens'),
-  semOrdens: vetor('onboarding-vazio-sem-ordens'),
-  reciboEmitido: vetor('onboarding-spot-recibo-emitido'),
-  saqueSolicitado: vetor('onboarding-spot-saque-solicitado'),
-  etiquetaFrete: vetor('onboarding-spot-etiqueta-frete'),
-  custodiaAPagar: vetor('onboarding-spot-custodia-a-pagar'),
-  envioEmAnalise: vetor('onboarding-spot-envio-em-analise'),
+  semItens: vetor('onboarding-vazio-sem-itens', true),
+  semOrdens: vetor('onboarding-vazio-sem-ordens', true),
+  reciboEmitido: vetor('onboarding-spot-recibo-emitido', true),
+  saqueSolicitado: vetor('onboarding-spot-saque-solicitado', true),
+  etiquetaFrete: vetor('onboarding-spot-etiqueta-frete', true),
+  custodiaAPagar: vetor('onboarding-spot-custodia-a-pagar', true),
+  envioEmAnalise: vetor('onboarding-spot-envio-em-analise', true),
   custodiaSegura: vetor('onboarding-spot-custodia-segura', true),
   reciboAutentico: vetor('onboarding-spot-recibo-autentico', true),
   negociacao: vetor('onboarding-spot-negociacao-marketplace', true),

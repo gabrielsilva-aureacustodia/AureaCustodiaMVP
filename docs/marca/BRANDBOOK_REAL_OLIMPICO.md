@@ -444,7 +444,7 @@ referência de paleta — **nunca** reproduzir a logo).
 | `moedas-bandeira-tres-quartos-transparente` | ❌ reprovado | sem "BRASIL" e sem o logo Rio 2016 no núcleo; "1 REAL 2012" inventado sob a bandeira |
 | `moedas-direitos-humanos-tres-quartos-transparente` | ❌ reprovado | mapa quadriculado virou globo genérico, figura dourada virou boneco prateado, "★ 1998 ★" inventado, legenda "DEECLARAÇÃO" |
 | `macros-perfil-serrilha-duas-moedas` | ✅ com ressalva | uma moeda só (pedido falava em duas); serrilha e luz corretas, nenhuma letra legível |
-| `cenarios-lacre-de-custodia` | ❌ reprovado | código de barras e texto legível no lacre ("LACRAÇÃO", número de série), moeda comum de 1 real em vez das negociáveis, faixa azul chapada colada no topo |
+| `cenarios-lacre-de-custodia` | ❌ reprovado (retirado em 25/10, §13.4.3) | código de barras e texto legível no lacre ("LACRAÇÃO", número de série), moeda comum de 1 real em vez das negociáveis, faixa azul chapada colada no topo |
 | `fundos-veludo-noite` | ✅ com ressalva | manchas escuras visíveis no centro; serve sob `.ro-vitrine-luz` |
 | `cenarios-faixa-abertura-painel` | ❌ reprovado | moeda inventada (mão segurando a bandeira, "BRASIL" duas vezes no anel) e **nítida** — o pedido era fora de foco |
 | `onboarding-spot-*` (5) | ✅ | mesma linguagem da série; prontos para `<EstadoVazio>` |
@@ -474,10 +474,24 @@ volta (o ouro reaparece certo).
 O catálogo `src/brand/ativos.ts` marca os pendentes; os componentes caem para a foto real até a correção
 (`PEDIDOS_ANTIGRAVITY.md` §4).
 
+### 13.4.3 Rodada 3b — conferida em 25/10/2026
+| Ativo | Situação | Como foi conferido |
+|---|---|---|
+| `moedas-*-tres-quartos-transparente` (2) | ✅ liberado no catálogo | medição de cor (pixels dourados ≫ ciano: 168.691 × 1.023 e 174.167 × 0) + olhar: legenda e desenho iguais à foto real; visto dentro do `<CartaoMoeda>` |
+| `og-moeda-bandeira`, `og-moeda-direitos-humanos` (com `-1200`) | ✅ liberado | idem (42.539 × 233 e 43.690 × 0) |
+| `cenarios-faixa-abertura-painel` | ✅ liberado | idem (33.337 × 0); desfoque correto |
+| 7 spots neutros em versão `-escuro` (+ os 4 que já existiam) | ✅ liberados | prancha sobre `#10203f`: traço claro legível |
+| `cenarios-lacre-de-custodia` | ❌ **3.ª reprovação — retirado** | continua esquema chapado (retângulo escuro com faixa dourada e cartão creme), não foto de bandeja com envelope; substituído pela cena do cofre |
+
+**Decisão do Gabriel (25/10/2026): o lacre sai.** Em vez de uma 4.ª rodada, a faixa de confiança da landing e o "envio
+recebido" usam a cena aprovada `jornada-cena-03-cofre` (gaveta do cofre com forro de veludo) — `ATIVOS.jornadaCofre`.
+O ativo do lacre foi **retirado do catálogo** `src/brand/ativos.ts`; o arquivo `cenarios-lacre-de-custodia` da Frente 2
+não deve ser usado por nenhuma tela (o orquestrador pode deixá-lo fora do merge).
+
 ### 13.5 O que ainda falta (pedido em `PEDIDOS_ANTIGRAVITY.md`)
 1. Moedas em **¾ isoladas** (fundo transparente) para `.ro-cartao-moeda` — 4K, 1:1, as duas.
 2. **Perfil 80°** da serrilha das duas moedas (cartão de detalhe do recibo).
-3. **Lacre/selo de custódia** fotográfico (envelope de segurança com a moeda dentro) — prova visual da guarda.
+3. ~~**Lacre/selo de custódia** fotográfico~~ — retirado em 25/10/2026 depois de 3 reprovações; a prova visual da guarda é a cena do cofre (`jornada-cena-03-cofre`).
 4. **Textura de veludo azul-noite** 4K, sem costura (fundo do cartão de moeda no escuro).
 5. **Faixa de abertura** 21:9 escura com uma moeda fora de foco à direita (painel do cliente).
 6. **Spots novos** da série: recibo emitido, saque solicitado, frete pago/etiqueta, custódia a pagar, envio em análise.
@@ -499,3 +513,5 @@ número de negócio fica fora dele.
 | 25/10/2026 | v1.0 criada: paleta amostrada da logo, papéis com AA medido, Newsreader + Inter, escala fluida, componentes `.ro-*`, assinatura (aro, serrilha, guilhoché) | Frente 1 do polimento; benchmark de 25 referências |
 | 25/10/2026 | anéis olímpicos liberados quando parte da moeda real retratada | decisão do Gabriel |
 | 25/10/2026 | moeda legível nunca é gerada do zero: composição sobre a foto real (§8.1); rodada 2 conferida (§13.4.1) | 6 de 14 ativos da rodada 2 com moeda inventada |
+| 25/10/2026 | lacre de custódia retirado; cena do cofre no lugar | decisão do Gabriel, depois de 3 reprovações |
+| 25/10/2026 | rodadas 3 e 3b conferidas (§13.4.2–13.4.3): 5 renders compostos e 11 spots escuros liberados; lacre segue reprovado, com troca proposta | conferência da Frente 1 |
