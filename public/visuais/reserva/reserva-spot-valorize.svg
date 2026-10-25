@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>Valorização de Longo Prazo e Escassez Numismática - Real Olímpico</title>
+  <!-- Medalhão circular numismático -->
+  <circle cx="48" cy="48" r="36" stroke-width="2.5" />
+  <circle cx="48" cy="48" r="30" stroke-width="1.5" stroke-dasharray="3,3" stroke-opacity="0.5" />
+
+  <!-- Seta curva orgânica ascendente (sem números ou eixos) -->
+  <path d="M 28 62 C 34 50, 44 42, 64 32" stroke-width="3" />
+  <!-- Ponta da seta ascendente -->
+  <path d="M 54 30 L 67 31 L 66 44" stroke-width="2.5" />
+
+  <!-- Estrelas ou brilhos periciais de valorização -->
+  <path d="M 36 34 L 38 31 L 40 34 L 43 36 L 40 38 L 38 41 L 36 38 L 33 36 Z" fill="currentColor" stroke="none" />
+  <path d="M 60 56 L 61 54 L 62 56 L 64 57 L 62 58 L 61 60 L 60 58 L 58 57 Z" fill="currentColor" stroke="none" />
+</svg>

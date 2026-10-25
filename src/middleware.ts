@@ -80,9 +80,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
 export const config = {
   /*
-   * Fora do alcance: os estáticos do Next, o favicon, as logos da marca e os
+   * Fora do alcance: os estáticos do Next, o favicon, as logos da marca, as fotos das
+   * moedas, os ativos visuais da marca (`visuais/`, Frente 2 — sem isto o visitante
+   * sem sessão era mandado para /entrar ao pedir uma imagem da landing) e os
    * arquivos de raiz que buscadores pedem. Tudo o mais passa por aqui —
    * inclusive rota que ainda não existe, que é exatamente o ponto.
    */
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|moedas/|robots.txt|sitemap.xml).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|moedas/|visuais/|robots.txt|sitemap.xml).*)'],
 }

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" fill="none" stroke="currentColor">
+  <title>Selo Pericial de Garantia e Autenticidade - Real Olímpico</title>
+  <!-- Dentes serrilhados do bordo externo (32 dentes radiais suaves) -->
+  <path d="
+    M 48 6
+    L 52 8 L 56 7 L 60 10 L 64 10 L 68 14 L 72 15 L 76 20 L 79 22 L 82 28 L 84 31 L 87 37 L 88 41 L 90 48
+    L 88 55 L 87 59 L 84 65 L 82 68 L 79 74 L 76 76 L 72 81 L 68 82 L 64 86 L 60 86 L 56 89 L 52 88
+    L 48 90
+    L 44 88 L 40 89 L 36 86 L 32 86 L 28 82 L 24 81 L 20 76 L 17 74 L 14 68 L 12 65 L 9 59 L 8 55
+    L 6 48
+    L 8 41 L 9 37 L 12 31 L 14 28 L 17 22 L 20 20 L 24 15 L 28 14 L 32 10 L 36 10 L 40 7 L 44 8
+    Z" stroke-width="2" stroke-linejoin="round" />
+
+  <!-- Círculos de segurança concêntricos -->
+  <circle cx="48" cy="48" r="36" stroke-width="1.8" />
+  <circle cx="48" cy="48" r="32" stroke-width="1.2" stroke-dasharray="3,2" />
+  <circle cx="48" cy="48" r="26" stroke-width="1.5" />
+
+  <!-- Grafismo interno pericial abstrato (sem texto) -->
+  <!-- Estrela geométrica central de 8 pontas -->
+  <polygon points="48,28 52,42 66,38 56,48 66,58 52,54 48,68 44,54 30,58 40,48 30,38 44,42" stroke-width="1.5" />
+  <circle cx="48" cy="48" r="5" fill="currentColor" stroke="none" />
+</svg>
