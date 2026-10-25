@@ -3,6 +3,10 @@
  * sempre que o ativo está lá: a regra do Brandbook é que tela nenhuma escreva caminho de imagem à mão, e que ativo
  * `pendente` não apareça (o catálogo sabe o que foi reprovado e cai para a foto real).
  *
+ * Sem aviso de "imagem ilustrativa" na tela (pedido do Gabriel, 25/10/2026): as cenas são claramente de
+ * ambientação, nenhum conceito mostrado é falso e o cofre real é mais protegido que o da foto — o aviso tirava
+ * legitimidade sem informar nada.
+ *
  * O que o catálogo ainda NÃO tem (retrato do herói, ícones da reserva, moldura, selo, vídeo e textura guilloché)
  * fica declarado aqui, com o mesmo formato, até a Frente 1 acrescentá-lo — pedido em PROPOSTAS_BACKEND.md (P11).
  * `src/brand/` é da Frente 1 e não é editado por esta frente.
@@ -51,11 +55,11 @@ export const VISUAL_COFRE_RETRATO: Visual = {
 /** Foto do bloco Segurança (4:3). */
 export const VISUAL_GAVETAS = doCatalogo(
   ATIVOS.gavetas,
-  'Gaveteiro de aço para guarda individual, com forro de veludo azul-marinho (imagem ilustrativa)',
+  'Gaveteiro de aço para guarda individual, com forro de veludo azul-marinho',
 )
 
 /** Macro do bordo serrilhado — abre a seção Reserva de valor. */
-export const VISUAL_SERRILHA = doCatalogo(ATIVOS.macroSerrilha, 'Bordo serrilhado de uma moeda, visto de perto (imagem ilustrativa)')
+export const VISUAL_SERRILHA = doCatalogo(ATIVOS.macroSerrilha, 'Bordo serrilhado de uma moeda, visto de perto')
 
 /**
  * Cenas da jornada "Como funciona", na ORDEM DOS PASSOS (envio, perícia, recibo, venda): a cena do recibo no

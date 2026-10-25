@@ -216,7 +216,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
       <ScrollRevealInit />
       <PublicHeader variante="landing" />
 
-      {/* 1. HERÓI — o cofre ao fundo (Frente 2, ilustrativo), a moeda real e o recibo: moeda → cofre → recibo
+      {/* 1. HERÓI — o cofre ao fundo (Frente 2), a moeda real e o recibo: moeda → cofre → recibo
           numa imagem só. Com o cofre, ELE é o LCP (única imagem com priority); sem a Frente 2, a moeda assume. */}
       <section id="conteudo" tabIndex={-1} className="pub-hero pub-noite" aria-labelledby="hero-titulo">
         {FRENTE_2_MESCLADA && VISUAL_COFRE ? (
@@ -274,7 +274,6 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
             <ReciboIlustrado />
           </InclinacaoNoPonteiro>
         </div>
-        {FRENTE_2_MESCLADA && VISUAL_COFRE ? <p className="pub-hero-credito">Imagem ilustrativa</p> : null}
       </section>
 
       <MercadoAgora
@@ -325,7 +324,6 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
         {FRENTE_2_MESCLADA && VISUAL_SERRILHA ? (
           <figure className="pub-reserva-macro pub-revela-rolagem">
             <PictureResponsiva visual={VISUAL_SERRILHA} sizes="(max-width: 860px) 100vw, 560px" />
-            <figcaption>Imagem ilustrativa</figcaption>
           </figure>
         ) : null}
         </div>
@@ -429,7 +427,6 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
         {FRENTE_2_MESCLADA && VISUAL_GAVETAS ? (
           <figure className="pub-foto-cofre pub-revela-rolagem">
             <PictureResponsiva visual={VISUAL_GAVETAS} sizes="(max-width: 1192px) 100vw, 1160px" />
-            <figcaption>Imagem ilustrativa</figcaption>
           </figure>
         ) : null}
 
