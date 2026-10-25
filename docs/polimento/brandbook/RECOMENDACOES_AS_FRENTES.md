@@ -68,6 +68,12 @@ Registro **vitrine** (Brandbook §1.2). Liberdade de reorganizar dada pelo Gabri
    reduzido.
 2. **Faixa de confiança** — três `.ro-cartao` com ícone de traço: "Cofre físico" (foto `cenarios-cofre-custodia-hero`),
    "Recibo no seu nome", "Taxas abertas". Nada de "100% seguro".
+   **Imagem de "a moeda fica guardada no cofre": use `<ImagemDaMarca id="jornadaCofre">`** (gaveta do cofre com forro
+   de veludo). **Não use `cenarios-lacre-de-custodia`**: foi reprovado três vezes e retirado do catálogo por decisão do
+   Gabriel (25/10/2026, Brandbook §13.4.3). Conferido em 25/10/2026: a worktree da landing só o cita num comentário de
+   `src/components/landing/visuais.ts` (na lista do que não se usa) — nada a trocar em código; atenção só ao
+   `public/visuais/README.md` da Frente 2, que ainda o indica para a "faixa de confiança". As worktrees da plataforma e do
+   admin têm o catálogo antigo (com o ativo do lacre pendente) e recebem a remoção no próximo `git merge` desta branch.
 3. **Como funciona** — `ol.ro-passos` com 4 passos (enviar → perícia e lacre → recibo → negociar/retirar).
 4. **As duas moedas** — `.ro-grade-auto` de `.ro-cartao-moeda` com `.ro-vitrine-luz`, nome em serifa, "valor estimado"
    com `.ro-numero` (o número vem do servidor, nunca da imagem).
@@ -100,7 +106,7 @@ Registro **cofre**. Estrutura proposta:
   `.ro-valor` com a palavra "estimado" sempre ao lado.
 - **Recibos**: galeria de `.ro-cartao-moeda` com o render em ¾ (pedido 2.1/2.2 ao Antigravity); detalhe com o macro de
   serrilha; o certificado (`.cert`) **não muda** — `--cert-*` intactos.
-- **Envios (wizard)**: `ol.ro-passos` como trilho; foto de envio em `.ro-vitrine-luz`; etiqueta e frete com `<Aviso>`.
+- **Envios (wizard)**: `ol.ro-passos` como trilho; no "envio recebido", a imagem é `jornadaCofre` (o lacre foi retirado); foto de envio em `.ro-vitrine-luz`; etiqueta e frete com `<Aviso>`.
 - **Estados vazios**: `<EstadoVazio arte="/visuais/onboarding/onboarding-vazio-sem-itens.svg">` e
   `onboarding-vazio-sem-ordens.svg`.
 - **Carregamento**: `<Esqueleto>` no lugar de "Carregando…" onde o servidor demora (mercado, extrato).

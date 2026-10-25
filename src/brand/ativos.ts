@@ -65,13 +65,9 @@ export const ATIVOS = {
   gavetas: raster('/visuais/cenarios/cenarios-gavetas-seguranca-card', [4, 3], 'Gaveteiro modular de custódia'),
   veludo: raster('/visuais/fundos/fundos-veludo-noite', [1, 1], ''),
   faixaPainel: raster('/visuais/cenarios/cenarios-faixa-abertura-painel', [21, 9], ''),
-  lacre: raster(
-    '/visuais/cenarios/cenarios-lacre-de-custodia',
-    [4, 3],
-    'Moeda lacrada em envelope de segurança sobre bandeja do cofre',
-    'pendente',
-    'rodadas 2, 3 e 3b: a cena nunca saiu como foto de bandeja com envelope (esquema chapado). Proposta: usar jornadaCofre no lugar — Brandbook §13.4.3',
-  ),
+  /* Não existe ativo de "lacre": o cenarios-lacre-de-custodia foi reprovado nas rodadas 2, 3 e 3b e o
+     Gabriel decidiu (25/10/2026) usar a cena do cofre no lugar. Quem precisar mostrar "a moeda fica
+     guardada no cofre" usa `jornadaCofre` (Brandbook §13.4.3). */
   jornadaEnvio: raster('/visuais/cenarios/jornada-cena-01-envio', [4, 3], 'Caixa de envio lacrada com fita dourada e etiqueta em branco'),
   jornadaPericia: raster('/visuais/cenarios/jornada-cena-02-pericia', [4, 3], 'Balança de precisão, paquímetro e lupa sobre feltro azul'),
   jornadaCofre: raster('/visuais/cenarios/jornada-cena-03-cofre', [4, 3], 'Gaveta do cofre aberta, com forro de veludo'),

@@ -245,7 +245,8 @@ Frente 2, rodada 3b. Trabalhe SOMENTE em C:\dev\AureaCustodiaMVP-assets. Não co
    Portão: o anel tem de sair dourado (#c9a24b ± 15%) e os anéis olímpicos azul, amarelo, preto, verde e vermelho,
    como na foto de public/moedas/.
 
-2. cenarios-lacre-de-custodia (refazer a cena): bandeja de aço escovado de cofre vista a 30° de cima, envelope plástico
+2. [RETIRADO em 25/10/2026 depois da 3.ª reprovação — não refazer; a cena do cofre jornada-cena-03-cofre ocupa o lugar]
+   cenarios-lacre-de-custodia (refazer a cena): bandeja de aço escovado de cofre vista a 30° de cima, envelope plástico
    de segurança transparente VAZIO e sem nenhuma impressão, etiqueta de papel creme em branco ao lado. Gere só essa
    cena (sem moeda) e componha a moeda dos Direitos Humanos DENTRO do envelope pelo pipeline corrigido, com uma camada
    de reflexo do plástico (branco 8%) por cima. Nada de cartão branco, faixa chapada ou fundo liso.
