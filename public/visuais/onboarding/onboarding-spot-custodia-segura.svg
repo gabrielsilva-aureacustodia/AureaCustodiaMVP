@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Custódia Física em Cofre Blindado - Real Olímpico</title>
+  <defs>
+    <style>
+      .navy-stroke { stroke: #081226; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .navy-fill { fill: #081226; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .muted-fill { fill: #8FA0BD; fill-opacity: 0.15; }
+      .white-fill { fill: #FFFFFF; }
+      .gold-tint { fill: #C9A24B; fill-opacity: 0.12; }
+    </style>
+  </defs>
+
+  <!-- Base de sustentação / pedestal -->
+  <path d="M 60 150 L 180 150" class="navy-stroke" />
+  <path d="M 75 155 L 165 155" class="muted-stroke" />
+
+  <!-- Aro externo do cofre blindado circular -->
+  <circle cx="120" cy="85" r="50" class="navy-stroke" fill="#FFFFFF" />
+  <circle cx="120" cy="85" r="43" class="gold-stroke" fill="#081226" fill-opacity="0.04" />
+  
+  <!-- Parafusos / rebites periciais do cofre -->
+  <circle cx="120" cy="42" r="2.5" class="navy-fill" />
+  <circle cx="150" cy="55" r="2.5" class="navy-fill" />
+  <circle cx="163" cy="85" r="2.5" class="navy-fill" />
+  <circle cx="150" cy="115" r="2.5" class="navy-fill" />
+  <circle cx="120" cy="128" r="2.5" class="navy-fill" />
+  <circle cx="90" cy="115" r="2.5" class="navy-fill" />
+  <circle cx="77" cy="85" r="2.5" class="navy-fill" />
+  <circle cx="90" cy="55" r="2.5" class="navy-fill" />
+
+  <!-- Moeda bimetálica segura no centro -->
+  <circle cx="120" cy="85" r="26" class="gold-stroke" fill="#C9A24B" fill-opacity="0.2" />
+  <circle cx="120" cy="85" r="16" class="navy-stroke" fill="#FFFFFF" />
+  <path d="M 120 75 L 120 95" class="gold-stroke" />
+  <path d="M 113 85 L 127 85" class="gold-stroke" />
+
+  <!-- Volante mecânico de alta segurança -->
+  <circle cx="120" cy="85" r="6" class="navy-fill" />
+  <path d="M 120 70 L 120 76" class="navy-stroke" />
+  <path d="M 120 94 L 120 100" class="navy-stroke" />
+  <path d="M 105 85 L 111 85" class="navy-stroke" />
+  <path d="M 129 85 L 135 85" class="navy-stroke" />
+
+  <!-- Indicador pericial de trava -->
+  <path d="M 148 40 L 158 30" class="gold-stroke" />
+  <circle cx="160" cy="28" r="3" class="gold-fill" />
+</svg>

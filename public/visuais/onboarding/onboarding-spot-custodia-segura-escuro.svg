@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Custódia Física em Cofre Blindado (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .cream-stroke { stroke: #F5F0E4; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .cream-fill { fill: #F5F0E4; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.5; }
+      .gold-tint { fill: #C9A24B; fill-opacity: 0.15; }
+    </style>
+  </defs>
+
+  <!-- Base de sustentação / pedestal -->
+  <path d="M 60 150 L 180 150" class="cream-stroke" />
+  <path d="M 75 155 L 165 155" class="muted-stroke" />
+
+  <!-- Aro externo do cofre blindado circular -->
+  <circle cx="120" cy="85" r="50" class="cream-stroke" fill="none" />
+  <circle cx="120" cy="85" r="43" class="gold-stroke" fill="#C9A24B" fill-opacity="0.08" />
+  
+  <!-- Parafusos / rebites periciais do cofre -->
+  <circle cx="120" cy="42" r="2.5" class="cream-fill" />
+  <circle cx="150" cy="55" r="2.5" class="cream-fill" />
+  <circle cx="163" cy="85" r="2.5" class="cream-fill" />
+  <circle cx="150" cy="115" r="2.5" class="cream-fill" />
+  <circle cx="120" cy="128" r="2.5" class="cream-fill" />
+  <circle cx="90" cy="115" r="2.5" class="cream-fill" />
+  <circle cx="77" cy="85" r="2.5" class="cream-fill" />
+  <circle cx="90" cy="55" r="2.5" class="cream-fill" />
+
+  <!-- Moeda bimetálica segura no centro -->
+  <circle cx="120" cy="85" r="26" class="gold-stroke" fill="#C9A24B" fill-opacity="0.2" />
+  <circle cx="120" cy="85" r="16" class="cream-stroke" fill="none" />
+  <path d="M 120 75 L 120 95" class="gold-stroke" />
+  <path d="M 113 85 L 127 85" class="gold-stroke" />
+
+  <!-- Volante mecânico de alta segurança -->
+  <circle cx="120" cy="85" r="6" class="cream-fill" />
+  <path d="M 120 70 L 120 76" class="cream-stroke" />
+  <path d="M 120 94 L 120 100" class="cream-stroke" />
+  <path d="M 105 85 L 111 85" class="cream-stroke" />
+  <path d="M 129 85 L 135 85" class="cream-stroke" />
+
+  <!-- Indicador pericial de trava -->
+  <path d="M 148 40 L 158 30" class="gold-stroke" />
+  <circle cx="160" cy="28" r="3" class="gold-fill" />
+</svg>

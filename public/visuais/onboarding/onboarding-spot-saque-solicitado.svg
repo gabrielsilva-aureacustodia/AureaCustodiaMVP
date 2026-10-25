@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Solicitação de Resgate / Saque Físico - Real Olímpico</title>
+  <defs>
+    <style>
+      .navy-stroke { stroke: #081226; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .navy-fill { fill: #081226; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .muted-fill { fill: #8FA0BD; fill-opacity: 0.15; }
+      .white-fill { fill: #FFFFFF; }
+      .gold-tint { fill: #C9A24B; fill-opacity: 0.12; }
+    </style>
+  </defs>
+
+  <!-- Base / sombra da mesa -->
+  <path d="M 45 155 L 195 155" class="navy-stroke" />
+  <path d="M 65 160 L 175 160" class="muted-stroke" />
+
+  <!-- Envelope de custódia e envio de segurança -->
+  <rect x="55" y="60" width="105" height="72" rx="4" class="navy-stroke" fill="#FFFFFF" />
+  <!-- Aba superior do envelope -->
+  <path d="M 55 60 L 107 98 L 160 60" class="gold-stroke" />
+  <!-- Linhas laterais de dobra -->
+  <path d="M 55 132 L 95 95" class="muted-stroke" />
+  <path d="M 160 132 L 120 95" class="muted-stroke" />
+  
+  <!-- Lacre de segurança na ponta da aba -->
+  <circle cx="107" cy="98" r="8" class="gold-fill" />
+  <circle cx="107" cy="98" r="5" class="navy-fill" />
+
+  <!-- Ampulheta de tempo de processamento / prazo -->
+  <!-- Suporte superior e inferior da ampulheta -->
+  <rect x="148" y="42" width="44" height="6" rx="2" class="navy-stroke" fill="#081226" />
+  <rect x="148" y="122" width="44" height="6" rx="2" class="navy-stroke" fill="#081226" />
+  
+  <!-- Hastes laterais da ampulheta -->
+  <line x1="152" y1="48" x2="152" y2="122" class="navy-stroke" stroke-width="2" />
+  <line x1="188" y1="48" x2="188" y2="122" class="navy-stroke" stroke-width="2" />
+
+  <!-- Corpo de vidro da ampulheta -->
+  <path d="M 155 48 C 155 70, 166 78, 170 85 C 174 78, 185 70, 185 48 Z" class="gold-stroke" fill="#FFFFFF" />
+  <path d="M 155 122 C 155 100, 166 92, 170 85 C 174 92, 185 100, 185 122 Z" class="gold-stroke" fill="#FFFFFF" />
+
+  <!-- Areia dourada escorrendo -->
+  <path d="M 162 65 C 165 72, 170 78, 170 82 C 170 78, 175 72, 178 65 Z" class="gold-fill" />
+  <line x1="170" y1="83" x2="170" y2="114" class="gold-stroke" stroke-width="2" />
+  <path d="M 160 120 C 163 112, 170 108, 170 108 C 170 108, 177 112, 180 120 Z" class="gold-fill" />
+</svg>

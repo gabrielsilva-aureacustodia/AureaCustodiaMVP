@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Tarifa Periódica de Custódia (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .light-stroke { stroke: #B3C1DA; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .light-fill { fill: #B3C1DA; }
+      .gold-stroke { stroke: #E3B95C; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #E3B95C; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.6; }
+    </style>
+  </defs>
+
+  <path d="M 40 155 L 200 155" class="light-stroke" />
+  <path d="M 60 160 L 180 160" class="muted-stroke" />
+
+  <rect x="120" y="42" width="75" height="75" rx="5" class="light-stroke" fill="none" />
+  <path d="M 120 47 C 120 44, 122 42, 125 42 L 190 42 C 193 42, 195 44, 195 47 L 195 62 L 120 62 Z" class="light-fill" fill-opacity="0.2" />
+  <rect x="135" y="36" width="6" height="12" rx="3" class="gold-fill" />
+  <rect x="175" y="36" width="6" height="12" rx="3" class="gold-fill" />
+  
+  <circle cx="138" cy="76" r="3" class="muted-stroke" />
+  <circle cx="158" cy="76" r="3" class="muted-stroke" />
+  <circle cx="178" cy="76" r="3" class="muted-stroke" />
+  <circle cx="138" cy="94" r="3" class="muted-stroke" />
+  <circle cx="158" cy="94" r="5" class="gold-fill" />
+  <circle cx="178" cy="94" r="3" class="muted-stroke" />
+
+  <circle cx="82" cy="105" r="34" class="gold-stroke" stroke-width="2.5" fill="#E3B95C" fill-opacity="0.15" />
+  <circle cx="82" cy="105" r="22" class="light-stroke" stroke-width="2" fill="none" />
+  <circle cx="82" cy="105" r="7" class="gold-fill" />
+
+  <rect x="95" y="102" width="34" height="28" rx="4" class="light-stroke" fill="#B3C1DA" fill-opacity="0.2" />
+  <circle cx="112" cy="113" r="3" class="gold-fill" />
+  <line x1="112" y1="114" x2="112" y2="122" class="gold-stroke" stroke-width="2" />
+  <path d="M 103 102 L 103 90 C 103 82, 114 80, 120 80 C 126 80, 131 84, 131 92" class="gold-stroke" stroke-width="3" />
+</svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Estado Vazio: Livro de Ordens Sem Ofertas Ativas - Real Olímpico</title>
+  <defs>
+    <style>
+      .navy-stroke { stroke: #081226; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .navy-fill { fill: #081226; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .muted-fill { fill: #8FA0BD; fill-opacity: 0.15; }
+    </style>
+  </defs>
+
+  <path d="M 60 155 L 180 155" class="muted-stroke" />
+
+  <!-- Base da balança de precisão numismática -->
+  <polygon points="108,150 132,150 125,120 115,120" fill="#FFFFFF" class="navy-stroke" />
+  <line x1="120" y1="60" x2="120" y2="120" class="navy-stroke" />
+  
+  <!-- Haste horizontal equilibrada perfeitamente -->
+  <line x1="75" y1="60" x2="165" y2="60" class="gold-stroke" />
+  <circle cx="120" cy="60" r="5" class="navy-fill" />
+  <circle cx="120" cy="45" r="3" class="gold-fill" />
+
+  <!-- Prato esquerdo equilibrado -->
+  <line x1="75" y1="60" x2="65" y2="95" class="muted-stroke" />
+  <line x1="75" y1="60" x2="85" y2="95" class="muted-stroke" />
+  <path d="M 58 95 C 65 108, 85 108, 92 95 Z" fill="#FFFFFF" class="navy-stroke" />
+
+  <!-- Prato direito equilibrado -->
+  <line x1="165" y1="60" x2="155" y2="95" class="muted-stroke" />
+  <line x1="165" y1="60" x2="175" y2="95" class="muted-stroke" />
+  <path d="M 148 95 C 155 108, 175 108, 182 95 Z" fill="#FFFFFF" class="navy-stroke" />
+
+  <!-- Brilho sutil de equilíbrio -->
+  <path d="M 120 32 L 120 38" class="gold-stroke" />
+  <path d="M 112 40 L 117 42" class="gold-stroke" />
+  <path d="M 128 40 L 123 42" class="gold-stroke" />
+</svg>

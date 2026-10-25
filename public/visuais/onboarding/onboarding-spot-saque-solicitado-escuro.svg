@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Solicitação de Resgate Físico (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .light-stroke { stroke: #B3C1DA; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .light-fill { fill: #B3C1DA; }
+      .gold-stroke { stroke: #E3B95C; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #E3B95C; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.6; }
+    </style>
+  </defs>
+
+  <path d="M 45 155 L 195 155" class="light-stroke" />
+  <path d="M 65 160 L 175 160" class="muted-stroke" />
+
+  <rect x="55" y="60" width="105" height="72" rx="4" class="light-stroke" fill="none" />
+  <path d="M 55 60 L 107 98 L 160 60" class="gold-stroke" />
+  <path d="M 55 132 L 95 95" class="muted-stroke" />
+  <path d="M 160 132 L 120 95" class="muted-stroke" />
+  
+  <circle cx="107" cy="98" r="8" class="gold-fill" />
+  <circle cx="107" cy="98" r="5" class="light-fill" />
+
+  <rect x="148" y="42" width="44" height="6" rx="2" class="light-stroke" fill="#B3C1DA" fill-opacity="0.3" />
+  <rect x="148" y="122" width="44" height="6" rx="2" class="light-stroke" fill="#B3C1DA" fill-opacity="0.3" />
+  
+  <line x1="152" y1="48" x2="152" y2="122" class="light-stroke" stroke-width="2" />
+  <line x1="188" y1="48" x2="188" y2="122" class="light-stroke" stroke-width="2" />
+
+  <path d="M 155 48 C 155 70, 166 78, 170 85 C 174 78, 185 70, 185 48 Z" class="gold-stroke" fill="none" />
+  <path d="M 155 122 C 155 100, 166 92, 170 85 C 174 92, 185 100, 185 122 Z" class="gold-stroke" fill="none" />
+
+  <path d="M 162 65 C 165 72, 170 78, 170 82 C 170 78, 175 72, 178 65 Z" class="gold-fill" />
+  <line x1="170" y1="83" x2="170" y2="114" class="gold-stroke" stroke-width="2" />
+  <path d="M 160 120 C 163 112, 170 108, 170 108 C 170 108, 177 112, 180 120 Z" class="gold-fill" />
+</svg>

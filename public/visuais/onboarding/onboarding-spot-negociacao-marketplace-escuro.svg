@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Negociação Instantânea no Marketplace (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .cream-stroke { stroke: #F5F0E4; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .cream-fill { fill: #F5F0E4; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.5; }
+    </style>
+  </defs>
+
+  <path d="M 50 155 L 190 155" class="muted-stroke" />
+
+  <!-- Item da Esquerda: Recibo de custódia estilizado (sem fundo branco) -->
+  <rect x="52" y="65" width="45" height="60" rx="4" fill="none" class="cream-stroke" />
+  <path d="M 62 78 L 87 78" class="muted-stroke" />
+  <path d="M 62 88 L 80 88" class="muted-stroke" />
+  <circle cx="74" cy="105" r="5" class="gold-fill" />
+
+  <!-- Item da Direita: Moeda oficial estilizada -->
+  <circle cx="165" cy="95" r="24" class="gold-stroke" fill="none" />
+  <circle cx="165" cy="95" r="16" class="cream-stroke" fill="#C9A24B" fill-opacity="0.15" />
+  <path d="M 165 87 L 165 103" class="gold-stroke" />
+  <path d="M 158 95 L 172 95" class="gold-stroke" />
+
+  <!-- Setas dinâmicas circulares de troca instantânea -->
+  <!-- Seta superior (vai da esquerda para a direita) -->
+  <path d="M 85 50 C 110 38, 135 38, 155 52" class="gold-stroke" />
+  <path d="M 148 48 L 157 53 L 153 62" class="gold-stroke" />
+
+  <!-- Seta inferior (vai da direita para a esquerda) -->
+  <path d="M 150 135 C 130 148, 105 148, 85 136" class="cream-stroke" />
+  <path d="M 92 140 L 83 135 L 87 126" class="cream-stroke" />
+
+  <!-- Indicador central de liquidez imediata -->
+  <circle cx="120" cy="95" r="8" fill="#081226" stroke="#C9A24B" stroke-width="1.5" />
+  <path d="M 117 95 L 123 95" class="muted-stroke" />
+  <path d="M 120 92 L 120 98" class="muted-stroke" />
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Emissão do Recibo de Custódia Oficial (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .cream-stroke { stroke: #F5F0E4; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .cream-fill { fill: #F5F0E4; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.5; }
+    </style>
+  </defs>
+
+  <!-- Sombra / base sutil -->
+  <path d="M 65 155 L 175 155" class="muted-stroke" />
+
+  <!-- Documento / Certificado de custódia (sem retângulo branco) -->
+  <rect x="75" y="30" width="90" height="115" rx="6" fill="none" class="cream-stroke" />
+  <rect x="83" y="38" width="74" height="99" rx="3" fill="#C9A24B" fill-opacity="0.06" stroke="#C9A24B" stroke-width="0.75" stroke-dasharray="3 3" />
+
+  <!-- Cabeçalho do documento -->
+  <circle cx="120" cy="52" r="7" class="gold-stroke" fill="#C9A24B" fill-opacity="0.25" />
+  <path d="M 95 68 L 145 68" class="cream-stroke" />
+
+  <!-- Linhas de registro geométrico -->
+  <path d="M 92 80 L 148 80" class="muted-stroke" />
+  <path d="M 92 90 L 135 90" class="muted-stroke" />
+  <path d="M 92 100 L 140 100" class="muted-stroke" />
+
+  <!-- Selo pericial / carimbo de garantia no canto -->
+  <circle cx="145" cy="122" r="14" class="gold-stroke" fill="#081226" />
+  <circle cx="145" cy="122" r="11" class="gold-fill" fill-opacity="0.2" />
+  <path d="M 140 122 L 144 125 L 151 118" class="gold-stroke" />
+  <!-- Fitas do selo -->
+  <path d="M 140 133 L 138 144 L 144 141 L 147 143" class="gold-stroke" fill="#C9A24B" />
+  <path d="M 149 133 L 151 144 L 146 141" class="gold-stroke" fill="#C9A24B" />
+</svg>

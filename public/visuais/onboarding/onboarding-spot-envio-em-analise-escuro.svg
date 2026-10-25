@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Moeda em Análise Pericial (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .light-stroke { stroke: #B3C1DA; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .light-fill { fill: #B3C1DA; }
+      .gold-stroke { stroke: #E3B95C; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #E3B95C; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.6; }
+    </style>
+  </defs>
+
+  <path d="M 35 155 L 205 155" class="light-stroke" />
+  <path d="M 55 160 L 185 160" class="muted-stroke" />
+
+  <path d="M 50 140 L 68 110 L 172 110 L 190 140 Z" class="light-stroke" fill="none" />
+  <path d="M 54 137 L 70 113 L 170 113 L 186 137 Z" class="gold-stroke" stroke-width="1.2" />
+
+  <ellipse cx="115" cy="125" rx="30" ry="14" class="gold-stroke" stroke-width="2.5" fill="#E3B95C" fill-opacity="0.18" />
+  <ellipse cx="115" cy="125" rx="18" ry="8" class="light-stroke" stroke-width="2" fill="none" />
+
+  <circle cx="130" cy="78" r="36" class="light-stroke" stroke-width="3" fill="none" />
+  <circle cx="130" cy="78" r="31" class="gold-stroke" stroke-width="1.5" />
+  <path d="M 112 60 A 26 26 0 0 1 146 54" class="muted-stroke" stroke-width="2" />
+
+  <circle cx="130" cy="78" r="18" class="gold-stroke" stroke-width="2" fill="#E3B95C" fill-opacity="0.25" />
+  <circle cx="130" cy="78" r="10" class="light-stroke" stroke-width="1.5" fill="none" />
+  <path d="M 125 78 L 135 78" class="gold-stroke" stroke-width="2" />
+  <path d="M 130 73 L 130 83" class="gold-stroke" stroke-width="2" />
+
+  <line x1="156" y1="104" x2="185" y2="133" class="light-stroke" stroke-width="7" stroke-linecap="round" />
+  <line x1="156" y1="104" x2="162" y2="110" class="gold-stroke" stroke-width="7" stroke-linecap="butt" />
+</svg>

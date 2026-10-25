@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Recibo Oficial Emitido (Tema Escuro) - Real Olímpico</title>
+  <defs>
+    <style>
+      .light-stroke { stroke: #B3C1DA; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-stroke { stroke: #E3B95C; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #E3B95C; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-opacity: 0.6; }
+    </style>
+  </defs>
+
+  <path d="M 50 155 L 190 155" class="light-stroke" />
+  <path d="M 70 160 L 170 160" class="muted-stroke" />
+
+  <rect x="75" y="28" width="90" height="118" rx="4" class="light-stroke" fill="none" />
+  <rect x="82" y="35" width="76" height="104" rx="2" class="gold-stroke" stroke-width="1.5" fill="#E3B95C" fill-opacity="0.04" />
+
+  <line x1="92" y1="48" x2="148" y2="48" class="light-stroke" stroke-width="2" />
+  <line x1="92" y1="58" x2="135" y2="58" class="muted-stroke" />
+  <line x1="92" y1="68" x2="148" y2="68" class="muted-stroke" />
+  <line x1="92" y1="78" x2="125" y2="78" class="muted-stroke" />
+
+  <circle cx="104" cy="98" r="10" class="gold-stroke" stroke-width="1.5" fill="#E3B95C" fill-opacity="0.15" />
+  <circle cx="104" cy="98" r="6" class="light-stroke" stroke-width="1.2" fill="none" />
+
+  <circle cx="145" cy="118" r="22" class="gold-fill" />
+  <circle cx="145" cy="118" r="18" fill="#081226" />
+  <circle cx="145" cy="118" r="15" class="gold-stroke" stroke-width="1.5" />
+  
+  <path d="M 137 118 L 143 124 L 154 112" class="gold-stroke" stroke-width="3" />
+  <path d="M 138 136 L 133 150 L 142 146 L 148 152 L 146 136" class="gold-fill" fill-opacity="0.9" />
+</svg>

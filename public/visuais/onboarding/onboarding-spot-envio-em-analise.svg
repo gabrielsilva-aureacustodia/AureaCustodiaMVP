@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" width="240" height="180">
+  <title>Moeda em Análise Pericial - Real Olímpico</title>
+  <defs>
+    <style>
+      .navy-stroke { stroke: #081226; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .navy-fill { fill: #081226; }
+      .gold-stroke { stroke: #C9A24B; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .gold-fill { fill: #C9A24B; }
+      .muted-stroke { stroke: #8FA0BD; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .muted-fill { fill: #8FA0BD; fill-opacity: 0.15; }
+      .white-fill { fill: #FFFFFF; }
+      .gold-tint { fill: #C9A24B; fill-opacity: 0.12; }
+    </style>
+  </defs>
+
+  <!-- Base / sombra da mesa -->
+  <path d="M 35 155 L 205 155" class="navy-stroke" />
+  <path d="M 55 160 L 185 160" class="muted-stroke" />
+
+  <!-- Bandeja de veludo pericial de conferência -->
+  <path d="M 50 140 L 68 110 L 172 110 L 190 140 Z" class="navy-stroke" fill="#081226" fill-opacity="0.04" />
+  <path d="M 54 137 L 70 113 L 170 113 L 186 137 Z" class="gold-stroke" stroke-width="1.2" />
+
+  <!-- Moeda em análise repousada na bandeja -->
+  <ellipse cx="115" cy="125" rx="30" ry="14" class="gold-stroke" stroke-width="2.5" fill="#C9A24B" fill-opacity="0.2" />
+  <ellipse cx="115" cy="125" rx="18" ry="8" class="navy-stroke" stroke-width="2" fill="#FFFFFF" />
+
+  <!-- Lupa pericial de aumento focada na moeda -->
+  <!-- Lente da lupa -->
+  <circle cx="130" cy="78" r="36" class="navy-stroke" stroke-width="3" fill="#FFFFFF" fill-opacity="0.85" />
+  <circle cx="130" cy="78" r="31" class="gold-stroke" stroke-width="1.5" />
+  
+  <!-- Brilho na lente -->
+  <path d="M 112 60 A 26 26 0 0 1 146 54" class="muted-stroke" stroke-width="2" />
+
+  <!-- Detalhe ampliado pela lente da lupa -->
+  <circle cx="130" cy="78" r="18" class="gold-stroke" stroke-width="2" fill="#C9A24B" fill-opacity="0.25" />
+  <circle cx="130" cy="78" r="10" class="navy-stroke" stroke-width="1.5" fill="#FFFFFF" />
+  <path d="M 125 78 L 135 78" class="gold-stroke" stroke-width="2" />
+  <path d="M 130 73 L 130 83" class="gold-stroke" stroke-width="2" />
+
+  <!-- Cabo da lupa em ângulo clássico -->
+  <line x1="156" y1="104" x2="185" y2="133" class="navy-stroke" stroke-width="7" stroke-linecap="round" />
+  <line x1="156" y1="104" x2="162" y2="110" class="gold-stroke" stroke-width="7" stroke-linecap="butt" />
+</svg>
