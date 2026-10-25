@@ -29,9 +29,10 @@
   border:1px solid var(--gold);border-radius:10px;display:flex;align-items:center;
   justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13.5px;color:var(--text-strong);
 }
-.topbar-alert-banner a{color:var(--gold);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.topbar-alert-banner a{color:var(--ro-primaria-texto);font-weight:600;text-decoration:underline;text-underline-offset:2px}
 .topbar-alert-actions{display:flex;align-items:center;gap:10px}
 .topbar-alert-btn{
+  width:auto;white-space:nowrap;
   min-height:36px;padding:4px 12px;font-size:12.5px;border-radius:6px;cursor:pointer;
 }
 .sb-brand .brand-mark{width:56px;height:56px;font-size:26px;margin-bottom:8px}
@@ -53,12 +54,12 @@
 .nav-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
 .nav-item:hover:not(.soon){color:var(--text-strong);transform:translateX(3px);background:var(--gold-wash)}
 .nav-item.active{
-  color:var(--gold);
+  color:var(--ro-primaria-texto);
   border-color:var(--line-soft);
   border-left:3px solid var(--gold);
   background:linear-gradient(90deg,var(--gold-tint-14),transparent);
   transform:translateX(3px);
-  box-shadow:inset 1px 0 8px rgba(201,162,75,.15);
+  box-shadow:inset 1px 0 8px var(--gold-tint-14);
 }
 .nav-item.soon{opacity:.45;cursor:default}
 .nav-item.soon:hover{color:var(--text-muted);transform:none}
@@ -74,14 +75,14 @@
   width:44px;height:44px;border-radius:50%;
   background:var(--cream);color:var(--navy);
   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;
-  border:1.5px solid var(--gold);box-shadow:0 3px 10px rgba(0,0,0,.2);
+  border:1.5px solid var(--gold);box-shadow:var(--ro-sombra-1);
 }
 .user-chip .uname{font-weight:700;color:var(--text-strong);font-size:15px;line-height:1.2}
-.user-chip .ubal{color:var(--gold);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.user-chip .ubal{color:var(--ro-primaria-texto);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
 .theme-box{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-muted);font-weight:600}
 .logout{font-size:12.5px;color:var(--text-muted);cursor:pointer;text-decoration:underline;
   display:inline-flex;align-items:center;min-height:44px;padding:0 6px}
-.logout:hover{color:var(--gold)}
+.logout:hover{color:var(--ro-primaria-texto)}
 
 /* botão do menu mobile + fundo da gaveta (só aparecem <=1080px) */
 .menu-btn{
@@ -94,3 +95,252 @@
 .tb-left{display:flex;align-items:center;gap:12px;min-width:0}
 .sb-backdrop{display:none;position:fixed;inset:0;background:var(--backdrop);z-index:69}
 .sb-backdrop.show{display:block}
+
+/* ============================================================================
+   CASCO DO CLIENTE (.app-cliente) — redesenho da Frente 4, 25/10/2026.
+
+   O painel administrativo usa as MESMAS classes (.sidebar, .nav-item, .main) com o
+   seu próprio casco. Tudo daqui para baixo mora atrás de .app-cliente para que o
+   redesenho da plataforma não mude o /admin (Frente 5). As media queries ficam em
+   responsive.css, como sempre.
+
+   Decisões (BENCHMARK.md, seção Decisões): menu agrupado por tarefa (Negociar, Meu
+   acervo, Conta), item aceso também nas subpáginas, coluna lateral fixa só a partir de
+   1024px (doc 35 §5), sem deslocamento no hover (movimento só informa — conceito 09).
+   ========================================================================= */
+.app-cliente .sidebar{
+  width:248px;padding:22px 14px 18px;border-radius:0;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.app-cliente .sb-brand{margin-bottom:18px}
+.sb-nav{display:flex;flex-direction:column;gap:14px}
+.sb-grupo{display:flex;flex-direction:column}
+.sb-grupo-nome{
+  font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-muted);padding:0 12px 6px;
+}
+.app-cliente .nav-item{
+  min-height:44px;padding:9px 12px;margin-bottom:2px;width:100%;
+  font-family:inherit;text-align:left;background:none;
+}
+.app-cliente .nav-item:hover:not(.soon){transform:none}
+.app-cliente .nav-item.active{transform:none;box-shadow:none}
+.app-cliente .nav-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.app-cliente button.nav-item{cursor:pointer}
+span.switch{display:inline-block;flex-shrink:0}
+
+/* Cabeçalho da página: título à esquerda, conta à direita, um filete separando do conteúdo. */
+.app-cliente .topbar{padding-bottom:18px;border-bottom:1px solid var(--line-soft);margin-bottom:24px}
+.app-cliente .page-title h1{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-1);line-height:1.15;text-wrap:balance}
+.app-cliente .page-title p{max-width:62ch}
+.ubal-lbl{font-size:10.5px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-right:2px}
+.app-cliente .theme-box{
+  background:none;border:1px solid var(--line-soft);border-radius:22px;min-height:44px;padding:0 12px;
+  cursor:pointer;font-family:inherit;
+}
+.app-cliente .theme-box:hover{border-color:var(--gold)}
+.app-cliente .logout{background:none;border:0;font-family:inherit}
+.app-cliente .theme-box:focus-visible,.app-cliente .logout:focus-visible,.app-cliente .menu-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.app-cliente .main{max-width:1320px;min-width:0}
+
+/* ============================================================================
+   PRIMITIVOS DA PLATAFORMA — peças de marcação reaproveitadas por todas as telas
+   do cliente. Só tokens de tokens.css; nenhum literal de cor (README da pasta).
+   ========================================================================= */
+
+/* Texto só para leitor de tela: nome acessível único em botões repetidos (doc 35 §6). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Botão do tamanho do texto: .btn-gold é largura total por padrão (base.css). */
+.btn.auto{width:auto}
+.acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.acoes > .btn{width:auto}
+
+/* Cabeçalho de painel com ação à direita (o título continua sendo o <h3> do .panel). */
+.panel-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.panel-cab h3{margin:0}
+.panel-cab .sub{font-size:12.5px;color:var(--text-muted)}
+.panel .lead{font-size:13.5px;color:var(--text-muted);line-height:1.5;margin:-6px 0 14px;max-width:70ch}
+
+/* Disclosure de painel: o <h3> continua sendo o título (âncora do tutorial); o botão dentro dele
+   abre e fecha. Botão de verdade, com aria-expanded, no lugar da <div role="button">. */
+.panel-toggle{
+  all:unset;box-sizing:border-box;display:flex;align-items:center;gap:9px;width:100%;
+  min-height:44px;cursor:pointer;border-radius:8px;
+}
+.panel-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.panel-toggle .chev{margin-left:auto;width:18px;height:18px;stroke:var(--text-muted);fill:none;stroke-width:2;transition:transform .2s ease}
+.panel-toggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.panel-toggle .n{font-variant-numeric:tabular-nums;color:var(--text-muted);font-weight:600;font-size:14px}
+
+/* Chips: filtro por tipo de moeda, subnavegação e "Nesta página". */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;
+  border-radius:999px;border:1px solid var(--line-soft);background:transparent;color:var(--text);
+  font:600 13px var(--ff-sans);cursor:pointer;text-decoration:none;white-space:nowrap;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.chip:hover{border-color:var(--gold)}
+.chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.chip[aria-pressed="true"],.chip[aria-current="page"],.chip.on{background:var(--gold-tint-14);border-color:var(--gold);color:var(--ro-primaria-texto)}
+.chip .n{font-variant-numeric:tabular-nums;color:var(--text-muted);font-weight:700;font-size:12px}
+.chip[aria-pressed="true"] .n{color:var(--ro-primaria-texto)}
+.chips-lbl{font-size:12px;font-weight:700;color:var(--text-muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em}
+
+/* "Nesta página": atalhos para as seções de uma tela longa (tópico 35, passo 4). */
+.nesta-pagina{margin:0 0 18px}
+.nesta-pagina ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.main [id]{scroll-margin-top:84px}
+
+/* Faixa de números (KPIs) compacta — usada no Mercado e no Início. */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line-soft);border-radius:12px;padding:14px 16px;min-width:0}
+.kpi .lbl{font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.kpi .val{font-size:22px;font-weight:700;color:var(--text-strong);font-family:var(--ff-display);font-variant-numeric:tabular-nums;margin-top:4px;overflow-wrap:anywhere}
+.kpi .val.ouro{color:var(--ro-primaria-texto)}
+.kpi .sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* Estado vazio com motivo e próximo passo (Geist; tópico 35, passo 4b). */
+.vazio{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;
+  padding:28px 18px;border:1px dashed var(--line-soft);border-radius:12px;color:var(--text-muted);
+}
+.vazio svg{width:40px;height:40px;stroke:var(--gold);fill:none;stroke-width:1.4}
+.vazio h4{font-size:15.5px;color:var(--text-strong);font-weight:700;margin:0}
+.vazio p{font-size:13px;line-height:1.5;max-width:46ch;margin:0}
+.vazio .btn{width:auto;margin-top:6px}
+
+/* Carregando: barras neutras no lugar do conteúdo, sem piscar em quem pediu menos movimento. */
+.carregando{display:flex;flex-direction:column;gap:10px;padding:6px 0}
+/* As barras são o <Esqueleto> do Brandbook (§9.9), com o brilho e o prefers-reduced-motion dele. */
+.carregando .ro-esqueleto{display:block}
+
+/* Tabela larga: 1.ª coluna fixa com fundo opaco, que acompanha o hover da linha sem JS
+   (doc 35 §5; tópico 35, passo 4b). O cabeçalho da linha é <th scope="row">. */
+.tabela-fixa{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-md)}
+/* Tipografia, linhas e hover vêm da .ro-tabela do Brandbook (§9.7); aqui fica só o que é desta área:
+   cabeçalho de linha legível (th scope="row") e a 1ª coluna presa ao rolar no celular. */
+.tabela-fixa .ro-tabela{font-size:.875rem}
+.tabela-fixa :is(th,td){text-align:left;vertical-align:top}
+.tabela-fixa thead th{white-space:nowrap}
+.tabela-fixa tbody th{font-size:inherit;letter-spacing:normal;font-weight:700;color:var(--ro-texto-forte);padding:12px 14px;border-bottom-color:var(--ro-borda-suave);white-space:normal}
+.tabela-fixa tr > :first-child{position:sticky;left:0;z-index:1;background:var(--ro-cartao-base);box-shadow:1px 0 0 var(--ro-borda-suave)}
+.tabela-fixa thead th{background:var(--ro-cartao-base)}
+.tabela-fixa tbody tr:hover > *{background:var(--ro-superficie-sutil)}
+.tabela-fixa .num{text-align:right;white-space:nowrap}
+.tabela-fixa .nowrap{white-space:nowrap}
+/* A caixa rola sozinha no celular: com tabIndex=0 (axe scrollable-region-focusable) quem usa teclado rola com as setas. */
+.tabela-fixa:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+
+/* Seletor de opção (forma de pagamento, modalidade): cartão clicável com estado marcado. */
+.opcoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+.opcao{
+  text-align:left;padding:10px 12px;min-height:44px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line-soft);background:var(--input-bg);color:var(--text);font-family:inherit;
+  transition:border-color .15s ease,background .15s ease;
+}
+.opcao:hover{border-color:var(--gold)}
+.opcao:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.opcao[aria-pressed="true"]{border:2px solid var(--gold);background:var(--gold-tint-10);padding:9px 11px}
+.opcao .t{font-weight:700;font-size:13.5px;color:var(--text-strong)}
+.opcao .d{font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.4}
+.opcao.apagada{opacity:.6}
+
+/* Caixa de forma de pagamento dentro das modais de compra. */
+.caixa-pag{margin-top:12px;padding:12px 14px;background:var(--input-bg);border-radius:10px;border:1px solid var(--line-soft)}
+.caixa-pag .t{font-size:13.5px;font-weight:700;color:var(--text-strong);margin-bottom:4px}
+.caixa-pag .d{font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.45}
+.caixa-pag .m-actions{margin-top:0}
+
+/* Rodapé de garantia das telas de mercado. */
+.nota-rodape{justify-content:center;text-align:center;margin-top:24px}
+
+/* Acabamento editorial da área do cliente (25/10/2026): títulos de painel na fonte de exibição
+   (Playfair) — a mesma voz da landing e do certificado — e um brilho dourado muito leve no alto
+   da página, feito só com o véu de tokens.css. Nada anima. */
+.app-cliente{background-image:radial-gradient(1100px 420px at 85% -120px,var(--gold-tint-10),transparent 70%);background-repeat:no-repeat}
+.app-cliente .panel > h3,.app-cliente .panel-cab h3{font-family:var(--ff-display);font-size:19px;font-weight:600;letter-spacing:.005em}
+.app-cliente .panel > h3 .panel-toggle{font-family:var(--ff-display)}
+.app-cliente .secao-titulo{font-family:var(--ff-sans)}
+
+/* ============================================================================
+   UTILITÁRIOS (u-*) — 25/10/2026. Nasceram da troca dos `style={{…}}` das modais do
+   cliente (cadastro, depósito, saque, retirada, oferta pré-paga, editar oferta) por
+   classes: cada um tem o MESMO valor que o estilo inline tinha, para o desenho não
+   mudar. Ficam fora de .app-cliente porque as modais são montadas fora do casco
+   (ModalHost é irmão de .app). Só tokens; nenhum literal de cor.
+   ========================================================================= */
+.u-mt0{margin-top:0}.u-mt2{margin-top:2px}.u-mt4{margin-top:4px}.u-mt6{margin-top:6px}.u-mt8{margin-top:8px}
+.u-mt10{margin-top:10px}.u-mt12{margin-top:12px}.u-mt14{margin-top:14px}.u-mt16{margin-top:16px}.u-mt18{margin-top:18px}
+.u-mb6{margin-bottom:6px}.u-mb10{margin-bottom:10px}.u-mb12{margin-bottom:12px}.u-mb14{margin-bottom:14px}.u-mb16{margin-bottom:16px}
+.u-f11{font-size:11px}.u-f12{font-size:12px}.u-f125{font-size:12.5px}.u-f13{font-size:13px}.u-t135{font-size:13.5px;font-weight:600;color:var(--text-strong)}
+.u-sutil{font-size:12px;color:var(--text-muted)}
+.u-menor{font-size:11.5px}
+.u-rotulo{font-size:12px;font-weight:600}
+.u-semi{font-weight:600}.u-forte{font-weight:700}.u-forte-cor{color:var(--text-strong)}
+.u-ouro{color:var(--ro-primaria-texto)}.u-erro{color:var(--ro-perigo-texto)}
+.u-centro{text-align:center}.u-direita{text-align:right}
+.u-bloco{display:block;cursor:pointer}
+.u-cheio{width:100%}.u-auto{width:auto;flex-shrink:0}.u-flex1{flex:1}
+.u-toque{min-height:44px}
+.u-estreito{max-width:520px;margin:0 auto}
+.u-modal-titulo{font-size:20px;margin-bottom:4px}
+.u-modal-lead{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.u-v19{font-size:19px}
+.u-caixa-t{font-size:13px;font-weight:600;color:var(--text-strong);margin-bottom:4px}
+.u-caixa-d{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.u-btn-compacto{padding:7px 12px;font-size:13px;min-height:44px}
+.u-btn-cep{height:44px;padding:0 16px;font-size:13px;margin-bottom:4px;width:auto}
+.u-btn-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;text-decoration:none}
+.u-linha8{display:flex;gap:8px}
+.u-base{align-items:flex-end}
+.u-linha-caixa{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--input-bg);border-radius:8px;border:1px solid var(--line-soft);margin-bottom:10px;gap:12px}
+.u-linha-tabela{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--line-soft)}
+.u-linha-total{display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px;font-weight:700}
+.u-grade-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.u-grade-1-2{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.u-grade-12-2{display:grid;grid-template-columns:1.2fr 2fr;gap:10px}
+.u-grade-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.u-grade-3a{display:grid;grid-template-columns:1.5fr 1.5fr .8fr;gap:10px}
+.u-grade-3b{display:grid;grid-template-columns:2fr 1fr 2fr;gap:10px}
+.u-grade-3c{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:10px}
+.u-ciente{margin-top:16px;background:var(--gold-wash);padding:12px;border-radius:8px;cursor:pointer;min-height:44px}
+
+/* ============================================================================
+   ALINHAMENTO COM O BRANDBOOK (Frente 1, merge do contrato de tokens em 25/10/2026).
+   Os primitivos da plataforma passam a ler os papéis --ro-* (contraste AA por tema),
+   no mesmo desenho dos componentes de src/brand/componentes.css (.ro-selo, .ro-vazio,
+   .ro-esqueleto, .ro-chip). As classes daqui continuam porque as âncoras e o markup
+   das telas já as usam; o que mudou foi a fonte da cor.
+   ========================================================================= */
+.vazio h4{font-family:var(--ro-fonte-display);font-size:1.125rem}
+/* Estados vazios da área logada usam o <EstadoVazio> do Brandbook (§9.8); o botão de próximo passo não estica. */
+.ro-vazio .btn{width:auto;margin-top:6px}
+.chip[aria-pressed="true"],.chip[aria-current="page"],.chip.on{background:var(--ro-primaria-veu);border-color:var(--ro-primaria);color:var(--ro-primaria-texto)}
+.chip{border-color:var(--ro-borda-campo)}
+.kpi .val.ouro,.cotacao-numeros dd.ouro{color:var(--ro-primaria-texto)}
+.cotacao-numeros dd.verde,.kpi .val.verde{color:var(--ro-sucesso-texto)}
+.ubal{color:var(--ro-primaria-texto)}
+.topbar-alert-banner a{color:var(--ro-primaria-texto)}
+.topbar-alert-btn{min-height:var(--ro-alvo-toque)}
+.app-cliente .nav-item.active{background:var(--ro-primaria-veu);color:var(--ro-primaria-texto)}
+
+/* Início: a faixa de abertura (.ro-faixa .ro-guilloche do Brandbook) é escura nos dois temas; os números
+   dela usam as tintas de pergaminho e o ouro claro, não os papéis do tema. A foto
+   cenarios-faixa-abertura-painel foi reprovada na conferência da Frente 1 e não entra. */
+.inicio-conta{display:block;margin-bottom:0} /* .ro-faixa virou flex para o <FaixaAbertura>; esta faixa empilha cabeçalho e números */
+.inicio-conta .inicio-saldo-lbl{font-size:var(--ro-tipo-legenda);color:var(--ro-noite-200);margin:10px 0 4px}
+.inicio-conta .inicio-numeros{border-top-color:color-mix(in srgb,var(--ro-ouro-500) 30%,transparent)}
+.inicio-conta .inicio-numeros dt{color:var(--ro-noite-200)}
+.inicio-conta .inicio-numeros dd{color:var(--ro-ouro-300);font-family:var(--ro-fonte-display)}
+.sb-marca{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 10px;margin-bottom:18px;text-decoration:none;border-radius:10px}
+.sb-marca:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+.sb-marca .ro-logo{width:40px;height:40px;flex:none}
+.sb-marca-nome{font-family:var(--ro-fonte-display);font-size:1.15rem;font-weight:600;color:var(--ro-texto-forte);letter-spacing:.01em}
+
+/* Validação no navegador sem JS (tópico 35, passo 3c): :user-invalid só acende DEPOIS que a pessoa sai do campo
+   ou tenta enviar — enquanto digita, nada de vermelho. O aria-invalid cobre o erro que vem do servidor ou do
+   cálculo da tela (CPF inválido no cadastro). O servidor continua sendo quem valida. */
+.app-cliente .tinput:user-invalid,.modal .tinput:user-invalid,
+.app-cliente .tinput[aria-invalid="true"],.modal .tinput[aria-invalid="true"]{border-color:var(--ro-perigo-texto);background:var(--ro-perigo-fundo)}

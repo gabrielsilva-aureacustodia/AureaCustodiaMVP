@@ -16,7 +16,7 @@
  *     - Bloco de Comparação simples (levando a /mercado/comparacoes).
  */
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -32,6 +32,7 @@ import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { COIN, LOGO_REAL_EMBLEMA, tiposNegociaveis } from '@/domain/constants'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
+import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { pctChange, roDailySeries } from '@/domain/selectors'
@@ -43,8 +44,11 @@ import { CHART_MOBILE_MAX_PX, marketChartSize } from '@/lib/charts'
 import type { ChartPoint } from '@/lib/charts'
 import { LineChart } from '@/components/charts/LineChart'
 import { Sparkline } from '@/components/charts/Sparkline'
+import { CoinArt } from '@/components/svg/CoinArt'
 import { PERIOD_DAYS, PeriodTabs } from '@/components/reports/PeriodTabs'
 import type { Period } from '@/components/reports/PeriodTabs'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { Esqueleto } from '@/components/ui/Esqueleto'
 
 /* ------------------------------------------------------------------------- */
 /* Ganchos e auxiliares dos gráficos                                         */
@@ -115,7 +119,6 @@ export default function MercadoPage(): ReactNode {
   const { state, session, run, catalogo } = useApp()
   const { vendedoresPausados, consultar } = useBloqueioPorPendencia()
   const modal = useModal()
-  const router = useRouter()
 
   useEffect(() => {
     void consultar()
@@ -218,490 +221,396 @@ export default function MercadoPage(): ReactNode {
 
   return (
     <>
+      {/* 0. COTAÇÃO POR MOEDA (25/10/2026). Um cartão por tipo negociável com o que importa antes de
+          agir — a menor oferta de venda (quanto custa comprar agora), a maior oferta de compra (quanto
+          pagam agora) e a última negociação —, como o "Buy now / Highest offer" do StockX (BENCHMARK.md
+          §1.3). Tudo lido do estado que a tela já tem; "Ver no livro" só ajusta os filtros abaixo. */}
+      <section className="cotacoes" aria-labelledby="cotacoes-t">
+        <h2 id="cotacoes-t" className="secao-titulo">
+          Cotação por moeda
+        </h2>
+        <div className="cotacoes-grade">
+          {NEGOCIAVEIS.map((t) => {
+            const vendas = lotsFromOffers(state).filter(
+              (l) => l.tipoMoeda === t.key && !vendedoresPausados.includes(l.seller),
+            )
+            const menorVenda = vendas.length ? Math.min(...vendas.map((l) => l.price)) : null
+            const d = destaqueDeMercado(state, t.key)
+            const ultima = lastTrade(state, t.key)
+            return (
+              <article key={t.key} className="cotacao">
+                <div className="cotacao-cab">
+                  <CoinArt type={t.key} />
+                  <div>
+                    <h3 className="cotacao-nome">{t.key}</h3>
+                    <p className="cotacao-sub">{vendas.length} anúncio(s) à venda</p>
+                  </div>
+                </div>
+                <dl className="cotacao-numeros">
+                  <div>
+                    <dt>Comprar agora a partir de</dt>
+                    <dd className={menorVenda === null ? 'sem-valor' : 'ouro'}>
+                      {menorVenda === null ? 'Sem oferta de venda' : brl(menorVenda)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Maior oferta de compra</dt>
+                    <dd className={d.maiorOfertaDeCompra === null ? 'sem-valor' : 'verde'}>
+                      {d.maiorOfertaDeCompra === null ? 'Sem oferta de compra' : brl(d.maiorOfertaDeCompra)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Última negociação</dt>
+                    <dd className={ultima ? undefined : 'sem-valor'}>{ultima ? fmtTrade(ultima) : '—'}</dd>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  className="btn btn-outline cotacao-ver"
+                  onClick={() => {
+                    setTipoMoedaVenda(t.key)
+                    setTipoMoedaCompra(t.key)
+                    setAbertoVenda(true)
+                    setAbertoCompra(true)
+                    // Rolagem suave só para quem não pediu menos movimento ao sistema.
+                    const suave = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    document.getElementById('livro')?.scrollIntoView({ behavior: suave ? 'smooth' : 'auto', block: 'start' })
+                  }}
+                >
+                  Ver no livro<span className="sr-only"> as ofertas de {t.key}</span>
+                </button>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
       {/* 1. Minhas ofertas no mercado — no topo */}
-      <div style={{ marginBottom: 24 }}>
-        <MinhasOfertas />
-      </div>
+      <MinhasOfertas />
 
-      {/* 2. Ofertas de venda e Ofertas de compra — lado a lado */}
-      <div className="cols">
-        {/* Bloco 1: Ofertas de venda */}
-        <div>
-          <div className="panel" style={{ marginBottom: 18 }}>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setAbertoVenda((v) => !v)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setAbertoVenda((v) => !v)
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                marginBottom: abertoVenda ? 14 : 0,
-              }}
+      {/* 2. O livro: ofertas de venda e de compra lado a lado (uma coluna no celular). */}
+      <div className="livro" id="livro">
+        <section className="panel livro-lado" aria-labelledby="livro-venda-titulo">
+          <h3 id="livro-venda-titulo">
+            <button
+              type="button"
+              className="panel-toggle"
               aria-expanded={abertoVenda}
+              aria-controls="livro-venda"
+              onClick={() => setAbertoVenda((v) => !v)}
             >
-              <h3 style={{ margin: 0 }}>
-                <svg viewBox="0 0 24 24">
-                  <ellipse cx="12" cy="6.5" rx="7" ry="3" />
-                  <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
-                </svg>
-                Ofertas de venda ({lotsFiltrados.length})
-              </h3>
-              <svg
-                viewBox="0 0 24 24"
-                style={{
-                  width: 18,
-                  height: 18,
-                  stroke: 'currentColor',
-                  fill: 'none',
-                  strokeWidth: 2,
-                  transform: abertoVenda ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
-              >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <ellipse cx="12" cy="6.5" rx="7" ry="3" />
+                <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
+              </svg>
+              Ofertas de venda <span className="n">({lotsFiltrados.length})</span>
+              <svg className="chev" viewBox="0 0 24 24" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
-            </div>
+            </button>
+          </h3>
 
-            {abertoVenda ? (
-              <>
-                {/* Botões simples de filtro por tipo de moeda */}
-                <div style={{ marginBottom: 12 }}>
-                  <div className="field-lbl" style={{ marginBottom: 6 }}>
-                    Filtrar por tipo
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className={tipoMoedaVenda === 'todas' ? 'btn btn-gold' : 'btn btn-outline'}
-                      style={{ padding: '4px 10px', fontSize: 12, minHeight: 32 }}
-                      onClick={() => setTipoMoedaVenda('todas')}
-                    >
-                      Todas
-                    </button>
-                    {NEGOCIAVEIS.map((t) => (
-                      <button
-                        key={t.key}
-                        type="button"
-                        className={tipoMoedaVenda === t.key ? 'btn btn-gold' : 'btn btn-outline'}
-                        style={{ padding: '4px 10px', fontSize: 12, minHeight: 32 }}
-                        onClick={() => setTipoMoedaVenda(t.key)}
-                      >
-                        {t.key}
+          {abertoVenda ? (
+            <div id="livro-venda">
+              <FiltrosDoLivro
+                lado="venda"
+                tipos={NEGOCIAVEIS.map((t) => t.key)}
+                tipo={tipoMoedaVenda}
+                onTipo={setTipoMoedaVenda}
+                min={filMinVenda}
+                max={filMaxVenda}
+                onMin={setFilMinVenda}
+                onMax={setFilMaxVenda}
+              />
+
+              {/* Lista de lotes com paginação de 10 em 10 */}
+              {lotsVisiveis.length ? (
+                <>
+                  {lotsVisiveis.map((lot) => (
+                    <LotCard
+                      key={lot.lotId}
+                      lot={lot}
+                      mine={lot.seller === session}
+                      qtyEscolhida={buyQty[lot.lotId]}
+                      onAdjust={ajustarQtd}
+                      onBuy={confirmarCompra}
+                    />
+                  ))}
+                  {lotsFiltrados.length > limiteVenda ? (
+                    <div className="livro-mais">
+                      <p>
+                        Exibindo {lotsVisiveis.length} de {lotsFiltrados.length} oferta(s)
+                      </p>
+                      <button type="button" className="btn btn-outline" onClick={() => setLimiteVenda((prev) => prev + 10)}>
+                        Ver mais ofertas de venda (+10)
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Filtrar por valor dentro do bloco */}
-                <div
-                  style={{
-                    marginBottom: 16,
-                    padding: '10px 12px',
-                    background: 'var(--input-bg)',
-                    borderRadius: 8,
-                    border: '1px solid var(--line-soft)',
-                  }}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <EstadoVazio
+                  titulo="Nenhuma oferta de venda encontrada para este filtro."
+                  ilustracao="semOrdens"
                 >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Filtrar por valor
-                  </div>
-                  <div className="filter-row" style={{ gap: 8 }}>
-                    <div className="ffield">
-                      <label htmlFor="filMinVenda" style={{ fontSize: 11 }}>
-                        Mínimo
-                      </label>
-                      <input
-                        id="filMinVenda"
-                        className="tinput"
-                        placeholder="R$ 0,00"
-                        value={filMinVenda}
-                        onChange={(e) => setFilMinVenda(e.target.value)}
-                      />
-                    </div>
-                    <div className="ffield">
-                      <label htmlFor="filMaxVenda" style={{ fontSize: 11 }}>
-                        Máximo
-                      </label>
-                      <input
-                        id="filMaxVenda"
-                        className="tinput"
-                        placeholder="Sem limite"
-                        value={filMaxVenda}
-                        onChange={(e) => setFilMaxVenda(e.target.value)}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      style={{ alignSelf: 'flex-end', minHeight: 36, padding: '0 12px' }}
-                      onClick={() => {
-                        setFilMinVenda('')
-                        setFilMaxVenda('')
-                      }}
-                    >
-                      Limpar
-                    </button>
-                  </div>
-                </div>
+                  Troque o tipo de moeda ou a faixa de valor. Para comprar mesmo assim, publique uma oferta de
+                  compra em Compras: a negociação acontece quando alguém vender no seu preço.
+                </EstadoVazio>
+              )}
+            </div>
+          ) : null}
+        </section>
 
-                {/* Lista de lotes com paginação de 10 em 10 */}
-                {lotsVisiveis.length ? (
-                  <>
-                    {lotsVisiveis.map((lot) => (
-                      <LotCard
-                        key={lot.lotId}
-                        lot={lot}
-                        mine={lot.seller === session}
-                        qtyEscolhida={buyQty[lot.lotId]}
-                        onAdjust={ajustarQtd}
-                        onBuy={confirmarCompra}
-                      />
-                    ))}
-                    {lotsFiltrados.length > limiteVenda ? (
-                      <div style={{ textAlign: 'center', marginTop: 14 }}>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}
-                        >
-                          Exibindo {lotsVisiveis.length} de {lotsFiltrados.length} oferta(s)
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          style={{ width: '100%' }}
-                          onClick={() => setLimiteVenda((prev) => prev + 10)}
-                        >
-                          Ver mais (+10)
-                        </button>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="empty">Nenhuma oferta de venda encontrada para este filtro.</div>
-                )}
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Bloco 2: Ofertas de compra */}
-        <div>
-          <div className="panel" style={{ marginBottom: 18 }}>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setAbertoCompra((v) => !v)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setAbertoCompra((v) => !v)
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                marginBottom: abertoCompra ? 14 : 0,
-              }}
+        <section className="panel livro-lado" aria-labelledby="livro-compra-titulo">
+          <h3 id="livro-compra-titulo">
+            <button
+              type="button"
+              className="panel-toggle"
               aria-expanded={abertoCompra}
+              aria-controls="livro-compra"
+              onClick={() => setAbertoCompra((v) => !v)}
             >
-              <h3 style={{ margin: 0 }}>
-                <svg viewBox="0 0 24 24">
-                  <path d="M12 19V5M5 12l7-7 7 7" />
-                </svg>
-                Ofertas de compra ({bidsFiltrados.length})
-              </h3>
-              <svg
-                viewBox="0 0 24 24"
-                style={{
-                  width: 18,
-                  height: 18,
-                  stroke: 'currentColor',
-                  fill: 'none',
-                  strokeWidth: 2,
-                  transform: abertoCompra ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
-              >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+              Ofertas de compra <span className="n">({bidsFiltrados.length})</span>
+              <svg className="chev" viewBox="0 0 24 24" aria-hidden="true">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
-            </div>
+            </button>
+          </h3>
 
-            {abertoCompra ? (
-              <>
-                {/* Botões simples de filtro por tipo de moeda */}
-                <div style={{ marginBottom: 12 }}>
-                  <div className="field-lbl" style={{ marginBottom: 6 }}>
-                    Filtrar por tipo
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      className={tipoMoedaCompra === 'todas' ? 'btn btn-gold' : 'btn btn-outline'}
-                      style={{ padding: '4px 10px', fontSize: 12, minHeight: 32 }}
-                      onClick={() => setTipoMoedaCompra('todas')}
-                    >
-                      Todas
-                    </button>
-                    {NEGOCIAVEIS.map((t) => (
-                      <button
-                        key={t.key}
-                        type="button"
-                        className={tipoMoedaCompra === t.key ? 'btn btn-gold' : 'btn btn-outline'}
-                        style={{ padding: '4px 10px', fontSize: 12, minHeight: 32 }}
-                        onClick={() => setTipoMoedaCompra(t.key)}
-                      >
-                        {t.key}
+          {abertoCompra ? (
+            <div id="livro-compra">
+              <FiltrosDoLivro
+                lado="compra"
+                tipos={NEGOCIAVEIS.map((t) => t.key)}
+                tipo={tipoMoedaCompra}
+                onTipo={setTipoMoedaCompra}
+                min={filMinCompra}
+                max={filMaxCompra}
+                onMin={setFilMinCompra}
+                onMax={setFilMaxCompra}
+              />
+
+              {/* Lista de ofertas de compra com paginação de 10 em 10 */}
+              {bidsVisiveis.length ? (
+                <>
+                  {bidsVisiveis.map((bid) => (
+                    <BidRow
+                      key={bid.id}
+                      bid={bid}
+                      mine={bid.buyer === session}
+                      onEdit={(b) => modal.open(<ModalEditarBid bid={b} />)}
+                      onCancel={(b) => void run(() => cancelBid(b.id))}
+                    />
+                  ))}
+                  {bidsFiltrados.length > limiteCompra ? (
+                    <div className="livro-mais">
+                      <p>
+                        Exibindo {bidsVisiveis.length} de {bidsFiltrados.length} oferta(s)
+                      </p>
+                      <button type="button" className="btn btn-outline" onClick={() => setLimiteCompra((prev) => prev + 10)}>
+                        Ver mais ofertas de compra (+10)
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Filtrar por valor dentro do bloco */}
-                <div
-                  style={{
-                    marginBottom: 16,
-                    padding: '10px 12px',
-                    background: 'var(--input-bg)',
-                    borderRadius: 8,
-                    border: '1px solid var(--line-soft)',
-                  }}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <EstadoVazio
+                  titulo="Nenhuma oferta de compra encontrada para este filtro."
+                  ilustracao="semOrdens"
                 >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: 8,
-                    }}
-                  >
-                    Filtrar por valor
-                  </div>
-                  <div className="filter-row" style={{ gap: 8 }}>
-                    <div className="ffield">
-                      <label htmlFor="filMinCompra" style={{ fontSize: 11 }}>
-                        Mínimo
-                      </label>
-                      <input
-                        id="filMinCompra"
-                        className="tinput"
-                        placeholder="R$ 0,00"
-                        value={filMinCompra}
-                        onChange={(e) => setFilMinCompra(e.target.value)}
-                      />
-                    </div>
-                    <div className="ffield">
-                      <label htmlFor="filMaxCompra" style={{ fontSize: 11 }}>
-                        Máximo
-                      </label>
-                      <input
-                        id="filMaxCompra"
-                        className="tinput"
-                        placeholder="Sem limite"
-                        value={filMaxCompra}
-                        onChange={(e) => setFilMaxCompra(e.target.value)}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      style={{ alignSelf: 'flex-end', minHeight: 36, padding: '0 12px' }}
-                      onClick={() => {
-                        setFilMinCompra('')
-                        setFilMaxCompra('')
-                      }}
-                    >
-                      Limpar
-                    </button>
-                  </div>
-                </div>
-
-                {/* Lista de ofertas de compra com paginação de 10 em 10 */}
-                {bidsVisiveis.length ? (
-                  <>
-                    {bidsVisiveis.map((bid) => (
-                      <BidRow
-                        key={bid.id}
-                        bid={bid}
-                        mine={bid.buyer === session}
-                        onEdit={(b) => modal.open(<ModalEditarBid bid={b} />)}
-                        onCancel={(b) => void run(() => cancelBid(b.id))}
-                      />
-                    ))}
-                    {bidsFiltrados.length > limiteCompra ? (
-                      <div style={{ textAlign: 'center', marginTop: 14 }}>
-                        <div
-                          style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}
-                        >
-                          Exibindo {bidsVisiveis.length} de {bidsFiltrados.length} oferta(s)
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          style={{ width: '100%' }}
-                          onClick={() => setLimiteCompra((prev) => prev + 10)}
-                        >
-                          Ver mais (+10)
-                        </button>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="empty">Nenhuma oferta de compra encontrada para este filtro.</div>
-                )}
-              </>
-            ) : null}
-          </div>
-        </div>
+                  Quando alguém publicar uma oferta de compra deste tipo e nesta faixa de valor, ela aparece aqui.
+                </EstadoVazio>
+              )}
+            </div>
+          ) : null}
+        </section>
       </div>
 
       {/* 3. Os gráficos — logo abaixo */}
-      <div className="cols-rev" style={{ marginTop: 24 }}>
-        <div>
-          {/* Preço médio histórico */}
-          <div className="panel" style={{ marginBottom: 18 }}>
-            <h3>
-              <svg viewBox="0 0 24 24">
-                <path d="M3 17l5-6 4 4 6-8 3 4" />
-              </svg>
-              Real Olímpico — Preço médio histórico
-            </h3>
+      <div className="cols-rev mercado-graficos">
+        {/* Preço médio histórico */}
+        <div className="panel">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 17l5-6 4 4 6-8 3 4" />
+            </svg>
+            Real Olímpico — Preço médio histórico
+          </h3>
 
-            <PeriodTabs value={periodo} onChange={setPeriodo} />
+          <PeriodTabs value={periodo} onChange={setPeriodo} />
 
-            <LineChart
-              series={[{ points: roPts, color: 'var(--gold)', width: 2.4 }]}
-              width={tamanho.width}
-              height={tamanho.height}
-              fontSize={tamanho.fontSize}
-              formatY={(v) => 'R$ ' + v.toFixed(0)}
-            />
+          <LineChart
+            series={[{ points: roPts, color: 'var(--gold)', width: 2.4 }]}
+            width={tamanho.width}
+            height={tamanho.height}
+            fontSize={tamanho.fontSize}
+            formatY={(v) => 'R$ ' + v.toFixed(0)}
+          />
+
+          {/* Os três números da plataforma, logo abaixo do gráfico (onde o desenho original os punha). */}
+        <section className="kpis" aria-label="O mercado agora">
+          <div className="kpi">
+            <div className="lbl">Moedas em custódia</div>
+            <div className="val">{totalCoins}</div>
           </div>
-
-          {/* Três indicadores */}
-          <div className="stats">
-            <div className="stat">
-              <div className="stat-ico">
-                <svg viewBox="0 0 24 24">
-                  <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
-                  <path d="M9 12l2 2 4-4" />
-                </svg>
-              </div>
-              <div>
-                <div className="lbl">Moedas em custódia</div>
-                <div className="val">{totalCoins}</div>
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="stat-ico">
-                <svg viewBox="0 0 24 24">
-                  <ellipse cx="12" cy="6.5" rx="7" ry="3" />
-                  <path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" />
-                </svg>
-              </div>
-              <div>
-                <div className="lbl">Volume negociado</div>
-                <div className="val">{brl(vol)}</div>
-              </div>
-            </div>
-
-            <div className="stat">
-              <div className="stat-ico">
-                <svg viewBox="0 0 24 24">
-                  <path d="M5 21V4M5 4h13l-3 4 3 4H5" />
-                </svg>
-              </div>
-              <div>
-                <div className="lbl">
-                  Última negociação{' '}
-                  <span className="sync-dot">
-                    <i />
-                    10s
-                  </span>
-                </div>
-                <div className="val small">{lt ? fmtTrade(lt) : '—'}</div>
-              </div>
-            </div>
+          <div className="kpi">
+            <div className="lbl">Volume negociado</div>
+            <div className="val ouro">{brl(vol)}</div>
           </div>
+          <div className="kpi">
+            <div className="lbl">
+              Última negociação{' '}
+              <span className="sync-dot">
+                <i />
+                10s
+              </span>
+            </div>
+            <div className="val">{lt ? fmtTrade(lt) : '—'}</div>
+            {lt ? <div className="sub">{lt.tipoMoeda}</div> : null}
+          </div>
+        </section>
         </div>
 
-        {/* Comparação simples (coluna estreita) */}
-        <div>
-          <div className="panel">
-            <h3>
-              <svg viewBox="0 0 24 24">
-                <path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7" />
-              </svg>
-              Comparação simples
-            </h3>
+        {/* Comparação simples (coluna estreita). Cada linha é um link de verdade desde
+            25/10/2026 — era uma <div role="link"> com router.push. */}
+        <div className="panel">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7" />
+            </svg>
+            Comparação simples
+          </h3>
 
-            {cs.length ? (
-              linhas.map((linha) => (
-                <div
-                  key={linha.name}
-                  className="comp-row"
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => router.push('/mercado/comparacoes')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') router.push('/mercado/comparacoes')
-                  }}
-                >
-                  <span className="cname">
-                    {linha.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={linha.logo}
-                        alt=""
-                        width={20}
-                        height={20}
-                        style={{ borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }}
-                      />
-                    ) : null}
-                    {linha.name}
-                  </span>
-                  <Sparkline points={linha.points} color={linha.color} width={140} height={26} />
-                  <CompChip pct={pctChange(linha.points.map((p) => p.v))} />
-                </div>
-              ))
-            ) : (
-              <div className="empty">Carregando cotações…</div>
-            )}
-            <div className="note">
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8v5M12 16.5v.5" />
-              </svg>
-              Clique para abrir a comparação completa. Dados atualizados a cada login.
+          {cs.length ? (
+            linhas.map((linha) => (
+              <Link key={linha.name} className="comp-row" href="/mercado/comparacoes">
+                <span className="cname">
+                  {linha.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={linha.logo} alt="" width={20} height={20} className="comp-logo" />
+                  ) : null}
+                  {linha.name}
+                  <span className="sr-only"> — abrir a comparação completa</span>
+                </span>
+                <Sparkline points={linha.points} color={linha.color} width={140} height={26} />
+                <CompChip pct={pctChange(linha.points.map((p) => p.v))} />
+              </Link>
+            ))
+          ) : (
+            <div className="carregando" role="status" aria-busy="true" aria-label="Carregando cotações">
+              <Esqueleto altura="14px" largura="100%" />
+              <Esqueleto altura="14px" largura="82%" />
+              <Esqueleto altura="14px" largura="64%" />
             </div>
+          )}
+          <div className="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            Clique para abrir a comparação completa. Dados atualizados a cada login.
           </div>
         </div>
       </div>
 
-      <div className="note" style={{ justifyContent: 'center', marginTop: '24px' }}>
-        <svg viewBox="0 0 24 24">
+      <div className="note nota-rodape">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
         </svg>
         Todas as moedas são armazenadas com segurança no Real Olímpico. A plataforma não recomenda
         preço; valores são definidos por oferta e demanda.
       </div>
     </>
+  )
+}
+
+/* ------------------------------------------------------------------------- */
+/* Filtros de um lado do livro                                               */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Os filtros que se repetiam idênticos nos dois lados do livro (tipo de moeda e faixa de valor),
+ * agora escritos uma vez. Mesmo estado e mesmas regras de antes — quem guarda os valores continua
+ * sendo a página.
+ *
+ * O tipo virou chips com `aria-pressed` (eram botões dourados e contornados, e o dourado é da ação
+ * primária da tela). A faixa de valor fica num <details>: é refinamento, não o primeiro passo, e
+ * no celular empurrava a lista para baixo. Com valor digitado ele nasce aberto e o resumo diz isso.
+ */
+function FiltrosDoLivro({
+  lado,
+  tipos,
+  tipo,
+  onTipo,
+  min,
+  max,
+  onMin,
+  onMax,
+}: {
+  lado: 'venda' | 'compra'
+  tipos: string[]
+  tipo: string
+  onTipo(t: string): void
+  min: string
+  max: string
+  onMin(v: string): void
+  onMax(v: string): void
+}): ReactNode {
+  const sufixo = lado === 'venda' ? 'Venda' : 'Compra'
+  const ladoTexto = lado === 'venda' ? 'das ofertas de venda' : 'das ofertas de compra'
+  const comValor = Boolean(min || max)
+  return (
+    <div className="livro-filtros">
+      <div className="chips" role="group" aria-label={`Filtrar ${ladoTexto} por tipo de moeda`}>
+        {['todas', ...tipos].map((t) => (
+          <button key={t} type="button" className="chip" aria-pressed={tipo === t} onClick={() => onTipo(t)}>
+            {t === 'todas' ? 'Todas' : t}
+          </button>
+        ))}
+      </div>
+
+      <details className="filtro-valor" open={comValor || undefined}>
+        <summary>Filtrar por valor{comValor ? ' (ativo)' : ''}</summary>
+        <div className="filter-row">
+          <div className="ffield">
+            <label htmlFor={`filMin${sufixo}`}>Mínimo (R$)</label>
+            <input
+              id={`filMin${sufixo}`}
+              className="tinput"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="R$ 0,00"
+              value={min}
+              onChange={(e) => onMin(e.target.value)}
+            />
+          </div>
+          <div className="ffield">
+            <label htmlFor={`filMax${sufixo}`}>Máximo (R$)</label>
+            <input
+              id={`filMax${sufixo}`}
+              className="tinput"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="Sem limite"
+              value={max}
+              onChange={(e) => onMax(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => {
+              onMin('')
+              onMax('')
+            }}
+          >
+            Limpar<span className="sr-only"> o filtro de valor {ladoTexto}</span>
+          </button>
+        </div>
+      </details>
+    </div>
   )
 }
 
@@ -780,8 +689,8 @@ function ConfirmarCompraModal({
   return (
     <>
       <h3 className="serif">Confirmar compra</h3>
-      <p style={{ marginBottom: 12 }}>
-        <b style={{ color: 'var(--gold)' }}>{lot.tipoMoeda}</b> · {qty} unidade(s)
+      <p className="modal-sub">
+        <b>{lot.tipoMoeda}</b> · {qty} unidade(s)
       </p>
 
       <div className="summary-row">
@@ -803,9 +712,7 @@ function ConfirmarCompraModal({
       <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">
         <span className="k">Total a pagar</span>
-        <span className="v" style={{ fontWeight: 600 }}>
-          {brl(total)}
-        </span>
+        <span className="v">{brl(total)}</span>
       </div>
       <div className="summary-row">
         <span className="k">Seu saldo em conta</span>
@@ -817,19 +724,9 @@ function ConfirmarCompraModal({
           "gateway" é palavra de quem escreve o código, não de quem compra, e
           numerar as opções gasta a linha mais visível do bloco sem dizer nada.
           Agora o título é a própria escolha. */}
-      <div
-        style={{
-          marginTop: 14,
-          padding: '12px 14px',
-          background: 'var(--input-bg)',
-          borderRadius: 8,
-          border: '1px solid var(--line-soft)',
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
-          Comprar com saldo
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+      <div className="caixa-pag">
+        <div className="t">Comprar com saldo</div>
+        <div className="d" id="compra-saldo-motivo">
           {temSaldo
             ? `O total de ${brl(total)} (incluindo ${brl(comissaoComprador)} de taxa de compra e ${brl(custodia)} do primeiro mês de custódia) será debitado do seu saldo em conta.`
             : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(total - me.balance)}).`}
@@ -837,7 +734,7 @@ function ConfirmarCompraModal({
         <button
           type="button"
           className={temSaldo ? 'btn btn-gold' : 'btn btn-outline'}
-          style={{ width: '100%' }}
+          aria-describedby="compra-saldo-motivo"
           disabled={!temSaldo || enviando}
           onClick={() => void confirmarComSaldo()}
         >
@@ -846,25 +743,15 @@ function ConfirmarCompraModal({
       </div>
 
       {/* Pix e cartão, sem passar pelo saldo. */}
-      <div
-        style={{
-          marginTop: 12,
-          padding: '12px 14px',
-          background: 'var(--input-bg)',
-          borderRadius: 8,
-          border: '1px solid var(--line-soft)',
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
-          Comprar com Pix ou cartão
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+      <div className="caixa-pag">
+        <div className="t">Comprar com Pix ou cartão</div>
+        <div className="d">
           Pague {brl(total)} direto por Pix ou cartão — as moedas, a taxa de compra e o primeiro mês de custódia —, sem
           usar o saldo em conta. A moeda entra no seu acervo assim que o pagamento for aprovado.
           Se, nessa hora, o anúncio já tiver sido vendido, tiver subido de preço ou estiver
           pausado, o valor pago entra inteiro no seu saldo em conta.
         </div>
-        <div className="m-actions" style={{ marginTop: 0 }}>
+        <div className="m-actions">
           <button
             type="button"
             className="btn btn-outline"
@@ -885,27 +772,29 @@ function ConfirmarCompraModal({
       </div>
 
       {erroMp ? (
-        <div className="note" style={{ marginTop: 12 }}>
+        <div className="note" role="alert">
           {erroMp}
         </div>
       ) : null}
 
       {pix ? (
-        <div style={{ marginTop: 14 }}>
+        <div className="pix-bloco">
           <div className="field-lbl">Pix copia e cola</div>
           <textarea
             readOnly
             rows={3}
             aria-label="Código Pix copia e cola"
             value={pix.qrCode ?? ''}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+            className="pix-codigo"
           />
           {pix.qrCodeBase64 ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`data:image/png;base64,${pix.qrCodeBase64}`}
               alt="QR Code do Pix"
-              style={{ display: 'block', width: 180, height: 180, margin: '12px auto' }}
+              className="pix-qr"
+              width={180}
+              height={180}
             />
           ) : null}
           <div className="note">
@@ -916,9 +805,9 @@ function ConfirmarCompraModal({
         </div>
       ) : null}
 
-      <div className="m-actions" style={{ marginTop: 16 }}>
+      <div className="m-actions">
         <button type="button" className="btn btn-outline" onClick={close}>
-          Fechar
+          Fechar<span className="sr-only"> a confirmação de compra</span>
         </button>
       </div>
     </>

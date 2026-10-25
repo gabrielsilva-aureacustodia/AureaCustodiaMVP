@@ -41,7 +41,7 @@ import type { ReactNode } from 'react'
 import { coinTypeInfo, tiposNegociaveis } from '@/domain/constants'
 import {
   MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
-  moedasComCustodiaNaoPagaDoUsuario,
+  moedasComCustodiaBloqueada,
 } from '@/domain/bloqueio-por-debito'
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
@@ -55,10 +55,12 @@ import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAconte
 import { CoinPicker } from '@/components/sell/CoinPicker'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { ModalCustodiaNaoPaga } from '@/components/sell/ModalCustodiaNaoPaga'
+import { useModal } from '@/components/ui/Modal'
 import { publishOffer } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
-  const { state, me, run, taxas, catalogo } = useApp()
+  const { state, session, me, run, taxas, catalogo } = useApp()
+  const modal = useModal()
   const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
 
   useEffect(() => {
@@ -104,6 +106,10 @@ export default function VenderPage(): ReactNode {
   const anunciadas = new Set(state.sellOffers.map((o) => o.coinId))
   // Livres DO TIPO ATIVO — é o teto do campo de quantidade e da seleção.
   const avail = availableCoinsForSell(state, me, tipoAtivo, catalogo)
+  // Moedas cuja custódia do dono atual não está paga (a mesma regra do servidor e do aviso "Custódia a pagar").
+  // Na lista elas aparecem SEM poder ser marcadas e com o aviso nelas (Gabriel, 25/10/2026) — antes eram
+  // selecionáveis e a recusa só vinha do servidor, depois de publicar.
+  const semCustodia = new Set(moedasComCustodiaBloqueada(state, session))
   const media7 = avg7(state, tipoAtivo)
 
   /** Quantas moedas livres o usuário tem de cada tipo — alimenta o seletor. */
@@ -256,10 +262,22 @@ export default function VenderPage(): ReactNode {
   }
 
   /* ---------- desenho -------------------------------------------------------- */
+  // Por que "Publicar anúncio" está desabilitado, escrito ao lado do botão (tópico 35: `disabled` só
+  // com o motivo). A ordem é a do formulário; a pendência de custódia vence as outras.
+  const motivoBloqueio = pendencia
+    ? 'Publicar está suspenso enquanto houver fatura de custódia vencida.'
+    : qty === 0
+      ? 'Escolha ao menos uma moeda (pela quantidade ou na lista ao lado).'
+      : cents <= 0
+        ? 'Informe o preço unitário de venda.'
+        : !termsOk
+          ? 'Marque "Aceito os termos de publicação" para publicar.'
+          : ''
+
   return (
     <>
       {pendencia ? (
-        <div className="warn-box" style={{ marginBottom: 18 }}>
+        <div className="warn-box aviso-topo">
           <div>
             {MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA}{' '}
             <Link href="/conta/faturas">Abrir faturas de custódia</Link>
@@ -267,154 +285,180 @@ export default function VenderPage(): ReactNode {
         </div>
       ) : null}
       <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 18 }} />
+
+      {/* DUAS COLUNAS (25/10/2026): o anúncio, que é o que se veio fazer, e ao lado a escolha
+          das moedas específicas. As explicações de preço e de negociação, que disputavam a terceira
+          coluna, descem para baixo das duas. Mesmos campos, mesma ordem de decisão. */}
       <div className="cols sell">
-      {/* ================= coluna 1 — o anúncio, que é o que se veio fazer ====== */}
-      <div className="panel">
-        <h3>
-          <svg viewBox="0 0 24 24">
-            <path d="M6 3h9l4 4v14H6z" />
-            <path d="M9 11h7M9 15h7" />
-          </svg>
-          Detalhes do anúncio
-        </h3>
+        {/* ================= coluna 1 — o anúncio, que é o que se veio fazer ====== */}
+        <div className="panel">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3h9l4 4v14H6z" />
+              <path d="M9 11h7M9 15h7" />
+            </svg>
+            Detalhes do anúncio
+          </h3>
 
-        <TipoSelector
-          name="tipo-anuncio"
-          titulo="Tipo de moeda a vender"
-          tipos={NEGOCIAVEIS}
-          valor={tipoAtivo}
-          onChange={trocarTipo}
-          detalhePorTipo={livresPorTipo}
-        />
-
-        <div className="field-lbl">
-          <svg viewBox="0 0 24 24">
-            <path d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4" />
-          </svg>
-          Quantidade a ofertar
-        </div>
-        <input
-          type="number"
-          min={0}
-          max={avail.length}
-          className="tinput"
-          placeholder="0"
-          aria-label="Quantidade a ofertar"
-          value={qtyTexto}
-          onChange={(e) => aoDigitarQuantidade(e.target.value)}
-        />
-        <div className="qty-note">
-          {selecionadas.length} de {avail.length} {tipoAtivo} disponível(is) selecionada(s)
-        </div>
-
-        <div className="field-lbl">
-          <svg viewBox="0 0 24 24">
-            <path d="M20 12l-8 8-9-9V4h7z" />
-          </svg>
-          Preço unitário de venda
-        </div>
-        {/* inputMode="decimal" abre o teclado numérico no celular sem impedir a
-            vírgula — o type continua texto porque a máscara é brasileira. */}
-        <div className="price-input">
-          <span>R$</span>
-          <input
-            inputMode="decimal"
-            placeholder="0,00"
-            aria-label="Preço unitário de venda em reais"
-            value={precoTexto}
-            onChange={(e) => setPrecoTexto(e.target.value)}
+          <TipoSelector
+            name="tipo-anuncio"
+            titulo="Tipo de moeda a vender"
+            tipos={NEGOCIAVEIS}
+            valor={tipoAtivo}
+            onChange={trocarTipo}
+            detalhePorTipo={livresPorTipo}
           />
+
+          <div className="campos-dupla">
+            <div className="campo">
+              <label className="field-lbl" htmlFor="venda-qtd">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 5H5v4M15 5h4v4M9 19H5v-4M15 19h4v-4" />
+                </svg>
+                Quantidade a ofertar
+              </label>
+              <input
+                id="venda-qtd"
+                type="number"
+                min={0}
+                max={avail.length}
+                inputMode="numeric"
+                className="tinput"
+                placeholder="0"
+                aria-describedby="venda-qtd-nota"
+                value={qtyTexto}
+                onChange={(e) => aoDigitarQuantidade(e.target.value)}
+              />
+            </div>
+
+            <div className="campo">
+              <label className="field-lbl" htmlFor="venda-preco">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 12l-8 8-9-9V4h7z" />
+                </svg>
+                Preço unitário de venda (R$)
+              </label>
+              {/* inputMode="decimal" abre o teclado numérico no celular sem impedir a
+                  vírgula — o type continua texto porque a máscara é brasileira. */}
+              <div className="price-input">
+                <span aria-hidden="true">R$</span>
+                <input
+                  id="venda-preco"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="0,00"
+                  value={precoTexto}
+                  onChange={(e) => setPrecoTexto(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="qty-note" id="venda-qtd-nota">
+            {selecionadas.length} de {avail.length} {tipoAtivo} disponível(is) selecionada(s)
+          </div>
+
+          <label className="field-lbl" htmlFor="venda-obs">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v11H8l-4 4z" />
+            </svg>
+            Observação (opcional)
+          </label>
+          <textarea
+            id="venda-obs"
+            className="obs"
+            maxLength={140}
+            placeholder="Ex.: moedas em custódia, prontas para negociação."
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+          />
+
+          <div className="resumo-compra" aria-live="polite">
+            <div className="summary-row">
+              <span className="k">Subtotal (qtd. × preço)</span>
+              <span className="v">{gross > 0 ? brl(gross) : '—'}</span>
+            </div>
+            <div className="summary-row">
+              <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+              <span className="v">{fee > 0 ? `- ${brl(fee)}` : '—'}</span>
+            </div>
+            <div className="summary-row total">
+              <span className="k">Você recebe</span>
+              <span className="v">
+                {net > 0 ? (qty > 1 ? `${brl(net)} (${brl(netUnit)}/moeda)` : brl(net)) : '—'}
+              </span>
+            </div>
+          </div>
+
+          {/* Caixa de seleção de verdade desde 25/10/2026 (era uma <div> com onClick): o teclado
+              alcança, o leitor de tela anuncia marcado/desmarcado. O quadrado dourado é o mesmo. */}
+          <label className={termsOk ? 'terms on' : 'terms'}>
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={termsOk}
+              onChange={(e) => setTermsOk(e.target.checked)}
+            />
+            <span className="cb" aria-hidden="true">
+              {termsOk ? '✓' : ''}
+            </span>
+            <span>
+              Aceito os <b>termos de publicação</b>
+            </span>
+          </label>
+
+          <button
+            className="btn btn-gold"
+            type="button"
+            disabled={!podePublicar || pendencia}
+            aria-describedby={motivoBloqueio ? 'venda-motivo' : undefined}
+            onClick={() => void publicar()}
+          >
+            Publicar anúncio
+          </button>
+          {motivoBloqueio ? (
+            <p className="motivo" id="venda-motivo">
+              {motivoBloqueio}
+            </p>
+          ) : null}
+
+          <div className="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            Após publicado, o anúncio ficará visível no mercado para todas as contas até ser removido
+            ou concluído.
+          </div>
         </div>
 
-        <div className="summary-row">
-          <span className="k">Subtotal (qtd. × preço)</span>
-          <span className="v">{gross > 0 ? brl(gross) : '—'}</span>
-        </div>
-        <div className="summary-row">
-          <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
-          <span className="v">{fee > 0 ? `- ${brl(fee)}` : '—'}</span>
-        </div>
-        <div className="summary-row total">
-          <span className="k">Você recebe</span>
-          {/* 19px sobrescreve os 21px de .summary-row.total .v — está inline no
-              original e continua inline aqui pelo mesmo motivo: precedência. */}
-          <span className="v" style={{ fontSize: 19 }}>
-            {net > 0 ? (
-              qty > 1 ? `${brl(net)} (${brl(netUnit)}/moeda)` : brl(net)
-            ) : '—'}
-          </span>
-        </div>
+        {/* ====== coluna 2 — escolha da moeda específica, para quem precisa ====== */}
+        <div className="panel">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <ellipse cx="12" cy="6.5" rx="7" ry="3" />
+              <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
+            </svg>
+            Escolha as moedas
+          </h3>
 
-        <div className="field-lbl">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 5h16v11H8l-4 4z" />
-          </svg>
-          Observação (opcional)
-        </div>
-        <textarea
-          className="obs"
-          maxLength={140}
-          placeholder="Ex.: moedas em custódia, prontas para negociação."
-          aria-label="Observação do anúncio"
-          value={obs}
-          onChange={(e) => setObs(e.target.value)}
-        />
+          <TipoSelector
+            name="tipo-venda"
+            titulo="Tipo de moeda a vender"
+            tipos={NEGOCIAVEIS}
+            valor={tipoAtivo}
+            onChange={trocarTipo}
+            detalhePorTipo={livresPorTipo}
+          />
 
-        <div className={termsOk ? 'terms on' : 'terms'} onClick={() => setTermsOk(!termsOk)}>
-          <span className="cb">{termsOk ? '✓' : ''}</span>
-          <span>
-            Aceito os <b>termos de publicação</b>
-          </span>
-        </div>
+          <div className="acoes-texto">
+            <button type="button" className="link-btn" onClick={selecionarTodas}>
+              Selecionar todas<span className="sr-only"> as moedas livres de {tipoAtivo}</span>
+            </button>
+            <button type="button" className="link-btn" onClick={limparSelecao}>
+              Limpar seleção
+            </button>
+          </div>
 
-        <button
-          className="btn btn-gold"
-          type="button"
-          disabled={!podePublicar || pendencia}
-          onClick={() => void publicar()}
-        >
-          Publicar anúncio
-        </button>
-
-        <div className="note">
-          <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 8v5M12 16.5v.5" />
-          </svg>
-          Após publicado, o anúncio ficará visível no mercado para todas as contas até ser removido
-          ou concluído.
-        </div>
-      </div>
-
-      {/* ====== coluna 2 — escolha da moeda específica, para quem precisa ====== */}
-      <div className="panel">
-        <h3>
-          <svg viewBox="0 0 24 24">
-            <ellipse cx="12" cy="6.5" rx="7" ry="3" />
-            <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
-          </svg>
-          Escolha as moedas
-        </h3>
-
-        <TipoSelector
-          name="tipo-venda"
-          titulo="Tipo de moeda a vender"
-          tipos={NEGOCIAVEIS}
-          valor={tipoAtivo}
-          onChange={trocarTipo}
-          detalhePorTipo={livresPorTipo}
-        />
-
-        <div style={{ display: 'flex', gap: 16, margin: '12px 0' }}>
-          <span className="back-link" onClick={selecionarTodas}>
-            Selecionar todas
-          </span>
-          <span className="back-link" onClick={limparSelecao}>
-            Limpar seleção
-          </span>
-        </div>
-
-        <div>
           <CoinPicker
             moedas={negociaveis}
             anunciadas={anunciadas}
@@ -423,27 +467,37 @@ export default function VenderPage(): ReactNode {
             abertas={abertas}
             onToggleFolder={alternarPasta}
             onToggle={alternarMoeda}
+            semCustodia={semCustodia}
+            onMoedaSemCustodia={(id) =>
+              modal.open(
+                <ModalCustodiaNaoPaga
+                  coinId={id}
+                  faturas={state.faturasCustodia ?? []}
+                  planos={state.planosCustodia}
+                  email={session}
+                />,
+              )
+            }
           />
         </div>
       </div>
 
-      {/* ================= coluna 3 — bids recebidos e formação de preço ====== */}
-      <div>
-        {/* O painel "Ofertas de compra recebidas" saiu daqui em 28/09/2026, a
-            pedido do Gabriel: ficava sempre desatualizado (o ciclo de
-            sincronização de 10s não é rápido o bastante para uma lista que o
-            comprador também está mexendo) e a venda direta a partir dela não
-            era usada. Quem quiser vender continua publicando o anúncio à
-            esquerda — é o motor de casamento automático que encontra o
-            comprador, sem precisar que o vendedor escolha um da lista. */}
-        <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} style={{ marginBottom: 18 }} />
+      {/* ================= bids recebidos e formação de preço ====== */}
+      {/* O painel "Ofertas de compra recebidas" saiu daqui em 28/09/2026, a
+          pedido do Gabriel: ficava sempre desatualizado (o ciclo de
+          sincronização de 10s não é rápido o bastante para uma lista que o
+          comprador também está mexendo) e a venda direta a partir dela não
+          era usada. Quem quiser vender continua publicando o anúncio à
+          esquerda — é o motor de casamento automático que encontra o
+          comprador, sem precisar que o vendedor escolha um da lista. */}
+      <div className="explicacoes">
+        <ComoPrecoEFormado tipoAtivo={tipoAtivo} media7={media7} />
         <ComoNegociacaoAcontece />
       </div>
-    </div>
 
-    <div style={{ marginTop: 24 }}>
-      <MinhasOfertas />
-    </div>
+      <div className="bloco-seguinte">
+        <MinhasOfertas />
+      </div>
     </>
   )
 }

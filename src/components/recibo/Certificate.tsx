@@ -39,6 +39,7 @@ import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { ModalSolicitarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
 import { obterRetiradaPorCoin } from '@/server/actions/custody'
+import { SeloDaRetirada } from '@/components/recibo/SeloDaRetirada'
 
 /**
  * Texto exibido quando o gerador de PDF não carrega. É o mesmo da linha 1973 do
@@ -157,7 +158,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <div className="cert-stamp-extinto" aria-label="Recibo Extinto">
               RECIBO EXTINTO
               <br />
-              <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
+              <span className="cert-stamp-sub">
                 RETIRADA FÍSICA SOLICITADA
               </span>
             </div>
@@ -165,7 +166,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
             <div className="cert-stamp-bloqueado" aria-label="Recibo Bloqueado">
               RECIBO BLOQUEADO
               <br />
-              <span style={{ fontSize: '11px', letterSpacing: '0.08em', fontWeight: 600 }}>
+              <span className="cert-stamp-sub">
                 {pendencia ? 'PENDÊNCIA DE CUSTÓDIA' : 'RESTRIÇÃO ADMINISTRATIVA'}
               </span>
             </div>
@@ -232,14 +233,32 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
           </div>
         </div>
 
-        <div>
-          <div className="panel" style={{ marginBottom: '16px' }}>
+        <div className="coluna-pilha">
+          {/* AÇÕES EM ORDEM DE USO (25/10/2026): baixar o PDF (o que se faz com um recibo), colocar à venda,
+              e por último a retirada física — discreta de propósito, como em Minha conta (D-8). Os
+              motivos de cada botão desabilitado estão nas notas logo abaixo, ligados por aria-describedby. */}
+          <div className="panel cert-acoes">
             <h3>Ações</h3>
+            <button className="btn btn-gold" type="button" onClick={() => void baixarPdf()}>
+              Baixar recibo PDF
+            </button>
+            {/* No monolito este botão levava a global `preselectCoinId` para a
+                tela de venda; aqui a pré-seleção viaja na URL, que é o mesmo
+                mecanismo com estado visível e recarregável. */}
+            <button
+              className="btn btn-outline"
+              type="button"
+              aria-describedby="cert-motivos"
+              disabled={!sellable || listed || extinto || bloqueado}
+              onClick={() => router.push(`/vender?moeda=${coin.id}`)}
+            >
+              Colocar à venda
+            </button>
             {/* Retirada física conectada à Server Action e modal de endereço/pagamento */}
             <button
               className="btn btn-outline"
               type="button"
-              style={{ width: '100%', marginBottom: '10px', minHeight: '44px' }}
+              aria-describedby="cert-motivos"
               disabled={extinto || listed || bloqueado}
               onClick={() => modal.open(<ModalSolicitarRetirada coin={coin} />)}
             >
@@ -249,30 +268,11 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                 ? 'Recibo bloqueado por pendência'
                 : 'Solicitar retirada'}
             </button>
-            {/* No monolito este botão levava a global `preselectCoinId` para a
-                tela de venda; aqui a pré-seleção viaja na URL, que é o mesmo
-                mecanismo com estado visível e recarregável. */}
-            <button
-              className="btn btn-outline"
-              type="button"
-              style={{ width: '100%', marginBottom: '10px', minHeight: '44px' }}
-              disabled={!sellable || listed || extinto || bloqueado}
-              onClick={() => router.push(`/vender?moeda=${coin.id}`)}
-            >
-              Colocar à venda
-            </button>
-            <button
-              className="btn btn-gold"
-              type="button"
-              style={{ width: '100%', minHeight: '44px' }}
-              onClick={() => void baixarPdf()}
-            >
-              Baixar recibo PDF
-            </button>
 
+            <div id="cert-motivos">
             {/* As notas explicam o estado dos botões */}
             {extinto ? (
-              <div className="note" style={{ marginTop: '10px' }}>
+              <div className="note">
                 <svg viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 8v5M12 16.5v.5" />
@@ -281,7 +281,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               </div>
             ) : null}
             {bloqueado ? (
-              <div className="note" style={{ marginTop: '10px', color: '#b45309' }}>
+              <div className="note note-alerta">
                 <svg viewBox="0 0 24 24">
                   <path d="M12 3l9 16H3z" />
                   <path d="M12 10v4M12 17v.5" />
@@ -299,7 +299,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               </div>
             ) : null}
             {!sellable ? (
-              <div className="note" style={{ marginTop: '10px' }}>
+              <div className="note">
                 <svg viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 8v5M12 16.5v.5" />
@@ -310,7 +310,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               </div>
             ) : null}
             {listed ? (
-              <div className="note" style={{ marginTop: '10px' }}>
+              <div className="note">
                 <svg viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 8v5M12 16.5v.5" />
@@ -318,13 +318,14 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                 Esta moeda já está anunciada no mercado.
               </div>
             ) : null}
+            </div>
           </div>
 
           {/* Painel de Acompanhamento da Retirada quando extinto */}
           {extinto ? (
-            <div className="panel" style={{ marginBottom: '16px' }}>
+            <div className="panel">
               <h3>
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
                 Retirada Física
@@ -332,9 +333,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               <div className="summary-row">
                 <span className="k">Status da saída</span>
                 <span className="v">
-                  <span className={`badge-retirada badge-${retirada?.status ?? 'solicitada'}`}>
-                    {retirada?.status ?? 'solicitada'}
-                  </span>
+                  <SeloDaRetirada status={retirada?.status ?? 'solicitada'} />
                 </span>
               </div>
               <div className="summary-row">
@@ -354,11 +353,11 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               {retirada?.codigoRastreio ? (
                 <div className="summary-row">
                   <span className="k">Código de rastreio</span>
-                  <span className="v" style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                  <span className="v codigo">
                     {retirada.codigoRastreio}
                     {/* Etiqueta dos Correios emitida pelo painel, caixa ainda no cofre (22/10/2026). */}
                     {retirada.status === 'separacao' ? (
-                      <span style={{ display: 'block', fontFamily: 'inherit', fontWeight: 400, fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                      <span className="v-sub-bloco">
                         etiqueta emitida, aguardando postagem
                       </span>
                     ) : null}
@@ -373,11 +372,11 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
                   </span>
                 </div>
               ) : null}
-              <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              <div className="panel-rodape">
                 O recibo documental desta moeda foi extinto. A moeda física está em processo de expedição para o endereço confirmado.
               </div>
-              <div style={{ marginTop: '10px' }}>
-                <Link href="/retirada" className="back-link" style={{ margin: 0, fontSize: '12.5px' }}>
+              <div>
+                <Link href="/retirada" className="back-link">
                   Ver todas as minhas retiradas ›
                 </Link>
               </div>
@@ -389,7 +388,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               estimado — nada disso existe no certificado do monolito. Ficam
               FORA do documento, num painel lateral com classes já existentes,
               para que o .cert continue idêntico ao que o PDF imprime. */}
-          <div className="panel" style={{ marginBottom: '16px' }}>
+          <div className="panel">
             <h3>Dados da moeda</h3>
             <div className="summary-row">
               <span className="k">Código da moeda</span>

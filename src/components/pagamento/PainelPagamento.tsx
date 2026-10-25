@@ -229,7 +229,7 @@ export function PainelPagamento({
           </div>
 
           {!temSaldoSuficiente ? (
-            <div className="note" style={{ color: '#f59e0b' }}>
+            <div className="note note-alerta-ouro">
               Faltam {brl(valorCents - saldoDisponivel)} no seu saldo para concluir esta operação.
               Você pode pagar diretamente via <b>Pix</b> ou <b>Cartão</b> nas abas ao lado.
             </div>
@@ -251,7 +251,7 @@ export function PainelPagamento({
         <div className="pagamento-panel" role="tabpanel">
           {!pixDados ? (
             <>
-              <p style={{ margin: 0, fontSize: 14 }}>
+              <p className="pagamento-texto">
                 Pague à vista com o Pix do seu banco. A aprovação é imediata e o sistema atualiza
                 automaticamente após a confirmação.
               </p>
@@ -271,7 +271,7 @@ export function PainelPagamento({
               </button>
             </>
           ) : pixDados.simulado ? (
-            <div className="note" style={{ textAlign: 'center' }}>
+            <div className="note pagamento-indisponivel" role="status">
               O meio de pagamento está temporariamente indisponível. Tente novamente em instantes.
               Nenhuma cobrança externa foi aberta.
             </div>
@@ -289,7 +289,7 @@ export function PainelPagamento({
                     alt="QR Code Pix"
                     className="pagamento-qr-img"
                   />
-                  <span style={{ fontSize: 12, color: '#475569' }}>
+                  <span className="pagamento-qr-legenda">
                     Aponte a câmera do aplicativo do seu banco
                   </span>
                 </div>
@@ -306,17 +306,17 @@ export function PainelPagamento({
                   />
                   <button
                     type="button"
-                    className="btn btn-outline"
-                    style={{ minHeight: 44 }}
+                    className="btn btn-outline pagamento-copiar"
                     onClick={() => void copiarPix()}
                   >
                     {copiado ? 'Copiado!' : 'Copiar'}
+                    <span className="sr-only"> o código Pix</span>
                   </button>
                 </div>
               ) : null}
 
               {statusCobranca !== 'creditado' ? (
-                <div className="pagamento-status-box pendente">
+                <div className="pagamento-status-box pendente" role="status">
                   Aguardando confirmação do pagamento...
                 </div>
               ) : null}
@@ -330,7 +330,7 @@ export function PainelPagamento({
         <div className="pagamento-panel" role="tabpanel">
           {!cartaoDados ? (
             <>
-              <p style={{ margin: 0, fontSize: 14 }}>
+              <p className="pagamento-texto">
                 Pague com cartão de crédito{' '}
                 {parcelasMax > 1 ? (
                   <b>em até {parcelasMax}x</b>
@@ -355,13 +355,13 @@ export function PainelPagamento({
               </button>
             </>
           ) : cartaoDados.simulado ? (
-            <div className="note" style={{ textAlign: 'center' }}>
+            <div className="note pagamento-indisponivel" role="status">
               O meio de pagamento está temporariamente indisponível. Tente novamente em instantes.
               Nenhuma cobrança externa foi aberta.
             </div>
           ) : (
             <>
-              <p style={{ fontSize: 14, margin: 0 }}>
+              <p className="pagamento-texto">
                 Uma nova aba foi aberta para você concluir o pagamento no Mercado Pago. Caso não
                 tenha aberto automaticamente, utilize o botão abaixo:
               </p>
@@ -370,15 +370,14 @@ export function PainelPagamento({
                   href={cartaoDados.initPoint}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-gold pagamento-btn"
-                  style={{ textDecoration: 'none' }}
+                  className="btn btn-gold pagamento-btn pagamento-link"
                 >
                   Abrir página de pagamento
                 </a>
               ) : null}
 
               {statusCobranca !== 'creditado' ? (
-                <div className="pagamento-status-box pendente">
+                <div className="pagamento-status-box pendente" role="status">
                   Aguardando confirmação do pagamento...
                 </div>
               ) : null}

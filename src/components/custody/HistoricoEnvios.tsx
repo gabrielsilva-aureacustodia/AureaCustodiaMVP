@@ -22,6 +22,7 @@ import { fdate } from '@/domain/dates'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, statusFaseEnvio } from '@/domain/envios'
 import { rotuloStatusRastreio, textoDoRastreio } from '@/domain/rastreio'
 import type { Envio } from '@/domain/types'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
 
 export interface RastreioNaLista {
   statusAtual: string
@@ -80,69 +81,62 @@ export function HistoricoEnvios({
 
   if (envios.length === 0) {
     return (
-      <div className="panel" style={{ marginTop: 24 }}>
+      <div className="panel hist-envios">
         <h3>
-          <svg viewBox="0 0 24 24">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
           </svg>
           Histórico de acompanhamento dos envios
         </h3>
-        <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginBottom: 12 }}>
+        <p className="lead">
           Todos os seus envios para custódia física aparecem aqui com o status detalhado de cada fase.
         </p>
-        <div className="empty" style={{ padding: '24px 0' }}>
-          Você ainda não possui envios cadastrados. Utilize o formulário acima para gerar seu primeiro protocolo.
-        </div>
+        <EstadoVazio
+          titulo="Você ainda não possui envios cadastrados."
+          ilustracao="etiquetaFrete"
+        >
+          Utilize o formulário acima para gerar seu primeiro protocolo.
+        </EstadoVazio>
       </div>
     )
   }
 
   return (
-    <div className="panel" style={{ marginTop: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+    <div className="panel hist-envios">
+      <div className="panel-cab">
         <div>
-          <h3 style={{ margin: 0 }}>
-            <svg viewBox="0 0 24 24">
+          <h3>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
             </svg>
             Acompanhamento de todos os seus envios
           </h3>
-          <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginTop: 4, marginBottom: 0 }}>
+          <p className="sub">
             Status de cada fase postal e pericial, inclusive envios pendentes de postagem.
           </p>
         </div>
 
-        {/* Abas de filtro */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className={`btn ${filtro === 'todos' ? 'btn-gold' : 'btn-outline'}`}
-            style={{ fontSize: '12px', padding: '6px 12px', minHeight: 32 }}
-            onClick={() => setFiltro('todos')}
-          >
+        {/* Filtros em chips com aria-pressed (eram botões dourados — o dourado é da ação primária). */}
+        <div className="chips" role="group" aria-label="Filtrar envios por situação">
+          <button type="button" className="chip" aria-pressed={filtro === 'todos'} onClick={() => setFiltro('todos')}>
             Todos ({todos.length})
           </button>
           <button
             type="button"
-            className={`btn ${filtro === 'em_andamento' ? 'btn-gold' : 'btn-outline'}`}
-            style={{ fontSize: '12px', padding: '6px 12px', minHeight: 32 }}
+            className="chip"
+            aria-pressed={filtro === 'em_andamento'}
             onClick={() => setFiltro('em_andamento')}
           >
             Em andamento ({emAndamento.length})
           </button>
-          <button
-            type="button"
-            className={`btn ${filtro === 'concluidos' ? 'btn-gold' : 'btn-outline'}`}
-            style={{ fontSize: '12px', padding: '6px 12px', minHeight: 32 }}
-            onClick={() => setFiltro('concluidos')}
-          >
+          <button type="button" className="chip" aria-pressed={filtro === 'concluidos'} onClick={() => setFiltro('concluidos')}>
             Concluídos ({concluidos.length})
           </button>
           {desconsiderados.length > 0 && (
             <button
               type="button"
-              className={`btn ${filtro === 'desconsiderados' ? 'btn-gold' : 'btn-outline'}`}
-              style={{ fontSize: '12px', padding: '6px 12px', minHeight: 32 }}
+              className="chip"
+              aria-pressed={filtro === 'desconsiderados'}
               onClick={() => setFiltro('desconsiderados')}
             >
               Desconsiderados ({desconsiderados.length})
@@ -152,65 +146,37 @@ export function HistoricoEnvios({
       </div>
 
       {listaFiltrada.length === 0 ? (
-        <div className="empty" style={{ padding: '24px 0' }}>
-          Nenhum envio nesta categoria.
-        </div>
+        <EstadoVazio
+          titulo="Nenhum envio nesta categoria."
+          acao={
+            <button type="button" className="btn btn-outline" onClick={() => setFiltro('todos')}>
+              Ver todos os envios
+            </button>
+          }
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <ul className="hist-lista">
           {listaFiltrada.map((item) => {
             const rastreio = rastreios[item.protocolo] ?? null
             const statusInfo = statusFaseEnvio(item, rastreio, agora)
             const prazo = prazoPostagemEnvio(item, agora)
             const desconsiderado = isEnvioDesconsiderado(item, agora)
 
-            // Cores do badge
-            const badgeBg =
-              statusInfo.badgeVariant === 'danger'
-                ? '#dc2626'
-                : statusInfo.badgeVariant === 'warning'
-                  ? '#d97706'
-                  : statusInfo.badgeVariant === 'success'
-                    ? '#16a34a'
-                    : statusInfo.badgeVariant === 'info'
-                      ? '#2563eb'
-                      : 'var(--gold)'
+            // Cor do selo pela variante, só com tokens (eram hexadecimais soltos).
+            const badgeCls = `hist-selo ${statusInfo.badgeVariant}`
 
             return (
-              <div
-                key={item.protocolo}
-                style={{
-                  border: '1px solid var(--line-soft)',
-                  borderRadius: 8,
-                  padding: 16,
-                  background: desconsiderado ? 'rgba(239, 68, 68, 0.03)' : 'var(--input-bg)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
+              <li key={item.protocolo} className={desconsiderado ? 'hist-item desconsiderado' : 'hist-item'}>
                 {/* Cabeçalho do Card */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                <div className="hist-cab">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 800, fontSize: '15px', color: 'var(--gold)' }}>
+                    <div className="hist-titulo">
+                      <span className="hist-protocolo" translate="no">
                         {item.protocolo}
                       </span>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 12,
-                          background: badgeBg,
-                          color: '#fff',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px',
-                        }}
-                      >
-                        {statusInfo.rotulo}
-                      </span>
+                      <span className={badgeCls}>{statusInfo.rotulo}</span>
                     </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 4 }}>
+                    <div className="hist-meta">
                       Gerado em {fdate(item.createdAt)} • {item.quantidade} moeda(s) {item.tipoMoeda} ({item.ano})
                       {item.modalidadeEnvio ? ` • ${item.modalidadeEnvio}` : ''}
                     </div>
@@ -220,47 +186,33 @@ export function HistoricoEnvios({
                   {statusInfo.fase === 'nao_postado' && onContinuarEnvio && (
                     <button
                       type="button"
-                      className="btn btn-gold"
-                      style={{ fontSize: '12px', padding: '6px 14px', minHeight: 34 }}
+                      className="btn btn-gold auto hist-acao"
                       onClick={() => onContinuarEnvio(item.protocolo)}
                     >
                       {item.prePostagem ? 'Ver etiqueta e envio →' : 'Continuar envio →'}
+                      <span className="sr-only"> {item.protocolo}</span>
                     </button>
                   )}
 
                   {/* Ação rápida para envio concluído */}
                   {statusInfo.fase === 'analisado' && (
-                    <Link
-                      href="/recibos"
-                      className="btn btn-outline"
-                      style={{ fontSize: '12px', padding: '6px 14px', minHeight: 34, textDecoration: 'none' }}
-                    >
-                      Ver no cofre / Recibos ↗
+                    <Link href="/recibos" className="btn btn-outline auto hist-acao">
+                      Ver no cofre / Recibos ↗<span className="sr-only"> do envio {item.protocolo}</span>
                     </Link>
                   )}
                 </div>
 
                 {/* Bloco de Mensagem Explícita por Fase */}
                 {statusInfo.fase === 'nao_postado' && (
-                  <div
-                    style={{
-                      padding: 12,
-                      borderRadius: 6,
-                      background: 'rgba(217, 119, 6, 0.1)',
-                      border: '1px solid rgba(217, 119, 6, 0.3)',
-                      fontSize: '12.5px',
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, color: '#d97706', marginBottom: 4 }}>
-                      ⚠️ Ainda não postado — o sistema ainda não reconheceu nenhum código de postagem
+                  <div className="hist-aviso alerta">
+                    <div className="hist-aviso-t">
+                      <span aria-hidden="true">!</span> Ainda não postado — o sistema ainda não reconheceu nenhum código de postagem
                     </div>
-                    <div style={{ color: 'var(--text-muted)' }}>
-                      {prazo.mensagemAlerta}
-                    </div>
+                    <div className="hist-aviso-d">{prazo.mensagemAlerta}</div>
                     {item.prePostagem ? (
                       // Etiqueta do contrato (22/10/2026): o código já existe e a postagem é
                       // reconhecida pelo rastreio — não há código para o cliente informar.
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6 }}>
+                      <div className="hist-aviso-d menor">
                         <b>Correios ({item.codigoRastreio}):</b>{' '}
                         {rastreio
                           ? textoDoRastreio(rastreio)
@@ -268,7 +220,7 @@ export function HistoricoEnvios({
                         . Leve o pacote com a etiqueta a uma agência; a postagem aparece aqui sozinha quando os Correios a registrarem.
                       </div>
                     ) : (
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: 6 }}>
+                      <div className="hist-aviso-d menor">
                         {/* Sem etiqueta ainda: com o contrato, o caminho é pagar o frete e imprimir a etiqueta
                             oficial no passo dos Correios; sem contrato (ou envio antigo), postar no balcão e
                             informar o código. O texto cobre os dois sem a lista precisar saber qual vale. */}
@@ -279,26 +231,18 @@ export function HistoricoEnvios({
                 )}
 
                 {statusInfo.fase === 'desconsiderado' && (
-                  <div
-                    style={{
-                      padding: 12,
-                      borderRadius: 6,
-                      background: 'rgba(220, 38, 38, 0.08)',
-                      border: '1px solid rgba(220, 38, 38, 0.25)',
-                      fontSize: '12.5px',
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 2 }}>
-                      ✕ Protocolo desconsiderado após 3 dias sem postagem
+                  <div className="hist-aviso perigo">
+                    <div className="hist-aviso-t">
+                      <span aria-hidden="true">✕</span> Protocolo desconsiderado após 3 dias sem postagem
                     </div>
-                    <div style={{ color: 'var(--text-muted)' }}>
+                    <div className="hist-aviso-d">
                       O prazo limite de 3 dias para postagem deste protocolo expirou. Por segurança e controle de numeração postal, o protocolo foi encerrado e não pode mais ser utilizado. Caso ainda deseje enviar suas moedas, gere um novo protocolo.
                     </div>
                   </div>
                 )}
 
                 {statusInfo.fase === 'postado' && (
-                  <div className="note" style={{ margin: 0 }}>
+                  <div className="note hist-nota">
                     <b>Correios:</b> Código de rastreamento <b>{item.codigoRastreio}</b> postado em{' '}
                     {item.dataPostagem ? fdate(item.dataPostagem) : 'data pendente'}.
                     <br />
@@ -307,10 +251,10 @@ export function HistoricoEnvios({
                 )}
 
                 {statusInfo.fase === 'em_transito' && (
-                  <div className="note" style={{ margin: 0 }}>
+                  <div className="note hist-nota">
                     <b>Correios ({item.codigoRastreio}):</b> {statusInfo.descricao}
                     {rastreio?.atualizadoEm && (
-                      <span style={{ display: 'block', fontSize: '11.5px', marginTop: 4 }}>
+                      <span className="hist-checagem">
                         Última checagem registrada em {fdate(rastreio.atualizadoEm)}.
                       </span>
                     )}
@@ -318,28 +262,28 @@ export function HistoricoEnvios({
                 )}
 
                 {statusInfo.fase === 'recebido' && (
-                  <div className="note" style={{ margin: 0 }}>
+                  <div className="note hist-nota">
                     <b>Custódia:</b> Pacote recebido no cofre em{' '}
                     {item.dataRecebimento ? fdate(item.dataRecebimento) : ''}. Aguardando início da perícia na bancada.
                   </div>
                 )}
 
                 {statusInfo.fase === 'em_analise' && (
-                  <div className="note" style={{ margin: 0 }}>
+                  <div className="note hist-nota">
                     <b>Bancada:</b> Moeda em análise física técnica (pesagem em balança analítica, verificação visual e registro fotográfico).
                   </div>
                 )}
 
                 {statusInfo.fase === 'analisado' && (
-                  <div className="note" style={{ margin: 0 }}>
+                  <div className="note hist-nota">
                     <b>Concluído:</b> Perícia física aprovada. Recibo de custódia emitido com identificador(es):{' '}
                     <b>{item.codigosAtivosGerados.join(', ')}</b>.
                   </div>
                 )}
-              </div>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
     </div>
   )

@@ -6,6 +6,9 @@
  * '@real-olimpico/marca/fontes'). O CSS também não: entra por app/globals.css.
  */
 
+export { ATIVOS, FOTO_REAL, ILUSTRACOES, RENDER_TRES_QUARTOS, srcDe, srcsetDe } from './ativos'
+export type { AtivoRaster, AtivoVetor, IdDaIlustracao, IdDoAtivo, MoedaNegociavel, SituacaoDoAtivo } from './ativos'
+export { ImagemDaMarca } from './componentes/ImagemDaMarca'
 export { contraste, papeis, primitivos } from './tokens'
 export type { Tema } from './tokens'
 export {

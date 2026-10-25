@@ -31,6 +31,7 @@ import { brl } from '@/domain/money'
 import { resumoComExemplo } from '@/domain/tutorial'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTutorial } from '@/components/tutorial/contexto'
+import { Selo } from '@/components/ui/Selo'
 
 export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactNode {
   const { state, session, taxas } = useApp()
@@ -43,38 +44,25 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
   // aparece sempre vira paisagem, e quando tiver algo de verdade ninguém lê.
   if (r.moedasGuardadas === 0 && r.emAberto.length === 0 && r.pagas.length === 0) return null
 
-  const corDoSelo = r.vencida ? '#d9383a' : r.emAberto.length > 0 ? 'var(--gold)' : '#3fb950'
+  // <Selo> do Brandbook (§9.4): o estado se lê pelo TEXTO, a cor só reforça (Carbon; tópico 35 passo 4b).
+  const tomDoSelo = r.vencida ? 'perigo' : r.emAberto.length > 0 ? 'aviso' : 'sucesso'
   const textoDoSelo = r.vencida ? 'Vencida' : r.emAberto.length > 0 ? 'A pagar' : 'Em dia'
 
   return (
-    <div
-      className="panel"
-      style={{ borderColor: r.vencida ? '#d9383a' : undefined, ...estilo }}
-    >
-      <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <svg viewBox="0 0 24 24">
+    <div className={r.vencida ? 'panel resumo-custodia vencida' : 'panel resumo-custodia'} style={estilo}>
+      <h3 className="resumo-custodia-cab">
+        <span className="resumo-custodia-t">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             <path d="M9 12l2 2 4-4" />
           </svg>
           Minha custódia
-          {exemplo ? <small style={{ fontSize: 10.5, color: 'var(--gold)' }}>EXEMPLO DO TUTORIAL</small> : null}
+          {exemplo ? <small className="marca-exemplo">EXEMPLO DO TUTORIAL</small> : null}
         </span>
-        <span
-          style={{
-            padding: '3px 10px',
-            borderRadius: 12,
-            fontSize: 11,
-            fontWeight: 700,
-            color: corDoSelo,
-            border: `1px solid ${corDoSelo}`,
-          }}
-        >
-          {textoDoSelo}
-        </span>
+        <Selo tom={tomDoSelo}>{textoDoSelo}</Selo>
       </h3>
 
-      <div className="summary-box" style={{ marginBottom: 12 }}>
+      <div className="summary-box">
         <div className="sr">
           <span className="k">Moedas sob guarda</span>
           <span className="v">{r.moedasGuardadas}</span>
@@ -83,10 +71,7 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
           <span className="k">Mensalidade</span>
           <span className="v">
             {brl(r.mensalidadeCents)} / mês
-            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-              {' '}
-              ({brl(r.porMoedaCents)} por moeda)
-            </span>
+            <span className="v-sub"> ({brl(r.porMoedaCents)} por moeda)</span>
           </span>
         </div>
         {/* COBERTURA E PRAZO SÃO COISAS DIFERENTES, e misturar as duas foi o
@@ -112,9 +97,7 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
         {r.emAberto.length > 0 && (
           <div className="sr">
             <span className="k">Em aberto</span>
-            <span className="v" style={{ color: r.vencida ? '#d9383a' : 'var(--gold)' }}>
-              {brl(r.emAbertoCents)}
-            </span>
+            <span className={r.vencida ? 'v v-vencida' : 'v v-ouro'}>{brl(r.emAbertoCents)}</span>
           </div>
         )}
         {r.totalPagoCents > 0 && (
@@ -126,27 +109,19 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
       </div>
 
       {r.vencida && (
-        <p style={{ fontSize: 12.5, color: '#d9383a', marginBottom: 10 }}>
+        <p className="resumo-custodia-alerta">
           Enquanto a fatura estiver vencida, seus recibos ficam bloqueados para venda e para
           retirada física. Pagar libera na hora.
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="acoes resumo-custodia-acoes">
         {r.emAberto.length > 0 && (
-          <Link
-            href="/conta/faturas"
-            className="btn btn-gold"
-            style={{ flex: '1 1 140px', minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-          >
+          <Link href="/conta/faturas" className="btn btn-gold">
             Pagar {brl(r.emAbertoCents)}
           </Link>
         )}
-        <Link
-          href="/conta/custodia"
-          className="btn btn-outline"
-          style={{ flex: '1 1 140px', minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-        >
+        <Link href="/conta/custodia" className="btn btn-outline">
           Ver plano e extrato
         </Link>
       </div>

@@ -225,3 +225,35 @@ FECHAMENTO: varredura de segredo, nenhum arquivo > 5 MB, seção "Sessões" do s
 ### 3.3 O que NÃO refazer
 `macros-perfil-serrilha-duas-moedas`, `fundos-veludo-noite`, os 5 `onboarding-spot-*`, `og-recibo-de-custodia` e os
 ícones (`marca/`) estão aprovados (Brandbook §13.4.1). Só falta gerar a versão `-1200` do `og-recibo-de-custodia`.
+
+---
+
+## 4. Rodada 3b — correção (25/10/2026)
+
+Conferência no Brandbook §13.4.2. O método de composição acertou o desenho das moedas; falta só corrigir a cor e o
+lacre. Prompt para colar:
+
+```text
+Frente 2, rodada 3b. Trabalhe SOMENTE em C:\dev\AureaCustodiaMVP-assets. Não commite.
+
+1. BUG DE COR (6 ativos): em docs/polimento/assets/composicao/pipeline_composicao.py, cv2.imread devolve a imagem em
+   BGR(A) e o resto do script a trata como RGB(A) — o anel dourado sai azul-ciano e os anéis olímpicos trocam de cor.
+   Logo depois de cada cv2.imread, converta: img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA) (ou COLOR_BGR2RGB se não
+   houver alfa). Antes de gravar com cv2.imwrite, converta de volta (RGBA2BGRA). Rode de novo e sobrescreva:
+   moedas-bandeira-tres-quartos-transparente, moedas-direitos-humanos-tres-quartos-transparente, og-moeda-bandeira,
+   og-moeda-direitos-humanos, cenarios-faixa-abertura-painel (todos os tamanhos, AVIF e WebP, e o -1200 dos OG).
+   Portão: o anel tem de sair dourado (#c9a24b ± 15%) e os anéis olímpicos azul, amarelo, preto, verde e vermelho,
+   como na foto de public/moedas/.
+
+2. cenarios-lacre-de-custodia (refazer a cena): bandeja de aço escovado de cofre vista a 30° de cima, envelope plástico
+   de segurança transparente VAZIO e sem nenhuma impressão, etiqueta de papel creme em branco ao lado. Gere só essa
+   cena (sem moeda) e componha a moeda dos Direitos Humanos DENTRO do envelope pelo pipeline corrigido, com uma camada
+   de reflexo do plástico (branco 8%) por cima. Nada de cartão branco, faixa chapada ou fundo liso.
+
+3. Versões para fundo escuro dos spots "neutros" (traço claro #e3b95c / #b3c1da sobre transparente, mesmo desenho):
+   onboarding-vazio-sem-itens, onboarding-vazio-sem-ordens, onboarding-spot-recibo-emitido,
+   onboarding-spot-saque-solicitado, onboarding-spot-etiqueta-frete, onboarding-spot-custodia-a-pagar,
+   onboarding-spot-envio-em-analise — cada um com o sufixo -escuro.svg, ao lado do original.
+
+Atualize public/visuais/README.md e os .json de registro. Fechamento como nas rodadas anteriores.
+```

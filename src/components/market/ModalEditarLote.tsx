@@ -45,7 +45,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
     <>
       <h3 className="serif">Editar anúncio de venda</h3>
       <p>
-        Moeda: <b style={{ color: 'var(--gold)' }}>{lote.tipoMoeda}</b> — {moedasLoteAtual} moeda(s) anunciada(s) atualmente.
+        Moeda: <b className="u-ouro">{lote.tipoMoeda}</b> — {moedasLoteAtual} moeda(s) anunciada(s) atualmente.
       </p>
 
       <div className="field-lbl">Novo preço unitário</div>
@@ -62,8 +62,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
       <div className="field-lbl">Quantidade anunciada</div>
       <div className="stepper">
         <button
-          type="button"
-          style={{ minHeight: '44px', minWidth: '44px' }}
+          type="button" className="u-toque"
           disabled={qty <= 1}
           onClick={() => ajustar(-1)}
           aria-label="Diminuir quantidade"
@@ -72,8 +71,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
         </button>
         <span className="n">{qty}</span>
         <button
-          type="button"
-          style={{ minHeight: '44px', minWidth: '44px' }}
+          type="button" className="u-toque"
           disabled={qty >= maxPossivel}
           onClick={() => ajustar(1)}
           aria-label="Aumentar quantidade"
@@ -81,7 +79,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
           +
         </button>
       </div>
-      <p style={{ fontSize: 12, marginTop: 4 }}>
+      <p className="u-f12 u-mt4">
         Você tem {livres.length} moeda(s) livre(s) desse tipo para acrescentar.
         Moedas reduzidas voltam ao inventário livre; moedas acrescentadas saem do seu inventário.
       </p>
@@ -97,23 +95,21 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
         onChange={(e) => setObs(e.target.value)}
       />
 
-      <div className="note" style={{ marginTop: 12, marginBottom: 12 }}>
+      <div className="note u-mt12 u-mb12">
         Mudar o preço ou aumentar a quantidade leva a oferta para o fim da fila.
       </div>
 
       <div className="m-actions">
         <button
-          className="btn btn-outline"
+          className="btn btn-outline u-toque"
           type="button"
-          style={{ minHeight: '44px', minWidth: '44px' }}
           onClick={close}
         >
           Cancelar
         </button>
         <button
-          className="btn btn-gold"
+          className="btn btn-gold u-toque"
           type="button"
-          style={{ minHeight: '44px', minWidth: '44px' }}
           onClick={salvar}
         >
           Salvar alterações

@@ -32,6 +32,8 @@ import { brl } from '@/domain/money'
 import type { PlanoCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { cancelarMinhaAssinaturaCustodia } from '@/server/actions/plano-custodia'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { Selo } from '@/components/ui/Selo'
 
 const FORMA: Record<string, string> = {
   saldo: 'Saldo em conta',
@@ -52,48 +54,27 @@ function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
   const [ocupado, setOcupado] = useState(false)
 
   const ativo = plano.status === 'vigente' || plano.status === 'aguardando_pagamento'
+  // <Selo> do Brandbook (§9.4): o estado do plano é sempre TEXTO; a cor só reforça.
+  const selo =
+    plano.status === 'vigente'
+      ? { tom: 'sucesso' as const, txt: 'Vigente' }
+      : plano.status === 'aguardando_pagamento'
+        ? { tom: 'aviso' as const, txt: 'Aguardando pagamento' }
+        : { tom: 'neutro' as const, txt: plano.status === 'encerrado' ? 'Encerrado' : 'Cancelado' }
 
   return (
-    <div className="panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
+    <div className="panel plano">
+      <div className="plano-cab">
         <div>
-          <h4 style={{ margin: 0, fontSize: 16 }}>Plano Mensal de Custódia</h4>
-          <div style={{ fontSize: 12, color: 'var(--gold)', marginTop: 2 }}>
+          <h4>Plano Mensal de Custódia</h4>
+          <div className="plano-id">
             {plano.id} · Envio {plano.protocoloEnvio}
           </div>
         </div>
-        <span
-          style={{
-            padding: '3px 8px',
-            borderRadius: 12,
-            fontSize: 11,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            background:
-              plano.status === 'vigente'
-                ? 'rgba(26, 127, 55, 0.2)'
-                : plano.status === 'aguardando_pagamento'
-                  ? 'rgba(212, 175, 55, 0.2)'
-                  : 'var(--input-bg)',
-            color:
-              plano.status === 'vigente'
-                ? '#3fb950'
-                : plano.status === 'aguardando_pagamento'
-                  ? 'var(--gold)'
-                  : 'var(--text-muted)',
-          }}
-        >
-          {plano.status === 'vigente'
-            ? 'Vigente'
-            : plano.status === 'aguardando_pagamento'
-              ? 'Aguardando pagamento'
-              : plano.status === 'encerrado'
-                ? 'Encerrado'
-                : 'Cancelado'}
-        </span>
+        <Selo tom={selo.tom}>{selo.txt}</Selo>
       </div>
 
-      <div className="summary-box" style={{ marginBottom: 12 }}>
+      <div className="summary-box">
         <div className="sr">
           <span className="k">Moedas cobertas</span>
           <span className="v">
@@ -121,37 +102,28 @@ function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
         {plano.estornadoCents > 0 && (
           <div className="sr">
             <span className="k">Estorno por moedas recusadas</span>
-            <span className="v" style={{ color: '#3fb950' }}>{brl(plano.estornadoCents)}</span>
+            <span className="v v-verde">{brl(plano.estornadoCents)}</span>
           </div>
         )}
       </div>
 
+      {/* Ação que desfaz algo fica num bloco à parte, com confirmação em duas etapas (tópico 35
+          passo 1). A primeira etapa continua sendo o botão contornado de antes. */}
       {ativo &&
         (confirmando ? (
-          <div>
-            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 10 }}>
+          <div className="zona-perigo" role="group" aria-label={`Confirmar o cancelamento do plano ${plano.id}`}>
+            <p>
               Cancelar encerra a cobrança automática deste plano. <b>Suas moedas continuam na
               custódia</b> e a guarda continua sendo cobrada mês a mês, por fatura, pelo mesmo
-              preço. Para encerrar a guarda, peça a{' '}
-              <Link href="/retirada" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>
-                retirada física
-              </Link>{' '}
-              das moedas.
+              preço. Para encerrar a guarda, peça a <Link href="/retirada">retirada física</Link> das moedas.
             </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ minHeight: 44 }}
-                disabled={ocupado}
-                onClick={() => setConfirmando(false)}
-              >
-                Manter plano
+            <div className="acoes">
+              <button type="button" className="btn btn-outline" disabled={ocupado} onClick={() => setConfirmando(false)}>
+                Manter plano<span className="sr-only"> {plano.id}</span>
               </button>
               <button
                 type="button"
-                className="btn btn-gold"
-                style={{ minHeight: 44 }}
+                className="btn btn-danger"
                 disabled={ocupado}
                 onClick={async () => {
                   setOcupado(true)
@@ -164,21 +136,22 @@ function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
                 }}
               >
                 {ocupado ? 'Cancelando…' : 'Confirmar cancelamento'}
+                <span className="sr-only"> do plano {plano.id}</span>
               </button>
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-outline"
-            style={{ width: '100%', minHeight: 44 }}
-            onClick={() => setConfirmando(true)}
-          >
-            Cancelar assinatura deste plano
+          <button type="button" className="btn btn-outline plano-cancelar" onClick={() => setConfirmando(true)}>
+            Cancelar assinatura deste plano<span className="sr-only"> ({plano.id})</span>
           </button>
         ))}
     </div>
   )
+}
+
+/** "guarda até …" e os lotes de uma fatura, debaixo da competência e da origem. */
+function Sub({ children }: { children: ReactNode }): ReactNode {
+  return <div className="cel-sub">{children}</div>
 }
 
 export default function MinhaCustodiaPage(): ReactNode {
@@ -188,20 +161,35 @@ export default function MinhaCustodiaPage(): ReactNode {
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <Link
-          href="/conta"
-          className="back-link"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44 }}
-        >
-          ← Voltar para Minha conta
-        </Link>
-      </div>
+      <Link href="/conta" className="back-link">
+        ← Voltar para Minha conta
+      </Link>
+
+      {/* Página longa no celular: atalhos para as três seções (tópico 35 passo 4). */}
+      <nav className="nesta-pagina" aria-label="Nesta página">
+        <ul>
+          <li>
+            <a className="chip" href="#custodia-resumo">
+              Resumo
+            </a>
+          </li>
+          <li>
+            <a className="chip" href="#custodia-planos">
+              Planos
+            </a>
+          </li>
+          <li>
+            <a className="chip" href="#custodia-extrato">
+              Extrato pago
+            </a>
+          </li>
+        </ul>
+      </nav>
 
       {/* ---------------- o mês corrente ---------------- */}
-      <div className="panel" style={{ marginBottom: 18 }}>
+      <div className="panel" id="custodia-resumo">
         <h3>
-          <svg viewBox="0 0 24 24">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             <path d="M9 12l2 2 4-4" />
           </svg>
@@ -228,9 +216,7 @@ export default function MinhaCustodiaPage(): ReactNode {
               ser paga. */}
           <div className="sr">
             <span className="k">Guarda paga até</span>
-            <span className="v">
-              {r.cobertaAte ? fdate(r.cobertaAte) : 'Nenhum ciclo quitado'}
-            </span>
+            <span className="v">{r.cobertaAte ? fdate(r.cobertaAte) : 'Nenhum ciclo quitado'}</span>
           </div>
           <div className="sr">
             <span className="k">{r.proximoVencimento ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
@@ -249,18 +235,12 @@ export default function MinhaCustodiaPage(): ReactNode {
         </div>
 
         {r.emAberto.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <Link
-              href="/conta/faturas"
-              className="btn btn-gold"
-              style={{ width: '100%', minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              Pagar {brl(r.emAbertoCents)} em aberto
-            </Link>
-          </div>
+          <Link href="/conta/faturas" className="btn btn-gold btn-link-cheio">
+            Pagar {brl(r.emAbertoCents)} em aberto
+          </Link>
         )}
 
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, marginBottom: 0 }}>
+        <p className="panel-rodape">
           A guarda de cada moeda custa {brl(r.porMoedaCents)} por mês, sem prazo mínimo, e é
           contada a partir do dia em que a moeda foi aceita: ela renova todo mês nesse mesmo dia.
           Moeda vendida ou retirada deixa de ser cobrada no próximo ciclo.
@@ -268,30 +248,33 @@ export default function MinhaCustodiaPage(): ReactNode {
       </div>
 
       {/* ---------------- planos ---------------- */}
-      <div style={{ marginBottom: 18 }}>
-        <h3 style={{ marginBottom: 12 }}>Planos de custódia</h3>
+      <section className="secao-planos" id="custodia-planos" aria-labelledby="custodia-planos-t">
+        <h2 id="custodia-planos-t" className="secao-titulo">
+          Planos de custódia
+        </h2>
         {r.planosAtivos.length === 0 && r.planosEncerrados.length === 0 ? (
           <div className="panel">
-            <div className="empty">Você não tem plano de custódia contratado.</div>
-            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 10, marginBottom: 0 }}>
+            <EstadoVazio
+              titulo="Você não tem plano de custódia contratado."
+            >
               Suas moedas continuam guardadas e cobradas mês a mês pela tarifa de{' '}
               {brl(r.porMoedaCents)} por moeda. O plano é contratado durante o envio de novas
               moedas para a custódia.
-            </p>
+            </EstadoVazio>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+          <div className="grade-planos">
             {[...r.planosAtivos, ...r.planosEncerrados].map((p) => (
               <CartaoDoPlano key={p.id} plano={p} />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* ---------------- extrato ---------------- */}
-      <div className="panel">
+      <div className="panel" id="custodia-extrato">
         <h3>
-          <svg viewBox="0 0 24 24">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 3h9l4 4v14H6z" />
             <path d="M9 10h7M9 13.5h7M9 17h4" />
           </svg>
@@ -299,51 +282,59 @@ export default function MinhaCustodiaPage(): ReactNode {
         </h3>
 
         {r.pagas.length === 0 ? (
-          <div className="empty">Nenhum pagamento de custódia registrado até agora.</div>
+          <EstadoVazio
+            titulo="Nenhum pagamento de custódia registrado até agora."
+          >
+            Cada fatura paga aparece aqui, com a data, a forma de pagamento e as moedas que ela cobriu.
+          </EstadoVazio>
         ) : (
-          <div className="table-scroll">
-            <table className="audit-table">
+          <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Pagamentos de custódia (role para o lado no celular)">
+            <table className="ro-tabela">
               <thead>
                 <tr>
-                  <th>Pago em</th>
-                  <th>Competência</th>
-                  <th>Referente a</th>
-                  <th>Moedas</th>
-                  <th>Forma</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
+                  <th scope="col">Pago em</th>
+                  <th scope="col">Competência</th>
+                  <th scope="col">Referente a</th>
+                  <th scope="col" className="num">
+                    Moedas
+                  </th>
+                  <th scope="col">Forma</th>
+                  <th scope="col" className="num">
+                    Valor
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {r.pagas.map((f) => (
                   <tr key={f.id}>
-                    <td>{fdate(f.dataPagamento ?? f.dataEmissao)}</td>
+                    <th scope="row" className="nowrap">
+                      {fdate(f.dataPagamento ?? f.dataEmissao)}
+                    </th>
                     <td>
                       {f.competencia}
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        guarda até {fdate(fimDaCoberturaDaFatura(f))}
-                      </div>
+                      <Sub>guarda até {fdate(fimDaCoberturaDaFatura(f))}</Sub>
                     </td>
                     <td>
                       {rotuloDaOrigem(f.origem)}
                       {lotesDaFatura(meusCoins, f).length > 0 && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        <Sub>
                           {lotesDaFatura(meusCoins, f).length > 1 ? 'Lotes ' : 'Lote '}
                           {lotesDaFatura(meusCoins, f).join(', ')}
-                        </div>
+                        </Sub>
                       )}
                     </td>
-                    <td>{f.quantidadeMoedas}</td>
+                    <td className="num">{f.quantidadeMoedas}</td>
                     <td>{FORMA[f.formaPagamento ?? 'saldo'] ?? f.formaPagamento}</td>
-                    <td style={{ textAlign: 'right' }}>{brl(f.valorCents)}</td>
+                    <td className="num">{brl(f.valorCents)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={5} style={{ fontWeight: 700 }}>
+                  <th scope="row" colSpan={5}>
                     Total pago
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{brl(r.totalPagoCents)}</td>
+                  </th>
+                  <td className="num total">{brl(r.totalPagoCents)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -352,41 +343,43 @@ export default function MinhaCustodiaPage(): ReactNode {
 
         {r.emAberto.length > 0 && (
           <>
-            <h4 style={{ marginTop: 20, marginBottom: 10, fontSize: 14 }}>Em aberto</h4>
-            <div className="table-scroll">
-              <table className="audit-table">
+            <h4 className="sub-titulo">Em aberto</h4>
+            <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Faturas em aberto (role para o lado no celular)">
+              <table className="ro-tabela">
                 <thead>
                   <tr>
-                    <th>Prazo para pagar</th>
-                    <th>Competência</th>
-                    <th>Referente a</th>
-                    <th>Moedas</th>
-                    <th style={{ textAlign: 'right' }}>Valor</th>
+                    <th scope="col">Prazo para pagar</th>
+                    <th scope="col">Competência</th>
+                    <th scope="col">Referente a</th>
+                    <th scope="col" className="num">
+                      Moedas
+                    </th>
+                    <th scope="col" className="num">
+                      Valor
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {r.emAberto.map((f) => (
                     <tr key={f.id}>
-                      <td style={{ color: f.dataVencimento < Date.now() ? '#d9383a' : undefined }}>
+                      <th scope="row" className={f.dataVencimento < Date.now() ? 'nowrap imp-neg' : 'nowrap'}>
                         {fdate(f.dataVencimento)}
-                      </td>
+                      </th>
                       <td>
                         {f.competencia}
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          guarda até {fdate(fimDaCoberturaDaFatura(f))}
-                        </div>
+                        <Sub>guarda até {fdate(fimDaCoberturaDaFatura(f))}</Sub>
                       </td>
                       <td>
                         {rotuloDaOrigem(f.origem)}
                         {lotesDaFatura(meusCoins, f).length > 0 && (
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          <Sub>
                             {lotesDaFatura(meusCoins, f).length > 1 ? 'Lotes ' : 'Lote '}
                             {lotesDaFatura(meusCoins, f).join(', ')}
-                          </div>
+                          </Sub>
                         )}
                       </td>
-                      <td>{f.quantidadeMoedas}</td>
-                      <td style={{ textAlign: 'right' }}>{brl(f.valorCents)}</td>
+                      <td className="num">{f.quantidadeMoedas}</td>
+                      <td className="num">{brl(f.valorCents)}</td>
                     </tr>
                   ))}
                 </tbody>

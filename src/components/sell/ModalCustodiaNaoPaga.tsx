@@ -48,42 +48,28 @@ export function ModalCustodiaNaoPaga({
     <>
       <h3 className="serif">{MENSAGEM_CUSTODIA_NAO_PAGA}</h3>
       <p>
-        A moeda <b style={{ color: 'var(--gold)' }}>{coinId}</b> está com a custódia em aberto.
+        A moeda <b className="u-ouro">{coinId}</b> está com a custódia em aberto.
         Enquanto ela não for paga, esta moeda não pode ser colocada à venda.
       </p>
 
       {abertas.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: 6 }}>
+        <div className="u-mb16">
+          <div className="u-f13 u-semi u-mb6">
             {abertas.length === 1 ? 'Fatura pendente:' : 'Faturas pendentes:'}
           </div>
           {abertas.map((f) => (
             <div
-              key={f.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '6px 0',
-                fontSize: '13px',
-                borderBottom: '1px solid var(--line-soft)',
-              }}
+              key={f.id} className="u-linha-tabela"
             >
               <span>{f.competencia}</span>
-              <span style={{ fontWeight: 700, color: '#f85149' }}>{brl(f.valorCents)}</span>
+              <span className="u-forte u-erro">{brl(f.valorCents)}</span>
             </div>
           ))}
           {abertas.length > 1 && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0 0',
-                fontSize: '14px',
-                fontWeight: 700,
-              }}
+            <div className="u-linha-total"
             >
               <span>Total</span>
-              <span style={{ color: '#f85149' }}>{brl(total)}</span>
+              <span className="u-erro">{brl(total)}</span>
             </div>
           )}
         </div>
@@ -95,8 +81,7 @@ export function ModalCustodiaNaoPaga({
         </button>
         <Link
           href="/conta/faturas"
-          className="btn btn-gold"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, textDecoration: 'none' }}
+          className="btn btn-gold u-btn-link"
           onClick={close}
         >
           Pagar custódia →

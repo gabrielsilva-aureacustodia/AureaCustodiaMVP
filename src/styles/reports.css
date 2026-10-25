@@ -22,7 +22,7 @@
 body[data-theme="light"] .comp-chip.up{color:var(--chip-up-ink-light)}
 body[data-theme="light"] .comp-chip.down{color:var(--chip-down-ink-light)}
 .audit-table{width:100%;border-collapse:collapse;font-size:13px}
-.audit-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-soft)}
+.audit-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ro-primaria-texto);font-weight:700;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-soft)}
 .audit-table td{padding:9px 10px;border-bottom:1px solid var(--line-soft);color:var(--text)}
 /* dentro do .table-scroll (base.css) a tabela mantém largura mínima e rola
    sozinha no celular, em vez de espremer as colunas ou empurrar a página */

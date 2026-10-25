@@ -117,8 +117,8 @@ export function ModalOfertaPrePaga({
   return (
     <>
       <h3 className="serif">Pagar para publicar a oferta</h3>
-      <p style={{ marginBottom: 12 }}>
-        <b style={{ color: 'var(--gold)' }}>{tipoMoeda}</b> · {qty} unidade(s) a {brl(precoUnit)}
+      <p className="u-mb12">
+        <b className="u-ouro">{tipoMoeda}</b> · {qty} unidade(s) a {brl(precoUnit)}
       </p>
 
       <div className="summary-row">
@@ -132,7 +132,7 @@ export function ModalOfertaPrePaga({
       <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">
         <span className="k">Total a pagar agora</span>
-        <span className="v" style={{ fontWeight: 600 }}>
+        <span className="v u-semi">
           {brl(totalCents)}
         </span>
       </div>
@@ -141,7 +141,7 @@ export function ModalOfertaPrePaga({
         <span className="v">{brl(me.balance)}</span>
       </div>
 
-      <div className="note" style={{ marginTop: 12 }}>
+      <div className="note u-mt12">
         A oferta <b>só é publicada depois do pagamento</b> — até lá ela não aparece no mercado
         para ninguém. O valor fica preso a ela: não volta para o saldo e não pode ser gasto em
         outra compra. Se você cancelar a oferta antes de ela executar, o dinheiro volta como
@@ -152,27 +152,19 @@ export function ModalOfertaPrePaga({
           título de cada bloco é a própria escolha: "gateway" é palavra de quem
           escreve o código, e numerar as opções gasta a linha mais visível sem
           dizer nada a quem está comprando. */}
-      <div
-        style={{
-          marginTop: 14,
-          padding: '12px 14px',
-          background: 'var(--input-bg)',
-          borderRadius: 8,
-          border: '1px solid var(--line-soft)',
-        }}
+      <div className="caixa-pag"
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
+        <div className="u-caixa-t">
           Comprar com saldo
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+        <div className="u-caixa-d">
           {temSaldo
             ? `O total de ${brl(totalCents)} será debitado do seu saldo e a oferta é publicada na hora.`
             : `Saldo insuficiente para comprar esta quantidade (faltam ${brl(totalCents - me.balance)}).`}
         </div>
         <button
           type="button"
-          className={temSaldo ? 'btn btn-gold' : 'btn btn-outline'}
-          style={{ width: '100%', minHeight: 44 }}
+          className={temSaldo ? 'btn btn-gold u-cheio u-toque' : 'btn btn-outline u-cheio u-toque'}
           disabled={!temSaldo || enviando}
           onClick={() => void pagarComSaldo()}
         >
@@ -181,27 +173,19 @@ export function ModalOfertaPrePaga({
       </div>
 
       {/* Pix e cartão, sem passar pelo saldo. */}
-      <div
-        style={{
-          marginTop: 12,
-          padding: '12px 14px',
-          background: 'var(--input-bg)',
-          borderRadius: 8,
-          border: '1px solid var(--line-soft)',
-        }}
+      <div className="caixa-pag"
       >
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 4 }}>
+        <div className="u-caixa-t">
           Comprar com Pix ou cartão
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+        <div className="u-caixa-d">
           Pague {brl(totalCents)} por Pix ou cartão, sem usar o saldo em conta. A oferta é
           publicada assim que o pagamento for aprovado.
         </div>
-        <div className="m-actions" style={{ marginTop: 0 }}>
+        <div className="m-actions u-mt0">
           <button
             type="button"
-            className="btn btn-outline"
-            style={{ minHeight: 44 }}
+            className="btn btn-outline u-toque"
             disabled={enviando}
             onClick={() => void cobrarPeloGateway('pix')}
           >
@@ -209,8 +193,7 @@ export function ModalOfertaPrePaga({
           </button>
           <button
             type="button"
-            className="btn btn-outline"
-            style={{ minHeight: 44 }}
+            className="btn btn-outline u-toque"
             disabled={enviando}
             onClick={() => void cobrarPeloGateway('cartao')}
           >
@@ -220,30 +203,28 @@ export function ModalOfertaPrePaga({
       </div>
 
       {erro ? (
-        <div className="note" style={{ marginTop: 12 }}>
+        <div className="note u-mt12">
           {erro}
         </div>
       ) : null}
 
       {pix ? (
-        <div style={{ marginTop: 14 }}>
+        <div className="u-mt14">
           <div className="field-lbl">Pix copia e cola</div>
           <textarea
             readOnly
             rows={3}
             aria-label="Código Pix copia e cola"
-            value={pix.qrCode ?? ''}
-            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+            value={pix.qrCode ?? ''} className="pix-codigo"
           />
           {pix.qrCodeBase64 ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={`data:image/png;base64,${pix.qrCodeBase64}`}
-              alt="QR Code do Pix"
-              style={{ display: 'block', width: 180, height: 180, margin: '12px auto' }}
+              alt="QR Code do Pix" className="pix-qr"
             />
           ) : null}
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <p className="u-sutil">
             Assim que o pagamento for confirmado, a oferta é publicada sozinha — não é preciso
             voltar aqui.
           </p>
@@ -254,8 +235,8 @@ export function ModalOfertaPrePaga({
           estava no livro esperando lastro; agora não há nada para pagar depois
           — fechar sem pagar simplesmente não publica a oferta. Manter o botão
           prometeria uma pendência que não existe. */}
-      <div className="m-actions" style={{ marginTop: 14 }}>
-        <button type="button" className="btn btn-outline" style={{ minHeight: 44 }} onClick={close}>
+      <div className="m-actions u-mt14">
+        <button type="button" className="btn btn-outline u-toque" onClick={close}>
           Fechar
         </button>
       </div>

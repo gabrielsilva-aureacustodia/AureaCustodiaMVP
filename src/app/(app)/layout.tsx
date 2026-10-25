@@ -78,12 +78,15 @@ export default async function AppLayout({
     <AppProvider initialState={state} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
       {/* Tutorial guiado: tour da primeira visita, dicas por página e o exemplo de custódia do tour. */}
       <TutorialProvider>
-      <SidebarProvider>
-        {/* .app é display:none sem .active — a classe não é decorativa. */}
+      {/* 1024px = o `lg` em que a área do cliente volta a ter coluna lateral (ver SidebarProvider). */}
+      <SidebarProvider desktopMinPx={1024}>
+        {/* .app é display:none sem .active — a classe não é decorativa. `.app-cliente`
+            (25/10/2026) separa o casco do cliente do casco do painel administrativo, que usa as
+            mesmas classes: o redesenho da plataforma mora atrás dela e não mexe no /admin. */}
         <a href="#conteudo-principal" className="skip-link">
           Pular para o conteúdo
         </a>
-        <div className="app active">
+        <div className="app active app-cliente">
           <Sidebar />
           <main id="conteudo-principal" tabIndex={-1} className="main">
             <Topbar />

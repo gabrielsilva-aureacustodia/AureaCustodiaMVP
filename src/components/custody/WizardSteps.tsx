@@ -15,7 +15,6 @@
  * objeto físico, que a linha do tempo do passo 4 desenha.
  */
 
-import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 
 /** Os cinco rótulos da trilha de envio, na ordem. */
@@ -27,8 +26,10 @@ export interface WizardStepsProps {
 }
 
 export function WizardSteps({ step }: WizardStepsProps): ReactNode {
+  // Lista ordenada com aria-current="step" desde 25/10/2026: o leitor de tela anuncia "passo 3 de 5"
+  // e qual é o atual (tópico 35, passo 4b). O desenho (bolinhas e tracinhos) é o mesmo.
   return (
-    <div className="wizard-steps">
+    <ol className="wizard-steps" aria-label={`Passo ${step} de ${PASSOS.length} do envio`}>
       {PASSOS.map((label, i) => {
         const n = i + 1
         // Mesma classificação do original: passado vira 'done' (bolinha dourada
@@ -38,16 +39,19 @@ export function WizardSteps({ step }: WizardStepsProps): ReactNode {
         return (
           // O rótulo é único e estável — melhor chave que o índice, que mudaria
           // de significado se a trilha ganhasse um passo no meio.
-          <Fragment key={label}>
-            <div className="wz-step">
-              <div className={`wz-num ${cls}`}>{n < step ? '✓' : n}</div>
-              <div className={`wz-label ${n === step ? 'on' : ''}`}>{label}</div>
-            </div>
+          <li key={label} className="wz-step" aria-current={n === step ? 'step' : undefined}>
+            <span className={`wz-num ${cls}`} aria-hidden="true">
+              {n < step ? '✓' : n}
+            </span>
+            <span className={`wz-label ${n === step ? 'on' : ''}`}>
+              {label}
+              {n < step ? <span className="sr-only"> (concluído)</span> : null}
+            </span>
             {/* O tracinho separador não existe depois do último passo. */}
-            {i < PASSOS.length - 1 && <div className="wz-line" />}
-          </Fragment>
+            {i < PASSOS.length - 1 && <span className="wz-line" aria-hidden="true" />}
+          </li>
         )
       })}
-    </div>
+    </ol>
   )
 }

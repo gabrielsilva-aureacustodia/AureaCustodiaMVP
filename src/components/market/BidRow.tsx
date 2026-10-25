@@ -31,22 +31,13 @@ export interface BidRowProps {
 }
 
 export function BidRow({ bid, mine, onEdit, onCancel }: BidRowProps): ReactNode {
+  // Objeto dos botões repetidos, só para leitor de tela (doc 35 §6): "Editar" e "Cancelar" de qual oferta.
+  const objeto = `a oferta de compra de ${bid.qty} ${bid.tipoMoeda} a ${brl(bid.price)}`
   return (
-    <div className="offer">
-      {/* .block-ico com medidas reduzidas no próprio elemento, como na linha
-          1278: o tamanho padrão da classe é grande demais para uma linha de
-          livro de ordens. */}
-      <div className="block-ico" style={{ width: '52px', height: '52px' }}>
-        <svg
-          viewBox="0 0 24 24"
-          style={{
-            width: '22px',
-            height: '22px',
-            stroke: 'var(--green)',
-            fill: 'none',
-            strokeWidth: '1.7',
-          }}
-        >
+    <div className="offer offer-bid">
+      {/* O ícone de seta verde separa demanda (compra) de oferta (venda) na vitrine. */}
+      <div className="block-ico bid-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
           <path d="M12 19V5M5 12l7-7 7 7" />
         </svg>
       </div>
@@ -64,36 +55,16 @@ export function BidRow({ bid, mine, onEdit, onCancel }: BidRowProps): ReactNode 
       </div>
 
       <div className="o-price">
-        <div className="p" style={{ color: 'var(--green)' }}>
-          {brl(bid.price)}
-        </div>
+        <div className="p p-compra">{brl(bid.price)}</div>
         <div className="lt">preço máx. por unidade</div>
 
         {mine ? (
-          <div
-            style={{
-              marginTop: '8px',
-              display: 'flex',
-              gap: '8px',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-            }}
-          >
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ minHeight: '44px', minWidth: '44px', padding: '6px 14px', fontSize: '12.5px' }}
-              onClick={() => onEdit(bid)}
-            >
-              Editar
+          <div className="o-acoes">
+            <button type="button" className="btn btn-outline" onClick={() => onEdit(bid)}>
+              Editar<span className="sr-only"> {objeto}</span>
             </button>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ minHeight: '44px', minWidth: '44px', padding: '6px 14px', fontSize: '12.5px' }}
-              onClick={() => onCancel(bid)}
-            >
-              Cancelar
+            <button type="button" className="btn btn-outline" onClick={() => onCancel(bid)}>
+              Cancelar<span className="sr-only"> {objeto}</span>
             </button>
           </div>
         ) : null}
