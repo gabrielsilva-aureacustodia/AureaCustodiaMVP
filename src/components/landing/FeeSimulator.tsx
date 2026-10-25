@@ -1,133 +1,115 @@
 'use client'
 
 /**
- * Simulador Factual de Custódia e Negociação — Real Olímpico.
+ * Simulador de custos da landing: quanto paga quem compra e quanto recebe quem vende.
  *
- * Implementado conforme os padrões do Tópico 32 do aprendizado_frontend:
- * - 0 KB de dependências externas (apenas React e CSS nativo com tokens)
- * - Números tabulares para evitar oscilações visuais
- * - Regras de negócio protegidas e exatas:
- *     Comissão: 0,5% + R$ 1,00 por moeda em cada lado da operação
- *     Custódia: R$ 2,00 por moeda ao mês, sem prazo mínimo, sem plano anual e sem desconto
- *     (o valor vem de TAXAS_PADRAO)
+ * Único pedaço da landing que precisa de estado no navegador, por isso é o único 'use client' de seção.
+ *
+ * As contas são as MESMAS do servidor (`comissaoPorMoeda`, `custoDeCompraPorMoeda`, `liquidoDeVendaPorMoeda`,
+ * de `src/domain/fees.ts`) com a tabela vigente que a página recebeu do servidor. Até 24/10/2026 este arquivo
+ * refazia a conta à mão com 0.005 e 1.0 em reais (float) e somava só preço + comissão para o comprador —
+ * sem o 1º mês de custódia que, desde 21/10/2026, entra em toda compra. Valores em centavos inteiros.
  */
 
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 
-import { TAXAS_PADRAO } from '@/domain/fees'
+import {
+  comissaoPorMoeda,
+  custoDeCompraPorMoeda,
+  custodiaDaCompraPorMoeda,
+  liquidoDeVendaPorMoeda,
+  type TabelaDeTaxas,
+} from '@/domain/fees'
+import { brl } from '@/domain/money'
 
-const PRESETS = [
-  { label: 'Bandeira 2012 (R$ 180,00)', val: 180 },
-  { label: 'Direitos Humanos 1998 (R$ 450,00)', val: 450 },
-  { label: 'Série Completa Rio 2016 (R$ 1.200,00)', val: 1200 },
-] as const
+import { comissaoDoLado, comissaoSimetrica } from './textoDasTaxas'
 
-export function FeeSimulator(): ReactNode {
-  const [val, setVal] = useState<number>(180)
+// Valores de exemplo para o visitante clicar — não são preços de mercado (os preços reais estão na vitrine).
+const EXEMPLOS = [18_000, 45_000, 120_000] as const
 
-  const taxaPercentual = 0.005 // 0,5%
-  const taxaFixa = 1.0 // R$ 1,00
-  const comissao = Math.max(0, val * taxaPercentual + taxaFixa)
-  const liquidoVendedor = Math.max(0, val - comissao)
-  const custoComprador = Math.max(0, val + comissao)
+export function FeeSimulator({ taxas }: { taxas: TabelaDeTaxas }): ReactNode {
+  const id = useId()
+  const [reais, setReais] = useState<number>(EXEMPLOS[0] / 100)
 
-  // Mensalidade única por moeda (centavos -> reais). Não há plano anual nem desconto por prazo.
-  const custoCustodia = TAXAS_PADRAO.custodiaMensalPorMoeda / 100
+  const preco = Math.max(0, Math.round(reais * 100))
+  const comissao = comissaoPorMoeda(preco, taxas)
+  const custoComprador = custoDeCompraPorMoeda(preco, taxas)
+  const custodiaDaCompra = custodiaDaCompraPorMoeda(taxas)
+  const liquidoVendedor = Math.max(0, liquidoDeVendaPorMoeda(preco, taxas))
 
   return (
-    <section className="landing-simulator-section reveal" aria-labelledby="simulator-title">
-      <div className="landing-section-heading">
-        <p className="landing-eyebrow">Transparência Factual</p>
-        <h2 id="simulator-title">Simulador de Negociação e Custódia</h2>
-        <p className="landing-lead">
-          Sem taxas ocultas, sem jargões. Calcule exatamente o custo de guarda em cofre e os
-          proventos líquidos de negociação no Real Olímpico.
-        </p>
+    <div className="pub-sim">
+      <div className="pub-sim-entrada">
+        <label htmlFor={`${id}-valor`} className="pub-sim-label">
+          Preço combinado da moeda
+        </label>
+        <div className="pub-sim-campo">
+          <span aria-hidden="true">R$</span>
+          <input
+            id={`${id}-valor`}
+            type="number"
+            inputMode="decimal"
+            min="1"
+            step="10"
+            value={reais || ''}
+            onChange={(e) => setReais(Math.max(0, Number(e.target.value)))}
+          />
+        </div>
+        <div className="pub-sim-exemplos" role="group" aria-label="Valores de exemplo">
+          {EXEMPLOS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={preco === v}
+              aria-label={`Simular com ${brl(v)}`}
+              onClick={() => setReais(v / 100)}
+            >
+              {brl(v)}
+            </button>
+          ))}
+        </div>
+        <p className="pub-sim-nota">Valores de exemplo. Os preços reais estão na vitrine do mercado.</p>
       </div>
 
-      <div className="landing-sim-card">
-        {/* Lado Esquerdo: Parâmetros */}
-        <div className="landing-sim-controls">
-          <div className="landing-sim-group">
-            <label htmlFor="sim-valor" className="landing-sim-label">
-              Valor de Referência da Moeda (R$)
-            </label>
-            <div className="landing-sim-input-wrap">
-              <span className="landing-sim-prefix">R$</span>
-              <input
-                id="sim-valor"
-                type="number"
-                min="1"
-                step="10"
-                value={val || ''}
-                onChange={(e) => setVal(Math.max(0, Number(e.target.value)))}
-                className="landing-sim-input"
-              />
-            </div>
-            <div className="landing-sim-presets" role="group" aria-label="Moedas sugeridas">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={() => setVal(p.val)}
-                  className={`landing-sim-preset-btn ${val === p.val ? 'active' : ''}`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <dl className="pub-sim-saida" aria-live="polite">
+        <div className="pub-sim-linha pub-sim-destaque">
+          <dt>
+            Quem compra paga
+            <small>
+              Preço + comissão ({brl(comissao.comprador)}) + 1º mês de guarda ({brl(custodiaDaCompra)})
+            </small>
+          </dt>
+          <dd>{brl(custoComprador)}</dd>
         </div>
-
-        {/* Lado Direito: Resumo Factual */}
-        <div className="landing-sim-results">
-          <h3 className="landing-sim-results-title">Demonstrativo de Custos e Proventos</h3>
-
-          <div className="landing-sim-rows">
-            <div className="landing-sim-row">
-              <span className="landing-sim-k">Comissão de Negociação (0,5% + R$ 1,00):</span>
-              <strong className="landing-sim-v">
-                R$ {comissao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </strong>
-            </div>
-
-            <div className="landing-sim-row highlight-green">
-              <div>
-                <span className="landing-sim-k">Proventos Líquidos do Vendedor:</span>
-                <small className="landing-sim-sub">Creditado diretamente no saldo após negociação</small>
-              </div>
-              <strong className="landing-sim-v">
-                R$ {liquidoVendedor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </strong>
-            </div>
-
-            <div className="landing-sim-row">
-              <span className="landing-sim-k">Custo Total de Aquisição do Comprador:</span>
-              <strong className="landing-sim-v">
-                R$ {custoComprador.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </strong>
-            </div>
-
-            <div className="landing-sim-row highlight-gold">
-              <div>
-                <span className="landing-sim-k">Custo da Guarda Física por moeda ao mês:</span>
-                <small className="landing-sim-sub">Sem prazo mínimo. Cofre de segurança bancária Sicoob com laudo pericial</small>
-              </div>
-              <strong className="landing-sim-v">
-                R$ {custoCustodia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </strong>
-            </div>
-          </div>
-
-          <div className="landing-sim-footnote">
-            <span className="landing-sim-seal-icon" aria-hidden="true">✓</span>
-            <span>
-              <strong>Economia logística imediata:</strong> negociações de recibos lastreados no
-              Real Olímpico dispensam fretes com seguro declaratório interestadual a cada transação comercial.
-            </span>
-          </div>
+        <div className="pub-sim-linha pub-sim-destaque pub-sim-recebe">
+          <dt>
+            Quem vende recebe
+            <small>Preço − comissão ({brl(comissao.vendedor)}), no saldo da conta</small>
+          </dt>
+          <dd>{brl(liquidoVendedor)}</dd>
         </div>
-      </div>
-    </section>
+        {comissaoSimetrica(taxas) ? (
+          <div className="pub-sim-linha">
+            <dt>Comissão de cada lado</dt>
+            <dd>{comissaoDoLado(taxas, 'vendedor')} por moeda</dd>
+          </div>
+        ) : (
+          <>
+            <div className="pub-sim-linha">
+              <dt>Comissão de quem compra</dt>
+              <dd>{comissaoDoLado(taxas, 'comprador')} por moeda</dd>
+            </div>
+            <div className="pub-sim-linha">
+              <dt>Comissão de quem vende</dt>
+              <dd>{comissaoDoLado(taxas, 'vendedor')} por moeda</dd>
+            </div>
+          </>
+        )}
+        <div className="pub-sim-linha">
+          <dt>Guarda no cofre</dt>
+          <dd>{brl(taxas.custodiaMensalPorMoeda)} por moeda, por mês</dd>
+        </div>
+      </dl>
+    </div>
   )
 }

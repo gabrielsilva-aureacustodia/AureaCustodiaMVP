@@ -2,13 +2,13 @@
 
 /** Formulário de cadastro. Sem trava de aceite legal — ver RA-18. */
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { registerWithEmail, registerWithGoogle } from '@/server/actions/auth'
+
+import { AuthShell } from './AuthShell'
 
 interface RegistrationStatusView {
   enabled: boolean
@@ -88,11 +88,8 @@ export function RegisterForm({
   const disabled = enviando || !registration.enabled
 
   return (
-    <main className="auth-page register-wrap">
+    <AuthShell titulo="Abra sua conta e comece a proteger sua coleção.">
       <section className="register-card" aria-labelledby="register-title">
-        <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={113} height={104} priority />
-        </Link>
         <h1 className="login-title" id="register-title">
           Criar conta
         </h1>
@@ -252,6 +249,6 @@ export function RegisterForm({
           Já tem conta? <Link href="/entrar">Entrar</Link>
         </p>
       </section>
-    </main>
+    </AuthShell>
   )
 }

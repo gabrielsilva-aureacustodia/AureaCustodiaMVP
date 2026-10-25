@@ -1,125 +1,77 @@
-'use client'
-
 /**
- * Exame Numismático de Espécime em Custódia — Real Olímpico.
+ * Ficha do espécime: o que a perícia confere numa moeda antes de ela entrar no cofre (padrão PCGS CoinFacts e
+ * Heritage: foto da peça ao lado da ficha técnica).
  *
- * Inspirado nas melhores práticas de PCGS CoinFacts, CAC e Heritage Auctions:
- * - Alternância instantânea de faces (Anverso e Reverso)
- * - Ficha técnica pericial completa (peso a 0,01g, diâmetro, bordo, metal)
- * - Selo visual de guarda física certificada em cofre Sicoob
- * - 0 KB de dependências externas
+ * Mostra só o ANVERSO. O reverso da Entrega da Bandeira traz os anéis olímpicos, e anel olímpico não aparece
+ * em arte do site (risco de PI do COB, CLAUDE.md). Até 24/10/2026 havia um botão de anverso/reverso que
+ * exibia essa face — e era o único motivo de este componente ser 'use client'. Sem ele, é só marcação.
+ * A decisão sobre voltar com o reverso está em docs/polimento/landing/PROPOSTAS_BACKEND.md.
+ *
+ * A tiragem vem do catálogo (`COIN_TYPES`); os demais números da ficha são os mesmos de antes (INVENTARIO N16–N19).
  */
 
 import Image from 'next/image'
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+
+import { COIN_TYPES } from '@/domain/constants'
+
+const BANDEIRA = COIN_TYPES.find((c) => c.key === 'Entrega da Bandeira Olímpica')
 
 export function CoinSpecimenViewer(): ReactNode {
-  const [face, setFace] = useState<'reverso' | 'anverso'>('reverso')
-
   return (
-    <section className="landing-specimen-section reveal" aria-labelledby="specimen-title">
-      <div className="landing-section-heading">
-        <p className="landing-eyebrow">Inspeção Numismática</p>
-        <h2 id="specimen-title">Exame Técnico do Espécime em Custódia</h2>
-        <p className="landing-lead">
-          Cada moeda que entra em nosso acervo passa por rigorosa perícia física, pesagem analítica
-          de precisão e catalogação técnica antes de ser lacrada em cofre bancário.
+    <div className="pub-specimen">
+      <figure className="pub-specimen-foto">
+        <div className="pub-specimen-halo" aria-hidden="true" />
+        <Image
+          src="/moedas/moeda-real-anverso.png"
+          alt="Anverso da moeda comemorativa de R$ 1, com o valor de face e o grafismo marajoara"
+          width={280}
+          height={280}
+          sizes="(max-width: 640px) 220px, 280px"
+        />
+        <figcaption>Anverso · valor de face</figcaption>
+      </figure>
+
+      <div className="pub-specimen-ficha">
+        <p className="pub-tag">Ficha da perícia</p>
+        <h3>Entrega da Bandeira Olímpica · Londres 2012 → Rio 2016</h3>
+        <p className="pub-specimen-sub">Série comemorativa dos Jogos Olímpicos · Emissão do Banco Central do Brasil</p>
+
+        <dl className="pub-specimen-grade">
+          <div>
+            <dt>Diâmetro</dt>
+            <dd>27,00 mm</dd>
+          </div>
+          <div>
+            <dt>Peso</dt>
+            <dd>7,00 g (± 0,01 g)</dd>
+          </div>
+          <div>
+            <dt>Espessura</dt>
+            <dd>1,95 mm</dd>
+          </div>
+          <div>
+            <dt>Bordo</dt>
+            <dd>Serrilhado intermitente</dd>
+          </div>
+          <div className="pub-specimen-larga">
+            <dt>Composição</dt>
+            <dd>Núcleo em aço inox / Anel em aço revestido de bronze</dd>
+          </div>
+          <div>
+            <dt>Tiragem</dt>
+            <dd>{BANDEIRA?.tiragem ?? '—'} unidades</dd>
+          </div>
+          <div>
+            <dt>Conservação</dt>
+            <dd className="pub-ouro">Flor de Cunho / Soberba</dd>
+          </div>
+        </dl>
+
+        <p className="pub-specimen-cofre">
+          <strong>Guarda física: cofre Sicoob.</strong> Cada moeda fica em cápsula fechada, com selo da perícia.
         </p>
       </div>
-
-      <div className="landing-specimen-card">
-        {/* Lado Esquerdo: Visualização da Moeda */}
-        <div className="landing-specimen-visual">
-          <div className="landing-specimen-toggles" role="group" aria-label="Alternar face da moeda">
-            <button
-              type="button"
-              onClick={() => setFace('reverso')}
-              className={`landing-specimen-btn ${face === 'reverso' ? 'active' : ''}`}
-            >
-              Reverso (Motivo Olímpico)
-            </button>
-            <button
-              type="button"
-              onClick={() => setFace('anverso')}
-              className={`landing-specimen-btn ${face === 'anverso' ? 'active' : ''}`}
-            >
-              Anverso (Face de Valor)
-            </button>
-          </div>
-
-          <div className="landing-specimen-coin-frame">
-            <div className="landing-specimen-halo" aria-hidden="true" />
-            <div className={`landing-specimen-coin-stage ${face === 'anverso' ? 'face-anverso' : 'face-reverso'}`}>
-              {/* Foto real da peça */}
-              <Image
-                src={face === 'reverso' ? '/moedas/moeda-entrega-da-bandeira-2012.png' : '/moedas/moeda-real-anverso.png'}
-                alt={
-                  face === 'reverso'
-                    ? 'Reverso da moeda comemorativa da Entrega da Bandeira Olímpica 2012'
-                    : 'Anverso da moeda comemorativa com valor facial de R$ 1 e grafismo marajoara'
-                }
-                width={260}
-                height={260}
-                className="landing-specimen-img"
-              />
-            </div>
-            <div className="landing-specimen-badge">
-              <span className="specimen-dot" />
-              <span>{face === 'reverso' ? 'Reverso · Passagem da Bandeira' : 'Anverso · Efígie & Valor de Face'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Lado Direito: Ficha Pericial */}
-        <div className="landing-specimen-sheet">
-          <div className="landing-specimen-header">
-            <span className="landing-specimen-tag">Certificação Numismática</span>
-            <h3>Entrega da Bandeira Olímpica · Londres 2012 &rarr; Rio 2016</h3>
-            <p className="landing-specimen-sub">
-              Série Comemorativa dos Jogos Olímpicos · Emissão Oficial do Banco Central do Brasil
-            </p>
-          </div>
-
-          <div className="landing-specimen-grid">
-            <div className="landing-specimen-item">
-              <span className="spec-label">Diâmetro Nominal</span>
-              <strong className="spec-val">27,00 mm</strong>
-            </div>
-            <div className="landing-specimen-item">
-              <span className="spec-label">Peso Homologado</span>
-              <strong className="spec-val">7,00 g (± 0,01 g)</strong>
-            </div>
-            <div className="landing-specimen-item">
-              <span className="spec-label">Espessura</span>
-              <strong className="spec-val">1,95 mm</strong>
-            </div>
-            <div className="landing-specimen-item">
-              <span className="spec-label">Bordo</span>
-              <strong className="spec-val">Serrilhado intermitente</strong>
-            </div>
-            <div className="landing-specimen-item spec-wide">
-              <span className="spec-label">Composição Metalográfica</span>
-              <strong className="spec-val">Núcleo em aço inox / Anel em aço revestido de bronze</strong>
-            </div>
-            <div className="landing-specimen-item">
-              <span className="spec-label">Tiragem Total</span>
-              <strong className="spec-val">2.016.000 unidades</strong>
-            </div>
-            <div className="landing-specimen-item">
-              <span className="spec-label">Estado de Conservação</span>
-              <strong className="spec-val highlight-gold">Flor de Cunho / Soberba</strong>
-            </div>
-          </div>
-
-          <div className="landing-specimen-vault-status">
-            <div className="vault-status-icon" aria-hidden="true">🔒</div>
-            <div className="vault-status-text">
-              <strong>Guarda Física Auditada: Cofre Sicoob</strong>
-              <span>Armazenada em cápsula numismática hermética com selo de inviolabilidade pericial.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    </div>
   )
 }

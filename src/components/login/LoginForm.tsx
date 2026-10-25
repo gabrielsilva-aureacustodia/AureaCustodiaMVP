@@ -8,14 +8,14 @@
  * à Server Action. Nenhum cliente ou segredo do Supabase cruza esta fronteira.
  */
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { login, loginWithGoogle } from '@/server/actions/auth'
+
+import { AuthShell } from './AuthShell'
 
 const PW_REVEAL_MS = 3000
 const ERRO_GENERICO = 'Não foi possível entrar. Tente novamente.'
@@ -102,12 +102,8 @@ export function LoginForm({
   }
 
   return (
-    <main className="login-wrap auth-page">
+    <AuthShell titulo="Acesse sua conta e acompanhe sua coleção.">
       <section className="login-card" aria-labelledby="login-title">
-        <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={130} height={120} priority />
-        </Link>
-
         <h1 className="login-title" id="login-title">
           Acessar plataforma
         </h1>
@@ -178,6 +174,6 @@ export function LoginForm({
           <Link href="/cadastrar">Criar conta</Link>
         </p>
       </section>
-    </main>
+    </AuthShell>
   )
 }

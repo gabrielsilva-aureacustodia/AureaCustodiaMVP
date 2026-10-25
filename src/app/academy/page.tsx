@@ -3,6 +3,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { LegalDocument } from '@/components/legal/LegalDocument'
+import { brl } from '@/domain/money'
+import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 
 export const metadata: Metadata = {
   title: 'Academy | Real Olímpico',
@@ -13,7 +15,12 @@ export const metadata: Metadata = {
 const VERSION = '1.0-2026-09-10'
 const UPDATED_AT = '10 de setembro de 2026'
 
-export default function AcademyPage(): ReactNode {
+// O valor da custódia citado no passo 3 é o VIGENTE (o mesmo de /taxas), não um "R$ 2,00" digitado que
+// ficaria para trás quando a equipe mudasse a taxa no painel. Dinâmica para não congelar no build.
+export const dynamic = 'force-dynamic'
+
+export default async function AcademyPage(): Promise<ReactNode> {
+  const taxas = await carregarTabelaDeTaxas()
   return (
     <LegalDocument
       title="Real Olímpico Academy"
@@ -158,7 +165,7 @@ export default function AcademyPage(): ReactNode {
           </li>
           <li>
             <strong>3. Manutenção ou negociação:</strong> O titular pode manter a moeda sob guarda
-            (mediante custódia mensal de R$ 2,00 por moeda por mês) ou ofertá-la para venda no marketplace.
+            (mediante custódia mensal de {brl(taxas.custodiaMensalPorMoeda)} por moeda por mês) ou ofertá-la para venda no marketplace.
             Caso outro colecionador compre o item, o valor é creditado na conta do vendedor e a posse
             do recibo é transferida no mesmo instante ao comprador.
           </li>

@@ -1,8 +1,16 @@
-import Image from 'next/image'
-import Link from 'next/link'
+/**
+ * Casco das páginas de documento (Termos, Privacidade, Taxas, SAC, Academy).
+ *
+ * Desde a Frente 3 (25/10/2026) usa o mesmo cabeçalho e rodapé da landing (`PublicHeader`/`PublicFooter`):
+ * antes cada superfície tinha o seu, e quem ia da landing para /taxas parecia ter trocado de site.
+ * Só a apresentação mudou — título, versão, hash, botão de imprimir e o texto (`children`) são os mesmos.
+ */
+
 import type { ReactNode } from 'react'
 
-import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
+import { PublicFooter } from '@/components/landing/PublicFooter'
+import { PublicHeader } from '@/components/landing/PublicHeader'
+
 import { PrintButton } from './PrintButton'
 
 interface LegalDocumentProps {
@@ -27,47 +35,35 @@ export function LegalDocument({
   noticeDescription,
 }: LegalDocumentProps): ReactNode {
   return (
-    <main className="legal-page">
-      <div className="landing-header-wrap">
-        <header className="legal-header">
-          <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
-            <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={54} height={54} priority />
-            <span>
-              <strong>Real Olímpico</strong>
-              <small>Custódia de moedas comemorativas</small>
-            </span>
-          </Link>
-          <nav aria-label="Documentos e acesso">
-            <Link href="/termos">Termos</Link>
-            <Link href="/privacidade">Privacidade</Link>
-            <Link href="/taxas">Taxas</Link>
-            <Link href="/suporte">SAC</Link>
-            <Link className="btn btn-outline" href="/entrar">
-              Entrar
-            </Link>
-          </nav>
-        </header>
+    <main className="pub-page legal-page">
+      <a href="#documento" className="skip-link">
+        Pular para o documento
+      </a>
+      <PublicHeader variante="documento" />
+
+      {/* Faixa de título no mesmo sistema da landing; o texto do documento vem intacto em `children`. */}
+      <div className="legal-capa">
+        <div className="legal-capa-inner">
+          <p className="pub-eyebrow">{eyebrow}</p>
+          <h1>{title}</h1>
+          <p className="legal-meta">
+            Versão: <strong>{version}</strong> · Vigente desde {updatedAt}
+          </p>
+          <div className="legal-actions-bar">
+            {hash ? (
+              <div className="legal-hash-pill" title={`Hash SHA-256 canônico integral: ${hash}`}>
+                <strong>SHA-256:</strong>
+                <span className="legal-hash-code">{hash.slice(0, 16)}…{hash.slice(-8)}</span>
+              </div>
+            ) : (
+              <span />
+            )}
+            <PrintButton />
+          </div>
+        </div>
       </div>
 
-      <article className="legal-document">
-        <p className="landing-eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="legal-meta">
-          Versão: <strong>{version}</strong> · Vigente desde {updatedAt}
-        </p>
-
-        <div className="legal-actions-bar">
-          {hash ? (
-            <div className="legal-hash-pill" title={`Hash SHA-256 canônico integral: ${hash}`}>
-              <strong>SHA-256:</strong>
-              <span className="legal-hash-code">{hash.slice(0, 16)}…{hash.slice(-8)}</span>
-            </div>
-          ) : (
-            <span />
-          )}
-          <PrintButton />
-        </div>
-
+      <article id="documento" tabIndex={-1} className="legal-document">
         {noticeTitle && (
           <aside className="legal-draft-warning" role="note">
             <strong>{noticeTitle}</strong>
@@ -78,17 +74,7 @@ export function LegalDocument({
         <div className="legal-content">{children}</div>
       </article>
 
-      <footer className="legal-footer">
-        <p>AUREA CUSTODIA LTDA · CNPJ 68.071.452/0001-06</p>
-        <div className="legal-footer-nav">
-          <Link href="/academy">Academy</Link>
-          <Link href="/termos">Termos</Link>
-          <Link href="/privacidade">Privacidade</Link>
-          <Link href="/taxas">Taxas</Link>
-          <Link href="/suporte">SAC</Link>
-          <Link href="/">Página inicial</Link>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   )
 }

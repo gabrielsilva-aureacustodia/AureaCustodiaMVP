@@ -11,14 +11,24 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { LandingPage } from '@/components/landing/LandingPage'
+import { VISUAL_OG } from '@/components/landing/visuais'
 import { carregarDestaquesDaLanding } from '@/server/mercado/destaques'
+import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 
 export const metadata: Metadata = {
-  title: 'Real Olímpico | Custódia de moedas comemorativas',
+  title: 'Real Olímpico | Guarda e marketplace de itens de coleção',
   description:
-    'Custódia física, recibo digital e marketplace para moedas comemorativas brasileiras.',
+    'Proteja seus itens de coleção em cofre, receba um recibo no seu nome e venda quando quiser no marketplace, sem mandar nada pelo correio. Começamos pelas moedas comemorativas.',
+  // Card de compartilhamento da Frente 2 (sem anéis olímpicos). Na Vercel, o Next completa o endereço absoluto.
+  openGraph: {
+    title: 'Real Olímpico — sua coleção protegida no cofre e pronta para virar dinheiro',
+    description: 'Guarda e marketplace de itens de coleção. Começamos pelas moedas comemorativas.',
+    images: [{ url: VISUAL_OG.url, width: VISUAL_OG.largura, height: VISUAL_OG.altura, alt: 'Real Olímpico' }],
+    locale: 'pt_BR',
+    type: 'website',
+  },
 }
 
 export default async function HomePage(): Promise<ReactNode> {
@@ -29,6 +39,8 @@ export default async function HomePage(): Promise<ReactNode> {
   }
 
   // Só agregados do livro de ordens (maior oferta de compra e média por tipo): a vitrine não expõe ofertas nem pessoas.
-  const destaques = await carregarDestaquesDaLanding()
-  return <LandingPage destaques={destaques} />
+  // As taxas são as VIGENTES (as mesmas de /taxas), nunca digitadas na landing. As duas leituras não dependem uma
+  // da outra, então vão em paralelo (doc 35 §2 do aprendizado_frontend); só a sessão, que decide o redirect, vem antes.
+  const [destaques, taxas] = await Promise.all([carregarDestaquesDaLanding(), carregarTabelaDeTaxas()])
+  return <LandingPage destaques={destaques} taxas={taxas} />
 }

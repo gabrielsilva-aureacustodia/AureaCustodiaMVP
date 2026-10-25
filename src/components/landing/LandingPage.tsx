@@ -1,446 +1,587 @@
 /**
- * Landing institucional pública do Real Olímpico.
+ * Landing pública do Real Olímpico — Frente 3 do polimento (25/10/2026).
  *
- * Apresentação de custódia física de moedas comemorativas e marketplace de colecionadores.
- * Redesign fundamentado nos guias de aprendizado_frontend:
- * - Layout intrínseco e responsivo sem dependência de breakpoints artificiais (Guias 04 e 05)
- * - Tipografia fluida com clamp() e text-wrap: balance/pretty (Guia 03)
- * - Hero em camadas com fotos reais das moedas e aura numismática (Guia 11)
- * - Progressive enhancement para reveal de seções via IntersectionObserver (Guia 07)
- * - Conformidade rigorosa com marca masculina e ausência de terminologia proibida (CLAUDE.md)
+ * A ordem dos blocos responde, nesta sequência, às perguntas de quem nunca ouviu falar do serviço
+ * (benchmark em docs/polimento/landing/BENCHMARK.md):
+ *   1. O que é?               herói (cofre + moeda + recibo) + faixa "é / não é" (posicionamento no topo)
+ *   1b. Por que guardar?      reserva de valor: proteger, valorizar, ganhar dinheiro (conceito da marca, não só moeda)
+ *   2. Isso existe de verdade? faixa "Mercado agora" + vitrine com os números reais do livro (Heritage, StockX)
+ *   3. Como funciona?         quatro passos, do correio ao recibo (Stripe, Mercury: passos numerados)
+ *   4. Posso confiar?         perícia + cofre + comparação com a gaveta de casa (PCGS, Royal Mint)
+ *   5. Quanto custa?          taxas da tabela VIGENTE + simulador (Robinhood, Public: preço à vista)
+ *   6. Quem está por trás?    a história do Rogério (museus: contexto antes de preço)
+ *   7. Dúvidas                perguntas em <details>, sem JavaScript
+ *   8. Chamada final + rodapé com razão social e CNPJ
+ *
+ * Nenhum número é digitado aqui: taxas vêm da tabela vigente (`carregarTabelaDeTaxas`, via page.tsx), preços
+ * do livro de ofertas (`carregarDestaquesDaLanding`) e a tiragem do catálogo (`COIN_TYPES`). O inventário do
+ * que não pode mudar está em docs/polimento/landing/INVENTARIO.md.
+ *
+ * Sem 'use client'. O que hidrata no navegador são as peças de `movimento/` (cada uma pequena, cada uma com
+ * "reduzir movimento" tratado), o simulador e o reveal de rolagem. Mapa do movimento: herói (revelação do
+ * título, inclinação em camadas, carimbo, brilho), faixa de conceito (marquee com pausa), holofote nos pilares,
+ * demonstração do marketplace (laço só na tela), jornada presa em "Como funciona", contagem nos preços.
  */
 
 import Image from 'next/image'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Fragment, type CSSProperties, type ReactNode } from 'react'
 
-import { MoedaRealista } from '@/components/ui/MoedaRealista'
-import { LOGO_REAL_EMBLEMA } from '@/domain/constants'
-import {
-  VaultIcon,
-  ReceiptIcon,
-  MarketTradeIcon,
-  ValueReserveIcon,
-  CollectorBoxIcon,
-  ShieldVaultIcon,
-  ArmoredCarIcon,
-  BankVaultIcon,
-  UntouchedSealIcon,
-  ChevronDownIcon,
-} from './LandingIcons'
-import { ScrollRevealInit } from './ScrollRevealInit'
-import { CoinSpecimenViewer } from './CoinSpecimenViewer'
-import { FeeSimulator } from './FeeSimulator'
-import { DestaqueDoCard } from './DestaqueDoCard'
+import { COIN_TYPES } from '@/domain/constants'
 import type { DestaqueDeMercado } from '@/domain/destaques-de-mercado'
+import type { TabelaDeTaxas } from '@/domain/fees'
+import { brl } from '@/domain/money'
+
+import { CoinSpecimenViewer } from './CoinSpecimenViewer'
+import { DemoNegociacao } from './DemoNegociacao'
+import { DestaqueDoCard } from './DestaqueDoCard'
+import { FeeSimulator } from './FeeSimulator'
+import { MercadoAgora } from './MercadoAgora'
+import { PictureResponsiva } from './PictureResponsiva'
+import { ReciboIlustrado } from './ReciboIlustrado'
+import {
+  ArmoredCarIcon,
+  ValueReserveIcon,
+  BankVaultIcon,
+  ChevronDownIcon,
+  MarketTradeIcon,
+  ReceiptIcon,
+  ShieldVaultIcon,
+  UntouchedSealIcon,
+} from './LandingIcons'
+import { FaixaDeConceito } from './movimento/FaixaDeConceito'
+import { Holofote } from './movimento/Holofote'
+import { InclinacaoNoPonteiro } from './movimento/InclinacaoNoPonteiro'
+import { JornadaPresa } from './movimento/JornadaPresa'
+import { PublicFooter } from './PublicFooter'
+import { PublicHeader } from './PublicHeader'
+import { ScrollRevealInit } from './ScrollRevealInit'
+import { comissaoDoLado, comissaoSimetrica } from './textoDasTaxas'
+import { VideoDeFundo } from './movimento/VideoDeFundo'
+import {
+  CENAS_DA_JORNADA,
+  FRENTE_2_MESCLADA,
+  SPOTS_DA_RESERVA,
+  TEXTURA_GUILLOCHE,
+  VIDEO_COFRE,
+  VISUAL_COFRE,
+  VISUAL_COFRE_RETRATO,
+  VISUAL_GAVETAS,
+  VISUAL_SERRILHA,
+} from './visuais'
 
 const TIPO_BANDEIRA = 'Entrega da Bandeira Olímpica'
 const TIPO_DH = 'Direitos Humanos'
 
-const etapas = [
+function tiragem(tipo: string): string {
+  return COIN_TYPES.find((c) => c.key === tipo)?.tiragem ?? '—'
+}
+
+const PASSOS = [
+  { titulo: 'Envie seu item', texto: 'Você paga o frete no site e imprime a etiqueta. A postagem é pelos Correios.' },
   {
-    number: '01',
-    title: 'Custódia Segura',
-    text: 'O item é recebido, avaliado e mantido em acervo custodiado, em cofre especializado.',
-    Icon: VaultIcon,
+    titulo: 'A perícia confere',
+    texto: 'A equipe pesa, mede e confere cada detalhe. Aprovado, o item é lacrado e vai para o cofre.',
   },
+  { titulo: 'Você recebe o recibo', texto: 'O recibo mostra que o item é seu e está guardado. Ele fica na sua conta.' },
   {
-    number: '02',
-    title: 'Recibo lastreado',
-    text: 'Cada item aprovado recebe um comprovante digital ligado ao registro de custódia.',
-    Icon: ReceiptIcon,
-  },
-  {
-    number: '03',
-    title: 'Marketplace',
-    text: 'Colecionadores negociam itens elegíveis dentro da plataforma, ganhando dinheiro sobre a valorização e negociação.',
-    Icon: MarketTradeIcon,
+    titulo: 'Venda, guarde ou retire',
+    texto:
+      'Venda quando quiser: quem compra fica com o recibo e o item não sai do cofre. Ou guarde, ou peça de volta.',
   },
 ] as const
 
-const faqs = [
+const CONCEITOS = [
+  'Proteja sua coleção',
+  'Recibo no seu nome',
+  'Venda quando quiser',
+  'Sem frete a cada venda',
+  'Potencial de valorização',
+  'Cofre de padrão bancário',
+  'Dinheiro no seu saldo',
+  'Feito por colecionadores',
+] as const
+
+/** O título do herói em palavras, cada uma com seu atraso: a revelação por desfoque do tópico 14. */
+function palavras(texto: string, inicio: number): ReactNode[] {
+  // O espaço fica FORA da palavra: dentro de um inline-block ele seria engolido e as palavras se colariam.
+  return texto.split(' ').map((p, i) => (
+    <Fragment key={`${p}-${i}`}>
+      <span className="pub-palavra" style={{ '--i': inicio + i } as CSSProperties}>
+        {p}
+      </span>{' '}
+    </Fragment>
+  ))
+}
+
+const COMPARACAO = [
   {
-    question: 'Como é comprovada a autenticidade e o estado de conservação da moeda?',
-    answer:
-      'Cada item é submetido a uma rigorosa inspeção pericial numismática: pesagem analítica de precisão, conferência de diâmetro e espessura, testes não destrutivos de magnetismo e validação minuciosa dos detalhes do cunho. O laudo pericial vincula o item aprovado a um comprovante digital exclusivo antes de seu lacre e guarda no acervo.',
+    criterio: 'Segurança',
+    casa: 'Exposta a furto, assalto e acidente',
+    cofre: 'Cofre de padrão bancário (Sicoob)',
   },
   {
-    question: 'Posso retirar minhas moedas físicas do cofre quando quiser?',
-    answer:
-      'Sim. O proprietário legítimo detém a posse jurídica integral e pode solicitar o resgate físico de seus itens custodiados a qualquer momento, conforme o procedimento seguro de deslacração e entrega estabelecido nos Termos de Uso.',
+    criterio: 'Conservação',
+    casa: 'Oxidação, maresia e desgaste ao manusear',
+    cofre: 'Ambiente controlado e lacre da perícia',
   },
   {
-    question: 'Quais são as taxas exatas de negociação e de custódia?',
-    answer:
-      'Transparência absoluta: a custódia especializada custa R$ 2,00 por moeda ao mês, sem prazo mínimo e sem plano anual. Em negociações dentro do marketplace, a comissão é de 0,5% + R$ 1,00 por moeda de cada lado da operação, sem nenhuma cobrança oculta.',
+    criterio: 'Venda',
+    casa: 'Demora e frete entre estados a cada venda',
+    cofre: 'Venda no marketplace, sem frete a cada negociação',
   },
   {
-    question: 'O que é o recibo lastreado e como ele garante a negociação segura?',
-    answer:
-      'O recibo digital emitido pelo Real Olímpico é o título oficial e auditável comprobatório de que o item físico correspondente está sob guarda fiduciária em cofre. Ele permite que os colecionadores comprem e vendam a posse das moedas com liquidez imediata, eliminando custos de fretes blindados e riscos de extravio a cada negociação.',
+    criterio: 'Comprovação',
+    casa: 'Nenhum registro formal',
+    cofre: 'Recibo digital ligado ao laudo da perícia',
   },
 ] as const
 
-export function LandingPage({ destaques = {} }: { destaques?: Record<string, DestaqueDeMercado> }): ReactNode {
+const PILARES = [
+  {
+    titulo: 'Proteja',
+    texto: 'No cofre, seu item fica longe de furto, umidade e desgaste. Nada de guardar na gaveta.',
+    Icone: ShieldVaultIcon,
+    spot: SPOTS_DA_RESERVA.proteja,
+  },
+  {
+    titulo: 'Valorize',
+    texto:
+      'Itens raros e bem conservados costumam ser disputados por colecionadores. Com o tempo, o seu pode ter potencial de valorização.',
+    Icone: ValueReserveIcon,
+    spot: SPOTS_DA_RESERVA.valorize,
+  },
+  {
+    titulo: 'Ganhe dinheiro quando quiser',
+    texto:
+      'Coloque o item à venda no marketplace. Quando alguém compra, o dinheiro cai no seu saldo e você pode sacar para o banco.',
+    Icone: MarketTradeIcon,
+    spot: SPOTS_DA_RESERVA.ganhe,
+  },
+] as const
+
+interface LandingPageProps {
+  destaques?: Record<string, DestaqueDeMercado>
+  taxas: TabelaDeTaxas
+}
+
+export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactNode {
+  const comissao = comissaoSimetrica(taxas)
+    ? `${comissaoDoLado(taxas, 'vendedor')} por moeda, de cada lado`
+    : `${comissaoDoLado(taxas, 'comprador')} de quem compra e ${comissaoDoLado(taxas, 'vendedor')} de quem vende, por moeda`
+  const guarda = brl(taxas.custodiaMensalPorMoeda)
+
+  const duvidas = [
+    {
+      pergunta: 'Como vocês sabem que a moeda é verdadeira?',
+      resposta:
+        'Toda moeda passa por perícia antes de entrar no cofre. A equipe pesa numa balança de precisão, mede o diâmetro e a espessura, faz testes que não danificam a peça e confere os detalhes do cunho. O laudo fica ligado ao recibo antes de a moeda ser lacrada.',
+    },
+    {
+      pergunta: 'Posso tirar minha moeda do cofre?',
+      resposta:
+        'Sim, quando quiser. A moeda é de quem tem o recibo. Você pede a retirada pela plataforma e recebe em casa, como dizem os Termos de Uso.',
+    },
+    {
+      pergunta: 'Quanto custa?',
+      resposta: `A guarda custa ${guarda} por moeda, por mês, sem prazo mínimo. Numa venda, a comissão é de ${comissao}. Quem compra também paga o primeiro mês de guarda junto com a compra. Não há cobrança escondida: tudo está na Tabela de taxas.`,
+    },
+    {
+      pergunta: 'O que é o recibo?',
+      resposta:
+        'É o comprovante digital de que a sua moeda está guardada no cofre. Quando você vende, o recibo passa para quem comprou, e a moeda continua no cofre. Assim ninguém paga frete nem corre risco de extravio a cada venda.',
+    },
+    {
+      pergunta: 'Posso ganhar dinheiro com meus itens de coleção?',
+      resposta:
+        'Sim, vendendo no marketplace pelo preço que você combinar com o comprador. Você também pode guardar e esperar o momento que achar melhor para vender. Mas ninguém garante que o preço vai subir: quem decide o valor são os colecionadores.',
+    },
+    {
+      pergunta: 'Só aceitam moedas?',
+      resposta:
+        'Hoje, sim: começamos pelas moedas comemorativas, e duas delas já se negociam no marketplace. A plataforma foi feita para receber outros itens de coleção com o tempo.',
+    },
+    {
+      pergunta: 'Isso é um investimento?',
+      resposta:
+        'Não. O Real Olímpico é um serviço de guarda com um marketplace. Não é corretora nem instituição financeira. O preço de cada item é combinado entre quem compra e quem vende, e ninguém promete valorização.',
+    },
+  ]
+
   return (
-    <main className="landing-page">
-      <a href="#landing-conteudo" className="skip-link">
+    <main className="pub-page landing-page">
+      <a href="#conteudo" className="skip-link">
         Pular para o conteúdo
       </a>
       <ScrollRevealInit />
+      <PublicHeader variante="landing" />
 
-      <div className="landing-header-wrap">
-        <header className="landing-header">
-          <Link className="landing-brand" href="/" aria-label="Real Olímpico — início">
-            <Image src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" width={54} height={54} priority />
-            <span>
-              <strong>Real Olímpico</strong>
-              <small>Custódia de moedas comemorativas</small>
-            </span>
-          </Link>
-          <nav className="landing-nav" aria-label="Acesso à plataforma">
-            <Link className="btn btn-outline" href="/entrar">
-              Entrar
-            </Link>
-            <Link className="btn landing-primary" href="/cadastrar">
-              Criar conta
-            </Link>
-          </nav>
-        </header>
-      </div>
-
-      {/* BLOCO 1: Hero com fotos reais das moedas em diagonal */}
-      <section id="landing-conteudo" tabIndex={-1} className="landing-hero" aria-labelledby="landing-title">
-        <div className="landing-hero-copy">
-          <p className="landing-eyebrow">Custódia de moedas comemorativas</p>
-          <h1 id="landing-title">Transforme seus itens de colecionador em liquidez</h1>
-          <p className="landing-lead">
-            É possível ganhar dinheiro com moedas de colecionador e itens similares, sem depender do
-            mercado paralelo. Você pode proteger seus itens de qualquer calamidade e ainda ganhar
-            dinheiro com eles, sem nunca colocar nas mãos de estranhos.
-          </p>
-          <div className="landing-actions">
-            <Link className="btn landing-primary" href="/cadastrar">
-              Criar conta
-            </Link>
-            <Link className="btn btn-outline" href="/entrar">
-              Entrar
-            </Link>
+      {/* 1. HERÓI — o cofre ao fundo (Frente 2, ilustrativo), a moeda real e o recibo: moeda → cofre → recibo
+          numa imagem só. Com o cofre, ELE é o LCP (única imagem com priority); sem a Frente 2, a moeda assume. */}
+      <section id="conteudo" tabIndex={-1} className="pub-hero pub-noite" aria-labelledby="hero-titulo">
+        {FRENTE_2_MESCLADA ? (
+          <div className="pub-hero-fundo" aria-hidden="true">
+            <PictureResponsiva visual={VISUAL_COFRE} retrato={VISUAL_COFRE_RETRATO} sizes="100vw" prioridade />
           </div>
-        </div>
-
-        <div className="landing-hero-coins" aria-label="Moedas comemorativas em custódia">
-          <div className="landing-hero-coins-halo" aria-hidden="true" />
-          <div className="landing-hero-coins-track">
-            {/* Moeda 1: Entrega da Bandeira Olímpica 2012 */}
-            <div className="landing-coin-item landing-coin-bandeira">
-              <MoedaRealista
-                src="/moedas/moeda-entrega-da-bandeira-2012.png"
-                alt="Moeda comemorativa de R$ 1 da Entrega da Bandeira Olímpica Londres 2012 – Rio 2016"
-                size={250}
-                priority
-                interativa
-              />
-              <span className="landing-coin-caption">Entrega da Bandeira · 2012</span>
+        ) : null}
+        <div className="pub-hero-inner">
+          <div className="pub-hero-texto">
+            <p className="pub-eyebrow">Guarda e marketplace de itens de coleção</p>
+            <h1 id="hero-titulo" className="pub-titulo-revela">
+              {palavras('Sua coleção protegida no cofre e', 0)}
+              <em>{palavras('pronta para virar dinheiro.', 6)}</em>
+            </h1>
+            <p className="pub-lead">
+              O Real Olímpico guarda seus itens de coleção em cofre e dá a cada um um recibo no seu nome. Com o
+              recibo, você vende quando quiser, para outro colecionador, sem mandar nada pelo correio. Começamos
+              pelas moedas comemorativas.
+            </p>
+            <div className="pub-acoes">
+              <Link className="pub-btn pub-btn-primary pub-btn-lg" href="/cadastrar">
+                Criar conta
+              </Link>
+              <Link className="pub-btn pub-btn-ghost pub-btn-lg" href="#como-funciona">
+                Ver como funciona
+              </Link>
             </div>
+            <ul className="pub-hero-fatos" aria-label="Taxas em vigor">
+              <li>
+                <strong>{guarda}</strong> por moeda ao mês de guarda
+              </li>
+              <li>
+                <strong>{comissaoDoLado(taxas, 'vendedor')}</strong> de comissão por moeda vendida
+              </li>
+              <li>
+                <strong>Sem frete</strong> a cada venda
+              </li>
+            </ul>
+          </div>
 
-            {/* Moeda 2: Direitos Humanos 1998 */}
-            <div className="landing-coin-item landing-coin-dh">
-              <MoedaRealista
+          <InclinacaoNoPonteiro className="pub-hero-visual">
+            <div className="pub-hero-halo" aria-hidden="true" />
+            <figure className="pub-hero-moeda">
+              <span className="pub-hero-brilho" aria-hidden="true" />
+              <Image
                 src="/moedas/moeda-direitos-humanos-1998.png"
-                alt="Moeda comemorativa de R$ 1 do cinquentenário da Declaração Universal dos Direitos Humanos 1998"
-                size={250}
-                priority
-                interativa
+                alt="Moeda comemorativa de R$ 1 do cinquentenário da Declaração Universal dos Direitos Humanos, 1998"
+                width={360}
+                height={360}
+                sizes="(max-width: 640px) 220px, 360px"
+                priority={!FRENTE_2_MESCLADA}
+                loading={FRENTE_2_MESCLADA ? 'eager' : undefined}
               />
-              <span className="landing-coin-caption">Direitos Humanos · 1998</span>
-            </div>
-          </div>
+            </figure>
+            <ReciboIlustrado />
+          </InclinacaoNoPonteiro>
         </div>
+        {FRENTE_2_MESCLADA ? <p className="pub-hero-credito">Imagem ilustrativa</p> : null}
       </section>
 
-      {/* BLOCO 2: Um novo conceito de reserva de valor */}
-      <section className="landing-reserve reveal" aria-labelledby="reserve-title">
-        <div className="landing-reserve-card">
-          <div className="landing-reserve-header">
-            <div className="landing-reserve-badge">
-              <ValueReserveIcon className="landing-badge-icon" />
-              <span>Patrimônio Tangível</span>
-            </div>
-            <h2 id="reserve-title">Um novo conceito de reserva de valor</h2>
-          </div>
-          <p className="landing-reserve-text">
-            Imagine ter uma reserva como ouro ou prata, mas sem precisar investir valores absurdos ou
-            pagar caro na custódia, usando apenas seus itens de colecionador. Imagine ainda, com itens
-            de alto valor que você já tem em casa, crescer seu patrimônio, sem precisar entender de
-            jargões técnicos. Essa é a nossa proposta, através de um marketplace simples e seguro,
-            começando pelas moedas de colecionador, pelas quais temos tanto carinho.
+      <MercadoAgora
+        itens={[
+          { tipo: TIPO_BANDEIRA, rotulo: 'Entrega da Bandeira · 2012', destaque: destaques[TIPO_BANDEIRA] },
+          { tipo: TIPO_DH, rotulo: 'Direitos Humanos · 1998', destaque: destaques[TIPO_DH] },
+        ]}
+      />
+
+      {/* 2. É / NÃO É — o posicionamento que a Academy detalha, logo abaixo da promessa. */}
+      <section className="pub-posicao" aria-label="O que o Real Olímpico é">
+        <ul>
+          <li className="pub-posicao-sim">
+            <ShieldVaultIcon className="pub-icone" />
+            <span>
+              <strong>É serviço de guarda</strong> de itens de coleção em cofre
+            </span>
+          </li>
+          <li className="pub-posicao-sim">
+            <ReceiptIcon className="pub-icone" />
+            <span>
+              <strong>É marketplace de recibos</strong> entre colecionadores
+            </span>
+          </li>
+          <li className="pub-posicao-nao">
+            <span>
+              <strong>Não é</strong> corretora, instituição financeira nem investimento
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <FaixaDeConceito itens={CONCEITOS} />
+
+      {/* 2b. O CONCEITO — reserva de valor com o que a pessoa já tem: proteger, valorizar, ganhar dinheiro.
+          A marca vai além das moedas, então este bloco fala de "item de coleção" e não de uma moeda só.
+          Sem promessa: o fecho diz que o preço é combinado entre colecionadores. */}
+      <section id="reserva" className="pub-secao pub-reserva reveal" aria-labelledby="reserva-titulo">
+        <div className="pub-reserva-abertura">
+        <header className="pub-secao-topo">
+          <p className="pub-eyebrow">Reserva de valor</p>
+          <h2 id="reserva-titulo">Um novo jeito de ter uma reserva de valor</h2>
+          <p className="pub-secao-intro">
+            Muita gente guarda ouro ou prata para ter uma reserva. Um item de coleção raro também pode ser uma
+            reserva. E você não precisa começar do zero: talvez já tenha esse item em casa.
           </p>
+        </header>
+        {FRENTE_2_MESCLADA ? (
+          <figure className="pub-reserva-macro pub-revela-rolagem">
+            <PictureResponsiva visual={VISUAL_SERRILHA} sizes="(max-width: 860px) 100vw, 560px" />
+            <figcaption>Imagem ilustrativa</figcaption>
+          </figure>
+        ) : null}
         </div>
-      </section>
-
-      {/* MARKET SNAPSHOT: Moedas de Destaque no Acervo */}
-      <section className="landing-market reveal" aria-labelledby="market-title">
-        <div className="landing-section-heading">
-          <p className="landing-eyebrow">Maior oferta de compra e referências de mercado</p>
-          <h2 id="market-title">Moedas de Destaque no Acervo</h2>
-        </div>
-        <div className="landing-market-grid">
-          <article className="landing-market-card">
-            <div className="landing-market-card-header">
-              <span className="landing-market-badge">100% Custodiado</span>
-              <span className="landing-market-code">BR-2012-BANDEIRA</span>
-            </div>
-            <div className="landing-market-card-body">
-              <h3>Entrega da Bandeira · 2012</h3>
-              <p className="landing-market-spec">
-                Moeda comemorativa de R$ 1 · Bimetálica · Londres 2012 &rarr; Rio 2016
-              </p>
-              <DestaqueDoCard destaque={destaques[TIPO_BANDEIRA]} demanda="Alta liquidez" />
-            </div>
-            <div className="landing-market-card-footer">
-              <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>
-              <Link className="landing-market-cta" href="/cadastrar">
-                Negociar &rarr;
-              </Link>
-            </div>
-          </article>
-
-          <article className="landing-market-card">
-            <div className="landing-market-card-header">
-              <span className="landing-market-badge">100% Custodiado</span>
-              <span className="landing-market-code">BR-1998-DH</span>
-            </div>
-            <div className="landing-market-card-body">
-              <h3>Direitos Humanos · 1998</h3>
-              <p className="landing-market-spec">
-                Moeda comemorativa de R$ 1 · Cuproníquel · Tiragem histórica de 600 mil
-              </p>
-              <DestaqueDoCard destaque={destaques[TIPO_DH]} demanda="Raridade chave" />
-            </div>
-            <div className="landing-market-card-footer">
-              <span className="landing-market-vault-info">Guarda física: Cofre Sicoob</span>
-              <Link className="landing-market-cta" href="/cadastrar">
-                Negociar &rarr;
-              </Link>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      {/* EXAME TÉCNICO DE ESPÉCIME (Benchmark PCGS / Heritage) */}
-      <CoinSpecimenViewer />
-
-      {/* BLOCO 3: Sua coleção protegida, registrada e pronta para negociar */}
-      <section className="landing-process reveal" aria-labelledby="process-title">
-        <div className="landing-section-heading">
-          <p className="landing-eyebrow">Como funciona</p>
-          <h2 id="process-title">Sua coleção protegida, registrada e pronta para negociar.</h2>
-        </div>
-        <div className="landing-steps">
-          {etapas.map((step, index) => {
-            const Icon = step.Icon
+        <Holofote>
+        <ul className="pub-reserva-pilares">
+          {PILARES.map((p, i) => {
+            const Icone = p.Icone
             return (
-              <article
-                className="landing-step reveal"
-                key={step.number}
-                style={{ '--i': index } as React.CSSProperties}
-              >
-                <div className="landing-step-top">
-                  <span className="landing-step-num">{step.number}</span>
-                  <div className="landing-step-icon-wrap" aria-hidden="true">
-                    <Icon className="landing-step-icon" />
-                  </div>
-                </div>
-                <h3>{step.title}</h3>
-                <p>{step.text}</p>
-              </article>
+              <li key={p.titulo} className="reveal" data-holofote="" style={{ '--i': i } as CSSProperties}>
+                <span className="pub-reserva-icone" aria-hidden="true">
+                  {FRENTE_2_MESCLADA ? (
+                    <span className="pub-mascara" style={{ '--src': `url(${p.spot})` } as CSSProperties} />
+                  ) : (
+                    <Icone className="pub-icone" />
+                  )}
+                </span>
+                <h3>{p.titulo}</h3>
+                <p>{p.texto}</p>
+              </li>
             )
           })}
-        </div>
+        </ul>
+        </Holofote>
+        <p className="pub-reserva-aviso">
+          Não prometemos valorização. O preço é sempre combinado entre quem compra e quem vende.
+        </p>
       </section>
 
-      {/* BLOCO 4: De colecionador para colecionador */}
-      <section className="landing-origin reveal" aria-labelledby="origin-title">
-        <div className="landing-section-heading">
-          <p className="landing-eyebrow">Nossa história</p>
-          <h2 id="origin-title">De colecionador para colecionador</h2>
-        </div>
-        <div className="landing-origin-cards">
-          <article className="landing-origin-card reveal" style={{ '--i': 0 } as React.CSSProperties}>
-            <div className="landing-origin-card-top">
-              <div className="landing-origin-icon-wrap" aria-hidden="true">
-                <CollectorBoxIcon className="landing-origin-icon" />
-              </div>
-              <span className="landing-origin-tag">O desafio cotidiano</span>
-            </div>
-            <p>
-              O Real Olímpico nasceu da experiência direta de quem vivencia o colecionismo. Rogério
-              Siqueira, um dos fundadores da empresa, começou a reunir sua coleção particular da série
-              de moedas comemorativas Real Olímpico e logo se deparou com desafios que todo colecionador
-              conhece: a preocupação com a guarda segura em domicílio e o alto custo e o atrito dos
-              fretes com declaração de valor a cada negociação entre estados.
-            </p>
-          </article>
-
-          <article className="landing-origin-card reveal" style={{ '--i': 1 } as React.CSSProperties}>
-            <div className="landing-origin-card-top">
-              <div className="landing-origin-icon-wrap" aria-hidden="true">
-                <ShieldVaultIcon className="landing-origin-icon" />
-              </div>
-              <span className="landing-origin-tag">A solução estruturada</span>
-            </div>
-            <p>
-              A solução foi estruturar um serviço de custódia profissional: guarda física em cofre
-              especializado, comprovação digital por meio de recibos de custódia auditáveis e um
-              marketplace onde a posse das moedas pode ser negociada instantaneamente entre
-              colecionadores, sem a necessidade de despachar o item físico a cada transação comercial.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      {/* BLOCO 5: Acervo físico em cofre especializado */}
-      <section className="landing-assurance reveal" aria-labelledby="assurance-title">
-        <div className="landing-assurance-content">
-          <div className="landing-assurance-header">
-            <p className="landing-eyebrow">Cuidado em cada etapa</p>
-            <h2 id="assurance-title">Acervo físico em cofre especializado</h2>
-          </div>
-          <p className="landing-assurance-lead">
-            Nós asseguramos a sua moeda com os mesmos cofres, carros fortes e mecanismos de segurança
-            que bancos como o Sicoob utilizam. Seus itens não serão tocados, após a avaliação, nem
-            mesmo por nós.
+      {/* 3. MERCADO — os números reais primeiro: maior oferta de compra, média e referência externa. */}
+      <section id="mercado" className="pub-secao reveal" aria-labelledby="mercado-titulo">
+        <header className="pub-secao-topo">
+          <p className="pub-eyebrow">Marketplace</p>
+          <h2 id="mercado-titulo">Um marketplace feito para colecionadores</h2>
+          <p className="pub-secao-intro">
+            Quem quer comprar faz uma oferta. Quem quer vender anuncia o preço. Quando os dois combinam, o recibo muda
+            de dono na hora, e o item continua no cofre. Começamos pelas moedas comemorativas: estas duas já se
+            negociam aqui. Os preços abaixo vêm das ofertas reais da plataforma.
           </p>
+        </header>
 
-          <div className="landing-assurance-pillars">
-            <div className="landing-assurance-pillar">
-              <div className="landing-assurance-icon-wrap" aria-hidden="true">
-                <BankVaultIcon className="landing-assurance-icon" />
-              </div>
-              <div>
-                <strong>Cofres especializados</strong>
-                <span>Padrão de segurança bancária e controle rigoroso de acesso</span>
-              </div>
-            </div>
+        <DemoNegociacao />
 
-            <div className="landing-assurance-pillar">
-              <div className="landing-assurance-icon-wrap" aria-hidden="true">
-                <ArmoredCarIcon className="landing-assurance-icon" />
-              </div>
-              <div>
-                <strong>Carros fortes</strong>
-                <span>Logística e transporte protegidos por operações homologadas</span>
-              </div>
+        <div className="pub-mercado">
+          <article className="pub-cartao-moeda">
+            <div className="pub-cartao-moeda-topo">
+              <span className="pub-selo">100% Custodiado</span>
+              <span className="pub-codigo">BR-2012-BANDEIRA</span>
             </div>
+            <h3>Entrega da Bandeira · 2012</h3>
+            <p className="pub-cartao-moeda-ficha">
+              Moeda comemorativa de R$ 1 · Bimetálica · Londres 2012 → Rio 2016 · Tiragem {tiragem(TIPO_BANDEIRA)}
+            </p>
+            <DestaqueDoCard destaque={destaques[TIPO_BANDEIRA]} demanda="Alta liquidez" />
+            <div className="pub-cartao-moeda-pe">
+              <span>Guarda física: Cofre Sicoob</span>
+              <Link href="/cadastrar" aria-label="Negociar a Entrega da Bandeira 2012 — criar conta">
+                Negociar →
+              </Link>
+            </div>
+          </article>
 
-            <div className="landing-assurance-pillar">
-              <div className="landing-assurance-icon-wrap" aria-hidden="true">
-                <UntouchedSealIcon className="landing-assurance-icon" />
-              </div>
-              <div>
-                <strong>Itens intocados</strong>
-                <span>Lacrados imediatamente após avaliação e laudo pericial</span>
-              </div>
+          <article className="pub-cartao-moeda">
+            <div className="pub-cartao-moeda-topo">
+              <span className="pub-selo">100% Custodiado</span>
+              <span className="pub-codigo">BR-1998-DH</span>
             </div>
+            <h3>Direitos Humanos · 1998</h3>
+            <p className="pub-cartao-moeda-ficha">
+              Moeda comemorativa de R$ 1 · Cuproníquel · Tiragem histórica de {tiragem(TIPO_DH)}
+            </p>
+            <DestaqueDoCard destaque={destaques[TIPO_DH]} demanda="Raridade chave" />
+            <div className="pub-cartao-moeda-pe">
+              <span>Guarda física: Cofre Sicoob</span>
+              <Link href="/cadastrar" aria-label="Negociar a Direitos Humanos 1998 — criar conta">
+                Negociar →
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {/* 4. COMO FUNCIONA — história presa na tela (tópico 09); no celular e com "reduzir movimento", lista. */}
+      <JornadaPresa
+        id="como-funciona"
+        sobretitulo="Como funciona"
+        titulo="Quatro passos, do correio ao cofre"
+        passos={PASSOS.map((p, i) => ({ ...p, foto: FRENTE_2_MESCLADA ? CENAS_DA_JORNADA[i] : undefined }))}
+      />
+
+      {/* 5. CONFIANÇA — perícia, cofre e a comparação com a gaveta de casa. */}
+      <section id="seguranca" className="pub-secao reveal" aria-labelledby="seguranca-titulo">
+        <header className="pub-secao-topo">
+          <p className="pub-eyebrow">Segurança</p>
+          <h2 id="seguranca-titulo">Sua coleção mais segura que na gaveta de casa</h2>
+          <p className="pub-secao-intro">
+            Usamos os mesmos cofres, carros fortes e cuidados que bancos como o Sicoob usam. Depois da perícia,
+            ninguém toca no seu item. Nem nós.
+          </p>
+        </header>
+
+        {FRENTE_2_MESCLADA ? (
+          <figure className="pub-foto-cofre pub-revela-rolagem">
+            <PictureResponsiva visual={VISUAL_GAVETAS} sizes="(max-width: 1192px) 100vw, 1160px" />
+            <figcaption>Imagem ilustrativa</figcaption>
+          </figure>
+        ) : null}
+
+        <ul className="pub-pilares">
+          <li>
+            <BankVaultIcon className="pub-icone" />
+            <strong>Cofres especializados</strong>
+            <span>Padrão de segurança bancária e controle rigoroso de acesso</span>
+          </li>
+          <li>
+            <ArmoredCarIcon className="pub-icone" />
+            <strong>Carros fortes</strong>
+            <span>Transporte protegido por operações homologadas</span>
+          </li>
+          <li>
+            <UntouchedSealIcon className="pub-icone" />
+            <strong>Moeda intocada</strong>
+            <span>Lacrada logo depois da avaliação e do laudo da perícia</span>
+          </li>
+        </ul>
+
+        <CoinSpecimenViewer />
+
+        <div className="pub-tabela-wrap">
+          <table className="pub-tabela">
+            <caption>Onde sua moeda fica mais protegida?</caption>
+            <thead>
+              <tr>
+                <th scope="col">Critério</th>
+                <th scope="col">Guardada em casa</th>
+                <th scope="col">No cofre do Real Olímpico</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARACAO.map((c) => (
+                <tr key={c.criterio}>
+                  <th scope="row">{c.criterio}</th>
+                  <td className="pub-tabela-casa">{c.casa}</td>
+                  <td className="pub-tabela-cofre">{c.cofre}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 6. TAXAS — números da tabela vigente; o documento completo fica em /taxas. */}
+      <section id="taxas" className="pub-secao pub-secao-faixa reveal" aria-labelledby="taxas-titulo">
+        <header className="pub-secao-topo">
+          <p className="pub-eyebrow">Quanto custa</p>
+          <h2 id="taxas-titulo">Sem taxa escondida</h2>
+          <p className="pub-secao-intro">
+            Digite um valor e veja quanto paga quem compra e quanto recebe quem vende.
+          </p>
+        </header>
+
+        <div className="pub-precos">
+          <div className="pub-preco">
+            <span>Guarda no cofre</span>
+            <strong>{guarda}</strong>
+            <small>por moeda, por mês, sem prazo mínimo</small>
           </div>
+          <div className="pub-preco">
+            <span>Comissão de venda</span>
+            <strong>{comissaoDoLado(taxas, 'vendedor')}</strong>
+            <small>por moeda, {comissaoSimetrica(taxas) ? 'de quem compra e de quem vende' : 'de quem vende'}</small>
+          </div>
+          <div className="pub-preco">
+            <span>Saque para o banco</span>
+            <strong>{brl(taxas.taxaSaqueFixa)}</strong>
+            <small>por pedido de saque</small>
+          </div>
+        </div>
 
-          {/* Comparativo factual: Domicílio vs Real Olímpico */}
-          <div className="landing-compare-wrap">
-            <h3 className="landing-compare-title">Comparativo Factual: Onde seu acervo está mais protegido?</h3>
-            <div className="landing-compare-table" role="table" aria-label="Comparativo de segurança de custódia">
-              <div className="landing-compare-row landing-compare-head" role="row">
-                <div className="landing-compare-cell col-feature" role="columnheader">Critério</div>
-                <div className="landing-compare-cell col-risk" role="columnheader">Guardando em Domicílio</div>
-                <div className="landing-compare-cell col-safe" role="columnheader">Custódia no Real Olímpico</div>
-              </div>
-              <div className="landing-compare-row" role="row">
-                <div className="landing-compare-cell col-feature" role="cell">Segurança física</div>
-                <div className="landing-compare-cell col-risk" role="cell">Vulnerável a furtos, assaltos e sinistros</div>
-                <div className="landing-compare-cell col-safe" role="cell">Cofre de segurança de padrão bancário (Sicoob)</div>
-              </div>
-              <div className="landing-compare-row" role="row">
-                <div className="landing-compare-cell col-feature" role="cell">Preservação física</div>
-                <div className="landing-compare-cell col-risk" role="cell">Oxidação, maresia e desgaste por manuseio</div>
-                <div className="landing-compare-cell col-safe" role="cell">Ambiente controlado e lacre pericial inviolável</div>
-              </div>
-              <div className="landing-compare-row" role="row">
-                <div className="landing-compare-cell col-feature" role="cell">Liquidez e venda</div>
-                <div className="landing-compare-cell col-risk" role="cell">Negociação demorada e risco de frete interestadual</div>
-                <div className="landing-compare-cell col-safe" role="cell">Marketplace direto sem frete a cada transação</div>
-              </div>
-              <div className="landing-compare-row" role="row">
-                <div className="landing-compare-cell col-feature" role="cell">Comprovação</div>
-                <div className="landing-compare-cell col-risk" role="cell">Sem registro formal auditável</div>
-                <div className="landing-compare-cell col-safe" role="cell">Recibo digital lastreado com conferência pericial</div>
-              </div>
-            </div>
+        <FeeSimulator taxas={taxas} />
+
+        <p className="pub-secao-rodape">
+          <Link href="/taxas" className="pub-link-seta">
+            Ler a tabela de taxas completa →
+          </Link>
+        </p>
+      </section>
+
+      {/* 7. HISTÓRIA — quem está por trás e por que o serviço existe. */}
+      <section className="pub-secao reveal" aria-labelledby="historia-titulo">
+        <div className="pub-historia">
+          <header className="pub-secao-topo">
+            <p className="pub-eyebrow">Nossa história</p>
+            <h2 id="historia-titulo">De colecionador para colecionador</h2>
+          </header>
+          <div className="pub-historia-texto">
+            <p>
+              O Real Olímpico nasceu da coleção de Rogério Siqueira, um dos fundadores. Ele junta as moedas da série
+              Real Olímpico. Logo viu dois problemas que todo colecionador conhece: guardar em casa dá medo, e mandar
+              moeda pelo correio, com valor declarado, a cada venda para outro estado custa caro.
+            </p>
+            <p>
+              A saída foi guardar tudo num cofre especializado. Cada moeda ganha um recibo que pode ser conferido. E
+              os colecionadores vendem o recibo entre si, sem precisar despachar a moeda a cada venda.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* SIMULADOR FACTUAL DE CUSTÓDIA E NEGOCIAÇÃO (Benchmark Uniswap / Robinhood / Revolut) */}
-      <FeeSimulator />
-
-      {/* FAQ: Dúvidas frequentes */}
-      <section className="landing-faq-section reveal" aria-labelledby="faq-title">
-        <div className="landing-section-heading">
-          <p className="landing-eyebrow">Esclarecimentos</p>
-          <h2 id="faq-title">Perguntas Frequentes</h2>
-        </div>
-        <div className="landing-faq-list">
-          {faqs.map((faq, index) => (
-            <details className="landing-faq-item" key={index}>
-              <summary className="landing-faq-question">
-                <span>{faq.question}</span>
-                <ChevronDownIcon className="landing-faq-chevron" />
+      {/* 8. DÚVIDAS — <details> nativo: abre e fecha sem JavaScript e o texto está no HTML (bom para busca). */}
+      <section id="duvidas" className="pub-secao pub-secao-faixa reveal" aria-labelledby="duvidas-titulo">
+        <header className="pub-secao-topo">
+          <p className="pub-eyebrow">Dúvidas</p>
+          <h2 id="duvidas-titulo">Perguntas frequentes</h2>
+        </header>
+        <div className="pub-faq">
+          {duvidas.map((d) => (
+            <details key={d.pergunta}>
+              <summary>
+                <span>{d.pergunta}</span>
+                <ChevronDownIcon className="pub-faq-seta" />
               </summary>
-              <div className="landing-faq-answer-wrap">
-                <div className="landing-faq-answer">
-                  <p>{faq.answer}</p>
-                </div>
-              </div>
+              <p>{d.resposta}</p>
             </details>
           ))}
         </div>
       </section>
 
-      {/* Posicionamento institucional */}
-      <section className="landing-positioning reveal" aria-labelledby="positioning-title">
-        <div className="landing-positioning-card">
-          <div className="landing-section-heading">
-            <p className="landing-eyebrow">Transparência e conformidade</p>
-            <h2 id="positioning-title">Nosso posicionamento institucional</h2>
-          </div>
-          <blockquote className="landing-positioning-quote">
-            &ldquo;O Real Olímpico <strong>não é corretora</strong> e não está sujeito à regulação da
-            CVM ou do mercado de capitais. O Real Olímpico <strong>não é instituição financeira</strong>.
-            O Real Olímpico <strong>não é plataforma de ativos digitais</strong>. O Real Olímpico é um
-            serviço de guarda de itens de coleção com um marketplace onde quem guarda pode negociar o
-            recibo do item sem precisar resgatá-lo fisicamente.&rdquo;
-          </blockquote>
-          <div className="landing-positioning-actions">
-            <Link className="landing-link-academy" href="/termos">
-              Consulte as diretrizes e termos de custódia &rarr;
+      {/* 9. POSICIONAMENTO + CHAMADA FINAL — a citação institucional fica inteira, como na Academy. */}
+      <section
+        className="pub-final pub-noite reveal"
+        aria-labelledby="final-titulo"
+        style={FRENTE_2_MESCLADA ? ({ '--pub-guilloche': `url(${TEXTURA_GUILLOCHE})` } as CSSProperties) : undefined}
+      >
+        {FRENTE_2_MESCLADA ? <VideoDeFundo {...VIDEO_COFRE} /> : null}
+        <blockquote className="pub-citacao">
+          &ldquo;O Real Olímpico <strong>não é corretora</strong> e não está sujeito à regulação da CVM ou do mercado
+          de capitais. O Real Olímpico <strong>não é instituição financeira</strong>. O Real Olímpico{' '}
+          <strong>não é plataforma de ativos digitais</strong>. O Real Olímpico é um serviço de guarda de itens de
+          coleção com um marketplace onde quem guarda pode negociar o recibo do item sem precisar resgatá-lo
+          fisicamente.&rdquo;
+        </blockquote>
+        <div className="pub-final-cta">
+          <h2 id="final-titulo">Pronto para proteger sua coleção e vender quando quiser?</h2>
+          <p>Crie sua conta e acompanhe o mercado.</p>
+          <div className="pub-acoes">
+            <Link className="pub-btn pub-btn-primary pub-btn-lg" href="/cadastrar">
+              Criar minha conta
+            </Link>
+            <Link className="pub-btn pub-btn-ghost pub-btn-lg" href="/academy">
+              Entender melhor na Academy
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Rodapé institucional */}
-      <footer className="landing-footer">
-        <div className="landing-footer-brand">
-          <Image src={LOGO_REAL_EMBLEMA} alt="" width={52} height={52} />
-          <p>
-            <strong>AUREA CUSTODIA LTDA</strong>
-            <span>CNPJ 68.071.452/0001-06</span>
-          </p>
-        </div>
-        <nav aria-label="Informações institucionais e legais">
-          <Link href="/termos">Termos de Uso</Link>
-          <Link href="/privacidade">Política de Privacidade</Link>
-        </nav>
-      </footer>
+      <PublicFooter />
     </main>
   )
 }

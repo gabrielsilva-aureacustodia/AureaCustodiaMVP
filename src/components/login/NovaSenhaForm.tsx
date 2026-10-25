@@ -7,14 +7,14 @@
  * apenas os campos e apresenta o resultado sem levar o cliente do Supabase ao navegador.
  */
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { LOGO_REAL_MARCA } from '@/domain/constants'
 import { definirNovaSenha } from '@/server/actions/auth'
+
+import { AuthShell } from './AuthShell'
 
 const ERRO_GENERICO = 'Não foi possível salvar a senha nova. Tente novamente.'
 
@@ -53,12 +53,8 @@ export function NovaSenhaForm({ email, destino }: NovaSenhaFormProps): ReactNode
   }
 
   return (
-    <main className="login-wrap auth-page">
+    <AuthShell titulo="Escolha uma senha nova para a sua conta.">
       <section className="login-card" aria-labelledby="nova-senha-title">
-        <Link className="auth-brand-link" href="/" aria-label="Voltar para a página inicial">
-          <Image src={LOGO_REAL_MARCA} alt="Real Olímpico" width={130} height={120} priority />
-        </Link>
-
         <h1 className="login-title" id="nova-senha-title">
           Defina sua nova senha
         </h1>
@@ -103,6 +99,6 @@ export function NovaSenhaForm({ email, destino }: NovaSenhaFormProps): ReactNode
           <Link href={destino}>Continuar sem trocar</Link>
         </p>
       </section>
-    </main>
+    </AuthShell>
   )
 }
