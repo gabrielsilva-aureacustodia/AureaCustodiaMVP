@@ -32,8 +32,9 @@ const dre = {
     { codigo: '3.1.01', descricao: 'Comissões', valor: 80_000, nivel: 2, observacao: null },
     { codigo: '3.1.02', descricao: 'Custódia', valor: 20_000, nivel: 2, observacao: null },
     { codigo: '3.1.03', descricao: 'Tarifas de saque', valor: 0, nivel: 2, observacao: null },
-    { codigo: '4.1.04', descricao: 'Software', valor: 30_000, nivel: 2, observacao: null },
-    { codigo: '4.1.07', descricao: 'Gateway', valor: 1_000, nivel: 2, observacao: null },
+    // Como a DRE grava: linha de despesa negativa, total positivo.
+    { codigo: '4.1.04', descricao: 'Software', valor: -30_000, nivel: 2, observacao: null },
+    { codigo: '4.1.07', descricao: 'Gateway', valor: -1_000, nivel: 2, observacao: null },
   ],
 } as unknown as Dre
 
@@ -53,7 +54,10 @@ describe('cascata do faturamento ao resultado', () => {
   })
   it('receitas e despesas por linha, só as com valor', () => {
     expect(receitasPorTipo(dre).map((f) => f.chave)).toEqual(['3.1.01', '3.1.02'])
-    expect(despesasPorConta(dre).map((f) => f.chave)).toEqual(['4.1.04', '4.1.07'])
+    expect(despesasPorConta(dre)).toEqual([
+      { chave: '4.1.04', rotulo: 'Software', valor: 30_000 },
+      { chave: '4.1.07', rotulo: 'Gateway', valor: 1_000 },
+    ])
     expect(pesoSobreReceitaBp(8_650, 100_000)).toBe(865)
     expect(pesoSobreReceitaBp(1, 0)).toBeNull()
   })

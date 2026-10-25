@@ -211,6 +211,7 @@ export function PainelRecorrentes({
                       <input
                         type="radio"
                         name="tipo"
+                        value={tipo}
                         checked={r.tipo === tipo}
                         onChange={() => setR({ ...r, tipo, contaCodigo: contasDoTipo(contas, tipo)[0]?.codigo ?? '' })}
                       />

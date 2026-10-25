@@ -29,15 +29,24 @@ function linha(dre: Dre, codigo: string): LinhaDre | undefined {
   return dre.linhas.find((l) => l.codigo === codigo)
 }
 
+/**
+ * Na DRE as linhas de dedução, despesa e imposto vêm NEGATIVAS ("(−) Despesas"), e os totais vêm
+ * positivos. Esta camada trabalha sempre com o valor absoluto da linha — achado no teste em
+ * produção de 25/10/2026, quando a tarifa apareceu como −R$ 16,63 e os custos em dobro.
+ */
+export function tarifaGatewayDaDre(dre: Dre): Cents {
+  return Math.abs(linha(dre, CONTA_TARIFAS_GATEWAY)?.valor ?? 0)
+}
+
 /** Despesas manuais (4.x) sem a tarifa de gateway, que tem passo próprio. */
 export function despesasSemGateway(dre: Dre): Cents {
-  return Math.max(0, dre.totais.despesasOperacionais - (linha(dre, CONTA_TARIFAS_GATEWAY)?.valor ?? 0))
+  return Math.max(0, dre.totais.despesasOperacionais - tarifaGatewayDaDre(dre))
 }
 
 /** Do faturamento ao resultado, na ordem em que o dinheiro sai. */
 export function cascata(dre: Dre): PassoDaCascata[] {
   const t = dre.totais
-  const gateway = linha(dre, CONTA_TARIFAS_GATEWAY)?.valor ?? 0
+  const gateway = tarifaGatewayDaDre(dre)
   return [
     { chave: 'receita', rotulo: 'Receita bruta', valor: t.receitaBruta, natureza: 'entrada', detalhe: 'comissões, custódia, tarifas e outras receitas' },
     { chave: 'deducoes', rotulo: 'Impostos sobre a receita', valor: t.deducoes, natureza: 'saida', detalhe: 'ISS, PIS e COFINS' },
@@ -70,8 +79,8 @@ export function receitasPorTipo(dre: Dre): FatiaNomeada[] {
 /** As linhas 4.x da DRE com valor (inclui a 4.1.07), maior primeiro. */
 export function despesasPorConta(dre: Dre): FatiaNomeada[] {
   return dre.linhas
-    .filter((l) => l.nivel === 2 && l.codigo.startsWith('4.') && l.valor > 0)
-    .map((l) => ({ chave: l.codigo, rotulo: l.descricao, valor: l.valor }))
+    .filter((l) => l.nivel === 2 && l.codigo.startsWith('4.') && l.valor !== 0)
+    .map((l) => ({ chave: l.codigo, rotulo: l.descricao, valor: Math.abs(l.valor) }))
     .sort((a, b) => b.valor - a.valor)
 }
 

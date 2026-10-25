@@ -12,7 +12,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { cascata, custosPorSetor, despesasPorConta, despesasSemGateway, receitasPorTipo, resumirRecorrentes } from '@/domain/financeiro/analise'
+import { cascata, custosPorSetor, despesasPorConta, despesasSemGateway, receitasPorTipo, resumirRecorrentes, tarifaGatewayDaDre } from '@/domain/financeiro/analise'
 import { ROTULO_DO_SERVICO } from '@/domain/nfse/codigos'
 import type { DadosControleFinanceiro } from '@/server/admin/controle-financeiro'
 
@@ -37,7 +37,7 @@ function bpDe(parte: number, total: number): number | null {
 export function AnaliseFinanceira({ dados, sufixo }: { dados: DadosControleFinanceiro; sufixo: string }): ReactNode {
   const dre = dados.financeiro.dre
   const t = dre.totais
-  const gateway = dre.linhas.find((l) => l.codigo === '4.1.07')?.valor ?? 0
+  const gateway = tarifaGatewayDaDre(dre)
   const impostos = t.deducoes + t.irpj + t.irpjAdicional + t.csll
   const custos = despesasSemGateway(dre)
   const brutoGateway = dados.tarifas.reduce((s, x) => s + x.bruto, 0)
@@ -88,8 +88,8 @@ export function AnaliseFinanceira({ dados, sufixo }: { dados: DadosControleFinan
       {dre.pendencias.length ? (
         <div className="note adm-secao">
           <span>
-            <b>Pendências da DRE:</b> {dre.pendencias.join(' · ')}. Os impostos dessas linhas ficam zerados até o contador preencher a alíquota na aba{' '}
-            <Link href="/admin/resultados/contabil?aba=aliquotas">Contábil → Alíquotas</Link>.
+            <b>Pendências da DRE:</b> {dre.pendencias.join(' · ')}. Alíquotas e lançamentos ficam na aba{' '}
+            <Link href="/admin/resultados/contabil">Contábil</Link>.
           </span>
         </div>
       ) : null}
