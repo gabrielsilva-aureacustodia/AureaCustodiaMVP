@@ -89,7 +89,7 @@ export default async function SupportPage(): Promise<ReactNode> {
           </li>
           <li>
             <strong>Marketplace Numismático:</strong> suporte na publicação de ofertas, compras diretas,
-            casamento de pedidos e taxas de corretagem (ver{' '}
+            casamento de pedidos e comissões de negociação (ver{' '}
             <Link href="/taxas">Tabela de Taxas</Link>).
           </li>
           <li>

@@ -219,7 +219,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
       {/* 1. HERÓI — o cofre ao fundo (Frente 2, ilustrativo), a moeda real e o recibo: moeda → cofre → recibo
           numa imagem só. Com o cofre, ELE é o LCP (única imagem com priority); sem a Frente 2, a moeda assume. */}
       <section id="conteudo" tabIndex={-1} className="pub-hero pub-noite" aria-labelledby="hero-titulo">
-        {FRENTE_2_MESCLADA ? (
+        {FRENTE_2_MESCLADA && VISUAL_COFRE ? (
           <div className="pub-hero-fundo" aria-hidden="true">
             <PictureResponsiva visual={VISUAL_COFRE} retrato={VISUAL_COFRE_RETRATO} sizes="100vw" prioridade />
           </div>
@@ -267,14 +267,14 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
                 width={360}
                 height={360}
                 sizes="(max-width: 640px) 220px, 360px"
-                priority={!FRENTE_2_MESCLADA}
-                loading={FRENTE_2_MESCLADA ? 'eager' : undefined}
+                priority={!(FRENTE_2_MESCLADA && VISUAL_COFRE)}
+                loading={FRENTE_2_MESCLADA && VISUAL_COFRE ? 'eager' : undefined}
               />
             </figure>
             <ReciboIlustrado />
           </InclinacaoNoPonteiro>
         </div>
-        {FRENTE_2_MESCLADA ? <p className="pub-hero-credito">Imagem ilustrativa</p> : null}
+        {FRENTE_2_MESCLADA && VISUAL_COFRE ? <p className="pub-hero-credito">Imagem ilustrativa</p> : null}
       </section>
 
       <MercadoAgora
@@ -322,7 +322,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
             reserva. E você não precisa começar do zero: talvez já tenha esse item em casa.
           </p>
         </header>
-        {FRENTE_2_MESCLADA ? (
+        {FRENTE_2_MESCLADA && VISUAL_SERRILHA ? (
           <figure className="pub-reserva-macro pub-revela-rolagem">
             <PictureResponsiva visual={VISUAL_SERRILHA} sizes="(max-width: 860px) 100vw, 560px" />
             <figcaption>Imagem ilustrativa</figcaption>
@@ -426,7 +426,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
           </p>
         </header>
 
-        {FRENTE_2_MESCLADA ? (
+        {FRENTE_2_MESCLADA && VISUAL_GAVETAS ? (
           <figure className="pub-foto-cofre pub-revela-rolagem">
             <PictureResponsiva visual={VISUAL_GAVETAS} sizes="(max-width: 1192px) 100vw, 1160px" />
             <figcaption>Imagem ilustrativa</figcaption>

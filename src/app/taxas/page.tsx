@@ -16,7 +16,7 @@ import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 export const metadata: Metadata = {
   title: 'Tabela de Taxas | Real Olímpico',
   description:
-    'Tabela oficial de taxas do Real Olímpico: corretagem de negociação em dois lados, tarifas de custódia física, saques e retiradas.',
+    'Tabela oficial de taxas do Real Olímpico: comissão de negociação dos dois lados, tarifas de custódia física, saques e retiradas.',
 }
 
 // A tabela e a versão vigentes vêm do banco desde a C3: dinâmica para não congelar no build.
@@ -51,10 +51,10 @@ export default async function FeesPage(): Promise<ReactNode> {
       )}
 
       <section>
-        <h2>1. Negociação no Mercado (Corretagem dos Dois Lados)</h2>
+        <h2>1. Negociação no Mercado (Comissão dos Dois Lados)</h2>
         <p>
           Nas operações de compra e venda de recibos de custódia realizadas no marketplace da
-          plataforma, a comissão de corretagem é cobrada de ambas as partes (Decisão F-1 e Cláusula
+          plataforma, a comissão de negociação é cobrada de ambas as partes (Decisão F-1 e Cláusula
           7.3.3 dos Termos de Uso), composta por parcela percentual sobre o valor da negociação e
           parcela fixa por moeda transacionada:
         </p>

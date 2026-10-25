@@ -4,13 +4,12 @@
    docs/polimento/landing/BENCHMARK.md; o que não pode mudar em INVENTARIO.md.
 
    POR QUE UM PREFIXO NOVO (.pub-*): a landing antiga desenhava só no escuro, com
-   cores literais (#f8fafc, #050a16…) — no tema claro o texto sumia. O sistema
-   .pub-* lê SÓ os papéis de tokens.css (--bg, --text, --line…), que já trocam com
-   body[data-theme]. Onde o claro precisa de outra tinta (dourado legível sobre
-   creme), a troca é por papel local que aponta para OUTRO token existente — nada
-   de cor nova fora de tokens.css (regra do arquivo de tokens; tokens.css é da
-   Frente 1). Quando o contrato de tokens da Frente 1 chegar, os papéis locais
-   abaixo passam a apontar para os semânticos novos e o resto não muda.
+   cores literais (#f8fafc, #050a16…) — no tema claro o texto sumia. Desde o
+   contrato de tokens da Frente 1 (commit 2088297), os papéis locais --pub-*
+   abaixo APONTAM para os papéis --ro-* de src/brand/tokens.css, que já trocam com
+   o tema e passam no AA medido (Brandbook §4.4): o dourado de texto é
+   --ro-primaria-texto (ouro-800 no claro), e não o --gold, que dava 2,40:1.
+   Os nomes legados (--text, --line, --card…) continuam valendo por alias.
 
    Regras deste arquivo:
    - um container (--pub-largura) e um respiro de seção (--pub-ritmo) para tudo;
@@ -26,13 +25,13 @@ html, body{overflow-x:clip}
   --pub-largura:1160px;
   --pub-gutter:16px;
   --pub-ritmo:clamp(64px,9vw,112px);
-  --pub-ouro-texto:var(--gold-bright);
-  --pub-ouro-linha:var(--gold);
-  --pub-superficie:var(--bg-panel);
-  --pub-raio-cartao:16px;
-  --pub-raio-botao:10px;
-  --pub-dur:.25s;
-  --pub-curva:cubic-bezier(.2,.8,.2,1);
+  --pub-ouro-texto:var(--ro-primaria-texto);
+  --pub-ouro-linha:var(--ro-primaria-texto);
+  --pub-superficie:var(--ro-superficie);
+  --pub-raio-cartao:var(--ro-raio-lg);
+  --pub-raio-botao:var(--ro-raio-md);
+  --pub-dur:var(--ro-dur-base);
+  --pub-curva:var(--ro-curva-padrao);
 
   min-height:100vh;
   min-height:100dvh;
@@ -42,17 +41,11 @@ html, body{overflow-x:clip}
   color:var(--text);
   font-family:var(--ff-sans);
 }
-/* No claro, o dourado de marca (#c9a24b) sobre creme fica abaixo de 3:1. O texto dourado
-   passa a usar a tinta dourada escura do certificado, que é token e passa de 4,5:1. */
-body[data-theme="light"] .pub-page{
-  --pub-ouro-texto:var(--cert-ink-gold);
-  --pub-ouro-linha:var(--cert-ink-gold);
-}
 
 .pub-page :where(h1,h2,h3){font-family:var(--ff-display);color:var(--text-strong);text-wrap:balance}
 .pub-page :where(p,li,dd,td){text-wrap:pretty}
 .pub-page a{color:inherit}
-.pub-page :focus-visible{outline:2px solid var(--pub-ouro-linha);outline-offset:3px;border-radius:4px}
+.pub-page :focus-visible{outline:2px solid var(--ro-foco);outline-offset:3px;border-radius:4px}
 
 .pub-icone{width:28px;height:28px;color:var(--pub-ouro-texto);flex:0 0 auto}
 .pub-ouro{color:var(--pub-ouro-texto)}
@@ -145,9 +138,9 @@ body[data-theme="light"] .pub-page{
   --text-muted:var(--muted);
   --line:var(--gold);
   --line-soft:var(--gold-tint-18);
-  --pub-ouro-texto:var(--gold-bright);
-  --pub-ouro-linha:var(--gold);
-  --pub-superficie:var(--navy);
+  --pub-ouro-texto:var(--ro-ouro-400);
+  --pub-ouro-linha:var(--ro-ouro-500);
+  --pub-superficie:var(--ro-noite-900);
   color:var(--text);
   background:radial-gradient(120% 90% at 75% 20%,var(--navy) 0%,var(--navy-deep) 62%);
 }
@@ -303,10 +296,9 @@ body[data-theme="light"] .pub-page{
 .pub-cartao-moeda h3{margin:0;font-size:26px;line-height:1.15}
 .pub-cartao-moeda-topo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .pub-selo{
-  font-size:12px;font-weight:700;color:var(--green);border:1px solid var(--green-line);background:var(--green-wash);
+  font-size:12px;font-weight:700;color:var(--ro-sucesso-texto);border:1px solid var(--green-line);background:var(--green-wash);
   border-radius:999px;padding:4px 10px;
 }
-body[data-theme="light"] .pub-selo{color:var(--chip-up-ink-light)}
 .pub-codigo{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--text-muted)}
 .pub-cartao-moeda-ficha{margin:0;font-size:14px;line-height:1.5;color:var(--text-muted)}
 .pub-cartao-moeda-pe{
@@ -418,6 +410,12 @@ body[data-theme="light"] .pub-selo{color:var(--chip-up-ink-light)}
   background:var(--card);border:1px solid var(--line-soft);border-radius:var(--pub-raio-cartao);
 }
 .pub-specimen-foto{position:relative;margin:0;display:flex;flex-direction:column;align-items:center;gap:12px}
+.pub-specimen-faces{position:relative;z-index:2;display:inline-flex;gap:4px;padding:4px;border-radius:999px;border:1px solid var(--line-soft);background:var(--pub-superficie)}
+.pub-specimen-faces button{
+  min-height:var(--ro-alvo-toque,44px);padding:0 18px;border-radius:999px;border:0;cursor:pointer;
+  background:transparent;color:var(--text);font-weight:600;font-size:14px;
+}
+.pub-specimen-faces button[aria-pressed="true"]{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--on-gold)}
 .pub-specimen-foto img{position:relative;z-index:1;display:block;width:min(280px,100%);height:auto;border-radius:50%}
 .pub-specimen-halo{position:absolute;inset:0 10% 20%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--gold) 26%,transparent),transparent 68%)}
 .pub-specimen-foto figcaption{position:relative;z-index:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
@@ -485,8 +483,7 @@ body[data-theme="light"] .pub-selo{color:var(--chip-up-ink-light)}
 .pub-sim-linha dd{margin:0;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums;text-align:right}
 .pub-sim-destaque dt{font-weight:700;color:var(--text-strong)}
 .pub-sim-destaque dd{font-family:var(--ff-display);font-size:clamp(24px,3vw,30px);color:var(--pub-ouro-texto)}
-.pub-sim-recebe dd{color:var(--green)}
-body[data-theme="light"] .pub-sim-recebe dd{color:var(--chip-up-ink-light)}
+.pub-sim-recebe dd{color:var(--ro-sucesso-texto)}
 
 /* ============================================================================
    7. HISTÓRIA
@@ -862,7 +859,7 @@ body[data-theme="light"] .pub-sim-recebe dd{color:var(--chip-up-ink-light)}
 /* ============================================================================
    CLASSES DE AUTENTICAÇÃO E REGISTRO (Preservadas do original)
    ========================================================================= */
-.auth-switch a,.legal-check a{color:var(--gold);text-underline-offset:3px}
+.auth-switch a,.legal-check a{color:var(--ro-primaria-texto);text-underline-offset:3px}
 
 .auth-page{min-height:100vh;padding:24px;display:flex;align-items:center;justify-content:center}
 .auth-brand-link{display:inline-flex;border-radius:50%}
@@ -870,7 +867,7 @@ body[data-theme="light"] .pub-sim-recebe dd{color:var(--chip-up-ink-light)}
 .auth-brand-link img{display:block}
 .auth-feedback{min-height:30px;margin:4px 0 10px}
 .auth-feedback .login-error{min-height:0;margin:0}
-.auth-success{color:var(--green);font-size:13px;line-height:1.35}
+.auth-success{color:var(--ro-sucesso-texto);font-size:13px;line-height:1.35}
 .auth-switch{margin-top:20px;color:var(--text-muted);font-size:14px}
 
 .register-wrap{align-items:flex-start}
@@ -901,7 +898,7 @@ body[data-theme="light"] .pub-sim-recebe dd{color:var(--chip-up-ink-light)}
 .register-signinwrap{
   margin:10px 0 16px;color:var(--text-muted);font-size:12.5px;line-height:1.5;text-align:left;
 }
-.register-signinwrap a{color:var(--gold);text-underline-offset:3px}
+.register-signinwrap a{color:var(--ro-primaria-texto);text-underline-offset:3px}
 .register-arbitration-card{
   margin:12px 0 18px;padding:14px;background:rgba(212,175,55,0.04);
   border:1px solid var(--line);border-radius:10px;text-align:left;
@@ -925,7 +922,7 @@ body[data-theme="light"] .pub-sim-recebe dd{color:var(--chip-up-ink-light)}
   margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);
 }
 .register-arbitration-field label{
-  display:block;font-size:12px;font-weight:600;color:var(--gold);margin-bottom:6px;
+  display:block;font-size:12px;font-weight:600;color:var(--ro-primaria-texto);margin-bottom:6px;
 }
 .register-arbitration-field input{
   width:100%;height:44px;padding:0 12px;border-radius:6px;border:1px solid var(--line);
