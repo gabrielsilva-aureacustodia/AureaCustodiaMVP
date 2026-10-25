@@ -9,8 +9,13 @@ devem virar.**
 ordem que não pode mudar**:
 
 ```
-tokens → base → login → shell → home → market → wizard → recibo → reports → account → responsive
+brand/tokens → tokens → base → brand/componentes → login → shell → home → market → wizard
+             → recibo → reports → account → … → responsive
 ```
+
+Desde o Brandbook (25/10/2026) a cor nasce em `src/brand/tokens.css` (primitivos e papéis `--ro-*`);
+`tokens.css` daqui virou camada de **aliases** — todo nome antigo existe, mas CSS novo lê o papel
+`--ro-*` direto. Ver `src/brand/README.md` e `docs/marca/BRANDBOOK_REAL_OLIMPICO.md`.
 
 **Por que isso é frágil de um jeito específico:** quase toda regra de `responsive.css` tem a
 **mesma especificidade** da regra de desktop que ela sobrescreve (`.main`, `.panel`,
@@ -26,8 +31,10 @@ build, sem aviso no console. O sintoma aparece só no celular de alguém.
 
 | Arquivo | Área | Cuidado |
 |---|---|---|
-| `tokens.css` | Cores e tipografia | **Primeiro, sempre.** Todo o resto lê `var(--...)` |
+| `../brand/tokens.css` | Primitivos e papéis da marca (`--ro-*`) | **Primeiro, sempre.** Único lugar com hex |
+| `tokens.css` | Aliases legados (`--gold`, `--bg`, `--line`…) → papéis | Nenhum nome pode sumir (teste em `src/brand/__tests__`) |
 | `base.css` | Reset e compartilhados: `.btn`, `.panel`, `.field`, `.toast`, `.modal`, `.table-scroll` | Mudança aqui atinge tudo |
+| `../brand/componentes.css` | Padrões novos `.ro-*` (selo, aviso, tabela, abas, faixa…) | Sem media query de largura |
 | `login.css` | Tela de login | |
 | `shell.css` | Sidebar e topbar | |
 | `home.css` | Painel inicial e `.stats` | |

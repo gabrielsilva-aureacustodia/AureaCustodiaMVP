@@ -26,6 +26,11 @@
 /* Reset + componentes compartilhados (.btn, .field, .panel, .toast, .modal). */
 @import '../styles/base.css';
 
+/* Componentes da marca (.ro-*): padrões novos do Brandbook — selo, aviso,
+   tabela, abas, faixa de abertura, aro e serrilha. Depois de base, antes das
+   telas: uma tela ainda pode ajustar um .ro-* pela especificidade dela. */
+@import '../brand/componentes.css';
+
 /* Telas, na ordem em que apareciam no <style> do monolito. */
 @import '../styles/login.css';
 @import '../styles/landing.css';
