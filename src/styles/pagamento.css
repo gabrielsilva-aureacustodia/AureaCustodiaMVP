@@ -12,7 +12,7 @@
 .pagamento-tabs {
   display: flex;
   gap: 8px;
-  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--ro-borda-suave);
   padding-bottom: 8px;
 }
 
@@ -20,10 +20,10 @@
   flex: 1;
   min-height: 44px;
   padding: 10px 14px;
-  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: var(--ro-superficie-sutil);
+  border: 1px solid var(--ro-borda-suave);
   border-radius: 8px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--ro-texto-suave);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -35,19 +35,19 @@
 }
 
 .pagamento-tab:hover:not(:disabled) {
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.06));
-  color: var(--text-main, #f8fafc);
+  background: var(--ro-cartao-hover);
+  color: var(--ro-texto-forte);
 }
 
 .pagamento-tab.active {
-  background: var(--gold-subtle, rgba(212, 175, 55, 0.12));
-  border-color: var(--gold, #d4af37);
-  color: var(--gold, #d4af37);
+  background: var(--ro-primaria-veu);
+  border-color: var(--ro-primaria);
+  color: var(--ro-primaria-texto);
   font-weight: 600;
 }
 
 .pagamento-tab:focus-visible {
-  outline: 2px solid var(--gold, #d4af37);
+  outline: 2px solid var(--ro-foco);
   outline-offset: 2px;
 }
 
@@ -56,8 +56,8 @@
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  background: var(--bg-card, rgba(15, 23, 42, 0.6));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--ro-superficie-sutil);
+  border: 1px solid var(--ro-borda-suave);
   border-radius: 10px;
 }
 
@@ -66,7 +66,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--ro-superficie-sutil);
   border-radius: 8px;
   font-size: 14px;
 }
@@ -78,10 +78,10 @@
 }
 
 .pagamento-summary-row.highlight {
-  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--ro-borda-suave);
   padding-top: 8px;
   font-weight: 600;
-  color: var(--gold, #d4af37);
+  color: var(--ro-primaria-texto);
 }
 
 .pagamento-qr-box {
@@ -90,7 +90,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #ffffff;
+  background: var(--white);
   border-radius: 12px;
   width: fit-content;
   margin: 0 auto;
@@ -112,12 +112,12 @@
   flex: 1;
   min-height: 44px;
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  background: var(--ro-campo);
+  border: 1px solid var(--ro-borda-campo);
   border-radius: 6px;
   font-family: monospace;
   font-size: 13px;
-  color: var(--text-main, #f8fafc);
+  color: var(--ro-texto-forte);
 }
 
 .pagamento-status-box {
@@ -132,21 +132,21 @@
 }
 
 .pagamento-status-box.pendente {
-  background: rgba(212, 175, 55, 0.1);
-  color: var(--gold, #d4af37);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: var(--ro-primaria-veu);
+  color: var(--ro-primaria-texto);
+  border: 1px solid var(--ro-borda);
 }
 
 .pagamento-status-box.sucesso {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: var(--ro-sucesso-fundo);
+  color: var(--ro-sucesso-texto);
+  border: 1px solid var(--ro-sucesso);
 }
 
 .pagamento-status-box.erro {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--ro-perigo-fundo);
+  color: var(--ro-perigo-texto);
+  border: 1px solid var(--ro-perigo);
 }
 
 .pagamento-btn {
@@ -156,3 +156,11 @@
   justify-content: center;
   gap: 8px;
 }
+
+/* Painel de pagamento — estilos que moravam inline (25/10/2026), só com tokens. */
+.note.note-alerta-ouro{color:var(--gold-bright)}
+.pagamento-texto{margin:0;font-size:14px;line-height:1.5}
+.note.pagamento-indisponivel{justify-content:center;text-align:center}
+.pagamento-qr-legenda{font-size:12px;color:var(--cert-ink-label)}
+.pagamento-copiar{min-height:44px;width:auto;white-space:nowrap}
+.pagamento-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}

@@ -53,19 +53,27 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
   const moedas = abertas.reduce((soma, f) => soma + f.quantidadeMoedas, 0)
   const vencida = abertas.some((f) => f.status === 'atrasada' || f.dataVencimento < agora)
 
+  // .note/.warn-box ficam: são a âncora do tutorial (src/domain/tutorial.ts). O desenho é o .ro-aviso
+  // do Brandbook (§9.5), com o tom de perigo quando vencida.
   return (
-    <div className={vencida ? 'warn-box' : 'note'} style={{ marginTop: 16, ...estilo }}>
-      <svg viewBox="0 0 24 24">
+    <div
+      className={
+        vencida ? 'warn-box ro-aviso ro-aviso--perigo aviso-custodia' : 'note ro-aviso ro-aviso--aviso aviso-custodia'
+      }
+      role={vencida ? 'alert' : 'status'}
+      style={{ marginTop: 16, ...estilo }}
+    >
+      <svg className="ro-aviso__icone" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 3l9 16H3z" />
         <path d="M12 10v4M12 17v.5" />
       </svg>
       <div>
-        <b>
+        <b className="ro-aviso__titulo">
           {vencida ? 'Custódia vencida' : 'Custódia a pagar'}
           {abertas.length > 0 ? ` — ${brl(total)}` : ''}
-          {exemplo ? <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--gold)' }}>EXEMPLO DO TUTORIAL</span> : null}
+          {exemplo ? <span className="marca-exemplo">EXEMPLO DO TUTORIAL</span> : null}
         </b>
-        <div style={{ marginTop: 4 }}>
+        <div className="aviso-custodia-tx">
           {presas > 0 ? (
             <>
               <b>
@@ -83,7 +91,7 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
                 : 'Pague até o vencimento para manter os recibos livres para negociar.'}{' '}
             </>
           )}
-          <Link href="/conta/faturas" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>
+          <Link href="/conta/faturas" className="aviso-custodia-link">
             Pagar agora
           </Link>
         </div>

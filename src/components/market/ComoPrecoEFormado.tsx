@@ -59,7 +59,7 @@ export function ComoPrecoEFormado({ tipoAtivo, media7, style }: ComoPrecoEFormad
         A plataforma não recomenda preço.
       </div>
 
-      <div className="avg-box" style={{ marginTop: 14 }}>
+      <div className="avg-box u-mt14">
         <div className="l">Média de mercado — 7 dias</div>
         {/* avg7 devolve null sem negociação nos últimos 7 dias: traço, não zero. */}
         <div className="v">{media7 ? brl(media7) : '—'}</div>

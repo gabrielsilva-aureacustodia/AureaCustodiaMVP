@@ -148,33 +148,22 @@ export function ModalDadosPessoais(): ReactNode {
       />
 
       {erro ? (
-        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+        <div className="note u-mt10 u-erro">
           {erro}
         </div>
       ) : null}
 
       {/* Identificação formal progressiva (Agente B) */}
-      <div className="field-lbl" style={{ marginTop: 18 }}>
+      <div className="field-lbl u-mt18">
         Cadastro formal e bancário
       </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 14px',
-          background: 'var(--input-bg)',
-          borderRadius: 8,
-          border: '1px solid var(--line-soft)',
-          marginBottom: 10,
-          gap: 12,
-        }}
+      <div className="u-linha-caixa"
       >
         <div>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-strong)' }}>
+          <div className="u-t135">
             {completo ? 'Cadastro completo' : 'Cadastro pendente'}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div className="u-sutil u-mt2">
             {completo
               ? `${me.cadastro?.cpf ? `CPF ${me.cadastro.cpf} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
               : 'Necessário para depósitos e saques'}
@@ -182,8 +171,7 @@ export function ModalDadosPessoais(): ReactNode {
         </div>
         <button
           type="button"
-          className="btn btn-outline"
-          style={{ padding: '6px 14px', fontSize: 12, width: 'auto', flexShrink: 0 }}
+          className="btn btn-outline u-btn-compacto u-auto"
           onClick={() => open(<ModalCadastro motivo="configuracoes" />)}
         >
           {completo ? 'Editar dados' : 'Completar'}
@@ -253,7 +241,7 @@ export function ModalDefinirSenhaTrocaEmail({
   return (
     <>
       <h3 className="serif">Definir senha de acesso</h3>
-      <p style={{ marginBottom: 12 }}>
+      <p className="u-mb12">
         Sua conta utilizava login com o Google. Ao alterar o e-mail para <b>{novoEmail}</b>,
         o vínculo com o Google será removido e você precisará de uma senha para acessar sua conta.
       </p>
@@ -279,7 +267,7 @@ export function ModalDefinirSenhaTrocaEmail({
       />
 
       {erro ? (
-        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+        <div className="note u-mt10 u-erro">
           {erro}
         </div>
       ) : null}
@@ -398,7 +386,7 @@ export function ModalNotificacoes(): ReactNode {
   return (
     <>
       <h3 className="serif">Notificações por e-mail</h3>
-      <p style={{ marginBottom: 10 }}>
+      <p className="u-mb10">
         Escolha quais avisos você quer receber. O envio por e-mail ainda não está ativo — por
         enquanto a preferência fica registrada na sua conta.
       </p>
@@ -457,12 +445,12 @@ export function ModalDeposito(): ReactNode {
     return (
       <>
         <h3 className="serif">Cadastro necessário</h3>
-        <p style={{ marginBottom: 14 }}>
+        <p className="u-mb14">
           Por conformidade legal e fiscal, é necessário completar seu cadastro antes de realizar o
           primeiro depósito em conta.
         </p>
 
-        <div className="note" style={{ marginBottom: 16 }}>
+        <div className="note u-mb16">
           O Real Olímpico protege o que tem valor para gerações. Seus dados são protegidos sob a LGPD
           e utilizados exclusivamente para identificação fiscal e transferências bancárias. Não
           solicitamos fotos de documentos nem biometria facial.
@@ -497,7 +485,7 @@ export function ModalDeposito(): ReactNode {
   return (
     <>
       <h3 className="serif">Depositar em conta</h3>
-      <p style={{ marginBottom: 10 }}>
+      <p className="u-mb10">
         O saldo entra na sua conta <b>depois</b> que o pagamento for confirmado pelo banco ou pela
         operadora do cartão, o que pode levar alguns segundos.
       </p>
@@ -512,28 +500,32 @@ export function ModalDeposito(): ReactNode {
         <span>R$</span>
         <input
           inputMode="decimal"
+          autoComplete="off"
           placeholder="0,00"
           aria-label="Valor a depositar em reais"
           value={valorTexto}
           onChange={(e) => setValorTexto(e.target.value)}
         />
       </div>
+      {/* O limite por operação fica sempre à vista (25/10/2026), e não só depois de a pessoa passar
+          dele: é regra da conta, dita antes da ação (princípio 1 do brief em BENCHMARK.md). */}
+      <p className="campo-dica">Limite por operação: {brl(DEPOSITO_MAX)}.</p>
 
       <div className="summary-row total">
         <span className="k">Saldo após o depósito</span>
-        <span className="v" style={{ fontSize: 19 }}>
+        <span className="v u-v19">
           {cents > 0 ? brl(me.balance + cents) : '—'}
         </span>
       </div>
 
       {cents > DEPOSITO_MAX ? (
-        <div className="note" style={{ marginTop: 10 }}>
+        <div className="note u-mt10">
           O depósito máximo por operação é {brl(DEPOSITO_MAX)}.
         </div>
       ) : null}
 
       {podeDepositar ? (
-        <div style={{ marginTop: 16 }}>
+        <div className="u-mt16">
           <PainelPagamento
             valorCents={cents}
             iniciarPix={async () => {
@@ -554,14 +546,14 @@ export function ModalDeposito(): ReactNode {
           />
         </div>
       ) : (
-        <div className="note" style={{ marginTop: 14 }}>
+        <div className="note u-mt14">
           {cents > DEPOSITO_MAX
             ? `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.`
             : 'Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.'}
         </div>
       )}
 
-      <div className="m-actions" style={{ marginTop: 14 }}>
+      <div className="m-actions u-mt14">
         <button className="btn btn-outline" type="button" onClick={close}>
           Cancelar
         </button>
@@ -590,12 +582,12 @@ export function ModalSaque(): ReactNode {
     return (
       <>
         <h3 className="serif">Dados bancários necessários</h3>
-        <p style={{ marginBottom: 14 }}>
+        <p className="u-mb14">
           Para solicitar saque do seu saldo, é necessário cadastrar sua chave Pix ou dados
           bancários de mesma titularidade (CPF correspondente).
         </p>
 
-        <div className="note" style={{ marginBottom: 16 }}>
+        <div className="note u-mb16">
           O prazo regulamentar de liquidação de <b>D+3 úteis</b> só tem início após a confirmação
           dos dados de destino da transferência.
         </div>
@@ -648,7 +640,7 @@ export function ModalSaque(): ReactNode {
   return (
     <>
       <h3 className="serif">Solicitar saque</h3>
-      <p style={{ marginBottom: 10 }}>
+      <p className="u-mb10">
         Transferência do saldo em conta para sua chave Pix ou conta bancária cadastrada.
       </p>
 
@@ -659,11 +651,10 @@ export function ModalSaque(): ReactNode {
 
       <div className="summary-row">
         <span className="k">Conta de destino</span>
-        <span className="v" style={{ textAlign: 'right' }}>
+        <span className="v u-direita">
           {descreverDadosBancarios(me.cadastro?.dadosBancarios)}
           <span
-            className="back-link"
-            style={{ display: 'block', fontSize: 11, marginTop: 2, cursor: 'pointer' }}
+            className="back-link u-bloco u-f11 u-mt2"
             onClick={() =>
               open(
                 <ModalCadastro
@@ -697,7 +688,7 @@ export function ModalSaque(): ReactNode {
 
       <div className="summary-row total">
         <span className="k">Valor líquido a receber</span>
-        <span className="v" style={{ fontSize: 19 }}>
+        <span className="v u-v19">
           {cents > TAXA_SAQUE_FIXA_CENTS ? brl(cents - TAXA_SAQUE_FIXA_CENTS) : '—'}
         </span>
       </div>
@@ -707,26 +698,26 @@ export function ModalSaque(): ReactNode {
         <span className="v">D+3 úteis (previsão: {dataPrevistaBR})</span>
       </div>
 
-      <div className="note" style={{ marginTop: 10 }}>
+      <div className="note u-mt10">
         Cada pedido é conferido pela nossa equipe antes do envio do Pix. O valor sai do seu saldo agora e fica
         reservado para o saque; se o pedido for recusado, ele volta integralmente. Você recebe um e-mail quando
         o saque for pago.
       </div>
 
       {cents > 0 && cents <= TAXA_SAQUE_FIXA_CENTS ? (
-        <div className="note" style={{ marginTop: 10 }}>
+        <div className="note u-mt10">
           O valor do saque deve ser superior à tarifa fixa de {brl(TAXA_SAQUE_FIXA_CENTS)}.
         </div>
       ) : null}
 
       {cents > me.balance ? (
-        <div className="note" style={{ marginTop: 10 }}>
+        <div className="note u-mt10">
           Saldo insuficiente para este saque. Seu saldo disponível é {brl(me.balance)}.
         </div>
       ) : null}
 
       {erro ? (
-        <div className="note" style={{ marginTop: 10, color: 'var(--red)' }}>
+        <div className="note u-mt10 u-erro">
           {erro}
         </div>
       ) : null}
@@ -745,7 +736,7 @@ export function ModalSaque(): ReactNode {
         </button>
       </div>
 
-      <div className="note" style={{ marginTop: 14 }}>
+      <div className="note u-mt14">
         A liquidação é realizada via Pix para a conta informada. O débito no saldo é imediato e a
         transferência ocorre em até 3 dias úteis.
       </div>

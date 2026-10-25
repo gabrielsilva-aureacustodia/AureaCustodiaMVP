@@ -93,7 +93,8 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   if (pathname.startsWith('/recibos/')) {
     return {
       h1: 'Recibo de Custódia',
-      p: 'Certificado digital de custódia vinculado ao banco de dados fictício.',
+      // Era "...vinculado ao banco de dados fictício" (texto do MVP). Nada no sistema é simulado desde 25/10/2026.
+      p: 'Comprovante da guarda física da sua moeda, emitido no seu nome.',
     }
   }
   if (pathname === '/recibos/auditoria') {
@@ -260,24 +261,31 @@ export function Topbar(): ReactNode {
 
         <div className="top-right">
           <div className="user-chip">
-            <div className="avatar">{initials(me.name)}</div>
+            <div className="avatar" aria-hidden="true">
+              {initials(me.name)}
+            </div>
             <div>
               <div className="uname">{me.name}</div>
-              <div className="ubal">{brl(me.balance)}</div>
+              {/* "Saldo" escrito (25/10/2026): o número dourado sozinho não dizia o que era. */}
+              <div className="ubal">
+                <span className="ubal-lbl">Saldo</span> {brl(me.balance)}
+              </div>
             </div>
           </div>
 
           {/* Segundo interruptor de tema (o primeiro está na gaveta). Os dois leem
               o mesmo `dark`, então não há como saírem de sincronia — era isso que
-              a função syncThemeSwitches do original resolvia na mão. */}
-          <div className="theme-box">
+              a função syncThemeSwitches do original resolvia na mão. Desde
+              25/10/2026 é um <button role="switch">: antes era uma <div> com
+              onClick, que o teclado não alcançava. */}
+          <button type="button" className="theme-box" role="switch" aria-checked={dark} onClick={toggle}>
             <span>Modo escuro</span>
-            <div className={dark ? 'switch on' : 'switch'} onClick={toggle} />
-          </div>
+            <span className={dark ? 'switch on' : 'switch'} aria-hidden="true" />
+          </button>
 
-          <span className="logout" onClick={() => void sair()}>
-            Sair
-          </span>
+          <button type="button" className="logout" onClick={() => void sair()}>
+            Sair da conta
+          </button>
         </div>
       </div>
     </header>

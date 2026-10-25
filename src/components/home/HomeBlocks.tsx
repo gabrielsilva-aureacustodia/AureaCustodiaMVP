@@ -161,7 +161,6 @@ export function HomeBlocks(): ReactNode {
               type="button"
               className="block"
               onClick={abrirDeposito}
-              style={{ textAlign: 'left', font: 'inherit', width: '100%' }}
             >
               {conteudo}
             </button>

@@ -8,7 +8,7 @@
  * -----------------------------
  * Tudo aqui depende do estado vivo que o AppProvider mantém sincronizado a cada
  * 10s: o saldo muda quando alguém compra do usuário, "Ativos à venda" muda
- * quando um lote é comprado, e a pill "À venda" de cada moeda muda junto. Um
+ * quando um lote é comprado, e o selo "À venda" de cada moeda muda junto. Um
  * Server Component congelaria a tela no instante da requisição, que é
  * justamente o que o ciclo de sincronização do original existia para evitar.
  *
@@ -19,7 +19,6 @@
  */
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -40,6 +39,8 @@ import { ResumoDaCustodia } from '@/components/custody/ResumoDaCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { useModal } from '@/components/ui/Modal'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { Selo } from '@/components/ui/Selo'
 
 /** Quantas moedas aparecem antes de o "Ver todas" ser oferecido (linha 2591). */
 const VISIVEIS = 4
@@ -47,7 +48,6 @@ const VISIVEIS = 4
 export default function ContaPage(): ReactNode {
   const { state, session, me, catalogo } = useApp()
   const { open } = useModal()
-  const router = useRouter()
 
   /**
    * O `acctShowAll` global do monolito (linha 903). Lá, go('account') o zerava a
@@ -90,6 +90,22 @@ export default function ContaPage(): ReactNode {
   const coins = me.coins
   const shown = showAll ? coins : coins.slice(0, VISIVEIS)
 
+  // Os dois caminhos de dinheiro, cada um com a trava de cadastro que já existia.
+  const abrirDeposito = (): void => {
+    if (temCadastroCompleto(me)) {
+      open(<ModalDeposito />)
+    } else {
+      open(<ModalCadastro motivo="deposito" onSuccess={() => open(<ModalDeposito />)} />)
+    }
+  }
+  const abrirSaque = (): void => {
+    if (temDadosBancarios(me)) {
+      open(<ModalSaque />)
+    } else {
+      open(<ModalCadastro motivo="saque" onSuccess={() => open(<ModalSaque />)} />)
+    }
+  }
+
   return (
     <>
       {/* Aviso de cadastro pendente (D-7, 11/09/2026).
@@ -97,23 +113,18 @@ export default function ContaPage(): ReactNode {
           pop-up que aparece na frente da ação é o caminho principal — este é o
           lembrete para quem fechou a modal e saiu da tela. */}
       {!temCadastroCompleto(me) ? (
-        <div
-          className="note"
-          role="status"
-          style={{ marginBottom: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          <svg viewBox="0 0 24 24" style={{ width: 20, height: 20, flexShrink: 0 }}>
+        <div className="note aviso-cadastro" role="status">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16v.5" />
           </svg>
-          <span style={{ flex: 1, minWidth: 220 }}>
+          <span className="aviso-cadastro-tx">
             <b>Complete seu cadastro</b> para depositar, comprar ou enviar moedas para custódia.
             São quatro dados e leva menos de um minuto.
           </span>
           <button
-            className="btn btn-gold"
+            className="btn btn-outline auto"
             type="button"
-            style={{ padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
             onClick={() => open(<ModalCadastro motivo="configuracoes" />)}
           >
             Completar cadastro
@@ -121,184 +132,88 @@ export default function ContaPage(): ReactNode {
         </div>
       ) : null}
 
-      <div className="stats four" style={{ marginBottom: 18 }}>
-        <div className="stat">
-          <div className="stat-ico">
-            <svg viewBox="0 0 24 24">
-              <rect x="3" y="7" width="18" height="13" rx="2" />
-              <path d="M16 13h2M3 11h18" />
-            </svg>
-          </div>
-          <div>
-            <div className="lbl">Saldo disponível</div>
-            {/* .val.small: o saldo é o único número desta faixa que passa de seis
-                dígitos e precisa da fonte menor para não quebrar o cartão. */}
-            <div className="val small">{brl(me.balance)}</div>
-            {/* Ações financeiras: depósito e saque.
-                Regras da publicação (Seção 3.3 do Plano Executivo):
-                1. Cadastro formal progressivo acionado no primeiro movimento de dinheiro.
-                2. Saque de dinheiro exige dados bancários ou Pix cadastrados. Sem eles, o
-                   botão fica desabilitado com o motivo e prazo D+3 explícitos ao lado. */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 8,
-                alignItems: 'center',
-                marginTop: 8,
-                flexWrap: 'wrap',
-              }}
-            >
-              <button
-                className="btn btn-outline"
-                type="button"
-                style={{ padding: '6px 14px', fontSize: '12.5px', width: 'auto' }}
-                onClick={() => {
-                  if (temCadastroCompleto(me)) {
-                    open(<ModalDeposito />)
-                  } else {
-                    open(
-                      <ModalCadastro
-                        motivo="deposito"
-                        onSuccess={() => open(<ModalDeposito />)}
-                      />,
-                    )
-                  }
-                }}
-              >
-                Depositar
-              </button>
+      {/* TOPO DA CONTA (25/10/2026): o saldo ganhou um cartão próprio, com Depositar como ação
+          principal da tela e Sacar ao lado; os três contadores do acervo ficam à direita. Antes os
+          quatro números eram cartões iguais e os dois botões de dinheiro ficavam espremidos dentro
+          do primeiro. Mesmas ações, mesmas travas de cadastro e de dados bancários. */}
+      <div className="conta-topo">
+        <section className="panel conta-saldo" aria-labelledby="conta-saldo-titulo">
+          <h2 id="conta-saldo-titulo" className="eyebrow">
+            Saldo disponível
+          </h2>
+          <div className="conta-saldo-val">{brl(me.balance)}</div>
 
+          {/* Ações financeiras: depósito e saque.
+              Regras da publicação (Seção 3.3 do Plano Executivo):
+              1. Cadastro formal progressivo acionado no primeiro movimento de dinheiro.
+              2. Saque de dinheiro exige dados bancários ou Pix cadastrados. Sem eles, o
+                 motivo e o prazo D+3 ficam explícitos logo abaixo. */}
+          <div className="acoes">
+            <button className="btn btn-gold" type="button" onClick={abrirDeposito}>
+              Depositar
+            </button>
+            <button className="btn btn-outline" type="button" onClick={abrirSaque}>
+              Sacar
+            </button>
+          </div>
+
+          {!temDadosBancarios(me) && (
+            <p className="conta-saldo-nota">
+              Cadastre sua chave Pix ou dados bancários para liberar saques (prazo D+3).{' '}
               <button
-                className="btn btn-outline"
                 type="button"
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '12.5px',
-                  width: 'auto',
-                }}
-                onClick={() => {
-                  if (temDadosBancarios(me)) {
-                    open(<ModalSaque />)
-                  } else {
-                    open(
-                      <ModalCadastro
-                        motivo="saque"
-                        onSuccess={() => open(<ModalSaque />)}
-                      />,
-                    )
-                  }
-                }}
+                className="link-btn inline"
+                onClick={() => open(<ModalCadastro motivo="saque" onSuccess={() => open(<ModalSaque />)} />)}
               >
-                Sacar
+                Cadastrar dados
               </button>
+            </p>
+          )}
+
+          {saquesPendentes.length > 0 && (
+            <div className="conta-saques" role="status">
+              <div className="t">Saque em processamento (D+3)</div>
+              {saquesPendentes.map((sq) => (
+                <div key={sq.id} className="d">
+                  {brl(sq.valorLiquido)} líquido · Previsão até{' '}
+                  {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ·{' '}
+                  {sq.status === 'em_processamento'
+                    ? 'Pix enviado, aguardando confirmação'
+                    : 'aguardando aprovação da equipe'}
+                </div>
+              ))}
+              <div className="d">
+                O valor já saiu do seu saldo e fica reservado para o saque. Se o pedido for recusado, ele volta
+                integralmente.
+              </div>
             </div>
+          )}
+        </section>
 
-            {!temDadosBancarios(me) && (
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: '11.5px',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.4,
-                }}
-              >
-                Cadastre sua chave Pix ou dados bancários para liberar saques (prazo D+3).{' '}
-                <span
-                  className="back-link"
-                  style={{ display: 'inline', fontSize: '11.5px', padding: 0 }}
-                  onClick={() =>
-                    open(
-                      <ModalCadastro
-                        motivo="saque"
-                        onSuccess={() => open(<ModalSaque />)}
-                      />,
-                    )
-                  }
-                >
-                  Cadastrar dados
-                </span>
-              </div>
-            )}
-
-            {saquesPendentes.length > 0 && (
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: '8px 10px',
-                  background: 'var(--input-bg)',
-                  borderRadius: 6,
-                  border: '1px solid var(--line-soft)',
-                  fontSize: '11.5px',
-                }}
-              >
-                <div style={{ fontWeight: 600, color: 'var(--gold)' }}>
-                  Saque em processamento (D+3)
-                </div>
-                {saquesPendentes.map((sq) => (
-                  <div key={sq.id} style={{ marginTop: 2, color: 'var(--text-muted)' }}>
-                    {brl(sq.valorLiquido)} líquido · Previsão até{' '}
-                    {new Date(sq.previsaoPagamentoEm).toLocaleDateString('pt-BR')} ·{' '}
-                    {sq.status === 'em_processamento'
-                      ? 'Pix enviado, aguardando confirmação'
-                      : 'aguardando aprovação da equipe'}
-                  </div>
-                ))}
-                <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>
-                  O valor já saiu do seu saldo e fica reservado para o saque. Se o pedido for recusado, ele volta
-                  integralmente.
-                </div>
-              </div>
-            )}
+        <dl className="conta-contadores">
+          <div className="kpi">
+            <dt className="lbl">Moedas em custódia</dt>
+            <dd className="val ouro">{coins.length}</dd>
           </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-ico">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
-              <path d="M9 12l2 2 4-4" />
-            </svg>
-          </div>
-          <div>
-            <div className="lbl">Moedas em custódia</div>
-            <div className="val">{coins.length}</div>
-          </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-ico">
-            <svg viewBox="0 0 24 24">
-              <path d="M20 12l-8 8-9-9V4h7z" />
-              <circle cx="7.5" cy="7.5" r="1.3" />
-            </svg>
-          </div>
-          <div>
-            <div className="lbl">Moedas à venda</div>
+          <div className="kpi">
             {/* Conta OFERTAS, não lotes: um anúncio de 3 moedas são 3 registros
                 em sellOffers, e é isso que o usuário tem exposto no mercado. */}
-            <div className="val">{aVenda}</div>
+            <dt className="lbl">Moedas à venda</dt>
+            <dd className="val">{aVenda}</dd>
           </div>
-        </div>
-
-        <div className="stat">
-          <div className="stat-ico">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-          </div>
-          <div>
-            <div className="lbl">Moedas à compra</div>
+          <div className="kpi">
             {/* Soma as quantidades RESTANTES das ordens de compra: uma ordem de 5
                 que já teve 2 preenchidas conta 3. */}
-            <div className="val">{aCompra}</div>
+            <dt className="lbl">Moedas à compra</dt>
+            <dd className="val">{aCompra}</dd>
           </div>
-        </div>
+        </dl>
       </div>
 
       <div className="cols-rev">
         <div className="panel">
           <h3>
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <ellipse cx="12" cy="6.5" rx="7" ry="3" />
               <path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11" />
             </svg>
@@ -310,125 +225,148 @@ export default function ContaPage(): ReactNode {
           {shown.length ? (
             shown.map((c) => <LinhaMoeda key={c.id} coin={c} valor={valOf(c)} />)
           ) : (
-            <div className="empty">Você ainda não tem moedas em custódia.</div>
+            <EstadoVazio
+              titulo="Você ainda não tem moedas em custódia."
+              ilustracao="semItens"
+              acao={
+                <Link href="/envios" className="btn btn-outline">
+                  Enviar uma moeda
+                </Link>
+              }
+            >
+              A moeda aparece aqui assim que for aceita na avaliação, com o recibo que libera a negociação.
+            </EstadoVazio>
           )}
 
           {coins.length > VISIVEIS && (
-            <div style={{ textAlign: 'center', marginTop: 10 }}>
-              <span className="back-link" onClick={() => setShowAll((v) => !v)}>
-                {showAll ? 'Mostrar menos ↑' : 'Ver todas as moedas →'}
-              </span>
+            <div className="mostrar-todas">
+              <button type="button" className="link-btn" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Mostrar menos ↑' : `Ver todas as ${coins.length} moedas →`}
+              </button>
             </div>
           )}
         </div>
 
-        <div>
+        <div className="coluna-pilha">
           {/* A custódia abre a coluna lateral, acima das configurações rápidas:
               é a informação do acervo que estava faltando ao lado do acervo. O
               atalho "Faturas e planos" continua abaixo, para quem já sabe o que
               procura. */}
-          <ResumoDaCustodia estilo={{ marginBottom: 16 }} />
+          <ResumoDaCustodia />
 
-          <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel">
             <h3>Configurações rápidas</h3>
 
-            {/* Os três atalhos do original: dois abrem modal, um navega. Ficaram
-                <div> com onClick, como lá — .qk-row é uma linha inteira clicável
-                e transformá-la em <a> traria o sublinhado do link para dentro dos
-                dois textos empilhados. */}
-            <div className="qk-row" onClick={() => open(<ModalDadosPessoais />)}>
-              <svg viewBox="0 0 24 24">
+            {/* Atalhos: os que abrem modal são <button>, os que navegam são <Link> (25/10/2026).
+                Eram <div> com onClick — fora do Tab e sem papel para o leitor de tela. A linha
+                inteira continua clicável e o desenho é o mesmo (.qk-row). */}
+            <button type="button" className="qk-row" onClick={() => open(<ModalDadosPessoais />)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21c1-4 4-6 8-6s7 2 8 6" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Dados pessoais</div>
-                <div className="qk-sub">Gerencie suas informações</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Dados pessoais</span>
+                <span className="qk-sub">Gerencie suas informações</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </button>
 
-            <div className="qk-row" onClick={() => router.push('/conta/configuracoes')}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/conta/configuracoes" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
                 <path d="M9 12l2 2 4-4" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Segurança</div>
-                <div className="qk-sub">Senha, autenticação e acesso</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Segurança</span>
+                <span className="qk-sub">Senha, autenticação e acesso</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </Link>
 
             {/* O extrato é uma tela própria, não uma modal: tem tabela, filtro
                 e exportação, e precisa de URL para poder ser recarregada. */}
-            <div className="qk-row" onClick={() => router.push('/conta/extrato')}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/conta/extrato" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 3h9l4 4v14H6z" />
                 <path d="M9 11h7M9 15h7" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Extrato da conta</div>
-                <div className="qk-sub">Suas movimentações e exportação</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Extrato da conta</span>
+                <span className="qk-sub">Suas movimentações e exportação</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </Link>
 
             {/* Plano de custódia: extrato do que já foi pago, preço e data da
                 próxima cobrança, e o cancelamento da assinatura. */}
-            <div className="qk-row" onClick={() => router.push('/conta/custodia')}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/conta/custodia" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
                 <path d="M9 12l2 2 4-4" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Minha custódia</div>
-                <div className="qk-sub">Plano, extrato pago e próxima cobrança</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Minha custódia</span>
+                <span className="qk-sub">Plano, extrato pago e próxima cobrança</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </Link>
 
             {/* Faturas de custódia e planos de assinatura */}
-            <div className="qk-row" onClick={() => router.push('/conta/faturas')}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/conta/faturas" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                 <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Faturas e planos</div>
-                <div className="qk-sub">Planos de custódia, faturas e pagamentos</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Faturas e planos</span>
+                <span className="qk-sub">Planos de custódia, faturas e pagamentos</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </Link>
 
-            <div className="qk-row" onClick={() => open(<ModalNotificacoes />)}>
-              <svg viewBox="0 0 24 24">
+            <button type="button" className="qk-row" onClick={() => open(<ModalNotificacoes />)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 9a6 6 0 0112 0v5l2 3H4l2-3z" />
                 <path d="M10 20a2 2 0 004 0" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Notificações</div>
-                <div className="qk-sub">Preferências e alertas</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Notificações</span>
+                <span className="qk-sub">Preferências e alertas</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </button>
 
             {/* Retirada física — D-8, 11/09/2026.
                 Fica DISCRETA de propósito: é a última linha, sem destaque e sem
                 cor de ação. Pedir a moeda de volta é oneroso para o cliente e
                 para a empresa, e o desenho não deve estimular. Mas existe e é
                 encontrável, aqui e em Meus recibos — esconder seria pior. */}
-            <div className="qk-row" onClick={() => router.push('/retirada')}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/retirada" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 7h16v13H4z" />
                 <path d="M9 7V4h6v3M12 11v5M9.5 13.5L12 11l2.5 2.5" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Retiradas físicas</div>
-                <div className="qk-sub">Acompanhar ou pedir a saída de uma moeda</div>
-              </div>
-              <span className="arr">›</span>
-            </div>
+              <span className="qk-t">
+                <span className="qk-name">Retiradas físicas</span>
+                <span className="qk-sub">Acompanhar ou pedir a saída de uma moeda</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
+            </Link>
           </div>
 
           {/* ------------------------------------------------------------------
@@ -440,65 +378,68 @@ export default function ContaPage(): ReactNode {
               21/09/2026: os Termos e a Tabela de Taxas ficam disponíveis para
               leitura a qualquer momento aqui na Minha Conta.
 
-              São links de verdade (<Link>), e não .qk-row com onClick como os
-              atalhos acima: documento jurídico precisa abrir em aba nova, ser
-              copiável e ter endereço próprio.
+              São links de verdade (<Link>): documento jurídico precisa abrir em
+              aba nova, ser copiável e ter endereço próprio.
               ------------------------------------------------------------- */}
-          <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel">
             <h3>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 3h8l4 4v14H6z" />
                 <path d="M14 3v4h4M9 12h6M9 16h6" />
               </svg>
               Documentos legais
             </h3>
 
-            <Link href="/termos" className="qk-row" style={{ textDecoration: 'none' }}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/termos" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 3h8l4 4v14H6z" />
                 <path d="M14 3v4h4" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Termos de Uso</div>
-                <div className="qk-sub">O contrato que rege a sua conta e as transações</div>
-              </div>
-              <span className="arr">›</span>
+              <span className="qk-t">
+                <span className="qk-name">Termos de Uso</span>
+                <span className="qk-sub">O contrato que rege a sua conta e as transações</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
             </Link>
 
-            <Link href="/taxas" className="qk-row" style={{ textDecoration: 'none' }}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/taxas" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 7h16M4 12h16M4 17h10" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Tabela de Taxas</div>
-                <div className="qk-sub">Custódia, comissões do mercado, retirada e saque</div>
-              </div>
-              <span className="arr">›</span>
+              <span className="qk-t">
+                <span className="qk-name">Tabela de Taxas</span>
+                <span className="qk-sub">Custódia, comissões do mercado, retirada e saque</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
             </Link>
 
-            <Link href="/privacidade" className="qk-row" style={{ textDecoration: 'none' }}>
-              <svg viewBox="0 0 24 24">
+            <Link href="/privacidade" className="qk-row">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
               </svg>
-              <div className="qk-t">
-                <div className="qk-name">Política de Privacidade</div>
-                <div className="qk-sub">Quais dados tratamos e por quanto tempo</div>
-              </div>
-              <span className="arr">›</span>
+              <span className="qk-t">
+                <span className="qk-name">Política de Privacidade</span>
+                <span className="qk-sub">Quais dados tratamos e por quanto tempo</span>
+              </span>
+              <span className="arr" aria-hidden="true">
+                ›
+              </span>
             </Link>
           </div>
 
-          <div className="panel" style={{ textAlign: 'center' }}>
-            <div className="logo-box logo-footer" style={{ marginBottom: 10 }}>
+          <div className="panel conta-marca">
+            <div className="logo-box logo-footer">
               {/* Mesma logo do menu (linha 2663 do original). <img> puro e não
                   next/image: o webp de marca já vem otimizado de /public e as
                   dimensões saem do CSS. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={LOGO_REAL_MARCA} alt="Real Olímpico" />
             </div>
-            <div className="note" style={{ justifyContent: 'center', textAlign: 'center' }}>
-              O Real Olímpico protege o que tem valor para gerações.
-            </div>
+            <div className="note">O Real Olímpico protege o que tem valor para gerações.</div>
           </div>
         </div>
       </div>
@@ -526,7 +467,6 @@ interface LinhaMoedaProps {
  */
 function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
   const { state } = useApp()
-  const router = useRouter()
 
   const listed = state.sellOffers.some((o) => o.coinId === coin.id)
   // 'Retirado' vem do recibo extinto (retirada física, bloco 4.3 — ainda não
@@ -539,8 +479,8 @@ function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
       : listed
       ? 'À venda'
       : 'Em custódia'
-  const pill =
-    status === 'Em custódia' ? 'g' : status === 'À venda' ? 'y' : status === 'Bloqueado' ? 'r' : 'n'
+  const tom =
+    status === 'Em custódia' ? 'sucesso' : status === 'À venda' ? 'ouro' : status === 'Bloqueado' ? 'perigo' : 'neutro'
 
   return (
     <div className="acct-row">
@@ -560,19 +500,13 @@ function LinhaMoeda({ coin, valor }: LinhaMoedaProps): ReactNode {
           <span className="a-val">{brl(valor)}</span>
         </div>
         <div className="a-actions">
-          <span className={'pill ' + pill}>{status}</span>
-          {/* openNftDetail(session, id) do original virou rota: /recibos/<id>.
-              Continua <button> e não <Link> porque .btn-outline não zera o
-              sublinhado que o navegador dá a <a> — viraria um botão sublinhado.
-              Os dois valores inline são os da linha 2607. */}
-          <button
-            className="btn btn-outline"
-            type="button"
-            style={{ padding: '7px 14px', fontSize: '12.5px' }}
-            onClick={() => router.push(`/recibos/${coin.id}`)}
-          >
-            Ver recibo
-          </button>
+          <Selo tom={tom}>{status}</Selo>
+          {/* openNftDetail(session, id) do original virou rota: /recibos/<id>. Link de verdade desde
+              25/10/2026 (abre em nova aba, tem URL); o nome acessível leva o código da moeda, porque
+              "Ver recibo" repetido em cada linha não diz de qual moeda é. */}
+          <Link className="btn btn-outline a-recibo" href={`/recibos/${coin.id}`}>
+            Ver recibo<span className="sr-only"> da moeda {coin.id}</span>
+          </Link>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@
 .tutorial-link{
   position:fixed;right:16px;bottom:16px;z-index:45;
   display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;
-  border-radius:22px;border:1px solid var(--gold);background:var(--bg-panel);color:var(--gold);
+  border-radius:22px;border:1px solid var(--gold);background:var(--bg-panel);color:var(--ro-primaria-texto);
   font:600 13.5px var(--ff-sans);cursor:pointer;box-shadow:var(--shadow-toast);
   transition:background .18s,color .18s;
 }
@@ -65,7 +65,7 @@
 .dicas-conteudo b{font-size:13.5px;color:var(--text-strong)}
 .dicas-rodape{padding:6px 14px 10px;border-top:1px solid var(--line-soft)}
 .dicas-link{
-  min-height:44px;background:none;border:0;color:var(--gold);font:600 13px var(--ff-sans);
+  min-height:44px;background:none;border:0;color:var(--ro-primaria-texto);font:600 13px var(--ff-sans);
   text-decoration:underline;text-underline-offset:3px;cursor:pointer;
 }
 
@@ -84,7 +84,7 @@
   box-shadow:var(--shadow-modal);
 }
 .tour-cabeca{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
-.tour-etapa{font:700 11.5px var(--ff-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.tour-etapa{font:700 11.5px var(--ff-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ro-primaria-texto)}
 .tour-pular-tudo{
   min-height:44px;padding:0 4px;background:none;border:0;color:var(--text-muted);
   font:600 12.5px var(--ff-sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;

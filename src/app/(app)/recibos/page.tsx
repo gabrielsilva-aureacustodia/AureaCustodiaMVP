@@ -18,7 +18,6 @@
  */
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { tiposNegociaveis } from '@/domain/constants'
@@ -31,10 +30,11 @@ import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { ResumoDaCustodia } from '@/components/custody/ResumoDaCustodia'
 import { useApp } from '@/components/providers/AppProvider'
+import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { Selo } from '@/components/ui/Selo'
 
 export default function RecibosPage(): ReactNode {
   const { state, me, catalogo } = useApp()
-  const router = useRouter()
 
   // Mediana das ofertas abertas nas últimas 24h (domain/market.ts), uma por
   // tipo negociável. É a referência de mercado de cada ativo; as moedas de
@@ -68,12 +68,15 @@ export default function RecibosPage(): ReactNode {
   const linhasAuditoria = [...porTipo.entries()].sort((a, b) => b[1] - a[1])
   const hoje = fdate(Date.now())
 
+  // ORGANIZAÇÃO (25/10/2026): à esquerda o acervo e, abaixo dele, a auditoria de estoque; à direita
+  // os totais, a custódia (quanto custa, quando vence) e o atalho para retirada — o mesmo desenho de
+  // Minha conta, para quem passa de uma tela à outra achar as coisas no mesmo lugar.
   return (
     <div className="cols-rev">
-      <div>
-        <div className="panel" style={{ marginBottom: 18 }}>
+      <div className="coluna-pilha">
+        <div className="panel">
           <h3>
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 3h9l4 4v14H6z" />
               <path d="M9 10h7M9 13.5h7M9 17h4" />
             </svg>
@@ -85,7 +88,7 @@ export default function RecibosPage(): ReactNode {
               tem motivo para abrir. */}
           <AvisoDebitoCustodia estilo={{ marginTop: 0, marginBottom: 14 }} />
           {/* O estado vazio fica DENTRO da .recibo-grid, como no original (linha
-              1879): o `cardsHtml` era ou os cartões, ou o .empty, e os dois
+              1879): o `cardsHtml` era ou os cartões, ou o vazio, e os dois
               entravam no mesmo contêiner de grade. */}
           <div className="recibo-grid">
             {coins.length ? (
@@ -100,52 +103,58 @@ export default function RecibosPage(): ReactNode {
                 />
               ))
             ) : (
-              <div className="empty">
-                Você ainda não tem moedas em custódia. Use &quot;Enviar moeda para custódia&quot;
-                para começar.
+              <div className="recibo-vazio">
+                <EstadoVazio
+                  titulo="Você ainda não tem moedas em custódia."
+                  ilustracao="semItens"
+                  acao={
+                    <Link href="/envios" className="btn btn-outline">
+                      Enviar moeda para custódia
+                    </Link>
+                  }
+                >
+                  Use &quot;Enviar moeda para custódia&quot; para começar. O recibo aparece aqui quando a moeda é aceita.
+                </EstadoVazio>
               </div>
             )}
           </div>
         </div>
 
-        {/* A custódia do cliente fica na mesma coluna do acervo, logo abaixo
-            dele: é a tela em que ele olha as moedas guardadas, e é ali que a
-            pergunta "quanto isso me custa por mês?" aparece. */}
-        <ResumoDaCustodia estilo={{ marginBottom: 18 }} />
-
         {/* ---------- auditoria de estoque ---------- */}
         <div className="panel">
           <h3>
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 21h16M5 21V10h3v11M10.5 21V10h3v11M16 21V10h3v11M3 9l9-6 9 6z" />
             </svg>
             Auditoria de estoque
           </h3>
 
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: 12 }}>
+          <p className="lead">
             Auditoria transparente de todas as moedas no nosso sistema, suas e de outros
             usuários (nenhum nome será exposto).
           </p>
 
-          <div className="table-scroll">
-            <table className="audit-table">
+          <div className="tabela-fixa">
+            <table className="ro-tabela">
               <thead>
                 <tr>
-                  <th>Moeda</th>
-                  <th>Quantidade custodiada</th>
-                  <th>Status</th>
-                  <th>Última auditoria</th>
+                  <th scope="col">Moeda</th>
+                  <th scope="col" className="num">
+                    Quantidade custodiada
+                  </th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Última auditoria</th>
                 </tr>
               </thead>
               <tbody>
                 {linhasAuditoria.map(([tipo, qtd]) => (
                   <tr key={tipo}>
-                    <td>{tipo}</td>
-                    <td>{qtd}</td>
+                    <th scope="row">{tipo}</th>
+                    <td className="num">{qtd}</td>
                     <td>
-                      <span className="pill g">auditado</span>
+                      <Selo tom="sucesso">✓ auditado</Selo>
                     </td>
-                    <td>{hoje}</td>
+                    <td className="nowrap">{hoje}</td>
                   </tr>
                 ))}
               </tbody>
@@ -153,26 +162,21 @@ export default function RecibosPage(): ReactNode {
           </div>
 
           <div className="note">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="9" />
               <path d="M12 8v5M12 16.5v.5" />
             </svg>
             Estoque auditado periodicamente pelo Real Olímpico.
           </div>
 
-          <button
-            className="btn btn-gold"
-            type="button"
-            style={{ marginTop: 14 }}
-            onClick={() => router.push('/recibos/auditoria')}
-          >
+          <Link className="btn btn-outline btn-link-cheio" href="/recibos/auditoria">
             Ver auditoria completa
-          </button>
+          </Link>
         </div>
       </div>
 
-      <div>
-        <div className="panel" style={{ marginBottom: '18px' }}>
+      <div className="coluna-pilha">
+        <div className="panel">
           <h3>Resumo</h3>
           <div className="summary-row">
             <span className="k">Total em custódia</span>
@@ -190,25 +194,23 @@ export default function RecibosPage(): ReactNode {
             <span className="v">{recibosAtivos}</span>
           </div>
           {coins.length - recibosAtivos > 0 ? (
-            <div className="summary-row" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div className="summary-row menor">
               <span className="k">Recibos extintos</span>
               <span className="v">{coins.length - recibosAtivos}</span>
             </div>
           ) : null}
-          <div style={{ marginTop: '14px' }}>
-            <Link
-              href="/retirada"
-              className="btn btn-outline"
-              style={{ width: '100%', padding: '8px', fontSize: '12.5px' }}
-            >
-              Minhas retiradas físicas ›
-            </Link>
-          </div>
+          <Link href="/retirada" className="btn btn-outline btn-link-cheio">
+            Minhas retiradas físicas ›
+          </Link>
         </div>
+
+        {/* A custódia do cliente fica ao lado do acervo: é a tela em que ele olha as moedas
+            guardadas, e é ali que a pergunta "quanto isso me custa por mês?" aparece. */}
+        <ResumoDaCustodia />
 
         <div className="panel">
           <div className="note">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
             Cada recibo de custódia comprova a recepção e guarda da moeda física, com registro na

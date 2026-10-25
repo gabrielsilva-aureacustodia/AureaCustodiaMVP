@@ -27,7 +27,9 @@ npm run lint         # eslint
 Vercel falha no mesmo lugar; falhar localmente custa 10 segundos, falhar lá custa um
 deploy quebrado.
 
-Login de teste: qualquer e-mail semeado em `src/domain/seed.ts`, senha `12345678`.
+Login: pelo Supabase Auth (e-mail e senha ou Google), contra o projeto real. A senha `12345678` das contas de
+semente não vale desde 20/09/2026, e o estado fora de teste nasce vazio — não há contas de demonstração.
+Para testar tela logada sem banco, ver `docs/polimento/plataforma/ferramentas/README.md`.
 
 ## Arquitetura — as três camadas e a regra que as separa
 
@@ -49,11 +51,9 @@ uma Server Action em `src/server/actions/`. O cliente pede; quem decide é o ser
 No monolito a regra rodava no navegador e qualquer pessoa com o console aberto comprava
 de graça — não regredir para isso.
 
-**A chave do estado é versionada** (`STORE_KEY`, hoje `aurea-market-v6`). Mudança no
-formato de `AppState` sobe a versão em vez de migrar: o banco de teste recomeça do
-seed, e isso é aceito porque o dado é de demonstração. A v6 nasceu do mercado
-multi-ativo — `SellOffer`, `BuyOrder` e `Trade` passaram a ter `tipoMoeda`, e um
-registro da v5 sem esse campo ficaria preso no livro sem nunca casar.
+**A chave do estado é versionada** (`STORE_KEY`, hoje `aurea-market-v8`), mas só vale para os stores
+Redis e memória: com Postgres o estado vive em tabelas, migradas por `scripts/db-migrate.mjs`, e trocar a
+chave **não** apaga nada. Fora de teste o estado nasce vazio (`estadoVazio()`), sem contas de semente.
 
 **Com `POSTGRES_URL`, toda mutação também grava o ledger e a trilha de auditoria** na mesma
 transação (`src/server/db/derivar.ts`, migration 003): lançamentos append-only com hash
@@ -206,8 +206,10 @@ cold start.
   `postada`/`entregue`; "Recebido pela custódia" continua manual. Credenciais nas cinco variáveis
   `CORREIOS_*` (o token de 24 h nasce no servidor); sem elas, frete vira estimativa local e a tela diz isso.
   Mapa em `src/lib/shipping/README.md`; atalhos no RA-59.
-- **Depósito em conta é simulado** e limitado a `DEPOSITO_MAX` (R$ 100.000 por
-  operação). Não há Pix, cartão nem conciliação — a tela precisa dizer isso.
+- **Depósito em conta é real**, por Pix ou cartão no Mercado Pago (`iniciarDeposito`, `src/server/actions/payments.ts`),
+  creditado só quando a conciliação confirma o pagamento, e limitado a `DEPOSITO_MAX` (R$ 100.000 por operação,
+  editável no painel), que a tela mostra sempre. **Nada no sistema é simulado** (Gabriel, 25/10/2026): o simulador de
+  `src/lib/payments/` só responde quando não há token configurado, o que não acontece em produção.
 
 Esses números são o **padrão** e vivem em `src/domain/constants.ts` e `src/domain/fees.ts`
 (`TAXAS_PADRAO`, `COIN_TYPES`, `DEPOSITO_MAX`). Desde a C3 (migration 024), **a equipe os edita em
@@ -238,9 +240,8 @@ código** ou a regra de casamento continua sendo mudança de produto.
   **`logo-real-olimpico-emblema.webp`** (só o medalhão, quadrado, para quando o nome já
   está escrito ao lado). Constantes em `src/domain/constants.ts`.
   Nunca gerar, redesenhar ou substituir por alternativa.
-- **Anéis olímpicos não podem aparecer** em arte de moeda (risco de PI do COB).
-- O rótulo **"código simulado"** no QR do recibo é deliberado e não sai. Não há
-  blockchain: o recibo é comprovante de custódia, propositalmente fora do enquadramento
+- O recibo **não tem QR** desde 20/09/2026 (topo de `src/components/recibo/Certificate.tsx`): quem autentica é o
+  par código + hash SHA-256, na tela e no PDF. Não há blockchain: o recibo é comprovante de custódia, propositalmente fora do enquadramento
   VASP (Res. BCB 519–521/2026). **Não sugerir tokenização, NFT on-chain ou DApp** — a
   decisão pela arquitetura centralizada está registrada em relatório e tem base
   regulatória (IN RFB 1888/2019).
@@ -249,14 +250,12 @@ código** ou a regra de casamento continua sendo mudança de produto.
 
 ## Pendências conhecidas (não são bugs a "consertar" sem combinar)
 
-- **Senhas em texto puro.** Some com a migração para Supabase Auth (módulo M2). O
-  repositório está **público de propósito** durante o desenvolvimento, para facilitar
-  leitura por agentes diversos — decisão do Gabriel, reversível. Ver RA-02 e RA-11 em
-  `RISCOS_ASSUMIDOS.md`.
-- **Hash do recibo é simulado.** Substituir por hash determinístico encadeado (SHA-256)
-  é item de roadmap, não improviso.
-- Sem termos de uso com aceite versionado nem política de privacidade.
-- Sem Melhor Envio, login Google, e-mail transacional. (Correios: contrato e API CWS ligados em 22/10/2026 — ver a regra do frete acima.)
+- O repositório está **público de propósito** durante o desenvolvimento, para facilitar leitura por agentes
+  diversos — decisão do Gabriel, reversível. Ver RA-11 em `RISCOS_ASSUMIDOS.md`. (As senhas vivem no Supabase
+  Auth, que guarda só o hash; o recibo emitido pela bancada leva hash SHA-256 real encadeado — `src/server/estacao/analise.ts`;
+  termos, política de privacidade e aceite versionado existem — `/conta/configuracoes`; login Google e e-mails de
+  aviso também.)
+- Sem Melhor Envio. (Correios: contrato e API CWS ligados em 22/10/2026 — ver a regra do frete acima.)
 - Contradição tributária em aberto (Lucro Presumido × Simples com Fator R) — **não
   codificar lógica de imposto** até o contador definir.
 

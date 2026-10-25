@@ -116,11 +116,11 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
   if (etapa === 'pagamento' && retiradaIdCriada) {
     return (
-      <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-        <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+      <div className="u-estreito">
+        <h3 className="serif u-modal-titulo">
           Pagamento da taxa de retirada
         </h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+        <p className="u-modal-lead">
           Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Retirada: <strong>{retiradaIdCriada}</strong>
         </p>
 
@@ -149,16 +149,15 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           }}
         />
 
-        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+        <div className="u-mt16 u-centro">
           <button
             type="button"
-            className="btn btn-outline"
+            className="btn btn-outline u-toque u-cheio"
             onClick={() => {
               toast('Solicitação de retirada registrada! Você pode pagar a taxa a qualquer momento em Minhas Retiradas.')
               close()
               onSuccess?.()
             }}
-            style={{ minHeight: '44px', width: '100%' }}
           >
             Pagar depois (manter solicitação e pagar mais tarde)
           </button>
@@ -168,11 +167,11 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   }
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-      <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+    <div className="u-estreito">
+      <h3 className="serif u-modal-titulo">
         Solicitar Retirada Física
       </h3>
-      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+      <p className="u-modal-lead">
         Moeda: <strong>{coin.tipoMoeda}</strong> ({coin.id}) · Recibo: <strong>{coin.recibo.codigo}</strong>
       </p>
 
@@ -223,13 +222,13 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       </div>
 
       {/* 2. Endereço Completo (Trava 2) */}
-      <div className="field-lbl" style={{ marginTop: '16px' }}>
+      <div className="field-lbl u-mt16">
         2. Endereço de entrega (Trava de segurança)
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div className="u-grade-2">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Nome do Destinatário</label>
+          <label className="u-rotulo">Nome do Destinatário</label>
           <input
             className="tinput"
             value={nome}
@@ -238,7 +237,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>CPF ou CNPJ</label>
+          <label className="u-rotulo">CPF ou CNPJ</label>
           <input
             className="tinput"
             value={cpfOuCnpj}
@@ -248,9 +247,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-1-2 u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>
+          <label className="u-rotulo">
             CEP {buscandoCep ? '⏳...' : ''}
           </label>
           <input
@@ -262,7 +261,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Logradouro / Rua</label>
+          <label className="u-rotulo">Logradouro / Rua</label>
           <input
             className="tinput"
             value={logradouro}
@@ -272,9 +271,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-3 u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Número</label>
+          <label className="u-rotulo">Número</label>
           <input
             className="tinput"
             value={numero}
@@ -283,7 +282,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Complemento</label>
+          <label className="u-rotulo">Complemento</label>
           <input
             className="tinput"
             value={complemento}
@@ -292,7 +291,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Bairro</label>
+          <label className="u-rotulo">Bairro</label>
           <input
             className="tinput"
             value={bairro}
@@ -302,9 +301,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '10px', marginTop: '6px' }}>
+      <div className="u-grade-3b u-mt6">
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Cidade</label>
+          <label className="u-rotulo">Cidade</label>
           <input
             className="tinput"
             value={cidade}
@@ -313,7 +312,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>UF</label>
+          <label className="u-rotulo">UF</label>
           <input
             className="tinput"
             value={uf}
@@ -323,7 +322,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           />
         </div>
         <div>
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>Telefone / WhatsApp</label>
+          <label className="u-rotulo">Telefone / WhatsApp</label>
           <input
             className="tinput"
             value={telefone}
@@ -335,7 +334,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
       {/* 3. Cláusula de Equiparação de Acervo (Bloco 10) */}
       <div
-        className={`confirm-box ${cienteEquiparacao ? 'on' : ''}`}
+        className={`confirm-box u-ciente ${cienteEquiparacao ? 'on' : ''}`}
         onClick={() => setCienteEquiparacao(!cienteEquiparacao)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -346,17 +345,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         role="checkbox"
         aria-checked={cienteEquiparacao}
         tabIndex={0}
-        style={{
-          marginTop: '16px',
-          background: 'var(--gold-wash)',
-          padding: '12px',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          minHeight: '44px',
-        }}
       >
         <div className="cb">{cienteEquiparacao ? '✓' : ''}</div>
-        <div style={{ fontSize: '12.5px', color: 'var(--text-strong)' }}>
+        <div className="u-f125 u-forte-cor">
           <strong>Cláusula de devolução de acervo equiparável:</strong> Declaro que estou ciente e
           concordo que a moeda física devolvida <em>não é necessariamente a mesma que foi depositada</em>,
           mas moeda idêntica e equiparável em mesmo padrão e estado de conservação, conforme as regras de custódia do Real Olímpico.
@@ -364,10 +355,10 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       </div>
 
       {/* 4. Resumo Financeiro */}
-      <div className="summary-box" style={{ marginTop: '14px' }}>
+      <div className="summary-box u-mt14">
         <div className="sr">
           <span className="k">Taxa da retirada ({modalidade === 'comum' ? 'Comum' : 'Segura'})</span>
-          <span className="v" style={{ color: 'var(--gold)' }}>{brl(taxaCents)}</span>
+          <span className="v u-ouro">{brl(taxaCents)}</span>
         </div>
         <div className="sr">
           <span className="k">Formas de pagamento</span>
@@ -376,7 +367,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
       </div>
 
       {erro ? (
-        <div className="warn-box" style={{ marginTop: '8px' }}>
+        <div className="warn-box u-mt8">
           <svg viewBox="0 0 24 24">
             <path d="M12 3l9 16H3z" />
             <path d="M12 10v4M12 17v.5" />
@@ -385,22 +376,20 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         </div>
       ) : null}
 
-      <div className="m-actions" style={{ marginTop: '18px' }}>
+      <div className="m-actions u-mt18">
         <button
-          className="btn btn-outline"
+          className="btn btn-outline u-toque"
           type="button"
           onClick={close}
           disabled={submetendo}
-          style={{ minHeight: '44px' }}
         >
           Cancelar
         </button>
         <button
-          className="btn btn-gold"
+          className="btn btn-gold u-toque"
           type="button"
           disabled={!cienteEquiparacao || submetendo}
           onClick={() => void avancarParaPagamento()}
-          style={{ minHeight: '44px' }}
         >
           {submetendo ? 'Processando...' : 'Avançar para pagamento'}
         </button>
@@ -424,11 +413,11 @@ export function ModalPagarRetirada({
   const toast = useToast()
 
   return (
-    <div style={{ maxWidth: '520px', margin: '0 auto' }}>
-      <h3 className="serif" style={{ fontSize: '20px', marginBottom: '4px' }}>
+    <div className="u-estreito">
+      <h3 className="serif u-modal-titulo">
         Pagar taxa de retirada
       </h3>
-      <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+      <p className="u-modal-lead">
         Retirada: <strong>{retirada.id}</strong> · Moeda: <strong>{retirada.coinId}</strong> ({retirada.modalidade === 'segura' ? 'Transporte Seguro' : 'Comum'})
       </p>
 
@@ -457,12 +446,11 @@ export function ModalPagarRetirada({
         }}
       />
 
-      <div style={{ marginTop: '16px', textAlign: 'center' }}>
+      <div className="u-mt16 u-centro">
         <button
           type="button"
-          className="btn btn-outline"
+          className="btn btn-outline u-toque u-cheio"
           onClick={close}
-          style={{ minHeight: '44px', width: '100%' }}
         >
           Fechar
         </button>

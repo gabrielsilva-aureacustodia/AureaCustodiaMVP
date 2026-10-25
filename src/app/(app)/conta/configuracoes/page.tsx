@@ -20,6 +20,8 @@ import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useModal } from '@/components/ui/Modal'
 import { toggle2FA } from '@/server/actions/account'
+import { Selo } from '@/components/ui/Selo'
+import { Esqueleto } from '@/components/ui/Esqueleto'
 import {
   assinarClausulaArbitragem,
   listarMeusAceites,
@@ -111,167 +113,137 @@ export default function ConfiguracoesPage(): ReactNode {
         ‹ Voltar para minha conta
       </Link>
 
+      {/* Os cinco cartões tinham, cada um, um botão dourado — cinco primárias numa tela só. Agora são
+          contornados (conceito 08: o dourado é escasso) e o nome acessível diz o que cada "Editar"
+          edita (doc 35 §6). As ações e as modais são as mesmas. */}
       <div className="cols-rev">
         <div className="cfg-grid">
           <div className="cfg-card">
             <h4>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21c1-4 4-6 8-6s7 2 8 6" />
               </svg>
               Dados pessoais
             </h4>
             <p>Atualize seu nome e outras informações cadastrais.</p>
-            <button
-              className="btn btn-gold"
-              type="button"
-              onClick={() => open(<ModalDadosPessoais />)}
-            >
-              Editar
+            <button className="btn btn-outline" type="button" onClick={() => open(<ModalDadosPessoais />)}>
+              Editar<span className="sr-only"> dados pessoais</span>
             </button>
           </div>
 
-
           <div className="cfg-card">
             <h4>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="5" y="10" width="14" height="10" rx="2" />
                 <path d="M8 10V7a4 4 0 018 0v3" />
               </svg>
               Senha
             </h4>
             <p>Altere sua senha de acesso à plataforma.</p>
-            <button className="btn btn-gold" type="button" onClick={() => open(<ModalSenha />)}>
-              Editar
+            <button className="btn btn-outline" type="button" onClick={() => open(<ModalSenha />)}>
+              Editar<span className="sr-only"> senha</span>
             </button>
           </div>
 
           <div className="cfg-card">
             <h4>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
                 <path d="M9 12l2 2 4-4" />
               </svg>
               Verificação em duas etapas
             </h4>
             <p>Adicione uma camada extra de proteção à sua conta.</p>
-            <button
-              className={s.twoFA ? 'btn btn-outline' : 'btn btn-gold'}
-              type="button"
-              onClick={() => void run(() => toggle2FA())}
-            >
+            <button className="btn btn-outline" type="button" onClick={() => void run(() => toggle2FA())}>
               {s.twoFA ? 'Desativar' : 'Ativar'}
+              <span className="sr-only"> a verificação em duas etapas</span>
             </button>
           </div>
 
           <div className="cfg-card">
             <h4>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 6h16v12H4z" />
                 <path d="M4 7l8 6 8-6" />
               </svg>
               Notificações por e-mail
             </h4>
             <p>Gerencie os avisos e atualizações que você recebe por e-mail.</p>
-            <button
-              className="btn btn-gold"
-              type="button"
-              onClick={() => open(<ModalNotificacoes />)}
-            >
-              Gerenciar
+            <button className="btn btn-outline" type="button" onClick={() => open(<ModalNotificacoes />)}>
+              Gerenciar<span className="sr-only"> notificações por e-mail</span>
             </button>
           </div>
 
           <div className="cfg-card">
             <h4>
-              <svg viewBox="0 0 24 24">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M20 13.5A8 8 0 1110.5 4 6.5 6.5 0 0020 13.5z" />
               </svg>
               Modo claro e modo escuro
             </h4>
             <p>Escolha o tema de sua preferência para navegar.</p>
-            <button className="btn btn-gold" type="button" onClick={alternarTema}>
+            <button className="btn btn-outline" type="button" onClick={alternarTema}>
               Alternar tema
             </button>
           </div>
         </div>
 
-        <div>
-          <div className="panel" style={{ marginBottom: 16 }}>
+        <div className="coluna-pilha">
+          <div className="panel">
             <h3>Resumo de segurança</h3>
             <div className="sec-row">
               <span className="k">E-mail verificado</span>
-              <span className="pill g">Verificado</span>
+              <Selo tom="sucesso">Verificado</Selo>
             </div>
             <div className="sec-row">
               <span className="k">Verificação em duas etapas</span>
-              <span className={s.twoFA ? 'pill g' : 'pill y'}>{s.twoFA ? 'Ativa' : 'Pendente'}</span>
+              <Selo tom={s.twoFA ? 'sucesso' : 'aviso'}>{s.twoFA ? 'Ativa' : 'Pendente'}</Selo>
             </div>
             <div className="sec-row">
               <span className="k">Último acesso</span>
-              <span style={{ fontWeight: 700 }} suppressHydrationWarning>
+              <span className="forte" suppressHydrationWarning>
                 {ultimoAcesso}
               </span>
             </div>
             <div className="sec-row">
               <span className="k">Conta ativa</span>
-              <span className="pill g">Ativo</span>
+              <Selo tom="sucesso">Ativo</Selo>
             </div>
           </div>
 
-          <div className="panel" style={{ textAlign: 'center' }}>
-            <h3 style={{ justifyContent: 'center' }}>Produtos ativos</h3>
-            <div className="logo-box logo-footer" style={{ marginBottom: 8 }}>
+          <div className="panel conta-marca">
+            <h3>Produtos ativos</h3>
+            <div className="logo-box logo-footer">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={LOGO_REAL_EMBLEMA} alt="Real Olímpico" />
             </div>
-            <div className="note" style={{ justifyContent: 'center' }}>
-              Real Olímpico ativo na sua conta.
-            </div>
+            <div className="note">Real Olímpico ativo na sua conta.</div>
           </div>
         </div>
       </div>
 
-      <section className="panel" style={{ marginTop: 24 }}>
-        <h3>Documentos Legais e Aceites Formais</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '6px 0 18px' }}>
+      <section className="panel cfg-aceites" aria-labelledby="cfg-aceites-t">
+        <h3 id="cfg-aceites-t">Documentos Legais e Aceites Formais</h3>
+        <p className="lead">
           Histórico de manifestações de vontade e aceite formal de termos vigentes, gravados com prova matemática encadeada.
         </p>
 
         {/* Card de Arbitragem */}
-        <div
-          className={`register-arbitration-card ${arbitragemAssinada ? 'active' : ''}`}
-          style={{ marginBottom: 20 }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
+        <div className={`register-arbitration-card cfg-arbitragem ${arbitragemAssinada ? 'active' : ''}`}>
+          <div className="cfg-arbitragem-cab">
             <div>
-              <strong style={{ color: 'var(--text-strong)', fontSize: 15 }}>
-                Cláusula Compromissória de Arbitragem (Capítulo 14.4 dos Termos de Uso)
-              </strong>
-              <span className="register-arbitration-badge" style={{ marginLeft: 8 }}>
-                {arbitragemAssinada ? 'Assinada' : 'Facultativa'}
-              </span>
+              <strong>Cláusula Compromissória de Arbitragem (Capítulo 14.4 dos Termos de Uso)</strong>
+              <span className="register-arbitration-badge">{arbitragemAssinada ? 'Assinada' : 'Facultativa'}</span>
             </div>
             {arbitragemAssinada && aceiteArbitragem && (
-              <Link
-                href={`/conta/aceites/${aceiteArbitragem.id}`}
-                className="legal-block-link"
-                style={{ minHeight: 32, padding: 0 }}
-              >
+              <Link href={`/conta/aceites/${aceiteArbitragem.id}`} className="legal-block-link">
                 Ver comprovante da assinatura →
               </Link>
             )}
           </div>
 
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 0' }}>
+          <p className="cfg-arbitragem-tx">
             {arbitragemAssinada
               ? `Você assinou expressamente a cláusula de arbitragem com o nome "${
                   aceiteArbitragem?.nomeDigitado || me.name
@@ -288,8 +260,7 @@ export default function ConfiguracoesPage(): ReactNode {
               {!querAssinarArbitragem ? (
                 <button
                   type="button"
-                  className="btn btn-outline"
-                  style={{ minHeight: 38, fontSize: 13, marginTop: 6 }}
+                  className="btn btn-outline auto"
                   onClick={() => {
                     setQuerAssinarArbitragem(true)
                     setNomeAssinatura(me.name)
@@ -298,45 +269,36 @@ export default function ConfiguracoesPage(): ReactNode {
                   Assinar Cláusula Arbitral agora
                 </button>
               ) : (
-                <div className="register-arbitration-field" style={{ marginTop: 12 }}>
+                <div className="register-arbitration-field cfg-assinatura">
                   <label htmlFor="nomeAssinaturaConfig">Digite seu nome completo como assinatura formal:</label>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6 }}>
+                  <div className="cfg-assinatura-linha">
                     <input
                       id="nomeAssinaturaConfig"
                       type="text"
+                      className="tinput"
+                      autoComplete="name"
+                      autoCapitalize="words"
+                      aria-invalid={erroAssinatura ? true : undefined}
+                      aria-describedby={erroAssinatura ? 'erro-assinatura' : undefined}
                       value={nomeAssinatura}
                       onChange={(e) => setNomeAssinatura(e.target.value)}
                       placeholder="Seu nome completo"
-                      style={{
-                        flex: '1 1 240px',
-                        height: 44,
-                        padding: '0 12px',
-                        borderRadius: 6,
-                        border: '1px solid var(--line)',
-                        background: 'var(--card)',
-                        color: 'var(--text-strong)',
-                      }}
                     />
                     <button
                       type="button"
-                      className="btn btn-gold"
+                      className="btn btn-gold auto"
                       disabled={enviandoAssinatura}
                       onClick={() => void handleAssinarArbitragem()}
-                      style={{ minHeight: 44 }}
                     >
                       {enviandoAssinatura ? 'Assinando…' : 'Confirmar assinatura'}
+                      <span className="sr-only"> da cláusula arbitral</span>
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      onClick={() => setQuerAssinarArbitragem(false)}
-                      style={{ minHeight: 44 }}
-                    >
-                      Cancelar
+                    <button type="button" className="link-btn" onClick={() => setQuerAssinarArbitragem(false)}>
+                      Cancelar<span className="sr-only"> a assinatura da cláusula arbitral</span>
                     </button>
                   </div>
                   {erroAssinatura && (
-                    <p style={{ color: '#ef4444', fontSize: 13, margin: '8px 0 0' }}>
+                    <p className="msg-erro" id="erro-assinatura" role="alert">
                       {erroAssinatura}
                     </p>
                   )}
@@ -345,53 +307,56 @@ export default function ConfiguracoesPage(): ReactNode {
             </div>
           )}
           {sucessoAssinatura && (
-            <p style={{ color: '#22c55e', fontSize: 13, margin: '8px 0 0' }}>{sucessoAssinatura}</p>
+            <p className="msg-ok" role="status">
+              {sucessoAssinatura}
+            </p>
           )}
         </div>
 
-        {/* Tabela de Aceites Registrados */}
-        <div style={{ overflowX: 'auto' }}>
-          <table className="legal-fee-table" style={{ margin: 0 }}>
+        {/* Tabela de Aceites Registrados — 1.ª coluna (o documento) fixa no celular. */}
+        <div className="tabela-fixa">
+          <table className="ro-tabela">
             <thead>
               <tr>
-                <th>Documento</th>
-                <th>Versão</th>
-                <th>Data do Aceite</th>
-                <th>Canal</th>
-                <th>Comprovante</th>
+                <th scope="col">Documento</th>
+                <th scope="col">Versão</th>
+                <th scope="col">Data do Aceite</th>
+                <th scope="col">Canal</th>
+                <th scope="col">Comprovante</th>
               </tr>
             </thead>
             <tbody>
               {carregandoAceites ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Carregando histórico de aceites…
+                  <td colSpan={5}>
+                    <div className="carregando" role="status" aria-busy="true" aria-label="Carregando histórico de aceites…">
+                      <Esqueleto altura="14px" largura="100%" />
+                      <Esqueleto altura="14px" largura="82%" />
+                    </div>
                   </td>
                 </tr>
               ) : aceites.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={5} className="cel-vazia">
                     Nenhum registro formal localizado no banco de dados. Os aceites são gerados automaticamente na criação da conta ou na confirmação dos termos.
                   </td>
                 </tr>
               ) : (
                 aceites.map((a) => (
                   <tr key={a.id}>
-                    <td>
-                      <strong>
-                        {a.documentoChave === 'termos_de_uso'
-                          ? 'Termos de Uso'
-                          : a.documentoChave === 'politica_privacidade'
-                          ? 'Política de Privacidade'
-                          : a.documentoChave === 'tabela_de_taxas'
-                          ? 'Tabela de Taxas'
-                          : a.documentoChave === 'clausula_arbitragem'
-                          ? 'Cláusula Arbitral'
-                          : a.documentoChave}
-                      </strong>
-                    </td>
+                    <th scope="row">
+                      {a.documentoChave === 'termos_de_uso'
+                        ? 'Termos de Uso'
+                        : a.documentoChave === 'politica_privacidade'
+                        ? 'Política de Privacidade'
+                        : a.documentoChave === 'tabela_de_taxas'
+                        ? 'Tabela de Taxas'
+                        : a.documentoChave === 'clausula_arbitragem'
+                        ? 'Cláusula Arbitral'
+                        : a.documentoChave}
+                    </th>
                     <td>v{a.documentoVersao}</td>
-                    <td>
+                    <td className="nowrap">
                       {new Date(a.createdAt).toLocaleString('pt-BR', {
                         day: '2-digit',
                         month: '2-digit',
@@ -400,13 +365,9 @@ export default function ConfiguracoesPage(): ReactNode {
                         minute: '2-digit',
                       })}
                     </td>
-                    <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{a.canal}</td>
+                    <td className="cel-sub">{a.canal}</td>
                     <td>
-                      <Link
-                        href={`/conta/aceites/${a.id}`}
-                        className="legal-block-link"
-                        style={{ minHeight: 36, padding: 0 }}
-                      >
+                      <Link href={`/conta/aceites/${a.id}`} className="legal-block-link">
                         Ver comprovante (#{a.id}) →
                       </Link>
                     </td>

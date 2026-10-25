@@ -14,12 +14,12 @@
 .acct-row .a-info{flex:1;min-width:0}
 .acct-row .a-name{font-weight:700;color:var(--text-strong);font-size:14.5px}
 .acct-row .a-meta{font-size:12px;color:var(--text-muted)}
-.acct-row .a-val{font-weight:700;color:var(--gold);font-family:var(--ff-display);font-size:15px;margin-right:6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.acct-row .a-val{font-weight:700;color:var(--ro-primaria-texto);font-family:var(--ff-display);font-size:15px;margin-right:6px;white-space:nowrap;font-variant-numeric:tabular-nums}
 /* desktop: os dois invólucros somem da caixa e a linha continua única */
 .acct-row .a-line2,.acct-row .a-actions{display:contents}
 .acct-row .a-info{display:flex;align-items:center;gap:12px}
 /* empurra tag + botão para a borda direita da linha */
-.acct-row .pill{margin-left:auto}
+.acct-row .ro-selo{margin-left:auto}
 .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .cfg-card{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--card);box-shadow:var(--shadow);transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1),box-shadow .2s ease,border-color .2s ease}
 .cfg-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--line)}
@@ -39,5 +39,148 @@
 .qk-row .qk-t{flex:1}
 .qk-row .qk-name{font-weight:700;color:var(--text-strong);font-size:14px}
 .qk-row .qk-sub{font-size:12px;color:var(--text-muted)}
-.qk-row .arr{color:var(--gold);font-size:18px;transition:transform .15s ease}
+.qk-row .arr{color:var(--ro-primaria-texto);font-size:18px;transition:transform .15s ease}
 .qk-row:hover .arr{transform:translateX(3px)}
+
+/* ============================================================================
+   MINHA CONTA — redesenho da Frente 4 (25/10/2026).
+   O saldo ganhou cartão próprio com Depositar (primária) e Sacar; os contadores do
+   acervo ficam ao lado. Os atalhos (.qk-row) viraram <button> e <Link> — por isso o
+   reset de botão e de link aqui, sem mudar o desenho da linha.
+   ========================================================================= */
+.aviso-cadastro{margin:0 0 18px;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 14px;border:1px solid var(--line-soft);border-radius:10px;background:var(--gold-tint-10)}
+.aviso-cadastro > svg{width:20px;height:20px}
+.aviso-cadastro-tx{flex:1;min-width:220px}
+.conta-topo{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;margin-bottom:20px;align-items:stretch}
+.conta-saldo{margin-bottom:0}
+.conta-saldo-val{font-size:clamp(28px,4vw,38px);line-height:1.1;font-weight:700;color:var(--text-strong);font-family:var(--ff-display);font-variant-numeric:tabular-nums;margin:2px 0 14px}
+.conta-saldo .acoes .btn{min-width:140px}
+.conta-saldo-nota{font-size:12.5px;color:var(--text-muted);line-height:1.45;margin:12px 0 0}
+.link-btn.inline{min-height:0;display:inline;padding:0;font-size:inherit}
+.conta-saques{margin-top:12px;padding:10px 12px;background:var(--input-bg);border-radius:8px;border:1px solid var(--line-soft);font-size:12.5px}
+.conta-saques .t{font-weight:700;color:var(--ro-primaria-texto)}
+.conta-saques .d{margin-top:3px;color:var(--text-muted)}
+.conta-contadores{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0}
+.conta-contadores .kpi{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.conta-contadores dd{margin:0}
+.conta-contadores .val{margin-top:0}
+.mostrar-todas{text-align:center;margin-top:6px}
+.conta-marca{text-align:center}
+.conta-marca .logo-box{margin:0 auto 10px}
+.conta-marca .note{justify-content:center;text-align:center}
+.acct-row a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.acct-row .a-recibo{padding:7px 14px;font-size:12.5px;width:auto}
+.acct-row:hover{transform:none}
+
+/* Atalho de linha inteira: <button> e <a> com o mesmo desenho da antiga <div>. */
+button.qk-row,a.qk-row{
+  width:100%;background:none;border:0;border-bottom:1px solid var(--line-soft);
+  font:inherit;color:inherit;text-align:left;text-decoration:none;min-height:44px;
+}
+button.qk-row:last-child,a.qk-row:last-child{border-bottom:none}
+.qk-row:hover{padding-left:6px}
+.qk-row:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.qk-row .qk-t{display:flex;flex-direction:column}
+
+/* Cartão "Minha custódia" (ResumoDaCustodia) e aviso "Custódia a pagar" (AvisoDebitoCustodia). */
+.resumo-custodia.vencida{border-color:var(--red)}
+.resumo-custodia-cab{justify-content:space-between;gap:8px}
+.resumo-custodia-t{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.marca-exemplo{margin-left:8px;font-size:10.5px;font-weight:700;color:var(--ro-primaria-texto);letter-spacing:.04em}
+.resumo-custodia .summary-box{margin-bottom:12px}
+.summary-box .v-sub{color:var(--text-muted);font-weight:400}
+.summary-box .v-ouro{color:var(--ro-primaria-texto)}
+.summary-box .v-vencida{color:var(--ro-perigo-texto)}
+.resumo-custodia-alerta{font-size:12.5px;color:var(--ro-perigo-texto);margin:0 0 10px;line-height:1.45}
+.resumo-custodia-acoes .btn{flex:1 1 140px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.aviso-custodia-tx{margin-top:2px}
+/* O aviso de custódia é .ro-aviso (Brandbook §9.5); as regras herdadas de .note (market.css) e .warn-box
+   (wizard.css) — flex, ícone absoluto, cor do texto — não podem vencer o grid dele. */
+.app-cliente .aviso-custodia.ro-aviso,.modal .aviso-custodia.ro-aviso{display:grid;padding:14px 16px;font-size:.9375rem;color:var(--ro-texto)}
+.app-cliente .aviso-custodia.ro-aviso{border:1px solid var(--ro-borda-suave);border-left-width:3px;border-radius:var(--ro-raio-md);line-height:1.5}
+.app-cliente .aviso-custodia.ro-aviso--aviso{border-left-color:var(--ro-aviso);background:var(--ro-aviso-fundo)}
+.app-cliente .aviso-custodia.ro-aviso--perigo{border-left-color:var(--ro-perigo);background:var(--ro-perigo-fundo)}
+.app-cliente .aviso-custodia.ro-aviso > svg{position:static;width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}
+.aviso-custodia-link{color:var(--ro-primaria-texto);text-decoration:underline;font-weight:700}
+.acct-row .a-recibo{white-space:nowrap}
+.resumo-custodia .summary-box .sr{gap:10px}
+.resumo-custodia .summary-box .v{text-align:right}
+
+/* Extrato */
+.extrato-filtros{margin-bottom:12px}
+.contagem{font-size:12px;color:var(--text-muted);margin:0 0 8px}
+.imp-pos{color:var(--ro-sucesso-texto);font-weight:700}
+.imp-neg{color:var(--ro-perigo-texto);font-weight:700}
+.imp-zero{color:var(--text-muted)}
+.panel .acoes .btn{min-height:44px}
+
+/* Minha custódia (planos, resumo, extrato pago) */
+.plano{margin-bottom:0}
+.plano-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.plano-cab h4{margin:0;font-size:16px;color:var(--text-strong)}
+.plano-id{font-size:12px;color:var(--ro-primaria-texto);margin-top:2px}
+.plano .summary-box{margin-bottom:12px}
+.summary-box .v-verde{color:var(--ro-sucesso-texto)}
+.plano-cancelar{width:100%;min-height:44px}
+.zona-perigo{border:1px dashed var(--red-line);border-radius:10px;padding:12px 14px}
+.zona-perigo p{font-size:12.5px;color:var(--text-muted);margin:0 0 10px;line-height:1.5}
+.zona-perigo a{color:var(--ro-primaria-texto);text-decoration:underline}
+.grade-planos{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.secao-planos{margin:24px 0}
+.btn-link-cheio{width:100%;min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;margin-top:12px}
+.panel-rodape{font-size:12px;color:var(--text-muted);margin:12px 0 0;line-height:1.5}
+.cel-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.sub-titulo{margin:20px 0 10px;font-size:14px;color:var(--text-strong)}
+.tabela-fixa tfoot th,.tabela-fixa tfoot td{font-weight:700;border-top:1px solid var(--line-soft);border-bottom:none;color:var(--text-strong)}
+.tabela-fixa tfoot .total{color:var(--ro-primaria-texto)}
+.back-link + .nesta-pagina{margin-top:6px}
+
+/* Faturas: abas de verdade e a tabela */
+.abas{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 18px;border-bottom:1px solid var(--line-soft)}
+.aba{
+  background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;min-height:44px;padding:8px 14px;
+  font:600 14px var(--ff-sans);color:var(--text-muted);cursor:pointer;
+}
+.aba:hover{color:var(--text-strong)}
+.aba[aria-selected="true"]{color:var(--ro-primaria-texto);border-bottom-color:var(--gold)}
+.aba:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+.aba-n{font-weight:400;font-size:12.5px}
+.pagar-fatura{border:2px solid var(--gold)}
+.pagar-fatura .summary-box{margin-bottom:16px}
+.tabela-fixa .forte{font-weight:700;color:var(--text-strong)}
+.btn-linha{min-height:44px;padding:6px 14px;font-size:12.5px;white-space:nowrap}
+
+/* Configurações e segurança */
+.cfg-card .btn{min-height:44px}
+.cfg-card:hover{transform:none}
+.sec-row .forte{font-weight:700}
+.cfg-aceites{margin-top:24px}
+.cfg-arbitragem{margin-bottom:20px}
+.cfg-arbitragem-cab{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.cfg-arbitragem-cab strong{color:var(--text-strong);font-size:15px}
+.cfg-arbitragem-cab .register-arbitration-badge{margin-left:8px}
+.cfg-arbitragem .legal-block-link{min-height:44px;display:inline-flex;align-items:center;padding:0}
+.cfg-arbitragem-tx{font-size:13px;color:var(--text-muted);margin:8px 0;line-height:1.5}
+.cfg-assinatura{margin-top:12px}
+.cfg-assinatura-linha{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.cfg-assinatura-linha .tinput{flex:1 1 240px;margin:0;min-height:44px}
+.msg-erro{color:var(--ro-perigo-texto);font-size:13px;margin:8px 0 0}
+.msg-ok{color:var(--ro-sucesso-texto);font-size:13px;margin:8px 0 0}
+.cel-vazia{text-align:center;color:var(--text-muted)}
+.tabela-fixa .legal-block-link{min-height:44px;display:inline-flex;align-items:center;padding:0}
+
+/* Comprovante de aceite (/conta/aceites/[id]). A folha é documento impresso, papel claro nos dois
+   temas (como o certificado); as tintas vêm dos tokens do certificado, não de literais. */
+.aceite-pagina{max-width:840px;margin:0 auto}
+.aceite-barra{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.aceite-nao-achado{max-width:520px;margin:24px auto}
+.aceite-cab{border-bottom:2px solid var(--qr-ink);padding-bottom:16px;margin-bottom:24px}
+.aceite-sobre{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--cert-ink-label);margin:0 0 4px}
+.aceite-titulo{font-size:22px;font-weight:700;margin:0;color:var(--qr-ink)}
+.aceite-emissor{font-size:13px;color:var(--cert-ink-label);margin:6px 0 0}
+.aceite-iso{color:var(--cert-ink-label)}
+.legal-proof-val.forte{font-weight:700;color:var(--qr-ink)}
+.legal-proof-val.menor{font-size:12px;color:var(--cert-ink-label)}
+.aceite-explica{font-size:13px;color:var(--cert-ink-label);margin:0 0 12px}
+.aceite-rodape{margin-top:32px;padding-top:16px;border-top:1px solid var(--cert-divider);font-size:11px;color:var(--cert-ink-foot);text-align:center}
+.aceite-pagina .legal-proof-sheet h3{font-size:18px;margin:24px 0 10px;border-bottom:1px solid var(--cert-divider);padding-bottom:6px;color:var(--qr-ink)}
