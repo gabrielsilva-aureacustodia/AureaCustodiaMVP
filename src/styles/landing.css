@@ -397,6 +397,9 @@ html, body{overflow-x:clip}
    5. SEGURANÇA — pilares, espécime e tabela
    ========================================================================= */
 .pub-foto-cofre{position:relative;margin:0 0 40px;border-radius:var(--pub-raio-cartao);overflow:hidden;border:1px solid var(--line-soft)}
+/* O <picture> é em linha por padrão: sem display:block, a revelação na rolagem (clip-path com
+   animation-timeline) recortava a caixa em linha inteira e a foto sumia (produção, 25/10/2026). */
+.pub-foto-cofre picture{display:block;width:100%}
 .pub-foto-cofre img{display:block;width:100%;height:clamp(220px,32vw,380px);object-fit:cover}
 .pub-foto-cofre figcaption{position:absolute;right:12px;bottom:10px;font-size:11px;color:var(--cream);background:color-mix(in srgb,var(--navy-deep) 60%,transparent);padding:3px 8px;border-radius:999px}
 .pub-pilares{list-style:none;margin:0 0 48px;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
@@ -732,7 +735,7 @@ html, body{overflow-x:clip}
 
   /* Foto do cofre: abre de dentro para fora enquanto entra na tela (só com timeline; sem ela fica aberta). */
   @supports (animation-timeline: view()){
-    .pub-revela-rolagem picture{animation:pub-abre linear both;animation-timeline:view();animation-range:entry 0% cover 40%}
+    .pub-revela-rolagem picture{display:block;animation:pub-abre linear both;animation-timeline:view();animation-range:entry 0% cover 40%}
     @keyframes pub-abre{from{clip-path:inset(12% 18% round 24px);transform:scale(1.06)}to{clip-path:inset(0 0 round 0);transform:none}}
   }
 }
