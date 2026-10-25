@@ -474,6 +474,19 @@ volta (o ouro reaparece certo).
 O catálogo `src/brand/ativos.ts` marca os pendentes; os componentes caem para a foto real até a correção
 (`PEDIDOS_ANTIGRAVITY.md` §4).
 
+### 13.4.3 Rodada 3b — conferida em 25/10/2026
+| Ativo | Situação | Como foi conferido |
+|---|---|---|
+| `moedas-*-tres-quartos-transparente` (2) | ✅ liberado no catálogo | medição de cor (pixels dourados ≫ ciano: 168.691 × 1.023 e 174.167 × 0) + olhar: legenda e desenho iguais à foto real; visto dentro do `<CartaoMoeda>` |
+| `og-moeda-bandeira`, `og-moeda-direitos-humanos` (com `-1200`) | ✅ liberado | idem (42.539 × 233 e 43.690 × 0) |
+| `cenarios-faixa-abertura-painel` | ✅ liberado | idem (33.337 × 0); desfoque correto |
+| 7 spots neutros em versão `-escuro` (+ os 4 que já existiam) | ✅ liberados | prancha sobre `#10203f`: traço claro legível |
+| `cenarios-lacre-de-custodia` | ❌ **3.ª reprovação** | continua esquema chapado (retângulo escuro com faixa dourada e cartão creme), não foto de bandeja com envelope |
+
+**Proposta para o lacre** (em vez de uma 4.ª rodada): a faixa de confiança da landing e o "envio recebido" usam a cena
+aprovada `jornada-cena-03-cofre` (gaveta do cofre com forro de veludo). O ativo `lacre` fica pendente no catálogo, com
+esse motivo, e não aparece em tela nenhuma.
+
 ### 13.5 O que ainda falta (pedido em `PEDIDOS_ANTIGRAVITY.md`)
 1. Moedas em **¾ isoladas** (fundo transparente) para `.ro-cartao-moeda` — 4K, 1:1, as duas.
 2. **Perfil 80°** da serrilha das duas moedas (cartão de detalhe do recibo).
@@ -499,3 +512,4 @@ número de negócio fica fora dele.
 | 25/10/2026 | v1.0 criada: paleta amostrada da logo, papéis com AA medido, Newsreader + Inter, escala fluida, componentes `.ro-*`, assinatura (aro, serrilha, guilhoché) | Frente 1 do polimento; benchmark de 25 referências |
 | 25/10/2026 | anéis olímpicos liberados quando parte da moeda real retratada | decisão do Gabriel |
 | 25/10/2026 | moeda legível nunca é gerada do zero: composição sobre a foto real (§8.1); rodada 2 conferida (§13.4.1) | 6 de 14 ativos da rodada 2 com moeda inventada |
+| 25/10/2026 | rodadas 3 e 3b conferidas (§13.4.2–13.4.3): 5 renders compostos e 11 spots escuros liberados; lacre segue reprovado, com troca proposta | conferência da Frente 1 |
