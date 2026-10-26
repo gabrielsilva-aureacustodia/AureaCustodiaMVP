@@ -66,6 +66,25 @@ describe('faturas_ciclo_uniq no grão do ciclo por moeda', () => {
     await expect(banco.executar((tx) => inserirFatura(tx, fatura('FAT-D', 'RO-000003', fim)))).rejects.toThrow()
   })
 
+  // Migration 047 (26/10/2026): as duas colisões que pararam o cron de 21/10 a 26/10.
+  it('fatura CANCELADA com a mesma cobertura não impede a fatura nova do ciclo', async () => {
+    const fim = Date.UTC(2026, 10, 21, 3) - 1
+    await banco.executar((tx) => inserirFatura(tx, { ...fatura('FAT-G', 'RO-000006', fim), status: 'cancelada' }))
+    await banco.executar((tx) => inserirFatura(tx, fatura('FAT-H', 'RO-000006', fim)))
+
+    const todas = await banco.executar((tx) => carregarFaturas(tx))
+    expect(todas.find((f) => f.id === 'FAT-H')?.status).toBe('pendente')
+  })
+
+  it('dois lotes da mesma conta aceitos no mesmo dia ganham uma fatura cada', async () => {
+    const fim = Date.UTC(2026, 10, 24, 3) - 1
+    await banco.executar((tx) => inserirFatura(tx, fatura('FAT-I', 'RO-000007', fim)))
+    await banco.executar((tx) => inserirFatura(tx, fatura('FAT-J', 'RO-000008', fim)))
+
+    const todas = await banco.executar((tx) => carregarFaturas(tx))
+    expect(todas.filter((f) => f.id === 'FAT-I' || f.id === 'FAT-J')).toHaveLength(2)
+  })
+
   it('a cobertura faz a viagem de ida e volta; fatura antiga (sem cobertura) volta nula', async () => {
     await banco.executar((tx) => inserirFatura(tx, fatura('FAT-E', 'RO-000004', Date.UTC(2026, 11, 3, 3) - 1)))
     await banco.executar((tx) => inserirFatura(tx, fatura('FAT-F', 'RO-000005', null)))

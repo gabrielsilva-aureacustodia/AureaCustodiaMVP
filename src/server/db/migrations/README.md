@@ -23,6 +23,7 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `015_prioridade_e_historico_ofertas.sql` | Frente A: `prioridade_em` em `sell_offers` e `buy_orders`, tabela append-only `ofertas_historico` (A2, Decisão F-3) |
 | `016_documentos_e_aceites.sql` | Frente A: `documentos_legais` e `aceites_documentos` com hash encadeado e RLS (A3) |
 | `046_controle_financeiro.sql` | Controle financeiro (25/10/2026): `setores_financeiros` (semeada), `lancamentos_recorrentes` e, em `lancamentos_manuais`, `recorrente_id`/`competencia`/`setor_id` com índice único parcial (a ocorrência não é lançada duas vezes). Aditiva |
+| `047_fatura_de_ciclo_por_lote.sql` | `faturas_ciclo_uniq` sem as canceladas e com as moedas na chave: o índice da 039 parou o cron de 21/10 a 26/10 (26/10/2026). Só índice |
 
 A próxima é a **034**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
@@ -104,6 +105,15 @@ conta por competência" para "uma por conta, competência **e fim de ciclo**". M
 corre do dia em que cada moeda foi aceita (`src/domain/ciclo-custodia.ts`), então duas moedas da mesma
 conta renovam em dias diferentes do mesmo mês. Aditiva — o código anterior ao deploy não lê a coluna,
 então esta migration pode (e deve) entrar **antes** do push. Aplicada em produção em 02/10/2026.
+
+## Migration 047 — o índice da fatura de ciclo no grão do lote (26/10/2026)
+
+`047_fatura_de_ciclo_por_lote.sql` refaz `faturas_ciclo_uniq` como (conta, competência, cobertura, **moedas**),
+**sem as faturas canceladas**. O índice da 039 contava as faturas de 01/10 canceladas (que guardavam a
+cobertura do ciclo seguinte) e não sabia que cada lote tem fatura própria (05/10); a primeira fatura nova
+que colidiu derrubou a transação do cron inteiro, e de 21/10 a 26/10 ninguém foi cobrado — as moedas
+perderam a cobertura, as ofertas saíram do livro e o aviso de custódia apareceu em contas sem conta a
+pagar. Só troca índice: entra **antes** do push. Aplicada em produção em 26/10/2026.
 
 ## Migration 040 — a caixa do cofre guarda um tipo de moeda (05/10/2026)
 

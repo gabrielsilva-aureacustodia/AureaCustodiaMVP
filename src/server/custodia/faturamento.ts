@@ -28,11 +28,12 @@ import {
   somarMeses,
   valorDoPlano,
 } from '@/domain/plano-custodia'
-import type { ActionResult, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
+import type { TabelaDeTaxas } from '@/domain/fees'
+import type { ActionResult, AppState, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { expurgarOfertasSemCustodia } from '@/domain/bloqueio-por-debito'
 import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
-import { mutateState } from '@/server/state'
+import { getState, mutateState } from '@/server/state'
 
 export interface RelatorioCicloFaturamento {
   competencia: string
@@ -48,6 +49,20 @@ export interface RelatorioCicloFaturamento {
    * cliente que teve o anúncio retirado.
    */
   ofertasRetiradasPorCustodia: number
+  /**
+   * Contas cuja cobrança falhou nesta passada, com o motivo. As outras foram cobradas normalmente:
+   * desde 26/10/2026 cada conta grava na sua própria transação (ver `processarCicloFaturamento`).
+   * Vazio é o normal; qualquer linha aqui é para a equipe olhar.
+   */
+  falhas: string[]
+}
+
+/** O que a cobrança de UMA conta produziu — somado no relatório da passada. */
+interface ResultadoDaConta {
+  faturasGeradas: number
+  faturasLiquidadasComSaldo: number
+  faturasPendentes: number
+  inadimplente: boolean
 }
 
 /**
@@ -58,6 +73,17 @@ export interface RelatorioCicloFaturamento {
  * aceita e renova todo mês no mesmo dia (src/domain/ciclo-custodia.ts). Até
  * 02/10/2026 rodava só no dia 1º e cobrava o acervo inteiro de uma vez. É
  * idempotente: no mesmo dia, a segunda passada não encontra nada a cobrar.
+ *
+ * UMA TRANSAÇÃO POR CONTA, DESDE 26/10/2026. Até então a passada inteira era um `mutateState` só, e
+ * a recusa de UMA fatura pelo banco (o índice `faturas_ciclo_uniq`, corrigido pela migration 047)
+ * desfez a cobrança de TODAS: de 21/10 a 26/10 ninguém foi cobrado, a cobertura das moedas acabou e o
+ * expurgo tirou do livro as ofertas de quem nunca recebeu conta. Agora a conta que falha fica em
+ * `falhas`, com o motivo, e as outras seguem — decisão do Gabriel ("é muito mais seguro").
+ *
+ * O que NÃO muda com a divisão: cada transação passa pelo mesmo `mutateState`, que grava na mesma
+ * transação o ledger (custódia debitada do saldo), a trilha de auditoria e o pedido de NFS-e de cada
+ * fatura paga — e agenda o envio delas à Sefin. Nada aqui fala com o Mercado Pago: a fatura pendente
+ * continua sendo paga pela tela (Pix, cartão, saldo) e conciliada pelo webhook, como sempre.
  */
 export async function processarCicloFaturamento(
   relogioReferencia?: Timestamp,
@@ -67,126 +93,171 @@ export async function processarCicloFaturamento(
   // Valores por moeda da Tabela de Taxas vigente (C3); sem banco, TAXAS_PADRAO.
   const { taxas } = await carregarRegrasDoMercado()
 
-  let ofertasRetiradasPorCustodia = 0
+  const relatorio: RelatorioCicloFaturamento = {
+    competencia,
+    totalProcessados: 0,
+    faturasGeradas: 0,
+    faturasLiquidadasComSaldo: 0,
+    faturasPendentes: 0,
+    usuariosInadimplentes: 0,
+    ofertasRetiradasPorCustodia: 0,
+    falhas: [],
+  }
 
-  const { result } = await mutateState<RelatorioCicloFaturamento>((s) => {
-    s.faturasCustodia = s.faturasCustodia ?? []
-    s.planosCustodia = s.planosCustodia ?? []
-    let faturasGeradas = 0
-    let faturasLiquidadasComSaldo = 0
-    let faturasPendentes = 0
-    let usuariosInadimplentes = 0
-    let totalProcessados = 0
+  // A lista de contas vem de uma leitura; cada conta é cobrada de novo DENTRO da sua transação, sobre o
+  // estado travado — a leitura só diz quem existe e quem não tem nada a cobrar.
+  const inicial = await getState()
+  for (const [email, user] of Object.entries(inicial.users)) {
+    relatorio.totalProcessados++
 
-    // 1. Geração de faturas e tentativa de débito automático em saldo
-    for (const [email, user] of Object.entries(s.users)) {
-      totalProcessados++
-      const planosDoUsuario = s.planosCustodia.filter((p) => p.userEmail === email)
+    // Conta sem moeda, sem plano e sem fatura não tem o que cobrar nem fatura para mudar de status:
+    // abrir uma transação para ela seria carregar o estado inteiro à toa, dezenas de vezes por dia.
+    if (!temOQueProcessar(inicial, email)) {
+      if (user.inadimplente) relatorio.usuariosInadimplentes++
+      continue
+    }
 
-      // A) Renovação dos planos que passaram do último mês coberto (13º do anual, 25º do de 24 meses)
-      for (const plano of planosDoUsuario) {
-        if (renovacaoDevida(plano, competencia)) {
-          const jaTemRenovacao = s.faturasCustodia.some(
-            (f) => f.planoId === plano.id && f.competencia === competencia && f.origem === 'renovacao_anual',
-          )
+    try {
+      const { result } = await mutateState<ResultadoDaConta>((s) => cobrarConta(s, email, competencia, agora, taxas))
+      relatorio.faturasGeradas += result.faturasGeradas
+      relatorio.faturasLiquidadasComSaldo += result.faturasLiquidadasComSaldo
+      relatorio.faturasPendentes += result.faturasPendentes
+      if (result.inadimplente) relatorio.usuariosInadimplentes++
+    } catch (erro) {
+      const motivo = erro instanceof Error ? erro.message : String(erro)
+      console.error(`[Faturamento] Falha ao cobrar ${email}; as outras contas seguem:`, erro)
+      relatorio.falhas.push(`${email}: ${motivo}`)
+    }
+  }
 
-          if (!jaTemRenovacao) {
-            const moedasAtivasDoPlano = user.coins.filter(
-              (c) => plano.moedaIds.includes(c.id) && c.recibo?.status !== 'Extinto',
-            )
-            const qtdRenovacao =
-              moedasAtivasDoPlano.length > 0
-                ? moedasAtivasDoPlano.length
-                : (plano.moedaIds.length > 0 ? plano.moedaIds.length : plano.quantidadeContratada)
+  // AG8: o ciclo acabou de criar dívida, então há moeda anunciada que deixou
+  // de poder ser vendida neste instante. Sem esta varredura a trava seria
+  // contornável só pela ordem dos acontecimentos: quem anunciasse ANTES da
+  // virada do mês continuaria com a oferta viva no livro, e a moeda sairia
+  // vendida com a guarda em aberto. `publishOffer` barra a publicação nova;
+  // é aqui que a oferta velha cai. Roda DEPOIS de todas as cobranças: a moeda
+  // cujo dono acabou de pagar pelo saldo não pode perder a oferta.
+  try {
+    const { result } = await mutateState<number>((s) => {
+      const ofertasAntes = s.sellOffers.length
+      expurgarOfertasSemCustodia(s)
+      return ofertasAntes - s.sellOffers.length
+    })
+    relatorio.ofertasRetiradasPorCustodia = result
+  } catch (erro) {
+    const motivo = erro instanceof Error ? erro.message : String(erro)
+    console.error('[Faturamento] Falha na varredura de ofertas sem custódia:', erro)
+    relatorio.falhas.push(`varredura de ofertas: ${motivo}`)
+  }
 
-            // Renova na modalidade do próprio plano, e pelo preço vigente hoje.
-            const { total } = valorDoPlano(plano.modalidade, qtdRenovacao, { ...taxas })
-            const sanitizeEmail = email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
-            const idRenovacao = `FAT-${competencia}-${sanitizeEmail}-REN-${agora}`
+  return relatorio
+}
 
-            const faturaRenovacao: FaturaCustodia = {
-              id: idRenovacao,
-              userEmail: email,
-              competencia,
-              quantidadeMoedas: qtdRenovacao,
-              moedaIds: moedasAtivasDoPlano.map((c) => c.id),
-              valorCents: total,
-              status: 'pendente',
-              dataEmissao: agora,
-              dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
-              dataPagamento: null,
-              formaPagamento: null,
-              paymentIntentId: null,
-              planoId: plano.id,
-              origem: 'renovacao_anual',
-            }
+/** A conta tem moeda, plano ou fatura — algo que o ciclo pode cobrar ou cuja situação pode mudar? */
+function temOQueProcessar(state: AppState, email: UserEmail): boolean {
+  if ((state.users[email]?.coins.length ?? 0) > 0) return true
+  if ((state.planosCustodia ?? []).some((p) => p.userEmail === email)) return true
+  return (state.faturasCustodia ?? []).some((f) => f.userEmail === email)
+}
 
-            faturasGeradas++
-            if (user.balance >= faturaRenovacao.valorCents) {
-              user.balance -= faturaRenovacao.valorCents
-              faturaRenovacao.status = 'paga'
-              faturaRenovacao.dataPagamento = agora
-              faturaRenovacao.formaPagamento = 'saldo'
-              faturasLiquidadasComSaldo++
-              plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
-              plano.atualizadoEm = agora
-            } else {
-              faturaRenovacao.status = 'pendente'
-              faturasPendentes++
-            }
+/**
+ * A cobrança de UMA conta, dentro da transação dela: renovação de plano, ciclo de cada moeda (com o
+ * débito automático em saldo, que mora na emissão) e o status das faturas. É o corpo que até 26/10/2026
+ * rodava no laço de todas as contas, sem mudança de regra.
+ */
+function cobrarConta(
+  s: AppState,
+  email: UserEmail,
+  competencia: string,
+  agora: Timestamp,
+  taxas: TabelaDeTaxas,
+): ResultadoDaConta {
+  const resultado: ResultadoDaConta = { faturasGeradas: 0, faturasLiquidadasComSaldo: 0, faturasPendentes: 0, inadimplente: false }
+  const user = s.users[email]
+  // A conta pode ter saído entre a leitura e a transação: não há o que cobrar.
+  if (!user) return resultado
+  s.faturasCustodia = s.faturasCustodia ?? []
+  s.planosCustodia = s.planosCustodia ?? []
+  const planosDoUsuario = s.planosCustodia.filter((p) => p.userEmail === email)
 
-            s.faturasCustodia.push(faturaRenovacao)
-          }
+  // A) Renovação dos planos que passaram do último mês coberto (13º do anual, 25º do de 24 meses)
+  for (const plano of planosDoUsuario) {
+    if (renovacaoDevida(plano, competencia)) {
+      const jaTemRenovacao = s.faturasCustodia.some(
+        (f) => f.planoId === plano.id && f.competencia === competencia && f.origem === 'renovacao_anual',
+      )
+
+      if (!jaTemRenovacao) {
+        const moedasAtivasDoPlano = user.coins.filter(
+          (c) => plano.moedaIds.includes(c.id) && c.recibo?.status !== 'Extinto',
+        )
+        const qtdRenovacao =
+          moedasAtivasDoPlano.length > 0
+            ? moedasAtivasDoPlano.length
+            : (plano.moedaIds.length > 0 ? plano.moedaIds.length : plano.quantidadeContratada)
+
+        // Renova na modalidade do próprio plano, e pelo preço vigente hoje.
+        const { total } = valorDoPlano(plano.modalidade, qtdRenovacao, { ...taxas })
+        const sanitizeEmail = email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
+        const idRenovacao = `FAT-${competencia}-${sanitizeEmail}-REN-${agora}`
+
+        const faturaRenovacao: FaturaCustodia = {
+          id: idRenovacao,
+          userEmail: email,
+          competencia,
+          quantidadeMoedas: qtdRenovacao,
+          moedaIds: moedasAtivasDoPlano.map((c) => c.id),
+          valorCents: total,
+          status: 'pendente',
+          dataEmissao: agora,
+          dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
+          dataPagamento: null,
+          formaPagamento: null,
+          paymentIntentId: null,
+          planoId: plano.id,
+          origem: 'renovacao_anual',
         }
-      }
 
-      // B) Ciclo de cada moeda: cobra as moedas cujo aniversário de custódia chegou
-      // e ainda não têm o ciclo resolvido (paga, ou com fatura aberta do ciclo).
-      // Roda todo dia, e a cada dia só aparece o que venceu naquele dia — ver
-      // src/domain/ciclo-custodia.ts. O débito automático em saldo mora na própria
-      // emissão.
-      for (const nova of emitirFaturasDosCiclos(s, email, 'ciclo_mensal', { ...taxas }, agora)) {
-        faturasGeradas++
-        if (nova.status === 'paga') faturasLiquidadasComSaldo++
-        else faturasPendentes++
-      }
+        resultado.faturasGeradas++
+        if (user.balance >= faturaRenovacao.valorCents) {
+          user.balance -= faturaRenovacao.valorCents
+          faturaRenovacao.status = 'paga'
+          faturaRenovacao.dataPagamento = agora
+          faturaRenovacao.formaPagamento = 'saldo'
+          resultado.faturasLiquidadasComSaldo++
+          plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
+          plano.atualizadoEm = agora
+        } else {
+          faturaRenovacao.status = 'pendente'
+          resultado.faturasPendentes++
+        }
 
-      // 2. Atualização de status das faturas deste usuário e conferência de inadimplência
-      const faturasDoUsuario = s.faturasCustodia.filter((f) => f.userEmail === email)
-      for (const f of faturasDoUsuario) {
-        f.status = verificarStatusFatura(f, agora)
-      }
-
-      // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
-      // A inadimplência por fatura é calculada por quem lê (E8). O contador soma as duas origens.
-      const inadimplente = Boolean(user.inadimplente) || isInadimplente(user, faturasDoUsuario, agora)
-      if (inadimplente) {
-        usuariosInadimplentes++
+        s.faturasCustodia.push(faturaRenovacao)
       }
     }
+  }
 
-    // AG8: o ciclo acabou de criar dívida, então há moeda anunciada que deixou
-    // de poder ser vendida neste instante. Sem esta varredura a trava seria
-    // contornável só pela ordem dos acontecimentos: quem anunciasse ANTES da
-    // virada do mês continuaria com a oferta viva no livro, e a moeda sairia
-    // vendida com a guarda em aberto. `publishOffer` barra a publicação nova;
-    // é aqui que a oferta velha cai.
-    const ofertasAntes = s.sellOffers.length
-    expurgarOfertasSemCustodia(s)
-    ofertasRetiradasPorCustodia = ofertasAntes - s.sellOffers.length
+  // B) Ciclo de cada moeda: cobra as moedas cujo aniversário de custódia chegou
+  // e ainda não têm o ciclo resolvido (paga, ou com fatura aberta do ciclo).
+  // Roda todo dia, e a cada dia só aparece o que venceu naquele dia — ver
+  // src/domain/ciclo-custodia.ts. O débito automático em saldo mora na própria
+  // emissão.
+  for (const nova of emitirFaturasDosCiclos(s, email, 'ciclo_mensal', { ...taxas }, agora)) {
+    resultado.faturasGeradas++
+    if (nova.status === 'paga') resultado.faturasLiquidadasComSaldo++
+    else resultado.faturasPendentes++
+  }
 
-    return {
-      competencia,
-      totalProcessados,
-      faturasGeradas,
-      faturasLiquidadasComSaldo,
-      faturasPendentes,
-      usuariosInadimplentes,
-      ofertasRetiradasPorCustodia,
-    }
-  })
+  // 2. Atualização de status das faturas deste usuário e conferência de inadimplência
+  const faturasDoUsuario = s.faturasCustodia.filter((f) => f.userEmail === email)
+  for (const f of faturasDoUsuario) {
+    f.status = verificarStatusFatura(f, agora)
+  }
 
-  return result
+  // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
+  // A inadimplência por fatura é calculada por quem lê (E8). O contador soma as duas origens.
+  resultado.inadimplente = Boolean(user.inadimplente) || isInadimplente(user, faturasDoUsuario, agora)
+  return resultado
 }
 
 /**

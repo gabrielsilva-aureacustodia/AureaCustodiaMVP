@@ -126,6 +126,29 @@ describe('server/custodia/faturamento', () => {
     expect(faturaSemMoeda).toBeUndefined()
   })
 
+  // 26/10/2026: uma transação por conta. De 21/10 a 26/10 a recusa de UMA fatura pelo banco desfez a
+  // cobrança de todas, porque a passada era uma transação só.
+  it('a falha ao gravar uma conta não impede a cobrança das outras, e fica no relatório', async () => {
+    const { mutateState } = await import('@/server/state')
+    vi.mocked(mutateState).mockImplementationOnce(async () => {
+      throw new Error('duplicate key value violates unique constraint "faturas_ciclo_uniq"')
+    })
+
+    const rel = await processarCicloFaturamento(AGORA)
+
+    expect(rel.falhas).toEqual(['com_saldo@teste.com: duplicate key value violates unique constraint "faturas_ciclo_uniq"'])
+    expect(estadoSimulado.users['com_saldo@teste.com'].balance).toBe(10_000)
+    expect(estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'com_saldo@teste.com')).toBeUndefined()
+    // A conta seguinte foi cobrada normalmente.
+    expect(estadoSimulado.faturasCustodia?.find((f) => f.userEmail === 'sem_saldo@teste.com')?.status).toBe('pendente')
+    expect(rel.faturasGeradas).toBe(1)
+    expect(rel.totalProcessados).toBe(3)
+  })
+
+  it('passada sem problema devolve a lista de falhas vazia', async () => {
+    expect((await processarCicloFaturamento(AGORA)).falhas).toEqual([])
+  })
+
   it('é idempotente para a mesma competência', async () => {
     await processarCicloFaturamento(AGORA)
     const totalFaturas1 = estadoSimulado.faturasCustodia?.length
