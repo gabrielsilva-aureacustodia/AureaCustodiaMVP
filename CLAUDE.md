@@ -166,6 +166,13 @@ cold start.
   não compra. A custódia **não** entra na comissão nem em `Trade.fee`: é receita de custódia (ledger `custodia`, DRE
   3.1.02). Quem mexe numa compra nova precisa debitar `custoDeCompraPorMoeda` — e nunca `price + comissão`. Os pop-ups
   de compra mostram a linha "Custódia (1º mês)" com o sinal (i) (`LinhaCustodiaNaCompra`).
+- **Moeda comprada ANTES de 21/10/2026 começa o ciclo do dono novo no dia em que ele paga pela primeira vez**
+  (Gabriel, 26/10/2026, depois que o Rogério pagou em 26/10 a custódia de uma moeda comprada em 28/09 e a tela já
+  mostrava a próxima cobrança em 28/10). Quem decide é `recomecarCicloNoPrimeiroPagamento`
+  (`src/domain/custodia-da-compra.ts`), chamada logo depois de toda fatura de ciclo virar paga — débito automático,
+  saldo, Pix e cartão: a moeda `transferido` sem nenhuma outra custódia paga do dono atual ganha `entrada` = dia do
+  pagamento, e a fatura passa a cobrir o mês inteiro dali. A tela de custódia mostra **uma linha por data de
+  cobrança**, com quantas moedas e quanto (`ProximasCobrancas`), porque cada grupo de moedas tem a sua data.
 - **Saque é aprovado pela equipe, e só pela equipe** (14/10/2026, depois do saque do Sidnei que zerou o saldo e
   ficou parado). O cliente pede (`solicitarSaque`): o valor total — líquido + tarifa de R$ 5,00 — sai do saldo
   e o pedido fica `solicitado`, com aviso por e-mail à equipe e alerta no painel inicial. Aprovar, pagar por fora,

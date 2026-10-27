@@ -105,6 +105,19 @@ export function dataBrasilia(ts: Timestamp): DateBR {
 }
 
 /**
+ * Onde começou o ciclo que termina em `fim` (o início do ciclo seguinte): o mesmo dia, um mês antes.
+ *
+ * Existe para a NFS-e (26/10/2026): o período da nota é o do CICLO, e a fatura pode ter sido emitida dias
+ * depois do aniversário (o cron parado de 21/10 a 26/10) ou ter o ciclo recomeçado no pagamento. O dia que
+ * não existe no mês anterior cai no último dia dele, como no ciclo.
+ */
+export function inicioDoCicloQueTerminaEm(fim: Timestamp): Timestamp {
+  const d = new Date(fim - BRASILIA_UTC_MENOS_3_MS)
+  const anterior = somarMesesAoPar({ ano: d.getUTCFullYear(), mes: d.getUTCMonth() + 1 }, -1)
+  return aniversarioNoMes(d.getUTCDate(), anterior)
+}
+
+/**
  * O ciclo em que a moeda está em `agora`.
  *
  * `entrada` ilegível (dado antigo ou de teste) cai no mês-calendário, que era a

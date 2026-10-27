@@ -13,6 +13,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { nextPlanoCode } from '@/domain/codes'
+import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import {
   calcularVencimentoFatura,
   competenciaAtual,
@@ -223,6 +224,8 @@ export async function pagarFaturaComSaldo(
       fatura.status = 'paga'
       fatura.dataPagamento = agora
       fatura.formaPagamento = 'saldo'
+      // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça hoje (26/10/2026).
+      recomecarCicloNoPrimeiroPagamento(s, fatura, agora)
 
       // Se a fatura é de contratação, ativa o plano
       if (fatura.origem === 'contratacao' && fatura.planoId) {

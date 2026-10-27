@@ -134,6 +134,9 @@ export async function inserirFatura(tx: Consulta, f: FaturaCustodia): Promise<vo
 /** Atualiza status, data de pagamento e forma de pagamento de uma fatura. */
 export async function atualizarFatura(tx: Consulta, f: FaturaCustodia): Promise<void> {
   const S = nomeDoSchema()
+  // Competência, vencimento e cobertura também (26/10/2026): a moeda comprada antes de 21/10 recomeça o
+  // ciclo no primeiro pagamento (`recomecarCicloNoPrimeiroPagamento`) e a fatura passa a cobrir o mês dali.
+  // Sem estas três colunas o pagamento gravava a moeda com o ciclo novo e a fatura com o período velho.
   await tx.query(
     `UPDATE ${S}.faturas_custodia SET
        quantidade_moedas = $1,
@@ -142,8 +145,11 @@ export async function atualizarFatura(tx: Consulta, f: FaturaCustodia): Promise<
        status = $4,
        data_pagamento = $5,
        forma_pagamento = $6,
-       payment_intent_id = $7
-     WHERE id = $8`,
+       payment_intent_id = $7,
+       competencia = $8,
+       data_vencimento = $9,
+       cobertura_ate = $10
+     WHERE id = $11`,
     [
       f.quantidadeMoedas,
       f.moedaIds,
@@ -152,6 +158,9 @@ export async function atualizarFatura(tx: Consulta, f: FaturaCustodia): Promise<
       f.dataPagamento ?? null,
       f.formaPagamento ?? null,
       f.paymentIntentId ?? null,
+      f.competencia,
+      f.dataVencimento,
+      f.coberturaAte ?? null,
       f.id,
     ],
   )

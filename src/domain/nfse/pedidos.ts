@@ -22,7 +22,7 @@
  * src/server/nfse/.
  */
 
-import { dataBrasilia } from '@/domain/ciclo-custodia'
+import { dataBrasilia, inicioDoCicloQueTerminaEm } from '@/domain/ciclo-custodia'
 import type { AppState, Cents, FaturaCustodia, Retirada, Saque, Timestamp, Trade, UserEmail } from '@/domain/types'
 
 import { CODIGOS_POR_SERVICO, type ServicoNfse } from './codigos'
@@ -65,7 +65,9 @@ function plural(qtd: number): string {
  */
 export function periodoDaFatura(f: FaturaCustodia): string {
   if (f.coberturaAte) {
-    const inicio = dataBrasilia(f.dataEmissao)
+    // O início é o do CICLO, não o da emissão (26/10/2026): a fatura do cron parado foi emitida em 26/10
+    // para um ciclo de 21/10, e a moeda comprada antes de 21/10 recomeça o ciclo no dia do pagamento.
+    const inicio = dataBrasilia(inicioDoCicloQueTerminaEm(f.coberturaAte + 60_000))
     const fim = dataBrasilia(f.coberturaAte + 60_000)
     return `${inicio} A ${fim}`
   }

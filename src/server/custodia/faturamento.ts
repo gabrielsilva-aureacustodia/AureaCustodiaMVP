@@ -33,6 +33,7 @@ import type { ActionResult, AppState, FaturaCustodia, Timestamp, UserEmail } fro
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { expurgarOfertasSemCustodia } from '@/domain/bloqueio-por-debito'
 import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
+import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import { getState, mutateState } from '@/server/state'
 
 export interface RelatorioCicloFaturamento {
@@ -304,6 +305,8 @@ export async function pagarFaturaCustodiaComSaldo(
       fatura.status = 'paga'
       fatura.dataPagamento = agora
       fatura.formaPagamento = 'saldo'
+      // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça hoje (26/10/2026).
+      recomecarCicloNoPrimeiroPagamento(s, fatura, agora)
 
       if (fatura.origem === 'contratacao' && fatura.planoId) {
         s.planosCustodia = s.planosCustodia ?? []

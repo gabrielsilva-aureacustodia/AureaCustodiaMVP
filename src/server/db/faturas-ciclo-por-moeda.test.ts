@@ -15,7 +15,7 @@ import type { FaturaCustodia } from '@/domain/types'
 import { bancoDeTeste, type BancoDeTeste } from '@/server/admin/testing/pglite'
 
 import { lerEstado } from './estado'
-import { carregarFaturas, inserirFatura } from './repositories/faturas'
+import { atualizarFatura, carregarFaturas, inserirFatura } from './repositories/faturas'
 
 let banco: BancoDeTeste
 let dono: string
@@ -83,6 +83,21 @@ describe('faturas_ciclo_uniq no grão do ciclo por moeda', () => {
 
     const todas = await banco.executar((tx) => carregarFaturas(tx))
     expect(todas.filter((f) => f.id === 'FAT-I' || f.id === 'FAT-J')).toHaveLength(2)
+  })
+
+  // 26/10/2026: o ciclo da compra antiga recomeça no pagamento e muda competência, vencimento e cobertura.
+  it('atualizar a fatura grava competência, vencimento e cobertura novos', async () => {
+    const f = fatura('FAT-K', 'RO-000009', Date.UTC(2026, 9, 28, 3) - 1)
+    await banco.executar((tx) => inserirFatura(tx, f))
+    const novoFim = Date.UTC(2026, 10, 26, 3)
+    await banco.executar((tx) =>
+      atualizarFatura(tx, { ...f, status: 'paga', competencia: '2026-11', dataVencimento: novoFim, coberturaAte: novoFim - 1 }),
+    )
+
+    const lida = (await banco.executar((tx) => carregarFaturas(tx))).find((x) => x.id === 'FAT-K')
+    expect(lida?.competencia).toBe('2026-11')
+    expect(lida?.dataVencimento).toBe(novoFim)
+    expect(lida?.coberturaAte).toBe(novoFim - 1)
   })
 
   it('a cobertura faz a viagem de ida e volta; fatura antiga (sem cobertura) volta nula', async () => {

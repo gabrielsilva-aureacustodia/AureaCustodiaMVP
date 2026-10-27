@@ -43,6 +43,7 @@ import { moedasFaturaveis } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import { moedasCobertas, type TabelaDeTaxasPlano } from '@/domain/plano-custodia'
 import { custodiaPagaAteCompetencia, donoAtualDaMoeda, faturaDoGuardadoAtual } from '@/domain/bloqueio-por-debito'
+import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
 /**
@@ -219,6 +220,8 @@ export function emitirFaturasDosCiclos(
       fatura.status = 'paga'
       fatura.dataPagamento = agora
       fatura.formaPagamento = 'saldo'
+      // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça hoje (26/10/2026).
+      recomecarCicloNoPrimeiroPagamento(state, fatura, agora)
     }
 
     state.faturasCustodia.push(fatura)

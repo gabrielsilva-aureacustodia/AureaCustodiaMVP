@@ -33,6 +33,8 @@ import { useApp } from '@/components/providers/AppProvider'
 import { useTutorial } from '@/components/tutorial/contexto'
 import { Selo } from '@/components/ui/Selo'
 
+import { ProximasCobrancas } from './ProximasCobrancas'
+
 export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactNode {
   const { state, session, taxas } = useApp()
   const { exemplo } = useTutorial()
@@ -84,16 +86,14 @@ export function ResumoDaCustodia({ estilo }: { estilo?: CSSProperties }): ReactN
             <span className="v">{fdate(r.cobertaAte)}</span>
           </div>
         )}
-        <div className="sr">
-          <span className="k">{r.emAberto.length > 0 ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
-          <span className="v">
-            {r.proximoVencimento
-              ? fdate(r.proximoVencimento)
-              : r.proximaCobrancaEm
-                ? fdate(r.proximaCobrancaEm)
-                : '—'}
-          </span>
-        </div>
+        {r.proximoVencimento && (
+          <div className="sr">
+            <span className="k">Prazo para pagar</span>
+            <span className="v">{fdate(r.proximoVencimento)}</span>
+          </div>
+        )}
+        {/* Uma linha por data, com quantas moedas (26/10/2026): o ciclo é de cada moeda. */}
+        <ProximasCobrancas grupos={r.cobrancasPorData} />
         {r.emAberto.length > 0 && (
           <div className="sr">
             <span className="k">Em aberto</span>

@@ -114,12 +114,19 @@ export function donoAtualDaMoeda(
   return null
 }
 
-/** A fatura é de quem guarda a moeda agora, emitida dentro do período de guarda dele? */
+/**
+ * A fatura é de quem guarda a moeda agora, dentro do período de guarda dele?
+ *
+ * Emitida OU paga dentro do período (26/10/2026): a moeda comprada antes de 21/10 recomeça o ciclo no dia
+ * do primeiro pagamento do dono novo (`recomecarCicloNoPrimeiroPagamento`), e esse dia vira o `desde`. A
+ * fatura que ele recebeu antes e pagou depois é dele, e é ela que abre o período — contá-la só pela emissão
+ * a jogaria fora no instante em que é paga.
+ */
 export function faturaDoGuardadoAtual(
-  f: Pick<FaturaCustodia, 'userEmail' | 'dataEmissao'>,
+  f: Pick<FaturaCustodia, 'userEmail' | 'dataEmissao'> & { dataPagamento?: Timestamp | null },
   dono: { email: UserEmail; desde: Timestamp },
 ): boolean {
-  return f.userEmail === dono.email && f.dataEmissao >= dono.desde
+  return f.userEmail === dono.email && Math.max(f.dataEmissao, f.dataPagamento ?? 0) >= dono.desde
 }
 
 /**

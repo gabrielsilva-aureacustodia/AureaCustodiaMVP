@@ -34,6 +34,7 @@ import { useApp } from '@/components/providers/AppProvider'
 import { cancelarMinhaAssinaturaCustodia } from '@/server/actions/plano-custodia'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
 import { Selo } from '@/components/ui/Selo'
+import { ProximasCobrancas } from '@/components/custody/ProximasCobrancas'
 
 const FORMA: Record<string, string> = {
   saldo: 'Saldo em conta',
@@ -218,16 +219,21 @@ export default function MinhaCustodiaPage(): ReactNode {
             <span className="k">Guarda paga até</span>
             <span className="v">{r.cobertaAte ? fdate(r.cobertaAte) : 'Nenhum ciclo quitado'}</span>
           </div>
-          <div className="sr">
-            <span className="k">{r.proximoVencimento ? 'Prazo para pagar' : 'Próxima cobrança'}</span>
-            <span className="v">
-              {r.proximoVencimento
-                ? `${fdate(r.proximoVencimento)} — ${brl(r.emAbertoCents)}`
-                : r.proximaCobrancaEm
-                  ? `${fdate(r.proximaCobrancaEm)} — ${brl(r.mensalidadeCents)} (estimado)`
-                  : 'Sem moedas sob guarda'}
-            </span>
-          </div>
+          {r.proximoVencimento && (
+            <div className="sr">
+              <span className="k">Prazo para pagar</span>
+              <span className="v">{`${fdate(r.proximoVencimento)} — ${brl(r.emAbertoCents)}`}</span>
+            </div>
+          )}
+          {/* Uma linha por data, com quantas moedas (26/10/2026): o ciclo é de cada moeda. */}
+          {r.cobrancasPorData.length > 0 ? (
+            <ProximasCobrancas grupos={r.cobrancasPorData} />
+          ) : (
+            <div className="sr">
+              <span className="k">Próxima cobrança</span>
+              <span className="v">Sem moedas sob guarda</span>
+            </div>
+          )}
           <div className="sr">
             <span className="k">Já pago em custódia</span>
             <span className="v">{brl(r.totalPagoCents)}</span>

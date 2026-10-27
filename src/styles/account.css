@@ -105,6 +105,17 @@ button.qk-row:last-child,a.qk-row:last-child{border-bottom:none}
 .acct-row .a-recibo{white-space:nowrap}
 .resumo-custodia .summary-box .sr{gap:10px}
 .resumo-custodia .summary-box .v{text-align:right}
+/* "Próximas cobranças" (ProximasCobrancas, 26/10/2026): uma linha por data, cada uma com quantas moedas e
+   quanto. Mesmo ritmo do .sr do resumo (wizard.css), para a lista ler como parte dele. */
+.summary-box .proximas-cobrancas{font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+.summary-box .proximas-cobrancas:last-child{border-bottom:none}
+.proximas-cobrancas .k{color:var(--text-muted)}
+.proximas-cobrancas ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.proximas-cobrancas li{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:baseline}
+.proximas-cobrancas .pc-data{font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums}
+.proximas-cobrancas .pc-moedas{color:var(--text-muted)}
+.proximas-cobrancas .pc-valor{font-weight:700;color:var(--text-strong);text-align:right;font-variant-numeric:tabular-nums}
+.proximas-cobrancas .pc-travadas{grid-column:1 / -1;font-size:12.5px;color:var(--ro-perigo-texto)}
 
 /* Extrato */
 .extrato-filtros{margin-bottom:12px}

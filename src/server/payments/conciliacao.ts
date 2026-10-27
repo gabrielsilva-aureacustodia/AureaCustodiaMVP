@@ -11,6 +11,7 @@ import 'server-only'
 import { contaComPendenciaNoEstado, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
+import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
@@ -274,6 +275,8 @@ function liquidarFaturaCustodia(
   fatura.dataPagamento = agora
   fatura.formaPagamento = metodoPagamento
   fatura.paymentIntentId = reivindicada.externalReference
+  // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça no dia do pagamento (26/10/2026).
+  recomecarCicloNoPrimeiroPagamento(s, fatura, agora)
 
   // Para a contabilidade: entrada externa que cobriu a fatura de custódia
   s.deposits.push({

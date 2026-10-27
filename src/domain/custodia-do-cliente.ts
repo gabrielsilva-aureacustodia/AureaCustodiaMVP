@@ -22,6 +22,7 @@
  * tarifa. Quem olhasse só os planos veria R$ 2,00 tendo 11 moedas guardadas.
  */
 
+import { custodiaImpedeNegociar } from '@/domain/bloqueio-por-debito'
 import { guardaPagaAteDaMoeda, proximaCobrancaDaMoeda } from '@/domain/cobranca-de-entrada'
 import { competenciaAtual, fimDaCoberturaDaFatura, fimDaCompetencia } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
@@ -34,6 +35,25 @@ import type {
   Timestamp,
   UserEmail,
 } from '@/domain/types'
+
+/**
+ * Uma linha de "Próximas cobranças": as moedas que renovam no MESMO dia, cobradas juntas (26/10/2026).
+ *
+ * O ciclo é de cada moeda (src/domain/ciclo-custodia.ts), então uma conta tem várias datas de cobrança no
+ * mês. Até 26/10 a tela mostrava uma data só — a mais próxima —, e o Rogério, que tinha acabado de pagar a
+ * custódia de 130 moedas, viu "próxima cobrança 28/10" sem saber que era de UMA moeda. Agora cada data
+ * diz quantas moedas e quanto.
+ */
+export interface CobrancaDoGrupo {
+  /** O dia da cobrança (00:00 de Brasília). */
+  em: Timestamp
+  /** Quantas moedas renovam nesse dia. */
+  moedas: number
+  /** Quanto vai ser cobrado, pela tarifa vigente. */
+  valorCents: Cents
+  /** Quantas delas estão travadas para negociar agora, por custódia não paga. */
+  travadas: number
+}
 
 export interface ResumoDaCustodia {
   /** Moedas sob guarda com recibo vivo — as que pagam custódia. */
@@ -49,6 +69,8 @@ export interface ResumoDaCustodia {
    * as moedas sob guarda (src/domain/ciclo-custodia.ts). `null` sem moeda.
    */
   proximaCobrancaEm: Timestamp | null
+  /** Uma linha por data de cobrança, da mais próxima para a mais distante. Vazio sem moeda. */
+  cobrancasPorData: CobrancaDoGrupo[]
   /** Faturas ainda não pagas nem canceladas, da mais antiga para a mais nova. */
   emAberto: FaturaCustodia[]
   /** Soma das faturas em aberto. */
@@ -140,6 +162,7 @@ export function resumoDaCustodia(
     mensalidadeCents: moedasGuardadas * porMoedaCents,
     competencia,
     proximaCobrancaEm: proximas.length > 0 ? Math.min(...proximas) : null,
+    cobrancasPorData: agruparPorData(state, moedasVivas, proximas, porMoedaCents, agora),
     emAberto,
     emAbertoCents: emAberto.reduce((soma, f) => soma + f.valorCents, 0),
     proximoVencimento: emAberto.length > 0 ? emAberto[0]!.dataVencimento : null,
@@ -196,4 +219,24 @@ export function rotuloDaOrigem(origem: FaturaCustodia['origem']): string {
     default:
       return 'Mensalidade de custódia'
   }
+}
+
+/** As moedas agrupadas pelo dia da próxima cobrança — a lista de "Próximas cobranças". */
+function agruparPorData(
+  state: AppState,
+  moedas: readonly Coin[],
+  proximas: readonly Timestamp[],
+  porMoedaCents: Cents,
+  agora: Timestamp,
+): CobrancaDoGrupo[] {
+  const porDia = new Map<Timestamp, CobrancaDoGrupo>()
+  moedas.forEach((c, i) => {
+    const em = proximas[i]!
+    const g = porDia.get(em) ?? { em, moedas: 0, valorCents: 0, travadas: 0 }
+    g.moedas++
+    g.valorCents += porMoedaCents
+    if (custodiaImpedeNegociar(state, c.id, agora)) g.travadas++
+    porDia.set(em, g)
+  })
+  return [...porDia.values()].sort((a, b) => a.em - b.em)
 }
