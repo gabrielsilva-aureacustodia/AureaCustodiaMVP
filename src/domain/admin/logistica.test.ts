@@ -110,11 +110,19 @@ describe('filtro da logística', () => {
     expect(lerFiltroLogistica({ ver: 'x', situacao: 'y' })).toEqual(FILTRO_LOGISTICA_PADRAO)
   })
 
+  // 27/10/2026: os protocolos nunca postados de setembro e outubro apareciam no painel como envio aberto.
+  it('protocolo não postado em 3 dias está desconsiderado e não conta como aberto', () => {
+    const l = linhaDeEnvio(envio({ createdAt: dia(2026, 9, 5), codigoRastreio: null }), 'Alex', dia(2026, 9, 15))
+    expect(l).toMatchObject({ aberto: false, desconsiderado: true, atrasado: false })
+    expect(filtrarEnvios([l], FILTRO_LOGISTICA_PADRAO)).toEqual([])
+  })
+
   it('atrasados primeiro; "abertos" esconde o que terminou; busca por rastreio e nome', () => {
     const agora = dia(2026, 9, 15)
     const envios = [
       linhaDeEnvio(envio({ protocolo: 'RO-ENV-0001', etapaAtual: 'Recibo emitido', createdAt: dia(2026, 9, 3) }), 'Alex', agora),
-      linhaDeEnvio(envio({ protocolo: 'RO-ENV-0002', createdAt: dia(2026, 9, 5) }), 'Alex', agora),
+      // Dentro dos 3 dias para postar: ainda em andamento.
+      linhaDeEnvio(envio({ protocolo: 'RO-ENV-0002', createdAt: dia(2026, 9, 14) }), 'Alex', agora),
       linhaDeEnvio(envio({ protocolo: 'RO-ENV-0003', etapaAtual: 'Recebido pela custódia', dataRecebimento: dia(2026, 9, 9), createdAt: dia(2026, 9, 1), codigoRastreio: 'QQ1BR' }), 'Bia', agora),
     ]
     expect(filtrarEnvios(envios, FILTRO_LOGISTICA_PADRAO).map((l) => l.protocolo)).toEqual(['RO-ENV-0003', 'RO-ENV-0002'])

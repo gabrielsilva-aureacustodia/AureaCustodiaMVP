@@ -27,6 +27,16 @@ import { Abas } from '../Pecas'
 
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
   if (!rastreio) return <span className="adm-fraco">rastreio ainda não consultado</span>
+  // Código sem registro nos Correios (SRO-020: postado antes do contrato, digitado errado ou recém-postado):
+  // uma linha curta, com a mensagem inteira na dica. O parágrafo dos Correios no meio da tabela parecia
+  // erro do sistema (27/10/2026).
+  if (rastreio.statusAtual === 'nao_encontrado') {
+    return (
+      <span className="adm-fraco" title={rastreio.etapaDescricao}>
+        Correios sem registro deste código · {dataHora(rastreio.dataUltimaAtualizacao)}
+      </span>
+    )
+  }
   return (
     <details className="adm-detalhes" style={{ marginBottom: 0 }}>
       <summary>
@@ -170,6 +180,7 @@ export function PainelLogistica({
                       </td>
                       <td>
                         {e.etapaAtual}
+                        {e.desconsiderado ? <div className="adm-fraco">desconsiderado: não postado em 3 dias</div> : null}
                         {e.alerta ? <div className="adm-alerta-texto">{e.alerta}</div> : null}
                       </td>
                       <td>

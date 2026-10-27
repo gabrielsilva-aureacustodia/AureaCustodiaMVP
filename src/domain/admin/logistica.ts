@@ -18,6 +18,7 @@
  * Regra pura: o relógio entra por parâmetro.
  */
 
+import { isEnvioDesconsiderado } from '@/domain/envios'
 import { etiquetaAtivaDaRetirada } from '@/domain/retirada'
 import type { Envio, EventoHistoricoRetirada, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
 
@@ -67,6 +68,8 @@ export interface LinhaEnvio {
   dataPostagem: number | null
   dataRecebimento: number | null
   aberto: boolean
+  /** Protocolo descartado por não ter sido postado no prazo (`isEnvioDesconsiderado`). */
+  desconsiderado: boolean
   atrasado: boolean
   /** Frase do alerta, pronta para a tela. */
   alerta: string | null
@@ -99,7 +102,10 @@ const ULTIMA_ETAPA_ENVIO = 'Recibo emitido'
 const RETIRADA_ENCERRADA: readonly StatusRetirada[] = ['entregue', 'cancelada']
 
 export function linhaDeEnvio(e: Envio, nome: string, agora: number, prazos: PrazosLogistica = PRAZOS_LOGISTICA_PADRAO): LinhaEnvio {
-  const aberto = e.etapaAtual !== ULTIMA_ETAPA_ENVIO
+  // Protocolo descartado (não postado em 3 dias) não está "em andamento" (27/10/2026): a tela do cliente
+  // já o tirava da lista ativa, e o painel o contava como envio aberto para sempre.
+  const desconsiderado = isEnvioDesconsiderado(e, agora)
+  const aberto = e.etapaAtual !== ULTIMA_ETAPA_ENVIO && !desconsiderado
   let alerta: string | null = null
   let atrasado = false
 
@@ -131,6 +137,7 @@ export function linhaDeEnvio(e: Envio, nome: string, agora: number, prazos: Praz
     dataPostagem: e.dataPostagem,
     dataRecebimento: e.dataRecebimento,
     aberto,
+    desconsiderado,
     atrasado,
     alerta,
   }

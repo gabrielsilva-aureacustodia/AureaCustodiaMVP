@@ -39,7 +39,7 @@ export default async function MoedasPage({ searchParams }: { searchParams: Promi
         <Indicador rotulo="Moedas no sistema" valor={numero(r.total)} detalhe={`${numero(r.comAnalise)} passaram pela bancada`} />
         <Indicador rotulo="Custodiadas" valor={numero(r.custodiadas)} tom="ok" />
         <Indicador rotulo="Em retirada" valor={numero(r.emRetirada)} detalhe={`${numero(r.retiradas)} já retirada(s)`} />
-        <Indicador rotulo="Análises sem vídeo" valor={numero(r.semVideo)} detalhe="o vídeo não é obrigatório (RA-23)" tom={r.semVideo > 0 ? 'atencao' : 'neutro'} />
+        <Indicador rotulo="Análises sem vídeo" valor={numero(r.semVideo)} detalhe="o vídeo não é obrigatório (RA-23)" tom="neutro" />
         <Indicador rotulo="Recibo × análise" valor={r.hashDivergente === 0 ? 'Confere' : `${numero(r.hashDivergente)} divergente(s)`} tom={r.hashDivergente === 0 ? 'ok' : 'alerta'} />
       </div>
 
