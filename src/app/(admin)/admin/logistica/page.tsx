@@ -19,6 +19,7 @@ import type { ReactNode } from 'react'
 import { SemPermissao } from '@/components/admin/Blocos'
 import { numero } from '@/components/admin/formatos'
 import type { EtiquetaDaRetirada } from '@/components/admin/logistica/ExpedicaoDaRetirada'
+import { AtualizarRastreio } from '@/components/admin/logistica/AtualizarRastreio'
 import { PainelLogistica } from '@/components/admin/logistica/PainelLogistica'
 import { Indicador } from '@/components/admin/Pecas'
 import { lerFiltroLogistica } from '@/domain/admin/logistica'
@@ -64,6 +65,8 @@ export default async function LogisticaPage({ searchParams }: { searchParams: Pr
           href={c.retiradasAtrasadas > 0 ? '/admin/logistica?ver=retiradas&situacao=atrasados' : undefined}
         />
       </div>
+      {/* Roda na hora a rodada de rastreio do job diário (27/10/2026); a ação confere a permissão. */}
+      {temPermissao(membro, 'logistica.expedir') ? <AtualizarRastreio /> : null}
       <PainelLogistica
         dados={dados}
         filtro={filtro}

@@ -56,6 +56,7 @@ import { permissaoParaAcao } from '@/server/admin/acesso'
 import { registrarAcaoAdmin } from '@/server/admin/auditar'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
+import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
 import { getState, mutateState } from '@/server/state'
 
 const FALHA = 'Falha ao salvar dados. Tente novamente.'
@@ -371,5 +372,57 @@ export async function marcarRetiradaPostadaManual(retiradaId: string, codigo: st
     await gravarRetirada(atualizada)
     await auditar(membro, 'postar_manual', atualizada, id, { codigoRastreio: rastreio, de: retirada.status, para: 'postada' })
     return { ok: true, message: `Retirada ${id} marcada como postada (${rastreio}).` }
+  })
+}
+
+/**
+ * "Atualizar rastreio agora" (27/10/2026): roda na hora a mesma rodada do job diário das 06:00.
+ *
+ * O job é diário por limite do plano Hobby da Vercel, e o envio do Sidnei postado às 10:40 de 27/10 só
+ * apareceria como "Envio postado" no dia seguinte. O botão não tem regra própria: chama
+ * `atualizarRastreiosPendentes` (src/server/shipping/rastreios.ts), que consulta os Correios, grava o
+ * retrato e avança envio e retirada exatamente como o job. Pede `logistica.expedir` — avançar envio e
+ * retirada é o que essa permissão já permite — e grava `admin.logistica.atualizar_rastreio`, só com as
+ * contagens (nenhum código de rastreio na trilha, como na resposta do job).
+ */
+export async function atualizarRastreiosAgora(): Promise<
+  ActionResult<{ verificados: number; enviosPostados: number; retiradasPostadas: number; retiradasEntregues: number }>
+> {
+  return comPermissao('logistica.expedir', async (membro) => {
+    const r = await atualizarRastreiosPendentes()
+    const resumo = {
+      verificados: r.verificados + r.retiradasVerificadas,
+      enviosPostados: r.enviosPostados,
+      retiradasPostadas: r.retiradasPostadas,
+      retiradasEntregues: r.retiradasEntregues,
+    }
+    if (bancoConfigurado()) {
+      try {
+        await executarNoBanco((tx) =>
+          registrarAcaoAdmin(tx, {
+            ator: membro.email,
+            area: 'logistica',
+            verbo: 'atualizar_rastreio',
+            detalhes: { ...resumo, gravados: r.gravados + r.retiradasGravadas, retratosPreservados: r.retratosPreservados },
+          }),
+        )
+      } catch (err) {
+        // A trilha é consequência da ação: o rastreio já foi gravado.
+        console.error('[admin] falha ao gravar a trilha da atualização de rastreio:', err)
+      }
+    }
+    const avancos = [
+      resumo.enviosPostados ? `${resumo.enviosPostados} envio(s) passaram a postado` : '',
+      resumo.retiradasPostadas ? `${resumo.retiradasPostadas} retirada(s) passaram a postada` : '',
+      resumo.retiradasEntregues ? `${resumo.retiradasEntregues} retirada(s) entregue(s)` : '',
+    ].filter(Boolean)
+    return {
+      ok: true,
+      data: resumo,
+      message:
+        resumo.verificados === 0
+          ? 'Nenhum objeto em trânsito para consultar nos Correios.'
+          : `Rastreio atualizado: ${resumo.verificados} objeto(s) consultado(s) nos Correios${avancos.length ? `; ${avancos.join(', ')}` : ', sem mudança de etapa'}.`,
+    }
   })
 }

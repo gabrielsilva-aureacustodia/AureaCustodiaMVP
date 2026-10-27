@@ -32,6 +32,7 @@ const m = vi.hoisted(() => {
     criarPrePostagem: vi.fn(),
     cancelarPrePostagem: vi.fn(),
     correiosConfigurado: vi.fn(),
+    atualizarRastreiosPendentes: vi.fn(),
     banco: new Map<string, Retirada>(),
     estado: { users: {}, sellOffers: [], trades: [], retiradas: [] } as unknown as AppState,
     ErroCorreios,
@@ -56,12 +57,13 @@ vi.mock('@/server/shipping/retiradas', () => ({
     },
   }),
 }))
+vi.mock('@/server/shipping/rastreios', () => ({ atualizarRastreiosPendentes: m.atualizarRastreiosPendentes }))
 vi.mock('@/server/state', () => ({
   getState: async () => m.estado,
   mutateState: async (fn: (s: AppState) => unknown) => ({ state: m.estado, result: await fn(m.estado) }),
 }))
 
-import { cancelarEtiquetaRetirada, emitirEtiquetaRetirada, marcarRetiradaPostadaManual } from './logistica'
+import { atualizarRastreiosAgora, cancelarEtiquetaRetirada, emitirEtiquetaRetirada, marcarRetiradaPostadaManual } from './logistica'
 
 const MEMBRO = { email: 'operador@aureacustodia.com.br', nome: 'Operador' }
 const NEGADO = { ok: false as const, status: 403 as const, erro: 'Esta área é restrita à equipe do Real Olímpico.' }
@@ -108,7 +110,7 @@ function verbosAuditados(): string[] {
 
 describe('ações de expedição da retirada no painel', () => {
   beforeEach(() => {
-    for (const f of [m.permissaoParaAcao, m.bancoConfigurado, m.executarNoBanco, m.registrarAcaoAdmin, m.criarPrePostagem, m.cancelarPrePostagem, m.correiosConfigurado]) f.mockReset()
+    for (const f of [m.permissaoParaAcao, m.bancoConfigurado, m.executarNoBanco, m.registrarAcaoAdmin, m.criarPrePostagem, m.cancelarPrePostagem, m.correiosConfigurado, m.atualizarRastreiosPendentes]) f.mockReset()
     m.banco.clear()
     m.estado = { users: {}, sellOffers: [], trades: [], retiradas: [] } as unknown as AppState
     m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
@@ -312,5 +314,46 @@ describe('ações de expedição da retirada no painel', () => {
       expect(r.ok).toBe(false)
       expect(m.banco.get('RET-000001')?.status).toBe('separacao')
     })
+  })
+})
+
+// 27/10/2026: o botão "Atualizar rastreio agora" roda na hora a rodada do job diário.
+describe('atualizarRastreiosAgora', () => {
+  const RODADA = {
+    verificados: 2, gravados: 2, persistido: true, codigos: ['AE075129743BR'], retiradasVerificadas: 1, retiradasGravadas: 1,
+    retratosPreservados: 0, enviosPostados: 1, retiradasPostadas: 0, retiradasEntregues: 1,
+  }
+
+  beforeEach(() => {
+    for (const f of [m.permissaoParaAcao, m.bancoConfigurado, m.executarNoBanco, m.registrarAcaoAdmin, m.atualizarRastreiosPendentes]) f.mockReset()
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    m.bancoConfigurado.mockReturnValue(true)
+    m.executarNoBanco.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({}))
+    m.atualizarRastreiosPendentes.mockResolvedValue(RODADA)
+  })
+
+  it('sem logistica.expedir não consulta os Correios nem grava nada', async () => {
+    m.permissaoParaAcao.mockResolvedValue(NEGADO)
+    const r = await atualizarRastreiosAgora()
+    expect(r.ok).toBe(false)
+    expect(m.permissaoParaAcao).toHaveBeenCalledWith('logistica.expedir')
+    expect(m.atualizarRastreiosPendentes).not.toHaveBeenCalled()
+    expect(m.registrarAcaoAdmin).not.toHaveBeenCalled()
+  })
+
+  it('roda a rodada do job e grava admin.logistica.atualizar_rastreio só com contagens', async () => {
+    const r = await atualizarRastreiosAgora()
+    expect(r).toMatchObject({ ok: true, data: { verificados: 3, enviosPostados: 1, retiradasPostadas: 0, retiradasEntregues: 1 } })
+    expect(r.ok && r.message).toContain('3 objeto(s) consultado(s)')
+    expect(m.registrarAcaoAdmin).toHaveBeenCalledTimes(1)
+    const [, acao] = m.registrarAcaoAdmin.mock.calls[0]!
+    expect(acao).toMatchObject({ ator: MEMBRO.email, area: 'logistica', verbo: 'atualizar_rastreio' })
+    expect(JSON.stringify(acao)).not.toContain('AE075129743BR')
+  })
+
+  it('sem nada em trânsito, diz isso', async () => {
+    m.atualizarRastreiosPendentes.mockResolvedValue({ ...RODADA, verificados: 0, retiradasVerificadas: 0, enviosPostados: 0, retiradasEntregues: 0 })
+    const r = await atualizarRastreiosAgora()
+    expect(r.ok && r.message).toBe('Nenhum objeto em trânsito para consultar nos Correios.')
   })
 })

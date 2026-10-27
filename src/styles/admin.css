@@ -63,6 +63,8 @@
 .adm-acoes{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .adm-acoes .btn{width:auto;min-height:44px}
 .adm-btn-compacto{padding:8px 14px;font-size:var(--ro-tipo-corpo-sm);min-height:44px;width:auto}
+/* "Atualizar rastreio agora" (AtualizarRastreio, 27/10/2026): o botão e a nota da rodada diária, na mesma linha. */
+.adm-rastreio-agora{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 16px}
 
 /* ---- Filtros e formulários ---------------------------------------------- */
 .adm-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}

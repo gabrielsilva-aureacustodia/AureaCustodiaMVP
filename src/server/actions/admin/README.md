@@ -70,6 +70,10 @@ também entra, com `ok: false` e a mensagem deles. Como em `saques.ts`, a trilha
 ação, fora da transação: a chamada aos Correios não pode ficar dentro de uma, e a etiqueta já existe
 lá quando a linha é escrita.
 
+Desde 27/10/2026: `admin.logistica.atualizar_rastreio` — o botão "Atualizar rastreio agora" do
+`/admin/logistica` roda na hora a rodada do job diário (`atualizarRastreiosPendentes`), com
+`logistica.expedir`. A trilha leva só as contagens, nenhum código de rastreio.
+
 Desde 25/10/2026 (controle financeiro): `admin.financeiro.recorrente_criar`, `admin.financeiro.recorrente_editar`,
 `admin.financeiro.recorrente_desativar`, `admin.financeiro.recorrente_reativar`, `admin.financeiro.setor` e
 `admin.financeiro.lancar_recorrentes` (também pelo job diário, com ator `sistema:faturamento`).
