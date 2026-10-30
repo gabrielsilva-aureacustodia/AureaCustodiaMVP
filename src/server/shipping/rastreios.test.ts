@@ -30,6 +30,9 @@ import type { Envio, Retirada, StatusRetirada } from '@/domain/types'
 import type { EventoRastreio, RastreioObjetoResult, StatusRastreioCorreios } from '@/lib/shipping'
 import { getState, mutateState } from '@/server/state'
 
+import { converterObjeto } from '@/lib/shipping/cws/rastro'
+import { filaDeAnalise } from '@/server/estacao/analise'
+
 import { atualizarRastreiosPendentes } from './rastreios'
 
 function retirada(id: string, status: StatusRetirada, codigo: string | null): Retirada {
@@ -318,7 +321,7 @@ describe('o job avança o envio quando os Correios registram a postagem', () => 
 
     expect(r.enviosPostados).toBe(0)
     expect((await envioNoEstado('RO-ENV-A5'))?.dataPostagem).toBe(manual)
-    // "Recebido pela custódia" é da equipe: o "entregue" dos Correios não leva a lugar nenhum.
+    // Já está adiante na máquina de estados: o "entregue" dos Correios não o puxa para trás nem o regrava.
     expect((await envioNoEstado('RO-ENV-A6'))?.etapaAtual).toBe('Recebido pela custódia')
   })
 
@@ -427,5 +430,148 @@ describe('o job avança a retirada pela máquina de estados', () => {
     const noEstado = (await getState()).retiradas?.find((x) => x.id === 'RET-A7')
     expect(noEstado?.status).toBe('postada')
     expect(noEstado?.historico.at(-1)?.autor).toBe('correios')
+  })
+})
+
+/*
+ * A ENTREGA DOS CORREIOS PÕE A MOEDA NA BANCADA (30/10/2026, envio RO-ENV-0019 do Sidnei).
+ *
+ * O objeto abaixo é o formato EXATO que a API SRO-Rastro v1 devolve hoje (dtHrCriado sem fuso,
+ * eventos do mais recente ao mais antigo, entrega = BDE tipo 01) e que `converterObjeto` recebe.
+ * O teste atravessa o conversor de verdade: se a API mudar o formato e o status deixar de sair
+ * "entregue", é aqui que quebra — foi o que a suspeita inicial do caso apontava.
+ */
+describe('o job leva o envio entregue para a fila da bancada', () => {
+  const CODIGO = 'AE075129743BR'
+  const sro = {
+    codObjeto: CODIGO,
+    tipoPostal: { sigla: 'AE', descricao: 'PAC CONTRATO AGENCIA', categoria: 'ENCOMENDA PAC' },
+    eventos: [
+      {
+        codigo: 'BDE',
+        tipo: '01',
+        dtHrCriado: '2026-10-28T11:20:00',
+        descricao: 'Objeto entregue ao destinatário',
+        unidade: { tipo: 'Unidade de Distribuição', nome: 'CDD CENTRO', endereco: { cidade: 'SAO PAULO', uf: 'SP' } },
+      },
+      {
+        codigo: 'OEC',
+        tipo: '01',
+        dtHrCriado: '2026-10-28T08:05:00',
+        descricao: 'Objeto saiu para entrega ao destinatário',
+        unidade: { tipo: 'Unidade de Distribuição', nome: 'CDD CENTRO', endereco: { cidade: 'SAO PAULO', uf: 'SP' } },
+      },
+      {
+        codigo: 'PO',
+        tipo: '01',
+        dtHrCriado: '2026-10-27T10:40:00',
+        descricao: 'Objeto postado',
+        unidade: { tipo: 'Agência dos Correios', nome: 'AC CENTRO', endereco: { cidade: 'CURITIBA', uf: 'PR' } },
+      },
+      {
+        codigo: 'FC',
+        tipo: '82',
+        dtHrCriado: '2026-10-26T18:00:00',
+        descricao: 'Etiqueta emitida',
+        unidade: { tipo: 'Pré-postagem', nome: 'CWS', endereco: {} },
+      },
+    ],
+  }
+  const ENTREGUE_EM = Date.parse('2026-10-28T11:20:00-03:00')
+  const POSTADO_EM = Date.parse('2026-10-27T10:40:00-03:00')
+
+  beforeEach(async () => {
+    atualizarRastreiosEmLote.mockReset()
+    repositorioRetiradas.mockReset()
+    listandoRetiradas([])
+    await comEnvios([
+      envioPrePostado('RO-ENV-0019', CODIGO, {
+        tipoMoeda: 'Direitos Humanos',
+        quantidade: 7,
+        etapaAtual: 'Envio postado',
+        dataPostagem: POSTADO_EM,
+      }),
+    ])
+    atualizarRastreiosEmLote.mockResolvedValue({ [CODIGO]: converterObjeto(sro) })
+  })
+
+  it('"Envio postado" + entregue (BDE/01) → "Recebido pela custódia", e a fila mostra código, tipo e quantidade', async () => {
+    const r = await atualizarRastreiosPendentes()
+
+    expect(r.enviosRecebidos).toBe(1)
+    const envio = await envioNoEstado('RO-ENV-0019')
+    expect(envio?.etapaAtual).toBe('Recebido pela custódia')
+    // A data é a do evento dos Correios, não a da rodada.
+    expect(envio?.dataRecebimento).toBe(ENTREGUE_EM)
+    expect(envio?.dataPostagem).toBe(POSTADO_EM)
+
+    const fila = await filaDeAnalise()
+    expect(fila).toHaveLength(1)
+    expect(fila[0]).toMatchObject({
+      protocolo: 'RO-ENV-0019',
+      tipoMoeda: 'Direitos Humanos',
+      quantidade: 7,
+      codigoRastreio: CODIGO,
+      etapaAtual: 'Recebido pela custódia',
+      recebidoEm: ENTREGUE_EM,
+    })
+  })
+
+  it('reprocessar o mesmo evento não duplica nem regrava nada', async () => {
+    await atualizarRastreiosPendentes()
+    const depoisDaPrimeira = structuredClone(await envioNoEstado('RO-ENV-0019'))
+
+    const segunda = await atualizarRastreiosPendentes()
+    const terceira = await atualizarRastreiosPendentes()
+
+    expect(segunda.enviosRecebidos).toBe(0)
+    expect(terceira.enviosRecebidos).toBe(0)
+    expect(await envioNoEstado('RO-ENV-0019')).toEqual(depoisDaPrimeira)
+    expect(await filaDeAnalise()).toHaveLength(1)
+    expect((await getState()).envios.filter((e) => e.protocolo === 'RO-ENV-0019')).toHaveLength(1)
+  })
+
+  it('o envio que já foi para "Em análise física" não volta para "Recebido"', async () => {
+    await atualizarRastreiosPendentes()
+    await mutateState((s) => {
+      s.envios[0].etapaAtual = 'Em análise física'
+    })
+
+    const r = await atualizarRastreiosPendentes()
+
+    expect(r.enviosRecebidos).toBe(0)
+    expect((await envioNoEstado('RO-ENV-0019'))?.etapaAtual).toBe('Em análise física')
+  })
+
+  it('postado e entregue entre duas rodadas, ainda em "Protocolo gerado": grava as duas datas', async () => {
+    await comEnvios([envioPrePostado('RO-ENV-0020', CODIGO)])
+
+    const r = await atualizarRastreiosPendentes()
+
+    expect(r.enviosRecebidos).toBe(1)
+    const envio = await envioNoEstado('RO-ENV-0020')
+    expect(envio?.etapaAtual).toBe('Recebido pela custódia')
+    expect(envio?.dataPostagem).toBe(POSTADO_EM)
+    expect(envio?.dataRecebimento).toBe(ENTREGUE_EM)
+  })
+
+  it('objeto ainda em trânsito, ou devolvido ao remetente, não vai para a bancada', async () => {
+    const semEntrega = { ...sro, eventos: sro.eventos.slice(1) }
+    const devolvido = { ...sro, eventos: [{ ...sro.eventos[0], tipo: '23', descricao: 'Objeto devolvido' }, ...sro.eventos.slice(1)] }
+    for (const obj of [semEntrega, devolvido]) {
+      atualizarRastreiosEmLote.mockResolvedValue({ [CODIGO]: converterObjeto(obj) })
+      const r = await atualizarRastreiosPendentes()
+      expect(r.enviosRecebidos).toBe(0)
+      expect((await envioNoEstado('RO-ENV-0019'))?.etapaAtual).toBe('Envio postado')
+    }
+  })
+
+  it('envio desconsiderado não é puxado para a bancada', async () => {
+    await comEnvios([envioPrePostado('RO-ENV-0021', CODIGO, { etapaAtual: 'Envio postado', desconsideradoEm: POSTADO_EM })])
+
+    const r = await atualizarRastreiosPendentes()
+
+    expect(r.enviosRecebidos).toBe(0)
+    expect((await envioNoEstado('RO-ENV-0021'))?.etapaAtual).toBe('Envio postado')
   })
 })

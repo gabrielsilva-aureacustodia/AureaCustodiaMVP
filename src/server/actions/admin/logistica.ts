@@ -386,13 +386,14 @@ export async function marcarRetiradaPostadaManual(retiradaId: string, codigo: st
  * contagens (nenhum código de rastreio na trilha, como na resposta do job).
  */
 export async function atualizarRastreiosAgora(): Promise<
-  ActionResult<{ verificados: number; enviosPostados: number; retiradasPostadas: number; retiradasEntregues: number }>
+  ActionResult<{ verificados: number; enviosPostados: number; enviosRecebidos: number; retiradasPostadas: number; retiradasEntregues: number }>
 > {
   return comPermissao('logistica.expedir', async (membro) => {
     const r = await atualizarRastreiosPendentes()
     const resumo = {
       verificados: r.verificados + r.retiradasVerificadas,
       enviosPostados: r.enviosPostados,
+      enviosRecebidos: r.enviosRecebidos,
       retiradasPostadas: r.retiradasPostadas,
       retiradasEntregues: r.retiradasEntregues,
     }
@@ -413,6 +414,7 @@ export async function atualizarRastreiosAgora(): Promise<
     }
     const avancos = [
       resumo.enviosPostados ? `${resumo.enviosPostados} envio(s) passaram a postado` : '',
+      resumo.enviosRecebidos ? `${resumo.enviosRecebidos} envio(s) entregue(s) foram para a bancada` : '',
       resumo.retiradasPostadas ? `${resumo.retiradasPostadas} retirada(s) passaram a postada` : '',
       resumo.retiradasEntregues ? `${resumo.retiradasEntregues} retirada(s) entregue(s)` : '',
     ].filter(Boolean)
