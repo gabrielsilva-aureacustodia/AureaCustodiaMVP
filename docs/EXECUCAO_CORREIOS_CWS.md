@@ -96,7 +96,7 @@ Serviços: entrada (cliente → custódia, logística reversa) **PAC 03301 / SED
      `em_transito`, `saiu_para_entrega`, `aguardando_retirada` ou `entregue` (`dataPostagem` = hora do
      primeiro evento que não seja `aguardando_postagem`/`cancelado`);
    - retirada `separacao` → `postada` na mesma condição, e `postada` → `entregue` quando `entregue`.
-   "Recebido pela custódia" continua manual: quem confirma é a equipe.
+   "Recebido pela custódia" passou a vir do "entregue" dos Correios em 30/10/2026 (a marcação manual não tinha mais tela); ver `docs/diario/execucoes/2026-10-30--balcao-correios.md`.
 
 ## Tópicos
 
