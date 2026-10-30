@@ -28,8 +28,8 @@ export default function ErroDaTela({ error, reset }: { error: Error & { digest?:
         O Real Olímpico continua funcionando — só esta tela não carregou. Nenhuma operação foi feita por causa disso.
         Tente de novo; se continuar, fale com o atendimento.
       </p>
-      {error.digest ? <p className="u-sutil">Código para o atendimento: {error.digest}</p> : null}
-      <div className="acoes">
+      {error.digest ? <p className="u-sutil u-mt8">Código para o atendimento: {error.digest}</p> : null}
+      <div className="acoes u-mt14">
         <button type="button" className="btn btn-gold" onClick={reset}>
           Tentar de novo
         </button>

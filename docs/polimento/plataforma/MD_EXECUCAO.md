@@ -289,3 +289,16 @@ LCP/INP. Entram na verificação final.
 - Limite do ambiente: sem Postgres, a lista de retiradas só fecha em `next start` (ver INVENTARIO §8).
 - Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
 - **Push e PR ficam com o Gabriel** (a conta desta máquina não tem escrita no repositório; a branch tem 4 commits locais).
+
+**Bloco 5 — itens que faltavam verificar (30/10/2026): FEITO** (detalhe em INVENTARIO §9)
+- `error.tsx` forçado com duas páginas temporárias (apagadas; não entram no commit): funciona nos dois temas e larguras, com
+  menu vivo, código do erro e recuperação; espaçamento do código corrigido.
+- axe a 768 px: 0. axe nos modais de cadastro, depósito, retirada e cancelamento (32 estados): 0.
+- **Achado novo, corrigido — salto de layout (CLS 0,115–0,119) do painel de dicas do tutorial no celular:** `DicasDaPagina` e
+  `TourGuiado` começavam com janela 1280 × 800 e (no painel) lista vazia. Agora leem a janela real e montam a lista no primeiro
+  render. CLS 0,000 nas 7 rotas; tour e dicas conferidos em 1280 e 375 px. Testes do tutorial seguem passando.
+- LCP 100–136 ms e INP pior caso 32 ms (aproximados, ambiente local). Não substituem Speed Insights.
+- **Não feito, com motivo:** Firefox e WebKit — só há Chrome aqui, e baixar os navegadores é job para o Colab (regra de VM);
+  comprovante de aceite preenchido — depende de Postgres.
+- Servidor derrubado ao fim; `.env.test.local` (ignorado) continua na worktree.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok. **Sem push.**

@@ -66,7 +66,13 @@ export function TourGuiado({
   const [alvo, setAlvo] = useState<HTMLElement | null>(null)
   const [semAlvo, setSemAlvo] = useState(false)
   const [caixa, setCaixa] = useState<Caixa | null>(null)
-  const [janela, setJanela] = useState<{ w: number; h: number }>({ w: 1280, h: 800 })
+  // Começa com o tamanho real da janela (30/10/2026): com o 1280 × 800 fixo de antes, a primeira pintura no celular
+  // saía com o painel de computador e logo depois pulava para a folha de baixo — um salto de layout de 0,115 medido
+  // em /envios. Estes componentes só montam no navegador (depois do `montado` do provider), então ler `window` aqui
+  // não cria diferença de hidratação.
+  const [janela, setJanela] = useState<{ w: number; h: number }>(() =>
+    typeof window === 'undefined' ? { w: 1280, h: 800 } : { w: window.innerWidth, h: window.innerHeight },
+  )
   const [alturaBalao, setAlturaBalao] = useState(220)
   const balaoRef = useRef<HTMLDivElement | null>(null)
   const botaoPrincipal = useRef<HTMLButtonElement | null>(null)

@@ -153,10 +153,10 @@ de navegador e fica para a verificação final.
 | Lente | O que o repositório já tem [CÓDIGO] | O que faltava / decisão |
 |---|---|---|
 | 1 Estrutura e hierarquia | Uma primária por tela, resumo da conta antes do mercado, menu por tarefa (D2–D6) | Nada novo. Confirmar com a auditoria (7 arquivos com mais de um primário, todos modais/wizard com uma primária por etapa) |
-| 2 Responsividade e toque | `responsive.css` com `16px` nos campos, alvos de 44 px em 8 regras, gaveta abaixo de 1024 px | `100vh` → `dvh` no casco (R4); `✕` do `PhotoSlot` com alvo de 44 px (R3); 9 campos sem dica de teclado (R7). 375/768/1440 **[NÃO MEDIDO]** nesta sessão |
+| 2 Responsividade e toque | `responsive.css` com `16px` nos campos, alvos de 44 px em 8 regras, gaveta abaixo de 1024 px | `100vh` → `dvh` no casco (R4); `✕` do `PhotoSlot` com alvo de 44 px (R3); 9 campos sem dica de teclado (R7). 375/768/1440 **[MEDIDO 30/10]**: 0 rolagem horizontal, axe 0 (INVENTARIO §8–9) |
 | 3 Componentes e peças | `<EstadoVazio>`, `<Selo>`, `<Esqueleto>`, `<Aviso>` da marca já aplicados | `SellerBidRow` órfão (R5) — só registrado. **Nenhuma peça gerada**: a regra do Distilla (§8, "dado real") e a do repositório (logos só de `/brand/`) não pedem peça nova aqui |
-| 4 Movimento, som e estados | `prefers-reduced-motion` global em `responsive.css` (zera animação e transição) | Faltam os estados de erro e carregamento por rota (R1) e a confirmação própria no cancelamento da retirada (R2). Sem som: a plataforma não tem trilha |
-| 5 Acabamento | axe 0 violações em 25/10; contraste por tokens; foco visível em 11 CSS | Impressão do recibo (R6). axe, LCP e INP de novo **[NÃO MEDIDO]** |
+| 4 Movimento, som e estados | `prefers-reduced-motion` global em `responsive.css` (zera animação e transição) | Estados de erro e carregamento por rota (R1) e confirmação própria no cancelamento da retirada (R2) **[FEITOS e medidos 30/10]**. Sem som: a plataforma não tem trilha |
+| 5 Acabamento | axe 0 violações em 25/10; contraste por tokens; foco visível em 11 CSS | Impressão do recibo (R6) **[FEITA]**; salto de layout do painel do tutorial no celular **[ACHADO E CORRIGIDO 30/10]**. axe 0, CLS 0,000, LCP 100–136 ms local **[MEDIDO 30/10]**; Firefox/WebKit **[NÃO MEDIDO]** (Colab) |
 
 **Checklist 29, itens que se aplicam e já passam [CÓDIGO]:** skip-link, `aria-current`, skeleton, `th scope`, `lang`,
 rótulo ligado ao campo, `inputMode`/`autoComplete`, `rel="noopener noreferrer"` nos `target="_blank"` desta área.

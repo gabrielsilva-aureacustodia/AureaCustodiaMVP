@@ -363,5 +363,35 @@ Script e saída ficam no scratchpad da sessão (não entram no Git).
 `/recibos/...` não aparecia em `/retirada` (lista vazia — é o "P6" das propostas, e vale só para o ambiente sem
 Postgres). Em `next start` os módulos são compartilhados e o fluxo fecha. Com Postgres isso não existe.
 
-**Ainda não verificado:** `error.tsx` (precisa forçar uma falha); 768 px no axe; LCP e INP; WebKit/Firefox; leitor de
-tela; `/conta/aceites/[id]` e os modais de depósito e cadastro no axe.
+**Ainda não verificado** (primeira versão desta lista; a rodada seguinte está em §9): `error.tsx`, 768 px no axe, LCP/INP, WebKit/Firefox, `/conta/aceites/[id]` e os modais no axe.
+
+## 9. Segunda rodada de medição (30/10/2026, mesmo ambiente: `next start` local, sem produção)
+
+| Item | Como foi feito | Resultado |
+|---|---|---|
+| `error.tsx` forçado | Duas páginas temporárias em `(app)` (uma lança no servidor, outra no clique) — **apagadas antes do commit**; 1280 e 375 px, claro e escuro | Aparece dentro do casco, com menu vivo; mostra o código (`digest`) do erro de servidor; "Voltar ao início" leva a `/inicio`; "Tentar de novo" recupera a tela do erro de clique; axe 0 nas 8 combinações. Achado: o código ficava colado nos botões — ganhou espaço (`u-mt8`, `u-mt14`) |
+| axe a 768 px | 15 rotas × claro e escuro | **0 violações** |
+| axe nos modais (1280 e 375 px, claro e escuro, 8 estados cada) | Cadastro (vazio, com "CPF inválido" visível, aba conta bancária), depósito (com o limite por operação), retirada (formulário e pagamento da taxa), `/retirada` com uma retirada e a `ModalCancelarRetirada`; o servidor foi reiniciado entre as combinações para o cadastro nascer vazio de novo | **0 violações nos 32 estados**; 0 erro de console |
+| LCP / CLS (375 px, mediana de 3, Chrome sem estrangulamento) | 7 rotas | LCP 100–136 ms; **CLS 0,000**. *Antes da correção, `/envios`, `/vender`, `/conta` e `/inicio` chegavam a 0,115–0,119* |
+| INP (aproximado, 375 px, `/mercado`) | Eventos de clique com `durationThreshold` 16 ms | pior 32 ms (2 cliques de menu e tema; os chips `aria-pressed` não estavam na tela) |
+| Tutorial depois da correção | Tour da primeira visita e "Ver tutorial desta página" em `/inicio`, `/mercado`, `/envios`, 1280 e 375 px | Tour abre (balão 400 px no computador, 359 px no celular, com "Pular tudo / Voltar / Começar"); painel de dicas abre com os itens certos e fecha |
+
+**Achado de desempenho, corrigido:** o painel de dicas do tutorial (a folha de baixo no celular) causava um salto de layout de
+0,115 a 0,119 (`dicas-painel-movel`, ~2,2 s depois da abertura da tela, quando o tutorial contextual dispara). Eram duas
+causas: (1) a largura da janela começava em 1280 × 800 fixo e só depois lia a real, então a primeira pintura no celular
+saía com o painel de computador; (2) a lista de dicas nascia vazia e o painel crescia ao ser preenchida. As duas
+inicializações passaram a ler o valor real no primeiro render (`DicasDaPagina` e `TourGuiado`). CLS foi para 0,000.
+
+**Comprovante de aceite (`/conta/aceites/[id]`) — só o estado vazio foi medido.** Os aceites moram no Postgres
+(`server/db/repositories/aceites`); sem banco o botão "Aceitar termos" não grava e a lista de configurações não tem links.
+`/conta/aceites/1` abre o estado "comprovante não encontrado" (axe 0, console limpo). **O comprovante preenchido não foi
+medido** e só dá para medir com Postgres — fora do que esta sessão pode tocar.
+
+**Firefox e WebKit: não medidos.** Esta máquina só tem o Google Chrome; o Playwright não tem os navegadores baixados e
+baixá-los (Firefox, WebKit e dependências) é download grande, que a regra de VM manda para o Colab. Fica como job a descrever
+para o Colab (`agentes/colab/jobs/job.schema.json`) — o roteiro de checagem é o mesmo script desta seção. As regras novas
+desta sessão que mais merecem WebKit: `body:has(.cert-wrap)` na impressão, `100dvh` e `print-color-adjust`.
+
+**Limites das medidas de velocidade:** LCP e INP foram tirados no servidor local, na mesma máquina, sem estrangulamento de CPU
+ou rede, com o cache quente do `next start` — servem para achar saltos e regressões (como o CLS acima), não como nota de
+campo. A nota real vem do Vercel Speed Insights ou de um Lighthouse em preview.
