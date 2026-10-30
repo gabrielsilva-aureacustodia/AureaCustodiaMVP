@@ -24,7 +24,7 @@ describe('estado das integrações', () => {
     expect(pagamento?.observacao).toBe('Modo: produção (MP_SANDBOX=false).')
     expect(estados.find((e) => e.chave === 'servico_supabase')?.observacao).toBe('Balde dos vídeos: analises (padrão).')
     expect(JSON.stringify(estados)).not.toContain('APP_USR')
-    expect(VARIAVEIS_NAO_SECRETAS).toEqual(['MP_SANDBOX', 'SUPABASE_STORAGE_BUCKET'])
+    expect(VARIAVEIS_NAO_SECRETAS).toEqual(['MP_SANDBOX', 'SUPABASE_STORAGE_BUCKET', 'NFSE_AMBIENTE'])
     expect(NOMES_DE_VARIAVEIS).not.toContain('SESSION_SECRET')
   })
 
@@ -36,5 +36,16 @@ describe('estado das integrações', () => {
     // Sem o código de acesso não há token: a integração não está ligada, por mais que o resto exista.
     expect(correios(contrato.filter((n) => n !== 'CORREIOS_CODIGO_ACESSO'))?.estado).toBe('parcial')
     expect(correios([])?.semEla).toContain('rastreio fica indisponível')
+  })
+
+  it('NFS-e: precisa do certificado e da senha; o ambiente é opcional e aparece como observação', () => {
+    const nfse = (nomes: string[], env: Record<string, string> = {}) =>
+      estadoDasIntegracoes(presenca(nomes), env).find((e) => e.chave === 'nfse')
+    expect(nfse(['NFSE_CERT_PFX_BASE64', 'NFSE_CERT_SENHA'])?.estado).toBe('ligado')
+    expect(nfse(['NFSE_CERT_PFX_BASE64'])?.estado).toBe('parcial')
+    expect(nfse([])?.estado).toBe('desligado')
+    expect(VARIAVEIS_NAO_SECRETAS).toContain('NFSE_AMBIENTE')
+    expect(nfse([], { NFSE_AMBIENTE: 'producao' })?.observacao).toContain('produção (notas com validade')
+    expect(nfse([], {})?.observacao).toContain('restrita')
   })
 })

@@ -103,6 +103,24 @@ const DEFINICOES: readonly Definicao[] = [
     ],
   },
   {
+    chave: 'nfse',
+    nome: 'Nota fiscal (NFS-e Nacional, Sefin)',
+    oQueFaz: 'Envia à Sefin Nacional as notas de comissão e de custódia paga, assinadas com o e-CNPJ A1 da empresa.',
+    semEla: 'Os pedidos de nota ficam na fila (/admin/resultados/fiscal) e não são enviados; nada se perde.',
+    // `NFSE_AMBIENTE` e `NFSE_SERIE` são opcionais: sem `NFSE_AMBIENTE=producao` o envio vai para a
+    // produção restrita (notas sem validade jurídica) e, no site publicado, nada é enviado.
+    variaveis: [
+      { alternativas: ['NFSE_CERT_PFX_BASE64'], obrigatoria: true },
+      { alternativas: ['NFSE_CERT_SENHA'], obrigatoria: true },
+      { alternativas: ['NFSE_AMBIENTE'], obrigatoria: false },
+      { alternativas: ['NFSE_SERIE'], obrigatoria: false },
+    ],
+    observacao: (v) =>
+      v.NFSE_AMBIENTE?.trim().toLowerCase() === 'producao'
+        ? 'Ambiente: produção (notas com validade jurídica).'
+        : 'Ambiente: produção restrita (NFSE_AMBIENTE ausente ou diferente de producao) — notas sem validade jurídica.',
+  },
+  {
     chave: 'mensageria',
     nome: 'WhatsApp do atendimento (Evolution API)',
     oQueFaz: 'Receber e responder as conversas em /admin/cs.',
@@ -136,7 +154,7 @@ const DEFINICOES: readonly Definicao[] = [
   {
     chave: 'cron',
     nome: 'Tarefas agendadas',
-    oQueFaz: 'Autentica o faturamento mensal de custódia e a atualização do rastreio.',
+    oQueFaz: 'Autentica o faturamento diário da custódia (05:00 em Brasília) e a atualização do rastreio (06:00).',
     semEla: 'As rotas de /api/cron recusam a chamada fora do ambiente de desenvolvimento.',
     variaveis: [{ alternativas: ['CRON_SECRET'], obrigatoria: true }],
   },
@@ -146,7 +164,7 @@ const DEFINICOES: readonly Definicao[] = [
 export const NOMES_DE_VARIAVEIS: readonly string[] = [...new Set(DEFINICOES.flatMap((d) => d.variaveis.flatMap((v) => v.alternativas)))]
 
 /** As variáveis cujo valor não é segredo e pode ajudar a ler o estado. */
-export const VARIAVEIS_NAO_SECRETAS: readonly string[] = ['MP_SANDBOX', 'SUPABASE_STORAGE_BUCKET']
+export const VARIAVEIS_NAO_SECRETAS: readonly string[] = ['MP_SANDBOX', 'SUPABASE_STORAGE_BUCKET', 'NFSE_AMBIENTE']
 
 export function estadoDasIntegracoes(presenca: Presenca, naoSecretas: Leitura): EstadoIntegracao[] {
   return DEFINICOES.map((d) => {
