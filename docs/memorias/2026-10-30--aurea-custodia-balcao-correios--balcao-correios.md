@@ -34,3 +34,9 @@ Pendente de acesso: a máquina da frota não tem login admin da Áurea, `CRON_SE
 - "Gov": NFS-e Nacional (Sefin) em emissão, fila, reenvio no cron de faturamento e `/admin/resultados/fiscal`; ViaCEP para o código IBGE. Não há login gov.br nem consulta CPF/CNPJ à Receita.
 - Corrigido: NFS-e na aba Integrações do admin, bloco `NFSE_*` no `.env.example`, texto das tarefas agendadas.
 - Só documentado: falta teste de servidor da NFS-e; `advanceAnalysis` sem tela; texto da bancada que fala em marcar "Recebido" na Logística; 429 dos Correios derruba o lote; variáveis da Vercel (`CRON_SECRET`, `CORREIOS_*`, `NFSE_*`) e plano não conferidos.
+
+## Auditoria final do sistema (30/10, madrugada)
+- PR #11 (merge cccab4b): `npm audit --omit=dev` de 5 falhas (2 críticas) para 0, só lockfile (next 15.5.28, node-forge 1.4.2, sharp 0.35.5, dompurify 3.4.17). Relatório: `docs/auditorias/2026-10-30--auditoria-final-sistema.md`.
+- OK no código: webhook do Mercado Pago (HMAC, recusa por padrão), permissões do /admin, RLS em todas as tabelas das migrations, crons.
+- Bloqueado: a CLI da Vercel do ambiente não tem login na conta da Áurea ("Logged out"), e o MCP da Vercel é da Sintetica. Por isso não houve leitura de produção. Ficaram de fora: conferência por usuário, cadeia de hash de produção, env vars, logs dos crons e o envio do Sidnei. Login de dispositivo (`vercel login`) deixado aberto na sessão tmux `vercel-login-aurea`, esperando a aprovação do Gabriel.
+- Depois do node-forge novo, testar uma emissão de NFS-e em produção restrita antes de usar `NFSE_AMBIENTE=producao`.
