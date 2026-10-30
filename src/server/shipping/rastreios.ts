@@ -12,14 +12,21 @@
  * código de rastreio passou a nascer na pré-postagem, antes de o cliente ir à agência: o envio fica
  * em "Protocolo gerado" e a retirada em `separacao` com o código já gravado, e ninguém digita mais
  * nada no balcão. Sem o avanço automático, o envio ficaria em "Protocolo gerado" para sempre — e
- * cairia na regra dos 3 dias sem postagem — com o objeto já a caminho do cofre. "Recebido pela
- * custódia" continua manual: quem confirma que a moeda chegou é a equipe, e não o "entregue" dos
- * Correios (acordo 3 de `docs/EXECUCAO_CORREIOS_CWS.md`).
+ * cairia na regra dos 3 dias sem postagem — com o objeto já a caminho do cofre.
+ *
+ * Desde 30/10/2026 o "entregue" dos Correios também leva o envio a "Recebido pela custódia", que é
+ * o que o põe na fila da bancada. Antes isso era manual (acordo 3 de `docs/EXECUCAO_CORREIOS_CWS.md`),
+ * mas a tela que marcava à mão saiu na remodelação do painel e o envio RO-ENV-0019 do Sidnei,
+ * entregue, nunca chegou à bancada. Nada aqui toca saldo, ledger ou fatura.
  * ==========================================================================*/
 
 import 'server-only'
 
-import { avancosDaRetiradaPeloRastreio, postagemDoEnvioPeloRastreio, type RetratoParaAvanco } from '@/domain/rastreio'
+import {
+  avancosDaRetiradaPeloRastreio,
+  postagemDoEnvioPeloRastreio,
+  recebimentoDoEnvioPeloRastreio,   type RetratoParaAvanco,
+} from '@/domain/rastreio'
 import { transicionarRetirada } from '@/domain/retirada'
 import { ETAPAS_ENVIO, type Envio, type Retirada } from '@/domain/types'
 import { atualizarRastreiosEmLote, normalizarCodigoRastreio, type RastreioObjetoResult } from '@/lib/shipping'
@@ -52,6 +59,8 @@ export interface ResumoAtualizacao {
   retratosPreservados: number
   /** Envios que passaram sozinhos de "Protocolo gerado" para "Envio postado" nesta rodada. */
   enviosPostados: number
+  /** Envios que passaram sozinhos para "Recebido pela custódia" porque os Correios registraram a entrega. */
+  enviosRecebidos: number
   /** Retiradas que passaram sozinhas de `separacao` para `postada` nesta rodada. */
   retiradasPostadas: number
   /** Retiradas que passaram sozinhas de `postada` para `entregue` nesta rodada. */
@@ -176,6 +185,7 @@ export async function atualizarRastreiosPendentes(): Promise<ResumoAtualizacao> 
     retiradasGravadas: 0,
     retratosPreservados: 0,
     enviosPostados: 0,
+    enviosRecebidos: 0,
     retiradasPostadas: 0,
     retiradasEntregues: 0,
   }
@@ -254,6 +264,36 @@ export async function atualizarRastreiosPendentes(): Promise<ResumoAtualizacao> 
       resumo.enviosPostados = result
     } catch (err) {
       console.error('[rastreio] avanço dos envios não gravou; o retrato continua valendo:', err)
+    }
+  }
+
+  /* --- Entrega dos Correios → "Recebido pela custódia" (entra na fila da bancada) --------------- */
+  const entregas = new Map<string, RetratoParaAvanco>()
+  for (const e of envios) {
+    const r = retratoDe(e.codigoRastreio as string)
+    if (r && recebimentoDoEnvioPeloRastreio(e, r) !== null) entregas.set(e.protocolo, r)
+  }
+  if (entregas.size > 0) {
+    try {
+      const { result } = await mutateState((s) => {
+        let n = 0
+        for (const [protocolo, r] of entregas) {
+          const envio = s.envios.find((e) => e.protocolo === protocolo)
+          if (!envio) continue
+          // Conferido DE NOVO dentro da mutação (e é o que torna o reprocesso inofensivo): se a
+          // equipe ou uma rodada anterior já levou o envio adiante, não há o que fazer.
+          const rec = recebimentoDoEnvioPeloRastreio(envio, r)
+          if (rec === null) continue
+          envio.dataPostagem = rec.dataPostagem
+          envio.dataRecebimento = rec.dataRecebimento
+          envio.etapaAtual = 'Recebido pela custódia'
+          n += 1
+        }
+        return n
+      })
+      resumo.enviosRecebidos = result
+    } catch (err) {
+      console.error('[rastreio] recebimento dos envios não gravou; o retrato continua valendo:', err)
     }
   }
 

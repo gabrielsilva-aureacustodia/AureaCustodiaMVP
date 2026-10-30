@@ -168,8 +168,8 @@ function mesmoCodigo(a: string | null | undefined, b: string): boolean {
  *
  * Só avança quem está em "Protocolo gerado", sem data de postagem, não desconsiderado e com o MESMO
  * código que foi consultado — o job confere tudo de novo dentro da mutação, porque entre a consulta
- * e a gravação o cliente pode ter mexido no envio. "Recebido pela custódia" nunca sai daqui: quem
- * confirma que a moeda chegou ao cofre é a equipe, e não o "entregue" dos Correios.
+ * e a gravação o cliente pode ter mexido no envio. "Recebido pela custódia" sai de
+ * `recebimentoDoEnvioPeloRastreio`, não daqui.
  */
 export function postagemDoEnvioPeloRastreio(
   envio: Pick<Envio, 'etapaAtual' | 'dataPostagem' | 'codigoRastreio'> & { desconsideradoEm?: Timestamp | null },
@@ -180,6 +180,32 @@ export function postagemDoEnvioPeloRastreio(
   if (!mesmoCodigo(envio.codigoRastreio, retrato.codigoRastreio)) return null
   if (!objetoJaComOsCorreios(retrato.statusAtual)) return null
   return instanteDaPostagem(retrato.eventos) ?? retrato.dataUltimaAtualizacao
+}
+
+/**
+ * O recebimento a gravar no envio quando os Correios atestam a ENTREGA, ou `null` se não deve avançar.
+ *
+ * É o que põe a moeda na fila da bancada: a bancada só lê "Recebido pela custódia", e desde a
+ * remodelação do painel (3f58ed4) nenhuma tela marca essa etapa — o envio do Sidnei (RO-ENV-0019)
+ * foi entregue em 27-28/10/2026 e ficou em "Envio postado" para sempre. O endereço de destino da
+ * pré-postagem é o da própria custódia, então "entregue" aqui é "chegou ao cofre".
+ *
+ * Só sai de "Protocolo gerado" ou "Envio postado" (nunca por cima de etapa adiante, nem de envio
+ * desconsiderado) e só com o MESMO código consultado. Idempotente: depois de gravado o envio já não
+ * está em etapa de origem, então reprocessar o mesmo evento não faz nada. Se a postagem e a entrega
+ * caíram entre duas rodadas, devolve também a data de postagem, para os prazos da logística.
+ */
+export function recebimentoDoEnvioPeloRastreio(
+  envio: Pick<Envio, 'etapaAtual' | 'dataPostagem' | 'codigoRastreio'> & { desconsideradoEm?: Timestamp | null },
+  retrato: RetratoParaAvanco,
+): { dataRecebimento: Timestamp; dataPostagem: Timestamp } | null {
+  if (envio.etapaAtual !== 'Protocolo gerado' && envio.etapaAtual !== 'Envio postado') return null
+  if (envio.desconsideradoEm) return null
+  if (!mesmoCodigo(envio.codigoRastreio, retrato.codigoRastreio)) return null
+  const entrega = instanteDaEntrega(retrato.eventos)
+  if (entrega === null) return null
+  const postagem = envio.dataPostagem ?? instanteDaPostagem(retrato.eventos) ?? entrega
+  return { dataRecebimento: entrega, dataPostagem: Math.min(postagem, entrega) }
 }
 
 /** Um passo da máquina de estados da retirada, com a hora que os Correios registraram. */

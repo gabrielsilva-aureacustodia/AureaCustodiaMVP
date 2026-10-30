@@ -24,7 +24,7 @@ import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
  * ---------------------------------
  * Além do que foi consultado e gravado (`verificados`, `gravados`,
  * `retiradasVerificadas`, `retiradasGravadas`), a rodada conta o que avançou
- * sozinha — `enviosPostados`, `retiradasPostadas`, `retiradasEntregues` — e
+ * sozinha — `enviosPostados`, `enviosRecebidos`, `retiradasPostadas`, `retiradasEntregues` — e
  * `retratosPreservados`: objetos em que os Correios não responderam e o último
  * retrato bom foi mantido em vez de apagado. Os campos vêm de `ResumoAtualizacao`
  * (`src/server/shipping/rastreios.ts`); nenhum código de rastreio de retirada sai

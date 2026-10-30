@@ -321,7 +321,7 @@ describe('ações de expedição da retirada no painel', () => {
 describe('atualizarRastreiosAgora', () => {
   const RODADA = {
     verificados: 2, gravados: 2, persistido: true, codigos: ['AE075129743BR'], retiradasVerificadas: 1, retiradasGravadas: 1,
-    retratosPreservados: 0, enviosPostados: 1, retiradasPostadas: 0, retiradasEntregues: 1,
+    retratosPreservados: 0, enviosPostados: 1, enviosRecebidos: 0, retiradasPostadas: 0, retiradasEntregues: 1,
   }
 
   beforeEach(() => {
