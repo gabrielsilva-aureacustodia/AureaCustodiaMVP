@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { recusaDoCron } from '@/server/cron-auth'
+
 import { desconsiderarEnviosVencidos } from '@/server/shipping/frete-envio'
 import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
 
@@ -41,14 +43,8 @@ import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
  * a URL seria um botão público para gastar a cota da API dos Correios.
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const authHeader = req.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret || process.env.NODE_ENV === 'production') {
-    if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ ok: false, error: 'Não autorizado' }, { status: 401 })
-    }
-  }
+  const recusa = recusaDoCron(req.headers.get('authorization'), '/api/cron/shipping')
+  if (recusa) return recusa
 
   let resumo: Awaited<ReturnType<typeof atualizarRastreiosPendentes>>
   try {

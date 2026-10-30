@@ -12,3 +12,6 @@
 3. **Testes**: `src/server/shipping/rastreios.test.ts` (payload SRO BDE/01 → fila; reprocesso; negativos). — feito
 4. Push / PR / merge / deploy — feito
 5. Regularização do Sidnei — bloqueada por acesso (admin da Áurea)
+
+## Rotina diária de rastreio (30/10)
+Cron `0 9 * * *` UTC (06:00 BRT) em `vercel.json` → `/api/cron/shipping`. Auth centralizada em `src/server/cron-auth.ts` (produção sem `CRON_SECRET` fecha com log claro). Testes: `route.test.ts`, `cron-auth.test.ts`. Feito na branch `fix/cron-rastreio-diario`.
