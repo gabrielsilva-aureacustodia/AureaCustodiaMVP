@@ -230,3 +230,26 @@ tinha os 2 commits do painel administrativo (Frente 5), integrados com merge sem
   externa entrou no `<dd>`). Depois: **0 violações**. Um falso positivo de contraste no menu aparece se a medição
   roda durante a transição de tema — armadilha já registrada no tópico 35.
 - Sem rolagem horizontal a 375 px; tutorial e âncoras intactos.
+
+### Sessão 2 — 30/10/2026 (Claude Code, Sonnet 5.5) — polimento pelas cinco lentes do Distilla
+
+Pedido do Gabriel (30/10/2026): o plano do Distilla não chegou, então a frente começou por conta própria e ajusta
+quando ele chegar. Worktree `/workspace/aurea/wt/plataforma-cliente`, branch `polish/aurea-plataforma-cliente`, base
+`main` @ `d29727a`. Escopo: `src/app/(app)`, componentes de UI e `src/styles/` (`responsive.css` por último). Fora
+dele: `domain/`, `server/` (inclusive Server Actions e permissões), `api/`, migrations, dados, deploy, push na `main`.
+Commits pelo `commit.md` (português, imperativo, sem `Co-Authored-By`).
+
+**Ambiente.** `npm ci` só nesta worktree. Node 20.20 (o Supabase pede ≥ 22: só aviso `EBADENGINE`, sem efeito nos checks).
+
+**Base medida antes de mexer:** typecheck ok · lint 0 erros / 16 avisos · test 1.456 passando e 1 timeout em
+`banco.test.ts` que passa sozinho · build ok.
+
+**Bloco 1 — inventário e benchmark atualizados** (`INVENTARIO.md` §7, `BENCHMARK.md` §6): o que mudou desde 25/10,
+auditorias rodadas de novo, lista R1–R7 de residuais com a lente do Distilla de cada um.
+
+**Lista de trabalho (ordem):** R1 `error.tsx` + `loading.tsx` do `(app)` · R2 confirmação própria no cancelamento da
+retirada · R3 `✕` do `PhotoSlot` como botão de 44 px · R4 `dvh` no casco · R6 impressão do recibo · R7 dicas de teclado
+nos campos que sobraram. R5 (`SellerBidRow` órfão) fica só registrado.
+
+**Não medido nesta sessão** (precisa de servidor local com a receita de `ferramentas/README.md`): 375/768/1440, axe,
+LCP/INP. Entram na verificação final.

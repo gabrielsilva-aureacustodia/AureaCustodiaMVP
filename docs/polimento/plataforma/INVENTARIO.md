@@ -276,3 +276,46 @@ Servidor local isolado (store em memória com as 7 contas do seed, sem banco, se
   outra conta apareceu), Compras 5/5, Vendas 5/5, Envios 5/5 (no passo 1), Recibos 4/4, Conta 4/4.
 - ✔ 375 px: nenhuma rolagem horizontal nas 16 rotas.
 - Não clicado: "Cancelar solicitação" de retirada (abre `window.confirm` nativo e a lista não tem itens sem banco).
+
+## 7. Atualização de 30/10/2026 (sessão 2 — polimento pelas cinco lentes do Distilla)
+
+Base: `main` @ `d29727a`, branch `polish/aurea-plataforma-cliente`. O inventário acima continua valendo; esta seção só
+registra o que mudou desde 25/10 e o que sobrou.
+
+**O que mudou na área do cliente desde 25/10** (`git log --since=2026-10-25 -- "src/app/(app)" src/components src/styles`):
+
+| Commit | Efeito na plataforma do cliente |
+|---|---|
+| `61706fb` (26/10) | Ciclo da moeda comprada antes de 21/10 começa no 1º pagamento; `/conta/custodia` mostra uma linha por data de cobrança (`ProximasCobrancas`). Âncoras do tutorial de custódia seguem valendo. |
+| `32ff769`, `10f107b` (27/10) | Só painel/logística — nada no cliente. |
+| `8df2bad` (30/10) | "Ver como o cliente vê" no `/admin` e vídeo da bancada — sem mudança nas rotas de `(app)`. |
+
+**Auditorias rodadas de novo em 30/10** (`ferramentas/auditoria-*-ro.py`, sem mudança de método):
+
+| Medida | 25/10 (depois) | 30/10 (antes desta sessão) |
+|---|---|---|
+| Arquivos com mais de um primário | 8 | 7 |
+| Total de `btn-gold` | 50 | 49 |
+| Campos de texto | 48 | 48 |
+| Campos sem dica de teclado | 26 → 9 | **9** (`ModalCadastro`: número, complemento, bairro, banco, conta; `ModalSolicitarRetirada`: documento, número, bairro; `PainelPagamento`: 1) |
+| Clique em `<div>`/`<span>` | 11 | 8 — o único real é o `✕` do `PhotoSlot` (`<div className="rm" onClick>`) |
+| Tabelas / 5+ colunas / `th scope="row"` / 1ª coluna fixa | 7 / 6 / 7 / 7 | 7 / 6 / 7 / 7 |
+
+**Residuais encontrados por leitura (lista de trabalho desta sessão):**
+
+| # | Achado | Lente | Evidência |
+|---|---|---|---|
+| R1 | `(app)` não tem `error.tsx` nem `loading.tsx` (o `(admin)` tem os dois): erro numa tela do cliente cai na página genérica do Next, sem menu | 4 — estados | `find "src/app/(app)" -name error.tsx` vazio |
+| R2 | `/retirada` cancela com `window.confirm` nativo (já registrado em 25/10 como "não clicado") | 4 — estados; 1 — consistência | `retirada/page.tsx:50` |
+| R3 | `✕` de remover foto é `<div onClick>` sem nome acessível nem teclado | 2/5 — toque e acessibilidade | `components/custody/PhotoSlot.tsx:58` |
+| R4 | `.app{min-height:100vh}` sem `dvh`: salto com a barra de endereço no celular | 2 — responsividade | `shell.css:13` |
+| R5 | `SellerBidRow.tsx` não é importado por nenhum arquivo (componente órfão, com 4 estilos inline) | 3 — componentes | `grep -rn SellerBidRow src` só acha o próprio arquivo |
+| R6 | Recibo sem `@media print` (a tela do recibo imprime com o menu e a gaveta) | 5 — acabamento | só `legal.css` e `landing.css` têm `@media print` |
+| R7 | Campos do cadastro/retirada ainda sem dica de teclado (9 acima) | 2 — celular | auditoria |
+
+Não são bugs de negócio: nenhum mexe em regra, valor, Server Action ou permissão. R5 é só registro — apagar arquivo
+não foi pedido. Estados sem `loading.tsx` por rota ficam para a medição no navegador.
+
+**Checks da base (30/10, antes de mexer):** `typecheck` ok · `lint` 0 erros / 16 avisos (todos fora desta frente) ·
+`test` 156 de 157 arquivos; o único vermelho foi `src/server/admin/banco.test.ts` ("Hook timed out in 10000ms"), que
+**passa sozinho (46/46)** — lentidão da máquina com a suíte inteira, não regressão · `build` ok.
