@@ -1,9 +1,14 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { GET } from './route'
+import * as rota from './route'
+
+const { GET } = rota
 
 describe('Cron Shipping Route — GET /api/cron/shipping', () => {
   const cronSecretTeste = 'segredo_cron_123456'
@@ -41,5 +46,30 @@ describe('Cron Shipping Route — GET /api/cron/shipping', () => {
     expect(data.ok).toBe(true)
     expect(data.verificados).toBe(0)
     expect(data.codigos).toEqual([])
+  })
+
+  it('sem CRON_SECRET em produção a rota fecha: nem "Bearer undefined" passa, e o log diz o motivo', async () => {
+    delete process.env.CRON_SECRET
+    vi.stubEnv('NODE_ENV', 'production')
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      for (const auth of [undefined, 'Bearer undefined', 'Bearer ']) {
+        const req = new NextRequest('http://localhost:3000/api/cron/shipping', auth ? { headers: { Authorization: auth } } : {})
+        expect((await GET(req)).status).toBe(401)
+      }
+      expect(erro.mock.calls[0][0]).toContain('CRON_SECRET ausente em produção')
+    } finally {
+      erro.mockRestore()
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('o rastreio diário está agendado em vercel.json (0 9 * * * UTC = 06:00 em Brasília) e a rota exporta GET', () => {
+    const cfg = JSON.parse(readFileSync(join(process.cwd(), 'vercel.json'), 'utf8')) as {
+      crons?: { path: string; schedule: string }[]
+    }
+    const cron = cfg.crons?.filter((c) => c.path === '/api/cron/shipping') ?? []
+    expect(cron).toEqual([{ path: '/api/cron/shipping', schedule: '0 9 * * *' }])
+    expect(typeof rota.GET).toBe('function')
   })
 })

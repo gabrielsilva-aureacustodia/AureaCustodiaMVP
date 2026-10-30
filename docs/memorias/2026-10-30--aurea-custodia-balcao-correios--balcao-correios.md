@@ -22,3 +22,8 @@ Pendente de acesso: a máquina da frota não tem login admin da Áurea, `CRON_SE
 ## Para a próxima sessão
 - Pedir ao Grok Machine credenciais da Áurea (Supabase prod só leitura, Vercel time `aurea-custodia`) antes de tarefas que exigem conferir produção.
 - O cron também levará à bancada qualquer outro envio entregue que estivesse parado em "Envio postado".
+
+## Rotina diária de rastreio (30/10)
+- Cron em `vercel.json`: `/api/cron/shipping`, `0 9 * * *` UTC = **06:00 em Brasília** (UTC-3, sem horário de verão); no plano Hobby a Vercel pode rodar em qualquer minuto da hora (06:00–06:59). A rota chama `atualizarRastreiosPendentes` (inclui o passo `enviosRecebidos` → bancada) e depois `desconsiderarEnviosVencidos`.
+- Achado: sem `CRON_SECRET` em produção a rota comparava com `"Bearer undefined"` — 401 mudo, e quem mandasse esse texto passava. Corrigido em `src/server/cron-auth.ts` (rastreio e faturamento): fecha, loga "CRON_SECRET ausente em produção" e compara em tempo constante.
+- Testes travam o agendamento, a autenticação e o reprocesso idempotente. `CRON_SECRET` na Vercel: não conferível daqui; indício de que existe: o cron de faturamento (mesmo segredo) rodou em produção até 26/10 (commit 7479867).

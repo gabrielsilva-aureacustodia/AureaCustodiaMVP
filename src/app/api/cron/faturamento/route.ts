@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { recusaDoCron } from '@/server/cron-auth'
 import { processarCicloFaturamento } from '@/server/custodia/faturamento'
 import { processarNotasPendentes } from '@/server/nfse/emissao'
 import { lancarVencidos } from '@/server/admin/financeiro'
@@ -19,14 +20,8 @@ import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
  * Segurança: protegido por `CRON_SECRET` via cabeçalho `Authorization: Bearer <CRON_SECRET>`.
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const authHeader = req.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret || process.env.NODE_ENV === 'production') {
-    if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ ok: false, error: 'Não autorizado' }, { status: 401 })
-    }
-  }
+  const recusa = recusaDoCron(req.headers.get('authorization'), '/api/cron/faturamento')
+  if (recusa) return recusa
 
   try {
     const relatorio = await processarCicloFaturamento()
