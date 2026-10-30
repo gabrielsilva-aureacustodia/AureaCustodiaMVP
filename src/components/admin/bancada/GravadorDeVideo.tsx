@@ -37,6 +37,14 @@ const FORMATOS: ReadonlyArray<{ mime: string; ext: 'webm' | 'mp4' }> = [
 
 type Envio = 'sem_gravacao' | 'enviando' | 'enviado' | 'nao_subiu'
 
+/** O que o Storage respondeu, em palavras de operador. 413 é o limite de tamanho do balde. */
+export function motivoDoStatus(status: number): string {
+  if (status === 413) return 'a gravação é maior que o limite do armazenamento (413) — grave um trecho menor'
+  if (status === 401 || status === 403) return `o armazenamento recusou a assinatura (${status}) — recarregue a página e grave de novo`
+  if (status === 400 || status === 415) return `o armazenamento não aceitou o formato do vídeo (${status})`
+  return `o armazenamento respondeu ${status}`
+}
+
 function comPrazo<T>(promessa: Promise<T>, oQue: string): Promise<T> {
   return Promise.race([
     promessa,
@@ -76,8 +84,12 @@ export function GravadorDeVideo({
   habilitado: boolean
   videoConfigurado: boolean
   videoFaltando: readonly string[]
-  /** Caminho no Storage quando o vídeo subiu; `null` sem vídeo. `gravando` segura o fechamento. */
-  aoMudar(estado: { caminho: string | null; gravando: boolean }): void
+  /**
+   * Caminho no Storage quando o vídeo subiu; `null` sem vídeo. `gravando` segura o fechamento.
+   * `naoSubiu` = houve gravação e ela NÃO chegou ao Storage: a bancada exige confirmação para fechar
+   * assim, em vez de deixar o operador seguir sem perceber (30/10/2026, vídeo do Rogério).
+   */
+  aoMudar(estado: { caminho: string | null; gravando: boolean; naoSubiu?: boolean }): void
 }): ReactNode {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const fluxo = useRef<MediaStream | null>(null)
@@ -85,6 +97,7 @@ export function GravadorDeVideo({
   const pedacos = useRef<Blob[]>([])
   const formato = useRef<(typeof FORMATOS)[number]>(FORMATOS[0])
   const urlLocal = useRef<string | null>(null)
+  const ultima = useRef<{ blob: Blob; ext: 'webm' | 'mp4' } | null>(null)
 
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [camera, setCamera] = useState('')
@@ -152,6 +165,7 @@ export function GravadorDeVideo({
   useEffect(() => {
     setEnvio('sem_gravacao')
     setCopia(null)
+    ultima.current = null
     aoMudar({ caminho: null, gravando: false })
     if (habilitado) void ligar(lembrada())
     return () => {
@@ -176,10 +190,11 @@ export function GravadorDeVideo({
   )
 
   async function subir(blob: Blob, ext: 'webm' | 'mp4'): Promise<void> {
+    ultima.current = { blob, ext }
     if (!videoConfigurado) {
       setEnvio('nao_subiu')
       setAviso(`Gravação guardada só nesta página: o vídeo não sobe sem ${videoFaltando.join(' e ')} no ambiente. A análise pode ser fechada sem vídeo.`)
-      aoMudar({ caminho: null, gravando: false })
+      aoMudar({ caminho: null, gravando: false, naoSubiu: true })
       return
     }
     setEnvio('enviando')
@@ -188,19 +203,20 @@ export function GravadorDeVideo({
     if (!assinatura?.ok || !assinatura.data) {
       setEnvio('nao_subiu')
       setAviso(`${assinatura?.error ?? 'Sem resposta do servidor.'} Baixe a gravação antes de sair da página.`)
-      aoMudar({ caminho: null, gravando: false })
+      aoMudar({ caminho: null, gravando: false, naoSubiu: true })
       return
     }
     try {
       const r = await fetch(assinatura.data.url, { method: 'PUT', headers: { 'Content-Type': `video/${ext}`, 'x-upsert': 'true' }, body: blob })
-      if (!r.ok) throw new Error(`o armazenamento respondeu ${r.status}`)
+      if (!r.ok) throw new Error(motivoDoStatus(r.status))
       setEnvio('enviado')
       setAviso('Gravação enviada para o armazenamento. Ela entra na análise ao fechar.')
+      ultima.current = null
       aoMudar({ caminho: assinatura.data.caminho, gravando: false })
     } catch (e) {
       setEnvio('nao_subiu')
-      setAviso(`A gravação não subiu (${e instanceof Error ? e.message : 'erro de rede'}). Baixe a cópia antes de sair da página; a análise pode ser fechada sem vídeo.`)
-      aoMudar({ caminho: null, gravando: false })
+      setAviso(`A gravação NÃO subiu (${e instanceof Error ? e.message : 'erro de rede'}). Tente enviar de novo ou baixe a cópia antes de sair da página.`)
+      aoMudar({ caminho: null, gravando: false, naoSubiu: true })
     }
   }
 
@@ -297,6 +313,11 @@ export function GravadorDeVideo({
       {/* muted e playsInline: sem eles o celular abre o vídeo em tela cheia e o navegador recusa tocar sozinho. */}
       <video ref={videoRef} className="adm-bancada-previa" autoPlay muted playsInline />
       {aviso ? <p className={`adm-fraco${envio === 'nao_subiu' ? ' adm-negativo' : ''}`}>{aviso}</p> : null}
+      {envio === 'nao_subiu' && ultima.current ? (
+        <button type="button" className="btn btn-gold adm-btn-compacto" onClick={() => ultima.current && void subir(ultima.current.blob, ultima.current.ext)}>
+          Tentar enviar de novo
+        </button>
+      ) : null}
       {copia ? (
         <p className="adm-fraco">
           <a href={copia.url} download={copia.nome}>

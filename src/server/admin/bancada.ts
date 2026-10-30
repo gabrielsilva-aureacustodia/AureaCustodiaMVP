@@ -87,6 +87,13 @@ export async function abrirPelaBancadaWeb(porta: PortaDaBancada, ator: string, p
   return { ok: true, mensagem: `Envio ${p} em análise física.` }
 }
 
+/** `RO-ENV-0019/RO-ENV-0019-1.webm` pertence a `RO-ENV-0019`; o balde pode vir como prefixo. */
+export function caminhoDeVideoPertenceAoEnvio(caminho: string, protocolo: string): boolean {
+  if (caminho.includes('..')) return false
+  const sem = caminho.replace(/^analises\//, '')
+  return sem.startsWith(`${protocolo}/`)
+}
+
 export interface EntradaFechamentoWeb {
   protocolo: string
   moedas: MoedaDigitada[]
@@ -104,6 +111,12 @@ export async function fecharPelaBancadaWeb(porta: PortaDaBancada, ator: string, 
   const [state, retiradas, caixas] = await Promise.all([porta.estado(), porta.retiradas(), porta.caixas()])
   const alvo = envioNaBancada(state, protocolo)
   if (!alvo.ok) return alvo
+
+  // O vídeo é gravado sob a pasta do protocolo (caminhoDoVideo). Um caminho de outro envio apontaria
+  // o laudo desta moeda para a gravação de outro cliente.
+  if (entrada.caminhoVideo && !caminhoDeVideoPertenceAoEnvio(entrada.caminhoVideo, protocolo)) {
+    return { ok: false, erro: 'O vídeo informado não pertence a este envio. Grave de novo ou feche sem vídeo.' }
+  }
 
   const validacao = validarMoedasDaBancada(entrada.moedas, alvo.envio.quantidade, entrada.caminhoVideo)
   if (!validacao.ok) return { ok: false, erro: validacao.erros.join(' ') }

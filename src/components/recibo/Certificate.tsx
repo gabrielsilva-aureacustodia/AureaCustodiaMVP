@@ -34,7 +34,7 @@ import { coinStatusDigital } from '@/domain/selectors'
 import type { Retirada } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
-import { CoinArt } from '@/components/svg/CoinArt'
+import { FolhaDoRecibo } from '@/components/recibo/FolhaDoRecibo'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { ModalSolicitarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
@@ -153,85 +153,19 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
       </Link>
 
       <div className="cert-wrap">
-        <div className="cert">
-          {extinto ? (
-            <div className="cert-stamp-extinto" aria-label="Recibo Extinto">
-              RECIBO EXTINTO
-              <br />
-              <span className="cert-stamp-sub">
-                RETIRADA FÍSICA SOLICITADA
-              </span>
-            </div>
-          ) : bloqueado ? (
-            <div className="cert-stamp-bloqueado" aria-label="Recibo Bloqueado">
-              RECIBO BLOQUEADO
-              <br />
-              <span className="cert-stamp-sub">
-                {pendencia ? 'PENDÊNCIA DE CUSTÓDIA' : 'RESTRIÇÃO ADMINISTRATIVA'}
-              </span>
-            </div>
-          ) : null}
-
-          {/* .cert-art tem 150px e a .coin-svg lá dentro, 64px. A arte não
-              preenche o quadro — é assim no monolito, e a folga é o respiro
-              acima do brasão. */}
-          <div className="cert-art">
-            <CoinArt type={coin.tipoMoeda} />
-          </div>
-          <h2 className="serif">REAL OLÍMPICO</h2>
-          <div className="cert-sub">Real Olímpico</div>
-          <div className="cert-rule"></div>
-          <div className="cert-title">Recibo de Custódia</div>
-          <div className="cert-code">{coin.recibo.codigo}</div>
-
-          {/* Os CINCO campos do documento, nesta ordem e com estes textos. É a
-              mesma lista que @/lib/pdf/recibo-pdf imprime: tela e PDF precisam
-              dizer a mesma coisa, senão o recibo baixado contradiz o que a
-              pessoa viu. Dado novo entra no painel lateral, não aqui. */}
-          <div className="cert-fields">
-            <div className="cf-row">
-              <span className="k">Moeda</span>
-              <span className="v">
-                {coin.tipoMoeda}
-                {!sellable ? ' ' + coin.ano : ''}
-              </span>
-            </div>
-            <div className="cf-row">
-              <span className="k">Status</span>
-              <span className="v">{statusTxt}</span>
-            </div>
-            <div className="cf-row">
-              <span className="k">Data de emissão</span>
-              {/* Congelada na emissão: não muda quando a moeda troca de dono. */}
-              <span className="v">{coin.recibo.dataEmissao}</span>
-            </div>
-            <div className="cf-row">
-              <span className="k">Proprietário atual</span>
-              <span className="v">{ownerName}</span>
-            </div>
-            <div className="cf-row">
-              <span className="k">Hash (curto)</span>
-              <span className="v">{coin.recibo.hash}</span>
-            </div>
-          </div>
-
-          <div className="cert-seal">
-            <div className="seal-badge">
-              <svg className="seal-ico" viewBox="0 0 24 24">
-                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-              Custódia
-              <br />
-              verificada
-            </div>
-          </div>
-
-          <div className="cert-foot">
-            Este recibo certifica a custódia e o vínculo documental.
-            <br />A moeda física permanece sob guarda do Real Olímpico.
-          </div>
-        </div>
+        <FolhaDoRecibo
+          tipoMoeda={coin.tipoMoeda}
+          ano={coin.ano}
+          codigo={coin.recibo.codigo}
+          hash={coin.recibo.hash}
+          dataEmissao={coin.recibo.dataEmissao}
+          proprietario={ownerName}
+          status={statusTxt}
+          negociavel={sellable}
+          extinto={extinto}
+          bloqueado={bloqueado}
+          pendencia={pendencia}
+        />
 
         <div className="coluna-pilha">
           {/* AÇÕES EM ORDEM DE USO (25/10/2026): baixar o PDF (o que se faz com um recibo), colocar à venda,

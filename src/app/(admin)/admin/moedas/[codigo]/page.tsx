@@ -20,7 +20,7 @@ import { hashCurto } from '@/components/admin/moedas/TabelaDeMoedas'
 import { data, dataHora, dinheiro, numero } from '@/components/admin/formatos'
 import { Secao, Selo, Vazio } from '@/components/admin/Pecas'
 import { ROTULO_STATUS_RETIRADA } from '@/domain/admin/logistica'
-import { ROTULO_SITUACAO } from '@/domain/admin/moedas'
+import { ROTULO_SITUACAO, hrefComoOClienteVe } from '@/domain/admin/moedas'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { CAMPOS_DA_ANALISE } from '@/domain/analise'
 import { membroDaPagina } from '@/server/admin/acesso'
@@ -93,7 +93,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
             id="moeda-recibo"
             titulo="Recibo"
             acoes={
-              <Link href={`/recibos/${encodeURIComponent(linha.codigo)}`} className="btn btn-outline">
+              <Link href={hrefComoOClienteVe(linha.codigo)} className="btn btn-outline">
                 Ver como o cliente vê
               </Link>
             }
