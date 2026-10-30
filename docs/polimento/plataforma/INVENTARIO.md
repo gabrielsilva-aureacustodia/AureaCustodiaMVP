@@ -311,7 +311,7 @@ registra o que mudou desde 25/10 e o que sobrou.
 | R3 ✔ | `✕` de remover foto é `<div onClick>` sem nome acessível nem teclado | 2/5 — toque e acessibilidade | `components/custody/PhotoSlot.tsx:58` |
 | R4 ✔ | `.app{min-height:100vh}` sem `dvh`: salto com a barra de endereço no celular | 2 — responsividade | `shell.css:13` |
 | R5 | `SellerBidRow.tsx` não é importado por nenhum arquivo (componente órfão, com 4 estilos inline) | 3 — componentes | `grep -rn SellerBidRow src` só acha o próprio arquivo |
-| R6 | Recibo sem `@media print` (a tela do recibo imprime com o menu e a gaveta) | 5 — acabamento | só `legal.css` e `landing.css` têm `@media print` |
+| R6 ✔ | Recibo sem `@media print` (a tela do recibo imprime com o menu e a gaveta) | 5 — acabamento | só `legal.css` e `landing.css` têm `@media print` |
 | R7 ◐ | Campos do cadastro/retirada ainda sem dica de teclado (9 acima) | 2 — celular | auditoria |
 
 Não são bugs de negócio: nenhum mexe em regra, valor, Server Action ou permissão. R5 é só registro — apagar arquivo
@@ -323,3 +323,30 @@ não foi pedido. Estados sem `loading.tsx` por rota ficam para a medição no na
 
 ✔ = corrigido no bloco 2 (30/10/2026). ◐ = complemento e bairro receberam `autoComplete`; número, CPF/CNPJ, banco e conta ficam
 sem dica de propósito (não há token que sirva).
+
+## 8. Medição no navegador (30/10/2026, sessão 2)
+
+Servidor local isolado (`next dev` em `127.0.0.1:3104`, `NODE_ENV=test`, `.env.test.local` ignorado pelo Git e com banco,
+Supabase, Mercado Pago, Correios e NFS-e vazios; store em memória com as 7 contas do seed; nenhuma credencial de produção
+no ambiente). Conta `gabrielsilva@testeaurea.com.br`, Chrome 1440 × 900, 768 × 1024 e 375 × 812, tema claro e escuro.
+Script e saída ficam no scratchpad da sessão (não entram no Git).
+
+| Medida | Resultado |
+|---|---|
+| Rotas abertas | 15 (todas as de `(app)` menos `/relatorios`, que só redireciona, e `/conta/aceites/[id]`) × 3 larguras × 2 temas |
+| Rolagem horizontal (`scrollWidth > clientWidth`) | **0** em todas |
+| Erros de console / `pageerror` | **0** em todas (a dica de hidratação do CD-13 só aparece em produção) |
+| axe-core 4.10 (WCAG 2.0/2.1/2.2 A e AA), 375 e 1440 px | **primeira rodada: 5 achados em 2 regras; depois da correção: 0** |
+| Impressão do recibo (`media=print`, PDF A4) | só a folha do recibo, nas cores dela, em uma página, nos dois temas |
+
+**Achados do axe, os dois reais e corrigidos:**
+1. `color-contrast` no recibo (`.cert-sub`, `.cert-code`, `.seal-badge` = 4,33:1; `.cert-foot` = 3,89:1; mínimo 4,5:1).
+   Em 25/10 o axe deu 0 — os papéis do certificado mudaram com a marca. Correção só no `.cert`
+   (`--cert-ink-gold: ouro-800`, `--cert-ink-foot: pergaminho-600`); a landing, que lê o mesmo token, não mudou.
+2. `aria-valid-attr-value` em `/conta/faturas`: a aba apontava (`aria-controls`) para um painel que ainda não existia
+   enquanto a tela carregava. O estado "carregando" agora já é o `tabpanel` da aba ativa.
+
+**Não verificado nesta sessão:** a modal `ModalCancelarRetirada` e o `✕` do `PhotoSlot` (exigem uma retirada em
+"solicitada" e o passo de fotos do envio, e foram escritos mas não clicados); `error.tsx` (precisa forçar uma falha);
+768 px no axe (só overflow e console); LCP e INP; WebKit/Firefox; leitor de tela. As telas de `/conta/aceites/[id]` e
+os modais de depósito/cadastro/retirada não entraram nesta rodada do axe.

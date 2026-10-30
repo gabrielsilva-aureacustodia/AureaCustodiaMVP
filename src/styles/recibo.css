@@ -21,6 +21,10 @@
 .cert{
   background:var(--cream);color:var(--navy-deep);border-radius:14px;padding:44px 40px;
   box-shadow:var(--shadow);position:relative;border:1px solid var(--cert-border);text-align:center;
+  /* Contraste AA no creme (#f5f0e4): o ouro-700 dava 4,33:1 e o texto do rodapé 3,89:1 (axe, 30/10/2026).
+     Os papéis ficam locais ao certificado — a landing, que também lê --cert-ink-gold, não muda. */
+  --cert-ink-gold:var(--ro-ouro-800);
+  --cert-ink-foot:var(--ro-pergaminho-600);
 }
 /* cantoneiras: dois quadrados com metade das bordas removidas */
 .cert::before,.cert::after{content:'';position:absolute;width:34px;height:34px;border:1.5px solid var(--gold);opacity:.65}
@@ -182,3 +186,31 @@
 .jornada-etapa.feita .jornada-ponto{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .jornada-etapa.atual .jornada-ponto{border-color:var(--gold);color:var(--ro-primaria-texto)}
 .jornada-etapa.atual .jornada-rotulo{color:var(--text-strong);font-weight:700}
+
+/* ---- Impressão do recibo (30/10/2026, polimento — lente "acabamento") ----------------------------
+   Imprimir /recibos/[coinId] levava junto o menu, a barra do topo, os botões e o painel de retirada,
+   e no tema escuro o texto claro sumia no papel branco. Na impressão só a folha do recibo sai, nas
+   cores dela (creme e tinta azul, que não dependem do tema), numa página A4. O `body:has(.cert-wrap)`
+   limita tudo a esta tela: as outras não ganham regra de impressão nenhuma. O PDF oficial continua
+   sendo o botão "Baixar PDF" (jsPDF); isto é só o Ctrl+P. */
+@media print{
+  @page{size:A4;margin:14mm}
+  body:has(.cert-wrap){background:#fff !important;color:#000 !important}
+  body:has(.cert-wrap) .sidebar,
+  body:has(.cert-wrap) .topbar,
+  body:has(.cert-wrap) .skip-link,
+  body:has(.cert-wrap) .tutorial-link,
+  body:has(.cert-wrap) .dicas-camada,
+  body:has(.cert-wrap) .modal-bg,
+  body:has(.cert-wrap) .toast,
+  body:has(.cert-wrap) .topbar-alert-banner,
+  body:has(.cert-wrap) .back-link,
+  body:has(.cert-wrap) .coluna-pilha{display:none !important}
+  body:has(.cert-wrap) .app,
+  body:has(.cert-wrap) .main{display:block;min-height:0;padding:0;max-width:none;background:#fff}
+  body:has(.cert-wrap) .cert-wrap{display:block}
+  body:has(.cert-wrap) .cert{
+    box-shadow:none;break-inside:avoid;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+}

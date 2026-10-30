@@ -265,3 +265,13 @@ LCP/INP. Entram na verificação final.
   seguem sem dica **não têm token que sirva**: número (pode ser "S/N"), CPF/CNPJ (CNPJ alfanumérico), banco, conta, e
   o do `PainelPagamento` (o "?" é um botão de ajuda, não um campo).
 - Checks: typecheck ok · lint 0 erros / 16 avisos (os mesmos da base) · test 157/157 arquivos, 1.457 passando · build ok.
+
+**Bloco 3 — impressão do recibo e medição no navegador (30/10/2026): FEITO** (R6)
+- `recibo.css`: `@media print` do recibo, limitado a `body:has(.cert-wrap)` — some o menu, a barra do topo, o banner de
+  termos, os botões, o "voltar" e a coluna lateral; sai só a folha em A4, nas cores do certificado.
+- Medição (INVENTARIO §8): 0 rolagem horizontal, 0 erro de console, axe 5 → 0. Dois achados reais corrigidos: contraste do
+  recibo (`.cert` com `ouro-800` e `pergaminho-600`) e aba de faturas apontando para painel inexistente durante o carregamento.
+- Ambiente: `.env.test.local` (ignorado) + semente em memória. A receita de `ferramentas/README.md` falha no passo 1 se o
+  `gerar-semente.test.ts` for rodado de `docs/` (o Vitest só inclui `src/**/*.test.ts`): copie-o para `src/` só para gerar
+  a semente e apague em seguida. Servidor derrubado ao fim; `.next` refeito pelo build.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
