@@ -253,3 +253,15 @@ nos campos que sobraram. R5 (`SellerBidRow` órfão) fica só registrado.
 
 **Não medido nesta sessão** (precisa de servidor local com a receita de `ferramentas/README.md`): 375/768/1440, axe,
 LCP/INP. Entram na verificação final.
+
+**Bloco 2 — estados, toque e teclado (30/10/2026): FEITO** (R1, R2, R3, R4 e parte do R7)
+- `app/(app)/error.tsx` e `app/(app)/loading.tsx` novos: falha e carregamento de qualquer tela do cliente passam a
+  aparecer dentro do casco (menu vivo), como já era no painel. Texto sem jargão; sem nada gravado.
+- `/retirada`: o `window.confirm` virou `ModalCancelarRetirada` ("Manter solicitação" contornado, "Cancelar solicitação"
+  `.btn-danger`). A Server Action chamada e o aviso de sucesso/erro são os mesmos.
+- `PhotoSlot`: o `✕` é `<button aria-label="Remover foto">`; o círculo segue 22 px, a área de toque é 44 px (`::after`).
+- `shell.css`: `.app` com `min-height:100dvh` (fallback `100vh`). A modal já usava `dvh`.
+- Campos: `autoComplete` de complemento e bairro (`address-line2`, `address-level3`) no cadastro e na retirada. Os 6 que
+  seguem sem dica **não têm token que sirva**: número (pode ser "S/N"), CPF/CNPJ (CNPJ alfanumérico), banco, conta, e
+  o do `PainelPagamento` (o "?" é um botão de ajuda, não um campo).
+- Checks: typecheck ok · lint 0 erros / 16 avisos (os mesmos da base) · test 157/157 arquivos, 1.457 passando · build ok.

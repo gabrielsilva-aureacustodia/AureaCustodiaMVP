@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { Retirada } from '@/domain/types'
+import { ModalCancelarRetirada } from '@/components/recibo/ModalCancelarRetirada'
 import { ModalPagarRetirada } from '@/components/recibo/ModalSolicitarRetirada'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -46,10 +47,12 @@ export default function RetiradasPage(): ReactNode {
     }
   }, [session])
 
+  // A pergunta mora na modal do sistema (era `window.confirm`, 30/10/2026); o cancelamento em si é o mesmo.
+  function pedirCancelamento(retiradaId: string): void {
+    modal.open(<ModalCancelarRetirada onConfirmar={() => void handleCancelar(retiradaId)} />)
+  }
+
   async function handleCancelar(retiradaId: string): Promise<void> {
-    if (!confirm('Deseja cancelar esta solicitação de retirada? A moeda voltará a ficar disponível para negociação.')) {
-      return
-    }
     setCancelandoId(retiradaId)
     try {
       const res = await run(() => cancelarSolicitacaoRetirada(retiradaId))
@@ -180,7 +183,7 @@ export default function RetiradasPage(): ReactNode {
                         type="button"
                         className="btn btn-danger"
                         disabled={cancelandoId === r.id}
-                        onClick={() => void handleCancelar(r.id)}
+                        onClick={() => pedirCancelamento(r.id)}
                       >
                         {cancelandoId === r.id ? 'Cancelando...' : 'Cancelar solicitação'}
                         <span className="sr-only"> da retirada {r.id}</span>

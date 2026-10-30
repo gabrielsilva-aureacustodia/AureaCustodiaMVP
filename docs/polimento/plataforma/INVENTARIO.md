@@ -275,7 +275,8 @@ Servidor local isolado (store em memória com as 7 contas do seed, sem banco, se
   Minha conta, some no fim); dicas por página: Início 7/7, Mercado 5/6 (o "Comprar" só existe com lote alheio — com
   outra conta apareceu), Compras 5/5, Vendas 5/5, Envios 5/5 (no passo 1), Recibos 4/4, Conta 4/4.
 - ✔ 375 px: nenhuma rolagem horizontal nas 16 rotas.
-- Não clicado: "Cancelar solicitação" de retirada (abre `window.confirm` nativo e a lista não tem itens sem banco).
+- Não clicado: "Cancelar solicitação" de retirada (a lista não tem itens sem banco). Desde 30/10/2026 a pergunta é a
+  `ModalCancelarRetirada`, não mais o `window.confirm` nativo.
 
 ## 7. Atualização de 30/10/2026 (sessão 2 — polimento pelas cinco lentes do Distilla)
 
@@ -305,13 +306,13 @@ registra o que mudou desde 25/10 e o que sobrou.
 
 | # | Achado | Lente | Evidência |
 |---|---|---|---|
-| R1 | `(app)` não tem `error.tsx` nem `loading.tsx` (o `(admin)` tem os dois): erro numa tela do cliente cai na página genérica do Next, sem menu | 4 — estados | `find "src/app/(app)" -name error.tsx` vazio |
-| R2 | `/retirada` cancela com `window.confirm` nativo (já registrado em 25/10 como "não clicado") | 4 — estados; 1 — consistência | `retirada/page.tsx:50` |
-| R3 | `✕` de remover foto é `<div onClick>` sem nome acessível nem teclado | 2/5 — toque e acessibilidade | `components/custody/PhotoSlot.tsx:58` |
-| R4 | `.app{min-height:100vh}` sem `dvh`: salto com a barra de endereço no celular | 2 — responsividade | `shell.css:13` |
+| R1 ✔ | `(app)` não tem `error.tsx` nem `loading.tsx` (o `(admin)` tem os dois): erro numa tela do cliente cai na página genérica do Next, sem menu | 4 — estados | `find "src/app/(app)" -name error.tsx` vazio |
+| R2 ✔ | `/retirada` cancela com `window.confirm` nativo (já registrado em 25/10 como "não clicado") | 4 — estados; 1 — consistência | `retirada/page.tsx:50` |
+| R3 ✔ | `✕` de remover foto é `<div onClick>` sem nome acessível nem teclado | 2/5 — toque e acessibilidade | `components/custody/PhotoSlot.tsx:58` |
+| R4 ✔ | `.app{min-height:100vh}` sem `dvh`: salto com a barra de endereço no celular | 2 — responsividade | `shell.css:13` |
 | R5 | `SellerBidRow.tsx` não é importado por nenhum arquivo (componente órfão, com 4 estilos inline) | 3 — componentes | `grep -rn SellerBidRow src` só acha o próprio arquivo |
 | R6 | Recibo sem `@media print` (a tela do recibo imprime com o menu e a gaveta) | 5 — acabamento | só `legal.css` e `landing.css` têm `@media print` |
-| R7 | Campos do cadastro/retirada ainda sem dica de teclado (9 acima) | 2 — celular | auditoria |
+| R7 ◐ | Campos do cadastro/retirada ainda sem dica de teclado (9 acima) | 2 — celular | auditoria |
 
 Não são bugs de negócio: nenhum mexe em regra, valor, Server Action ou permissão. R5 é só registro — apagar arquivo
 não foi pedido. Estados sem `loading.tsx` por rota ficam para a medição no navegador.
@@ -319,3 +320,6 @@ não foi pedido. Estados sem `loading.tsx` por rota ficam para a medição no na
 **Checks da base (30/10, antes de mexer):** `typecheck` ok · `lint` 0 erros / 16 avisos (todos fora desta frente) ·
 `test` 156 de 157 arquivos; o único vermelho foi `src/server/admin/banco.test.ts` ("Hook timed out in 10000ms"), que
 **passa sozinho (46/46)** — lentidão da máquina com a suíte inteira, não regressão · `build` ok.
+
+✔ = corrigido no bloco 2 (30/10/2026). ◐ = complemento e bairro receberam `autoComplete`; número, CPF/CNPJ, banco e conta ficam
+sem dica de propósito (não há token que sirva).

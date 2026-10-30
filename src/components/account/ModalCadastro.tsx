@@ -373,6 +373,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
             value={complemento}
             onChange={(e) => setComplemento(e.target.value)}
             id="cad-complemento"
+            autoComplete="address-line2"
           />
         </div>
       </div>
@@ -386,6 +387,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
             id="cad-bairro"
+            autoComplete="address-level3"
             autoCapitalize="words"
           />
         </div>
