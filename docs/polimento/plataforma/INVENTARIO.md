@@ -346,7 +346,22 @@ Script e saída ficam no scratchpad da sessão (não entram no Git).
 2. `aria-valid-attr-value` em `/conta/faturas`: a aba apontava (`aria-controls`) para um painel que ainda não existia
    enquanto a tela carregava. O estado "carregando" agora já é o `tabpanel` da aba ativa.
 
-**Não verificado nesta sessão:** a modal `ModalCancelarRetirada` e o `✕` do `PhotoSlot` (exigem uma retirada em
-"solicitada" e o passo de fotos do envio, e foram escritos mas não clicados); `error.tsx` (precisa forçar uma falha);
-768 px no axe (só overflow e console); LCP e INP; WebKit/Firefox; leitor de tela. As telas de `/conta/aceites/[id]` e
-os modais de depósito/cadastro/retirada não entraram nesta rodada do axe.
+**Fluxos clicados em seguida (30/10/2026, mesmo ambiente local, mas em `next start`):**
+- **Cancelar retirada:** recibo `RO-000016` → "Solicitar retirada" (formulário preenchido, cláusula marcada) → "Pagar
+  depois" → `/retirada` mostra a retirada "solicitada" → "Cancelar solicitação" abre a `ModalCancelarRetirada` (título,
+  explicação, "Manter solicitação" e "Cancelar solicitação" em `.btn-danger`). "Manter" fecha a modal e a retirada continua;
+  "Cancelar solicitação" mostra o aviso "Solicitação de retirada cancelada com sucesso.", fecha a modal e a lista fica sem
+  o botão. Nenhum diálogo nativo (`window.confirm`) disparou; 0 erro de console.
+- **Foto do envio:** `/envios` → foto escolhida → o `✕` é `<button>` com nome "Remover foto", recebe foco por teclado e
+  Enter remove a foto (volta o seletor de arquivo), em 1280 e 375 px. **A medição desmentiu o "44 px" do bloco 2:** com o
+  círculo de 22 px e área estendida por `::after`, o slot cortava a área e o alvo útil dava ~39 px. Corrigido: o botão
+  tem 44 × 44 px colado no canto e o círculo é o `<span>` de dentro; depois disso os pontos a 20 px nas quatro direções
+  acertam o botão.
+
+**Limite do ambiente local, e por que mudei para `next start`:** o repositório de retiradas sem banco é um `Map` no módulo
+(`server/shipping/retiradas.ts`). No `next dev` cada rota compila a sua cópia do módulo, então a retirada criada em
+`/recibos/...` não aparecia em `/retirada` (lista vazia — é o "P6" das propostas, e vale só para o ambiente sem
+Postgres). Em `next start` os módulos são compartilhados e o fluxo fecha. Com Postgres isso não existe.
+
+**Ainda não verificado:** `error.tsx` (precisa forçar uma falha); 768 px no axe; LCP e INP; WebKit/Firefox; leitor de
+tela; `/conta/aceites/[id]` e os modais de depósito e cadastro no axe.

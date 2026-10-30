@@ -259,7 +259,7 @@ LCP/INP. Entram na verificação final.
   aparecer dentro do casco (menu vivo), como já era no painel. Texto sem jargão; sem nada gravado.
 - `/retirada`: o `window.confirm` virou `ModalCancelarRetirada` ("Manter solicitação" contornado, "Cancelar solicitação"
   `.btn-danger`). A Server Action chamada e o aviso de sucesso/erro são os mesmos.
-- `PhotoSlot`: o `✕` é `<button aria-label="Remover foto">`; o círculo segue 22 px, a área de toque é 44 px (`::after`).
+- `PhotoSlot`: o `✕` é `<button aria-label="Remover foto">`; o círculo segue 22 px, a área de toque era 44 px por `::after` — **medido depois: ~39 px**, corrigido no bloco 4.
 - `shell.css`: `.app` com `min-height:100dvh` (fallback `100vh`). A modal já usava `dvh`.
 - Campos: `autoComplete` de complemento e bairro (`address-line2`, `address-level3`) no cadastro e na retirada. Os 6 que
   seguem sem dica **não têm token que sirva**: número (pode ser "S/N"), CPF/CNPJ (CNPJ alfanumérico), banco, conta, e
@@ -275,3 +275,17 @@ LCP/INP. Entram na verificação final.
   `gerar-semente.test.ts` for rodado de `docs/` (o Vitest só inclui `src/**/*.test.ts`): copie-o para `src/` só para gerar
   a semente e apague em seguida. Servidor derrubado ao fim; `.next` refeito pelo build.
 - Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
+
+**Bloco 4 — fluxos clicados no navegador, com dados no store local (30/10/2026): FEITO**
+- Ambiente: `.env.test.local` (ignorado) + semente em memória + `next start` em `127.0.0.1:3104`; nada de produção (sem
+  `.env.local` na worktree e nenhuma variável de banco, Supabase, Mercado Pago, Correios ou NFS-e no ambiente). Os dados
+  foram criados pela própria tela (solicitação de retirada de `RO-000016` na conta `gabrielsilva@testeaurea.com.br`) e somem
+  quando o servidor cai. Servidor derrubado ao fim.
+- **Cancelar retirada:** modal abre, "Manter solicitação" não cancela, "Cancelar solicitação" cancela com aviso e
+  atualiza a lista; nenhum `window.confirm`; 0 erro de console.
+- **Foto do envio:** `✕` é botão com nome, foco e Enter (1280 e 375 px). Achado: o alvo de toque real era ~39 px, não 44.
+  `wizard.css`: `.rm` passou a ser o alvo de 44 × 44 px no canto, com o círculo de 22 px no `<span>`; remedido: acerta nas
+  quatro direções.
+- Limite do ambiente: sem Postgres, a lista de retiradas só fecha em `next start` (ver INVENTARIO §8).
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
+- **Push e PR ficam com o Gabriel** (a conta desta máquina não tem escrita no repositório; a branch tem 4 commits locais).
