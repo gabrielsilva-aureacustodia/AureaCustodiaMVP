@@ -15,3 +15,6 @@
 
 ## Rotina diária de rastreio (30/10)
 Cron `0 9 * * *` UTC (06:00 BRT) em `vercel.json` → `/api/cron/shipping`. Auth centralizada em `src/server/cron-auth.ts` (produção sem `CRON_SECRET` fecha com log claro). Testes: `route.test.ts`, `cron-auth.test.ts`. Feito na branch `fix/cron-rastreio-diario`.
+
+## Auditoria Gov + Correios (30/10, 02:20 BRT)
+- PR #10, merge 9747109, deploy Production success. Relatório em docs/auditorias/2026-10-30--integracoes-gov-correios.md.

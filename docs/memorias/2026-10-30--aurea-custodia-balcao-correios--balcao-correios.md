@@ -27,3 +27,10 @@ Pendente de acesso: a máquina da frota não tem login admin da Áurea, `CRON_SE
 - Cron em `vercel.json`: `/api/cron/shipping`, `0 9 * * *` UTC = **06:00 em Brasília** (UTC-3, sem horário de verão); no plano Hobby a Vercel pode rodar em qualquer minuto da hora (06:00–06:59). A rota chama `atualizarRastreiosPendentes` (inclui o passo `enviosRecebidos` → bancada) e depois `desconsiderarEnviosVencidos`.
 - Achado: sem `CRON_SECRET` em produção a rota comparava com `"Bearer undefined"` — 401 mudo, e quem mandasse esse texto passava. Corrigido em `src/server/cron-auth.ts` (rastreio e faturamento): fecha, loga "CRON_SECRET ausente em produção" e compara em tempo constante.
 - Testes travam o agendamento, a autenticação e o reprocesso idempotente. `CRON_SECRET` na Vercel: não conferível daqui; indício de que existe: o cron de faturamento (mesmo segredo) rodou em produção até 26/10 (commit 7479867).
+
+## Auditoria das integrações Gov e Correios (30/10)
+- Relatório: `docs/auditorias/2026-10-30--integracoes-gov-correios.md` (PR #10, merge 9747109).
+- Correios (CWS, contrato novo): integrado em frete, pré-postagem, etiqueta, CEP, rastreio, retirada e `/admin/logistica`; nenhuma chamada à API antiga.
+- "Gov": NFS-e Nacional (Sefin) em emissão, fila, reenvio no cron de faturamento e `/admin/resultados/fiscal`; ViaCEP para o código IBGE. Não há login gov.br nem consulta CPF/CNPJ à Receita.
+- Corrigido: NFS-e na aba Integrações do admin, bloco `NFSE_*` no `.env.example`, texto das tarefas agendadas.
+- Só documentado: falta teste de servidor da NFS-e; `advanceAnalysis` sem tela; texto da bancada que fala em marcar "Recebido" na Logística; 429 dos Correios derruba o lote; variáveis da Vercel (`CRON_SECRET`, `CORREIOS_*`, `NFSE_*`) e plano não conferidos.
