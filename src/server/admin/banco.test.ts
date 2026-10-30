@@ -998,3 +998,14 @@ describe('reenvio de e-mail — admin.email.reenviar e o último envio da ficha'
     expect(await executar((tx) => ultimosConvites(tx))).toEqual({ 'm@x.com': 400 })
   })
 })
+
+describe('caminhoDeVideoPertenceAoEnvio', () => {
+  it('só aceita vídeo da pasta do próprio envio', async () => {
+    const { caminhoDeVideoPertenceAoEnvio } = await import('./bancada')
+    expect(caminhoDeVideoPertenceAoEnvio('RO-ENV-0019/RO-ENV-0019-1.webm', 'RO-ENV-0019')).toBe(true)
+    expect(caminhoDeVideoPertenceAoEnvio('analises/RO-ENV-0019/RO-ENV-0019-1.mp4', 'RO-ENV-0019')).toBe(true)
+    expect(caminhoDeVideoPertenceAoEnvio('RO-ENV-0020/RO-ENV-0020-1.webm', 'RO-ENV-0019')).toBe(false)
+    expect(caminhoDeVideoPertenceAoEnvio('RO-ENV-0019/../RO-ENV-0020/x.webm', 'RO-ENV-0019')).toBe(false)
+    expect(caminhoDeVideoPertenceAoEnvio('RO-ENV-00190/x.webm', 'RO-ENV-0019')).toBe(false)
+  })
+})

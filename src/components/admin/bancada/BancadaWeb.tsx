@@ -94,7 +94,8 @@ export function BancadaWeb({
   const [envio, setEnvio] = useState<ItemDaFilaBancada | null>(null)
   const [moedas, setMoedas] = useState<MoedaDigitada[]>([])
   const [posicoesManuais, setPosicoesManuais] = useState<Set<number>>(new Set())
-  const [video, setVideo] = useState<{ caminho: string | null; gravando: boolean }>({ caminho: null, gravando: false })
+  const [video, setVideo] = useState<{ caminho: string | null; gravando: boolean; naoSubiu?: boolean }>({ caminho: null, gravando: false })
+  const [confirmouSemVideo, setConfirmouSemVideo] = useState(false)
   const [erros, setErros] = useState<string[]>([])
   const [fechando, setFechando] = useState(false)
   const [resultado, setResultado] = useState<{ protocolo: string; saida: SaidaFechamento } | null>(null)
@@ -206,6 +207,13 @@ export function BancadaWeb({
       setErros(['Pare a gravação antes de fechar.'])
       return
     }
+    // Gravou e não subiu: fechar assim é possível, mas só de olhos abertos. Antes deste aviso o
+    // operador seguia, a análise nascia "sem vídeo" e ninguém sabia por quê.
+    if (video.naoSubiu && !confirmouSemVideo) {
+      setConfirmouSemVideo(true)
+      setErros(['A gravação deste envio NÃO foi para o armazenamento. Tente "Tentar enviar de novo" ou baixe a cópia. Para fechar mesmo assim, SEM vídeo, clique em "Fechar análise" outra vez.'])
+      return
+    }
     const local = validarMoedasDaBancada(moedas, envio.quantidade, video.caminho)
     if (!local.ok) {
       setErros(local.erros)
@@ -295,7 +303,16 @@ export function BancadaWeb({
               <p className="note">Seu papel vê a fila, mas não grava análise (permissão “Analisar moedas”).</p>
             ) : (
               <>
-                <GravadorDeVideo protocolo={envio.protocolo} habilitado={podeAnalisar} videoConfigurado={videoConfigurado} videoFaltando={videoFaltando} aoMudar={setVideo} />
+                <GravadorDeVideo
+                  protocolo={envio.protocolo}
+                  habilitado={podeAnalisar}
+                  videoConfigurado={videoConfigurado}
+                  videoFaltando={videoFaltando}
+                  aoMudar={(v) => {
+                    setVideo(v)
+                    setConfirmouSemVideo(false)
+                  }}
+                />
 
                 {moedas.map((m, i) => (
                   <fieldset key={i} className="adm-bancada-moeda">

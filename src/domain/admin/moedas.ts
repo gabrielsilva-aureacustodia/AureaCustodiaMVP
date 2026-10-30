@@ -238,3 +238,8 @@ export function verificarAcervo(
     },
   }
 }
+
+/** O botão "Ver como o cliente vê" da ficha: a visão de leitura do Admin, não /recibos/[coinId], que só abre para o dono. */
+export function hrefComoOClienteVe(codigo: string): string {
+  return `/admin/moedas/${encodeURIComponent(codigo)}/cliente`
+}
