@@ -46,6 +46,7 @@
 
 /* Tutorial guiado do cliente (tour, dicas por página, botão de ajuda). */
 @import '../styles/tutorial.css';
+@import '../styles/atendimento.css';
 
 /* Painel administrativo (/admin). Sem media query própria: a gaveta mobile vem das
    classes do casco, que responsive.css ajusta logo abaixo. */

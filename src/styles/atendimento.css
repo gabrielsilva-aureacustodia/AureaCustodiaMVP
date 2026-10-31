@@ -1,0 +1,115 @@
+/* ============================================================================
+   ATENDIMENTO — botão flutuante, folha de envio e conversa do caso (31/10/2026).
+   Lê só tokens --ro-*. A conversa (.atd-conversa) é a mesma na área do cliente e no painel.
+   ========================================================================== */
+
+/* ---- Botão flutuante ------------------------------------------------------ */
+/* Canto inferior direito, 44px (alvo de toque). O "Ver tutorial" também mora ali; quando ele existe o botão sobe
+   para não ficar por cima dele (`:has` — sem suporte, os dois empilham no mesmo canto só em navegador muito antigo). */
+.atd-fab{
+  position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:44;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;width:44px;height:44px;padding:0;
+  border-radius:var(--ro-raio-pilula);border:1px solid var(--ro-primaria);background:var(--ro-primaria);color:var(--on-gold);
+  box-shadow:var(--ro-sombra-3);cursor:pointer;font:600 13.5px var(--ff-sans);
+  transition:background-color var(--ro-dur-rapida) ease,transform var(--ro-dur-rapida) ease,width var(--ro-dur-base) ease;
+}
+body:has(.tutorial-link) .atd-fab{bottom:max(72px,calc(env(safe-area-inset-bottom) + 60px))}
+.atd-fab:hover{transform:translateY(-2px)}
+.atd-fab:focus-visible{outline:2px solid var(--ro-foco);outline-offset:3px}
+.atd-fab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.atd-fab-selo{
+  position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
+  background:var(--danger);color:#fff;font:700 11px/20px var(--ff-sans);text-align:center;border:2px solid var(--ro-fundo,var(--bg-panel));
+}
+/* Folga no fim de toda página logada: o último card rola para cima dos dois botões fixos (Atendimento e Ver tutorial)
+   em vez de ficar escondido atrás deles. Pseudo-elemento porque responsive.css redefine o padding do .main. */
+.app .main::after{content:"";display:block;height:104px}
+@media print{.app .main::after{display:none}}
+
+/* ---- Folha de envio ------------------------------------------------------- */
+.atd-folha{
+  position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(72px,calc(env(safe-area-inset-bottom) + 60px));z-index:46;
+  width:min(400px,calc(100vw - 32px));max-height:min(640px,calc(100dvh - 96px));overflow:auto;
+  background:var(--bg-panel);color:var(--ro-texto);border:1px solid var(--ro-borda-campo);border-radius:var(--ro-raio-lg);
+  box-shadow:var(--ro-sombra-4);padding:var(--ro-esp-5);
+  animation:atd-sobe var(--ro-dur-base) ease both;
+}
+body:has(.tutorial-link) .atd-folha{bottom:max(128px,calc(env(safe-area-inset-bottom) + 116px))}
+@keyframes atd-sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (max-width:560px){
+  .atd-folha{left:8px;right:8px;width:auto;max-height:calc(100dvh - 88px)}
+}
+.atd-cabeca{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:var(--ro-esp-3)}
+.atd-cabeca h2{margin:0;font:var(--ro-peso-semi) var(--ro-tipo-corpo-lg) var(--ff-display);color:var(--ro-texto)}
+.atd-cabeca p{margin:2px 0 0;font-size:var(--ro-tipo-legenda);color:var(--text-muted)}
+.atd-fechar{flex:none;width:44px;height:44px;margin:-8px -10px 0 0;border:0;background:transparent;color:var(--text-muted);border-radius:var(--ro-raio-sm);cursor:pointer}
+.atd-fechar:hover{color:var(--ro-texto);background:var(--gold-tint-10)}
+.atd-fechar:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+.atd-fechar svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+
+.atd-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 var(--ro-esp-4);padding:0;border:0}
+.atd-tipos legend{padding:0;margin-bottom:6px;font-size:var(--ro-tipo-legenda);font-weight:var(--ro-peso-semi)}
+.atd-tipos .chip{justify-content:center;min-height:44px;width:100%}
+.atd-origem{margin:0 0 var(--ro-esp-4);font-size:var(--ro-tipo-legenda);color:var(--text-muted)}
+.atd-origem code{font-family:var(--ff-mono,monospace);color:var(--ro-texto)}
+.atd-contagem{display:block;margin-top:4px;text-align:right;font-size:12px;color:var(--text-muted)}
+.atd-anexo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--ro-esp-4)}
+.atd-anexo-nome{font-size:var(--ro-tipo-legenda);color:var(--text-muted);overflow-wrap:anywhere}
+.atd-entrada-oculta{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.atd-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.atd-acoes .btn{min-height:44px}
+.atd-erro{margin:0 0 var(--ro-esp-3);color:var(--ro-perigo-texto);font-size:var(--ro-tipo-legenda)}
+.atd-ok{text-align:center;padding:var(--ro-esp-4) 0}
+.atd-ok p{margin:0 0 var(--ro-esp-4)}
+
+/* ---- Conversa (cliente e painel) ------------------------------------------ */
+.atd-conversa{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.atd-msg{max-width:min(560px,92%);padding:10px 14px;border-radius:var(--ro-raio-md);border:1px solid var(--line-soft);background:var(--ro-campo)}
+.atd-msg-eu{align-self:flex-end;background:var(--gold-tint-14);border-color:var(--gold-tint-30)}
+.atd-msg-quem{display:flex;gap:8px;align-items:baseline;justify-content:space-between;margin-bottom:4px;font-size:12px;color:var(--text-muted)}
+.atd-msg-quem b{color:var(--ro-texto);font-weight:var(--ro-peso-semi)}
+.atd-msg-texto{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.atd-msg-img{display:block;margin-top:8px;max-width:100%;max-height:260px;border-radius:var(--ro-raio-sm);border:1px solid var(--line-soft)}
+.atd-compor{margin-top:var(--ro-esp-4)}
+.atd-compor textarea{min-height:88px}
+
+/* ---- Lista e página "Atendimento" do cliente ------------------------------- */
+.atd-pagina{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:var(--ro-esp-5);align-items:start}
+@media (max-width:860px){.atd-pagina{grid-template-columns:1fr}.atd-pagina.com-caso .atd-lista-col{display:none}}
+.atd-lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.atd-item{
+  display:block;width:100%;text-align:left;padding:12px 14px;min-height:44px;border-radius:var(--ro-raio-md);cursor:pointer;
+  border:1px solid var(--line-soft);background:var(--bg-panel);color:var(--ro-texto);font:inherit;
+  transition:border-color var(--ro-dur-rapida) ease,background-color var(--ro-dur-rapida) ease;
+}
+.atd-item:hover{border-color:var(--ro-primaria)}
+.atd-item:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+.atd-item[aria-current="true"]{border-color:var(--ro-primaria);background:var(--gold-tint-10)}
+.atd-item-topo{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.atd-item-titulo{font-weight:var(--ro-peso-semi);overflow-wrap:anywhere}
+.atd-item-meta{font-size:12px;color:var(--text-muted)}
+.atd-novo{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:6px}
+.atd-detalhe-cab{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:var(--ro-esp-4)}
+.atd-detalhe-cab h2{margin:0;font-size:var(--ro-tipo-titulo-3);overflow-wrap:anywhere;flex:1 1 220px}
+.atd-voltar{display:none}
+@media (max-width:860px){.atd-voltar{display:inline-flex}}
+
+/* Filtros do painel quebram linha em vez de rolar para o lado: no celular "Resolvido" e "Não resolvido" ficavam escondidos. */
+.adm-main .adm-abas.atd-abas{flex-wrap:wrap;overflow:visible}
+
+/* ---- Painel (equipe) -------------------------------------------------------- */
+.atd-filtros{display:flex;flex-wrap:wrap;gap:var(--ro-esp-3);align-items:end;margin-bottom:var(--ro-esp-4)}
+.atd-filtros .field{margin:0;flex:1 1 220px}
+.atd-estado-acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+@media (prefers-reduced-motion:reduce){
+  .atd-folha{animation:none}
+  .atd-fab,.atd-item{transition:none}
+}
+@media print{.atd-fab,.atd-folha{display:none}}
+
+/* ---- Contador do item "Casos" no menu do painel ---------------------------- */
+.adm-nav-contador{
+  margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:11px;
+  background:var(--danger);color:#fff;font:700 12px/22px var(--ff-sans);text-align:center;
+}

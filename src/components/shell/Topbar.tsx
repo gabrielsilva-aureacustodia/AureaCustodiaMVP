@@ -103,6 +103,12 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: 'Moedas físicas recebidas, conferidas e vinculadas aos recibos digitais.',
     }
   }
+  if (pathname === '/atendimento') {
+    return {
+      h1: 'Atendimento',
+      p: 'Seus pedidos à equipe do Real Olímpico e as respostas.',
+    }
+  }
   if (pathname === '/recibos') {
     return {
       h1: 'Recibos',

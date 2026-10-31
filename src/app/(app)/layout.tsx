@@ -30,6 +30,7 @@
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+import { BotaoAtendimento } from '@/components/atendimento/BotaoAtendimento'
 import { AppProvider } from '@/components/providers/AppProvider'
 import { RegistroDeUso } from '@/components/providers/RegistroDeUso'
 import { TutorialProvider } from '@/components/tutorial/TutorialProvider'
@@ -97,6 +98,8 @@ export default async function AppLayout({
             AppProvider para que o conteúdo das modais enxergue state, session e
             run() — ver a nota no topo de components/ui/Modal.tsx. */}
         <ModalHost />
+        {/* Atendimento: botão flutuante em toda tela logada do cliente. */}
+        <BotaoAtendimento />
       </SidebarProvider>
       </TutorialProvider>
       {/* Registro de uso da plataforma (frente C): anota páginas abertas e manda em

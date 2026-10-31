@@ -228,6 +228,17 @@ const NAV: NavLink[] = [
     ),
   },
   {
+    href: '/atendimento',
+    grupo: 'Conta',
+    label: 'Atendimento',
+    icon: (
+      <>
+        <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
+        <path d="M9 11h6M9 14h3.5" />
+      </>
+    ),
+  },
+  {
     href: '/conta',
     grupo: 'Conta',
     label: 'Minha conta',
