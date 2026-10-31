@@ -761,6 +761,42 @@
    próprio `.cert` (PR #13), e os valores batem de propósito. */
 .adm-main .cert{--cert-ink-gold:var(--ro-ouro-800);--cert-ink-foot:var(--ro-pergaminho-600)}
 
+/* Utilitários de espaçamento e layout (30/10/2026). Trocam `style={{}}` estático de 36 lugares do painel sem mudar nada na tela:
+   levam `!important` justamente porque o estilo inline que substituem vencia qualquer seletor. Valor dinâmico (largura de
+   barra, altura de coluna, recuo por nível do DRE) continua inline — é dado, não desenho. */
+.adm-main .adm-m0{margin:0 !important}
+.adm-main .adm-m16{margin:16px !important}
+.adm-main .adm-mb0{margin-bottom:0 !important}
+.adm-main .adm-mb6{margin-bottom:6px !important}
+.adm-main .adm-mb8{margin-bottom:8px !important}
+.adm-main .adm-mb12{margin-bottom:12px !important}
+.adm-main .adm-mt8{margin-top:8px !important}
+.adm-main .adm-mt10{margin-top:10px !important}
+.adm-main .adm-mt12{margin-top:12px !important}
+.adm-main .adm-mt14{margin-top:14px !important}
+.adm-main .adm-my14{margin-top:14px !important;margin-bottom:14px !important}
+.adm-main .adm-contents{display:contents}
+.adm-main .adm-quebra-tudo{word-break:break-all}
+.adm-main .adm-sem-moldura{padding:0 !important;border:0 !important}
+.adm-main .adm-bloco-simples{display:block !important}
+.adm-main .adm-lista-recuada{margin:6px 0 0 18px !important}
+.adm-main .adm-lista-compacta{margin:4px 0 0 !important;padding-left:16px !important}
+.adm-main .adm-acoes-fim{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.adm-main .adm-pre{white-space:pre-wrap;margin:8px 0 0}
+.adm-main .adm-campo-papel{min-height:44px !important;margin-bottom:0 !important;min-width:150px !important}
+.adm-main .adm-campo-aliquota{width:110px !important;min-height:44px !important;margin-bottom:0 !important}
+.adm-main .adm-col-55{width:55%}
+.adm-main .adm-col-35{width:35%}
+
+/* Cabeçalho de um campo com uma ação ao lado do rótulo (bancada: "Caixa" + "Replicar para todas"). O <label> mantém o
+   aspecto do texto simples dos outros campos da linha, que são <label> em volta do <input>. */
+.adm-main .field .adm-campo-cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.adm-main .field .adm-campo-cab label{display:inline;margin:0;font-size:inherit;font-weight:inherit;letter-spacing:inherit;color:inherit}
+/* Botão com cara de link, com alvo de toque de 44 px (era um <button> de 0 de padding e 0,85em de fonte). */
+.adm-main .adm-btn-texto{min-height:44px;padding:0 6px;background:none;border:0;color:var(--ro-primaria-texto);font:inherit;font-size:.85em;text-decoration:underline;text-underline-offset:3px;cursor:pointer;border-radius:var(--ro-raio-xs)}
+.adm-main .adm-btn-texto:hover{color:var(--ro-texto-forte)}
+.adm-main .adm-btn-texto:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+
 /* ---- Impressão (30/10/2026, polimento — lente "acabamento") -------------------------------------------------
    O DRE, a ficha da moeda e as listas saíam do Ctrl+P com o menu, a barra do topo e todos os botões, e no tema
    escuro o texto claro sumia no papel branco. Na impressão sai só o conteúdo: título da página, painéis e tabelas

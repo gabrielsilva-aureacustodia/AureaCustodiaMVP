@@ -51,7 +51,7 @@ function situacao(l: LinhaFiscal): ReactNode {
       <>
         <Selo tom="ok">Autorizada</Selo> <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
         {e.ambiente === 'restrita' ? <span className="adm-fraco"> · teste (sem validade jurídica)</span> : null}
-        <div className="adm-fraco" style={{ wordBreak: 'break-all' }}>
+        <div className="adm-fraco adm-quebra-tudo">
           {e.chaveAcesso}
         </div>
       </>
@@ -63,7 +63,7 @@ function situacao(l: LinhaFiscal): ReactNode {
       {e.numeroNfse && (e.status === 'cancelada' || e.status === 'cancelando') ? <span> · NFS-e nº {e.numeroNfse}</span> : null}
       {e.motivoCancelamento ? <div className="adm-fraco">{e.motivoCancelamento.split('|').slice(1).join('|')}</div> : null}
       {e.erros?.length ? (
-        <ul className="adm-fraco" style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+        <ul className="adm-fraco adm-lista-compacta">
           {e.erros.map((x, i) => (
             <li key={i}>
               {x.codigo ? `${x.codigo}: ` : ''}

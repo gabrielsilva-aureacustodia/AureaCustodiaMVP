@@ -49,9 +49,9 @@ export function AbaCadastro({ email, nome, dados, semBanco }: { email: string; n
 
   return (
     <>
-      <div className="adm-cartao-papel" style={{ padding: 0, border: 0 }}>
-        <div className="adm-topo-ficha" style={{ marginBottom: 6 }}>
-          <div className="adm-subtitulo" style={{ margin: 0 }}>
+      <div className="adm-cartao-papel adm-sem-moldura">
+        <div className="adm-topo-ficha adm-mb6">
+          <div className="adm-subtitulo adm-m0">
             Dados pessoais
           </div>
           {pode('usuarios.editar') ? (

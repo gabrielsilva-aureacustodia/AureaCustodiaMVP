@@ -38,7 +38,7 @@ function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): Reac
     )
   }
   return (
-    <details className="adm-detalhes" style={{ marginBottom: 0 }}>
+    <details className="adm-detalhes adm-mb0">
       <summary>
         {rastreio.etapaDescricao}
         <span className="adm-fraco"> · {dataHora(rastreio.dataUltimaAtualizacao)}</span>
@@ -192,7 +192,7 @@ export function PainelLogistica({
                         <Rastreio rastreio={dados.rastreios[e.protocolo]} />
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <div className="adm-acoes-fim">
                           {podeEtiqueta ? (
                             <a className="btn btn-outline adm-btn-compacto" href={`/api/envios/etiqueta/${encodeURIComponent(e.protocolo)}`} target="_blank" rel="noreferrer">
                               Etiqueta
@@ -269,7 +269,7 @@ export function PainelLogistica({
                       </td>
                       <td>{data(r.dataLimiteD30)}</td>
                       <td>
-                        <details className="adm-detalhes" style={{ marginBottom: 6 }}>
+                        <details className="adm-detalhes adm-mb6">
                           <summary>{r.historico.length === 1 ? '1 etapa' : `${numero(r.historico.length)} etapas`}</summary>
                           <div className="adm-detalhes-corpo">
                             <ul className="adm-lista">

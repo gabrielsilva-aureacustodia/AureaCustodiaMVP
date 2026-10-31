@@ -149,7 +149,7 @@ export function QuadroDeCaixas({
                   </td>
                   <td>
                     {c.moedas.length ? (
-                      <details className="adm-detalhes" style={{ marginBottom: 0 }}>
+                      <details className="adm-detalhes adm-mb0">
                         <summary>{c.moedas.length === 1 ? '1 moeda' : `${numero(c.moedas.length)} moedas`}</summary>
                         <div className="adm-detalhes-corpo">
                           <ul className="adm-lista">

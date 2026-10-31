@@ -18,7 +18,7 @@ import { TabelaRolavel } from '@/components/admin/Pecas'
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
   if (!rastreio) return <span className="adm-fraco">rastreio ainda não consultado</span>
   return (
-    <details className="adm-detalhes" style={{ marginBottom: 0 }}>
+    <details className="adm-detalhes adm-mb0">
       <summary>
         {textoDoRastreio(rastreio)}
         <span className="adm-fraco"> · {dataHora(rastreio.dataUltimaAtualizacao)}</span>
@@ -126,7 +126,7 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
                   <td className="adm-num">{dinheiro(r.valorTaxaCents)}</td>
                   <td>{data(r.dataLimiteD30)}</td>
                   <td>
-                    <ul className="adm-lista" style={{ marginBottom: 0 }}>
+                    <ul className="adm-lista adm-mb0">
                       {r.historico.map((h, i) => (
                         <li key={`${h.data}-${i}`}>
                           {dataHora(h.data)}: {h.de ?? 'início'} → {h.para}

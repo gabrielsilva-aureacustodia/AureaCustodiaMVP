@@ -86,3 +86,19 @@ DRE com valores, fila de NFS-e e trilha real **não foram vistos**. As correçõ
   Sem `@page`, de propósito: ele não se limita por seletor e mudaria a impressão das outras áreas. Conferido em PDF A4 gerado pelo Chrome (Financeiro, Auditoria de moedas e Ficha da moeda):
   só conteúdo, `h1` presente, sem botões.
 - Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok · axe 0 nas 18 rotas × 3 larguras × 2 temas · 0 rolagem horizontal · 0 erro de console.
+
+**Bloco 5 — estados interativos, formulário da bancada e estilos inline (R6): FEITO**
+- **Medição ampliada:** além das 18 rotas, **31 variações por URL** (7 abas da ficha, 4 do contábil, 5 da configuração, 3 de saques, 2 de logística, 2 de equipe, fiscal, uso e as buscas),
+  a busca Ctrl+K aberta (foco no campo, 5 opções para "saq", Esc fecha), a gaveta do menu a 375 px (abre, axe 0, Esc fecha), os dois cadastros da bancada abertos (14 campos) e os blocos
+  de Usuários abertos — todos em 1440 e 375 px, com axe de WCAG A/AA **e boa prática**.
+  Achados e correções: `heading-order` em Contábil › Exportações (`h3` "Registro de exportações" → `h2`, com a classe `adm-titulo-secao`) e `empty-table-header` em Configuração › Catálogo
+  (coluna de ações sem nome → "Ações" só para leitor de tela). Depois: **0 violações em tudo**.
+- **Defeito real no formulário da bancada, achado por leitura (não dá para ver sem um envio em análise):** o botão "Replicar para todas" ficava **dentro** do `<label>` do campo "Caixa" —
+  o primeiro controle dentro do `<label>` é o botão, então o rótulo "Caixa" deixava de nomear o `<input>` — e o botão tinha padding 0 e fonte de 0,85em (alvo de toque minúsculo).
+  Agora o `<label htmlFor>` é irmão do botão (`.adm-campo-cab`), e o botão é `.adm-btn-texto` (44 px, `--ro-foco` no teclado). **Só typecheck e build: o estado não aparece neste ambiente.**
+- **Estilos inline: 48 → 6.** 36 `style={{}}` estáticos viraram utilitários em `admin.css` (`adm-mb0`, `adm-mt10`, `adm-my14`, `adm-acoes-fim`, `adm-campo-papel`, …, com `!important` porque o inline que
+  substituem vencia qualquer seletor). Ficam os 6 que são **dado**: largura das barras (`adm-barra` ×2, `adm-barras-barra`, `adm-cascata-barra`), altura da coluna do gráfico e recuo do DRE por nível.
+  Conferência: 12 das 21 classes aparecem nas telas locais e **batem com o valor do estilo que substituíram, 0 divergência** (computado em 1440 e 375 px); as outras 9
+  (`adm-m16`, `adm-mb8`, `adm-mt8`, `adm-mt14`, `adm-lista-recuada`, `adm-lista-compacta`, `adm-campo-papel`, `adm-acoes-fim`, `adm-quebra-tudo`) só existem com dado real (conversas, papéis, notas fiscais,
+  logística com envio) e **não foram vistas** — a troca é literal, valor por valor.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok.

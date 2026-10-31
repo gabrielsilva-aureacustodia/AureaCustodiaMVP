@@ -73,7 +73,7 @@ function Resumo({
   return (
     <>
       <div className="adm-fraco">{cliente.email}</div>
-      <div className="adm-etiquetas" style={{ margin: '8px 0 12px' }}>
+      <div className="adm-etiquetas adm-mt8 adm-mb12">
         {cliente.inadimplente ? <span className="pill adm-pill-vermelho">Inadimplente</span> : null}
         <span className={cliente.comCadastro ? 'pill g' : 'pill y'}>{cliente.comCadastro ? 'Cadastro completo' : 'Cadastro incompleto'}</span>
       </div>
@@ -143,7 +143,7 @@ function Resumo({
         <p className="adm-fraco">Nenhuma.</p>
       )}
 
-      <div className="adm-acoes" style={{ marginTop: 12 }}>
+      <div className="adm-acoes adm-mt12">
         {podeVerFicha ? (
           <Link href={`/admin/usuarios/${encodeURIComponent(cliente.email)}`} className="btn btn-outline adm-btn-compacto">
             Abrir ficha completa

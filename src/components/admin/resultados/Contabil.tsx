@@ -323,8 +323,7 @@ function Aliquotas({ parametros, semBanco }: { parametros: ParametroGravado[]; s
                     <td>
                       <span className="adm-acoes">
                         <input
-                          className="tinput"
-                          style={{ width: 110, minHeight: 44, marginBottom: 0 }}
+                          className="tinput adm-campo-aliquota"
                           inputMode="decimal"
                           placeholder={c.unidade === 'bp' ? '%' : 'R$'}
                           aria-label={`Novo valor de ${c.rotulo}`}
@@ -429,22 +428,22 @@ function Exportacoes(props: PropsContabil): ReactNode {
       </div>
 
       {pode('resultados.exportar') ? (
-        <div className="adm-acoes" style={{ margin: '14px 0' }}>
+        <div className="adm-acoes adm-my14">
           <button type="button" className="btn btn-gold adm-btn-compacto" disabled={enviando || props.sheetsFaltando.length > 0} onClick={() => void enviar()} data-uso="contabil:enviar-sheets">
             Enviar ao Google Sheets agora
           </button>
         </div>
       ) : null}
 
-      <div className="note adm-secao" style={{ display: 'block' }}>
+      <div className="note adm-secao adm-bloco-simples">
         <b>Sem conta de serviço, a planilha pode puxar sozinha.</b> Numa célula:
-        <pre className="adm-mono" style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>{`=IMPORTDATA("${exemplo}")`}</pre>
+        <pre className="adm-mono adm-pre">{`=IMPORTDATA("${exemplo}")`}</pre>
         Troque <code>dre</code> por <code>ledger</code>, <code>analise</code>, <code>negociacoes</code>, <code>extratos</code>,{' '}
         <code>estoque</code>, <code>contas</code>, <code>custodia</code> ou <code>auditoria</code>. O passo a passo está em{' '}
         <code>docs/INTEGRACAO_GOOGLE_SHEETS.md</code>.
       </div>
 
-      <h3>Registro de exportações</h3>
+      <h2 className="adm-titulo-secao">Registro de exportações</h2>
       {props.exportacoes.length ? (
         <TabelaRolavel rotulo="Registro de exportações">
           <table className="audit-table">

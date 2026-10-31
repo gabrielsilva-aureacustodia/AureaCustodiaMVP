@@ -110,7 +110,7 @@ export function CatalogoDeMoedas({ tipos, moedasPorTipo, podeEditar, semTabela }
               <th scope="col">Mercado</th>
               <th scope="col">Envio</th>
               <th scope="col" className="adm-num">Moedas</th>
-              <th scope="col" />
+              <th scope="col"><span className="adm-sr">Ações</span></th>
             </tr>
           </thead>
           <tbody>

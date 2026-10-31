@@ -272,7 +272,7 @@ export function BancadaWeb({
           <div className="note adm-secao" role="status">
             <span>
               <b>{resultado.protocolo}</b>: {resultado.saida.aprovadas} aprovada(s), {resultado.saida.recusadas} recusada(s).
-              <ul className="adm-lista" style={{ margin: '6px 0 0 18px' }}>
+              <ul className="adm-lista adm-lista-recuada">
                 {resultado.saida.analises.map((a) => (
                   <li key={a.protocolo}>
                     {a.protocolo} · {a.codigoMoeda ?? 'recusada'} · <span className="adm-mono">{a.hash}</span>
@@ -326,7 +326,7 @@ export function BancadaWeb({
                         </button>
                       ))}
                     </div>
-                    <div className="adm-form" style={{ marginTop: 10, marginBottom: 0 }}>
+                    <div className="adm-form adm-mt10 adm-mb0">
                       {/* Texto e não number: o Chromium descarta "27,05" num input numérico (estacao/renderer/app.js). */}
                       <label className="field">
                         <span>Peso (g)</span>
@@ -334,23 +334,24 @@ export function BancadaWeb({
                       </label>
                       {m.veredito === 'aprovada' ? (
                         <>
-                          <label className="field">
-                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>Caixa</span>
+                          {/* Não é <label> em volta: com o botão "Replicar" dentro, o rótulo "Caixa" passava a ser do
+                              botão (o primeiro controle dentro do <label>) e o campo ficava sem nome. */}
+                          <div className="field">
+                            <div className="adm-campo-cab">
+                              <label htmlFor={`bancada-caixa-${i}`}>Caixa</label>
                               {moedas.length > 1 && m.caixa ? (
                                 <button
                                   type="button"
-                                  className="adm-fraco"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontSize: '0.85em' }}
+                                  className="adm-btn-texto"
                                   onClick={() => aplicarCaixaEmTodas(m.caixa)}
                                   title="Usar esta caixa em todas as moedas do envio"
                                 >
                                   Replicar para todas
                                 </button>
                               ) : null}
-                            </span>
-                            <input className="tinput" type="text" list="adm-bancada-caixas" placeholder="EB-001" value={m.caixa} onChange={(e) => mudar(i, 'caixa', e.target.value)} />
-                          </label>
+                            </div>
+                            <input id={`bancada-caixa-${i}`} className="tinput" type="text" list="adm-bancada-caixas" placeholder="EB-001" value={m.caixa} onChange={(e) => mudar(i, 'caixa', e.target.value)} />
+                          </div>
                           <label className="field">
                             <span>
                               Posição
@@ -378,7 +379,7 @@ export function BancadaWeb({
 
                 {erros.length > 0 ? (
                   <div className="note adm-secao" role="alert">
-                    <ul className="adm-lista" style={{ margin: 0 }}>
+                    <ul className="adm-lista adm-m0">
                       {erros.map((e) => (
                         <li key={e}>{e}</li>
                       ))}

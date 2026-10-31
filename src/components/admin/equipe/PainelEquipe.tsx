@@ -174,8 +174,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                   <td>
                     {podeEditar ? (
                       <select
-                        className="tinput"
-                        style={{ minHeight: 44, marginBottom: 0, minWidth: 150 }}
+                        className="tinput adm-campo-papel"
                         value={m.papelSlug}
                         disabled={ocupado}
                         aria-label={`Papel de ${m.email}`}
@@ -262,8 +261,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                     <td>
                       {podeEditar ? (
                         <select
-                          className="tinput"
-                          style={{ minHeight: 44, marginBottom: 0, minWidth: 150 }}
+                          className="tinput adm-campo-papel"
                           value={SLUG_DEV}
                           disabled={ocupado}
                           aria-label={`Papel de ${b.email}`}
@@ -307,7 +305,7 @@ function MatrizDePermissoes({
   return (
     <div className="adm-matriz">
       {MODULOS.map((m) => (
-        <div key={m.modulo} style={{ display: 'contents' }}>
+        <div key={m.modulo} className="adm-contents">
           <div className="adm-matriz-modulo">{m.rotulo}</div>
           {PERMISSOES.filter((p) => p.modulo === m.modulo).map((p) => (
             <label key={p.chave} className="adm-check" title={p.descricao}>

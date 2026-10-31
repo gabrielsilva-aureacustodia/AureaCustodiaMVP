@@ -141,7 +141,7 @@ export function Uso({
                     <tr>
                       <th scope="col">Hora</th>
                       <th scope="col" className="adm-num">Atividade</th>
-                      <th scope="col" style={{ width: '55%' }} aria-hidden="true" />
+                      <th scope="col" className="adm-col-55" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody>
@@ -159,7 +159,7 @@ export function Uso({
                   </tbody>
                 </table>
               </TabelaRolavel>
-              <p className="adm-fraco" style={{ marginTop: 10 }}>
+              <p className="adm-fraco adm-mt10">
                 Páginas abertas e ações gravadas pelo servidor, por hora do dia.
               </p>
             </div>
@@ -197,7 +197,7 @@ export function Uso({
               ) : (
                 <div className="empty">Nenhuma atividade de conta no período.</div>
               )}
-              <p className="adm-fraco" style={{ marginTop: 10 }}>
+              <p className="adm-fraco adm-mt10">
                 Operações são o que ficou na trilha: negociações, anúncios, envios, retiradas, ações do painel.
               </p>
             </div>
@@ -289,7 +289,7 @@ export function Uso({
           ) : (
             <div className="empty">Nenhuma linha da trilha com este filtro no período.</div>
           )}
-          {dados.trilhaNoLimite ? <p className="adm-fraco" style={{ marginTop: 10 }}>Mostrando as 300 mais recentes. Refine o filtro para ver as anteriores.</p> : null}
+          {dados.trilhaNoLimite ? <p className="adm-fraco adm-mt10">Mostrando as 300 mais recentes. Refine o filtro para ver as anteriores.</p> : null}
         </div>
       ) : null}
     </>

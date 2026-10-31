@@ -94,7 +94,7 @@ Varredura estática dos 84 arquivos .tsx de `src/components/admin` e `src/app/(a
 | `<button>` sem `type` | 0 |
 | `<table>` sem `<caption>` | 0 · `<th>` sem `scope` 0 · `<img>` sem `alt` 0 |
 | Clique em `div`/`span` | 1 — o fundo da gaveta (`.sb-backdrop`, `aria-hidden`), esperado |
-| `style={{}}` inline | **48** (Indicadores 6, BancadaWeb 5, Uso 5, Conversa 4, Contábil 4, PainelEquipe 3, PainelLogistica 3, AbaCadastro 3, …; parte é valor dinâmico de gráfico) |
+| `style={{}}` inline | **48** antes, **6** depois do bloco 5 (só valor dinâmico) (Indicadores 6, BancadaWeb 5, Uso 5, Conversa 4, Contábil 4, PainelEquipe 3, PainelLogistica 3, AbaCadastro 3, …; parte é valor dinâmico de gráfico) |
 | Cor hexadecimal literal | 0 no `.tsx` e 0 no `admin.css` (tudo por `--ro-*`) |
 | `admin.css`: `prefers-reduced-motion` sim · `:focus-visible` 7 · `44px` 32 · `dvh` **0** · `@media print` **não** | |
 | Campos sem nome acessível (heurística) | 2 candidatos — conferidos pelo axe no §6 |
@@ -154,3 +154,6 @@ de `socio` e `operacao` não foi vista), os gráficos com série real e a bancad
 exceto: Bancada passou a ter `h2` (Fila · Caixas do cofre · Entradas sem envio postal) e Notas fiscais passou a ter `h2` (Envio à Sefin Nacional) onde antes havia `h3`.
 
 **R5 (parcial), R7 e R8 tratados no bloco 4 (30/10/2026):** código do recibo sem quebra no acervo, `dvh` no menu e na busca, impressão do painel só com o conteúdo (conferida em PDF A4).
+
+**R6 tratado no bloco 5 (30/10/2026):** `style={{}}` 48 → 6 (dados de gráfico e recuo do DRE). Também no bloco 5: 31 variações por URL e 4 estados interativos medidos (busca, gaveta, cadastros da bancada,
+blocos de Usuários) com axe de A/AA e boa prática = 0; defeito de rótulo no formulário da bancada ("Replicar para todas" dentro do `<label>`) corrigido por leitura, sem como medir aqui.

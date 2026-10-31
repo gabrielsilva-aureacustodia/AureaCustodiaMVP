@@ -145,9 +145,9 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           ) : (
             <div className="empty">Nenhuma oferta aberta.</div>
           )}
-          <div style={{ marginTop: 12 }}>
+          <div className="adm-mt12">
             {fila.tempoAteExecucao ? (
-              <div className="adm-grade" style={{ marginBottom: 0 }}>
+              <div className="adm-grade adm-mb0">
                 <Cartao
                   rotulo="Da oferta de venda à execução"
                   valor={duracao(fila.tempoAteExecucao.venda.mediaMs)}
@@ -185,7 +185,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
         <div className="panel">
           <h3>Ocupação do estoque físico, por caixa</h3>
           <TabelaContagem linhas={acervo.porCaixa.map((c) => ({ rotulo: c.caixa, valor: c.moedas }))} coluna="Caixa" vazio="Nenhuma moeda em custódia." />
-          <p className="adm-fraco" style={{ marginTop: 10 }}>
+          <p className="adm-fraco adm-mt10">
             A caixa vem do laudo da bancada. Moeda registrada por cadastro direto não passa pela pesagem da bancada. A capacidade de cada
             caixa entra com o cadastro de caixas, na C3.
           </p>
@@ -245,7 +245,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
           ) : (
             <div className="empty">Nenhuma moeda recusada na bancada no período.</div>
           )}
-          <p className="adm-fraco" style={{ marginTop: 10 }}>
+          <p className="adm-fraco adm-mt10">
             {numero(envios.moedasRecusadas)} moeda(s) recusada(s) nos envios concluídos da coorte.
           </p>
         </div>
@@ -296,7 +296,7 @@ function TabelaContagem({
           <tr>
             <th scope="col">{coluna}</th>
             <th scope="col" className="adm-num">Quantidade</th>
-            <th scope="col" style={{ width: '35%' }} aria-hidden="true" />
+            <th scope="col" className="adm-col-35" aria-hidden="true" />
           </tr>
         </thead>
         <tbody>
