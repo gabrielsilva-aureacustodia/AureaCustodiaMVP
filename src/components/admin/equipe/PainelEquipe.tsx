@@ -34,7 +34,7 @@ import { reenviarConviteDeEquipeNoPainel } from '@/server/actions/admin/emails'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
-import { Abas } from '../Pecas'
+import { Abas, TabelaRolavel } from '../Pecas'
 import { dataHora, numero } from '../formatos'
 
 const ROTULO_VARIANTE: Record<VariantePainel, string> = {
@@ -152,7 +152,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
       ) : null}
 
       {equipe.membros.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Membros do painel: papel, situação e cadastro">
           <table className="audit-table">
             <caption className="adm-sr">Membros do painel: papel, situação e cadastro</caption>
             <thead>
@@ -174,8 +174,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                   <td>
                     {podeEditar ? (
                       <select
-                        className="tinput"
-                        style={{ minHeight: 44, marginBottom: 0, minWidth: 150 }}
+                        className="tinput adm-campo-papel"
                         value={m.papelSlug}
                         disabled={ocupado}
                         aria-label={`Papel de ${m.email}`}
@@ -231,7 +230,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <div className="empty">Nenhum membro cadastrado na tabela ainda. Por enquanto, entra quem está na lista do ambiente.</div>
       )}
@@ -243,7 +242,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
             São os e-mails de <code>AUREA_ADMIN_EMAILS</code> — ou, sem a variável, as contas de demonstração. Definir um papel
             para um deles cadastra a pessoa na tabela, e a partir daí vale o papel escolhido.
           </p>
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Contas que entram pela lista do ambiente, como desenvolvimento">
             <table className="audit-table">
               <caption className="adm-sr">Contas que entram pela lista do ambiente, como desenvolvimento</caption>
               <thead>
@@ -262,8 +261,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                     <td>
                       {podeEditar ? (
                         <select
-                          className="tinput"
-                          style={{ minHeight: 44, marginBottom: 0, minWidth: 150 }}
+                          className="tinput adm-campo-papel"
                           value={SLUG_DEV}
                           disabled={ocupado}
                           aria-label={`Papel de ${b.email}`}
@@ -283,7 +281,7 @@ function Membros({ equipe, podeEditar, convites }: { equipe: VisaoEquipe; podeEd
                 ))}
               </tbody>
             </table>
-          </div>
+          </TabelaRolavel>
         </>
       ) : null}
     </div>
@@ -307,7 +305,7 @@ function MatrizDePermissoes({
   return (
     <div className="adm-matriz">
       {MODULOS.map((m) => (
-        <div key={m.modulo} style={{ display: 'contents' }}>
+        <div key={m.modulo} className="adm-contents">
           <div className="adm-matriz-modulo">{m.rotulo}</div>
           {PERMISSOES.filter((p) => p.modulo === m.modulo).map((p) => (
             <label key={p.chave} className="adm-check" title={p.descricao}>

@@ -32,6 +32,7 @@ import { normalizarEmail, temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { ABAS_FICHA, carregarFicha, lerAba } from '@/server/admin/ficha'
 import { carregarFilaDeSaques } from '@/server/admin/saques'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +43,12 @@ function emailDaRota(bruto: string): string {
   } catch {
     return normalizarEmail(bruto)
   }
+}
+
+// O título leva o e-mail da rota (o mesmo que já está na URL): sem dado lido aqui, só o parâmetro.
+export async function generateMetadata({ params }: { params: Promise<{ email: string }> }): Promise<Metadata> {
+  const email = emailDaRota((await params).email)
+  return { title: email ? `Ficha do cliente · ${email}` : 'Ficha do cliente' }
 }
 
 export default async function FichaDoUsuarioPage({

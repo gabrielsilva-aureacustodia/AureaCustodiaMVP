@@ -13,11 +13,12 @@ import type { AbaLogistica as DadosAbaLogistica } from '@/server/admin/ficha'
 
 import { AcoesDoEnvio } from '../registros'
 import { data, dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
   if (!rastreio) return <span className="adm-fraco">rastreio ainda não consultado</span>
   return (
-    <details className="adm-detalhes" style={{ marginBottom: 0 }}>
+    <details className="adm-detalhes adm-mb0">
       <summary>
         {textoDoRastreio(rastreio)}
         <span className="adm-fraco"> · {dataHora(rastreio.dataUltimaAtualizacao)}</span>
@@ -44,7 +45,7 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
     <>
       <div className="adm-subtitulo">Envios para a custódia</div>
       {dados.envios.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Envios da conta para a custódia">
           <table className="audit-table">
             <caption className="adm-sr">Envios da conta para a custódia</caption>
             <thead>
@@ -83,14 +84,14 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <p className="adm-fraco">Nenhum envio.</p>
       )}
 
       <div className="adm-subtitulo">Retiradas</div>
       {dados.retiradas.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Retiradas da conta">
           <table className="audit-table">
             <caption className="adm-sr">Retiradas da conta</caption>
             <thead>
@@ -125,7 +126,7 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
                   <td className="adm-num">{dinheiro(r.valorTaxaCents)}</td>
                   <td>{data(r.dataLimiteD30)}</td>
                   <td>
-                    <ul className="adm-lista" style={{ marginBottom: 0 }}>
+                    <ul className="adm-lista adm-mb0">
                       {r.historico.map((h, i) => (
                         <li key={`${h.data}-${i}`}>
                           {dataHora(h.data)}: {h.de ?? 'início'} → {h.para}
@@ -138,7 +139,7 @@ export function AbaLogistica({ dados }: { dados: DadosAbaLogistica }): ReactNode
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <p className="adm-fraco">Nenhuma retirada.</p>
       )}

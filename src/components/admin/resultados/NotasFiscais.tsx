@@ -25,7 +25,7 @@ import type { StatusNfse } from '@/server/db/repositories/nfse'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
-import { Abas, Selo } from '../Pecas'
+import { Abas, Selo, TabelaRolavel } from '../Pecas'
 import { Cartao } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
@@ -51,7 +51,7 @@ function situacao(l: LinhaFiscal): ReactNode {
       <>
         <Selo tom="ok">Autorizada</Selo> <b>NFS-e nº {e.numeroNfse ?? '—'}</b>
         {e.ambiente === 'restrita' ? <span className="adm-fraco"> · teste (sem validade jurídica)</span> : null}
-        <div className="adm-fraco" style={{ wordBreak: 'break-all' }}>
+        <div className="adm-fraco adm-quebra-tudo">
           {e.chaveAcesso}
         </div>
       </>
@@ -63,7 +63,7 @@ function situacao(l: LinhaFiscal): ReactNode {
       {e.numeroNfse && (e.status === 'cancelada' || e.status === 'cancelando') ? <span> · NFS-e nº {e.numeroNfse}</span> : null}
       {e.motivoCancelamento ? <div className="adm-fraco">{e.motivoCancelamento.split('|').slice(1).join('|')}</div> : null}
       {e.erros?.length ? (
-        <ul className="adm-fraco" style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+        <ul className="adm-fraco adm-lista-compacta">
           {e.erros.map((x, i) => (
             <li key={i}>
               {x.codigo ? `${x.codigo}: ` : ''}
@@ -144,7 +144,7 @@ export function NotasFiscais({
           é documento fiscal saindo da empresa. Mesmas actions, mesma permissão (resultados.nfse). */}
       {podeEmitir ? (
         <div className="panel adm-secao">
-          <h3>Envio à Sefin Nacional</h3>
+          <h2>Envio à Sefin Nacional</h2>
           <div className="adm-acoes">
             <ConfirmarAcao
               rotulo={ocupado === 'fila' ? 'Enviando…' : 'Enviar fila agora'}
@@ -199,7 +199,7 @@ export function NotasFiscais({
             {status || busca ? 'Troque a situação ou a busca acima.' : 'Uma nota nasce a cada comissão de negociação (uma por lado) e a cada fatura de custódia paga.'}
           </div>
         ) : (
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Notas fiscais (NFS-e): fato, serviço, cliente, valor, competência e situação">
             <table className="audit-table">
               <caption className="adm-sr">Notas fiscais (NFS-e): fato, serviço, cliente, valor, competência e situação</caption>
               <thead>
@@ -255,7 +255,7 @@ export function NotasFiscais({
                 })}
               </tbody>
             </table>
-          </div>
+          </TabelaRolavel>
         )}
       </div>
     </>

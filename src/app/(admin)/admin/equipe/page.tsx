@@ -17,6 +17,10 @@ import { ultimosConvites } from '@/server/admin/emails'
 import { carregarEquipe, type VisaoEquipe } from '@/server/admin/rbac'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import type { ParametrosDaUrl } from '@/domain/admin/periodo'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/equipe') }
 
 export const dynamic = 'force-dynamic'
 

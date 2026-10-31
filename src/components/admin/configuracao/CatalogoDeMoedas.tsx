@@ -18,6 +18,7 @@ import { salvarTipoDeMoedaNoPainel } from '@/server/actions/admin/config'
 
 import { useAdmin } from '../AdminProvider'
 import { numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 type Rascunho = { [K in keyof EntradaTipoMoeda]: EntradaTipoMoeda[K] extends boolean ? boolean : string }
 
@@ -98,7 +99,7 @@ export function CatalogoDeMoedas({ tipos, moedasPorTipo, podeEditar, semTabela }
   return (
     <>
       {semTabela ? <p className="note">O catálogo editável precisa do banco com a migration 024. Até lá, vale o catálogo do código, mostrado abaixo sem edição.</p> : null}
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Catálogo de tipos de moeda: ordem, pasta, mercado e envio">
         <table className="audit-table">
           <caption className="adm-sr">Catálogo de tipos de moeda: ordem, pasta, mercado e envio</caption>
           <thead>
@@ -109,7 +110,7 @@ export function CatalogoDeMoedas({ tipos, moedasPorTipo, podeEditar, semTabela }
               <th scope="col">Mercado</th>
               <th scope="col">Envio</th>
               <th scope="col" className="adm-num">Moedas</th>
-              <th scope="col" />
+              <th scope="col"><span className="adm-sr">Ações</span></th>
             </tr>
           </thead>
           <tbody>
@@ -138,7 +139,7 @@ export function CatalogoDeMoedas({ tipos, moedasPorTipo, podeEditar, semTabela }
             ))}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
 
       {editando
         ? (() => {

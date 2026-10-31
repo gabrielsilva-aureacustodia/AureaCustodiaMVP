@@ -9,6 +9,7 @@ import type { ReactNode } from 'react'
 import { ROTULO_SITUACAO, type LinhaMoeda } from '@/domain/admin/moedas'
 
 import { dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const PILL_SITUACAO: Record<LinhaMoeda['situacao'], string> = { custodiada: 'pill g', em_retirada: 'pill y', retirada: 'pill n' }
 const PILL_RECIBO: Record<string, string> = { Ativo: 'pill g', Bloqueado: 'pill adm-pill-vermelho', Extinto: 'pill n' }
@@ -32,7 +33,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
       <p className="adm-fraco">
         {total > linhas.length ? `Mostrando ${numero(linhas.length)} de ${numero(total)} moedas — refine o filtro para ver o resto.` : `${numero(total)} moeda(s).`}
       </p>
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Acervo: moeda, dono, recibo, caixa e análise">
         <table className="audit-table">
           <caption className="adm-sr">Acervo: moeda, dono, recibo, caixa e análise</caption>
           <thead>
@@ -62,7 +63,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
                   <div className="adm-fraco">{l.dono}</div>
                 </td>
                 <td>
-                  <span className={PILL_RECIBO[l.recibo.status] ?? 'pill n'}>{l.recibo.status}</span> {l.recibo.codigo}
+                  <span className={PILL_RECIBO[l.recibo.status] ?? 'pill n'}>{l.recibo.status}</span> <span className="adm-codigo">{l.recibo.codigo}</span>
                   <div className="adm-mono adm-fraco" title={l.recibo.hash}>
                     {hashCurto(l.recibo.hash)}
                   </div>
@@ -82,7 +83,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
                       </div>
                     </>
                   ) : (
-                    <span className="adm-fraco">sem laudo de bancada</span>
+                    <span className="adm-fraco adm-codigo">sem laudo de bancada</span>
                   )}
                 </td>
                 <td>
@@ -94,7 +95,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
             ))}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }

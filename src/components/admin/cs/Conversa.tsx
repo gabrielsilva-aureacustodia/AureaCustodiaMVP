@@ -93,7 +93,7 @@ export function Conversa({
           </div>
         </div>
         {podeResponder ? (
-          <div className="adm-form" style={{ marginBottom: 0 }}>
+          <div className="adm-form adm-mb0">
             <div className="field">
               <label htmlFor="cs-situacao">Situação</label>
               <select
@@ -181,7 +181,7 @@ export function Conversa({
 
       {podeResponder ? <Responder key={conversa.id} conversaId={conversa.id} executar={executar} /> : null}
 
-      <details className="adm-detalhes" style={{ marginTop: 14 }} open={notas.length > 0}>
+      <details className="adm-detalhes adm-mt14" open={notas.length > 0}>
         <summary>Notas internas ({notas.length})</summary>
         <div className="adm-detalhes-corpo">
           {notas.map((n) => (
@@ -225,7 +225,7 @@ function Responder({ conversaId, executar }: { conversaId: number; executar: Exe
       }}
     >
       {comArquivo ? (
-        <div className="adm-form" style={{ marginBottom: 0 }}>
+        <div className="adm-form adm-mb0">
           <div className="field adm-campo-largo">
             <label htmlFor="cs-arquivo-url">Endereço público do arquivo</label>
             <input id="cs-arquivo-url" className="tinput" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
@@ -350,8 +350,7 @@ function Etiquetas({
       </div>
       {criando ? (
         <form
-          className="adm-form"
-          style={{ marginTop: 10 }}
+          className="adm-form adm-mt10"
           onSubmit={async (e) => {
             e.preventDefault()
             const r = await executar(() => criarEtiquetaNoPainel(rotulo, cor))

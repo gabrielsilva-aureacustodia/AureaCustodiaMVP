@@ -18,6 +18,7 @@ import { salvarCaixaNoPainel } from '@/server/actions/admin/bancada'
 import { useToast } from '@/components/ui/Toast'
 
 import { numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 interface Rascunho {
   codigo: string
@@ -107,7 +108,7 @@ export function QuadroDeCaixas({
 
   return (
     <section className="panel adm-bancada-caixas" aria-label="Caixas do cofre">
-      <h3>Caixas do cofre</h3>
+      <h2>Caixas do cofre</h2>
       {!cadastradas ? (
         <p className="note">
           O cadastro de caixas precisa do banco com a migration 025. Enquanto isso, o quadro mostra só as caixas digitadas nas análises.
@@ -117,7 +118,7 @@ export function QuadroDeCaixas({
       {caixas.length === 0 ? (
         <p className="empty">Nenhuma caixa cadastrada nem registrada em análise.</p>
       ) : (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Caixas do cofre: local, ocupação e moedas">
           <table className="audit-table">
             <caption className="adm-sr">Caixas do cofre: local, ocupação e moedas</caption>
             <thead>
@@ -148,7 +149,7 @@ export function QuadroDeCaixas({
                   </td>
                   <td>
                     {c.moedas.length ? (
-                      <details className="adm-detalhes" style={{ marginBottom: 0 }}>
+                      <details className="adm-detalhes adm-mb0">
                         <summary>{c.moedas.length === 1 ? '1 moeda' : `${numero(c.moedas.length)} moedas`}</summary>
                         <div className="adm-detalhes-corpo">
                           <ul className="adm-lista">
@@ -176,7 +177,7 @@ export function QuadroDeCaixas({
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       )}
 
       {editando ? (

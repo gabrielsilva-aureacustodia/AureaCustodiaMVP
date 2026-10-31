@@ -26,6 +26,10 @@ import { variaveisDoVideoFaltando, videoConfigurado } from '@/server/admin/video
 import { filaDeAnalise } from '@/server/estacao/analise'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { getState } from '@/server/state'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/bancada') }
 
 export const dynamic = 'force-dynamic'
 
@@ -72,9 +76,9 @@ export default async function BancadaPage(): Promise<ReactNode> {
           bancada.* e logistica.*, e esta permissão é do módulo acervo. */}
       {podeDireto || podeSemEnvio ? (
         <section className="adm-secao" aria-labelledby="bancada-sem-envio">
-          <h3 className="adm-titulo-secao" id="bancada-sem-envio">
+          <h2 className="adm-titulo-secao" id="bancada-sem-envio">
             Entradas sem envio postal
-          </h3>
+          </h2>
           <p className="adm-fraco adm-secao">Para moeda que já está no armazém: registrar direto no acervo ou colocar na fila desta bancada.</p>
           {podeDireto ? <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="direto" /> : null}
           {podeSemEnvio ? <CadastroDiretoDeMoeda catalogo={catalogoVigente} modo="sem_envio" /> : null}

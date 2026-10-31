@@ -26,7 +26,7 @@ import { AvisoSemBanco, Indisponivel } from '../Blocos'
 import { BotaoAcao } from '../BotaoAcao'
 import { SeletorPeriodo } from '../SeletorPeriodo'
 import { dinheiro, nomeDoMes, numero } from '../formatos'
-import { Indicador, Secao, Vazio } from '../Pecas'
+import { Indicador, Secao, Vazio, TabelaRolavel } from '../Pecas'
 import { GraficoMensal, type PontoMensal } from './GraficoMensal'
 import { TabelaDre } from './TabelaDre'
 
@@ -135,7 +135,7 @@ export function Financeiro({
             {pontos.length ? (
               <>
                 <GraficoMensal titulo="Receita por mês" pontos={pontos} />
-                <div className="table-scroll">
+                <TabelaRolavel rotulo="Fluxo mês a mês: depósitos, saques e receita">
                   <table className="audit-table">
                     <caption className="adm-sr">Fluxo mês a mês: depósitos, saques e receita</caption>
                     <thead>
@@ -159,7 +159,7 @@ export function Financeiro({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TabelaRolavel>
               </>
             ) : (
               <Vazio titulo="Nenhuma movimentação no livro-razão neste período.">Troque o período acima, ou espere a primeira negociação, fatura paga ou saque.</Vazio>
@@ -182,7 +182,7 @@ export function Financeiro({
 
         <aside className="adm-zona-lateral" aria-label="Receita por linha">
           <Secao id="fin-linhas" titulo="Receita por linha" descricao={dre.periodo.rotulo}>
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Receita por linha no período">
               <table className="audit-table">
                 <caption className="adm-sr">Receita por linha no período</caption>
                 <thead>
@@ -203,7 +203,7 @@ export function Financeiro({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           </Secao>
         </aside>
       </div>

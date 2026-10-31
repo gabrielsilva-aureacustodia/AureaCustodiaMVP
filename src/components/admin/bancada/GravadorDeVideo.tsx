@@ -281,7 +281,7 @@ export function GravadorDeVideo({
 
   return (
     <div className="adm-bancada-video">
-      <div className="adm-form" style={{ marginBottom: 8 }}>
+      <div className="adm-form adm-mb8">
         <label className="field">
           <span>Câmera</span>
           <select

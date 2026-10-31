@@ -18,6 +18,10 @@ import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarFinanceiro } from '@/server/admin/resultados'
 import { carregarFilaDeSaques } from '@/server/admin/saques'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/resultados/financeiro') }
 
 export const dynamic = 'force-dynamic'
 

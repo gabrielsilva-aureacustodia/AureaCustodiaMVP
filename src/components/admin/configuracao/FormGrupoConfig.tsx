@@ -58,7 +58,7 @@ function Simulacao({ valores, campos }: { valores: ValoresConfig; campos: Record
         <span>Uma negociação de</span>
         <input className="tinput" inputMode="decimal" value={precoTexto} onChange={(e) => setPrecoTexto(e.target.value)} />
       </label>
-      <dl className="adm-pares" style={{ marginBottom: 0 }}>
+      <dl className="adm-pares adm-mb0">
         <div>
           <dt>O comprador paga</dt>
           <dd>

@@ -9,6 +9,7 @@ import type { ReactNode } from 'react'
 import type { AbaAcervo as DadosAbaAcervo } from '@/server/admin/ficha'
 
 import { dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const RECIBO: Record<string, string> = { Ativo: 'pill g', Bloqueado: 'pill adm-pill-vermelho', Extinto: 'pill n' }
 
@@ -17,7 +18,7 @@ export function AbaAcervo({ dados }: { dados: DadosAbaAcervo }): ReactNode {
   return (
     <>
       <p className="adm-fraco">{numero(dados.moedas.length)} moeda(s), incluindo as já retiradas.</p>
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Moedas da conta: recibo, caixa, laudo e valor estimado">
         <table className="audit-table">
           <caption className="adm-sr">Moedas da conta: recibo, caixa, laudo e valor estimado</caption>
           <thead>
@@ -68,7 +69,7 @@ export function AbaAcervo({ dados }: { dados: DadosAbaAcervo }): ReactNode {
             ))}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }

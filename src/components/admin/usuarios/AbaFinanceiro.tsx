@@ -19,6 +19,7 @@ import { BotaoAcao } from '../BotaoAcao'
 import { Cartao, Indisponivel } from '../Blocos'
 import { data, dataHora, dinheiro, nomeDoMes, numero } from '../formatos'
 import { FilaDeSaques } from '../saques/FilaDeSaques'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const SITUACAO_FATURA: Record<string, { rotulo: string; classe: string }> = {
   paga: { rotulo: 'Paga', classe: 'pill g' },
@@ -72,7 +73,7 @@ export function AbaFinanceiro({
         <summary>Extrato ({numero(dados.extrato.length)} mais recentes)</summary>
         <div className="adm-detalhes-corpo">
           {dados.extrato.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Extrato da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Extrato da conta</caption>
                 <thead>
@@ -98,7 +99,7 @@ export function AbaFinanceiro({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nenhum movimento.</p>
           )}
@@ -111,7 +112,7 @@ export function AbaFinanceiro({
           {dados.ledger === null ? (
             <p className="adm-fraco">{semBanco ? 'O livro-razão existe só com banco configurado.' : 'Livro-razão indisponível agora.'}</p>
           ) : dados.ledger.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Livro-razão da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Livro-razão da conta</caption>
                 <thead>
@@ -143,7 +144,7 @@ export function AbaFinanceiro({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nenhum lançamento.</p>
           )}
@@ -169,7 +170,7 @@ export function AbaFinanceiro({
           {saques ? (
             <FilaDeSaques dados={saques} podePagar={podePagarSaques} comCliente={false} vazio="Nenhum saque." />
           ) : dados.saques.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Saques da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Saques da conta</caption>
                 <thead>
@@ -198,7 +199,7 @@ export function AbaFinanceiro({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nenhum saque.</p>
           )}
@@ -209,7 +210,7 @@ export function AbaFinanceiro({
         <summary>Faturas de custódia ({numero(dados.faturas.length)})</summary>
         <div className="adm-detalhes-corpo">
           {dados.faturas.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Faturas de custódia da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Faturas de custódia da conta</caption>
                 <thead>
@@ -251,7 +252,7 @@ export function AbaFinanceiro({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nenhuma fatura.</p>
           )}

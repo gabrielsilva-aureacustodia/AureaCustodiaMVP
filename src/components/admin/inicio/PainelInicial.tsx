@@ -35,7 +35,7 @@ import type { DadosDaFilaDeSaques } from '@/server/admin/saques'
 
 import { dataHora, dinheiro, numero } from '../formatos'
 import type { ItemNav } from '../navegacao'
-import { Indicador, Secao, Vazio } from '../Pecas'
+import { Indicador, Secao, Vazio, TabelaRolavel } from '../Pecas'
 import { SecaoDeSaques } from '../saques/SecaoDeSaques'
 
 type SecaoInicio = 'resultados' | 'operacao' | 'sistema' | 'atalhos'
@@ -204,7 +204,7 @@ export function PainelInicial({
           <>
             <h3 className="adm-subtitulo">Últimas ações no painel</h3>
             {dados.sistema.ultimasAcoesDoPainel.length ? (
-              <div className="table-scroll">
+              <TabelaRolavel rotulo="Últimas ações no painel: quando, quem e o quê">
                 <table className="audit-table">
                   <caption className="adm-sr">Últimas ações no painel: quando, quem e o quê</caption>
                   <thead>
@@ -224,7 +224,7 @@ export function PainelInicial({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TabelaRolavel>
             ) : (
               <Vazio titulo="Nenhuma ação registrada no painel ainda.">Toda ação da equipe aparece aqui, com quem fez.</Vazio>
             )}

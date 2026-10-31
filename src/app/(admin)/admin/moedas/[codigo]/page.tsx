@@ -18,13 +18,14 @@ import { SemPermissao } from '@/components/admin/Blocos'
 import { BotaoVideo } from '@/components/admin/moedas/BotaoVideo'
 import { hashCurto } from '@/components/admin/moedas/TabelaDeMoedas'
 import { data, dataHora, dinheiro, numero } from '@/components/admin/formatos'
-import { Secao, Selo, Vazio } from '@/components/admin/Pecas'
+import { Secao, Selo, Vazio, TabelaRolavel } from '@/components/admin/Pecas'
 import { ROTULO_STATUS_RETIRADA } from '@/domain/admin/logistica'
 import { ROTULO_SITUACAO, hrefComoOClienteVe } from '@/domain/admin/moedas'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { CAMPOS_DA_ANALISE } from '@/domain/analise'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarFichaDaMoeda } from '@/server/admin/moedas'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,11 @@ function codigoDaRota(bruto: string): string {
   } catch {
     return ''
   }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ codigo: string }> }): Promise<Metadata> {
+  const codigo = codigoDaRota((await params).codigo)
+  return { title: codigo ? `Moeda ${codigo}` : 'Ficha da moeda' }
 }
 
 export default async function MoedaPage({ params }: { params: Promise<{ codigo: string }> }): Promise<ReactNode> {
@@ -143,7 +149,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
           >
             {analise ? (
               <>
-                <div className="table-scroll">
+                <TabelaRolavel rotulo="Análise de origem da moeda">
                   <table className="audit-table">
                     <caption className="adm-sr">Análise de origem da moeda</caption>
                     <thead>
@@ -180,7 +186,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
                       </tr>
                     </tbody>
                   </table>
-                </div>
+                </TabelaRolavel>
                 {!analise.caminhoVideo ? <p className="adm-fraco">Análise fechada sem vídeo — a ausência está registrada no hash.</p> : null}
               </>
             ) : (
@@ -224,7 +230,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
 
           <Secao id="moeda-retiradas" titulo="Retiradas">
             {retiradas.length ? (
-              <div className="table-scroll">
+              <TabelaRolavel rotulo="Retiradas desta moeda">
                 <table className="audit-table">
                   <caption className="adm-sr">Retiradas desta moeda</caption>
                   <thead>
@@ -264,7 +270,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TabelaRolavel>
             ) : (
               <p className="adm-fraco">Nenhuma retirada desta moeda.</p>
             )}

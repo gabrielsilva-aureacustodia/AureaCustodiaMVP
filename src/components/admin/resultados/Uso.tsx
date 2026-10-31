@@ -22,6 +22,7 @@ import { AvisoSemBanco, Cartao } from '../Blocos'
 import { SeletorPeriodo } from '../SeletorPeriodo'
 import { dataHora, duracao, numero } from '../formatos'
 import { FiltroTrilha } from './FiltroTrilha'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const PLATAFORMA: Record<string, string> = {
   android: 'Android',
@@ -105,7 +106,7 @@ export function Uso({
             <div className="panel">
               <h3>Páginas mais abertas</h3>
               {r.paginasMaisAbertas.length ? (
-                <div className="table-scroll">
+                <TabelaRolavel rotulo="Páginas mais abertas">
                   <table className="audit-table">
                     <caption className="adm-sr">Páginas mais abertas</caption>
                     <thead>
@@ -125,7 +126,7 @@ export function Uso({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TabelaRolavel>
               ) : (
                 <div className="empty">Nenhuma página registrada no período. O registro começou com a C1.</div>
               )}
@@ -133,14 +134,14 @@ export function Uso({
 
             <div className="panel">
               <h3>Horário de pico (Brasília)</h3>
-              <div className="table-scroll">
+              <TabelaRolavel rotulo="Horário de pico, hora de Brasília">
                 <table className="audit-table">
                   <caption className="adm-sr">Horário de pico, hora de Brasília</caption>
                   <thead>
                     <tr>
                       <th scope="col">Hora</th>
                       <th scope="col" className="adm-num">Atividade</th>
-                      <th scope="col" style={{ width: '55%' }} aria-hidden="true" />
+                      <th scope="col" className="adm-col-55" aria-hidden="true" />
                     </tr>
                   </thead>
                   <tbody>
@@ -157,8 +158,8 @@ export function Uso({
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <p className="adm-fraco" style={{ marginTop: 10 }}>
+              </TabelaRolavel>
+              <p className="adm-fraco adm-mt10">
                 Páginas abertas e ações gravadas pelo servidor, por hora do dia.
               </p>
             </div>
@@ -168,7 +169,7 @@ export function Uso({
             <div className="panel">
               <h3>Ações por conta</h3>
               {r.acoesPorConta.length ? (
-                <div className="table-scroll">
+                <TabelaRolavel rotulo="Ações por conta">
                   <table className="audit-table">
                     <caption className="adm-sr">Ações por conta</caption>
                     <thead>
@@ -192,11 +193,11 @@ export function Uso({
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TabelaRolavel>
               ) : (
                 <div className="empty">Nenhuma atividade de conta no período.</div>
               )}
-              <p className="adm-fraco" style={{ marginTop: 10 }}>
+              <p className="adm-fraco adm-mt10">
                 Operações são o que ficou na trilha: negociações, anúncios, envios, retiradas, ações do painel.
               </p>
             </div>
@@ -205,7 +206,7 @@ export function Uso({
               <h3>Jornada até a primeira venda</h3>
               {r.jornadas.detalhes.length ? (
                 <>
-                  <div className="table-scroll">
+                  <TabelaRolavel rotulo="Jornada até a primeira venda">
                     <table className="audit-table">
                       <caption className="adm-sr">Jornada até a primeira venda</caption>
                       <thead>
@@ -227,7 +228,7 @@ export function Uso({
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </TabelaRolavel>
                   <h4 className="adm-subtitulo">Páginas vistas antes da primeira venda</h4>
                   <p className="adm-fraco">
                     {r.jornadas.paginasAntesDaVenda.map((p) => `${p.rota} (${numero(p.contas)})`).join(' · ') || '—'}
@@ -258,7 +259,7 @@ export function Uso({
           <h3>Trilha de auditoria</h3>
           <FiltroTrilha ator={filtro.ator} acao={filtro.acao} periodo={periodo} />
           {dados.trilha && dados.trilha.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Trilha de auditoria: quando, quem, ação e contas afetadas">
               <table className="audit-table">
                 <caption className="adm-sr">Trilha de auditoria: quando, quem, ação e contas afetadas</caption>
                 <thead>
@@ -284,11 +285,11 @@ export function Uso({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="empty">Nenhuma linha da trilha com este filtro no período.</div>
           )}
-          {dados.trilhaNoLimite ? <p className="adm-fraco" style={{ marginTop: 10 }}>Mostrando as 300 mais recentes. Refine o filtro para ver as anteriores.</p> : null}
+          {dados.trilhaNoLimite ? <p className="adm-fraco adm-mt10">Mostrando as 300 mais recentes. Refine o filtro para ver as anteriores.</p> : null}
         </div>
       ) : null}
     </>

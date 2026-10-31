@@ -31,7 +31,8 @@ import { membroDaPagina } from '@/server/admin/acesso'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Painel administrativo — Real Olímpico',
+  // `template`: cada página passa só o nome (`tituloDaPagina`) e o sufixo vem daqui; sem nome, vale o `default`.
+  title: { template: '%s — Painel Real Olímpico', default: 'Painel administrativo — Real Olímpico' },
   // Área interna: não tem por que aparecer em buscador.
   robots: { index: false, follow: false },
 }

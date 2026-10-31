@@ -33,6 +33,11 @@ import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { listarHistoricoConfig, type HistoricoConfig } from '@/server/db/repositories/config'
 import { tabelaExiste } from '@/server/db/repositories/painel-leituras'
 import { getState } from '@/server/state'
+import { TabelaRolavel } from '@/components/admin/Pecas'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/configuracao') }
 
 export const dynamic = 'force-dynamic'
 
@@ -188,7 +193,7 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
             Tudo vale o padrão do código. Cada valor salvo nas outras abas aparece aqui, com quem mudou, o antes e o depois.
           </div>
         ) : (
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Histórico da configuração: quando, quem, o quê, valor antes e depois">
             <table className="audit-table">
               <caption className="adm-sr">Histórico da configuração: quando, quem, o quê, valor antes e depois</caption>
               <thead>
@@ -212,7 +217,7 @@ export default async function ConfiguracaoPage({ searchParams }: { searchParams:
                 ))}
               </tbody>
             </table>
-          </div>
+          </TabelaRolavel>
         )}
       </div>
     )

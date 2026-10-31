@@ -61,7 +61,7 @@ export function CadastroDiretoDeMoeda({
     <details className="adm-detalhes adm-secao">
       <summary>{direto ? 'Cadastro direto' : 'Cadastro sem envio'}</summary>
       <div className="adm-detalhes-corpo">
-        <p className="adm-fraco" style={{ marginBottom: 12 }}>
+        <p className="adm-fraco adm-mb12">
           {direto
             ? 'Para moeda que já está no armazém e já foi conferida fora do sistema. A moeda nasce com recibo e hash sem passar pela bancada.'
             : 'Para moeda que já está no armazém, mas ainda precisa ser analisada. O lote entra na fila da bancada sem criar um envio postal.'}

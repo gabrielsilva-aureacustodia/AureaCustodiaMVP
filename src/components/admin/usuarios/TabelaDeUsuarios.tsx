@@ -12,7 +12,7 @@ import { formatarCpf } from '@/domain/cadastro'
 import type { LinhaUsuario } from '@/domain/admin/usuarios'
 
 import { data, dataHora, dinheiro, numero } from '../formatos'
-import { Selo } from '../Pecas'
+import { Selo, TabelaRolavel } from '../Pecas'
 
 export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsuario[]; total: number }): ReactNode {
   return (
@@ -35,7 +35,7 @@ export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsua
           )}
         </div>
       ) : (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Contas de clientes: CPF, saldo, moedas e situação">
           <table className="audit-table">
             <caption className="adm-sr">Contas de clientes: CPF, saldo, moedas e situação</caption>
             <thead>
@@ -74,7 +74,7 @@ export function TabelaDeUsuarios({ linhas, total }: { linhas: readonly LinhaUsua
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       )}
     </>
   )

@@ -1,0 +1,104 @@
+# MD de execução — `polish/aurea-admin` (Frente 2 — painel administrativo)
+
+```
+Worktree:   /workspace/aurea/wt/admin        (npm ci próprio; sem junção nem symlink)
+Branch:     polish/aurea-admin               base origin/main @ d29727a
+Agente:     Claude Code (bot "ÁUREA · Polimento, tutorial do Admin e check-up")
+Porta:      next start em 127.0.0.1:3105     (a frente 1 usava 3104)
+Merge:      sem push e sem PR — o Gabriel faz os dois
+```
+
+## Regras desta frente
+- **Touch:** `src/app/(admin)`, `src/components/admin`, `src/styles/admin.css`, `docs/polimento/admin/**`.
+- **Não tocar:** permissões (`src/domain/admin/permissoes.ts`, `temPermissao`/`temAlguma` e as conferências de página e de Server Action), `domain/`,
+  `server/`, `api/`, migrations, dados, `src/components/ui/**` (só consumir), `(app)` e `recibo.css` (frente 1, PR #13).
+- Ambiente: `.env.test.local` ignorado + store em memória; nada de produção. Commits pelo `commit.md` (português, imperativo, sem co-autoria e sem rodapé);
+  antes de cada commit, `typecheck`, `test` e `build`. Sem push, sem PR.
+- **Distilla lido direto** (`/workspace/sintetica/agentes/distilla/`), nunca por API. Componentes de alto nível (taxonomia do Distilla): composição,
+  acessível por padrão, tokens, estados desenhados, nada de componente órfão, usando `src/components/ui/`. Peça visual, ilustração, ícone, imagem ou
+  revisão de texto **não se gera aqui**: vai para `/workspace/aurea-polimento/pedidos_workers.md`.
+
+## Sessões
+
+### Sessão 1 — 30/10/2026 (Claude Code, Sonnet 5.5)
+
+**Abertura.** `git status` limpo na worktree; base `d29727a`. `npm ci` só nela (Node 20.20: aviso `EBADENGINE` do Supabase, sem efeito).
+Identidade git só deste repositório (`Claude Code (bot Áurea polimento)`).
+
+**Base medida antes de mexer:** typecheck ok · lint 0 erros / 16 avisos (todos fora desta frente) · test 157/157 arquivos, 1.457 passando · build ok.
+
+**Descoberta:** o admin já foi redesenhado em 25/10 (`3f50da6`), e os documentos que o README e o `navegacao.tsx` citam (`docs/polimento/admin/BENCHMARK.md`,
+`INVENTARIO.md` §9, `BRIEF_DE_DESIGN.md`) **nunca foram commitados**. Esta frente cria os três pedidos (INVENTARIO, BENCHMARK, MD de execução); o
+`BRIEF_DE_DESIGN.md` citado no README de `components/admin` não foi pedido — o brief curto está em `BENCHMARK.md` §4 e a citação fica como pendência de texto.
+
+**Bloco 1 — inventário e benchmark: FEITO.** `INVENTARIO.md` (rotas × permissões × componentes × escritas, contrato, ganchos para o tutorial da frente 3,
+auditorias, medição) e `BENCHMARK.md` (cinco lentes, tabelas contra o conceito 23, brief, decisões D1–D8, propostas P1–P4 que não apliquei).
+Medição em navegador local isolado (`next start`, store em memória, sessão `dev`): 18 rotas × 3 larguras × 2 temas = **0 rolagem horizontal, 0 erro de console**.
+
+**Achados (lista de trabalho, em ordem):**
+
+| # | Achado | Lente | Evidência |
+|---|---|---|---|
+| R1 | Recibo de `/admin/moedas/[codigo]/cliente` com contraste 4,33:1 e 3,89:1 (mín. 4,5:1) | 5 | axe `color-contrast` |
+| R2 | 46 `div.table-scroll` à mão; 3 rotas com região rolável sem teclado | 2/3/5 | axe `scrollable-region-focusable` em Financeiro, Indicadores, Equipe |
+| R3 | Mesmo `<title>` nas 17 telas medidas | 1 | `page.title()` |
+| R4 | Salto de nível de título em Bancada e Notas fiscais | 5 | axe `heading-order` |
+| R5 | Linha de tabela de 63–88 px; "REC-/000001" quebra no meio do código no acervo | 2 | captura 1440 e medição de altura |
+| R6 | 48 `style={{}}` | 3 | varredura (parte dinâmica) |
+| R7 | `100vh` sem `dvh` no menu lateral | 2 | `admin.css` |
+| R8 | Sem `@media print` | 5 | `admin.css` |
+
+**Próximo:** R1 + R2 (acessibilidade e o componente `TabelaRolavel`), R3 + R4 (títulos), R5 + R7 + R8 (tabela, `dvh`, impressão), R6 (estilos inline). Pedidos a workers: nenhum.
+
+**Limites do ambiente (sem Postgres):** 9 das 18 rotas abrem com "Ambiente sem banco de dados"; papéis `socio` e `operacao` (só `dev` aqui), conversas de WhatsApp,
+DRE com valores, fila de NFS-e e trilha real **não foram vistos**. As correções valem pelo que dá para medir; o que depende de dado fica marcado como não medido.
+
+**Bloco 2 — acessibilidade: tabela que rola e contraste do recibo (R1 e R2): FEITO**
+- `Pecas.tsx`: novo **`TabelaRolavel`** (`role="region"`, `aria-label` = legenda da tabela, `tabIndex=0`). Substitui os **46** `<div className="table-scroll">`
+  espalhados em 22 arquivos (44 por script que pegou a legenda de cada `<caption>` e 2 à mão, com legenda calculada). `admin.css`: moldura de foco
+  (`.adm-main .table-scroll:focus-visible`, `--ro-foco`, que já é escuro no tema claro).
+- `admin.css`: `.adm-main .cert{--cert-ink-gold:ouro-800;--cert-ink-foot:pergaminho-600}` para a rota "ver como o cliente vê" (4,33:1 e 3,89:1 → AA).
+  Duplica de propósito a correção da frente 1 (PR #13) em `recibo.css`, que não é desta frente; depois do merge dá para apagar este bloco.
+- Medido (`next start` local, 18 rotas × 3 larguras × 2 temas): **axe 3 achados → 0**, 0 rolagem horizontal, 0 erro de console.
+  Teclado em `/admin/usuarios` a 375 px: Tab alcança a região, ela é anunciada com o nome da legenda, o anel de foco aparece e a seta para a direita rola a tabela.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok.
+
+**Bloco 3 — título de cada página e ordem dos títulos (R3 e R4): FEITO**
+- **Título do documento por rota.** `navegacao.tsx` ganhou `tituloDaPagina(href)` (o mesmo `titulo` da topbar, uma fonte só). O layout passou a
+  `title.template = '%s — Painel Real Olímpico'`; as 15 páginas fixas exportam `metadata = { title: tituloDaPagina('…') }` e as 3 dinâmicas usam
+  `generateMetadata` só com o parâmetro da rota (`Ficha do cliente · <e-mail>`, `Moeda RO-000016`, `Moeda RO-000016 como o cliente vê`) — nenhum dado lido a mais.
+  A raiz `/admin` usa `title.absolute`, porque o `template` do layout não vale para a página irmã dele. Medido: **17 títulos distintos em 17 telas** (era 1).
+  Nenhum texto de `h1`, rótulo de menu ou de botão mudou (INVENTARIO §4).
+- **Salto de título.** Bancada (Fila, Caixas do cofre, Entradas sem envio postal) e Notas fiscais (Envio à Sefin Nacional) tinham `h3` logo abaixo do `h1`; viraram `h2`,
+  com o desenho do `.adm-main .panel > h2` (o seletor ganhou `.adm-cs-cabecalho > h2` para a Fila). axe `heading-order` 0.
+- **Efeito colateral achado na medição e corrigido:** com `TabelaRolavel` as duas tabelas "Quantidades do indicador" de Indicadores viraram duas regiões com o
+  mesmo nome (axe `landmark-unique`); a legenda agora leva a coluna ("Quantidades por moeda", "…por caixa").
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok. axe (WCAG A/AA) 0 nas 18 rotas × 3 larguras × 2 temas; **boa prática 0**.
+
+**Bloco 4 — acervo, `dvh` e impressão (R5 parcial, R7 e R8): FEITO**
+- **Acervo (`TabelaDeMoedas`):** o código do recibo e "sem laudo de bancada" ganharam `.adm-codigo` (`white-space:nowrap`, classe que já existia). Antes o código quebrava no
+  meio ("REC-" / "000001") e o texto ocupava duas linhas. **Não mudou a altura da linha (88 px):** a célula do recibo é uma pilha deliberada de 3 linhas (selo, código, hash), e
+  encolhê-la pediria tirar informação ou mudar o desenho da célula. A tabela já atende 6 dos 7 critérios do conceito 23 (BENCHMARK §3); a "uma altura por tabela" fica atendida
+  nesta (todas as linhas têm 3 linhas) e continua variando nas outras, por conteúdo.
+- **`dvh`:** a coluna do menu (`.adm-sidebar`) e a caixa de busca (Ctrl K) passaram a `max-height` em `dvh`, com `vh` como reserva.
+- **Impressão:** `@media print` em `admin.css`, limitado a `body:has(.adm-main)` (o `admin.css` é global; nada vale para o cliente nem para a landing). Some menu, topbar (fica o
+  título e a descrição), abas, botões, avisos flutuantes; as tabelas saem inteiras (sem rolagem e sem coluna fixa); texto preto sobre branco; só as barras do gráfico ficam em cinza.
+  Sem `@page`, de propósito: ele não se limita por seletor e mudaria a impressão das outras áreas. Conferido em PDF A4 gerado pelo Chrome (Financeiro, Auditoria de moedas e Ficha da moeda):
+  só conteúdo, `h1` presente, sem botões.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok · axe 0 nas 18 rotas × 3 larguras × 2 temas · 0 rolagem horizontal · 0 erro de console.
+
+**Bloco 5 — estados interativos, formulário da bancada e estilos inline (R6): FEITO**
+- **Medição ampliada:** além das 18 rotas, **31 variações por URL** (7 abas da ficha, 4 do contábil, 5 da configuração, 3 de saques, 2 de logística, 2 de equipe, fiscal, uso e as buscas),
+  a busca Ctrl+K aberta (foco no campo, 5 opções para "saq", Esc fecha), a gaveta do menu a 375 px (abre, axe 0, Esc fecha), os dois cadastros da bancada abertos (14 campos) e os blocos
+  de Usuários abertos — todos em 1440 e 375 px, com axe de WCAG A/AA **e boa prática**.
+  Achados e correções: `heading-order` em Contábil › Exportações (`h3` "Registro de exportações" → `h2`, com a classe `adm-titulo-secao`) e `empty-table-header` em Configuração › Catálogo
+  (coluna de ações sem nome → "Ações" só para leitor de tela). Depois: **0 violações em tudo**.
+- **Defeito real no formulário da bancada, achado por leitura (não dá para ver sem um envio em análise):** o botão "Replicar para todas" ficava **dentro** do `<label>` do campo "Caixa" —
+  o primeiro controle dentro do `<label>` é o botão, então o rótulo "Caixa" deixava de nomear o `<input>` — e o botão tinha padding 0 e fonte de 0,85em (alvo de toque minúsculo).
+  Agora o `<label htmlFor>` é irmão do botão (`.adm-campo-cab`), e o botão é `.adm-btn-texto` (44 px, `--ro-foco` no teclado). **Só typecheck e build: o estado não aparece neste ambiente.**
+- **Estilos inline: 48 → 6.** 36 `style={{}}` estáticos viraram utilitários em `admin.css` (`adm-mb0`, `adm-mt10`, `adm-my14`, `adm-acoes-fim`, `adm-campo-papel`, …, com `!important` porque o inline que
+  substituem vencia qualquer seletor). Ficam os 6 que são **dado**: largura das barras (`adm-barra` ×2, `adm-barras-barra`, `adm-cascata-barra`), altura da coluna do gráfico e recuo do DRE por nível.
+  Conferência: 12 das 21 classes aparecem nas telas locais e **batem com o valor do estilo que substituíram, 0 divergência** (computado em 1440 e 375 px); as outras 9
+  (`adm-m16`, `adm-mb8`, `adm-mt8`, `adm-mt14`, `adm-lista-recuada`, `adm-lista-compacta`, `adm-campo-papel`, `adm-acoes-fim`, `adm-quebra-tudo`) só existem com dado real (conversas, papéis, notas fiscais,
+  logística com envio) e **não foram vistas** — a troca é literal, valor por valor.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok.

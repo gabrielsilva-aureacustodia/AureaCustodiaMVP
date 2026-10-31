@@ -18,6 +18,10 @@ import { primeiroValor, type ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarAtendimento, equipeParaAtribuir } from '@/server/admin/atendimento'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/cs') }
 
 export const dynamic = 'force-dynamic'
 

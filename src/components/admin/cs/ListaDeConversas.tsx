@@ -135,7 +135,7 @@ export function ListaDeConversas({
 
       <div className="adm-cs-itens">
         {!caixa || caixa.conversas.length === 0 ? (
-          <div className="empty" style={{ margin: 16 }}>
+          <div className="empty adm-m16">
             {filtro.busca || filtro.status || filtro.responsavel || filtro.etiqueta || filtro.soNaoLidas
               ? 'Nenhuma conversa com este filtro.'
               : 'Nenhuma conversa ainda. Elas chegam pelo WhatsApp do atendimento ou começam em "Nova conversa".'}

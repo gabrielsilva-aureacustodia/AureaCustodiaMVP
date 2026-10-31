@@ -230,7 +230,7 @@
 /* ---- Casco ---------------------------------------------------------------- */
 /* Mais largura que o app do cliente: o painel vive de tabela larga. */
 .adm-main{max-width:1480px;min-width:0}
-.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto}
+.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;max-height:100dvh;overflow-y:auto}
 .adm-nav-titulo{border-top:1px solid var(--ro-borda-suave);padding-top:12px}
 .adm-topbar{align-items:flex-start;flex-wrap:nowrap}
 .adm-topbar .page-title{min-width:0}
@@ -260,7 +260,7 @@
 .adm-busca-gatilho svg{width:17px;height:17px;stroke:var(--ro-primaria-texto);fill:none;stroke-width:1.8;flex-shrink:0}
 .adm-busca-gatilho span{flex:1;text-align:left}
 .adm-main kbd,.adm-busca kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--adm-tipo-micro);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-xs);padding:1px 6px;color:var(--ro-texto-suave);background:var(--ro-superficie)}
-.adm-busca{border:1px solid var(--ro-borda);border-radius:var(--ro-raio-lg);padding:0;background:var(--ro-superficie);color:var(--ro-texto);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));margin:8vh auto auto;box-shadow:var(--ro-sombra-4)}
+.adm-busca{border:1px solid var(--ro-borda);border-radius:var(--ro-raio-lg);padding:0;background:var(--ro-superficie);color:var(--ro-texto);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));max-height:min(560px,calc(100dvh - 64px));margin:8vh auto auto;box-shadow:var(--ro-sombra-4)}
 .adm-busca::backdrop{background:var(--ro-veu)}
 .adm-busca-caixa{display:flex;flex-direction:column;max-height:inherit}
 .adm-busca-campo.tinput{border:0;border-bottom:1px solid var(--ro-borda-suave);border-radius:0;min-height:52px;margin:0;font-size:var(--ro-tipo-corpo);padding:0 16px}
@@ -294,6 +294,8 @@
    passa por baixo não aparecer; o hover da linha acompanha. Vale para todas as tabelas do painel
    (.table-scroll > .audit-table), sem tocar em cada uma. */
 .adm-main .table-scroll{position:relative;border-radius:var(--ro-raio-sm)}
+/* Região que rola é focável (TabelaRolavel): o foco aparece como moldura, com o mesmo anel dos botões. */
+.adm-main .table-scroll:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
 .adm-main .table-scroll .audit-table th:first-child,
 .adm-main .table-scroll .audit-table td:first-child{position:sticky;left:0;z-index:1;background:var(--ro-superficie);box-shadow:inset -1px 0 0 var(--ro-borda-suave)}
 .adm-main .panel .table-scroll .audit-table th:first-child,
@@ -743,10 +745,73 @@
 }
 /* Hierarquia (rodada 3, revisão de design, conceito 14): o título de painel era h3 logo abaixo do h1 da
    topbar. Virou h2, com o mesmo desenho do `.panel h3` de base.css; o h4 de dentro virou h3 com o desenho de antes. */
-.adm-main .panel > h2{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-3);color:var(--ro-texto-forte);font-weight:var(--ro-peso-semi);margin:0 0 var(--ro-esp-4);display:flex;align-items:center;gap:9px;line-height:1.25}
+.adm-main .panel > h2,.adm-main .adm-cs-cabecalho > h2{font-family:var(--ro-fonte-display);font-size:var(--ro-tipo-titulo-3);color:var(--ro-texto-forte);font-weight:var(--ro-peso-semi);margin:0 0 var(--ro-esp-4);display:flex;align-items:center;gap:9px;line-height:1.25}
+.adm-main .adm-cs-cabecalho > h2{margin-bottom:2px}
 .adm-main .panel h3.adm-subtitulo{display:block;font-family:inherit;font-size:var(--ro-tipo-corpo-sm);font-weight:700;margin:16px 0 8px}
 .adm-main .panel .adm-cartao-papel h3{font-family:inherit;font-size:var(--ro-tipo-corpo);margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 
 @media (prefers-reduced-motion: reduce){
   .adm-esqueleto{animation:none}
+}
+
+/* ---- "Ver como o cliente vê" (30/10/2026) --------------------------------------------------------------------
+   A rota /admin/moedas/[codigo]/cliente mostra o recibo do cliente, com as classes de `recibo.css` (que não é desta
+   frente). No creme do certificado o ouro-700 dá 4,33:1 e o texto do rodapé 3,89:1, abaixo do mínimo de 4,5:1 (axe,
+   WCAG 1.4.3). Os dois papéis ficam locais ao painel, sem tocar em `recibo.css`; a frente 1 corrige o mesmo no
+   próprio `.cert` (PR #13), e os valores batem de propósito. */
+.adm-main .cert{--cert-ink-gold:var(--ro-ouro-800);--cert-ink-foot:var(--ro-pergaminho-600)}
+
+/* Utilitários de espaçamento e layout (30/10/2026). Trocam `style={{}}` estático de 36 lugares do painel sem mudar nada na tela:
+   levam `!important` justamente porque o estilo inline que substituem vencia qualquer seletor. Valor dinâmico (largura de
+   barra, altura de coluna, recuo por nível do DRE) continua inline — é dado, não desenho. */
+.adm-main .adm-m0{margin:0 !important}
+.adm-main .adm-m16{margin:16px !important}
+.adm-main .adm-mb0{margin-bottom:0 !important}
+.adm-main .adm-mb6{margin-bottom:6px !important}
+.adm-main .adm-mb8{margin-bottom:8px !important}
+.adm-main .adm-mb12{margin-bottom:12px !important}
+.adm-main .adm-mt8{margin-top:8px !important}
+.adm-main .adm-mt10{margin-top:10px !important}
+.adm-main .adm-mt12{margin-top:12px !important}
+.adm-main .adm-mt14{margin-top:14px !important}
+.adm-main .adm-my14{margin-top:14px !important;margin-bottom:14px !important}
+.adm-main .adm-contents{display:contents}
+.adm-main .adm-quebra-tudo{word-break:break-all}
+.adm-main .adm-sem-moldura{padding:0 !important;border:0 !important}
+.adm-main .adm-bloco-simples{display:block !important}
+.adm-main .adm-lista-recuada{margin:6px 0 0 18px !important}
+.adm-main .adm-lista-compacta{margin:4px 0 0 !important;padding-left:16px !important}
+.adm-main .adm-acoes-fim{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.adm-main .adm-pre{white-space:pre-wrap;margin:8px 0 0}
+.adm-main .adm-campo-papel{min-height:44px !important;margin-bottom:0 !important;min-width:150px !important}
+.adm-main .adm-campo-aliquota{width:110px !important;min-height:44px !important;margin-bottom:0 !important}
+.adm-main .adm-col-55{width:55%}
+.adm-main .adm-col-35{width:35%}
+
+/* Cabeçalho de um campo com uma ação ao lado do rótulo (bancada: "Caixa" + "Replicar para todas"). O <label> mantém o
+   aspecto do texto simples dos outros campos da linha, que são <label> em volta do <input>. */
+.adm-main .field .adm-campo-cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.adm-main .field .adm-campo-cab label{display:inline;margin:0;font-size:inherit;font-weight:inherit;letter-spacing:inherit;color:inherit}
+/* Botão com cara de link, com alvo de toque de 44 px (era um <button> de 0 de padding e 0,85em de fonte). */
+.adm-main .adm-btn-texto{min-height:44px;padding:0 6px;background:none;border:0;color:var(--ro-primaria-texto);font:inherit;font-size:.85em;text-decoration:underline;text-underline-offset:3px;cursor:pointer;border-radius:var(--ro-raio-xs)}
+.adm-main .adm-btn-texto:hover{color:var(--ro-texto-forte)}
+.adm-main .adm-btn-texto:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+
+/* ---- Impressão (30/10/2026, polimento — lente "acabamento") -------------------------------------------------
+   O DRE, a ficha da moeda e as listas saíam do Ctrl+P com o menu, a barra do topo e todos os botões, e no tema
+   escuro o texto claro sumia no papel branco. Na impressão sai só o conteúdo: título da página, painéis e tabelas
+   inteiras (sem rolagem nem coluna fixa), em preto sobre branco; só as barras do gráfico mantêm a cor, em cinza. */
+@media print{
+  /* `body:has(.adm-main)`: o admin.css é global, e estas regras só podem valer para as telas do painel. */
+  body:has(.adm-main){background:#fff !important;color:#000 !important}
+  body:has(.adm-main) .toast,body:has(.adm-main) .modal-bg{display:none !important}
+  body:has(.adm-main) .app{display:block !important;min-height:0 !important}
+  .adm-pular,.adm-sidebar,.sb-backdrop,.adm-subnav,.adm-main .btn,.adm-main button,.adm-topbar .top-right,.adm-topbar .menu-btn{display:none !important}
+  .adm-main{display:block !important;min-height:0 !important;padding:0 !important;max-width:none !important}
+  .adm-main,.adm-main *{color:#000 !important;background:transparent !important;box-shadow:none !important;border-color:#8a8a8a !important;text-shadow:none !important}
+  .adm-main .adm-graf-barra{background:#555 !important}
+  .adm-main .table-scroll{overflow:visible !important}
+  .adm-main .table-scroll .audit-table{min-width:0 !important}
+  .adm-main th,.adm-main td{position:static !important}
+  .adm-main .panel,.adm-main .adm-bloco,.adm-main tr{break-inside:avoid}
 }

@@ -23,6 +23,10 @@ import { consultaDoPeriodo, lerPeriodo, type ParametrosDaUrl } from '@/domain/ad
 import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarControleFinanceiro } from '@/server/admin/controle-financeiro'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/resultados/controle') }
 
 export const dynamic = 'force-dynamic'
 

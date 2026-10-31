@@ -34,7 +34,7 @@ import type { RecorrenteGravado, Setor } from '@/server/db/repositories/financei
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
 import { data, dinheiro, numero } from '../formatos'
-import { Secao, Selo, Vazio } from '../Pecas'
+import { Secao, Selo, TabelaRolavel, Vazio } from '../Pecas'
 
 interface Rascunho {
   id: number | null
@@ -338,7 +338,7 @@ export function PainelRecorrentes({
             }
           >
             {lista.length ? (
-              <div className="table-scroll">
+              <TabelaRolavel rotulo={`${titulo} recorrentes: valor, frequência, setor, próxima data e ações`}>
                 <table className="audit-table">
                   <caption className="adm-sr">{titulo} recorrentes: valor, frequência, setor, próxima data e ações</caption>
                   <thead>
@@ -418,7 +418,7 @@ export function PainelRecorrentes({
                     })}
                   </tbody>
                 </table>
-              </div>
+              </TabelaRolavel>
             ) : (
               <Vazio titulo={tipo === 'custo' ? 'Nenhum custo cadastrado ainda.' : 'Nenhuma receita cadastrada.'}>
                 {tipo === 'custo' ? 'Use as sugestões acima — HostGator, Claude, Fly.io, marketing — e informe o valor.' : 'Use "+ Outra receita" acima.'}
