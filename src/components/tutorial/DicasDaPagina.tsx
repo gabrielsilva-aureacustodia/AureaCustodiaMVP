@@ -148,7 +148,7 @@ export function DicasDaPagina({ titulo, dicas, aoRefazerTour, aoFechar }: Props)
 
       <section className={movel ? 'dicas-painel dicas-painel-movel' : 'dicas-painel'} aria-label={titulo}>
         <header className="dicas-cabeca">
-          <h4>{titulo}</h4>
+          <h2>{titulo}</h2>
           <button type="button" className="btn btn-gold dicas-fechar" onClick={aoFechar}>
             Fechar tutorial
           </button>

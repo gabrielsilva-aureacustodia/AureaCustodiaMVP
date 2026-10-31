@@ -240,9 +240,9 @@ export function TourGuiado({
             </button>
           </div>
 
-          <h4 id="tour-titulo" className="tour-titulo">
+          <h2 id="tour-titulo" className="tour-titulo">
             {passo.titulo}
-          </h4>
+          </h2>
           <p id="tour-texto" className="tour-texto">
             {passo.texto}
           </p>
