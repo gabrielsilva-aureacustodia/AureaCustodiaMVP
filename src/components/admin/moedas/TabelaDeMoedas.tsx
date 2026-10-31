@@ -63,7 +63,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
                   <div className="adm-fraco">{l.dono}</div>
                 </td>
                 <td>
-                  <span className={PILL_RECIBO[l.recibo.status] ?? 'pill n'}>{l.recibo.status}</span> {l.recibo.codigo}
+                  <span className={PILL_RECIBO[l.recibo.status] ?? 'pill n'}>{l.recibo.status}</span> <span className="adm-codigo">{l.recibo.codigo}</span>
                   <div className="adm-mono adm-fraco" title={l.recibo.hash}>
                     {hashCurto(l.recibo.hash)}
                   </div>
@@ -83,7 +83,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
                       </div>
                     </>
                   ) : (
-                    <span className="adm-fraco">sem laudo de bancada</span>
+                    <span className="adm-fraco adm-codigo">sem laudo de bancada</span>
                   )}
                 </td>
                 <td>

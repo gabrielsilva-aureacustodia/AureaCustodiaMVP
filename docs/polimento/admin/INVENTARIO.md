@@ -152,3 +152,5 @@ de `socio` e `operacao` não foi vista), os gráficos com série real e a bancad
 
 **R3 e R4 corrigidos no bloco 3 (30/10/2026):** 17 títulos distintos e axe de boa prática (`heading-order`, `landmark-unique`) em 0. Os `h1` e `h2` do §6 não mudaram,
 exceto: Bancada passou a ter `h2` (Fila · Caixas do cofre · Entradas sem envio postal) e Notas fiscais passou a ter `h2` (Envio à Sefin Nacional) onde antes havia `h3`.
+
+**R5 (parcial), R7 e R8 tratados no bloco 4 (30/10/2026):** código do recibo sem quebra no acervo, `dvh` no menu e na busca, impressão do painel só com o conteúdo (conferida em PDF A4).

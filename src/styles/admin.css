@@ -230,7 +230,7 @@
 /* ---- Casco ---------------------------------------------------------------- */
 /* Mais largura que o app do cliente: o painel vive de tabela larga. */
 .adm-main{max-width:1480px;min-width:0}
-.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto}
+.adm-sidebar{position:sticky;top:0;align-self:flex-start;max-height:100vh;max-height:100dvh;overflow-y:auto}
 .adm-nav-titulo{border-top:1px solid var(--ro-borda-suave);padding-top:12px}
 .adm-topbar{align-items:flex-start;flex-wrap:nowrap}
 .adm-topbar .page-title{min-width:0}
@@ -260,7 +260,7 @@
 .adm-busca-gatilho svg{width:17px;height:17px;stroke:var(--ro-primaria-texto);fill:none;stroke-width:1.8;flex-shrink:0}
 .adm-busca-gatilho span{flex:1;text-align:left}
 .adm-main kbd,.adm-busca kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--adm-tipo-micro);border:1px solid var(--ro-borda-suave);border-radius:var(--ro-raio-xs);padding:1px 6px;color:var(--ro-texto-suave);background:var(--ro-superficie)}
-.adm-busca{border:1px solid var(--ro-borda);border-radius:var(--ro-raio-lg);padding:0;background:var(--ro-superficie);color:var(--ro-texto);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));margin:8vh auto auto;box-shadow:var(--ro-sombra-4)}
+.adm-busca{border:1px solid var(--ro-borda);border-radius:var(--ro-raio-lg);padding:0;background:var(--ro-superficie);color:var(--ro-texto);width:min(640px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 64px));max-height:min(560px,calc(100dvh - 64px));margin:8vh auto auto;box-shadow:var(--ro-sombra-4)}
 .adm-busca::backdrop{background:var(--ro-veu)}
 .adm-busca-caixa{display:flex;flex-direction:column;max-height:inherit}
 .adm-busca-campo.tinput{border:0;border-bottom:1px solid var(--ro-borda-suave);border-radius:0;min-height:52px;margin:0;font-size:var(--ro-tipo-corpo);padding:0 16px}
@@ -760,3 +760,22 @@
    WCAG 1.4.3). Os dois papéis ficam locais ao painel, sem tocar em `recibo.css`; a frente 1 corrige o mesmo no
    próprio `.cert` (PR #13), e os valores batem de propósito. */
 .adm-main .cert{--cert-ink-gold:var(--ro-ouro-800);--cert-ink-foot:var(--ro-pergaminho-600)}
+
+/* ---- Impressão (30/10/2026, polimento — lente "acabamento") -------------------------------------------------
+   O DRE, a ficha da moeda e as listas saíam do Ctrl+P com o menu, a barra do topo e todos os botões, e no tema
+   escuro o texto claro sumia no papel branco. Na impressão sai só o conteúdo: título da página, painéis e tabelas
+   inteiras (sem rolagem nem coluna fixa), em preto sobre branco; só as barras do gráfico mantêm a cor, em cinza. */
+@media print{
+  /* `body:has(.adm-main)`: o admin.css é global, e estas regras só podem valer para as telas do painel. */
+  body:has(.adm-main){background:#fff !important;color:#000 !important}
+  body:has(.adm-main) .toast,body:has(.adm-main) .modal-bg{display:none !important}
+  body:has(.adm-main) .app{display:block !important;min-height:0 !important}
+  .adm-pular,.adm-sidebar,.sb-backdrop,.adm-subnav,.adm-main .btn,.adm-main button,.adm-topbar .top-right,.adm-topbar .menu-btn{display:none !important}
+  .adm-main{display:block !important;min-height:0 !important;padding:0 !important;max-width:none !important}
+  .adm-main,.adm-main *{color:#000 !important;background:transparent !important;box-shadow:none !important;border-color:#8a8a8a !important;text-shadow:none !important}
+  .adm-main .adm-graf-barra{background:#555 !important}
+  .adm-main .table-scroll{overflow:visible !important}
+  .adm-main .table-scroll .audit-table{min-width:0 !important}
+  .adm-main th,.adm-main td{position:static !important}
+  .adm-main .panel,.adm-main .adm-bloco,.adm-main tr{break-inside:avoid}
+}

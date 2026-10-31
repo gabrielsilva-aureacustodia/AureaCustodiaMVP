@@ -74,3 +74,15 @@ DRE com valores, fila de NFS-e e trilha real **não foram vistos**. As correçõ
 - **Efeito colateral achado na medição e corrigido:** com `TabelaRolavel` as duas tabelas "Quantidades do indicador" de Indicadores viraram duas regiões com o
   mesmo nome (axe `landmark-unique`); a legenda agora leva a coluna ("Quantidades por moeda", "…por caixa").
 - Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok. axe (WCAG A/AA) 0 nas 18 rotas × 3 larguras × 2 temas; **boa prática 0**.
+
+**Bloco 4 — acervo, `dvh` e impressão (R5 parcial, R7 e R8): FEITO**
+- **Acervo (`TabelaDeMoedas`):** o código do recibo e "sem laudo de bancada" ganharam `.adm-codigo` (`white-space:nowrap`, classe que já existia). Antes o código quebrava no
+  meio ("REC-" / "000001") e o texto ocupava duas linhas. **Não mudou a altura da linha (88 px):** a célula do recibo é uma pilha deliberada de 3 linhas (selo, código, hash), e
+  encolhê-la pediria tirar informação ou mudar o desenho da célula. A tabela já atende 6 dos 7 critérios do conceito 23 (BENCHMARK §3); a "uma altura por tabela" fica atendida
+  nesta (todas as linhas têm 3 linhas) e continua variando nas outras, por conteúdo.
+- **`dvh`:** a coluna do menu (`.adm-sidebar`) e a caixa de busca (Ctrl K) passaram a `max-height` em `dvh`, com `vh` como reserva.
+- **Impressão:** `@media print` em `admin.css`, limitado a `body:has(.adm-main)` (o `admin.css` é global; nada vale para o cliente nem para a landing). Some menu, topbar (fica o
+  título e a descrição), abas, botões, avisos flutuantes; as tabelas saem inteiras (sem rolagem e sem coluna fixa); texto preto sobre branco; só as barras do gráfico ficam em cinza.
+  Sem `@page`, de propósito: ele não se limita por seletor e mudaria a impressão das outras áreas. Conferido em PDF A4 gerado pelo Chrome (Financeiro, Auditoria de moedas e Ficha da moeda):
+  só conteúdo, `h1` presente, sem botões.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok · axe 0 nas 18 rotas × 3 larguras × 2 temas · 0 rolagem horizontal · 0 erro de console.
