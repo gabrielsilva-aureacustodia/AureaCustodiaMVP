@@ -23,7 +23,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 import { TOTAL_DE_ETAPAS_DO_TOUR } from '@/domain/tutorial'
-import type { PassoDoTour } from '@/domain/tutorial'
+import type { Alvo } from '@/domain/tutorial'
 import { acharAlvo, mesmaCaixa, medir, trazerParaVista } from '@/components/tutorial/dom'
 import type { Caixa } from '@/components/tutorial/dom'
 
@@ -33,8 +33,23 @@ const LIMITE_MOBILE_PX = 640
 /** Quanto esperar a âncora aparecer depois de a rota abrir. */
 const ESPERA_ANCORA_MS = 3000
 
+/**
+ * O que o balão precisa de um passo. Estrutural de propósito: o tour do cliente (`PassoDoTour`) e o do
+ * painel (`PassoDoTourAdmin`) se encaixam sem um depender do outro, e o balão não aprende nada de rota.
+ */
+export interface PassoDeTour {
+  id: string
+  etapa: number
+  titulo: string
+  texto: string
+  alvo?: Alvo
+  acaoFinal?: 'completar-cadastro'
+}
+
 interface Props {
-  passo: PassoDoTour
+  passo: PassoDeTour
+  /** Quantas etapas o tour tem além da boas-vindas; o do painel varia com o papel. Padrão: o do cliente. */
+  totalDeEtapas?: number
   /** Posição do passo na lista e tamanho da lista, para o texto "passo X de Y" dentro da etapa. */
   numeroNaEtapa: number
   totalNaEtapa: number
@@ -52,6 +67,7 @@ interface Props {
 
 export function TourGuiado({
   passo,
+  totalDeEtapas = TOTAL_DE_ETAPAS_DO_TOUR,
   numeroNaEtapa,
   totalNaEtapa,
   podeVoltar,
@@ -216,7 +232,7 @@ export function TourGuiado({
         >
           <div className="tour-cabeca">
             <span className="tour-etapa">
-              {passo.etapa === 0 ? 'Boas-vindas' : `Etapa ${passo.etapa} de ${TOTAL_DE_ETAPAS_DO_TOUR}`}
+              {passo.etapa === 0 ? 'Boas-vindas' : `Etapa ${passo.etapa} de ${totalDeEtapas}`}
               {totalNaEtapa > 1 ? ` · ${numeroNaEtapa}/${totalNaEtapa}` : ''}
             </span>
             <button type="button" className="tour-pular-tudo" onClick={aoPularTudo}>
@@ -232,7 +248,7 @@ export function TourGuiado({
           </p>
 
           <div className="tour-pontos" aria-hidden="true">
-            {Array.from({ length: TOTAL_DE_ETAPAS_DO_TOUR + 1 }, (_, i) => (
+            {Array.from({ length: totalDeEtapas + 1 }, (_, i) => (
               <i key={i} className={i === passo.etapa ? 'on' : i < passo.etapa ? 'feito' : ''} />
             ))}
           </div>

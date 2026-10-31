@@ -23,6 +23,7 @@ import type { ReactNode } from 'react'
 import { AdminProvider } from '@/components/admin/AdminProvider'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { AdminTopbar } from '@/components/admin/AdminTopbar'
+import { TutorialAdmin } from '@/components/admin/TutorialAdmin'
 import { RegistroDeUso } from '@/components/providers/RegistroDeUso'
 import { SidebarProvider } from '@/components/shell/Sidebar'
 import { ModalHost } from '@/components/ui/Modal'
@@ -57,6 +58,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
         {/* Dentro do AdminProvider: conteúdo de modal do painel enxerga useAdmin(). */}
         <ModalHost />
+        {/* Tour da primeira entrada e botão "Ver tutorial desta página": só o que o papel alcança. */}
+        <TutorialAdmin />
       </SidebarProvider>
       <RegistroDeUso />
     </AdminProvider>

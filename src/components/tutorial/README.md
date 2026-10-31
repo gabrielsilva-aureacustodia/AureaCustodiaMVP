@@ -17,3 +17,11 @@ prazo de `custody.ts`.
 As telas **não conhecem o tutorial**: as âncoras são seletor + texto (`Alvo`), então uma tela que
 muda o texto só perde a dica, nunca quebra. As únicas telas que leem o contexto são
 `AvisoDebitoCustodia` e `ResumoDaCustodia`, para desenhar a fatura de exemplo do tour.
+
+## O mesmo desenho serve ao painel (`/admin`)
+
+`TourGuiado` e `DicasDaPagina` não conhecem o cliente: o tour aceita qualquer passo com o formato `PassoDeTour` e
+`totalDeEtapas`. O painel os usa por `src/components/admin/TutorialAdmin.tsx`, com o conteúdo em
+`src/domain/tutorial-admin.ts` (passos e dicas filtrados pelas permissões do membro). Chave própria de localStorage
+(`ro-tutorial-admin:…`), tour só na primeira entrada e dicas só pelo botão. Ver
+`docs/polimento/admin/TUTORIAL_MD_EXECUCAO.md`.
