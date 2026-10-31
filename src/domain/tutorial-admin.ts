@@ -188,6 +188,8 @@ interface PassoBruto {
   alvo?: Alvo
   noMenu?: boolean
   exige?: Exigencia
+  /** Texto para tela sem o atalho de teclado (≤ 560 px o painel esconde o "Ctrl K" e deixa só o botão). */
+  textoSemAtalho?: string
 }
 
 const PASSOS_DO_TOUR: readonly PassoBruto[] = [
@@ -327,6 +329,8 @@ const PASSOS_DO_TOUR: readonly PassoBruto[] = [
     titulo: 'Buscar ou ir para…',
     texto:
       'Ctrl K (ou Command K) abre a busca de qualquer tela. Digite o nome de uma área, o e-mail de um cliente, o código de uma moeda ou um código de rastreio e vá direto.',
+    textoSemAtalho:
+      'Este botão abre a busca de qualquer tela. Digite o nome de uma área, o e-mail de um cliente, o código de uma moeda ou um código de rastreio e vá direto.',
     alvo: { css: '.adm-topbar .adm-busca-gatilho' },
   },
   {
@@ -352,7 +356,10 @@ const PASSOS_DO_TOUR: readonly PassoBruto[] = [
  * 0); as demais ganham número de etapa em sequência pelos grupos que sobraram — quem só opera a
  * bancada vê "Etapa 1 de 3", e não "Etapa 1 de 5" com duas etapas faltando.
  */
-export function passosDoTourAdmin(permissoes: readonly string[]): PassoDoTourAdmin[] {
+export function passosDoTourAdmin(
+  permissoes: readonly string[],
+  { semAtalho = false }: { semAtalho?: boolean } = {},
+): PassoDoTourAdmin[] {
   const brutos = PASSOS_DO_TOUR.filter((p) => atende(permissoes, p.exige))
 
   const grupos: PassoBruto['grupo'][] = []
@@ -373,7 +380,7 @@ export function passosDoTourAdmin(permissoes: readonly string[]): PassoDoTourAdm
       id: p.id,
       etapa: grupos.indexOf(p.grupo) + 1,
       titulo: p.titulo,
-      texto: p.texto,
+      texto: semAtalho && p.textoSemAtalho ? p.textoSemAtalho : p.texto,
       ...(p.alvo ? { alvo: p.alvo } : {}),
       ...(p.noMenu ? { noMenu: true } : {}),
     })

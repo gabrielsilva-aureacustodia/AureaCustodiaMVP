@@ -48,7 +48,7 @@ Merge:      push e PR ficam com o Gabriel
 - **Sem Postgres**, só o papel `dev` existe no navegador: os papéis sócio e operação foram verificados **pelos testes de domínio** (cruzando permissões reais de `PAPEIS_DE_SISTEMA`), não vistos na tela.
 - Sem banco, várias telas abrem com "Ambiente sem banco de dados" (Atendimento, Uso, Contábil…): as âncoras de seção dessas telas (ex.: "Trilha de auditoria", abas do Contábil) **não foram vistas funcionando**; nelas a dica
   aparece sem a bolinha, e a primeira dica ("para que serve a tela") sempre aparece. Vale rever em ambiente com dados.
-- No celular, o passo "Buscar ou ir para…" aponta para o gatilho da busca, que o Ctrl K não alcança: o texto fala de Ctrl K e a tela estreita só tem o botão. Não alterei texto por largura.
+- (corrigido) No celular o passo "Buscar ou ir para…" não fala mais de Ctrl K.
 - Axe não foi rodado sobre a camada do tutorial (o do cliente já tinha sido; o balão e as dicas são os mesmos componentes).
 - Conteúdo: os textos descrevem as telas pelo inventário e pelo código lido; **nenhum texto passou por revisão de linguagem** (não há pedido a workers: nenhuma peça visual foi necessária). Se o Gabriel quiser revisão, é pedido a `pedidos_workers.md`.
 

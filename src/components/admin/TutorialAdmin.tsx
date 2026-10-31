@@ -43,6 +43,20 @@ import { itemDaRota } from './navegacao'
 
 /** Abaixo disto o menu lateral é gaveta (mesmo ponto de `SidebarProvider`). */
 const LARGURA_DA_GAVETA_PX = 1080
+/** Até esta largura o painel esconde o "Ctrl K" da busca (admin.css) e só o botão existe. */
+const LARGURA_SEM_ATALHO_PX = 560
+
+/** A tela atual mostra o atalho de teclado da busca? Acompanha o redimensionamento (girar o aparelho). */
+function useSemAtalho(): boolean {
+  const [semAtalho, setSemAtalho] = useState(false)
+  useEffect(() => {
+    const medir = (): void => setSemAtalho(window.innerWidth <= LARGURA_SEM_ATALHO_PX)
+    medir()
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [])
+  return semAtalho
+}
 
 export function TutorialAdmin(): ReactNode {
   const { membro } = useAdmin()
@@ -58,7 +72,8 @@ export function TutorialAdmin(): ReactNode {
   useEffect(() => setMontado(true), [])
 
   const permissoes = membro.permissoes
-  const passos = useMemo(() => passosDoTourAdmin(permissoes), [permissoes])
+  const semAtalho = useSemAtalho()
+  const passos = useMemo(() => passosDoTourAdmin(permissoes, { semAtalho }), [permissoes, semAtalho])
   const totalDeEtapas = totalDeEtapasDoTourAdmin(passos)
   const passo = indiceDoTour !== null ? (passos[indiceDoTour] ?? null) : null
 

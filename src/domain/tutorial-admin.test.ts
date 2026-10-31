@@ -73,6 +73,23 @@ describe('o tutorial acompanha o menu', () => {
   })
 })
 
+describe('passo da busca', () => {
+  const busca = (opcoes?: { semAtalho: boolean }) => passosDoTourAdmin(DEV, opcoes).find((p) => p.id === 'busca')!
+
+  it('fala do Ctrl K onde o atalho aparece e só do botão onde ele some', () => {
+    expect(busca().texto).toMatch(/Ctrl K/)
+    expect(busca({ semAtalho: false }).texto).toMatch(/Ctrl K/)
+    expect(busca({ semAtalho: true }).texto).not.toMatch(/Ctrl|Command/)
+    expect(busca({ semAtalho: true }).texto).toMatch(/botão/)
+  })
+
+  it('o resto do tour não muda com a largura', () => {
+    const sem = passosDoTourAdmin(DEV, { semAtalho: true }).filter((p) => p.id !== 'busca')
+    const com = passosDoTourAdmin(DEV).filter((p) => p.id !== 'busca')
+    expect(sem).toEqual(com)
+  })
+})
+
 describe('papel dev', () => {
   it('abre todas as telas e vê o tutorial de cada uma', () => {
     for (const pagina of PAGINAS_ADMIN_COM_TUTORIAL) {
