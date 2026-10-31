@@ -209,6 +209,10 @@ function suite(alvo: Alvo): void {
         'buy_orders',
         // Migration 025 — caixas físicas do cofre (frente C, C3).
         'caixas',
+        // Migration 048 — casos de atendimento ao cliente.
+        'casos',
+        'casos_anexos',
+        'casos_mensagens',
         'coins',
         // Migration 024 — configuração do site e catálogo editáveis (frente C, C3).
         'config_historico',

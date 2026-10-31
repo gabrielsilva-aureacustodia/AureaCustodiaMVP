@@ -1009,3 +1009,78 @@ describe('caminhoDeVideoPertenceAoEnvio', () => {
     expect(caminhoDeVideoPertenceAoEnvio('RO-ENV-00190/x.webm', 'RO-ENV-0019')).toBe(false)
   })
 })
+
+describe('casos de atendimento (migration 048)', () => {
+  const ana = 'ana@x.com'
+  const bia = 'bia@x.com'
+  const equipe = 'dev@x.com'
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
+
+  it('o cliente abre um caso com anexo e só ele o enxerga', async () => {
+    const { abrirCaso, verCasoComoCliente, listarMeusCasos } = await import('@/server/atendimento/casos')
+    const r = await abrirCaso(executar, ana, { tipo: 'erro', texto: 'A tela de saque travou', paginaOrigem: '/saque?x=1', anexo: { nome: 'tela.png', bytes: png } }, 1000)
+    expect(r.ok).toBe(true)
+    const id = r.ok ? r.dados!.casoId : 0
+    const meu = await verCasoComoCliente(executar, ana, id, 1100)
+    expect(meu?.caso).toMatchObject({ estado: 'aberto', tipo: 'erro', paginaOrigem: '/saque' })
+    expect(meu?.mensagens[0]).toMatchObject({ autor: 'cliente', texto: 'A tela de saque travou' })
+    expect(meu?.mensagens[0]?.anexo?.tipoMime).toBe('image/png')
+    // Outro cliente não vê o caso, nem pela lista nem pelo id.
+    expect(await verCasoComoCliente(executar, bia, id)).toBeNull()
+    expect((await listarMeusCasos(executar, bia)).casos).toEqual([])
+    expect((await listarMeusCasos(executar, ana)).casos).toHaveLength(1)
+  })
+
+  it('recusa tipo inválido, texto vazio e anexo que não é imagem', async () => {
+    const { abrirCaso } = await import('@/server/atendimento/casos')
+    expect((await abrirCaso(executar, ana, { tipo: 'x', texto: 'oi', paginaOrigem: null })).ok).toBe(false)
+    expect((await abrirCaso(executar, ana, { tipo: 'duvida', texto: '  ', paginaOrigem: null })).ok).toBe(false)
+    expect((await abrirCaso(executar, ana, { tipo: 'duvida', texto: 'oi', paginaOrigem: null, anexo: { nome: 'a.png', bytes: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]) } })).ok).toBe(false)
+  })
+
+  it('resposta da equipe vira em_andamento, o cliente vê a novidade e a trilha registra', async () => {
+    const { abrirCaso, responderComoEquipe, listarMeusCasos, verCasoComoCliente, abertosParaOMenu } = await import('@/server/atendimento/casos')
+    const criado = await abrirCaso(executar, bia, { tipo: 'duvida', texto: 'Como pago a custódia?', paginaOrigem: '/custodia' }, 2000)
+    const id = criado.ok ? criado.dados!.casoId : 0
+    const antes = await abertosParaOMenu(executar)
+    expect(antes).toBeGreaterThan(0)
+    const r = await responderComoEquipe(executar, equipe, id, 'Pelo Pix, na tela de Custódia.', 2100)
+    expect(r.ok).toBe(true)
+    expect(await abertosParaOMenu(executar)).toBe(antes - 1)
+    expect((await listarMeusCasos(executar, bia)).novas).toBe(1)
+    const visto = await verCasoComoCliente(executar, bia, id, 2200)
+    expect(visto?.caso.estado).toBe('em_andamento')
+    expect(visto?.mensagens.map((m) => m.autor)).toEqual(['cliente', 'equipe'])
+    expect((await listarMeusCasos(executar, bia)).novas).toBe(0)
+    const trilha = await executar((tx) => listarAuditoria(tx, { limite: 50 }))
+    expect(trilha.some((t) => t.acao === 'admin.casos.responder' && t.ator === equipe)).toBe(true)
+  })
+
+  it('resolvido, não resolvido e reabrir; mensagem do cliente devolve a aberto', async () => {
+    const { abrirCaso, mudarEstadoDoCaso, responderComoCliente, responderComoEquipe, verCasoComoEquipe } = await import('@/server/atendimento/casos')
+    const criado = await abrirCaso(executar, ana, { tipo: 'pedido', texto: 'Quero retirar uma moeda', paginaOrigem: null }, 3000)
+    const id = criado.ok ? criado.dados!.casoId : 0
+    expect(await mudarEstadoDoCaso(executar, equipe, id, 'resolvido', 3100)).toMatchObject({ ok: true, dados: { estado: 'resolvido' } })
+    // Responder caso encerrado não o reabre às escondidas.
+    await responderComoEquipe(executar, equipe, id, 'Feito.', 3150)
+    expect((await verCasoComoEquipe(executar, id))?.caso).toMatchObject({ estado: 'resolvido', fechadoPor: equipe })
+    expect(await mudarEstadoDoCaso(executar, equipe, id, 'nao_resolvido', 3200)).toMatchObject({ ok: true, dados: { estado: 'nao_resolvido' } })
+    expect(await mudarEstadoDoCaso(executar, equipe, id, 'reabrir', 3300)).toMatchObject({ ok: true, dados: { estado: 'em_andamento' } })
+    expect((await verCasoComoEquipe(executar, id))?.caso.fechadoPor).toBeNull()
+    expect(await responderComoCliente(executar, ana, id, 'Ainda não chegou', 3400)).toMatchObject({ ok: true })
+    expect((await verCasoComoEquipe(executar, id))?.caso.estado).toBe('aberto')
+    // O cliente de outra conta não escreve no caso alheio.
+    expect((await responderComoCliente(executar, bia, id, 'intruso', 3500)).ok).toBe(false)
+    expect((await mudarEstadoDoCaso(executar, equipe, id, 'apagar', 3600)).ok).toBe(false)
+  })
+
+  it('a lista da equipe filtra por estado e tipo e busca no texto', async () => {
+    const { listarParaEquipe } = await import('@/server/atendimento/casos')
+    const erro = await listarParaEquipe(executar, { estado: 'todos', tipo: 'erro', busca: '' })
+    expect(erro.casos.every((c) => c.tipo === 'erro')).toBe(true)
+    const busca = await listarParaEquipe(executar, { estado: 'todos', tipo: 'todos', busca: 'custódia' })
+    expect(busca.casos.map((c) => c.titulo)).toContain('Como pago a custódia?')
+    const coringa = await listarParaEquipe(executar, { estado: 'todos', tipo: 'todos', busca: '%' })
+    expect(coringa.casos).toEqual([])
+  })
+})

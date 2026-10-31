@@ -24,8 +24,9 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `016_documentos_e_aceites.sql` | Frente A: `documentos_legais` e `aceites_documentos` com hash encadeado e RLS (A3) |
 | `046_controle_financeiro.sql` | Controle financeiro (25/10/2026): `setores_financeiros` (semeada), `lancamentos_recorrentes` e, em `lancamentos_manuais`, `recorrente_id`/`competencia`/`setor_id` com índice único parcial (a ocorrência não é lançada duas vezes). Aditiva |
 | `047_fatura_de_ciclo_por_lote.sql` | `faturas_ciclo_uniq` sem as canceladas e com as moedas na chave: o índice da 039 parou o cron de 21/10 a 26/10 (26/10/2026). Só índice |
+| `048_casos_de_atendimento.sql` | `casos`, `casos_mensagens` e `casos_anexos` (31/10/2026): o botão Atendimento do cliente e a fila `/admin/casos`. RLS ligado, anexo em `bytea` privado. Só tabelas novas |
 
-A próxima é a **034**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **049**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**

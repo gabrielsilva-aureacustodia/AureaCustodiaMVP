@@ -136,6 +136,8 @@ describe('inventário: toda rota do projeto tem situação declarada', () => {
     '/api/admin/conciliacao': 'src/app/api/admin/conciliacao/route.ts',
     '/api/envios/etiqueta/[protocolo]': 'src/app/api/envios/etiqueta/[protocolo]/route.ts',
     '/api/retiradas/etiqueta/[id]': 'src/app/api/retiradas/etiqueta/[id]/route.ts',
+    '/api/atendimento/casos': 'src/app/api/atendimento/casos/route.ts',
+    '/api/atendimento/anexo/[id]': 'src/app/api/atendimento/anexo/[id]/route.ts',
   }
 
   function rotas(dir: string, achados: string[] = []): string[] {

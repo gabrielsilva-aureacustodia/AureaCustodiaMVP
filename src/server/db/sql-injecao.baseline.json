@@ -37,6 +37,13 @@
   "src/server/db/repositories/caixas.ts": [
     "S"
   ],
+  "src/server/db/repositories/casos.ts": [
+    "COLUNAS",
+    "S",
+    "onde.length ? `WHERE ${onde.join(' AND ')}` : ''",
+    "paraEmail ? 'AND c.user_email = $2' : ''",
+    "valores.length"
+  ],
   "src/server/db/repositories/coins.ts": [
     "S"
   ],
