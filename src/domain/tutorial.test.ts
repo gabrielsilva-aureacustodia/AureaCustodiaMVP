@@ -122,6 +122,9 @@ describe('forma do tour', () => {
 
   it('a versão do tutorial entra nas chaves, para refazer o tour de todos subindo a versão', () => {
     expect(chaveDoTour(EMAIL)).toContain(`:${VERSAO_DO_TUTORIAL}:`)
+    // v3: quem viu o tour na v2 volta a vê-lo; as chaves antigas (v2) deixam de valer.
+    expect(VERSAO_DO_TUTORIAL).toBe('v3')
+    expect(chaveDoTour(EMAIL)).not.toContain(':v2:')
     expect(chaveDaPagina(EMAIL, '/mercado')).toContain(`:${VERSAO_DO_TUTORIAL}:`)
   })
 

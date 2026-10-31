@@ -48,9 +48,9 @@ Merge:      push e PR ficam com o Gabriel
 - **Sem Postgres**, só o papel `dev` existe no navegador: os papéis sócio e operação foram verificados **pelos testes de domínio** (cruzando permissões reais de `PAPEIS_DE_SISTEMA`), não vistos na tela.
 - Sem banco, várias telas abrem com "Ambiente sem banco de dados" (Atendimento, Uso, Contábil…): as âncoras de seção dessas telas (ex.: "Trilha de auditoria", abas do Contábil) **não foram vistas funcionando**; nelas a dica
   aparece sem a bolinha, e a primeira dica ("para que serve a tela") sempre aparece. Vale rever em ambiente com dados.
-- No celular, o passo "Buscar ou ir para…" aponta para o gatilho da busca, que o Ctrl K não alcança: o texto fala de Ctrl K e a tela estreita só tem o botão. Não alterei texto por largura.
-- Axe não foi rodado sobre a camada do tutorial (o do cliente já tinha sido; o balão e as dicas são os mesmos componentes).
-- Conteúdo: os textos descrevem as telas pelo inventário e pelo código lido; **nenhum texto passou por revisão de linguagem** (não há pedido a workers: nenhuma peça visual foi necessária). Se o Gabriel quiser revisão, é pedido a `pedidos_workers.md`.
+- (corrigido nesta rodada) O passo "Buscar ou ir para…" não fala de Ctrl K a 560 px ou menos, onde o painel esconde o atalho e deixa só o botão.
+- (feito nesta rodada) Axe (WCAG A/AA e boa prática) sobre o tour (16 passos) e sobre as dicas (16 telas), em 1440 e 375 px, tema claro e escuro: 0 violações da camada do tutorial depois de trocar o `h4` do título por `h2`. Sobraram achados das próprias telas, idênticos com o botão fechado (`heading-order` em Bancada e Notas fiscais; `scrollable-region-focusable` em Indicadores, Financeiro e Equipe), que o PR #14 corrige.
+- Conteúdo: os textos descrevem as telas pelo inventário e pelo código lido; **nenhum texto passou por revisão de linguagem** (não há pedido a workers: nenhuma peça visual foi necessária). A revisão está pedida em `/workspace/aurea-polimento/pedidos_workers.md` (T3-01, DeepSeek); o texto revisado entra só em `src/domain/tutorial-admin.ts`.
 
 ## Pendências e propostas (não aplicadas)
 - Subir `VERSAO_DO_TUTORIAL_ADMIN` (v1 → v2) faz toda a equipe rever o tour — é o botão de "refazer para todos".

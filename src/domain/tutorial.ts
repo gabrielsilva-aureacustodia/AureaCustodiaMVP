@@ -74,8 +74,11 @@ export interface Dica {
  *
  * v2 (01/10/2026): o tour ganhou a etapa de cadastro completo; todas as contas o revêem uma vez.
  * Conta criada depois disso não tem chave nenhuma e vê o tour no primeiro acesso.
+ *
+ * v3 (30/10/2026, pedido do Gabriel): tutorial ativado de novo para todos os clientes, junto com o do painel.
+ * Só muda a chave do localStorage; não há banco nem migration.
  */
-export const VERSAO_DO_TUTORIAL = 'v2'
+export const VERSAO_DO_TUTORIAL = 'v3'
 
 const PREFIXO = `ro-tutorial:${VERSAO_DO_TUTORIAL}`
 
