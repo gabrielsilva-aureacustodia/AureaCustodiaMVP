@@ -36,6 +36,7 @@ peças do painel (`src/components/admin/Pecas.tsx`) delegam para os componentes 
     │   └── uso/                uso da plataforma e trilha de auditoria               resultados.ver | admin.auditoria
     ├── equipe/                 membros do painel e papéis                            admin.membros | admin.papeis
     ├── cs/                     atendimento com WhatsApp e ficha do cliente           cs.ver
+    ├── casos/                  casos de atendimento: o que o cliente manda pelo botão Atendimento   cs.ver (responder: cs.responder)
     ├── usuarios/               lista de contas e criação de conta                    usuarios.ver
     │   └── [email]/            ficha completa em sete abas, com as ações da conta    usuarios.ver
     ├── bancada/                fila, câmera, gravação, caixas e fechamento da análise bancada.ver (analisar: bancada.analisar)

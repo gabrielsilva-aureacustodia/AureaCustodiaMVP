@@ -94,6 +94,7 @@ export const PAGINAS_ADMIN_COM_TUTORIAL = [
   '/admin/bancada',
   '/admin/logistica',
   '/admin/cs',
+  '/admin/casos',
   '/admin/usuarios',
   'ficha-do-cliente',
   '/admin/moedas',
@@ -132,6 +133,7 @@ export const PERMISSOES_DA_PAGINA: Record<PaginaAdmin, Exigencia> = {
   '/admin/bancada': ['bancada.ver'],
   '/admin/logistica': ['logistica.ver'],
   '/admin/cs': ['cs.ver'],
+  '/admin/casos': ['cs.ver'],
   '/admin/usuarios': ['usuarios.ver'],
   'ficha-do-cliente': ['usuarios.ver'],
   '/admin/moedas': ['bancada.auditoria'],
@@ -245,6 +247,17 @@ const PASSOS_DO_TOUR: readonly PassoBruto[] = [
     titulo: 'Atendimento',
     texto: 'As conversas de WhatsApp com os clientes, com a ficha de quem escreve ao lado da conversa.',
     alvo: itemDoMenu('/admin/cs'),
+    noMenu: true,
+    exige: ['cs.ver'],
+  },
+  {
+    id: 'casos',
+    grupo: 'operacao',
+    titulo: 'Casos',
+    texto:
+      'Os pedidos que os clientes mandam pelo botão Atendimento da plataforma: dúvida, pedido, reclamação ou erro. ' +
+      'Você responde ali mesmo, marca o caso como resolvido ou não resolvido, e o cliente vê a resposta na conta dele.',
+    alvo: itemDoMenu('/admin/casos'),
     noMenu: true,
     exige: ['cs.ver'],
   },
@@ -581,6 +594,52 @@ function conteudoDaPagina(pagina: PaginaAdmin): TutorialDePaginaAdmin {
             alvo: secao('Canal'),
           },
           { id: 'cs-so-ver', titulo: 'Só acompanhar', texto: SO_ACOMPANHA, semAcesso: 'cs.responder' },
+        ],
+      }
+
+    case '/admin/casos':
+      return {
+        titulo: 'Guia dos Casos',
+        dicas: [
+          {
+            id: 'casos-estado',
+            titulo: 'Estado do caso',
+            texto: 'Filtre por Aberto (espera a equipe), Em andamento (a equipe respondeu), Resolvido ou Não resolvido. O número no menu conta os abertos.',
+            alvo: { css: '.adm-main [aria-label="Estado do caso"]' },
+          },
+          {
+            id: 'casos-tipo',
+            titulo: 'Tipo e busca',
+            texto: 'Separe dúvidas, pedidos, reclamações e erros, ou busque por uma palavra do texto ou pelo e-mail do cliente.',
+            alvo: { css: '.adm-main [aria-label="Tipo do caso"]' },
+          },
+          {
+            id: 'casos-lista',
+            titulo: 'Lista de casos',
+            texto: 'Os que esperam resposta ficam no alto. Toque em um caso para abrir a conversa.',
+            alvo: { css: '.adm-main [aria-label="Casos"]' },
+          },
+          {
+            id: 'casos-conversa',
+            titulo: 'Conversa e resposta',
+            texto: 'A conversa do cliente com a equipe, em ordem. Em casos de erro, a página de onde o cliente escreveu aparece no alto.',
+            alvo: { css: '.adm-main [aria-label="Conversa do caso"]' },
+          },
+          {
+            id: 'casos-responder',
+            titulo: 'Responder ao cliente',
+            texto: 'A resposta chega à área logada do cliente. Se o envio de e-mail estiver configurado, ele também recebe um aviso.',
+            exige: ['cs.responder'],
+            alvo: { css: '#caso-resposta' },
+          },
+          {
+            id: 'casos-resolver',
+            titulo: 'Resolvido ou não resolvido',
+            texto: 'Marque o resultado quando terminar. O cliente vê o estado. Se ele escrever de novo, o caso volta a Aberto; também dá para reabrir pelo botão.',
+            exige: ['cs.responder'],
+            alvo: { css: '.adm-main [aria-label="Marcar o caso"]' },
+          },
+          { id: 'casos-so-ver', titulo: 'Só acompanhar', texto: SO_ACOMPANHA, semAcesso: 'cs.responder' },
         ],
       }
 

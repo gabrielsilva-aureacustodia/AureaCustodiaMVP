@@ -106,6 +106,19 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
         icone: <path d="M4 5h16v11H9l-5 4z" />,
       },
       {
+        href: '/admin/casos',
+        rotulo: 'Casos',
+        titulo: 'Casos de atendimento',
+        subtitulo: 'Dúvidas, pedidos, reclamações e erros que os clientes mandam pela plataforma, com a conversa e o estado de cada um.',
+        permissoes: ['cs.ver'],
+        icone: (
+          <>
+            <path d="M5 4h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-4 4v-4H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+            <path d="M8 9h8M8 12h5" />
+          </>
+        ),
+      },
+      {
         href: '/admin/usuarios',
         rotulo: 'Usuários',
         titulo: 'Usuários',
