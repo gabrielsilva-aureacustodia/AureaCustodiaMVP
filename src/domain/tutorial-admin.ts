@@ -253,10 +253,11 @@ const PASSOS_DO_TOUR: readonly PassoBruto[] = [
   {
     id: 'casos',
     grupo: 'operacao',
-    titulo: 'Casos',
+    titulo: 'Casos de atendimento',
     texto:
-      'Os pedidos que os clientes mandam pelo botão Atendimento da plataforma: dúvida, pedido, reclamação ou erro. ' +
-      'Você responde ali mesmo, marca o caso como resolvido ou não resolvido, e o cliente vê a resposta na conta dele.',
+      'Aqui chegam os pedidos que os clientes mandam pelo botão Atendimento, no canto da tela da plataforma: dúvida, pedido, reclamação ou erro. ' +
+      'O número ao lado do nome mostra quantos esperam resposta. Abra o caso, responda ali mesmo e marque como resolvido ou não resolvido; ' +
+      'o cliente vê a resposta e o estado na conta dele.',
     alvo: itemDoMenu('/admin/casos'),
     noMenu: true,
     exige: ['cs.ver'],
@@ -602,9 +603,16 @@ function conteudoDaPagina(pagina: PaginaAdmin): TutorialDePaginaAdmin {
         titulo: 'Guia dos Casos',
         dicas: [
           {
+            id: 'casos-botao-cliente',
+            titulo: 'De onde vêm os casos',
+            texto:
+              'O cliente escreve pelo botão redondo Atendimento, no canto inferior direito de qualquer tela da conta dele: escolhe o tipo, conta o que houve e, se quiser, anexa uma imagem. ' +
+              'Quando é um erro, a página de onde ele escreveu vem junto.',
+          },
+          {
             id: 'casos-estado',
             titulo: 'Estado do caso',
-            texto: 'Filtre por Aberto (espera a equipe), Em andamento (a equipe respondeu), Resolvido ou Não resolvido. O número no menu conta os abertos.',
+            texto: 'Filtre por Aberto (espera a equipe), Em andamento (a equipe respondeu), Resolvido ou Não resolvido. O número no menu conta os casos Abertos.',
             alvo: { css: '.adm-main [aria-label="Estado do caso"]' },
           },
           {
