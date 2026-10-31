@@ -143,3 +143,24 @@ LCP no celular. Nenhum dos medidos usa sprite de ícones por `<use>` em quantida
 - `demo.mercury.com/dashboard` e `/transactions` (1366 e 375 px), `stockx.com` (página de item),
   `en.numista.com/2513`, `catawiki.com` (categoria), `pcgs.com/setregistry`, `coins.ha.com` — navegador embutido.
 - Pesquisas anteriores do projeto e docs 17, 20, 33, 34, 35 e tópicos 29/35 do `aprendizado_frontend`.
+
+## 6. Passada do Distilla (30/10/2026)
+
+Método do `agentes/distilla/DISTILLA.md` §4 (cinco lentes) e checklist `topicos/29-checklist-qa-final.md`, aplicados
+**sobre o que já foi feito em 25/10**. Evidência marcada: **[CÓDIGO]** = lido no repositório; **[NÃO MEDIDO]** = precisa
+de navegador e fica para a verificação final.
+
+| Lente | O que o repositório já tem [CÓDIGO] | O que faltava / decisão |
+|---|---|---|
+| 1 Estrutura e hierarquia | Uma primária por tela, resumo da conta antes do mercado, menu por tarefa (D2–D6) | Nada novo. Confirmar com a auditoria (7 arquivos com mais de um primário, todos modais/wizard com uma primária por etapa) |
+| 2 Responsividade e toque | `responsive.css` com `16px` nos campos, alvos de 44 px em 8 regras, gaveta abaixo de 1024 px | `100vh` → `dvh` no casco (R4); `✕` do `PhotoSlot` com alvo de 44 px (R3); 9 campos sem dica de teclado (R7). 375/768/1440 **[MEDIDO 30/10]**: 0 rolagem horizontal, axe 0 (INVENTARIO §8–9) |
+| 3 Componentes e peças | `<EstadoVazio>`, `<Selo>`, `<Esqueleto>`, `<Aviso>` da marca já aplicados | `SellerBidRow` órfão (R5) — só registrado. **Nenhuma peça gerada**: a regra do Distilla (§8, "dado real") e a do repositório (logos só de `/brand/`) não pedem peça nova aqui |
+| 4 Movimento, som e estados | `prefers-reduced-motion` global em `responsive.css` (zera animação e transição) | Estados de erro e carregamento por rota (R1) e confirmação própria no cancelamento da retirada (R2) **[FEITOS e medidos 30/10]**. Sem som: a plataforma não tem trilha |
+| 5 Acabamento | axe 0 violações em 25/10; contraste por tokens; foco visível em 11 CSS | Impressão do recibo (R6) **[FEITA]**; salto de layout do painel do tutorial no celular **[ACHADO E CORRIGIDO 30/10]**. axe 0, CLS 0,000, LCP 100–136 ms local **[MEDIDO 30/10]**; Firefox/WebKit **[NÃO MEDIDO]** (Colab) |
+
+**Checklist 29, itens que se aplicam e já passam [CÓDIGO]:** skip-link, `aria-current`, skeleton, `th scope`, `lang`,
+rótulo ligado ao campo, `inputMode`/`autoComplete`, `rel="noopener noreferrer"` nos `target="_blank"` desta área.
+**Não se aplicam à área logada:** SEO, JSON-LD, consentimento de terceiros e o restante da seção E/G (são da landing).
+
+**Fontes:** `agentes/distilla/DISTILLA.md` §4 e §8; `topicos/29-checklist-qa-final.md` A–C e F; `design/mapa.md`
+conceitos 08, 11, 29 (estados e retorno), 33 (toque e modos de entrada).

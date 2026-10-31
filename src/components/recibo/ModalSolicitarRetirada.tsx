@@ -303,6 +303,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <input
             id="ret-bairro"
             className="tinput"
+            autoComplete="shipping address-level3"
             autoCapitalize="words"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}

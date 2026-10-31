@@ -55,9 +55,10 @@ export function PhotoSlot({ data, onSelect, onRemove }: PhotoSlotProps): ReactNo
             otimizador de imagens do Next não consegue processar. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={data} alt="Foto do item" />
-        <div className="rm" onClick={onRemove}>
-          ✕
-        </div>
+        {/* <button> de verdade (era <div onClick>): alcançável por teclado e com nome para o leitor de tela. */}
+        <button type="button" className="rm" aria-label="Remover foto" onClick={onRemove}>
+          <span aria-hidden="true">✕</span>
+        </button>
       </div>
     )
   }

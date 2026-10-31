@@ -10,7 +10,7 @@
    morto documentado, não uma classe aplicada dinamicamente.
    ========================================================================= */
 
-.app{display:none;min-height:100vh}
+.app{display:none;min-height:100vh;min-height:100dvh}
 .app.active{display:flex}
 .sidebar{
   width:240px;flex-shrink:0;

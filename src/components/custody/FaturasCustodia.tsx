@@ -119,7 +119,14 @@ export function FaturasCustodia(): ReactNode {
       </div>
 
       {carregando ? (
-        <div className="panel">
+        // Já com o papel de painel da aba ativa: enquanto carrega, o `aria-controls` da aba não pode apontar para nada
+        // (axe: aria-valid-attr-value, 30/10/2026).
+        <div
+          className="panel"
+          role="tabpanel"
+          id={abaAtiva === 'faturas' ? 'painel-faturas' : 'painel-planos'}
+          aria-labelledby={abaAtiva === 'faturas' ? 'aba-faturas' : 'aba-planos'}
+        >
           <div className="carregando" role="status" aria-busy="true" aria-label="Carregando informações de custódia...">
             <Esqueleto altura="14px" largura="100%" />
             <Esqueleto altura="14px" largura="82%" />

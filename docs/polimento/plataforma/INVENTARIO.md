@@ -275,4 +275,123 @@ Servidor local isolado (store em memória com as 7 contas do seed, sem banco, se
   Minha conta, some no fim); dicas por página: Início 7/7, Mercado 5/6 (o "Comprar" só existe com lote alheio — com
   outra conta apareceu), Compras 5/5, Vendas 5/5, Envios 5/5 (no passo 1), Recibos 4/4, Conta 4/4.
 - ✔ 375 px: nenhuma rolagem horizontal nas 16 rotas.
-- Não clicado: "Cancelar solicitação" de retirada (abre `window.confirm` nativo e a lista não tem itens sem banco).
+- Não clicado: "Cancelar solicitação" de retirada (a lista não tem itens sem banco). Desde 30/10/2026 a pergunta é a
+  `ModalCancelarRetirada`, não mais o `window.confirm` nativo.
+
+## 7. Atualização de 30/10/2026 (sessão 2 — polimento pelas cinco lentes do Distilla)
+
+Base: `main` @ `d29727a`, branch `polish/aurea-plataforma-cliente`. O inventário acima continua valendo; esta seção só
+registra o que mudou desde 25/10 e o que sobrou.
+
+**O que mudou na área do cliente desde 25/10** (`git log --since=2026-10-25 -- "src/app/(app)" src/components src/styles`):
+
+| Commit | Efeito na plataforma do cliente |
+|---|---|
+| `61706fb` (26/10) | Ciclo da moeda comprada antes de 21/10 começa no 1º pagamento; `/conta/custodia` mostra uma linha por data de cobrança (`ProximasCobrancas`). Âncoras do tutorial de custódia seguem valendo. |
+| `32ff769`, `10f107b` (27/10) | Só painel/logística — nada no cliente. |
+| `8df2bad` (30/10) | "Ver como o cliente vê" no `/admin` e vídeo da bancada — sem mudança nas rotas de `(app)`. |
+
+**Auditorias rodadas de novo em 30/10** (`ferramentas/auditoria-*-ro.py`, sem mudança de método):
+
+| Medida | 25/10 (depois) | 30/10 (antes desta sessão) |
+|---|---|---|
+| Arquivos com mais de um primário | 8 | 7 |
+| Total de `btn-gold` | 50 | 49 |
+| Campos de texto | 48 | 48 |
+| Campos sem dica de teclado | 26 → 9 | **9** (`ModalCadastro`: número, complemento, bairro, banco, conta; `ModalSolicitarRetirada`: documento, número, bairro; `PainelPagamento`: 1) |
+| Clique em `<div>`/`<span>` | 11 | 8 — o único real é o `✕` do `PhotoSlot` (`<div className="rm" onClick>`) |
+| Tabelas / 5+ colunas / `th scope="row"` / 1ª coluna fixa | 7 / 6 / 7 / 7 | 7 / 6 / 7 / 7 |
+
+**Residuais encontrados por leitura (lista de trabalho desta sessão):**
+
+| # | Achado | Lente | Evidência |
+|---|---|---|---|
+| R1 ✔ | `(app)` não tem `error.tsx` nem `loading.tsx` (o `(admin)` tem os dois): erro numa tela do cliente cai na página genérica do Next, sem menu | 4 — estados | `find "src/app/(app)" -name error.tsx` vazio |
+| R2 ✔ | `/retirada` cancela com `window.confirm` nativo (já registrado em 25/10 como "não clicado") | 4 — estados; 1 — consistência | `retirada/page.tsx:50` |
+| R3 ✔ | `✕` de remover foto é `<div onClick>` sem nome acessível nem teclado | 2/5 — toque e acessibilidade | `components/custody/PhotoSlot.tsx:58` |
+| R4 ✔ | `.app{min-height:100vh}` sem `dvh`: salto com a barra de endereço no celular | 2 — responsividade | `shell.css:13` |
+| R5 | `SellerBidRow.tsx` não é importado por nenhum arquivo (componente órfão, com 4 estilos inline) | 3 — componentes | `grep -rn SellerBidRow src` só acha o próprio arquivo |
+| R6 ✔ | Recibo sem `@media print` (a tela do recibo imprime com o menu e a gaveta) | 5 — acabamento | só `legal.css` e `landing.css` têm `@media print` |
+| R7 ◐ | Campos do cadastro/retirada ainda sem dica de teclado (9 acima) | 2 — celular | auditoria |
+
+Não são bugs de negócio: nenhum mexe em regra, valor, Server Action ou permissão. R5 é só registro — apagar arquivo
+não foi pedido. Estados sem `loading.tsx` por rota ficam para a medição no navegador.
+
+**Checks da base (30/10, antes de mexer):** `typecheck` ok · `lint` 0 erros / 16 avisos (todos fora desta frente) ·
+`test` 156 de 157 arquivos; o único vermelho foi `src/server/admin/banco.test.ts` ("Hook timed out in 10000ms"), que
+**passa sozinho (46/46)** — lentidão da máquina com a suíte inteira, não regressão · `build` ok.
+
+✔ = corrigido no bloco 2 (30/10/2026). ◐ = complemento e bairro receberam `autoComplete`; número, CPF/CNPJ, banco e conta ficam
+sem dica de propósito (não há token que sirva).
+
+## 8. Medição no navegador (30/10/2026, sessão 2)
+
+Servidor local isolado (`next dev` em `127.0.0.1:3104`, `NODE_ENV=test`, `.env.test.local` ignorado pelo Git e com banco,
+Supabase, Mercado Pago, Correios e NFS-e vazios; store em memória com as 7 contas do seed; nenhuma credencial de produção
+no ambiente). Conta `gabrielsilva@testeaurea.com.br`, Chrome 1440 × 900, 768 × 1024 e 375 × 812, tema claro e escuro.
+Script e saída ficam no scratchpad da sessão (não entram no Git).
+
+| Medida | Resultado |
+|---|---|
+| Rotas abertas | 15 (todas as de `(app)` menos `/relatorios`, que só redireciona, e `/conta/aceites/[id]`) × 3 larguras × 2 temas |
+| Rolagem horizontal (`scrollWidth > clientWidth`) | **0** em todas |
+| Erros de console / `pageerror` | **0** em todas (a dica de hidratação do CD-13 só aparece em produção) |
+| axe-core 4.10 (WCAG 2.0/2.1/2.2 A e AA), 375 e 1440 px | **primeira rodada: 5 achados em 2 regras; depois da correção: 0** |
+| Impressão do recibo (`media=print`, PDF A4) | só a folha do recibo, nas cores dela, em uma página, nos dois temas |
+
+**Achados do axe, os dois reais e corrigidos:**
+1. `color-contrast` no recibo (`.cert-sub`, `.cert-code`, `.seal-badge` = 4,33:1; `.cert-foot` = 3,89:1; mínimo 4,5:1).
+   Em 25/10 o axe deu 0 — os papéis do certificado mudaram com a marca. Correção só no `.cert`
+   (`--cert-ink-gold: ouro-800`, `--cert-ink-foot: pergaminho-600`); a landing, que lê o mesmo token, não mudou.
+2. `aria-valid-attr-value` em `/conta/faturas`: a aba apontava (`aria-controls`) para um painel que ainda não existia
+   enquanto a tela carregava. O estado "carregando" agora já é o `tabpanel` da aba ativa.
+
+**Fluxos clicados em seguida (30/10/2026, mesmo ambiente local, mas em `next start`):**
+- **Cancelar retirada:** recibo `RO-000016` → "Solicitar retirada" (formulário preenchido, cláusula marcada) → "Pagar
+  depois" → `/retirada` mostra a retirada "solicitada" → "Cancelar solicitação" abre a `ModalCancelarRetirada` (título,
+  explicação, "Manter solicitação" e "Cancelar solicitação" em `.btn-danger`). "Manter" fecha a modal e a retirada continua;
+  "Cancelar solicitação" mostra o aviso "Solicitação de retirada cancelada com sucesso.", fecha a modal e a lista fica sem
+  o botão. Nenhum diálogo nativo (`window.confirm`) disparou; 0 erro de console.
+- **Foto do envio:** `/envios` → foto escolhida → o `✕` é `<button>` com nome "Remover foto", recebe foco por teclado e
+  Enter remove a foto (volta o seletor de arquivo), em 1280 e 375 px. **A medição desmentiu o "44 px" do bloco 2:** com o
+  círculo de 22 px e área estendida por `::after`, o slot cortava a área e o alvo útil dava ~39 px. Corrigido: o botão
+  tem 44 × 44 px colado no canto e o círculo é o `<span>` de dentro; depois disso os pontos a 20 px nas quatro direções
+  acertam o botão.
+
+**Limite do ambiente local, e por que mudei para `next start`:** o repositório de retiradas sem banco é um `Map` no módulo
+(`server/shipping/retiradas.ts`). No `next dev` cada rota compila a sua cópia do módulo, então a retirada criada em
+`/recibos/...` não aparecia em `/retirada` (lista vazia — é o "P6" das propostas, e vale só para o ambiente sem
+Postgres). Em `next start` os módulos são compartilhados e o fluxo fecha. Com Postgres isso não existe.
+
+**Ainda não verificado** (primeira versão desta lista; a rodada seguinte está em §9): `error.tsx`, 768 px no axe, LCP/INP, WebKit/Firefox, `/conta/aceites/[id]` e os modais no axe.
+
+## 9. Segunda rodada de medição (30/10/2026, mesmo ambiente: `next start` local, sem produção)
+
+| Item | Como foi feito | Resultado |
+|---|---|---|
+| `error.tsx` forçado | Duas páginas temporárias em `(app)` (uma lança no servidor, outra no clique) — **apagadas antes do commit**; 1280 e 375 px, claro e escuro | Aparece dentro do casco, com menu vivo; mostra o código (`digest`) do erro de servidor; "Voltar ao início" leva a `/inicio`; "Tentar de novo" recupera a tela do erro de clique; axe 0 nas 8 combinações. Achado: o código ficava colado nos botões — ganhou espaço (`u-mt8`, `u-mt14`) |
+| axe a 768 px | 15 rotas × claro e escuro | **0 violações** |
+| axe nos modais (1280 e 375 px, claro e escuro, 8 estados cada) | Cadastro (vazio, com "CPF inválido" visível, aba conta bancária), depósito (com o limite por operação), retirada (formulário e pagamento da taxa), `/retirada` com uma retirada e a `ModalCancelarRetirada`; o servidor foi reiniciado entre as combinações para o cadastro nascer vazio de novo | **0 violações nos 32 estados**; 0 erro de console |
+| LCP / CLS (375 px, mediana de 3, Chrome sem estrangulamento) | 7 rotas | LCP 100–136 ms; **CLS 0,000**. *Antes da correção, `/envios`, `/vender`, `/conta` e `/inicio` chegavam a 0,115–0,119* |
+| INP (aproximado, 375 px, `/mercado`) | Eventos de clique com `durationThreshold` 16 ms | pior 32 ms (2 cliques de menu e tema; os chips `aria-pressed` não estavam na tela) |
+| Tutorial depois da correção | Tour da primeira visita e "Ver tutorial desta página" em `/inicio`, `/mercado`, `/envios`, 1280 e 375 px | Tour abre (balão 400 px no computador, 359 px no celular, com "Pular tudo / Voltar / Começar"); painel de dicas abre com os itens certos e fecha |
+
+**Achado de desempenho, corrigido:** o painel de dicas do tutorial (a folha de baixo no celular) causava um salto de layout de
+0,115 a 0,119 (`dicas-painel-movel`, ~2,2 s depois da abertura da tela, quando o tutorial contextual dispara). Eram duas
+causas: (1) a largura da janela começava em 1280 × 800 fixo e só depois lia a real, então a primeira pintura no celular
+saía com o painel de computador; (2) a lista de dicas nascia vazia e o painel crescia ao ser preenchida. As duas
+inicializações passaram a ler o valor real no primeiro render (`DicasDaPagina` e `TourGuiado`). CLS foi para 0,000.
+
+**Comprovante de aceite (`/conta/aceites/[id]`) — só o estado vazio foi medido.** Os aceites moram no Postgres
+(`server/db/repositories/aceites`); sem banco o botão "Aceitar termos" não grava e a lista de configurações não tem links.
+`/conta/aceites/1` abre o estado "comprovante não encontrado" (axe 0, console limpo). **O comprovante preenchido não foi
+medido** e só dá para medir com Postgres — fora do que esta sessão pode tocar.
+
+**Firefox e WebKit: não medidos.** Esta máquina só tem o Google Chrome; o Playwright não tem os navegadores baixados e
+baixá-los (Firefox, WebKit e dependências) é download grande, que a regra de VM manda para o Colab. Fica como job a descrever
+para o Colab (`agentes/colab/jobs/job.schema.json`) — o roteiro de checagem é o mesmo script desta seção. As regras novas
+desta sessão que mais merecem WebKit: `body:has(.cert-wrap)` na impressão, `100dvh` e `print-color-adjust`.
+
+**Limites das medidas de velocidade:** LCP e INP foram tirados no servidor local, na mesma máquina, sem estrangulamento de CPU
+ou rede, com o cache quente do `next start` — servem para achar saltos e regressões (como o CLS acima), não como nota de
+campo. A nota real vem do Vercel Speed Insights ou de um Lighthouse em preview.

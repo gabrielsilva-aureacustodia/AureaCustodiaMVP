@@ -39,10 +39,33 @@ interface Item {
   caixa: Caixa | null
 }
 
+/** Acha o elemento de cada dica e mede onde ele está; dica cujo alvo não existe na tela não entra na lista. */
+function montarItens(dicas: Dica[]): Item[] {
+  const novos: Item[] = []
+  for (const dica of dicas) {
+    if (!dica.alvo) {
+      novos.push({ dica, el: null, caixa: null })
+      continue
+    }
+    const el = acharAlvo(dica.alvo)
+    if (el) novos.push({ dica, el, caixa: medir(el) })
+  }
+  return novos
+}
+
 export function DicasDaPagina({ titulo, dicas, aoRefazerTour, aoFechar }: Props): ReactNode {
-  const [itens, setItens] = useState<Item[]>([])
+  // A lista já nasce montada (30/10/2026): começando vazia, o painel pintava só o cabeçalho e crescia na hora seguinte,
+  // e o navegador contava o salto (CLS 0,119 medido em /envios no celular). Montar no primeiro render lê o DOM, o que só
+  // é seguro porque este componente nunca renderiza no servidor.
+  const [itens, setItens] = useState<Item[]>(() => montarItens(dicas))
   const [ativa, setAtiva] = useState<string | null>(null)
-  const [janela, setJanela] = useState<{ w: number; h: number }>({ w: 1280, h: 800 })
+  // Começa com o tamanho real da janela (30/10/2026): com o 1280 × 800 fixo de antes, a primeira pintura no celular
+  // saía com o painel de computador e logo depois pulava para a folha de baixo — um salto de layout de 0,115 medido
+  // em /envios. Estes componentes só montam no navegador (depois do `montado` do provider), então ler `window` aqui
+  // não cria diferença de hidratação.
+  const [janela, setJanela] = useState<{ w: number; h: number }>(() =>
+    typeof window === 'undefined' ? { w: 1280, h: 800 } : { w: window.innerWidth, h: window.innerHeight },
+  )
   const linhas = useRef<Record<string, HTMLLIElement | null>>({})
 
   // Procura os elementos e acompanha a posição deles. A busca se repete porque a tela do cliente
@@ -51,15 +74,7 @@ export function DicasDaPagina({ titulo, dicas, aoRefazerTour, aoFechar }: Props)
     const atualizar = (): void => {
       setJanela((j) => (j.w === window.innerWidth && j.h === window.innerHeight ? j : { w: window.innerWidth, h: window.innerHeight }))
       setItens((antes) => {
-        const novos: Item[] = []
-        for (const dica of dicas) {
-          if (!dica.alvo) {
-            novos.push({ dica, el: null, caixa: null })
-            continue
-          }
-          const el = acharAlvo(dica.alvo)
-          if (el) novos.push({ dica, el, caixa: medir(el) })
-        }
+        const novos = montarItens(dicas)
         const igual =
           antes.length === novos.length &&
           antes.every((a, i) => a.dica.id === novos[i]!.dica.id && a.el === novos[i]!.el && mesmaCaixa(a.caixa, novos[i]!.caixa))

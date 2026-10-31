@@ -230,3 +230,75 @@ tinha os 2 commits do painel administrativo (Frente 5), integrados com merge sem
   externa entrou no `<dd>`). Depois: **0 violações**. Um falso positivo de contraste no menu aparece se a medição
   roda durante a transição de tema — armadilha já registrada no tópico 35.
 - Sem rolagem horizontal a 375 px; tutorial e âncoras intactos.
+
+### Sessão 2 — 30/10/2026 (Claude Code, Sonnet 5.5) — polimento pelas cinco lentes do Distilla
+
+Pedido do Gabriel (30/10/2026): o plano do Distilla não chegou, então a frente começou por conta própria e ajusta
+quando ele chegar. Worktree `/workspace/aurea/wt/plataforma-cliente`, branch `polish/aurea-plataforma-cliente`, base
+`main` @ `d29727a`. Escopo: `src/app/(app)`, componentes de UI e `src/styles/` (`responsive.css` por último). Fora
+dele: `domain/`, `server/` (inclusive Server Actions e permissões), `api/`, migrations, dados, deploy, push na `main`.
+Commits pelo `commit.md` (português, imperativo, sem `Co-Authored-By`).
+
+**Ambiente.** `npm ci` só nesta worktree. Node 20.20 (o Supabase pede ≥ 22: só aviso `EBADENGINE`, sem efeito nos checks).
+
+**Base medida antes de mexer:** typecheck ok · lint 0 erros / 16 avisos · test 1.456 passando e 1 timeout em
+`banco.test.ts` que passa sozinho · build ok.
+
+**Bloco 1 — inventário e benchmark atualizados** (`INVENTARIO.md` §7, `BENCHMARK.md` §6): o que mudou desde 25/10,
+auditorias rodadas de novo, lista R1–R7 de residuais com a lente do Distilla de cada um.
+
+**Lista de trabalho (ordem):** R1 `error.tsx` + `loading.tsx` do `(app)` · R2 confirmação própria no cancelamento da
+retirada · R3 `✕` do `PhotoSlot` como botão de 44 px · R4 `dvh` no casco · R6 impressão do recibo · R7 dicas de teclado
+nos campos que sobraram. R5 (`SellerBidRow` órfão) fica só registrado.
+
+**Não medido nesta sessão** (precisa de servidor local com a receita de `ferramentas/README.md`): 375/768/1440, axe,
+LCP/INP. Entram na verificação final.
+
+**Bloco 2 — estados, toque e teclado (30/10/2026): FEITO** (R1, R2, R3, R4 e parte do R7)
+- `app/(app)/error.tsx` e `app/(app)/loading.tsx` novos: falha e carregamento de qualquer tela do cliente passam a
+  aparecer dentro do casco (menu vivo), como já era no painel. Texto sem jargão; sem nada gravado.
+- `/retirada`: o `window.confirm` virou `ModalCancelarRetirada` ("Manter solicitação" contornado, "Cancelar solicitação"
+  `.btn-danger`). A Server Action chamada e o aviso de sucesso/erro são os mesmos.
+- `PhotoSlot`: o `✕` é `<button aria-label="Remover foto">`; o círculo segue 22 px, a área de toque era 44 px por `::after` — **medido depois: ~39 px**, corrigido no bloco 4.
+- `shell.css`: `.app` com `min-height:100dvh` (fallback `100vh`). A modal já usava `dvh`.
+- Campos: `autoComplete` de complemento e bairro (`address-line2`, `address-level3`) no cadastro e na retirada. Os 6 que
+  seguem sem dica **não têm token que sirva**: número (pode ser "S/N"), CPF/CNPJ (CNPJ alfanumérico), banco, conta, e
+  o do `PainelPagamento` (o "?" é um botão de ajuda, não um campo).
+- Checks: typecheck ok · lint 0 erros / 16 avisos (os mesmos da base) · test 157/157 arquivos, 1.457 passando · build ok.
+
+**Bloco 3 — impressão do recibo e medição no navegador (30/10/2026): FEITO** (R6)
+- `recibo.css`: `@media print` do recibo, limitado a `body:has(.cert-wrap)` — some o menu, a barra do topo, o banner de
+  termos, os botões, o "voltar" e a coluna lateral; sai só a folha em A4, nas cores do certificado.
+- Medição (INVENTARIO §8): 0 rolagem horizontal, 0 erro de console, axe 5 → 0. Dois achados reais corrigidos: contraste do
+  recibo (`.cert` com `ouro-800` e `pergaminho-600`) e aba de faturas apontando para painel inexistente durante o carregamento.
+- Ambiente: `.env.test.local` (ignorado) + semente em memória. A receita de `ferramentas/README.md` falha no passo 1 se o
+  `gerar-semente.test.ts` for rodado de `docs/` (o Vitest só inclui `src/**/*.test.ts`): copie-o para `src/` só para gerar
+  a semente e apague em seguida. Servidor derrubado ao fim; `.next` refeito pelo build.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
+
+**Bloco 4 — fluxos clicados no navegador, com dados no store local (30/10/2026): FEITO**
+- Ambiente: `.env.test.local` (ignorado) + semente em memória + `next start` em `127.0.0.1:3104`; nada de produção (sem
+  `.env.local` na worktree e nenhuma variável de banco, Supabase, Mercado Pago, Correios ou NFS-e no ambiente). Os dados
+  foram criados pela própria tela (solicitação de retirada de `RO-000016` na conta `gabrielsilva@testeaurea.com.br`) e somem
+  quando o servidor cai. Servidor derrubado ao fim.
+- **Cancelar retirada:** modal abre, "Manter solicitação" não cancela, "Cancelar solicitação" cancela com aviso e
+  atualiza a lista; nenhum `window.confirm`; 0 erro de console.
+- **Foto do envio:** `✕` é botão com nome, foco e Enter (1280 e 375 px). Achado: o alvo de toque real era ~39 px, não 44.
+  `wizard.css`: `.rm` passou a ser o alvo de 44 × 44 px no canto, com o círculo de 22 px no `<span>`; remedido: acerta nas
+  quatro direções.
+- Limite do ambiente: sem Postgres, a lista de retiradas só fecha em `next start` (ver INVENTARIO §8).
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok.
+- **Push e PR ficam com o Gabriel** (a conta desta máquina não tem escrita no repositório; a branch tem 4 commits locais).
+
+**Bloco 5 — itens que faltavam verificar (30/10/2026): FEITO** (detalhe em INVENTARIO §9)
+- `error.tsx` forçado com duas páginas temporárias (apagadas; não entram no commit): funciona nos dois temas e larguras, com
+  menu vivo, código do erro e recuperação; espaçamento do código corrigido.
+- axe a 768 px: 0. axe nos modais de cadastro, depósito, retirada e cancelamento (32 estados): 0.
+- **Achado novo, corrigido — salto de layout (CLS 0,115–0,119) do painel de dicas do tutorial no celular:** `DicasDaPagina` e
+  `TourGuiado` começavam com janela 1280 × 800 e (no painel) lista vazia. Agora leem a janela real e montam a lista no primeiro
+  render. CLS 0,000 nas 7 rotas; tour e dicas conferidos em 1280 e 375 px. Testes do tutorial seguem passando.
+- LCP 100–136 ms e INP pior caso 32 ms (aproximados, ambiente local). Não substituem Speed Insights.
+- **Não feito, com motivo:** Firefox e WebKit — só há Chrome aqui, e baixar os navegadores é job para o Colab (regra de VM);
+  comprovante de aceite preenchido — depende de Postgres.
+- Servidor derrubado ao fim; `.env.test.local` (ignorado) continua na worktree.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157, 1.457 passando · build ok. **Sem push.**
