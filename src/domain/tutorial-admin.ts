@@ -78,7 +78,7 @@ export function atende(permissoes: readonly string[], exige: Exigencia | undefin
  * mexer em banco. Prefixo próprio (`ro-tutorial-admin`) para não colidir com o do cliente, que usa
  * o mesmo e-mail no mesmo navegador.
  */
-export const VERSAO_DO_TUTORIAL_ADMIN = 'v1'
+export const VERSAO_DO_TUTORIAL_ADMIN = 'v2'
 
 export const chaveDoTourAdmin = (email: UserEmail): string =>
   `ro-tutorial-admin:${VERSAO_DO_TUTORIAL_ADMIN}:${email}:tour`
