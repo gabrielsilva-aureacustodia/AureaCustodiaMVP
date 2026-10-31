@@ -15,6 +15,10 @@ import { primeiroValor, type ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarFiscal, lerStatus } from '@/server/admin/fiscal'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/resultados/fiscal') }
 
 export const dynamic = 'force-dynamic'
 

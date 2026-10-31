@@ -144,7 +144,7 @@ export function NotasFiscais({
           é documento fiscal saindo da empresa. Mesmas actions, mesma permissão (resultados.nfse). */}
       {podeEmitir ? (
         <div className="panel adm-secao">
-          <h3>Envio à Sefin Nacional</h3>
+          <h2>Envio à Sefin Nacional</h2>
           <div className="adm-acoes">
             <ConfirmarAcao
               rotulo={ocupado === 'fila' ? 'Enviando…' : 'Enviar fila agora'}

@@ -238,7 +238,7 @@ export function BancadaWeb({
     <div className="adm-bancada">
       <section className="panel adm-bancada-fila" aria-label="Fila da bancada">
         <div className="adm-cs-cabecalho">
-          <h3>Fila</h3>
+          <h2>Fila</h2>
           <button type="button" className="btn btn-outline adm-btn-compacto" onClick={() => void atualizar()} disabled={atualizando}>
             {atualizando ? 'Atualizando…' : 'Atualizar fila'}
           </button>

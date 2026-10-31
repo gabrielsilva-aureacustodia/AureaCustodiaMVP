@@ -25,6 +25,7 @@ import { temPermissao } from '@/domain/admin/permissoes'
 import { CAMPOS_DA_ANALISE } from '@/domain/analise'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarFichaDaMoeda } from '@/server/admin/moedas'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,11 @@ function codigoDaRota(bruto: string): string {
   } catch {
     return ''
   }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ codigo: string }> }): Promise<Metadata> {
+  const codigo = codigoDaRota((await params).codigo)
+  return { title: codigo ? `Moeda ${codigo}` : 'Ficha da moeda' }
 }
 
 export default async function MoedaPage({ params }: { params: Promise<{ codigo: string }> }): Promise<ReactNode> {

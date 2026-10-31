@@ -29,6 +29,10 @@ import { correiosConfigurado } from '@/lib/shipping/cws'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarLogistica } from '@/server/admin/logistica'
 import { carregarParametrosOperacionais } from '@/server/config/carregar'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/logistica') }
 
 export const dynamic = 'force-dynamic'
 

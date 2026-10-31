@@ -224,6 +224,16 @@ export function itemDaRota(pathname: string): ItemNav {
   return melhor
 }
 
+/**
+ * O título do documento (aba do navegador, histórico, leitor de tela) de uma página do painel: o mesmo `titulo`
+ * da topbar, tirado da lista acima. Até 30/10/2026 as 17 telas tinham o mesmo `<title>`, e quem abria várias
+ * abas ou ouvia o título da página não distinguia uma da outra (WCAG 2.4.2). O layout põe o sufixo
+ * "— Painel Real Olímpico" (`title.template`); a página só passa o nome.
+ */
+export function tituloDaPagina(href: string): string {
+  return (href === INICIO_ADMIN.href ? INICIO_ADMIN : TODOS_ITENS.find((i) => i.href === href))?.titulo ?? INICIO_ADMIN.titulo
+}
+
 export function permiteItem(item: ItemNav, permissoes: readonly string[]): boolean {
   return item.permissoes.length === 0 || item.permissoes.some((p) => permissoes.includes(p))
 }

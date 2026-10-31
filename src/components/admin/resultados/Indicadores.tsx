@@ -289,9 +289,9 @@ function TabelaContagem({
   const base = total ?? linhas.reduce((m, l) => Math.max(m, l.valor), 0)
   if (!linhas.length || base === 0) return <div className="empty">{vazio}</div>
   return (
-    <TabelaRolavel rotulo="Quantidades do indicador">
+    <TabelaRolavel rotulo={`Quantidades por ${coluna.toLowerCase()}`}>
       <table className="audit-table">
-        <caption className="adm-sr">Quantidades do indicador</caption>
+        <caption className="adm-sr">Quantidades por {coluna.toLowerCase()}</caption>
         <thead>
           <tr>
             <th scope="col">{coluna}</th>

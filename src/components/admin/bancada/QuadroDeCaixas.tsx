@@ -108,7 +108,7 @@ export function QuadroDeCaixas({
 
   return (
     <section className="panel adm-bancada-caixas" aria-label="Caixas do cofre">
-      <h3>Caixas do cofre</h3>
+      <h2>Caixas do cofre</h2>
       {!cadastradas ? (
         <p className="note">
           O cadastro de caixas precisa do banco com a migration 025. Enquanto isso, o quadro mostra só as caixas digitadas nas análises.

@@ -62,3 +62,15 @@ DRE com valores, fila de NFS-e e trilha real **não foram vistos**. As correçõ
 - Medido (`next start` local, 18 rotas × 3 larguras × 2 temas): **axe 3 achados → 0**, 0 rolagem horizontal, 0 erro de console.
   Teclado em `/admin/usuarios` a 375 px: Tab alcança a região, ela é anunciada com o nome da legenda, o anel de foco aparece e a seta para a direita rola a tabela.
 - Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok.
+
+**Bloco 3 — título de cada página e ordem dos títulos (R3 e R4): FEITO**
+- **Título do documento por rota.** `navegacao.tsx` ganhou `tituloDaPagina(href)` (o mesmo `titulo` da topbar, uma fonte só). O layout passou a
+  `title.template = '%s — Painel Real Olímpico'`; as 15 páginas fixas exportam `metadata = { title: tituloDaPagina('…') }` e as 3 dinâmicas usam
+  `generateMetadata` só com o parâmetro da rota (`Ficha do cliente · <e-mail>`, `Moeda RO-000016`, `Moeda RO-000016 como o cliente vê`) — nenhum dado lido a mais.
+  A raiz `/admin` usa `title.absolute`, porque o `template` do layout não vale para a página irmã dele. Medido: **17 títulos distintos em 17 telas** (era 1).
+  Nenhum texto de `h1`, rótulo de menu ou de botão mudou (INVENTARIO §4).
+- **Salto de título.** Bancada (Fila, Caixas do cofre, Entradas sem envio postal) e Notas fiscais (Envio à Sefin Nacional) tinham `h3` logo abaixo do `h1`; viraram `h2`,
+  com o desenho do `.adm-main .panel > h2` (o seletor ganhou `.adm-cs-cabecalho > h2` para a Fila). axe `heading-order` 0.
+- **Efeito colateral achado na medição e corrigido:** com `TabelaRolavel` as duas tabelas "Quantidades do indicador" de Indicadores viraram duas regiões com o
+  mesmo nome (axe `landmark-unique`); a legenda agora leva a coluna ("Quantidades por moeda", "…por caixa").
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok. axe (WCAG A/AA) 0 nas 18 rotas × 3 larguras × 2 temas; **boa prática 0**.

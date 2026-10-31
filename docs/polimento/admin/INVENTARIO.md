@@ -149,3 +149,6 @@ a Central de trabalho com itens em "Pede ação agora", a caixa de atendimento c
 de `socio` e `operacao` não foi vista), os gráficos com série real e a bancada com câmera. O que se mede aqui é casco, estados vazios e de aviso, formulários e tabelas.
 
 **R1 e R2 corrigidos no bloco 2 (30/10/2026):** axe nas 18 rotas × 3 larguras × 2 temas = 0 violações (ver MD_EXECUCAO).
+
+**R3 e R4 corrigidos no bloco 3 (30/10/2026):** 17 títulos distintos e axe de boa prática (`heading-order`, `landmark-unique`) em 0. Os `h1` e `h2` do §6 não mudaram,
+exceto: Bancada passou a ter `h2` (Fila · Caixas do cofre · Entradas sem envio postal) e Notas fiscais passou a ter `h2` (Envio à Sefin Nacional) onde antes havia `h3`.

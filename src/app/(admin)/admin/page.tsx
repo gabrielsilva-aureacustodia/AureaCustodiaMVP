@@ -9,11 +9,15 @@
 import type { ReactNode } from 'react'
 
 import { PainelInicial } from '@/components/admin/inicio/PainelInicial'
-import { TODOS_ITENS, permiteItem } from '@/components/admin/navegacao'
+import { TODOS_ITENS, permiteItem, tituloDaPagina } from '@/components/admin/navegacao'
 import { temAlguma, temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarPainelInicial } from '@/server/admin/resultados'
 import { carregarFilaDeSaques } from '@/server/admin/saques'
+import type { Metadata } from 'next'
+
+// A raiz do painel é irmã do layout, e o `title.template` só vale para as páginas filhas: o sufixo vai à mão.
+export const metadata: Metadata = { title: { absolute: `${tituloDaPagina('/admin')} — Painel Real Olímpico` } }
 
 export const dynamic = 'force-dynamic'
 

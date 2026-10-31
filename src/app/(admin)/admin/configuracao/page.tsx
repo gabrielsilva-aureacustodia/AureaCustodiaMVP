@@ -34,6 +34,10 @@ import { listarHistoricoConfig, type HistoricoConfig } from '@/server/db/reposit
 import { tabelaExiste } from '@/server/db/repositories/painel-leituras'
 import { getState } from '@/server/state'
 import { TabelaRolavel } from '@/components/admin/Pecas'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/configuracao') }
 
 export const dynamic = 'force-dynamic'
 

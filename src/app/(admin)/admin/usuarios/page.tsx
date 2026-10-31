@@ -21,6 +21,10 @@ import { temPermissao } from '@/domain/admin/permissoes'
 import { lerFiltroUsuarios } from '@/domain/admin/usuarios'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { carregarListaDeUsuarios } from '@/server/admin/ficha'
+import type { Metadata } from 'next'
+import { tituloDaPagina } from '@/components/admin/navegacao'
+
+export const metadata: Metadata = { title: tituloDaPagina('/admin/usuarios') }
 
 export const dynamic = 'force-dynamic'
 
