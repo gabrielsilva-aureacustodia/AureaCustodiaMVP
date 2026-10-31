@@ -18,7 +18,7 @@ import { SemPermissao } from '@/components/admin/Blocos'
 import { BotaoVideo } from '@/components/admin/moedas/BotaoVideo'
 import { hashCurto } from '@/components/admin/moedas/TabelaDeMoedas'
 import { data, dataHora, dinheiro, numero } from '@/components/admin/formatos'
-import { Secao, Selo, Vazio } from '@/components/admin/Pecas'
+import { Secao, Selo, Vazio, TabelaRolavel } from '@/components/admin/Pecas'
 import { ROTULO_STATUS_RETIRADA } from '@/domain/admin/logistica'
 import { ROTULO_SITUACAO, hrefComoOClienteVe } from '@/domain/admin/moedas'
 import { temPermissao } from '@/domain/admin/permissoes'
@@ -143,7 +143,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
           >
             {analise ? (
               <>
-                <div className="table-scroll">
+                <TabelaRolavel rotulo="Análise de origem da moeda">
                   <table className="audit-table">
                     <caption className="adm-sr">Análise de origem da moeda</caption>
                     <thead>
@@ -180,7 +180,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
                       </tr>
                     </tbody>
                   </table>
-                </div>
+                </TabelaRolavel>
                 {!analise.caminhoVideo ? <p className="adm-fraco">Análise fechada sem vídeo — a ausência está registrada no hash.</p> : null}
               </>
             ) : (
@@ -224,7 +224,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
 
           <Secao id="moeda-retiradas" titulo="Retiradas">
             {retiradas.length ? (
-              <div className="table-scroll">
+              <TabelaRolavel rotulo="Retiradas desta moeda">
                 <table className="audit-table">
                   <caption className="adm-sr">Retiradas desta moeda</caption>
                   <thead>
@@ -264,7 +264,7 @@ export default async function MoedaPage({ params }: { params: Promise<{ codigo: 
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TabelaRolavel>
             ) : (
               <p className="adm-fraco">Nenhuma retirada desta moeda.</p>
             )}

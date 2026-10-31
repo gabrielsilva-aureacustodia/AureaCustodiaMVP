@@ -294,6 +294,8 @@
    passa por baixo não aparecer; o hover da linha acompanha. Vale para todas as tabelas do painel
    (.table-scroll > .audit-table), sem tocar em cada uma. */
 .adm-main .table-scroll{position:relative;border-radius:var(--ro-raio-sm)}
+/* Região que rola é focável (TabelaRolavel): o foco aparece como moldura, com o mesmo anel dos botões. */
+.adm-main .table-scroll:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
 .adm-main .table-scroll .audit-table th:first-child,
 .adm-main .table-scroll .audit-table td:first-child{position:sticky;left:0;z-index:1;background:var(--ro-superficie);box-shadow:inset -1px 0 0 var(--ro-borda-suave)}
 .adm-main .panel .table-scroll .audit-table th:first-child,
@@ -750,3 +752,10 @@
 @media (prefers-reduced-motion: reduce){
   .adm-esqueleto{animation:none}
 }
+
+/* ---- "Ver como o cliente vê" (30/10/2026) --------------------------------------------------------------------
+   A rota /admin/moedas/[codigo]/cliente mostra o recibo do cliente, com as classes de `recibo.css` (que não é desta
+   frente). No creme do certificado o ouro-700 dá 4,33:1 e o texto do rodapé 3,89:1, abaixo do mínimo de 4,5:1 (axe,
+   WCAG 1.4.3). Os dois papéis ficam locais ao painel, sem tocar em `recibo.css`; a frente 1 corrige o mesmo no
+   próprio `.cert` (PR #13), e os valores batem de propósito. */
+.adm-main .cert{--cert-ink-gold:var(--ro-ouro-800);--cert-ink-foot:var(--ro-pergaminho-600)}

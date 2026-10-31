@@ -9,6 +9,7 @@ import type { ReactNode } from 'react'
 import type { AbaAtividade as DadosAbaAtividade } from '@/server/admin/ficha'
 
 import { dataHora } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; semBanco: boolean }): ReactNode {
   return (
@@ -30,7 +31,7 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
           {dados.trilha === null ? (
             <p className="adm-fraco">{semBanco ? 'A trilha existe só com banco configurado.' : 'Trilha indisponível agora.'}</p>
           ) : dados.trilha.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Trilha de auditoria da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Trilha de auditoria da conta</caption>
                 <thead>
@@ -52,7 +53,7 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nada na trilha envolvendo esta conta.</p>
           )}
@@ -65,7 +66,7 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
           {dados.uso === null ? (
             <p className="adm-fraco">{semBanco ? 'O registro de uso existe só com banco configurado.' : 'Registro de uso indisponível agora.'}</p>
           ) : dados.uso.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Registro de uso da conta">
               <table className="audit-table">
                 <caption className="adm-sr">Registro de uso da conta</caption>
                 <thead>
@@ -89,7 +90,7 @@ export function AbaAtividade({ dados, semBanco }: { dados: DadosAbaAtividade; se
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <p className="adm-fraco">Nenhum registro de uso desta conta.</p>
           )}

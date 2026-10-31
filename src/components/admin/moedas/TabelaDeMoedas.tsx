@@ -9,6 +9,7 @@ import type { ReactNode } from 'react'
 import { ROTULO_SITUACAO, type LinhaMoeda } from '@/domain/admin/moedas'
 
 import { dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const PILL_SITUACAO: Record<LinhaMoeda['situacao'], string> = { custodiada: 'pill g', em_retirada: 'pill y', retirada: 'pill n' }
 const PILL_RECIBO: Record<string, string> = { Ativo: 'pill g', Bloqueado: 'pill adm-pill-vermelho', Extinto: 'pill n' }
@@ -32,7 +33,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
       <p className="adm-fraco">
         {total > linhas.length ? `Mostrando ${numero(linhas.length)} de ${numero(total)} moedas — refine o filtro para ver o resto.` : `${numero(total)} moeda(s).`}
       </p>
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Acervo: moeda, dono, recibo, caixa e análise">
         <table className="audit-table">
           <caption className="adm-sr">Acervo: moeda, dono, recibo, caixa e análise</caption>
           <thead>
@@ -94,7 +95,7 @@ export function TabelaDeMoedas({ linhas, total }: { linhas: LinhaMoeda[]; total:
             ))}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }

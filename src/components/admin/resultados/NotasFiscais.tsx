@@ -25,7 +25,7 @@ import type { StatusNfse } from '@/server/db/repositories/nfse'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
-import { Abas, Selo } from '../Pecas'
+import { Abas, Selo, TabelaRolavel } from '../Pecas'
 import { Cartao } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
 
@@ -199,7 +199,7 @@ export function NotasFiscais({
             {status || busca ? 'Troque a situação ou a busca acima.' : 'Uma nota nasce a cada comissão de negociação (uma por lado) e a cada fatura de custódia paga.'}
           </div>
         ) : (
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Notas fiscais (NFS-e): fato, serviço, cliente, valor, competência e situação">
             <table className="audit-table">
               <caption className="adm-sr">Notas fiscais (NFS-e): fato, serviço, cliente, valor, competência e situação</caption>
               <thead>
@@ -255,7 +255,7 @@ export function NotasFiscais({
                 })}
               </tbody>
             </table>
-          </div>
+          </TabelaRolavel>
         )}
       </div>
     </>

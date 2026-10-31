@@ -32,7 +32,7 @@ import type { DadosDaFilaDeSaques, LinhaDeSaque } from '@/server/admin/saques'
 
 import { useAdmin } from '../AdminProvider'
 import { ConfirmarAcao } from '../ConfirmarAcao'
-import { Selo, type Tom } from '../Pecas'
+import { Selo, TabelaRolavel, type Tom } from '../Pecas'
 import { data, dataHora, dinheiro } from '../formatos'
 
 function destino(l: LinhaDeSaque): string {
@@ -97,7 +97,7 @@ export function FilaDeSaques({
         <div className="note adm-secao">Envio em modo de TESTE (sandbox): nenhum dinheiro real sai.</div>
       ) : null}
 
-      <div className="table-scroll">
+      <TabelaRolavel rotulo={`Pedidos de saque${comCliente ? '' : ' desta conta'}: pedido, valor, destino, previsão e situação`}>
         <table className="audit-table adm-tabela-cartoes">
           <caption className="adm-sr">Pedidos de saque{comCliente ? '' : ' desta conta'}: pedido, valor, destino, previsão e situação</caption>
           <thead>
@@ -246,7 +246,7 @@ export function FilaDeSaques({
             })}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }

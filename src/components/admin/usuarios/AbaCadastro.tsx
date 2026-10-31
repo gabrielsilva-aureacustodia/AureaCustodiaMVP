@@ -22,6 +22,7 @@ import { editarCadastroNoPainel, editarDadosBancariosNoPainel } from '@/server/a
 import { useAdmin } from '../AdminProvider'
 import { Indisponivel } from '../Blocos'
 import { dataHora } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const CANAL: Record<string, string> = {
   cadastro_email: 'Cadastro por e-mail',
@@ -87,7 +88,7 @@ export function AbaCadastro({ email, nome, dados, semBanco }: { email: string; n
       <div className="adm-subtitulo">Aceites dos documentos</div>
       {dados.aceites ? (
         dados.aceites.length ? (
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Aceites dos documentos: versão, canal, data e IP">
             <table className="audit-table">
               <caption className="adm-sr">Aceites dos documentos: versão, canal, data e IP</caption>
               <thead>
@@ -119,7 +120,7 @@ export function AbaCadastro({ email, nome, dados, semBanco }: { email: string; n
             <p className="adm-fraco">
               Cláusula de arbitragem: {dados.aceites.some((a) => a.documento === 'clausula_arbitragem') ? 'assinada' : 'não assinada'}.
             </p>
-          </div>
+          </TabelaRolavel>
         ) : (
           <p className="adm-fraco">Nenhum aceite registrado para esta conta.</p>
         )

@@ -20,6 +20,7 @@ import type { Kpis } from '@/domain/kpis'
 import { AvisoSemBanco, Cartao, Indisponivel } from '../Blocos'
 import { SeletorPeriodo } from '../SeletorPeriodo'
 import { dinheiro, duracao, numero, percentual } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 const STATUS_RETIRADA: Record<string, string> = {
   solicitada: 'Solicitada',
@@ -81,7 +82,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
         <div className="panel">
           <h3>Receita de comissão por tipo de moeda</h3>
           {mercado.receitaPorTipo.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Receita de comissão por tipo de moeda">
               <table className="audit-table">
                 <caption className="adm-sr">Receita de comissão por tipo de moeda</caption>
                 <thead>
@@ -105,7 +106,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="empty">Nenhuma negociação no período.</div>
           )}
@@ -114,7 +115,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
         <div className="panel">
           <h3>Fila de ofertas agora</h3>
           {fila.porTipo.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Fila de ofertas agora, por tipo de moeda">
               <table className="audit-table">
                 <caption className="adm-sr">Fila de ofertas agora, por tipo de moeda</caption>
                 <thead>
@@ -140,7 +141,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="empty">Nenhuma oferta aberta.</div>
           )}
@@ -220,7 +221,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
         <div className="panel">
           <h3>Recusa por motivo</h3>
           {envios.recusasPorMotivo.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Recusas da bancada por motivo">
               <table className="audit-table">
                 <caption className="adm-sr">Recusas da bancada por motivo</caption>
                 <thead>
@@ -240,7 +241,7 @@ export function Indicadores({ kpis, periodo, semBanco }: { kpis: Kpis; periodo: 
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="empty">Nenhuma moeda recusada na bancada no período.</div>
           )}
@@ -288,7 +289,7 @@ function TabelaContagem({
   const base = total ?? linhas.reduce((m, l) => Math.max(m, l.valor), 0)
   if (!linhas.length || base === 0) return <div className="empty">{vazio}</div>
   return (
-    <div className="table-scroll">
+    <TabelaRolavel rotulo="Quantidades do indicador">
       <table className="audit-table">
         <caption className="adm-sr">Quantidades do indicador</caption>
         <thead>
@@ -312,6 +313,6 @@ function TabelaContagem({
           ))}
         </tbody>
       </table>
-    </div>
+    </TabelaRolavel>
   )
 }

@@ -18,6 +18,7 @@ import { salvarCaixaNoPainel } from '@/server/actions/admin/bancada'
 import { useToast } from '@/components/ui/Toast'
 
 import { numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 interface Rascunho {
   codigo: string
@@ -117,7 +118,7 @@ export function QuadroDeCaixas({
       {caixas.length === 0 ? (
         <p className="empty">Nenhuma caixa cadastrada nem registrada em análise.</p>
       ) : (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Caixas do cofre: local, ocupação e moedas">
           <table className="audit-table">
             <caption className="adm-sr">Caixas do cofre: local, ocupação e moedas</caption>
             <thead>
@@ -176,7 +177,7 @@ export function QuadroDeCaixas({
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       )}
 
       {editando ? (

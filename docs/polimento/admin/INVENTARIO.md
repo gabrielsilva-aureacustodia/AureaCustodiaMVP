@@ -73,7 +73,7 @@ Escritas não listadas aqui (`registros`, `emails`) são chamadas pelas fichas e
 | Ação irreversível em dois passos, com o objeto no botão ("Confirmar: pagar o saque de R$ X a Fulano") | `ConfirmarAcao` (nenhum `window.confirm` no painel) | README de `components/admin` regra 8 |
 | Ação sem permissão não aparece, e a página sem permissão mostra `SemPermissao` | `pode()`, `SemPermissao` | menu esconde, servidor recusa |
 | Ambiente sem banco: aviso explícito em vez de tela vazia | `AvisoSemBanco`, `Indisponivel` | ver §6 |
-| Tabela nova em `.table-scroll > table.audit-table` com `<caption class="adm-sr">` e `th scope` | todas as 46 | regra 8 |
+| Tabela nova em `<TabelaRolavel rotulo=…>` (`Pecas.tsx`) com `table.audit-table`, `<caption class="adm-sr">` e `th scope` | todas as 46 | regra 8; desde 30/10/2026 o `div.table-scroll` é o componente |
 | Data e hora por `formatos.ts` (fuso de Brasília) | todas | regra 4 |
 | Elementos que o registro de uso conta levam `data-uso="área:gesto"` | vários | regra 7 |
 | Alvo de toque de 44 px | `admin.css` (32 ocorrências) | regra 6 |
@@ -147,3 +147,5 @@ store em memória com as 7 contas do seed, nenhuma credencial de produção no a
 (ledger, conversas de WhatsApp, usuários da tabela de membros, DRE com valores, fila de NFS-e, trilha de auditoria) não existem. Fica **sem medida**:
 a Central de trabalho com itens em "Pede ação agora", a caixa de atendimento com uma conversa aberta, os papéis do banco (só `dev` aqui, então a visão
 de `socio` e `operacao` não foi vista), os gráficos com série real e a bancada com câmera. O que se mede aqui é casco, estados vazios e de aviso, formulários e tabelas.
+
+**R1 e R2 corrigidos no bloco 2 (30/10/2026):** axe nas 18 rotas × 3 larguras × 2 temas = 0 violações (ver MD_EXECUCAO).

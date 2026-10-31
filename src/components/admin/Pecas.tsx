@@ -9,6 +9,9 @@
  *  - `Selo`: situação — desde a rodada 3, o `<Selo>` da marca (src/components/ui/Selo.tsx).
  *  - `Abas`: troca de visão dentro da página por URL (`?aba=`, `?ver=`), com contagem opcional.
  *  - `Vazio`: lista vazia que diz por quê e o que fazer — o `<EstadoVazio>` da marca.
+ *  - `TabelaRolavel`: a tabela que rola de lado (30/10/2026). Era um `<div className="table-scroll">` repetido
+ *    46 vezes; sem foco, quem navega por teclado não alcançava as colunas escondidas (axe
+ *    `scrollable-region-focusable`, WCAG 2.1.1). Agora é região nomeada e focável.
  *
  * Sem 'use client' e sem hook: só marcação, desenhada no servidor ou dentro de componente de
  * cliente (doc 35 §4 do aprendizado_frontend). Nada aqui lê dado nem decide permissão.
@@ -19,6 +22,22 @@ import type { ReactNode } from 'react'
 
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
 import { Selo as SeloDaMarca, type TomDoSelo } from '@/components/ui/Selo'
+
+/**
+ * Região que rola na horizontal, alcançável por teclado e com nome (padrão composto sobre `role="region"`).
+ *
+ * O `rotulo` é o mesmo texto do `<caption>` da tabela de dentro: o leitor de tela anuncia "região, Contas de
+ * clientes…" ao entrar e a pessoa com teclado rola com as setas. `tabIndex={0}` fica sempre ligado — medir
+ * se a tabela transborda exigiria JS, e a largura muda com a fonte, o zoom e o dado. A moldura de foco vem de
+ * `.adm-main .table-scroll:focus-visible` (admin.css). Sem 'use client': só marcação.
+ */
+export function TabelaRolavel({ rotulo, children }: { rotulo: string; children: ReactNode }): ReactNode {
+  return (
+    <div className="table-scroll" role="region" aria-label={rotulo} tabIndex={0}>
+      {children}
+    </div>
+  )
+}
 
 export function Secao({
   id,

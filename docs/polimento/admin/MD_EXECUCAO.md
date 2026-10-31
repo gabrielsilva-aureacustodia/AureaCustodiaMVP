@@ -52,3 +52,13 @@ Medição em navegador local isolado (`next start`, store em memória, sessão `
 
 **Limites do ambiente (sem Postgres):** 9 das 18 rotas abrem com "Ambiente sem banco de dados"; papéis `socio` e `operacao` (só `dev` aqui), conversas de WhatsApp,
 DRE com valores, fila de NFS-e e trilha real **não foram vistos**. As correções valem pelo que dá para medir; o que depende de dado fica marcado como não medido.
+
+**Bloco 2 — acessibilidade: tabela que rola e contraste do recibo (R1 e R2): FEITO**
+- `Pecas.tsx`: novo **`TabelaRolavel`** (`role="region"`, `aria-label` = legenda da tabela, `tabIndex=0`). Substitui os **46** `<div className="table-scroll">`
+  espalhados em 22 arquivos (44 por script que pegou a legenda de cada `<caption>` e 2 à mão, com legenda calculada). `admin.css`: moldura de foco
+  (`.adm-main .table-scroll:focus-visible`, `--ro-foco`, que já é escuro no tema claro).
+- `admin.css`: `.adm-main .cert{--cert-ink-gold:ouro-800;--cert-ink-foot:pergaminho-600}` para a rota "ver como o cliente vê" (4,33:1 e 3,89:1 → AA).
+  Duplica de propósito a correção da frente 1 (PR #13) em `recibo.css`, que não é desta frente; depois do merge dá para apagar este bloco.
+- Medido (`next start` local, 18 rotas × 3 larguras × 2 temas): **axe 3 achados → 0**, 0 rolagem horizontal, 0 erro de console.
+  Teclado em `/admin/usuarios` a 375 px: Tab alcança a região, ela é anunciada com o nome da legenda, o anel de foco aparece e a seta para a direita rola a tabela.
+- Checks: typecheck ok · lint 0 erros / 16 avisos · test 157/157 (1.457) · build ok.

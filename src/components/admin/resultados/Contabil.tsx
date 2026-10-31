@@ -36,6 +36,7 @@ import {
 import { useAdmin } from '../AdminProvider'
 import { SeletorPeriodo } from '../SeletorPeriodo'
 import { data, dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 export type AbaContabil = 'lancamentos' | 'aliquotas' | 'contas' | 'exportacoes'
 
@@ -188,7 +189,7 @@ function Lancamentos({ contas, lancamentos }: { contas: ContaContabil[]; lancame
       )}
 
       {lancamentos.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Lançamentos contábeis do período">
           <table className="audit-table">
             <caption className="adm-sr">Lançamentos contábeis do período</caption>
             <thead>
@@ -246,7 +247,7 @@ function Lancamentos({ contas, lancamentos }: { contas: ContaContabil[]; lancame
               })}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <div className="empty">Nenhum lançamento manual ainda.</div>
       )}
@@ -295,7 +296,7 @@ function Aliquotas({ parametros, semBanco }: { parametros: ParametroGravado[]; s
       <p className="adm-fraco adm-secao">
         Nenhuma alíquota entra fixa no código. Percentual em por cento (32 ou 0,65); limite em reais.
       </p>
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Alíquotas e parâmetros contábeis">
         <table className="audit-table">
           <caption className="adm-sr">Alíquotas e parâmetros contábeis</caption>
           <thead>
@@ -347,7 +348,7 @@ function Aliquotas({ parametros, semBanco }: { parametros: ParametroGravado[]; s
             })}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }
@@ -361,7 +362,7 @@ function PlanoDeContas({ contas }: { contas: ContaContabil[] }): ReactNode {
         As contas automáticas são alimentadas pelo livro-razão; as manuais, pelos lançamentos desta tela. A lista vem do
         código (<code>src/domain/dre.ts</code>) e é a mesma que a DRE lê.
       </p>
-      <div className="table-scroll">
+      <TabelaRolavel rotulo="Plano de contas">
         <table className="audit-table">
           <caption className="adm-sr">Plano de contas</caption>
           <thead>
@@ -385,7 +386,7 @@ function PlanoDeContas({ contas }: { contas: ContaContabil[] }): ReactNode {
             ))}
           </tbody>
         </table>
-      </div>
+      </TabelaRolavel>
     </>
   )
 }
@@ -445,7 +446,7 @@ function Exportacoes(props: PropsContabil): ReactNode {
 
       <h3>Registro de exportações</h3>
       {props.exportacoes.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Registro de exportações">
           <table className="audit-table">
             <caption className="adm-sr">Registro de exportações</caption>
             <thead>
@@ -477,7 +478,7 @@ function Exportacoes(props: PropsContabil): ReactNode {
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <div className="empty">Nenhuma exportação registrada ainda.</div>
       )}

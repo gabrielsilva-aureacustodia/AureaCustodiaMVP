@@ -11,10 +11,11 @@ import type { ReactNode } from 'react'
 import type { LinhaDre } from '@/domain/dre'
 
 import { dinheiro } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 export function TabelaDre({ linhas }: { linhas: readonly LinhaDre[] }): ReactNode {
   return (
-    <div className="table-scroll">
+    <TabelaRolavel rotulo="Demonstração do resultado (DRE) do período">
       <table className="audit-table">
         <caption className="adm-sr">Demonstração do resultado (DRE) do período</caption>
         <thead>
@@ -36,6 +37,6 @@ export function TabelaDre({ linhas }: { linhas: readonly LinhaDre[] }): ReactNod
           ))}
         </tbody>
       </table>
-    </div>
+    </TabelaRolavel>
   )
 }

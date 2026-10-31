@@ -23,7 +23,7 @@ import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { DadosDaLogistica } from '@/server/admin/logistica'
 
 import { data, dataHora, dinheiro, numero } from '../formatos'
-import { Abas } from '../Pecas'
+import { Abas, TabelaRolavel } from '../Pecas'
 
 function Rastreio({ rastreio }: { rastreio: RastreioGravado | undefined }): ReactNode {
   if (!rastreio) return <span className="adm-fraco">rastreio ainda não consultado</span>
@@ -147,7 +147,7 @@ export function PainelLogistica({
         <div className="panel">
           <h2>Envios para a custódia</h2>
           {dados.envios.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Envios para a custódia: protocolo, cliente, moedas, etapa e prazos">
               <table className="audit-table">
                 <caption className="adm-sr">Envios para a custódia: protocolo, cliente, moedas, etapa e prazos</caption>
                 <thead>
@@ -208,7 +208,7 @@ export function PainelLogistica({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="adm-vazio">
               <b>Nenhum envio com este filtro.</b>
@@ -222,7 +222,7 @@ export function PainelLogistica({
         <div className="panel">
           <h2>Retiradas físicas</h2>
           {dados.retiradas.length ? (
-            <div className="table-scroll">
+            <TabelaRolavel rotulo="Retiradas físicas: cliente, moeda, situação, taxa e prazo">
               <table className="audit-table">
                 <caption className="adm-sr">Retiradas físicas: cliente, moeda, situação, taxa e prazo</caption>
                 <thead>
@@ -298,7 +298,7 @@ export function PainelLogistica({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TabelaRolavel>
           ) : (
             <div className="adm-vazio">
               <b>Nenhuma retirada com este filtro.</b>

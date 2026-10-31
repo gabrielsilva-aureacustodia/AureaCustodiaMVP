@@ -18,6 +18,7 @@ import type { InfoPosicaoFila } from '@/domain/market'
 import { AcoesDaOrdemDeCompra, AcoesDoLote } from '../registros'
 import { Indisponivel } from '../Blocos'
 import { dataHora, dinheiro, numero } from '../formatos'
+import { TabelaRolavel } from '@/components/admin/Pecas'
 
 /**
  * "1º no preço · 23 com preço melhor vendem primeiro · 3 no total a este preço"
@@ -65,7 +66,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
     <>
       <div className="adm-subtitulo">Anúncios de venda</div>
       {dados.lotes.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Anúncios de venda da conta">
           <table className="audit-table">
             <caption className="adm-sr">Anúncios de venda da conta</caption>
             <thead>
@@ -97,14 +98,14 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <p className="adm-fraco">Nenhum anúncio aberto.</p>
       )}
 
       <div className="adm-subtitulo">Ofertas de compra</div>
       {dados.ordensDeCompra.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Ofertas de compra da conta">
           <table className="audit-table">
             <caption className="adm-sr">Ofertas de compra da conta</caption>
             <thead>
@@ -136,14 +137,14 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <p className="adm-fraco">Nenhuma oferta de compra aberta.</p>
       )}
 
       <div className="adm-subtitulo">Negociações</div>
       {dados.negociacoes.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Negociações da conta">
           <table className="audit-table">
             <caption className="adm-sr">Negociações da conta</caption>
             <thead>
@@ -169,7 +170,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
               ))}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <p className="adm-fraco">Nenhuma negociação.</p>
       )}
@@ -177,7 +178,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
       <div className="adm-subtitulo">Histórico da fila</div>
       {dados.historicoDaFila ? (
         dados.historicoDaFila.length ? (
-          <div className="table-scroll">
+          <TabelaRolavel rotulo="Histórico da fila de ofertas da conta">
             <table className="audit-table">
               <caption className="adm-sr">Histórico da fila de ofertas da conta</caption>
               <thead>
@@ -214,7 +215,7 @@ export function AbaMercado({ dados, semBanco }: { dados: DadosAbaMercado; semBan
                 ))}
               </tbody>
             </table>
-          </div>
+          </TabelaRolavel>
         ) : (
           <p className="adm-fraco">Nenhum evento na fila.</p>
         )

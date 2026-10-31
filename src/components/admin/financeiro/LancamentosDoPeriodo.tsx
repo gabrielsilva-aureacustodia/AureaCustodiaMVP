@@ -12,7 +12,7 @@ import type { ReactNode } from 'react'
 import type { DadosControleFinanceiro } from '@/server/admin/controle-financeiro'
 
 import { data, dinheiro } from '../formatos'
-import { Secao, Selo, Vazio } from '../Pecas'
+import { Secao, Selo, Vazio, TabelaRolavel } from '../Pecas'
 
 export function LancamentosDoPeriodo({ dados }: { dados: DadosControleFinanceiro }): ReactNode {
   const conta = new Map(dados.contas.map((c) => [c.codigo, c]))
@@ -31,7 +31,7 @@ export function LancamentosDoPeriodo({ dados }: { dados: DadosControleFinanceiro
       }
     >
       {dados.lancamentos.length ? (
-        <div className="table-scroll">
+        <TabelaRolavel rotulo="Lançamentos manuais e recorrentes do período: data, descrição, setor, conta e valor">
           <table className="audit-table">
             <caption className="adm-sr">Lançamentos manuais e recorrentes do período: data, descrição, setor, conta e valor</caption>
             <thead>
@@ -67,7 +67,7 @@ export function LancamentosDoPeriodo({ dados }: { dados: DadosControleFinanceiro
               })}
             </tbody>
           </table>
-        </div>
+        </TabelaRolavel>
       ) : (
         <Vazio titulo="Nenhum lançamento manual neste período.">Os custos recorrentes aparecem aqui no dia em que vencem.</Vazio>
       )}
