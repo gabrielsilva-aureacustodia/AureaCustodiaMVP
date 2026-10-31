@@ -4,7 +4,7 @@
 Worktree:   /workspace/aurea/wt/tutorial-admin   (npm ci próprio; sem junção nem symlink)
 Branch:     feat/aurea-tutorial-admin            base origin/main @ d29727a (decisão do Gabriel, 30/10/2026)
 Agente:     Claude Code (bot "ÁUREA · Polimento, tutorial do Admin e check-up")
-Merge:      push e PR ficam com o Gabriel
+Estado:     FECHADA em 30/10/2026 — PRs #15 e #17 mergeados na main (ver "Estado final")
 ```
 
 ## Decisões (Gabriel, 30/10/2026)
@@ -56,3 +56,22 @@ Merge:      push e PR ficam com o Gabriel
 - Subir `VERSAO_DO_TUTORIAL_ADMIN` (v1 → v2) faz toda a equipe rever o tour — é o botão de "refazer para todos".
 - Link "Refazer o tour guiado" já existe dentro do painel de dicas.
 - Sincronizar o progresso entre aparelhos exigiria servidor (tabela ou migration): decisão do Gabriel; hoje é por navegador.
+
+## Estado final (30–31/10/2026)
+
+| PR | Branch | Merge commit | O que levou |
+|---|---|---|---|
+| #15 | `feat/aurea-tutorial-admin` | `29f3257` | tutorial do painel por papel: conteúdo em `tutorial-admin.ts`, `TutorialAdmin.tsx`, `TourGuiado` estrutural, 22 testes |
+| #17 | `polish/aurea-tutorial-admin-ajustes` | `6a0b8ac` | título do tour e das dicas `h4` → `h2`; passo da busca sem Ctrl K a ≤ 560 px; **`VERSAO_DO_TUTORIAL` v2 → v3** (pedido do Gabriel: todos os clientes revêem o tour) |
+
+- **Tutorial v3 (cliente):** só muda a chave do localStorage (`ro-tutorial:v3:<e-mail>:…`). Sem migration, sem mudança de dado. O tutorial do painel tem chave própria (`ro-tutorial-admin:v1`) e não foi afetado.
+- **Produção:** o merge `6a0b8ac` gerou deploy `Production` com status `success`. Conferi pelo JS público de `realolimpico.com.br`: serve `"ro-tutorial:".concat("v3")` e o título do tour como `<h2>`. O código do painel fica atrás do login e não aparece nos arquivos públicos.
+- **Axe** sobre o tour (16 passos) e as dicas (16 telas), 1440 e 375 px, temas claro e escuro: 0 violações da camada do tutorial depois do `h2`. As que sobraram eram das telas (Bancada, Notas fiscais, Indicadores, Financeiro, Equipe) e vieram corrigidas pelo PR #14.
+- **Revisão de linguagem:** pedido T3-01 em `/workspace/aurea-polimento/pedidos_workers.md` (DeepSeek). O texto revisado, quando chegar, entra só em `src/domain/tutorial-admin.ts`, em PR próprio.
+
+### O que NÃO foi visto na tela
+- **Tour v3 do cliente em produção:** só o código foi conferido; ver o tour pede conta de cliente (credenciais de produção não liberadas).
+- **Papéis sócio e operação:** nunca vistos no navegador (sem Postgres só existe `dev`); cobertos pelos testes de domínio com as permissões reais de `PAPEIS_DE_SISTEMA`.
+- **Telas sem dado** (Atendimento, Uso, Contábil, fila de NFS-e, trilha): as âncoras de seção não foram vistas funcionando; a dica "para que serve a tela" aparece sempre.
+- **Firefox e WebKit:** não medidos (download grande; ficaria para a VM do Colab).
+- **Suíte de testes instável:** falhou 2 vezes em rodadas separadas (7 arquivos; depois 1 teste) e passou inteira na repetição, sem mudança de código. Causa não identificada.
