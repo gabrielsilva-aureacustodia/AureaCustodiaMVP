@@ -21,6 +21,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import { AdminProvider } from '@/components/admin/AdminProvider'
+import { BotaoAtendimento } from '@/components/atendimento/BotaoAtendimento'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { AdminTopbar } from '@/components/admin/AdminTopbar'
 import { TutorialAdmin } from '@/components/admin/TutorialAdmin'
@@ -28,6 +29,7 @@ import { RegistroDeUso } from '@/components/providers/RegistroDeUso'
 import { SidebarProvider } from '@/components/shell/Sidebar'
 import { ModalHost } from '@/components/ui/Modal'
 import { membroDaPagina } from '@/server/admin/acesso'
+import { contarCasosAbertosNoPainel } from '@/server/actions/admin/casos'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +42,8 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: ReactNode }): Promise<ReactNode> {
   const membro = await membroDaPagina()
+  // O número do menu "Casos". Falha de banco ou falta de permissão dá 0: o casco nunca cai por causa dele.
+  const casosAbertos = await contarCasosAbertosNoPainel()
 
   return (
     <AdminProvider membro={membro}>
@@ -50,7 +54,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           Pular para o conteúdo
         </a>
         <div className="app active">
-          <AdminSidebar />
+          <AdminSidebar casosAbertos={casosAbertos} />
           <main className="main adm-main" id="conteudo" tabIndex={-1}>
             <AdminTopbar />
             {children}
@@ -60,6 +64,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <ModalHost />
         {/* Tour da primeira entrada e botão "Ver tutorial desta página": só o que o papel alcança. */}
         <TutorialAdmin />
+        {/* Quem da equipe vê um erro também escreve: o caso entra na mesma fila. */}
+        <BotaoAtendimento />
       </SidebarProvider>
       <RegistroDeUso />
     </AdminProvider>

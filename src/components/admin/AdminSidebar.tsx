@@ -28,7 +28,8 @@ import { useLogout, useSidebar } from '@/components/shell/Sidebar'
 import { useAdmin } from './AdminProvider'
 import { GRUPOS_NAV, itemDaRota, permiteItem } from './navegacao'
 
-export function AdminSidebar(): ReactNode {
+/** `casosAbertos`: quantos casos de atendimento esperam a equipe (lido no layout; 0 para quem não tem `cs.ver`). */
+export function AdminSidebar({ casosAbertos = 0 }: { casosAbertos?: number }): ReactNode {
   const { open, setOpen } = useSidebar()
   const { dark, toggle } = useTheme()
   const { membro } = useAdmin()
@@ -69,6 +70,11 @@ export function AdminSidebar(): ReactNode {
                     {item.icone}
                   </svg>
                   {item.rotulo}
+                  {item.href === '/admin/casos' && casosAbertos > 0 ? (
+                    <span className="adm-nav-contador" role="img" aria-label={`${casosAbertos} ${casosAbertos === 1 ? 'caso espera' : 'casos esperam'} resposta`}>
+                      {casosAbertos > 99 ? '99+' : casosAbertos}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
             </div>
