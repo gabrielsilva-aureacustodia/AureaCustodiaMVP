@@ -40,8 +40,8 @@ import {
   casarOrdensRespeitandoPendencia,
   contaComPendenciaNoEstado,
   MENSAGEM_ANUNCIO_PAUSADO,
-  moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { notificarReservasPendentes } from '@/server/mercado/aviso-de-reserva'
 import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
@@ -200,12 +200,12 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     // O comprador vê "pausado" — é o mesmo texto de pendência de conta,
     // porque da perspectiva dele o efeito é o mesmo.
     const ofertaComCustodiaNaoPaga = offers.some(
-      (o) => moedaComCustodiaNaoPagaNoEstado(state, sellerId, o.coinId),
+      (o) => custodiaImpedeNegociar(state, o.coinId),
     )
     if (ofertaComCustodiaNaoPaga) {
       // Limpa as ofertas afetadas do livro para que não voltem a aparecer
       const idsDoLote = new Set(offers.filter(
-        (o) => moedaComCustodiaNaoPagaNoEstado(state, sellerId, o.coinId),
+        (o) => custodiaImpedeNegociar(state, o.coinId),
       ).map((o) => o.id))
       state.sellOffers = state.sellOffers.filter((o) => !idsDoLote.has(o.id))
       return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }

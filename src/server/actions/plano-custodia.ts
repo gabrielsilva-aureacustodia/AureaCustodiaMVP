@@ -13,19 +13,13 @@
 import { randomUUID } from 'node:crypto'
 
 import { nextPlanoCode } from '@/domain/codes'
-import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import {
   calcularVencimentoFatura,
   competenciaAtual,
   DIAS_TOLERANCIA_FATURA,
 } from '@/domain/custody'
-import { brl } from '@/domain/money'
-import {
-  calcularPagoAte,
-  mesesDoPlano,
-  somarMeses,
-  valorDoPlano,
-} from '@/domain/plano-custodia'
+import { valorDoPlano } from '@/domain/plano-custodia'
+import { pagarFaturaComSaldoNoEstado } from '@/domain/quitar-fatura'
 import type {
   ActionResult,
   FaturaCustodia,
@@ -202,61 +196,10 @@ export async function pagarFaturaComSaldo(
 
   try {
     const { result } = await mutateState((s) => {
-      const u = s.users[session]
-      if (!u) return { ok: false, error: SESSAO_EXPIRADA }
-
-      s.faturasCustodia = s.faturasCustodia ?? []
-      const fatura = s.faturasCustodia.find((f) => f.id === faturaId)
-      if (!fatura) return { ok: false, error: 'Fatura não encontrada.' }
-      if (fatura.userEmail !== session) return { ok: false, error: 'Esta fatura pertence a outro usuário.' }
-      if (fatura.status === 'paga') return { ok: false, error: 'Esta fatura já foi paga.' }
-      if (fatura.status === 'cancelada') return { ok: false, error: 'Esta fatura foi cancelada.' }
-
-      if (u.balance < fatura.valorCents) {
-        return {
-          ok: false,
-          error: `Saldo insuficiente para quitar a fatura (saldo: ${brl(u.balance)}, fatura: ${brl(fatura.valorCents)}).`,
-        }
-      }
-
-      const agora = Date.now()
-      u.balance -= fatura.valorCents
-      fatura.status = 'paga'
-      fatura.dataPagamento = agora
-      fatura.formaPagamento = 'saldo'
-      // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça hoje (26/10/2026).
-      recomecarCicloNoPrimeiroPagamento(s, fatura, agora)
-
-      // Se a fatura é de contratação, ativa o plano
-      if (fatura.origem === 'contratacao' && fatura.planoId) {
-        s.planosCustodia = s.planosCustodia ?? []
-        const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
-        if (plano) {
-          plano.status = 'vigente'
-          // O prazo é o DO PLANO, não o da modalidade: o plano de
-          // transferência é um anual que cobre só os meses que faltavam.
-          plano.pagoAteCompetencia = calcularPagoAte(
-            plano.inicioCompetencia,
-            plano.modalidade,
-          )
-          plano.formaPagamento = 'saldo'
-          plano.atualizadoEm = agora
-        }
-      } else if (fatura.origem === 'renovacao_anual' && fatura.planoId) {
-        s.planosCustodia = s.planosCustodia ?? []
-        const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
-        if (plano) {
-          // A renovação estende pelo prazo do próprio plano: 12 meses no anual,
-          // 1 no mensal, e o que estiver gravado no plano de transferência.
-          plano.pagoAteCompetencia = somarMeses(
-            plano.pagoAteCompetencia ?? plano.inicioCompetencia,
-            mesesDoPlano(plano),
-          )
-          plano.formaPagamento = 'saldo'
-          plano.atualizadoEm = agora
-        }
-      }
-
+      if (!s.users[session]) return { ok: false, error: SESSAO_EXPIRADA }
+      // O pagamento é o único (src/domain/quitar-fatura.ts): o mesmo do débito automático e do painel.
+      const r = pagarFaturaComSaldoNoEstado(s, session, faturaId, Date.now())
+      if (!r.ok || !r.data) return { ok: false, error: r.error }
       // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
       // A inadimplência por fatura é calculada por quem lê (E8).
       return {
@@ -264,7 +207,7 @@ export async function pagarFaturaComSaldo(
         data: {
           forma: 'saldo' as const,
           status: 'pago' as const,
-          fatura,
+          fatura: r.data.fatura,
         },
       }
     })

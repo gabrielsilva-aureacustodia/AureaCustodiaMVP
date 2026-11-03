@@ -61,6 +61,7 @@ describe('Ações de ordens — prioridade, edição e fila justa (A2, Decisão 
           paymentIntentId: null,
           planoId: null,
           origem: 'ciclo_mensal',
+          coberturaAte: Date.now() + 29 * 86_400_000,
         })
       }
     })

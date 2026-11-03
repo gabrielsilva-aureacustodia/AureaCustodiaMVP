@@ -78,60 +78,59 @@ export function usuario(nome: string, saldo: number, coins: Coin[]): User {
   return { name: nome, balance: saldo, coins, cadastro: cadastroCompleto() }
 }
 
+/** O prefixo das faturas de `custodiaEmDia` — é por ele que `comCustodiaEmDia` as tira depois. */
+const PREFIXO_EM_DIA = 'FAT-EM-DIA-'
+
 /**
- * Faz a custódia de TODAS as moedas do estado constar como paga, por um plano vigente quitado por conta.
+ * Faz a custódia de TODAS as moedas do estado constar como paga até 2099, por uma fatura paga de valor zero
+ * por conta.
  *
  * Existe porque, desde 12/10/2026, moeda cuja custódia nunca foi paga não é negociável em ponto nenhum
- * (`custodiaImpedeNegociar`, em bloqueio-por-debito.ts). Sem isto, todo teste de mercado cujo vendedor
- * nasce de um fixture "de manual" veria a oferta sair do livro antes de o motor rodar.
+ * (`custodiaImpedeNegociar`, em src/domain/custodia-da-moeda.ts). Sem isto, todo teste de mercado cujo
+ * vendedor nasce de um fixture "de manual" veria a oferta sair do livro antes de o motor rodar.
  *
- * É um PLANO, e não uma fatura paga, de propósito: fatura paga é lançamento no extrato e mudaria o que
- * os testes de saldo e de extrato contam; plano vigente cobre a moeda e não aparece em nenhuma conta.
- * Quem testa a própria custódia zera `planosCustodia` e `faturasCustodia` no cenário.
+ * É uma FATURA PAGA porque, desde 03/11/2026, é a única coisa que cobre uma moeda (até então era um plano
+ * vigente "pago até 2099-12", e o plano deixou de contar). Valor ZERO de propósito: não move saldo, e o
+ * extrato e o ledger não têm o que somar. Quem testa a própria custódia zera `faturasCustodia` no cenário.
  */
 export function custodiaEmDia(state: AppState): AppState {
-  state.planosCustodia = state.planosCustodia ?? []
+  state.faturasCustodia = state.faturasCustodia ?? []
   for (const [email, u] of Object.entries(state.users)) {
     if (u.coins.length === 0) continue
-    state.planosCustodia.push({
-      id: `PLC-EM-DIA-${email}`,
+    state.faturasCustodia.push({
+      id: `${PREFIXO_EM_DIA}${email}`,
       userEmail: email,
-      protocoloEnvio: 'RO-ENV-0000',
-      modalidade: 'mensal',
-      quantidadeContratada: u.coins.length,
+      competencia: '2026-01',
+      quantidadeMoedas: u.coins.length,
       moedaIds: u.coins.map((c) => c.id),
-      valorPorMoedaCents: 200,
-      valorTotalCents: 200 * u.coins.length,
-      parcelasMax: 1,
-      inicioCompetencia: '2026-01',
-      pagoAteCompetencia: '2099-12',
-      status: 'vigente',
+      valorCents: 0,
+      status: 'paga',
+      dataEmissao: 0,
+      dataVencimento: Date.UTC(2100, 0, 1),
+      coberturaAte: Date.UTC(2100, 0, 1) - 1,
+      dataPagamento: 0,
       formaPagamento: 'saldo',
-      paymentIntentRef: null,
-      assinaturaId: null,
-      estornadoCents: 0,
-      criadoEm: 0,
-      atualizadoEm: 0,
+      paymentIntentId: null,
+      planoId: null,
+      origem: 'ciclo_mensal',
     })
   }
   return state
 }
 
 /**
- * Roda `fn` com a custódia de todas as moedas em dia e DEVOLVE o estado como estava.
+ * Roda `fn` com a custódia de todas as moedas em dia e tira as faturas de `custodiaEmDia` depois.
  *
- * Para os testes que gravam no banco: o plano de `custodiaEmDia` não pode ser persistido (tem
- * protocolo de envio, entra no diff e no ledger), mas o motor de casamento precisa enxergá-lo enquanto
- * roda.
+ * Para os testes que gravam no banco: a fatura de `custodiaEmDia` não pode ser persistida (entra no diff
+ * e no ledger), mas o motor de casamento precisa enxergá-la enquanto roda. Só as dela saem: a fatura que
+ * `fn` criar (a custódia embutida numa compra, por exemplo) fica.
  */
 export function comCustodiaEmDia<T>(state: AppState, fn: () => T): T {
-  const antes = state.planosCustodia
-  state.planosCustodia = [...(antes ?? [])]
   custodiaEmDia(state)
   try {
     return fn()
   } finally {
-    state.planosCustodia = antes
+    state.faturasCustodia = (state.faturasCustodia ?? []).filter((f) => !f.id.startsWith(PREFIXO_EM_DIA))
   }
 }
 

@@ -511,6 +511,60 @@ describe('conciliarPagamento', () => {
     expect(fatura?.formaPagamento).toBe('cartao')
   })
 
+  it('Pix de fatura de custódia: paga a fatura e a entrada guarda de que pagamento veio (03/11/2026)', async () => {
+    const fatura = (status: 'pendente' | 'paga') => ({
+      id: 'FAT-PIX-1',
+      userEmail: EMAIL,
+      competencia: '2026-11',
+      quantidadeMoedas: 1,
+      moedaIds: ['RO-000001'],
+      valorCents: 200,
+      status,
+      dataEmissao: Date.now(),
+      dataVencimento: Date.now() + 30 * 86400000,
+      coberturaAte: Date.now() + 30 * 86400000 - 1,
+      dataPagamento: status === 'paga' ? Date.now() : null,
+      formaPagamento: status === 'paga' ? ('saldo' as const) : null,
+      paymentIntentId: null,
+      planoId: null,
+      origem: 'ciclo_mensal' as const,
+    })
+    const pagarPorPix = async (ref: string, paymentId: string) => {
+      await repositorioIntencoes().criar({
+        externalReference: ref,
+        userEmail: EMAIL,
+        valor: 200,
+        metodo: 'pix',
+        status: 'pendente',
+        tipoOperacao: 'fatura_custodia',
+        metadata: { faturaId: 'FAT-PIX-1' },
+        paymentId: null,
+        motivoRecusa: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      consultarPagamentoMercadoPago.mockResolvedValue({ ...aprovado(ref, 200), id: paymentId })
+      return conciliarPagamento(paymentId)
+    }
+
+    await mutateState((s) => {
+      s.faturasCustodia = [fatura('pendente')]
+    })
+    const saldoAntes = await saldo()
+    expect((await pagarPorPix('FAT-ref-pix-1', 'pay-fat-1')).motivo).toBe('fatura_custodia_liquidada')
+
+    let st = await getState()
+    expect(st.faturasCustodia!.find((f) => f.id === 'FAT-PIX-1')).toMatchObject({ status: 'paga', formaPagamento: 'pix', paymentIntentId: 'FAT-ref-pix-1' })
+    expect(st.deposits[st.deposits.length - 1]).toMatchObject({ valor: 200, origem: 'fatura_custodia', metodo: 'pix', refExterna: 'FAT-ref-pix-1' })
+    expect(await saldo()).toBe(saldoAntes) // entrou e saiu: o saldo não muda
+
+    // Um segundo Pix da MESMA fatura, já paga: até 03/11 o dinheiro sumia. Agora vira saldo.
+    expect((await pagarPorPix('FAT-ref-pix-2', 'pay-fat-2')).motivo).toBe('fatura_ja_paga_creditada_saldo')
+    st = await getState()
+    expect(await saldo()).toBe(saldoAntes + 200)
+    expect(st.deposits[st.deposits.length - 1]).toMatchObject({ valor: 200, origem: 'fatura_custodia', refExterna: 'FAT-ref-pix-2' })
+  })
+
   it('liquida taxa de retirada paga via Pix com extinção de recibo e recálculo D+30', async () => {
     let moedaId = ''
     await mutateState((s) => {

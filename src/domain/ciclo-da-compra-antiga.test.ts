@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { coberturaPagaDaMoeda, custodiaImpedeNegociar } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar, custodiaPagaAte, proximaCobrancaDaMoeda } from '@/domain/custodia-da-moeda'
 import { inicioDoCicloQueTerminaEm } from '@/domain/ciclo-custodia'
-import { emitirFaturasDosCiclos, proximaCobrancaDaMoeda } from '@/domain/cobranca-de-entrada'
+import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
 import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
 import { periodoDaFatura } from '@/domain/nfse/pedidos'
 import { BAN, estado, moeda, usuario } from '@/domain/testing/fixtures'
@@ -77,7 +77,7 @@ describe('a compra antiga sem saldo: fatura emitida num dia, paga em outro', () 
     expect(moedaDe(s).entrada).toBe('30/10/2026')
     expect(f!.coberturaAte).toBe(brasilia(2026, 11, 30) - 1)
     // A fatura foi emitida em 26/10, antes do novo começo da guarda (30/10), e ainda assim é dele.
-    expect(coberturaPagaDaMoeda(s, COIN)).toBe(brasilia(2026, 11, 30) - 1)
+    expect(custodiaPagaAte(s, COIN)).toBe(brasilia(2026, 11, 30) - 1)
     expect(custodiaImpedeNegociar(s, COIN, pagamento)).toBe(false)
     expect(periodoDaFatura(f!)).toBe('30/10/2026 A 30/11/2026')
   })

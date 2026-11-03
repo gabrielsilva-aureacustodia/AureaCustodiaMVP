@@ -26,7 +26,7 @@ import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 
 import { fimDaCoberturaDaFatura } from '@/domain/custody'
-import { resumoDaCustodia, rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
+import { custodiaDoPlanoPagaAte, resumoDaCustodia, rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { PlanoCustodia } from '@/domain/types'
@@ -50,9 +50,11 @@ const FORMA: Record<string, string> = {
  * "a guarda continua" para uma caixa que a pessoa fecha no automático.
  */
 function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
-  const { run } = useApp()
+  const { run, state } = useApp()
   const [confirmando, setConfirmando] = useState(false)
   const [ocupado, setOcupado] = useState(false)
+  // A data da regra única, a mesma da trava — e não o mês do calendário que o plano guardava (03/11/2026).
+  const pagaAte = custodiaDoPlanoPagaAte(state, plano)
 
   const ativo = plano.status === 'vigente' || plano.status === 'aguardando_pagamento'
   // <Selo> do Brandbook (§9.4): o estado do plano é sempre TEXTO; a cor só reforça.
@@ -89,12 +91,14 @@ function CartaoDoPlano({ plano }: { plano: PlanoCustodia }): ReactNode {
           <span className="v">{brl(plano.valorTotalCents)} / mês</span>
         </div>
         <div className="sr">
-          <span className="k">Início da vigência</span>
-          <span className="v">{plano.inicioCompetencia}</span>
-        </div>
-        <div className="sr">
-          <span className="k">Pago até</span>
-          <span className="v">{plano.pagoAteCompetencia ?? 'Aguardando pagamento'}</span>
+          <span className="k">Custódia paga até</span>
+          <span className="v">
+            {pagaAte !== null
+              ? fdate(pagaAte)
+              : plano.status === 'aguardando_pagamento'
+                ? 'Aguardando pagamento'
+                : 'Conta a partir do aceite das moedas'}
+          </span>
         </div>
         <div className="sr">
           <span className="k">Cobrança automática no cartão</span>

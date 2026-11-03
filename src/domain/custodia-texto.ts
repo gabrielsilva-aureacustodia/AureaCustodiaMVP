@@ -24,11 +24,12 @@ export function descricaoDaFaturaDeCustodia(
   const { competencia, quantidadeMoedas, status, origem } = fatura
 
   if (origem === 'contratacao') {
-    return `Plano mensal de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    return `Custódia do 1º mês, paga no envio · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   if (origem === 'renovacao_anual') {
-    return `Renovação do plano de custódia a partir de ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    // Só em faturas antigas: a renovação do plano saiu do código em 03/11/2026.
+    return `Renovação do plano de custódia (regra antiga) ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
   }
 
   // Origem ausente ou 'ciclo_mensal' mantém o formato exato histórico do extrato

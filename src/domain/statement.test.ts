@@ -33,8 +33,10 @@ describe('userStatement', () => {
     const linhas = userStatement(s, 'eu')
     const tot = statementTotals(linhas)
 
-    expect(linhas).toHaveLength(2)
-    expect(linhas[0].kind).toBe('Depósito') // ordem crescente: extrato se soma de cima para baixo
+    // A fatura de valor zero do fixture `custodiaEmDia` (a custódia em dia do vendedor) não move saldo.
+    const reais = linhas.filter((l) => !(l.kind === 'Taxa de custódia' && l.taxa === 0))
+    expect(reais).toHaveLength(2)
+    expect(reais[0].kind).toBe('Depósito') // ordem crescente: extrato se soma de cima para baixo
     expect(saldoInicial + tot.variacaoSaldo).toBe(s.users.eu.balance)
   })
 
@@ -122,5 +124,25 @@ describe('userStatement', () => {
     // O valor da cobrança aparece como taxa informativa, não como saída de caixa:
     // fatura pendente não move saldo.
     expect(tot.variacaoSaldo).toBe(0)
+  })
+})
+
+describe('a entrada de dinheiro diz o que ela foi — nada é "simulado" (03/11/2026)', () => {
+  it('cada origem de pagamento tem o seu texto, e nenhum fala em simulação', () => {
+    const s = estado({ eu: usuario('Eu', 0, []) })
+    s.deposits.push(
+      { userEmail: 'eu', valor: 20_000, date: 1, origem: 'deposito', metodo: 'pix', refExterna: 'DEP-1' },
+      { userEmail: 'eu', valor: 200, date: 2, origem: 'fatura_custodia', metodo: 'pix', refExterna: 'FAT-1' },
+      { userEmail: 'eu', valor: 1_160, date: 3, origem: 'frete_envio', metodo: 'cartao', refExterna: 'FRT-1' },
+      { userEmail: 'eu', valor: 500, date: 4 },
+    )
+    const textos = userStatement(s, 'eu').filter((l) => l.kind === 'Depósito').map((l) => l.descricao)
+    expect(textos).toEqual([
+      'Depósito em conta por Pix',
+      'Pagamento da custódia por Pix',
+      'Pagamento do frete do envio por cartão',
+      'Entrada por Pix ou cartão',
+    ])
+    expect(textos.join(' ')).not.toMatch(/simulad/i)
   })
 })

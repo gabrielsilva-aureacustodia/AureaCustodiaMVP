@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { custodiaImpedeNegociar, coberturaPagaDaMoeda, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar, custodiaPagaAte } from '@/domain/custodia-da-moeda'
 import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
 import { casarOrdensRespeitandoPendencia } from '@/domain/bloqueio-por-debito'
 import { TAXAS_PADRAO } from '@/domain/fees'
@@ -19,6 +19,8 @@ import type { AppState, FaturaCustodia } from '@/domain/types'
 const VENDEDOR = 'vendedor@exemplo.com.br'
 const GERAIS = 'gerais@exemplo.com.br'
 const COIN = 'RO-000011'
+const DIA = 86_400_000
+const AGORA = Date.now()
 
 /** 00:00 de Brasília do dia (UTC-3). */
 const brasilia = (ano: number, mes: number, dia: number, hora = 0, min = 0): number => Date.UTC(ano, mes - 1, dia, hora + 3, min)
@@ -38,10 +40,12 @@ function cenario(saldoDoComprador: number): AppState {
     moedaIds: [COIN],
     valorCents: 200,
     status: 'paga',
-    dataEmissao: brasilia(2026, 10, 1),
-    dataVencimento: brasilia(2026, 11, 1),
-    dataPagamento: brasilia(2026, 10, 1),
-    coberturaAte: brasilia(2026, 11, 1) - 1,
+    // Relativo a HOJE: com datas fixas de outubro a cobertura do vendedor venceu em 01/11 e a suíte
+    // ficou vermelha sozinha (03/11/2026).
+    dataEmissao: AGORA - 2 * DIA,
+    dataVencimento: AGORA + 28 * DIA,
+    dataPagamento: AGORA - 2 * DIA,
+    coberturaAte: AGORA + 28 * DIA - 1,
     formaPagamento: 'saldo',
     origem: 'ciclo_mensal',
   }
@@ -61,7 +65,7 @@ describe('o caso do Gerais: comprou moeda que o vendedor já tinha pago', () => 
     // Transferência "nua", sem passar pela compra: o dono novo não tem custódia nenhuma em nome dele.
     transferCoin(s.users[VENDEDOR]!, s.users[GERAIS]!, COIN)
 
-    expect(coberturaPagaDaMoeda(s, COIN)).toBeNull()
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
     expect(custodiaImpedeNegociar(s, COIN, brasilia(2026, 10, 21))).toBe(true)
     expect(availableCoinsForSell(s, s.users[GERAIS]!, BAN)).toEqual([])
   })
@@ -78,7 +82,6 @@ describe('o caso do Gerais: comprou moeda que o vendedor já tinha pago', () => 
     // negociável AGORA, no mesmo instante da compra
     const agora = Date.now()
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(false)
-    expect(moedaComCustodiaNaoPagaNoEstado(s, GERAIS, COIN, agora)).toBe(false)
     expect(availableCoinsForSell(s, s.users[GERAIS]!, BAN).map((c) => c.id)).toEqual([COIN])
   })
 
@@ -142,8 +145,7 @@ describe('o caso do Gerais: comprou moeda que o vendedor já tinha pago', () => 
       [VENDEDOR]: usuario('Vendedor', 0, [moeda('RO-000001', BAN), moeda('RO-000002', BAN), moeda('RO-000003', BAN)]),
       [GERAIS]: usuario('Gerais', 1_000_000, []),
     })
-    // o vendedor tem a custódia em dia (o plano que `estado()` já dá); o comprador começa sem nada
-    s.faturasCustodia = []
+    // o vendedor tem a custódia em dia (a fatura de valor zero que `estado()` já dá); o comprador começa sem nada
     for (const [i, id] of ['RO-000001', 'RO-000002', 'RO-000003'].entries()) {
       s.sellOffers.push(venda(`OF-${i}`, id, VENDEDOR, 20_000, BAN, 1000 + i))
     }

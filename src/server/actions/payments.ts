@@ -31,7 +31,8 @@ import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
-import { contaComPendenciaNoEstado, MENSAGEM_ANUNCIO_PAUSADO, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import { contaComPendenciaNoEstado, MENSAGEM_ANUNCIO_PAUSADO } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import type {
@@ -211,7 +212,7 @@ export async function iniciarCompraDireta(
   // A MOEDA, e não só a conta (12/10/2026): moeda cuja custódia não foi paga não se vende por nenhum
   // caminho — nem por Pix ou cartão. Esta compra direta só olhava a conta do vendedor, e uma oferta de
   // moeda sem custódia paga ainda podia ser comprada por aqui.
-  if (offers.some((o) => moedaComCustodiaNaoPagaNoEstado(state, sellerId, o.coinId))) {
+  if (offers.some((o) => custodiaImpedeNegociar(state, o.coinId))) {
     return { ok: false, error: MENSAGEM_ANUNCIO_PAUSADO }
   }
 

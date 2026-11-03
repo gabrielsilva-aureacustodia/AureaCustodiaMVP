@@ -141,6 +141,7 @@ async function custodiaEmDia(): Promise<void> {
         paymentIntentId: null,
         planoId: null,
         origem: 'ciclo_mensal',
+        coberturaAte: Date.now() + 29 * 86_400_000,
       })
     }
   })
@@ -568,6 +569,7 @@ describe('fatura de entrada PENDENTE e dentro do prazo não libera a venda (12/1
           status: 'pendente',
           dataEmissao: Date.now() - 60_000,
           dataVencimento: Date.now() + 30 * 86_400_000,
+          coberturaAte: Date.now() + 30 * 86_400_000 - 1,
           dataPagamento: null,
           formaPagamento: null,
           paymentIntentId: null,

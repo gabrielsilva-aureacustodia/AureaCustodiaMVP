@@ -84,6 +84,7 @@ beforeEach(async () => {
         paymentIntentId: null,
         planoId: null,
         origem: 'ciclo_mensal',
+        coberturaAte: Date.now() + 29 * 86_400_000,
       })
     }
   })

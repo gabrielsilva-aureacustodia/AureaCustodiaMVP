@@ -274,7 +274,8 @@ export function AbaFinanceiro({
                 {dados.planos.map((p) => (
                   <li key={p.id}>
                     <b>{p.id}</b> — {p.modalidade} · {numero(p.quantidadeContratada)} moeda(s) · {dinheiro(p.valorTotalCents)} · {p.status}
-                    {p.pagoAteCompetencia ? <span className="adm-fraco"> · pago até {nomeDoMes(p.pagoAteCompetencia)}</span> : null}
+                    {/* A data da regra única, a mesma da trava — e não o mês do calendário do plano (03/11/2026). */}
+                    {p.custodiaPagaAte !== null ? <span className="adm-fraco"> · custódia paga até {data(p.custodiaPagaAte)}</span> : null}
                     <AcoesDoPlano planoId={p.id} cancelado={p.status === 'cancelado'} />
                   </li>
                 ))}

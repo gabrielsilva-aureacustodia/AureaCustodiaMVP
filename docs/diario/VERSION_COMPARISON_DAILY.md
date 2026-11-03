@@ -1356,3 +1356,48 @@ envio interrompido no meio foi recuperado sem segunda nota.
 **Ficou aberto:** ligar a produção (`NFSE_AMBIENTE=producao`, decisão do Gabriel); PDF da nota; cancelamento
 pelo painel; notas da tarifa de saque, da retirada e do frete (perguntas ao contador); emissão das operações
 anteriores a esta entrega; o formato da produção real até 30/11 só se prova na primeira nota de verdade.
+
+---
+
+# Entrada 018 — 03/11/2026 · Custódia numa regra só: sem plano por mês do calendário e sem cobrança no dia 1º
+
+```
+Leitura:        local + produção (diagnóstico só leitura de 182 moedas; backup bkp_*_20261103)
+Branch:         fix/custodia-regra-unica, a partir de 524f2d3 (origin/main)
+Testes:         -> 1.503 (161 arquivos); os 5 vermelhos por data fixa corrigidos
+Banco:          migration 049 aplicada em produção ANTES do push (aditiva)
+Dados:          Sidnei liberado (RO-000182) e Rogério estornado (NFS-e nº 20 em cancelamento)
+```
+
+## O que entrou
+
+Uma regra única de custódia (`src/domain/custodia-da-moeda.ts`): cada moeda tem UMA data "paga até", vinda só das
+faturas pagas do dono atual; trava, telas e cron leem a mesma data. Saíram o plano contado por mês do calendário, a
+renovação de plano no dia 1º e as cinco funções que respondiam "até quando está paga" cada uma do seu jeito. Pagar
+fatura passou a ter um caminho só (`quitarFatura`), e cobrança indevida já paga se devolve por `estornarFaturaPaga`
+(estorno no ledger + cancelamento da NFS-e). Toda entrada de dinheiro guarda de que pagamento veio, e o extrato deixou
+de chamar pagamento real de "Depósito simulado". Detalhes em `docs/ALTERACOES_2026-11-03_CUSTODIA_REGRA_UNICA.md`.
+
+## Superfície protegida — mudança autorizada pelo Gabriel em 03/11/2026
+
+- **Pedido e autorização:** "você precisa DE FATO corrigir esse problema para todos os usuários, nem que reescreva
+  tudo"; aprovou o plano ("Sim, reescreva") e a publicação ("Sim, publique").
+- **`types.ts`:** `Deposit` ganha `origem`, `metodo` e `refExterna`, opcionais (migration 049). Aditivo; com
+  Postgres a `AUREA_STORE_KEY` não vale, então **sem rotação**.
+- **`market.ts` e Server Actions** (`sell.ts`, `market.ts`, `payments.ts`, `plano-custodia.ts`): todo ponto de venda
+  pergunta `custodiaImpedeNegociar`; "pagar com saldo" passa por `pagarFaturaComSaldoNoEstado`.
+- **Números combinados não mudaram:** comissão 0,5% + R$ 1,00 dos dois lados, custódia R$ 2,00/moeda/mês, casamento
+  preço-tempo, mediana de 24h. `constants.ts`, `fees.ts` e o contrato do store intocados.
+
+## Análise crítica do que entrou
+
+**O defeito era de estrutura, não de valor:** dois modelos de cobrança vivos e cinco respostas para a mesma pergunta.
+Na moeda do Sidnei, em 03/11, a trava dizia 31/10, a tela 29/11 e a próxima cobrança 30/12. O teste
+`custodia-da-moeda.test.ts` anda um acervo dia a dia por quatro meses e exige que as respostas batam em todo dia.
+
+**Ninguém piora:** contra o banco de produção, 181 das 182 moedas dão exatamente a mesma resposta na regra nova e na
+antiga; a única diferença era a moeda travada por engano.
+
+**Ficou aberto:** o ledger guarda o texto "Depósito simulado em conta" nos 11 lançamentos antigos (append-only, hash
+encadeado — não se reescreve); a NFS-e nº 20 sai da Sefin na próxima passada da rotina de notas.
+

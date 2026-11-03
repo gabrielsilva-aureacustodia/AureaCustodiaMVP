@@ -150,6 +150,13 @@ export function derivarLancamentos(ctx: ContextoDerivacao): Derivado {
       const quando = f.dataPagamento || f.dataEmissao || agora
       pendentes.push(lancamentoDeCustodia(f.userEmail, f, semeadura ? quando : agora, f.id))
     }
+    // Fatura PAGA que passou a cancelada é custódia cobrada por engano e devolvida ao saldo
+    // (`estornarFaturaPaga`, 03/11/2026): o dinheiro volta como estorno, não como `ajuste`.
+    if (eraPaga && f.status === 'cancelada') {
+      pendentes.push(
+        lancamentoDeEstorno(f.userEmail, f.valorCents, agora, f.id, `Estorno de custódia cobrada por engano (${f.id})`),
+      )
+    }
   }
 
   /* estornos de planos de custódia por moedas recusadas na análise */

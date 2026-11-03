@@ -171,8 +171,12 @@ export interface CancelamentoNfse {
 }
 
 /**
- * As notas a cancelar numa mutação. Hoje, uma causa: o saque que passou a `falhou` (recusado pela
- * equipe ou devolvido pelo Pix) devolve a tarifa ao saldo — o serviço não foi prestado.
+ * As notas a cancelar numa mutação. Duas causas, as duas com o dinheiro devolvido ao saldo — o serviço
+ * não foi prestado:
+ *  - o saque que passou a `falhou` (recusado pela equipe ou devolvido pelo Pix) devolve a tarifa;
+ *  - a fatura de custódia PAGA que passou a cancelada (`estornarFaturaPaga`, 03/11/2026) devolve a
+ *    custódia cobrada por engano — o caso que a criou foi a "renovação de plano" de 01/11/2026, cobrada
+ *    do Rogério por um envio sem moeda nenhuma (Gabriel: "devolve a cobrança do Rogério e cancela a nota").
  */
 export function cancelamentosDeNfse(antes: AppState, depois: AppState): CancelamentoNfse[] {
   const saquesAntes = new Map((antes.saques ?? []).map((s) => [s.id, s]))
@@ -186,6 +190,15 @@ export function cancelamentosDeNfse(antes: AppState, depois: AppState): Cancelam
         justificativa: `Saque ${s.id} recusado: tarifa devolvida ao saldo do cliente, servico nao prestado`,
       })
     }
+  }
+  const faturasAntes = new Map((antes.faturasCustodia ?? []).map((f) => [f.id, f]))
+  for (const f of depois.faturasCustodia ?? []) {
+    if (faturasAntes.get(f.id)?.status !== 'paga' || f.status !== 'cancelada' || f.valorCents <= 0) continue
+    cancelamentos.push({
+      chave: `custodia:${f.id}`,
+      motivo: '2',
+      justificativa: `Custodia ${f.id} cobrada por engano: valor devolvido ao saldo do cliente, servico nao prestado`,
+    })
   }
   return cancelamentos
 }

@@ -8,16 +8,16 @@
 
 import 'server-only'
 
-import { contaComPendenciaNoEstado, moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
-import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
+import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
-import { calcularPagoAte, mesesCobertos, somarMeses } from '@/domain/plano-custodia'
+import { quitarFatura } from '@/domain/quitar-fatura'
 import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
-import type { AppState, FormaPagamentoFatura } from '@/domain/types'
+import type { AppState, FaturaCustodia, FormaPagamentoFatura } from '@/domain/types'
 import { consultarPagamentoMercadoPago, type DetalhesPagamento } from '@/lib/payments'
 import type { IntencaoDeposito, TipoOperacaoPagamento } from '@/server/db/repositories/payments'
 import { contaBloqueavel } from '@/server/custodia/isencao-da-equipe'
@@ -126,7 +126,7 @@ function liquidarCompraDireta(
   // pagamento já entrou — o dinheiro volta ao comprador como saldo, como no caso acima. Sem isto, a
   // oferta aberta antes de a custódia lapsar ainda fechava por aqui.
   const moedaSemCustodia =
-    Boolean(sellerId) && offers.slice(0, qtyPedida).some((o) => moedaComCustodiaNaoPagaNoEstado(s, sellerId!, o.coinId))
+    Boolean(sellerId) && offers.slice(0, qtyPedida).some((o) => custodiaImpedeNegociar(s, o.coinId))
 
   // O preço do lote pode ter subido entre abrir a cobrança e o pagamento cair. O que o gateway
   // cobrou precisa cobrir o preço de agora mais a comissão congelada; se não cobrir, a compra não
@@ -238,9 +238,11 @@ function liquidarCompraDireta(
 
 /**
  * Liquidador de fatura de custódia (passo B2.4).
- * Marca a fatura como paga, ativa o plano correspondente (se origem 'contratacao')
- * ou renova (se origem 'renovacao_anual'), registra a entrada externa em deposits
- * e reavalia a inadimplência do usuário.
+ *
+ * Paga a fatura pelo caminho único (`quitarFatura`, src/domain/quitar-fatura.ts) e registra a entrada
+ * externa em deposits. Fatura que não existe, já foi paga ou foi cancelada não recebe o dinheiro: ele vira
+ * SALDO, inteiro (03/11/2026 — até então o Pix que chegava para uma fatura já paga simplesmente sumia, e o
+ * de uma fatura cancelada a marcava como paga).
  */
 function liquidarFaturaCustodia(
   s: AppState,
@@ -249,63 +251,34 @@ function liquidarFaturaCustodia(
   const buyer = s.users[reivindicada.userEmail]
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
+  const agora = Date.now()
   const faturaId = (reivindicada.metadata?.faturaId as string) || ''
   s.faturasCustodia = s.faturasCustodia ?? []
   const fatura = s.faturasCustodia.find((f) => f.id === faturaId)
 
-  if (!fatura) {
+  if (!fatura || fatura.status === 'paga' || fatura.status === 'cancelada' || reivindicada.valor < fatura.valorCents) {
     buyer.balance += reivindicada.valor
-    s.deposits.push({
-      userEmail: reivindicada.userEmail,
-      valor: reivindicada.valor,
-      date: Date.now(),
-    })
-    return { sucesso: true, motivo: 'fatura_custodia_creditada_saldo' }
-  }
-
-  if (fatura.status === 'paga') {
-    return { sucesso: true, motivo: 'fatura_ja_paga' }
-  }
-
-  const agora = Date.now()
-  const metodoPagamento: FormaPagamentoFatura =
-    reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
-
-  fatura.status = 'paga'
-  fatura.dataPagamento = agora
-  fatura.formaPagamento = metodoPagamento
-  fatura.paymentIntentId = reivindicada.externalReference
-  // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça no dia do pagamento (26/10/2026).
-  recomecarCicloNoPrimeiroPagamento(s, fatura, agora)
-
-  // Para a contabilidade: entrada externa que cobriu a fatura de custódia
-  s.deposits.push({
-    userEmail: reivindicada.userEmail,
-    valor: fatura.valorCents,
-    date: agora,
-  })
-
-  // Se a fatura é de contratação de plano, ativa o plano correspondente
-  if (fatura.origem === 'contratacao' && fatura.planoId) {
-    s.planosCustodia = s.planosCustodia ?? []
-    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
-    if (plano) {
-      plano.status = 'vigente'
-      plano.pagoAteCompetencia = calcularPagoAte(plano.inicioCompetencia, plano.modalidade)
-      plano.formaPagamento = metodoPagamento
-      plano.paymentIntentRef = reivindicada.externalReference
-      plano.atualizadoEm = agora
-    }
-  } else if (fatura.origem === 'renovacao_anual' && fatura.planoId) {
-    s.planosCustodia = s.planosCustodia ?? []
-    const plano = s.planosCustodia.find((p) => p.id === fatura.planoId)
-    if (plano) {
-      // Renovação estende pelo prazo do plano: 12 meses no anual, 24 no de 24 meses.
-      plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, mesesCobertos(plano.modalidade))
-      plano.formaPagamento = metodoPagamento
-      plano.atualizadoEm = agora
+    s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+    return {
+      sucesso: true,
+      motivo: !fatura
+        ? 'fatura_custodia_creditada_saldo'
+        : fatura.status === 'paga'
+          ? 'fatura_ja_paga_creditada_saldo'
+          : fatura.status === 'cancelada'
+            ? 'fatura_cancelada_creditada_saldo'
+            : 'valor_menor_que_a_fatura_creditado_saldo',
     }
   }
+
+  const metodoPagamento: FormaPagamentoFatura = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+  quitarFatura(s, fatura, metodoPagamento, agora, reivindicada.externalReference)
+
+  // Para a contabilidade: entrada externa que cobriu a fatura de custódia. Sobra (pagamento maior que a
+  // fatura) vai para o saldo, para o ledger não fechar a conta com um `ajuste`.
+  s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+  const sobra = reivindicada.valor - fatura.valorCents
+  if (sobra > 0) buyer.balance += sobra
 
   // Não grava user.inadimplente: essa coluna é a marca manual do painel (marcarInadimplencia).
   // A inadimplência por fatura é calculada por quem lê (E8). Pagar a fatura já tira a conta da
@@ -314,9 +287,12 @@ function liquidarFaturaCustodia(
 }
 
 /**
- * Liquidador de assinatura de custódia (passo B2.8).
- * Atualiza o plano de custódia com a assinaturaId, avança competência paga
- * e quita a fatura correspondente caso exista.
+ * Liquidador do cartão recorrente de custódia (passo B2.8).
+ *
+ * Cada cobrança do cartão PAGA UMA FATURA, pelo caminho único: a da intenção, se ainda estiver em aberto,
+ * ou a mais antiga em aberto da conta. Sem fatura a pagar, o valor vira saldo — e o débito automático da
+ * emissão seguinte o usa. Até 03/11/2026 a cobrança avançava um "plano" por mês do calendário e, quando a
+ * fatura não era de plano, o dinheiro entrava sem pagar fatura nenhuma.
  */
 function liquidarAssinaturaCustodia(
   s: AppState,
@@ -326,44 +302,33 @@ function liquidarAssinaturaCustodia(
   if (!buyer) throw new Error(`Usuário ${reivindicada.userEmail} não existe no estado.`)
 
   const agora = Date.now()
-  const planoId = (reivindicada.metadata?.planoId as string) || ''
   s.planosCustodia = s.planosCustodia ?? []
+  s.faturasCustodia = s.faturasCustodia ?? []
+
+  const planoId = (reivindicada.metadata?.planoId as string) || ''
   const plano = s.planosCustodia.find((p) => p.id === planoId)
-
-  s.deposits.push({
-    userEmail: reivindicada.userEmail,
-    valor: reivindicada.valor,
-    date: agora,
-  })
-
-  if (plano) {
-    if (reivindicada.metadata?.assinaturaId) {
-      plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
-    }
-    plano.status = 'vigente'
-    // Um mês por cobrança: a assinatura do gateway é recorrente mensal. Nenhum plano
-    // entra por aqui hoje — o plano anual é pago de uma vez (B2.8 continua de pé
-    // para a cobrança recorrente do ciclo, se um dia for ligada).
-    plano.pagoAteCompetencia = somarMeses(plano.pagoAteCompetencia ?? plano.inicioCompetencia, 1)
-    plano.formaPagamento = 'cartao'
+  if (plano && reivindicada.metadata?.assinaturaId) {
+    plano.assinaturaId = String(reivindicada.metadata.assinaturaId)
     plano.atualizadoEm = agora
-
-    // Se houver fatura pendente para esta competência e este plano, marca como paga
-    s.faturasCustodia = s.faturasCustodia ?? []
-    const fatura = s.faturasCustodia.find(
-      (f) => f.planoId === plano.id && f.status !== 'paga' && f.status !== 'cancelada',
-    )
-    if (fatura) {
-      fatura.status = 'paga'
-      fatura.dataPagamento = agora
-      fatura.formaPagamento = 'cartao'
-      fatura.paymentIntentId = reivindicada.externalReference
-    }
-  } else {
-    // Failsafe: se plano não foi encontrado, credita no saldo
-    buyer.balance += reivindicada.valor
   }
 
+  s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
+
+  const emAberto = (f: FaturaCustodia): boolean =>
+    f.userEmail === reivindicada.userEmail && f.status !== 'paga' && f.status !== 'cancelada'
+  const faturaId = (reivindicada.metadata?.faturaId as string) || ''
+  const fatura =
+    s.faturasCustodia.find((f) => f.id === faturaId && emAberto(f)) ??
+    s.faturasCustodia.filter(emAberto).sort((a, b) => a.dataEmissao - b.dataEmissao)[0]
+
+  if (!fatura || fatura.valorCents > reivindicada.valor) {
+    buyer.balance += reivindicada.valor
+    return { sucesso: true, motivo: 'assinatura_custodia_creditada_saldo' }
+  }
+
+  quitarFatura(s, fatura, 'cartao', agora, reivindicada.externalReference)
+  const sobra = reivindicada.valor - fatura.valorCents
+  if (sobra > 0) buyer.balance += sobra
   return { sucesso: true, motivo: 'assinatura_custodia_liquidada' }
 }
 
@@ -782,10 +747,19 @@ export async function conciliarPagamento(paymentId: string): Promise<ResultadoCo
       : false
 
     await mutateState((s) => {
+      const entradasAntes = s.deposits.length
       resLiquidacao = liquidador(s, reivindicada, detalhes, {
         taxas,
         contaBloqueavel: contaBloqueavelNaLiquidacao,
       })
+      // Toda entrada que esta liquidação registrou veio DESTE pagamento: ganha a origem, o método e a
+      // referência aqui, num lugar só, e não em cada um dos vinte `deposits.push` dos liquidadores — é o que
+      // faz o extrato dizer "Pagamento da custódia por Pix" em vez de "Depósito simulado" (03/11/2026).
+      for (const d of s.deposits.slice(entradasAntes)) {
+        d.origem = tipo
+        d.metodo = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
+        d.refExterna = ref
+      }
     })
   } catch (erro) {
     await intencoes.devolverParaPendente(ref)

@@ -33,7 +33,7 @@ import {
   type TabelaDeTaxas,
 } from '@/domain/fees'
 import { brl } from '@/domain/money'
-import { moedaComCustodiaNaoPagaNoEstado } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { moedaComRetiradaEmAndamento } from '@/domain/retirada'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import {
@@ -160,7 +160,7 @@ export function availableCoinsForSell(state: AppState, u: User, tipo?: string, c
       // Moeda em reserva aberta não se anuncia de novo (28/09/2026). Ver o
       // cabeçalho de `moedaEmReservaAberta` em domain/reserva-de-compra.ts.
       !moedaEmReservaAberta(state, c.id) &&
-      (email ? !moedaComCustodiaNaoPagaNoEstado(state, email, c.id) : true) &&
+      (email ? !custodiaImpedeNegociar(state, c.id) : true) &&
       !moedaComRetiradaEmAndamento(state, c.id),
   )
 }
@@ -180,7 +180,7 @@ export function lotsFromOffers(state: AppState, tipo?: string): Lot[] {
   const map = new Map<string, Lot>()
   state.sellOffers
     .filter((o) => tipo === undefined || o.tipoMoeda === tipo)
-    .filter((o) => !moedaComCustodiaNaoPagaNoEstado(state, o.seller, o.coinId))
+    .filter((o) => !custodiaImpedeNegociar(state, o.coinId))
     .forEach((o) => {
       const prioridade = o.prioridadeEm ?? o.createdAt
       const lot = map.get(o.lotId)
@@ -285,7 +285,7 @@ export function transferirMoedaVendida(
   // O comprador recebe a moeda JÁ COM o primeiro mês de custódia pago em nome dele (21/10/2026): a
   // fatura nasce aqui, na mesma transação da transferência, e o caminho de compra debita o valor junto
   // com o preço e a comissão (`custoDeCompraPorMoeda`). A custódia que o vendedor pagou não vale para o
-  // comprador — ver `custodiaPagaAteCompetencia`. Daí em diante, o ciclo mensal cobra o dono novo.
+  // comprador — ver `custodiaPagaAte` (src/domain/custodia-da-moeda.ts). Daí em diante, o ciclo cobra o dono novo.
   registrarCustodiaDaCompra(state, buyerEmail, coin, _taxas, agora)
   return coin
 }
@@ -445,7 +445,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       if (!so) continue
 
       // Oferta com custódia não quitada sai do livro imediatamente (AG8)
-      if (moedaComCustodiaNaoPagaNoEstado(state, so.seller, so.coinId)) {
+      if (custodiaImpedeNegociar(state, so.coinId)) {
         state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)
         progress = true
         break

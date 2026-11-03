@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   calcularVencimentoFatura,
   competenciaAtual,
-  DIAS_TOLERANCIA_FATURA,
   fimDaCompetencia,
-  gerarFaturaParaUsuario,
   isInadimplente,
   moedasFaturaveis,
   verificarStatusFatura,
@@ -95,99 +93,6 @@ describe('domain/custody', () => {
       const vencimento = calcularVencimentoFatura(emissao, 10)
       const esperado = emissao + 10 * 24 * 60 * 60 * 1000
       expect(vencimento).toBe(esperado)
-    })
-  })
-
-  describe('gerarFaturaParaUsuario', () => {
-    it('retorna null se o usuário não possuir moedas ativas', () => {
-      const user: User = { name: 'Sem Moeda', balance: 1000, coins: [] }
-      const fatura = gerarFaturaParaUsuario(user, 'sem@teste.com', '2026-09', 1000)
-      expect(fatura).toBeNull()
-    })
-
-    it('fatura moeda comprada no marketplace e ignora moeda com recibo extinto', () => {
-      const user: User = {
-        name: 'Cliente',
-        balance: 1000,
-        coins: [
-          {
-            id: 'RO-000001',
-            tipoMoeda: 'Entrega da Bandeira Olímpica',
-            ano: 2024,
-            entrada: '10/01/2026',
-            statusFisico: 'Armazenado',
-            statusDigital: 'Validado',
-            valorEstimado: 250000,
-            protocolo: 'RO-ENV-0001',
-            transferido: true,
-            recibo: { codigo: 'REC-000001', hash: 'h1', dataEmissao: '10/01/2026', status: 'Ativo' },
-          },
-          {
-            id: 'RO-000002',
-            tipoMoeda: 'Entrega da Bandeira Olímpica',
-            ano: 2024,
-            entrada: '10/01/2026',
-            statusFisico: 'Armazenado',
-            statusDigital: 'Validado',
-            valorEstimado: 250000,
-            protocolo: 'RO-ENV-0001',
-            recibo: { codigo: 'REC-000002', hash: 'h2', dataEmissao: '10/01/2026', status: 'Extinto' },
-          },
-        ],
-      }
-      const fatura = gerarFaturaParaUsuario(user, 'cli@teste.com', '2026-09', 1000)
-      expect(fatura).not.toBeNull()
-      expect(fatura?.quantidadeMoedas).toBe(1)
-      expect(fatura?.valorCents).toBe(200) // R$ 2,00 para a moeda ativa
-      expect(fatura?.moedaIds).toEqual(['RO-000001'])
-      expect(fatura?.status).toBe('pendente')
-      expect(fatura?.dataVencimento).toBe(1000 + DIAS_TOLERANCIA_FATURA * 86400000)
-    })
-
-    it('calcula valor correto para múltiplas moedas (R$ 2,00 cada)', () => {
-      const user: User = {
-        name: 'Investidor',
-        balance: 5000,
-        coins: [
-          {
-            id: 'RO-000001',
-            tipoMoeda: 'Entrega da Bandeira Olímpica',
-            ano: 2024,
-            entrada: '10/01/2026',
-            statusFisico: 'Armazenado',
-            statusDigital: 'Validado',
-            valorEstimado: 250000,
-            protocolo: 'RO-ENV-0001',
-            recibo: { codigo: 'REC-000001', hash: 'h1', dataEmissao: '10/01/2026', status: 'Ativo' },
-          },
-          {
-            id: 'RO-000002',
-            tipoMoeda: 'Entrega da Bandeira Olímpica',
-            ano: 2024,
-            entrada: '10/01/2026',
-            statusFisico: 'Armazenado',
-            statusDigital: 'Validado',
-            valorEstimado: 250000,
-            protocolo: 'RO-ENV-0001',
-            recibo: { codigo: 'REC-000002', hash: 'h2', dataEmissao: '10/01/2026', status: 'Ativo' },
-          },
-          {
-            id: 'RO-000003',
-            tipoMoeda: 'Entrega da Bandeira Olímpica',
-            ano: 2024,
-            entrada: '10/01/2026',
-            statusFisico: 'Armazenado',
-            statusDigital: 'Validado',
-            valorEstimado: 250000,
-            protocolo: 'RO-ENV-0001',
-            recibo: { codigo: 'REC-000003', hash: 'h3', dataEmissao: '10/01/2026', status: 'Ativo' },
-          },
-        ],
-      }
-      const fatura = gerarFaturaParaUsuario(user, 'inv@teste.com', '2026-09', 5000)
-      expect(fatura).not.toBeNull()
-      expect(fatura?.quantidadeMoedas).toBe(3)
-      expect(fatura?.valorCents).toBe(600) // 3 * R$ 2,00 = R$ 6,00
     })
   })
 

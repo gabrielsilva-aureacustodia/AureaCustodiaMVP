@@ -18,6 +18,10 @@ import {
 } from '@/domain/ledger'
 import { matchOrders } from '@/domain/market'
 import { BAN, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
+import type { AppState } from '@/domain/types'
+
+/** A fatura do 1º mês embutida na compra — as outras são a custódia em dia do fixture, de valor zero. */
+const daCompra = (s: AppState) => s.faturasCustodia!.find((f) => f.origem === 'compra')!
 
 describe('ledger', () => {
   it('negociação: quatro lançamentos (compra, comissão comprador, venda, comissão vendedor), e a soma de cada lado bate com o saldo do motor', () => {
@@ -34,7 +38,7 @@ describe('ledger', () => {
       lancamentoDeSaldoInicial('outro', 100_000, 1000, 'abertura'),
       ...lancamentosDeTrade(trades[0], { comprador: trades[0].feeComprador!, vendedor: trades[0].feeVendedor! }, 'TRADE-1'),
       // O 1º mês de custódia embutido na compra (21/10/2026): fatura paga do comprador, que sai do saldo dele.
-      lancamentoDeCustodia('outro', s.faturasCustodia![0], 3000, s.faturasCustodia![0].id),
+      lancamentoDeCustodia('outro', daCompra(s), 3000, daCompra(s).id),
     ]
     const { lancamentos, saldos } = encadear(pendentes, {}, GENESIS)
 

@@ -52,8 +52,8 @@ describe('descricaoDaFaturaDeCustodia', () => {
       atualizadoEm: 1757894400000,
     }
     const texto = descricaoDaFaturaDeCustodia(fatura, plano)
-    expect(texto).toBe('Plano mensal de custódia a partir de 2026-09 · 15 moeda(s) — paga')
-    expect(texto).toContain('Plano mensal')
+    // O pagamento antecipado do envio é o 1º mês das moedas dele, e não um plano por mês do calendário (03/11/2026).
+    expect(texto).toBe('Custódia do 1º mês, paga no envio · 15 moeda(s) — paga')
     expect(texto).not.toMatch(/faixa/i)
   })
 
@@ -61,7 +61,8 @@ describe('descricaoDaFaturaDeCustodia', () => {
     // A origem no banco continua 'renovacao_anual', mas renova plano mensal.
     const fatura: FaturaCustodia = { ...faturaBase, origem: 'renovacao_anual' }
     const texto = descricaoDaFaturaDeCustodia(fatura, undefined)
-    expect(texto).toBe('Renovação do plano de custódia a partir de 2026-09 · 15 moeda(s) — paga')
+    // Só existe em faturas antigas: a renovação do plano saiu do código em 03/11/2026.
+    expect(texto).toBe('Renovação do plano de custódia (regra antiga) 2026-09 · 15 moeda(s) — paga')
     expect(texto).toContain('Renovação do plano')
     expect(texto).not.toContain('anual')
     expect(texto).not.toMatch(/faixa/i)

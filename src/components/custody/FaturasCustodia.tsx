@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { fimDaCoberturaDaFatura } from '@/domain/custody'
-import { rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
+import { custodiaDoPlanoPagaAte, rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
@@ -31,7 +31,7 @@ import {
 } from '@/server/actions/plano-custodia'
 
 export function FaturasCustodia(): ReactNode {
-  const { me } = useApp()
+  const { me, state } = useApp()
   const { minhaContaBloqueada, consultar } = useBloqueioPorPendencia()
   const [faturas, setFaturas] = useState<FaturaCustodia[]>([])
   const [planos, setPlanos] = useState<PlanoCustodia[]>([])
@@ -351,12 +351,15 @@ export function FaturasCustodia(): ReactNode {
                         <span className="v">{brl(p.valorTotalCents)} / mês</span>
                       </div>
                       <div className="sr">
-                        <span className="k">Início da vigência</span>
-                        <span className="v">{p.inicioCompetencia}</span>
-                      </div>
-                      <div className="sr">
-                        <span className="k">Pago até</span>
-                        <span className="v">{p.pagoAteCompetencia ? p.pagoAteCompetencia : 'Aguardando pagamento'}</span>
+                        {/* A data da regra única, a mesma da trava — e não o mês do calendário do plano (03/11/2026). */}
+                        <span className="k">Custódia paga até</span>
+                        <span className="v">
+                          {(() => {
+                            const pagaAte = custodiaDoPlanoPagaAte(state, p)
+                            if (pagaAte !== null) return fdate(pagaAte)
+                            return p.status === 'aguardando_pagamento' ? 'Aguardando pagamento' : 'Conta a partir do aceite das moedas'
+                          })()}
+                        </span>
                       </div>
                       {p.estornadoCents > 0 && (
                         <div className="sr">

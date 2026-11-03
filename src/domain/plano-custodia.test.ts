@@ -4,17 +4,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import {
-  alimentarPlanoNaAnalise,
-  calcularPagoAte,
-  competenciaCoberta,
-  moedasCobertas,
-  mesesCobertos,
-  renovacaoDevida,
-  somarMeses,
-  valorDoPlano,
-} from '@/domain/plano-custodia'
-import type { FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
+import { alimentarPlanoNaAnalise, mesesCobertos, somarMeses, valorDoPlano } from '@/domain/plano-custodia'
+import { custodiaImpedeNegociar, custodiaPagaAte, proximaCobrancaDaMoeda } from '@/domain/custodia-da-moeda'
+import type { AppState, Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 function criarPlano(parciais: Partial<PlanoCustodia> = {}): PlanoCustodia {
   return {
@@ -97,106 +89,92 @@ describe('plano-custodia (B2.3)', () => {
     })
   })
 
-  describe('calcularPagoAte', () => {
-    it('mensal cobre 1 mês (+0 meses)', () => {
-      expect(calcularPagoAte('2026-09', 'mensal')).toBe('2026-09')
-      expect(calcularPagoAte('2026-12', 'mensal')).toBe('2026-12')
-    })
-
-    it('mesesCobertos diz o prazo da modalidade', () => {
-      expect(mesesCobertos('mensal')).toBe(1)
-    })
+  // calcularPagoAte, competenciaCoberta, moedasCobertas e renovacaoDevida saíram em 03/11/2026: eram o plano
+  // contado por mês do calendário, com renovação no dia 1º. Ver o cabeçalho de src/domain/plano-custodia.ts.
+  it('mesesCobertos: o pagamento cobre um mês (apropriação contábil)', () => {
+    expect(mesesCobertos('mensal')).toBe(1)
   })
 
-  describe('competenciaCoberta', () => {
-    it('rejeita plano que não está vigente', () => {
-      const planoAguardando = criarPlano({
-        status: 'aguardando_pagamento',
-        pagoAteCompetencia: null,
-      })
-      expect(competenciaCoberta(planoAguardando, '2026-09')).toBe(false)
+  describe('o caso do Sidnei (03/11/2026): pagou no envio em 27/10, a moeda foi aceita em 30/10', () => {
+    // 00:00 de Brasília (UTC-3)
+    const brasilia = (mes: number, dia: number, hora = 0): number => Date.UTC(2026, mes - 1, dia, hora + 3)
+    const SIDNEI = 'sidnei@exemplo.com.br'
+    const MOEDA = 'RO-000182'
 
-      const planoCancelado = criarPlano({
-        status: 'cancelado',
-        pagoAteCompetencia: '2026-09',
+    function cenario(): { s: AppState; plano: PlanoCustodia; fatura: FaturaCustodia } {
+      const coin: Coin = {
+        id: MOEDA,
+        tipoMoeda: 'Entrega da Bandeira Olímpica',
+        ano: 2016,
+        entrada: '30/10/2026',
+        statusFisico: 'Recebido',
+        statusDigital: 'Validado',
+        valorEstimado: 20000,
+        protocolo: 'RO-ENV-0019',
+        recibo: { codigo: 'REC-182', hash: 'h', dataEmissao: '30/10/2026', status: 'Ativo' },
+      }
+      const plano = criarPlano({
+        id: 'PLC-000011',
+        userEmail: SIDNEI,
+        protocoloEnvio: 'RO-ENV-0019',
+        moedaIds: [],
+        inicioCompetencia: '2026-10',
+        pagoAteCompetencia: '2026-10',
       })
-      expect(competenciaCoberta(planoCancelado, '2026-09')).toBe(false)
+      // a fatura de contratação, paga por Pix em 27/10 — ainda sem moeda nenhuma
+      const fatura: FaturaCustodia = {
+        id: 'FAT-2026-10-sidnei-1793106017201',
+        userEmail: SIDNEI,
+        competencia: '2026-10',
+        quantidadeMoedas: 1,
+        moedaIds: [],
+        valorCents: 200,
+        status: 'paga',
+        dataEmissao: brasilia(10, 27, 10),
+        dataVencimento: brasilia(11, 26, 10),
+        dataPagamento: brasilia(10, 27, 10),
+        formaPagamento: 'pix',
+        paymentIntentId: 'FAT-a149fff7',
+        planoId: plano.id,
+        origem: 'contratacao',
+      }
+      const s: AppState = {
+        users: { [SIDNEI]: { name: 'Sidnei', balance: 0, coins: [coin], inadimplente: false } },
+        sellOffers: [],
+        buyOrders: [],
+        trades: [],
+        envios: [],
+        seq: { coin: 0, envio: 0 },
+        deposits: [],
+        analises: [],
+        faturasCustodia: [fatura],
+        planosCustodia: [plano],
+      }
+      return { s, plano, fatura }
+    }
+
+    it('no aceite, o pagamento passa a cobrir o primeiro ciclo da moeda: de 30/10 a 29/11 23:59', () => {
+      const { s, plano, fatura } = cenario()
+      alimentarPlanoNaAnalise({ plano, faturas: s.faturasCustodia!, user: s.users[SIDNEI]!, moedaIdsAprovadas: [MOEDA], quantidadeRecusadas: 0, agora: brasilia(10, 30, 14) })
+
+      expect(fatura.moedaIds).toEqual([MOEDA])
+      expect(fatura.coberturaAte).toBe(brasilia(11, 30) - 1)
+      expect(custodiaPagaAte(s, MOEDA)).toBe(brasilia(11, 30) - 1)
     })
 
-    it('valida cobertura de competências para plano vigente', () => {
-      const planoMensal = criarPlano({
-        modalidade: 'mensal',
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2026-09',
-        status: 'vigente',
-      })
+    it('a moeda NÃO trava em 01/11 (o erro de 01/11/2026), e a próxima cobrança é 30/11 — não 30/12', () => {
+      const { s, plano } = cenario()
+      alimentarPlanoNaAnalise({ plano, faturas: s.faturasCustodia!, user: s.users[SIDNEI]!, moedaIdsAprovadas: [MOEDA], quantidadeRecusadas: 0, agora: brasilia(10, 30, 14) })
 
-      expect(competenciaCoberta(planoMensal, '2026-08')).toBe(false)
-      expect(competenciaCoberta(planoMensal, '2026-09')).toBe(true)
-      expect(competenciaCoberta(planoMensal, '2026-10')).toBe(false)
-    })
-  })
-
-  describe('moedasCobertas', () => {
-    it('reúne todas as moedas cobertas de múltiplos planos vigentes', () => {
-      const p1 = criarPlano({
-        id: 'PLC-001',
-        moedaIds: ['M-1', 'M-2'],
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2026-09',
-        status: 'vigente',
-      })
-      // Mensal que acabou em 2026-08: em 2026-09 a renovacao esta devida, e uma moeda
-      // esperando fatura de renovacao segue coberta para o ciclo nao cobrar em dobro.
-      const p2 = criarPlano({
-        id: 'PLC-002',
-        moedaIds: ['M-3'],
-        inicioCompetencia: '2026-08',
-        pagoAteCompetencia: '2026-08',
-        status: 'vigente',
-      })
-      const p3NaoPago = criarPlano({
-        id: 'PLC-003',
-        moedaIds: ['M-4'],
-        status: 'aguardando_pagamento',
-        pagoAteCompetencia: null,
-      })
-
-      const cobertasSet = moedasCobertas([p1, p2, p3NaoPago], '2026-09')
-      expect(Array.from(cobertasSet).sort()).toEqual(['M-1', 'M-2', 'M-3'].sort())
-
-      // Em 2026-10 o p2 ja passou ate do mes da renovacao: so p1 cobre
-      const cobertasMesSeguinte = moedasCobertas([p1, p2, p3NaoPago], '2026-10')
-      expect(Array.from(cobertasMesSeguinte)).toEqual(['M-1', 'M-2'])
-    })
-  })
-
-  describe('renovacaoDevida', () => {
-    it('retorna false se o plano não estiver vigente', () => {
-      const planoInativo = criarPlano({
-        modalidade: 'mensal',
-        pagoAteCompetencia: '2026-09',
-        status: 'encerrado',
-      })
-      expect(renovacaoDevida(planoInativo, '2026-10')).toBe(false)
+      expect(custodiaImpedeNegociar(s, MOEDA, brasilia(11, 1, 12))).toBe(false)
+      expect(custodiaImpedeNegociar(s, MOEDA, brasilia(11, 30, 23))).toBe(false) // dia da cobrança, até 23:59
+      expect(custodiaImpedeNegociar(s, MOEDA, brasilia(12, 1, 0) + 1)).toBe(true) // sem pagar o ciclo 2
+      expect(proximaCobrancaDaMoeda(s, s.users[SIDNEI]!.coins[0]!, brasilia(11, 3, 12))).toBe(brasilia(11, 30))
     })
 
-    it('identifica renovação do mensal exatamente no mês seguinte (pagoAteCompetencia === mesAnterior)', () => {
-      const planoMensal = criarPlano({
-        modalidade: 'mensal',
-        inicioCompetencia: '2026-09',
-        pagoAteCompetencia: '2026-09',
-        status: 'vigente',
-      })
-
-      // Mês 1: ainda coberto
-      expect(renovacaoDevida(planoMensal, '2026-09')).toBe(false)
-
-      // Mês 2: venceu em 2026-09, logo em 2026-10 a renovação é devida!
-      expect(renovacaoDevida(planoMensal, '2026-10')).toBe(true)
-
-      // Mês 3: posterior
-      expect(renovacaoDevida(planoMensal, '2026-11')).toBe(false)
+    it('sem o aceite, o plano sozinho não cobre nada: não há "pago até outubro"', () => {
+      const { s } = cenario()
+      expect(custodiaPagaAte(s, MOEDA)).toBeNull()
     })
   })
 

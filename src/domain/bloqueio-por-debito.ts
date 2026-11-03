@@ -1,32 +1,27 @@
 /**
  * Regras puras de bloqueio de operações por pendência de custódia.
  *
- * Evita as seguintes armadilhas mapeadas na pendência B-2:
- * 1. Derivação em tempo real: a inadimplência não é estática nem depende apenas
- *    do ciclo mensal; faturas vencidas bloqueiam na hora em que vencem e liberam
- *    imediatamente quando quitadas.
- * 2. Preservação de `isInadimplente`: a função nativa de `custody.ts` é mantida
- *    intocada porque cinco rotinas do sistema recalculam `u.inadimplente = isInadimplente(...)`
- *    ao liquidar faturas; alterar a função interna impediria o desligamento da marca.
- *    Esta regra faz a composição lógica por fora: `user.inadimplente || isInadimplente(...)`.
- * 3. Casamento justo com ofertas pausadas: vendedores com pendência têm seus anúncios
- *    temporariamente resguardados fora da rodada de casamento sem que sejam cancelados,
- *    preservando sua ordem cronológica e prioridade original para quando a dívida for quitada.
+ * DOIS NÍVEIS, E SÓ DOIS (03/11/2026)
+ * -----------------------------------
+ *  - A MOEDA: negocia ou não pela regra única de src/domain/custodia-da-moeda.ts
+ *    (`custodiaImpedeNegociar`). Este arquivo só a aplica — ao livro de ofertas e à lista do aviso.
+ *    Até 03/11 havia aqui seis funções por moeda, cada uma com o seu critério ("fatura vencida",
+ *    "cobrança registrada", "paga até a competência", "cobertura paga"...), e cada ponto de venda
+ *    perguntava a sua. Saíram todas.
+ *  - A CONTA: a conta com fatura vencida há mais de um dia (`faturaBloqueia`) tem os anúncios pausados
+ *    no casamento e não retira moeda (RA-53). Fatura em aberto dentro do prazo não é dívida.
+ *
+ * Armadilhas que continuam valendo:
+ * 1. `isInadimplente` (custody.ts) é recalculado por quem lê; a coluna `user.inadimplente` é só a marca
+ *    manual do painel, e a pendência da conta é a composição `user.inadimplente || isInadimplente(...)`.
+ * 2. Ofertas de vendedor com pendência ficam FORA da rodada de casamento sem ser canceladas, preservando a
+ *    prioridade original para quando a dívida for quitada.
  */
 
-import type {
-  AppState,
-  FaturaCustodia,
-  MatchResult,
-  PlanoCustodia,
-  SellOffer,
-  Timestamp,
-  User,
-  UserEmail,
-} from '@/domain/types'
+import type { AppState, FaturaCustodia, MatchResult, SellOffer, Timestamp, User, UserEmail } from '@/domain/types'
 import type { TabelaDeTaxas } from '@/domain/fees'
-import { inicioDoDiaBrasilia } from '@/domain/ciclo-custodia'
-import { faturaBloqueia, fimDaCoberturaDaFatura, fimDaCompetencia, isInadimplente } from '@/domain/custody'
+import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
+import { isInadimplente } from '@/domain/custody'
 import { expurgarOfertasSemCadastro, matchOrders } from '@/domain/market'
 
 export const MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA =
@@ -67,172 +62,8 @@ export function contaComPendenciaNoEstado(
 }
 
 /**
- * Retorna as faturas em aberto (pendentes ou atrasadas) do usuário que cobrem uma moeda específica.
- *
- * Uma fatura de outro usuário (ex.: dono anterior) nunca é considerada:
- * a dívida relevante é sempre a do dono atual sobre a moeda.
- */
-export function faturasAbertasDaMoeda(
-  faturas: readonly FaturaCustodia[],
-  planos: readonly PlanoCustodia[] | undefined,
-  email: UserEmail,
-  coinId: string,
-  agora: Timestamp = Date.now(),
-): FaturaCustodia[] {
-  return faturas.filter((f) => {
-    if (f.userEmail !== email) return false
-    // SÓ FATURA QUE JÁ BLOQUEIA (27/09/2026). Antes bastava estar em aberto, e
-    // como esta lista alimenta o expurgo de ofertas e o filtro do motor, a
-    // fatura emitida hoje derrubava o anúncio da moeda hoje — sem o cliente ter
-    // tido um dia sequer para pagar. Conta a partir de um dia depois de vencer.
-    if (!faturaBloqueia(f, agora)) return false
-    if (f.moedaIds && f.moedaIds.includes(coinId)) return true
-    if (f.planoId && planos) {
-      const plano = planos.find((p) => p.id === f.planoId)
-      if (plano && plano.moedaIds && plano.moedaIds.includes(coinId)) return true
-    }
-    return false
-  })
-}
-
-/**
- * Quem guarda a moeda AGORA, e desde quando — a pergunta de que toda cobertura de custódia depende.
- *
- * `desde` só existe para moeda que já trocou de dono (`transferido`): é o início do dia da compra, e
- * fatura emitida antes disso é de outro período de guarda (de outro dono, ou do mesmo dono antes de
- * vender e recomprar). Moeda que nunca foi vendida é do mesmo dono desde o início: `desde` é zero.
- */
-export function donoAtualDaMoeda(
-  state: AppState,
-  coinId: string,
-): { email: UserEmail; desde: Timestamp } | null {
-  for (const [email, u] of Object.entries(state.users)) {
-    const coin = u.coins.find((c) => c.id === coinId)
-    if (!coin) continue
-    return { email, desde: coin.transferido ? (inicioDoDiaBrasilia(coin.entrada) ?? 0) : 0 }
-  }
-  return null
-}
-
-/**
- * A fatura é de quem guarda a moeda agora, dentro do período de guarda dele?
- *
- * Emitida OU paga dentro do período (26/10/2026): a moeda comprada antes de 21/10 recomeça o ciclo no dia
- * do primeiro pagamento do dono novo (`recomecarCicloNoPrimeiroPagamento`), e esse dia vira o `desde`. A
- * fatura que ele recebeu antes e pagou depois é dele, e é ela que abre o período — contá-la só pela emissão
- * a jogaria fora no instante em que é paga.
- */
-export function faturaDoGuardadoAtual(
-  f: Pick<FaturaCustodia, 'userEmail' | 'dataEmissao'> & { dataPagamento?: Timestamp | null },
-  dono: { email: UserEmail; desde: Timestamp },
-): boolean {
-  return f.userEmail === dono.email && Math.max(f.dataEmissao, f.dataPagamento ?? 0) >= dono.desde
-}
-
-/**
- * Até que competência a custódia DESTA moeda está paga — ou `null` se nunca foi.
- *
- * A resposta vem de duas fontes, e vale a mais adiantada delas:
- *
- *  - plano vigente do DONO ATUAL que cobre a moeda, por `pagoAteCompetencia`;
- *  - fatura PAGA do DONO ATUAL que lista a moeda, pela competência dela.
- *
- * FILTRA POR DONO desde 21/10/2026. Até 20/10 esta função respondia com a custódia paga por QUALQUER
- * pessoa, sob o argumento de que cobrar o comprador pelo mesmo mês seria cobrar duas vezes pela mesma
- * guarda. O Gabriel revogou a regra: "TODA moeda — enviada, cadastrada no admin ou comprada — precisa ter
- * a custódia paga, inclusive se outro usuário já havia pago". Foi por esse buraco que o "Gerais" comprou
- * moeda que o vendedor tinha pago e a anunciou sem pagar nada. O primeiro mês do comprador agora é
- * embutido na compra (`src/domain/custodia-da-compra.ts`).
- */
-export function custodiaPagaAteCompetencia(
-  state: AppState,
-  coinId: string,
-): string | null {
-  const dono = donoAtualDaMoeda(state, coinId)
-  if (!dono) return null
-  let maisAdiantada: string | null = null
-
-  for (const p of state.planosCustodia ?? []) {
-    if (p.userEmail !== dono.email) continue
-    if (p.status !== 'vigente') continue
-    if (!p.moedaIds?.includes(coinId)) continue
-    if (p.pagoAteCompetencia && (!maisAdiantada || p.pagoAteCompetencia > maisAdiantada)) {
-      maisAdiantada = p.pagoAteCompetencia
-    }
-  }
-
-  for (const f of state.faturasCustodia ?? []) {
-    if (f.status !== 'paga') continue
-    if (!f.moedaIds?.includes(coinId)) continue
-    if (!faturaDoGuardadoAtual(f, dono)) continue
-    if (!maisAdiantada || f.competencia > maisAdiantada) maisAdiantada = f.competencia
-  }
-
-  return maisAdiantada
-}
-
-/**
- * Até quando a guarda desta moeda está PAGA, em instante — ou `null` se nunca foi paga.
- *
- * É a maior cobertura entre as faturas PAGAS que listam a moeda (`coberturaAte`, o fim do ciclo; nas
- * anteriores a 02/10/2026, o fim do mês da competência) e os planos vigentes que a cobrem. Fatura em
- * aberto NÃO cobre nada: é só uma conta a pagar. Só vale a do DONO ATUAL, dentro do período de guarda dele
- * (21/10/2026): a custódia que o vendedor pagou NÃO vale para a moeda que o comprador recebe.
- */
-export function coberturaPagaDaMoeda(state: AppState, coinId: string): Timestamp | null {
-  const dono = donoAtualDaMoeda(state, coinId)
-  if (!dono) return null
-  let maior: Timestamp | null = null
-
-  for (const f of state.faturasCustodia ?? []) {
-    if (f.status !== 'paga' || !(f.moedaIds ?? []).includes(coinId)) continue
-    if (!faturaDoGuardadoAtual(f, dono)) continue
-    const fim = fimDaCoberturaDaFatura(f)
-    if (maior === null || fim > maior) maior = fim
-  }
-  for (const p of state.planosCustodia ?? []) {
-    if (p.userEmail !== dono.email) continue
-    if (p.status !== 'vigente' || !p.pagoAteCompetencia || !(p.moedaIds ?? []).includes(coinId)) continue
-    const fim = fimDaCompetencia(p.pagoAteCompetencia)
-    if (maior === null || fim > maior) maior = fim
-  }
-  return maior
-}
-
-/**
- * A custódia desta moeda IMPEDE negociá-la agora? — a ÚNICA resposta que todo ponto de venda usa.
- *
- * A REGRA (Gabriel, 02/10 e 12/10/2026): "ao pagar a custódia eu poderia então negociar essa moeda",
- * e nos ciclos seguintes a moeda segue negociável até as 23:59 do dia da cobrança — depois disso, só
- * depois de pagar. Em duas frases:
- *
- *  1. moeda cuja custódia NUNCA foi paga não é negociável, ainda que a fatura esteja dentro do prazo;
- *  2. moeda cuja cobertura paga acabou fica negociável até um dia depois (`DIAS_CARENCIA_BLOQUEIO`), e
- *     então trava até a próxima fatura ser paga.
- *
- * POR QUE ISTO EXISTE. Entre 27/09 e 12/10 a regra era "fatura em aberto dentro do prazo não é dívida",
- * e cada ponto de venda perguntava uma coisa diferente: a publicação exigia "tem cobrança registrada",
- * a compra do lote, o motor, a vitrine e a lista de moedas vendáveis exigiam só "não venceu há mais de um
- * dia". A fatura de entrada, pendente e dentro do prazo, passava em todas — e o Sidnei Pena vendeu uma
- * moeda 7 minutos depois de ela ser aceita, sem pagar R$ 2,00. Pergunta única, resposta única.
- *
- * Pergunta-se pela COBERTURA, e não pela existência de fatura vencida: se o cron falhar e não emitir a
- * fatura do ciclo, a moeda ainda trava quando a cobertura acaba, em vez de negociar de graça.
- */
-export function custodiaImpedeNegociar(
-  state: AppState,
-  coinId: string,
-  agora: Timestamp = Date.now(),
-): boolean {
-  const cobertura = coberturaPagaDaMoeda(state, coinId)
-  if (cobertura === null) return true
-  // O ciclo seguinte começa no instante seguinte ao fim da cobertura; a carência corre dali.
-  return faturaBloqueia({ status: 'pendente', dataVencimento: cobertura + 1 }, agora)
-}
-
-/**
  * As moedas da conta que a custódia IMPEDE de negociar agora — a lista por trás do aviso "pague a
- * custódia para vender".
+ * custódia para vender". A pergunta é a da regra única (`custodiaImpedeNegociar`).
  *
  * Só moeda ativa: recibo extinto (retirada física) já não é guarda nossa. Ordem estável pelo código,
  * para a tela não embaralhar entre leituras.
@@ -250,149 +81,12 @@ export function moedasComCustodiaBloqueada(
 }
 
 /**
- * Verifica se a custódia de uma moeda específica não foi paga pelo usuário informado.
- * Vale mesmo antes do vencimento: se a fatura estiver pendente ou atrasada, a guarda não foi quitada.
+ * Remove do livro de ofertas todas as ofertas cujas moedas a custódia impede de negociar (AG8).
+ * Garante que ofertas publicadas antes de a cobertura acabar saiam do livro.
  */
-export function moedaComCustodiaNaoPaga(
-  faturas: readonly FaturaCustodia[],
-  planos: readonly PlanoCustodia[] | undefined,
-  email: UserEmail,
-  coinId: string,
-  agora: Timestamp = Date.now(),
-): boolean {
-  return faturasAbertasDaMoeda(faturas, planos, email, coinId, agora).length > 0
-}
-
-/**
- * Retorna o conjunto de IDs de moedas do usuário que possuem custódia em aberto (não paga).
- */
-export function moedasComCustodiaNaoPagaDoUsuario(
-  faturas: readonly FaturaCustodia[],
-  planos: readonly PlanoCustodia[] | undefined,
-  email: UserEmail,
-): Set<string> {
-  const ids = new Set<string>()
-  for (const f of faturas) {
-    if (f.userEmail !== email || f.status === 'paga' || f.status === 'cancelada') continue
-    for (const id of f.moedaIds ?? []) {
-      ids.add(id)
-    }
-    if (f.planoId && planos) {
-      const plano = planos.find((p) => p.id === f.planoId)
-      if (plano?.moedaIds) {
-        for (const id of plano.moedaIds) {
-          ids.add(id)
-        }
-      }
-    }
-  }
-  return ids
-}
-
-/**
- * A moeda tem custódia em aberto? É esta que a venda consulta.
- *
- * A PERGUNTA MUDOU EM 23/09/2026, E ERA O BURACO DA TRAVA.
- * -------------------------------------------------------
- * Antes ela perguntava "existe fatura EM ABERTO para esta moeda?". Moeda que
- * nunca foi cobrada não tem fatura nenhuma, então a resposta era "sem dívida"
- * e a venda passava — e toda moeda recém-cadastrada fica exatamente assim até
- * o ciclo mensal rodar. Foi como onze moedas sem cobrança nenhuma chegaram ao
- * livro de ofertas.
- *
- * Agora pergunta "a custódia desta moeda está paga ATÉ o mês corrente?".
- * Ausência de prova de pagamento passou a significar dívida, que é a leitura
- * certa de "nunca vender moeda própria que enviou sem pagar a custódia antes".
- *
- * O efeito colateral bom: não depende mais de o ciclo de faturamento ter
- * rodado. Moeda cadastrada hoje já nasce bloqueada para venda, e destrava no
- * instante em que a custódia dela é paga.
- */
-export function moedaComCustodiaNaoPagaNoEstado(
-  state: AppState,
-  email: UserEmail,
-  coinId: string,
-  agora: Timestamp = Date.now(),
-): boolean {
-  // Cobertura nunca paga ou já lapsada: a moeda não se negocia (ver `custodiaImpedeNegociar`).
-  if (custodiaImpedeNegociar(state, coinId, agora)) return true
-  // E fatura do dono atual vencida há mais de um dia segue bloqueando, como sempre bloqueou.
-  return moedaComCustodiaNaoPaga(
-    state.faturasCustodia ?? [],
-    state.planosCustodia,
-    email,
-    coinId,
-    agora,
-  )
-}
-
-/**
- * A moeda está impedida de ser ANUNCIADA por causa da custódia?
- *
- * Duas perguntas, e as duas precisam ser "não" para a moeda ir ao livro:
- *
- *  1. Existe fatura de custódia dela vencida há mais de um dia?
- *  2. A moeda tem alguma cobrança registrada — fatura ou plano?
- *
- * POR QUE A SEGUNDA, QUE PARECE REDUNDANTE (23/09/2026)
- * -----------------------------------------------------
- * Moeda que NUNCA foi cobrada não tem fatura nenhuma, então a primeira
- * pergunta responde "sem dívida" e a venda passava. Foi assim que onze moedas
- * sem cobrança alguma chegaram ao livro de ofertas. A segunda fecha esse
- * buraco: sem rastro de custódia, a moeda não sai.
- *
- * POR QUE ELA DEIXOU DE EXIGIR PAGAMENTO EM DIA (27/09/2026)
- * ----------------------------------------------------------
- * Entre 23/09 e hoje esta função perguntava "a custódia está PAGA até o mês
- * corrente?", e ausência de pagamento valia como dívida. Somada à cobrança na
- * entrada da moeda, isso travou negociação de gente que não devia nada: a
- * fatura nascia junto com a moeda, dentro do prazo, e a moeda já nascia
- * impedida de ser anunciada.
- *
- * A regra do Gabriel é a que vale: trava só um dia depois de a data passar.
- * Fatura em aberto dentro do prazo é conta a vencer, não dívida — e a moeda
- * dela negocia normalmente.
- */
-export function custodiaNaoComprovadaNoEstado(
-  state: AppState,
-  coinId: string,
-  agora: Timestamp = Date.now(),
-): boolean {
-  if (custodiaImpedeNegociar(state, coinId, agora)) return true
-  // Só a conta do dono atual: a fatura vencida do dono anterior é dívida DELE, não trava a moeda do novo.
-  const dono = donoAtualDaMoeda(state, coinId)
-  if (!dono) return true
-  return (state.faturasCustodia ?? []).some(
-    (f) => (f.moedaIds ?? []).includes(coinId) && f.userEmail === dono.email && faturaBloqueia(f, agora),
-  )
-}
-
-/**
- * A moeda tem alguma cobrança de custódia registrada — paga, em aberto ou
- * coberta por plano? É o rastro que prova que a guarda dela entrou no sistema.
- */
-export function temCobrancaRegistrada(state: AppState, coinId: string): boolean {
-  if (custodiaPagaAteCompetencia(state, coinId)) return true
-
-  const emFatura = (state.faturasCustodia ?? []).some(
-    (f) => f.status !== 'cancelada' && (f.moedaIds ?? []).includes(coinId),
-  )
-  if (emFatura) return true
-
-  return (state.planosCustodia ?? []).some(
-    (p) => p.status !== 'cancelado' && (p.moedaIds ?? []).includes(coinId),
-  )
-}
-
-/**
- * Remove do livro de ofertas todas as ofertas cujas moedas estejam com custódia não quitada (AG8).
- * Garante que ofertas publicadas antes da geração do débito saiam do livro imediatamente.
- */
-export function expurgarOfertasSemCustodia(state: AppState): SellOffer[] {
+export function expurgarOfertasSemCustodia(state: AppState, agora: Timestamp = Date.now()): SellOffer[] {
   if (!state.sellOffers.length) return state.sellOffers
-  state.sellOffers = state.sellOffers.filter(
-    (o) => !moedaComCustodiaNaoPagaNoEstado(state, o.seller, o.coinId),
-  )
+  state.sellOffers = state.sellOffers.filter((o) => !custodiaImpedeNegociar(state, o.coinId, agora))
   return state.sellOffers
 }
 
@@ -416,7 +110,7 @@ export function vendedoresComPendencia(state: AppState, agora: Timestamp): Set<U
  * Executa o casamento de ordens pausando temporariamente as ofertas de vendedores
  * que possuem pendência e estão no conjunto de contas bloqueáveis (não isentas).
  *
- * Ofertas de moedas com custódia não paga saem do livro definitivamente (AG8).
+ * Ofertas de moedas que a custódia impede de negociar saem do livro definitivamente (AG8).
  *
  * As ofertas pausadas não participam da rodada de execução, mas retornam ao livro
  * preservando exatamente seus objetos e prioridades originais.
@@ -431,8 +125,8 @@ export function casarOrdensRespeitandoPendencia(
   // Ver o cabeçalho de `expurgarOfertasSemCadastro` em src/domain/market.ts.
   expurgarOfertasSemCadastro(state)
 
-  // Expurgar do livro qualquer oferta de moeda cuja custódia não foi paga (AG8)
-  expurgarOfertasSemCustodia(state)
+  // Expurgar do livro qualquer oferta de moeda cuja custódia impede negociar (AG8)
+  expurgarOfertasSemCustodia(state, agora)
 
   if (bloqueaveis.size === 0 || !state.sellOffers.length) {
     return matchOrders(state, taxas)
@@ -466,4 +160,3 @@ export function casarOrdensRespeitandoPendencia(
 
   return resultado
 }
-

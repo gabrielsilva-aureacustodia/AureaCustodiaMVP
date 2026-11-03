@@ -106,6 +106,16 @@ cold start.
   (comprador e vendedor) (`TAXAS_PADRAO` em `src/domain/fees.ts`, com `FEE_PCT` e `FEE_FIXED`
   derivados em `constants.ts`). Em uma negociação de R$ 200,00: o comprador paga R$ 202,00, o
   vendedor recebe R$ 198,00 e a Áurea retém R$ 4,00.
+- **A REGRA ÚNICA DA CUSTÓDIA (03/11/2026) — `src/domain/custodia-da-moeda.ts`.** Cada moeda tem UMA data, "paga até":
+  a maior `coberturaAte` entre as faturas PAGAS do dono atual que a listam. Nada mais conta — nem plano, nem mês do
+  calendário, nem fatura em aberto. A moeda negocia até as 23:59 do dia da cobrança seguinte (o dia depois do "paga até") e
+  trava depois; a próxima cobrança é esse dia; o cron só emite o ciclo em curso que ainda não está cobrado (`cicloJaCobrado`).
+  Trava, telas e cron leem as MESMAS funções, e `custodia-da-moeda.test.ts` confere, dia a dia, que as respostas batem.
+  Fatura vira paga só por `quitarFatura` (`src/domain/quitar-fatura.ts`), e cobrança indevida já paga se devolve por
+  `estornarFaturaPaga` (estorno no ledger + cancelamento da NFS-e). **Não existe renovação de plano nem cobrança no dia 1º:**
+  o plano por mês do calendário (`pagoAteCompetencia`, renovação no cron) travou a moeda do Sidnei em 01/11/2026 e cobrou do
+  Rogério a renovação de um envio sem moeda; saiu do código. O "plano" agora é só o pagamento antecipado do 1º mês de um
+  envio: no aceite, `alimentarPlanoNaAnalise` liga a fatura de contratação às moedas aceitas com o primeiro ciclo delas.
 - Custódia: **um plano só, mensal**, R$ 2,00 por moeda por mês
   (`custodiaMensalPorMoeda: 200`), sem prazo mínimo e sem parcelamento — decisão dos sócios de
   21/09/2026, que substituiu a de horas antes. O **ciclo mensal** (`origem: 'ciclo_mensal'`) cobra
@@ -213,6 +223,9 @@ cold start.
   `postada`/`entregue`; "Recebido pela custódia" continua manual. Credenciais nas cinco variáveis
   `CORREIOS_*` (o token de 24 h nasce no servidor); sem elas, frete vira estimativa local e a tela diz isso.
   Mapa em `src/lib/shipping/README.md`; atalhos no RA-59.
+- **Toda entrada de dinheiro diz de onde veio** (03/11/2026, migration 049): `Deposit.origem/metodo/refExterna`, gravados num
+  lugar só, em `conciliarPagamento`; o extrato mostra "Pagamento da custódia por Pix", "Depósito em conta por Pix" etc. O texto
+  "Depósito simulado em conta" não existe mais — os lançamentos antigos do ledger o guardam porque o ledger é append-only.
 - **Depósito em conta é real**, por Pix ou cartão no Mercado Pago (`iniciarDeposito`, `src/server/actions/payments.ts`),
   creditado só quando a conciliação confirma o pagamento, e limitado a `DEPOSITO_MAX` (R$ 100.000 por operação,
   editável no painel), que a tela mostra sempre. **Nada no sistema é simulado** (Gabriel, 25/10/2026): o simulador de

@@ -24,6 +24,7 @@ import {
 } from '@/domain/admin/usuarios'
 import { ACCOUNTS } from '@/domain/constants'
 import { verificarStatusFatura } from '@/domain/custody'
+import { custodiaDoPlanoPagaAte } from '@/domain/custodia-do-cliente'
 import { posicaoNaFila, type InfoPosicaoFila } from '@/domain/market'
 import { statementTotals, userStatement, type StatementRow, type StatementTotals } from '@/domain/statement'
 import type {
@@ -39,6 +40,7 @@ import type {
   Retirada,
   Saque,
   StatusFatura,
+  Timestamp,
   Trade,
 } from '@/domain/types'
 import { podeAbrirPainelAdmin } from '@/server/admin/acesso'
@@ -190,6 +192,8 @@ export interface PlanoNaFicha {
   valorTotalCents: Cents
   inicioCompetencia: string
   pagoAteCompetencia: string | null
+  /** Até quando a custódia das moedas do plano está paga, pela regra única (03/11/2026). */
+  custodiaPagaAte: Timestamp | null
   status: string
   formaPagamento: string | null
 }
@@ -339,6 +343,7 @@ async function conteudoDaAba(aba: AbaFicha, state: AppState, email: string, reti
                 valorTotalCents: p.valorTotalCents,
                 inicioCompetencia: p.inicioCompetencia,
                 pagoAteCompetencia: p.pagoAteCompetencia,
+                custodiaPagaAte: custodiaDoPlanoPagaAte(state, p),
                 status: p.status,
                 formaPagamento: p.formaPagamento,
               }))

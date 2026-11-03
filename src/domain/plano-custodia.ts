@@ -1,47 +1,35 @@
 /**
- * Regras puras de domínio para o plano de custódia e o ciclo de faturamento.
+ * O "plano" de custódia: o PAGAMENTO ANTECIPADO do primeiro mês de um envio.
  *
- * Passo B2.3 da Frente B (Finalizações 13/09/2026); planos revistos em
- * 18/09, 20/09 e 21/09/2026.
+ * O QUE ELE É DESDE 03/11/2026
+ * ----------------------------
+ * Na tela de Envios o cliente paga o primeiro mês de custódia das moedas que está mandando, antes de elas
+ * chegarem. Isso gera um plano (o registro do envio pago) e uma fatura de origem `contratacao`, ainda sem
+ * moeda nenhuma. Quando a análise aceita as moedas, `alimentarPlanoNaAnalise` liga essa fatura às moedas
+ * aceitas e dá a ela o PRIMEIRO CICLO delas: do dia do aceite ao dia anterior ao aniversário seguinte. A
+ * partir daí a moeda segue a regra única de src/domain/custodia-da-moeda.ts, como qualquer outra.
  *
- * Modos de contratação:
- * - Mensal: R$ 3,00 por moeda por mês, sem prazo, renovado no ciclo.
- * - Anual: R$ 24,00 por moeda pelos 12 meses (R$ 2,00/mês), em até 12x no cartão.
+ * O QUE ELE DEIXOU DE SER
+ * -----------------------
+ * Até 03/11/2026 o plano era um segundo modelo de cobrança, contado por mês do calendário: pago em 27/10,
+ * cobria "outubro" (até 31/10), qualquer que fosse o dia em que a moeda fosse aceita, e um cron o renovava
+ * no dia 1º. Foi o que travou a moeda do Sidnei em 01/11 — aceita em 30/10, coberta por um dia — e cobrou
+ * do Rogério, em 01/11, a renovação de um plano sem moeda nenhuma. A cobertura do plano, a renovação e a
+ * conta "pago até a competência" saíram do código; `pagoAteCompetencia` ficou só como registro para os
+ * relatórios.
  *
- * O plano de 24 meses existiu e foi aposentado em 20/09/2026; não volta.
- *
- * PLANO MENSAL E CICLO MENSAL NÃO SÃO A MESMA COISA, apesar do mesmo preço.
- * Plano é o que o cliente escolhe e fica gravado em `planosCustodia`; ciclo
- * (`emitirFaturasDosCiclos`, em cobranca-de-entrada.ts) é o que se cobra de quem tem moeda guardada SEM plano
- * vigente — plano vencido, moeda solta de plano cancelado, moeda cadastrada
- * direto pela bancada. Confundir os dois foi o que embaralhou a cobrança antes.
- *
- * Cobertura e ciclo:
- * - A competência coberta impede cobrança duplicada no ciclo da moeda.
- * - Moedas cobertas por plano vigente e quitado são deduzidas das moedas faturáveis.
- * - Plano vencido gera fatura de renovação no mês seguinte ao último mês coberto
- *   (13º mês do anual, 2º mês do mensal).
+ * Os planos anual, de 24 meses e de transferência foram aposentados em setembro de 2026 e não voltam.
  */
 
-import {
-  CUSTODIA_MENSAL_POR_MOEDA_CENTS,
-} from '@/domain/fees'
-import type {
-  Cents,
-  FaturaCustodia,
-  ModalidadePlanoCustodia,
-  PlanoCustodia,
-  Timestamp,
-  User,
-} from '@/domain/types'
+import { cicloDaMoeda } from '@/domain/ciclo-custodia'
+import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
+import type { Cents, FaturaCustodia, ModalidadePlanoCustodia, PlanoCustodia, Timestamp, User } from '@/domain/types'
 
 /**
  * O recorte da Tabela de Taxas que o plano de custódia precisa.
  *
  * Campos opcionais e índice aberto de propósito: quem chama passa a tabela
- * vigente inteira, vinda do banco (C3), e aqui só interessam três colunas. O
- * índice usa `unknown` em vez de repetir a `TabelaDeTaxas` de `fees.ts` para
- * que este módulo não fique preso ao formato completo dela.
+ * vigente inteira, vinda do banco (C3), e aqui só interessa uma coluna.
  *
  * `Cents | number | undefined` no índice, e não `unknown`: com `unknown` a
  * `TabelaDeTaxas` de `fees.ts` deixava de ser atribuível a este tipo — todo
@@ -56,24 +44,15 @@ export interface TabelaDeTaxasPlano {
 export type TabelaDeTaxas = TabelaDeTaxasPlano
 
 /**
- * Quantos meses de guarda a modalidade cobre.
- * Apenas modalidade mensal (1 mês).
+ * Quantos meses de guarda o pagamento cobre: um. Fica para a apropriação contábil
+ * (src/domain/competencia.ts), que reparte o valor pago pelos meses cobertos.
  */
 export function mesesCobertos(_modalidade?: ModalidadePlanoCustodia): number {
   return 1
 }
 
 /**
- * Quantos meses este plano cobre (1 mês no plano mensal).
- */
-export function mesesDoPlano(_plano?: {
-  modalidade?: ModalidadePlanoCustodia
-}): number {
-  return 1
-}
-
-/**
- * Calcula os valores unitário, total e limite de parcelamento do plano de custódia mensal.
+ * Calcula os valores unitário, total e limite de parcelamento do pagamento antecipado.
  */
 export function valorDoPlano(
   _modalidade: ModalidadePlanoCustodia,
@@ -87,6 +66,7 @@ export function valorDoPlano(
 
 /**
  * Soma ou subtrai meses de uma competência 'AAAA-MM', virando o ano corretamente.
+ * Uso contábil (competência de lançamento), não de cobertura de custódia.
  */
 export function somarMeses(competencia: string, meses: number): string {
   const [anoStr, mesStr] = competencia.split('-')
@@ -105,74 +85,17 @@ export function somarMeses(competencia: string, meses: number): string {
 }
 
 /**
- * Calcula até qual competência um plano recém-pago cobre a custódia.
- * No plano mensal cobre apenas o mês corrente (inicioCompetencia).
- */
-export function calcularPagoAte(
-  inicioCompetencia: string,
-  _modalidade?: ModalidadePlanoCustodia,
-): string {
-  return inicioCompetencia
-}
-
-/**
- * Avalia se uma competência específica está coberta por um plano quitado.
- */
-export function competenciaCoberta(
-  plano: PlanoCustodia,
-  competencia: string
-): boolean {
-  if (plano.status !== 'vigente') return false
-  if (!plano.pagoAteCompetencia) return false
-  return (
-    competencia >= plano.inicioCompetencia &&
-    competencia <= plano.pagoAteCompetencia
-  )
-}
-
-/**
- * Retorna o conjunto de IDs de moedas cobertas por planos vigentes na competência informada.
- */
-export function moedasCobertas(
-  planos: PlanoCustodia[],
-  competencia: string
-): Set<string> {
-  const cobertas = new Set<string>()
-  for (const plano of planos) {
-    if (competenciaCoberta(plano, competencia) || renovacaoDevida(plano, competencia)) {
-      for (const id of plano.moedaIds) {
-        cobertas.add(id)
-      }
-    }
-  }
-  return cobertas
-}
-
-/**
- * Avalia se um plano vigente chegou ao mês da renovação — o primeiro mês depois do
- * último coberto (13º mês).
+ * Liga o pagamento antecipado do envio às moedas aceitas na análise (passo B2.5, refeito em 03/11/2026).
  *
- * A conta não olha a modalidade: compara `pagoAteCompetencia` com o mês anterior,
- * e quem escreveu essa competência já levou o prazo do plano em conta.
- */
-export function renovacaoDevida(
-  plano: PlanoCustodia,
-  competencia: string
-): boolean {
-  if (plano.status !== 'vigente') return false
-  if (!plano.pagoAteCompetencia) return false
-
-  const mesAnterior = somarMeses(competencia, -1)
-  return plano.pagoAteCompetencia === mesAnterior
-}
-
-/**
- * Atualiza o plano de custódia e faturas após a análise física (emissão de recibos).
- * Passo B2.5:
- * - moedas aprovadas entram em `plano.moedaIds`;
+ * - a fatura de contratação passa a listar as moedas aceitas e a cobrir o PRIMEIRO CICLO delas, do dia do
+ *   aceite ao dia anterior ao aniversário seguinte — paga ou não. Paga, a moeda já nasce negociável; em
+ *   aberto, é ela a conta do primeiro ciclo, e a entrada no acervo não emite outra;
  * - plano já pago e moedas recusadas -> `estornadoCents += recusadas * valorPorMoeda`, creditado ao saldo;
- * - plano não pago e moedas recusadas -> fatura de contratação passa a valer só as aprovadas;
+ * - plano não pago e moedas recusadas -> a fatura de contratação passa a valer só as aceitas;
  * - todas recusadas -> plano cancelado; fatura cancelada se não paga, ou estorno integral se paga.
+ *
+ * Chame ANTES de `cobrarEntradaNoAcervo`, na mesma transação: é a fatura ligada aqui que faz a entrada
+ * reconhecer o ciclo como já cobrado.
  */
 export function alimentarPlanoNaAnalise({
   plano,
@@ -193,7 +116,9 @@ export function alimentarPlanoNaAnalise({
 
   const aprovadas = moedaIdsAprovadas.length
   const recusadas = Math.max(0, quantidadeRecusadas)
-  const fatura = faturas.find((f) => f.planoId === plano.id && f.origem === 'contratacao')
+  const fatura = faturas.find(
+    (f) => f.planoId === plano.id && f.origem === 'contratacao' && f.status !== 'cancelada',
+  )
   const jaPago = plano.status === 'vigente' || fatura?.status === 'paga'
 
   if (aprovadas === 0) {
@@ -223,9 +148,23 @@ export function alimentarPlanoNaAnalise({
       const novoValor = aprovadas * plano.valorPorMoedaCents
       plano.valorTotalCents = novoValor
       fatura.valorCents = novoValor
-      fatura.quantidadeMoedas = aprovadas
-      fatura.moedaIds = [...moedaIdsAprovadas]
     }
   }
-}
 
+  if (!fatura) return
+
+  fatura.moedaIds = [...moedaIdsAprovadas]
+  // Paga, a quantidade fica a que foi paga (e tem nota emitida); a sobra das recusadas voltou como estorno.
+  if (fatura.status !== 'paga') fatura.quantidadeMoedas = aprovadas
+
+  // O PRIMEIRO CICLO DAS MOEDAS ACEITAS. Todas nascem no mesmo aceite, então têm o mesmo ciclo; a data é a
+  // gravada na moeda (`entrada`), a mesma que o cron vai usar nos aniversários seguintes.
+  const entrada = user.coins.find((c) => moedaIdsAprovadas.includes(c.id))?.entrada
+  if (!entrada) return
+  const ciclo = cicloDaMoeda(entrada, agora)
+  fatura.competencia = ciclo.competencia
+  fatura.dataVencimento = ciclo.fim
+  fatura.coberturaAte = ciclo.fim - 1
+  plano.inicioCompetencia = ciclo.competencia
+  if (fatura.status === 'paga') plano.pagoAteCompetencia = ciclo.competencia
+}

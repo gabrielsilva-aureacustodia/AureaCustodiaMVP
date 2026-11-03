@@ -85,8 +85,10 @@ describe('resumoDaCustodia', () => {
     // regra antiga (competência 2026-10). A tela mostrava 21/10; o cron só cobra de novo em 21/11.
     const rogerio = { ...moeda('RO-000001'), entrada: '21/09/2026' }
     const AGORA_3_10 = Date.UTC(2026, 9, 3, 12)
+    // O fim do ciclo de cada competência da moeda aceita em 21/09: a cobertura que a fatura grava.
+    const FIM: Record<string, number> = { '2026-09': Date.UTC(2026, 9, 21, 3) - 1, '2026-10': Date.UTC(2026, 10, 21, 3) - 1 }
     const paga = (id: string, competencia: string): FaturaCustodia =>
-      fatura({ id, status: 'paga', competencia, moedaIds: ['RO-000001'], dataPagamento: AGORA_3_10 - DIA })
+      fatura({ id, status: 'paga', competencia, moedaIds: ['RO-000001'], dataPagamento: AGORA_3_10 - DIA, coberturaAte: FIM[competencia] })
 
     it('com outubro já pago pela cobrança de 01/10, a próxima é 21/11 — não 21/10', () => {
       const s = estado([rogerio], [paga('F-ENTRADA', '2026-09'), paga('F-01-10', '2026-10')])
@@ -106,7 +108,7 @@ describe('resumoDaCustodia', () => {
     })
 
     it('fatura em aberto resolve o ciclo para a próxima cobrança, mas não conta como guarda paga', () => {
-      const aberta = fatura({ id: 'F-ABERTA', status: 'pendente', competencia: '2026-10', moedaIds: ['RO-000001'] })
+      const aberta = fatura({ id: 'F-ABERTA', status: 'pendente', competencia: '2026-10', moedaIds: ['RO-000001'], coberturaAte: FIM['2026-10'] })
       const r = resumoDaCustodia(estado([rogerio], [paga('F-ENTRADA', '2026-09'), aberta]), DONO, 200, AGORA_3_10)
 
       expect(r.proximaCobrancaEm).toBe(Date.UTC(2026, 10, 21, 3))
@@ -119,7 +121,7 @@ describe('resumoDaCustodia', () => {
         [rogerio, outra],
         [
           paga('F-A', '2026-10'),
-          fatura({ id: 'F-B', status: 'paga', competencia: '2026-10', moedaIds: ['RO-000002'], dataPagamento: AGORA_3_10 }),
+          fatura({ id: 'F-B', status: 'paga', competencia: '2026-10', moedaIds: ['RO-000002'], dataPagamento: AGORA_3_10, coberturaAte: Date.UTC(2026, 10, 28, 3) - 1 }),
         ],
       )
       const r = resumoDaCustodia(s, DONO, 200, AGORA_3_10)
@@ -143,7 +145,7 @@ describe('resumoDaCustodia', () => {
     const fim = Date.UTC(2026, 10, 21, 3) // 21/11 00:00 em Brasília
     const s = estado(
       [moeda('RO-000001')],
-      [fatura({ id: 'F-CICLO', status: 'paga', competencia: '2026-10', dataPagamento: AGORA, dataVencimento: fim, coberturaAte: fim - 1 })],
+      [fatura({ id: 'F-CICLO', status: 'paga', competencia: '2026-10', moedaIds: ['RO-000001'], dataPagamento: AGORA, dataVencimento: fim, coberturaAte: fim - 1 })],
     )
     expect(resumoDaCustodia(s, DONO, 200, AGORA).cobertaAte).toBe(fim - 1)
   })
@@ -190,10 +192,10 @@ describe('resumoDaCustodia', () => {
   })
 
   it('separa a COBERTURA do prazo de pagamento — a confusão de 27/09/2026', () => {
-    // Fatura emitida em 25/09 com 10 dias de tolerância: prazo para pagar em
-    // 05/10, guarda coberta só até 30/09. Ver as duas na mesma coluna fazia a
-    // custódia parecer expirar dez dias depois de ser paga.
+    // A guarda paga vai até a cobertura gravada na fatura (o fim do ciclo da moeda), e não até o prazo
+    // de pagamento. Ver as duas na mesma coluna fazia a custódia parecer expirar quando o prazo acabava.
     const emitida = Date.UTC(2026, 8, 25, 15)
+    const fimDoCiclo = Date.UTC(2026, 9, 25, 3) // 25/10, 00:00 de Brasília
     const s = estado(
       [moeda('RO-000001')],
       [
@@ -201,22 +203,21 @@ describe('resumoDaCustodia', () => {
           id: 'F-PAGA',
           status: 'paga',
           competencia: '2026-09',
+          moedaIds: ['RO-000001'],
           dataEmissao: emitida,
           dataVencimento: emitida + 10 * DIA,
+          coberturaAte: fimDoCiclo - 1,
           dataPagamento: emitida,
         }),
       ],
     )
     const r = resumoDaCustodia(s, DONO, 200, AGORA)
 
-    expect(r.pagaAteCompetencia).toBe('2026-09')
-    // 30/09/2026, e não 05/10 — o prazo de pagamento é cortesia, não guarda.
-    expect(new Date(r.cobertaAte!).getUTCMonth()).toBe(8)
-    expect(new Date(r.cobertaAte!).getUTCDate()).toBe(30)
-    expect(r.cobertaAte!).toBeLessThan(emitida + 10 * DIA)
+    expect(r.cobertaAte).toBe(fimDoCiclo - 1)
+    expect(r.cobertaAte).not.toBe(emitida + 10 * DIA)
   })
 
-  it('plano vigente adianta a cobertura além das faturas pagas', () => {
+  it('plano NÃO adianta a cobertura (03/11/2026): só fatura paga cobre a moeda', () => {
     const plano: PlanoCustodia = {
       id: 'PLC-1',
       userEmail: DONO,
@@ -237,13 +238,13 @@ describe('resumoDaCustodia', () => {
       criadoEm: AGORA,
       atualizadoEm: AGORA,
     }
+    // Era o "pago até 2026-11" do plano que fazia a tela e a trava divergirem.
     const r = resumoDaCustodia(estado([moeda('RO-000001')], [], [plano]), DONO, 200, AGORA)
-    expect(r.pagaAteCompetencia).toBe('2026-11')
+    expect(r.cobertaAte).toBeNull()
   })
 
   it('sem nada pago, a cobertura é nula em vez de uma data inventada', () => {
     const r = resumoDaCustodia(estado([moeda('RO-000001')]), DONO, 200, AGORA)
-    expect(r.pagaAteCompetencia).toBeNull()
     expect(r.cobertaAte).toBeNull()
   })
 
@@ -261,7 +262,7 @@ describe('resumoDaCustodia', () => {
 
 describe('rotuloDaOrigem', () => {
   it('traduz cada origem para o que o cliente entende', () => {
-    expect(rotuloDaOrigem('contratacao')).toBe('Contratação do plano')
+    expect(rotuloDaOrigem('contratacao')).toBe('Custódia do 1º mês, paga no envio')
     expect(rotuloDaOrigem('entrada_no_acervo')).toBe('Entrada de moeda na custódia')
     expect(rotuloDaOrigem('ciclo_mensal')).toBe('Mensalidade de custódia')
     expect(rotuloDaOrigem(undefined)).toBe('Mensalidade de custódia')

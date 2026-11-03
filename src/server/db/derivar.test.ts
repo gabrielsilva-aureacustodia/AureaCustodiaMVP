@@ -229,3 +229,45 @@ describe('derivarLancamentos — frete do envio pago no site (22/10/2026)', () =
     expect(deNovo.lancamentos).toHaveLength(0)
   })
 })
+
+describe('derivarLancamentos — estorno de custódia cobrada por engano (03/11/2026)', () => {
+  it('fatura PAGA que passa a cancelada devolve o valor como estorno, sem ajuste', async () => {
+    const { estornarFaturaPaga } = await import('@/domain/quitar-fatura')
+    const { planejarDiff } = await import('./diff')
+    const antes: AppState = seedState()
+    const email = Object.keys(antes.users)[0]!
+    antes.faturasCustodia = [
+      {
+        id: 'FAT-2026-11-REN-ENGANO',
+        userEmail: email,
+        competencia: '2026-11',
+        quantidadeMoedas: 1,
+        moedaIds: [],
+        valorCents: 200,
+        status: 'paga',
+        dataEmissao: 1,
+        dataVencimento: 2,
+        dataPagamento: 1,
+        formaPagamento: 'saldo',
+        planoId: null,
+        origem: 'renovacao_anual',
+      },
+    ]
+    const depois: AppState = structuredClone(antes)
+    const saldoAntes = depois.users[email]!.balance
+    expect(estornarFaturaPaga(depois, 'FAT-2026-11-REN-ENGANO').ok).toBe(true)
+
+    const derivado = derivarLancamentos({
+      antes,
+      depois,
+      ops: planejarDiff(antes, depois),
+      semeadura: false,
+      agora: 10,
+      hashAnterior: 'h',
+    })
+
+    expect(derivado.lancamentos).toHaveLength(1)
+    expect(derivado.lancamentos[0]).toMatchObject({ tipo: 'estorno', valor: 200, sinal: 1, userEmail: email, refInterna: 'FAT-2026-11-REN-ENGANO' })
+    expect(derivado.lancamentos[0]!.saldoApos).toBe(saldoAntes + 200)
+  })
+})

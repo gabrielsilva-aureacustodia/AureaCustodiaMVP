@@ -32,7 +32,7 @@
  * Regra pura, sem I/O.
  */
 
-import { faturaDoGuardadoAtual, donoAtualDaMoeda } from '@/domain/bloqueio-por-debito'
+import { donoAtualDaMoeda, faturaDoGuardadoAtual } from '@/domain/custodia-da-moeda'
 import { cicloDaMoeda, dataBrasilia } from '@/domain/ciclo-custodia'
 import { custodiaDaCompraPorMoeda, type TabelaDeTaxas, TAXAS_PADRAO } from '@/domain/fees'
 import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'

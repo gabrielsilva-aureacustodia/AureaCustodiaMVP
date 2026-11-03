@@ -385,18 +385,40 @@ export type OrigemDaAnalise = 'bancada' | 'cadastro_direto'
  * ------------------------------------------------------------------------- */
 
 /**
- * Aporte de saldo feito pelo próprio usuário.
+ * Dinheiro que ENTROU pelo Mercado Pago (Pix ou cartão), confirmado pela conciliação.
  *
- * SIMULADO: não existe Pix, cartão nem qualquer integração de pagamento. O
- * registro existe porque o extrato da conta precisa explicar de onde veio o
- * dinheiro — um saldo que cresce sem lastro documental é exatamente o que a
- * tela de extrato serve para evitar.
+ * Não é só o depósito em conta: todo pagamento externo entra aqui — custódia, compra, retirada, frete —, e o
+ * serviço pago sai em seguida do saldo pelo seu próprio lançamento. O registro existe porque o extrato da
+ * conta precisa explicar de onde veio o dinheiro.
+ *
+ * NADA AQUI É SIMULADO (Gabriel, 25/10/2026). Até 03/11/2026 o extrato chamava toda entrada de "Depósito
+ * simulado em conta", resto da época do MVP sem gateway, e o Gabriel via o rótulo em pagamentos reais. Desde
+ * então a entrada guarda de que pagamento veio (`origem`, `metodo`, `refExterna`) e o extrato diz o que ela
+ * foi. As 11 entradas anteriores ganharam a origem pela migration 049, casadas com as intenções do gateway.
  */
 export interface Deposit {
   userEmail: UserEmail
   valor: Cents
   date: Timestamp
+  /** O tipo de operação que trouxe o dinheiro; `null` só em registro sem intenção correspondente. */
+  origem?: OrigemDeposito | null
+  /** Por onde o dinheiro veio. */
+  metodo?: 'pix' | 'cartao' | null
+  /** A referência do pagamento no gateway (`external_reference` da intenção). */
+  refExterna?: string | null
 }
+
+/** De que operação veio uma entrada de dinheiro — os tipos de intenção de pagamento do gateway. */
+export type OrigemDeposito =
+  | 'deposito'
+  | 'compra_direta'
+  | 'plano_custodia'
+  | 'fatura_custodia'
+  | 'assinatura_custodia'
+  | 'retirada'
+  | 'oferta_prepaga'
+  | 'reserva_compra'
+  | 'frete_envio'
 
 export type StatusPagamento = 'Pago' | 'Pendente'
 

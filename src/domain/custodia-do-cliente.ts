@@ -22,9 +22,8 @@
  * tarifa. Quem olhasse só os planos veria R$ 2,00 tendo 11 moedas guardadas.
  */
 
-import { custodiaImpedeNegociar } from '@/domain/bloqueio-por-debito'
-import { guardaPagaAteDaMoeda, proximaCobrancaDaMoeda } from '@/domain/cobranca-de-entrada'
-import { competenciaAtual, fimDaCoberturaDaFatura, fimDaCompetencia } from '@/domain/custody'
+import { custodiaImpedeNegociar, custodiaPagaAte, proximaCobrancaDaMoeda } from '@/domain/custodia-da-moeda'
+import { competenciaAtual, fimDaCoberturaDaFatura } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
 import type {
   AppState,
@@ -80,18 +79,10 @@ export interface ResumoDaCustodia {
   /** Há fatura vencida — é o que bloqueia venda e retirada. */
   vencida: boolean
   /**
-   * Até que competência a guarda está PAGA — `null` se nunca foi.
-   *
-   * É a resposta de "até quando estou coberto", e não tem nada a ver com o
-   * `dataVencimento` da fatura, que é o prazo para pagar. As duas datas se
-   * cruzam de um jeito que confunde: uma fatura emitida no dia 25 pode ter
-   * prazo até o dia 5 do mês seguinte e cobrir a guarda só até o dia 30.
-   */
-  pagaAteCompetencia: string | null
-  /**
-   * O último instante coberto pelo que já foi pago; `null` quando nada foi. Vem
-   * da `coberturaAte` da fatura (o fim do ciclo da moeda) e, nas faturas
-   * anteriores a 02/10/2026, do fim do mês da competência.
+   * Até quando a guarda está PAGA; `null` quando nada foi pago. Com moedas, é a
+   * MENOR data "paga até" entre as moedas pagas (`custodiaPagaAte`): é quando a
+   * primeira lapsa. Não tem nada a ver com o `dataVencimento` da fatura, que é o
+   * prazo para pagar.
    */
   cobertaAte: Timestamp | null
   /** Faturas pagas, da mais recente para a mais antiga. É o extrato. */
@@ -128,33 +119,24 @@ export function resumoDaCustodia(
   const planos = (state.planosCustodia ?? []).filter((p) => p.userEmail === email)
   const competencia = competenciaAtual(agora)
 
-  // O que já foi pago de mais adiantado: fatura liquidada ou plano vigente com
-  // `pagoAteCompetencia` escrito. A cobertura em instante vem da própria fatura.
-  let pagaAteCompetencia: string | null = null
-  let cobertaAte: Timestamp | null = null
-  for (const f of pagas) {
-    if (!pagaAteCompetencia || f.competencia > pagaAteCompetencia) pagaAteCompetencia = f.competencia
-    const fim = fimDaCoberturaDaFatura(f)
-    if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
-  }
-  for (const p of planos) {
-    if (p.status !== 'vigente' || !p.pagoAteCompetencia) continue
-    if (!pagaAteCompetencia || p.pagoAteCompetencia > pagaAteCompetencia) {
-      pagaAteCompetencia = p.pagoAteCompetencia
-    }
-    const fim = fimDaCompetencia(p.pagoAteCompetencia)
-    if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
-  }
-
-  // Por moeda, com a mesma pergunta do cron: o que já foi cobrado (inclusive pela regra antiga, em
-  // 01/10) conta, então a próxima cobrança não é só o aniversário.
+  // Por moeda, pela regra única (src/domain/custodia-da-moeda.ts): a mesma data que trava a moeda e a
+  // mesma próxima cobrança que o cron obedece. Até 03/11/2026 esta conta somava também o "plano" por mês
+  // do calendário, e a tela mostrava uma data diferente da trava.
   const moedasVivas = (user?.coins ?? []).filter((c) => c.recibo?.status !== 'Extinto')
   const proximas = moedasVivas.map((c) => proximaCobrancaDaMoeda(state, c, agora))
   const coberturas = moedasVivas
-    .map((c) => guardaPagaAteDaMoeda(state, c, agora))
+    .map((c) => custodiaPagaAte(state, c.id))
     .filter((t): t is Timestamp => t !== null)
-  // Com moedas, a cobertura da conta é a MENOR entre as moedas pagas: é quando a primeira lapsa.
-  if (coberturas.length > 0) cobertaAte = Math.min(...coberturas)
+
+  // Com moedas, a cobertura da conta é a MENOR entre as moedas pagas: é quando a primeira lapsa. Sem moeda
+  // (tudo retirado), fica a da última fatura paga, só como histórico.
+  let cobertaAte: Timestamp | null = coberturas.length > 0 ? Math.min(...coberturas) : null
+  if (moedasVivas.length === 0) {
+    for (const f of pagas) {
+      const fim = fimDaCoberturaDaFatura(f)
+      if (cobertaAte === null || fim > cobertaAte) cobertaAte = fim
+    }
+  }
 
   return {
     moedasGuardadas,
@@ -170,7 +152,6 @@ export function resumoDaCustodia(
     // quando alguma rotina passa pela fatura, e entre a virada do prazo e essa
     // passagem a tela mostraria "em dia" uma fatura que já bloqueia a venda.
     vencida: emAberto.some((f) => f.status === 'atrasada' || f.dataVencimento < agora),
-    pagaAteCompetencia,
     cobertaAte,
     pagas,
     totalPagoCents: pagas.reduce((soma, f) => soma + f.valorCents, 0),
@@ -209,9 +190,10 @@ export function lotesDaFatura(coins: readonly Coin[], fatura: Pick<FaturaCustodi
 export function rotuloDaOrigem(origem: FaturaCustodia['origem']): string {
   switch (origem) {
     case 'contratacao':
-      return 'Contratação do plano'
+      return 'Custódia do 1º mês, paga no envio'
     case 'renovacao_anual':
-      return 'Renovação do plano'
+      // Só em faturas antigas: a renovação do plano saiu do código em 03/11/2026.
+      return 'Renovação do plano (regra antiga)'
     case 'entrada_no_acervo':
       return 'Entrada de moeda na custódia'
     case 'compra':
@@ -239,4 +221,22 @@ function agruparPorData(
     porDia.set(em, g)
   })
   return [...porDia.values()].sort((a, b) => a.em - b.em)
+}
+
+/**
+ * Até quando está paga a custódia das moedas de um plano (o pagamento antecipado de um envio) — a MENOR data
+ * "paga até" entre as moedas dele que a conta ainda guarda; `null` quando o plano ainda não tem moeda ou
+ * nenhuma está paga.
+ *
+ * Substitui, nos cartões de plano, o "Pago até: 2026-10" (03/11/2026): o mês do calendário que o plano
+ * guardava era exatamente a data errada que travou a moeda do Sidnei em 01/11. A data mostrada agora é a
+ * da regra única, a mesma da trava.
+ */
+export function custodiaDoPlanoPagaAte(state: AppState, plano: Pick<PlanoCustodia, 'userEmail' | 'moedaIds'>): Timestamp | null {
+  const doDono = new Set((state.users[plano.userEmail]?.coins ?? []).filter((c) => c.recibo?.status !== 'Extinto').map((c) => c.id))
+  const datas = plano.moedaIds
+    .filter((id) => doDono.has(id))
+    .map((id) => custodiaPagaAte(state, id))
+    .filter((t): t is Timestamp => t !== null)
+  return datas.length > 0 ? Math.min(...datas) : null
 }

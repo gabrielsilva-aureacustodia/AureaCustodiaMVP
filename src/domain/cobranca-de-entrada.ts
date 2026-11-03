@@ -12,124 +12,50 @@
  *      faturamento (src/server/custodia/faturamento.ts).
  *
  * O ciclo de cada moeda começa no dia em que ela foi aceita e se renova todo mês
- * no mesmo dia — ver src/domain/ciclo-custodia.ts. Até 02/10/2026 a renovação
- * era um cron no dia 1º que cobrava o acervo inteiro de uma vez, e quem pagou em
- * 25/09 foi cobrado de novo em 01/10.
+ * no mesmo dia — ver src/domain/ciclo-custodia.ts. NÃO EXISTE COBRANÇA NO DIA 1º:
+ * até 02/10/2026 um cron cobrava o acervo inteiro por mês do calendário, e até
+ * 03/11/2026 o "plano" de custódia ainda era renovado no dia 1º — foi o que cobrou
+ * o Sidnei e o Rogério em 01/11. Os dois saíram do código.
+ *
+ * QUANDO NÃO COBRA
+ * ----------------
+ * A moeda cujo ciclo em curso já está COBRADO para o dono atual — pago, ou com
+ * fatura em aberto dele até o fim do ciclo — não ganha fatura nova. A pergunta é
+ * a da regra única (`cicloJaCobrado`, em src/domain/custodia-da-moeda.ts). Isso
+ * cobre de uma vez:
+ *  - a moeda comprada, que nasce com o primeiro mês pago na própria compra
+ *    (`src/domain/custodia-da-compra.ts`);
+ *  - a moeda de envio pago antecipadamente, cuja fatura de contratação é ligada
+ *    a ela no aceite (`alimentarPlanoNaAnalise`) e cobre o primeiro ciclo dela;
+ *  - o cron rodando duas vezes no mesmo dia.
  *
  * POR QUE A ENTRADA TEM COBRANÇA PRÓPRIA (25/09/2026)
  * ---------------------------------------------------
  * Moeda registrada pelo painel nasce guardada, sem plano e sem fatura. No banco
- * de 25/09/2026 eram 28 moedas nessa situação, nenhuma cobrada, e por isso
- * nenhuma notificava nada ao dono. A guarda começa quando a moeda entra no
- * armazém, então a cobrança também começa ali.
- *
- * O QUE ESTA REGRA NÃO FAZ
- * ------------------------
- * Não cobra moeda cujo ciclo já está resolvido PARA O DONO ATUAL: paga por ele,
- * ou com fatura aberta dele no mesmo ciclo ou num ciclo mais novo. A custódia
- * que o dono anterior pagou NÃO resolve nada para o dono novo (decisão do
- * Gabriel de 21/10/2026: toda moeda, inclusive a comprada, tem a custódia do
- * titular atual paga). A moeda comprada já nasce com o primeiro mês pago pelo
- * comprador, embutido na compra (`src/domain/custodia-da-compra.ts`), então o
- * cron só a cobra de novo no ciclo seguinte.
- *
- * "Um ciclo mais novo" importa na transição de 02/10/2026: as faturas de
- * 01/10, emitidas pela regra antiga, valem como a cobrança do mês e não podem
- * ser cobradas de novo só porque o aniversário da moeda cai depois.
+ * de 25/09/2026 eram 28 moedas nessa situação, nenhuma cobrada. A guarda começa
+ * quando a moeda entra no armazém, então a cobrança também começa ali.
  */
 
 import { cicloDaMoeda, dataBrasilia, type CicloDaMoeda } from '@/domain/ciclo-custodia'
+import { cicloJaCobrado } from '@/domain/custodia-da-moeda'
 import { moedasFaturaveis } from '@/domain/custody'
 import { CUSTODIA_MENSAL_POR_MOEDA_CENTS } from '@/domain/fees'
-import { moedasCobertas, type TabelaDeTaxasPlano } from '@/domain/plano-custodia'
-import { custodiaPagaAteCompetencia, donoAtualDaMoeda, faturaDoGuardadoAtual } from '@/domain/bloqueio-por-debito'
-import { recomecarCicloNoPrimeiroPagamento } from '@/domain/custodia-da-compra'
-import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
-
-/**
- * A moeda já tem a guarda deste ciclo resolvida — paga ou cobrada?
- *
- * Duas fontes: `custodiaPagaAteCompetencia`, que responde até quando está PAGA
- * (por plano vigente ou por fatura liquidada), e as faturas em aberto, que
- * respondem se já existe boleto emitido esperando pagamento. A fatura em aberto
- * vale se for deste ciclo OU de um mais novo (competência maior ou igual).
- */
-export function custodiaResolvidaNaCompetencia(
-  state: AppState,
-  coinId: string,
-  competencia: string,
-): boolean {
-  const pagaAte = custodiaPagaAteCompetencia(state, coinId)
-  if (pagaAte && pagaAte >= competencia) return true
-
-  // Só a fatura de quem guarda a moeda agora, dentro do período de guarda dele: a conta em aberto do
-  // dono anterior não resolve a cobrança do dono novo (21/10/2026).
-  const dono = donoAtualDaMoeda(state, coinId)
-  if (!dono) return false
-  return (state.faturasCustodia ?? []).some(
-    (f) =>
-      f.competencia >= competencia &&
-      f.status !== 'cancelada' &&
-      (f.moedaIds ?? []).includes(coinId) &&
-      faturaDoGuardadoAtual(f, dono),
-  )
-}
-
-/**
- * Quando esta moeda é cobrada de novo — a data que a tela mostra como "próxima
- * cobrança".
- *
- * Responde com a MESMA pergunta do cron (`custodiaResolvidaNaCompetencia`), e
- * não só pelo aniversário: quem foi cobrado em 01/10 pela regra antiga já tem o
- * ciclo de outubro resolvido, então a moeda aceita em 21/09 só é cobrada de novo
- * em 21/11, e não em 21/10. Mostrar 21/10 enquanto o cron cobra 21/11 foi o
- * defeito que o Gabriel apontou em 03/10/2026.
- *
- * Se o ciclo em curso ainda NÃO está resolvido, a cobrança já é devida e a data
- * devolvida é a do começo dele (hoje ou antes) — o cron emite a fatura.
- */
-export function proximaCobrancaDaMoeda(state: AppState, coin: Coin, agora: Timestamp = Date.now()): Timestamp {
-  let ciclo = cicloDaMoeda(coin.entrada, agora)
-  // O teto é só uma guarda contra laço infinito: seriam 50 anos de ciclos pagos.
-  for (let i = 0; i < 600; i++) {
-    if (!custodiaResolvidaNaCompetencia(state, coin.id, ciclo.competencia)) return ciclo.inicio
-    ciclo = cicloDaMoeda(coin.entrada, ciclo.fim)
-  }
-  return ciclo.inicio
-}
-
-/**
- * Até quando a guarda desta moeda está PAGA — o último instante coberto —, ou
- * `null` se nunca foi paga. Só conta pagamento: fatura em aberto não cobre nada.
- *
- * É a competência paga mais adiantada, levada ao fim do ciclo da moeda: paga a
- * competência 2026-10 de uma moeda aceita em 21/09, a guarda vai até 20/11, que
- * é quando o ciclo de outubro termina.
- */
-export function guardaPagaAteDaMoeda(state: AppState, coin: Coin, agora: Timestamp = Date.now()): Timestamp | null {
-  const pagaAte = custodiaPagaAteCompetencia(state, coin.id)
-  if (!pagaAte) return null
-
-  let ciclo = cicloDaMoeda(coin.entrada, agora)
-  for (let i = 0; i < 600 && ciclo.competencia <= pagaAte; i++) {
-    ciclo = cicloDaMoeda(coin.entrada, ciclo.fim)
-  }
-  return ciclo.inicio - 1
-}
+import type { TabelaDeTaxasPlano } from '@/domain/plano-custodia'
+import { quitarFatura } from '@/domain/quitar-fatura'
+import type { AppState, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
 /**
  * Emite as faturas dos ciclos que estão devidos para as moedas da conta.
  *
  * Muta o estado: acrescenta as faturas a `state.faturasCustodia` e, quando o
- * cliente tem saldo, debita e marca cada uma como paga — exatamente o que o
- * ciclo sempre fez. Devolve as faturas criadas (vazio quando não havia o que
- * cobrar).
+ * cliente tem saldo, debita e paga cada uma (`quitarFatura`). Devolve as faturas
+ * criadas (vazio quando não havia o que cobrar).
  *
  * Moedas de ciclos diferentes viram faturas diferentes: a fatura tem uma
  * competência e um fim de cobertura só. E moedas de LOTES diferentes — outro
  * envio, outro cadastro — também: cada lote é uma custódia própria, com seu
  * valor, seu pagamento e sua data (pedido do Gabriel, 05/10/2026). Só moedas do
- * mesmo lote aceitas no mesmo dia andam juntas na mesma fatura.
+ * mesmo lote com o mesmo aniversário andam juntas na mesma fatura.
  *
  * `moedaIds` restringe a emissão a essas moedas (a entrada); sem ele, todas as
  * moedas sob guarda da conta são consideradas (o cron).
@@ -150,22 +76,13 @@ export function emitirFaturasDosCiclos(
   if (!user) return []
 
   state.faturasCustodia = state.faturasCustodia ?? []
-  const planos = (state.planosCustodia ?? []).filter((p) => p.userEmail === userEmail)
-  const cobertasPorCompetencia = new Map<string, Set<string>>()
 
   const grupos = new Map<string, { ciclo: CicloDaMoeda; ids: string[] }>()
   for (const moeda of moedasFaturaveis(user)) {
     if (moedaIds && !moedaIds.includes(moeda.id)) continue
 
     const ciclo = cicloDaMoeda(moeda.entrada, agora)
-
-    let cobertas = cobertasPorCompetencia.get(ciclo.competencia)
-    if (!cobertas) {
-      cobertas = moedasCobertas(planos, ciclo.competencia)
-      cobertasPorCompetencia.set(ciclo.competencia, cobertas)
-    }
-    if (cobertas.has(moeda.id)) continue
-    if (custodiaResolvidaNaCompetencia(state, moeda.id, ciclo.competencia)) continue
+    if (cicloJaCobrado(state, moeda.id, ciclo)) continue
 
     // Uma fatura por LOTE (envio ou cadastro) em cada ciclo: moedas de lotes diferentes são custódias
     // diferentes, mesmo quando o aniversário cai no mesmo dia (05/10/2026).
@@ -178,7 +95,7 @@ export function emitirFaturasDosCiclos(
   const porMoeda = taxas?.custodiaMensalPorMoeda ?? CUSTODIA_MENSAL_POR_MOEDA_CENTS
   const sufixo = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
   const criadas: FaturaCustodia[] = []
-  const idsUsados = new Set((state.faturasCustodia ?? []).map((f) => f.id))
+  const idsUsados = new Set(state.faturasCustodia.map((f) => f.id))
 
   for (const { ciclo, ids } of grupos.values()) {
     const valorCents = porMoeda * ids.length
@@ -202,7 +119,7 @@ export function emitirFaturasDosCiclos(
       status: 'pendente',
       dataEmissao: agora,
       // O vencimento é o próximo aniversário (00:00 de Brasília): `faturaBloqueia`
-      // soma um dia de carência, então a moeda só trava depois das 23:59 desse dia.
+      // soma um dia de carência, então a conta só fica em pendência depois das 23:59 desse dia.
       dataVencimento: ciclo.fim,
       coberturaAte: ciclo.fim - 1,
       dataPagamento: null,
@@ -211,20 +128,15 @@ export function emitirFaturasDosCiclos(
       planoId: null,
       origem,
     }
+    state.faturasCustodia.push(fatura)
 
-    // Débito automático quando há saldo, a mesma regra do ciclo mensal: quem tem
-    // dinheiro na conta não precisa de um boleto para R$ 2,00, e a moeda já sai
-    // liberada para anunciar.
+    // Débito automático quando há saldo: quem tem dinheiro na conta não precisa
+    // de um boleto para R$ 2,00, e a moeda já sai liberada para anunciar.
     if (user.balance >= valorCents) {
       user.balance -= valorCents
-      fatura.status = 'paga'
-      fatura.dataPagamento = agora
-      fatura.formaPagamento = 'saldo'
-      // Moeda comprada antes de 21/10 sem custódia do dono novo: o ciclo recomeça hoje (26/10/2026).
-      recomecarCicloNoPrimeiroPagamento(state, fatura, agora)
+      quitarFatura(state, fatura, 'saldo', agora)
     }
 
-    state.faturasCustodia.push(fatura)
     criadas.push(fatura)
   }
 

@@ -89,8 +89,10 @@ describe('matchOrders — um livro por tipo', () => {
     expect(t.fee).toBe(400) // R$ 4,00
     expect(s.users.c.balance).toBe(100_000 - 20_200 - 200) // R$ 202,00 + R$ 2,00 do 1º mês de custódia
     // a custódia sai como fatura PAGA do comprador, em nome dele, e não vira comissão nem receita de corretagem
-    expect(s.faturasCustodia).toHaveLength(1)
-    expect(s.faturasCustodia![0]).toMatchObject({ userEmail: 'c', moedaIds: ['RO-000001'], valorCents: 200, status: 'paga', origem: 'compra' })
+    // (as outras faturas são a custódia em dia do fixture, de valor zero)
+    const daCompra = s.faturasCustodia!.filter((f) => f.origem === 'compra')
+    expect(daCompra).toHaveLength(1)
+    expect(daCompra[0]).toMatchObject({ userEmail: 'c', moedaIds: ['RO-000001'], valorCents: 200, status: 'paga', origem: 'compra' })
     expect(s.users.v.balance).toBe(19_800) // R$ 198,00 creditado
   })
 

@@ -270,7 +270,15 @@ export function normalizarEnvio(e: Envio): Envio {
 }
 
 export function normalizarDeposit(d: Deposit): Deposit {
-  return { userEmail: d.userEmail, valor: d.valor, date: d.date }
+  // A origem (03/11/2026) só vai junto quando existe: o registro sem ela continua igual ao de antes.
+  return {
+    userEmail: d.userEmail,
+    valor: d.valor,
+    date: d.date,
+    ...(d.origem ? { origem: d.origem } : {}),
+    ...(d.metodo ? { metodo: d.metodo } : {}),
+    ...(d.refExterna ? { refExterna: d.refExterna } : {}),
+  }
 }
 
 /**

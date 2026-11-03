@@ -182,6 +182,36 @@ export function lancamentosDeTrade(
   ]
 }
 
+/**
+ * O que uma entrada de dinheiro foi, em palavras de cliente — para o extrato e para o livro-razão.
+ *
+ * Até 03/11/2026 toda entrada saía como "Depósito simulado em conta", inclusive o Pix que pagou custódia:
+ * o registro não sabia de que pagamento vinha. Agora sabe (`Deposit.origem`, migration 049), e nada aqui
+ * é simulado. A entrada sem origem é um pagamento real do gateway que não casou com nenhuma intenção.
+ */
+export function descricaoDaEntrada(d: Pick<Deposit, 'origem' | 'metodo'>): string {
+  const por = d.metodo === 'pix' ? ' por Pix' : d.metodo === 'cartao' ? ' por cartão' : ''
+  switch (d.origem) {
+    case 'deposito':
+      return `Depósito em conta${por}`
+    case 'fatura_custodia':
+    case 'plano_custodia':
+    case 'assinatura_custodia':
+      return `Pagamento da custódia${por}`
+    case 'compra_direta':
+    case 'reserva_compra':
+      return `Pagamento de compra${por}`
+    case 'oferta_prepaga':
+      return `Pagamento de oferta de compra${por}`
+    case 'retirada':
+      return `Pagamento da retirada${por}`
+    case 'frete_envio':
+      return `Pagamento do frete do envio${por}`
+    default:
+      return 'Entrada por Pix ou cartão'
+  }
+}
+
 export function lancamentoDeDeposito(d: Deposit, refInterna: string, refExterna: string | null = null): LancamentoPendente {
   return {
     createdAt: d.date,
@@ -192,8 +222,8 @@ export function lancamentoDeDeposito(d: Deposit, refInterna: string, refExterna:
     tipoMoeda: null,
     quantidade: null,
     refInterna,
-    refExterna,
-    descricao: refExterna ? 'Depósito confirmado pelo gateway' : 'Depósito simulado em conta',
+    refExterna: refExterna ?? d.refExterna ?? null,
+    descricao: descricaoDaEntrada(d),
   }
 }
 

@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  cobrarEntradaNoAcervo,
-  custodiaResolvidaNaCompetencia,
-  emitirFaturasDosCiclos,
-} from '@/domain/cobranca-de-entrada'
+import { cicloDaMoeda } from '@/domain/ciclo-custodia'
+import { cobrarEntradaNoAcervo, emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
+import { cicloJaCobrado } from '@/domain/custodia-da-moeda'
 import type { AppState, Coin, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
 
 /** 25/09/2026, 12:00 UTC — competência '2026-09'. */
@@ -119,7 +117,8 @@ describe('cobrarEntradaNoAcervo', () => {
         valorCents: 200,
         status: 'paga',
         dataEmissao: AGORA - 1000,
-        dataVencimento: AGORA + 1000,
+        dataVencimento: Date.UTC(2026, 9, 25, 3),
+        coberturaAte: Date.UTC(2026, 9, 25, 3) - 1,
         dataPagamento: AGORA - 900,
         formaPagamento: 'saldo',
         origem: 'ciclo_mensal',
@@ -147,8 +146,24 @@ describe('cobrarEntradaNoAcervo', () => {
   })
 })
 
-describe('custodiaResolvidaNaCompetencia', () => {
-  it('reconhece plano vigente pago além da competência consultada', () => {
+describe('cicloJaCobrado — a pergunta do cron, por instante (03/11/2026)', () => {
+  const ciclo = cicloDaMoeda('25/09/2026', AGORA) // 25/09 a 25/10, 00:00 de Brasília
+  const fatura = (parcial: Partial<FaturaCustodia>): FaturaCustodia => ({
+    id: 'FAT-1',
+    userEmail: DONO,
+    competencia: '2026-09',
+    quantidadeMoedas: 1,
+    moedaIds: ['RO-000001'],
+    valorCents: 200,
+    status: 'pendente',
+    dataEmissao: AGORA,
+    dataVencimento: ciclo.fim,
+    coberturaAte: ciclo.fim - 1,
+    origem: 'ciclo_mensal',
+    ...parcial,
+  })
+
+  it('plano NÃO resolve ciclo nenhum: era o plano por mês do calendário que cobrava no dia 1º', () => {
     const s = estado(0, [moeda('RO-000001')])
     const plano: PlanoCustodia = {
       id: 'PLC-1',
@@ -171,91 +186,79 @@ describe('custodiaResolvidaNaCompetencia', () => {
       atualizadoEm: AGORA,
     }
     s.planosCustodia = [plano]
-
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-09')).toBe(true)
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000002', '2026-09')).toBe(false)
+    expect(cicloJaCobrado(s, 'RO-000001', ciclo)).toBe(false)
   })
 
-  it('fatura cancelada não conta como cobrança resolvida', () => {
+  it('fatura paga ou em aberto que vai até o fim do ciclo resolve; cancelada não', () => {
     const s = estado(0, [moeda('RO-000001')])
+    s.faturasCustodia = [fatura({ status: 'pendente' })]
+    expect(cicloJaCobrado(s, 'RO-000001', ciclo)).toBe(true)
+    s.faturasCustodia = [fatura({ status: 'paga', dataPagamento: AGORA })]
+    expect(cicloJaCobrado(s, 'RO-000001', ciclo)).toBe(true)
+    s.faturasCustodia = [fatura({ status: 'cancelada' })]
+    expect(cicloJaCobrado(s, 'RO-000001', ciclo)).toBe(false)
+  })
+
+  it('a fatura de outra moeda não resolve; a que acaba antes do fim do ciclo também não', () => {
+    const s = estado(0, [moeda('RO-000001'), moeda('RO-000002')])
+    s.faturasCustodia = [fatura({ status: 'paga' })]
+    expect(cicloJaCobrado(s, 'RO-000002', ciclo)).toBe(false)
+    s.faturasCustodia = [fatura({ status: 'paga', coberturaAte: ciclo.fim - 2 * 86_400_000 })]
+    expect(cicloJaCobrado(s, 'RO-000001', ciclo)).toBe(false)
+  })
+})
+
+describe('emitirFaturasDosCiclos — sem mês do calendário', () => {
+  const taxa = { custodiaMensalPorMoeda: 200 }
+  const dia = (d: number, mes = 9, h = 8): number => Date.UTC(2026, mes, d, h)
+
+  it('fatura sem cobertura gravada (a do cron antigo do dia 1º) não resolve o ciclo da moeda', () => {
+    // A regra por competência saiu em 03/11/2026. Na produção nenhuma moeda dependia mais dela: os ciclos
+    // de outubro já tinham fatura própria com cobertura.
+    const s = estado(0, [{ ...moeda('RO-000001'), entrada: '21/09/2026' }])
     s.faturasCustodia = [
       {
-        id: 'FAT-CANCELADA',
+        id: 'FAT-2026-10-ANTIGA',
         userEmail: DONO,
-        competencia: '2026-09',
+        competencia: '2026-10',
         quantidadeMoedas: 1,
         moedaIds: ['RO-000001'],
         valorCents: 200,
-        status: 'cancelada',
-        dataEmissao: AGORA,
-        dataVencimento: AGORA,
-        origem: 'entrada_no_acervo',
+        status: 'paga',
+        dataEmissao: dia(1),
+        dataVencimento: dia(31),
+        dataPagamento: dia(1),
+        origem: 'ciclo_mensal',
       },
     ]
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-09')).toBe(false)
-  })
-})
-
-describe('custodiaResolvidaNaCompetencia — fatura aberta de ciclo mais novo também resolve', () => {
-  const aberta = (competencia: string): FaturaCustodia => ({
-    id: `FAT-${competencia}`,
-    userEmail: DONO,
-    competencia,
-    quantidadeMoedas: 1,
-    moedaIds: ['RO-000001'],
-    valorCents: 200,
-    status: 'pendente',
-    dataEmissao: AGORA,
-    dataVencimento: AGORA + 1000,
-    origem: 'ciclo_mensal',
+    const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(21))
+    expect(criadas).toHaveLength(1)
+    expect(criadas[0]!.coberturaAte).toBe(Date.UTC(2026, 10, 21, 3) - 1)
   })
 
-  it('competência igual ou maior resolve; menor não', () => {
-    const s = estado(0, [moeda('RO-000001')])
-    s.faturasCustodia = [aberta('2026-10')]
-
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-10')).toBe(true)
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-09')).toBe(true)
-    expect(custodiaResolvidaNaCompetencia(s, 'RO-000001', '2026-11')).toBe(false)
-  })
-})
-
-describe('emitirFaturasDosCiclos — a transição de 02/10/2026', () => {
-  const taxa = { custodiaMensalPorMoeda: 200 }
-  const dia = (d: number, mes = 9, h = 8): number => Date.UTC(2026, mes, d, h)
-  const faturaDe01 = (status: 'paga' | 'pendente'): FaturaCustodia => ({
-    // emitida pelo cron antigo, no dia 1º, pelo mês-calendário
-    id: 'FAT-2026-10-ANTIGA',
-    userEmail: DONO,
-    competencia: '2026-10',
-    quantidadeMoedas: 1,
-    moedaIds: ['RO-000001'],
-    valorCents: 200,
-    status,
-    dataEmissao: dia(1),
-    dataVencimento: dia(31),
-    dataPagamento: status === 'paga' ? dia(1) : null,
-    origem: 'ciclo_mensal',
-  })
-
-  it('a fatura de 01/10 vale como a cobrança do mês: o aniversário de 21/10 não cobra de novo', () => {
+  it('NUNCA cobra no dia 1º: moeda aceita em 21/09 com o ciclo pago não ganha fatura em 01/11', () => {
     const s = estado(0, [{ ...moeda('RO-000001'), entrada: '21/09/2026' }])
-    s.faturasCustodia = [faturaDe01('paga')]
-
-    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(21))).toEqual([])
-    // ...e o ciclo seguinte, em 21/11, cobra normalmente
+    s.faturasCustodia = [
+      {
+        id: 'FAT-CICLO-OUT',
+        userEmail: DONO,
+        competencia: '2026-10',
+        quantidadeMoedas: 1,
+        moedaIds: ['RO-000001'],
+        valorCents: 200,
+        status: 'paga',
+        dataEmissao: dia(21),
+        dataVencimento: Date.UTC(2026, 10, 21, 3),
+        coberturaAte: Date.UTC(2026, 10, 21, 3) - 1,
+        dataPagamento: dia(21),
+        origem: 'ciclo_mensal',
+      },
+    ]
+    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(1, 10))).toEqual([])
+    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(20, 10))).toEqual([])
     const novembro = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(21, 10))
     expect(novembro).toHaveLength(1)
     expect(novembro[0]!.competencia).toBe('2026-11')
-  })
-
-  it('moeda cujo aniversário ainda não chegou não é cobrada de novo só porque o mês virou', () => {
-    // aceita em 05/09: o ciclo em curso em 02/10 é o de 05/09 (competência 2026-09), que a
-    // fatura aberta de 2026-10 já supera. Cobrar de novo seria dobrar a mensalidade.
-    const s = estado(0, [{ ...moeda('RO-000001'), entrada: '05/09/2026' }])
-    s.faturasCustodia = [faturaDe01('pendente')]
-
-    expect(emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', taxa, dia(2, 9))).toEqual([])
   })
 
   it('moedas de aniversários diferentes no mesmo mês viram faturas diferentes, com ids distintos', () => {

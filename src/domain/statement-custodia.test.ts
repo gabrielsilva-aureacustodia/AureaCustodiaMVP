@@ -69,7 +69,7 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     expect(rows).toHaveLength(1)
     const row = rows[0]
     expect(row.kind).toBe('Taxa de custódia')
-    expect(row.descricao).toContain('Plano mensal')
+    expect(row.descricao).toContain('Custódia do 1º mês, paga no envio')
     expect(row.taxa).toBe(600)
     expect(row.impacto).toBe(-600)
   })

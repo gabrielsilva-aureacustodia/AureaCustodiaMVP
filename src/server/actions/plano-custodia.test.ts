@@ -21,7 +21,6 @@ import {
   listarMinhasFaturas,
   pagarFaturaComSaldo,
 } from './plano-custodia'
-import { calcularPagoAte } from '@/domain/plano-custodia'
 import { conciliarPagamento } from '@/server/payments/conciliacao'
 import { _limparRecebimentosEmMemoria } from '@/server/payments/recebimentos'
 import { _limparRepositoriosEmMemoria } from '@/server/payments/repositorios'
@@ -140,7 +139,9 @@ describe('Server Actions de Planos de Custódia (B2.4)', () => {
 
     const plano = (sDepois.planosCustodia || []).find((p) => p.id === contr.data!.planoId)
     expect(plano?.status).toBe('vigente')
-    expect(plano?.pagoAteCompetencia).toBe(calcularPagoAte(plano!.inicioCompetencia, 'mensal'))
+    // Registro para os relatórios: a competência da fatura paga. A cobertura das moedas vem da fatura,
+    // ligada a elas no aceite (03/11/2026).
+    expect(plano?.pagoAteCompetencia).toBe(fatura?.competencia)
   })
 
   it('recusa pagamento com saldo se saldo for insuficiente', async () => {

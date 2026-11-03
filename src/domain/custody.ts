@@ -1,14 +1,16 @@
 /**
- * Módulo de domínio para o faturamento mensal de custódia e verificação de inadimplência.
+ * Módulo de domínio para o status das faturas de custódia e a verificação de inadimplência da conta.
  *
  * Regras de negócio protegidas (Decisão D-3, 10/09/2026 e Cláusulas 3 e 4 dos Termos):
  * - R$ 2,00 por moeda sob guarda por mês.
- * - Ciclo mensal de faturamento com vencimento em 10 dias de tolerância.
- * - Usuário com fatura pendente vencida torna-se inadimplente, bloqueando transferências e retiradas.
+ * - Usuário com fatura vencida há mais de um dia fica com a conta em pendência, bloqueando retiradas.
+ *
+ * Até quando cada moeda está paga, quando ela é cobrada de novo e se ela negocia é a regra única de
+ * src/domain/custodia-da-moeda.ts. O gerador de fatura por mês do calendário (`gerarFaturaParaUsuario`)
+ * saiu em 03/11/2026: a fatura nasce só em `emitirFaturasDosCiclos` (cobranca-de-entrada.ts).
  */
 
-import { custodiaMensalPorMoeda } from '@/domain/fees'
-import type { Coin, FaturaCustodia, StatusFatura, Timestamp, User, UserEmail } from '@/domain/types'
+import type { Coin, FaturaCustodia, StatusFatura, Timestamp, User } from '@/domain/types'
 
 /**
  * Prazo para pagar a fatura de custódia: 30 dias da emissão (27/09/2026).
@@ -92,7 +94,9 @@ export function fimDaCompetencia(competencia: string): Timestamp {
  * Até quando a guarda paga por esta fatura está coberta.
  *
  * Faturas do ciclo por moeda (02/10/2026) trazem o instante exato em `coberturaAte`;
- * as anteriores cobriam o mês-calendário da competência.
+ * as anteriores cobriam o mês-calendário da competência. Serve para EXIBIR a linha da
+ * fatura; a regra não lê isto — quem responde até quando a moeda está paga é
+ * `custodiaPagaAte` (src/domain/custodia-da-moeda.ts), que só conta `coberturaAte`.
  */
 export function fimDaCoberturaDaFatura(
   fatura: Pick<FaturaCustodia, 'competencia' | 'coberturaAte'>,
@@ -117,43 +121,6 @@ export function calcularVencimentoFatura(
  */
 export function moedasFaturaveis(user: User): Coin[] {
   return (user.coins || []).filter((c) => c.recibo?.status !== 'Extinto')
-}
-
-/**
- * Gera uma fatura mensal de custódia para um usuário com base no seu acervo de moedas.
- * Retorna null caso o usuário não possua moedas ativas sob guarda.
- */
-export function gerarFaturaParaUsuario(
-  user: User,
-  userEmail: UserEmail,
-  competencia: string,
-  agora: Timestamp = Date.now()
-): FaturaCustodia | null {
-  const moedasAtivas = moedasFaturaveis(user)
-  const quantidade = moedasAtivas.length
-
-  if (quantidade <= 0) {
-    return null
-  }
-
-  const valorCents = custodiaMensalPorMoeda(quantidade)
-  const sanitizeEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
-  const id = `FAT-${competencia}-${sanitizeEmail}-${agora}`
-
-  return {
-    id,
-    userEmail,
-    competencia,
-    quantidadeMoedas: quantidade,
-    moedaIds: moedasAtivas.map((c) => c.id),
-    valorCents,
-    status: 'pendente',
-    dataEmissao: agora,
-    dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
-    dataPagamento: null,
-    formaPagamento: null,
-    paymentIntentId: null,
-  }
 }
 
 /**

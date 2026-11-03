@@ -26,6 +26,7 @@
 import { fdate } from '@/domain/dates'
 import { tradeFee } from '@/domain/fees'
 import { descricaoDaFaturaDeCustodia } from '@/domain/custodia-texto'
+import { descricaoDaEntrada } from '@/domain/ledger'
 import type { AppState, Cents, DateBR, Timestamp, UserEmail } from '@/domain/types'
 
 /** As categorias de linha do extrato. O texto é o que vai para a planilha. */
@@ -91,7 +92,8 @@ export function userStatement(state: AppState, email: UserEmail): StatementRow[]
         dateBR: fdate(d.date),
         kind: 'Depósito',
         tipoMoeda: '—',
-        descricao: 'Depósito simulado em conta',
+        // O que a entrada foi de verdade (03/11/2026): até então todas saíam como "Depósito simulado".
+        descricao: descricaoDaEntrada(d),
         quantidade: null,
         valorUnitario: null,
         taxa: null,

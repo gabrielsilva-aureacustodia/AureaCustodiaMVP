@@ -14,11 +14,10 @@ import { describe, expect, it } from 'vitest'
 
 import {
   casarOrdensRespeitandoPendencia,
-  coberturaPagaDaMoeda,
-  custodiaImpedeNegociar,
+  contaComPendenciaNoEstado,
   expurgarOfertasSemCustodia,
-  moedaComCustodiaNaoPagaNoEstado,
 } from '@/domain/bloqueio-por-debito'
+import { custodiaImpedeNegociar, custodiaPagaAte } from '@/domain/custodia-da-moeda'
 import { TAXAS_PADRAO } from '@/domain/fees'
 import { availableCoinsForSell, lotsFromOffers } from '@/domain/market'
 import { BAN, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
@@ -44,6 +43,7 @@ function fatura(parcial: Partial<FaturaCustodia> & Pick<FaturaCustodia, 'id' | '
     valorCents: 200,
     dataEmissao: ENTRADA,
     dataVencimento: FIM_DO_CICLO,
+    coberturaAte: FIM_DO_CICLO - 1,
     dataPagamento: null,
     origem: 'entrada_no_acervo',
     ...parcial,
@@ -70,9 +70,8 @@ describe('o caso do Sidnei: fatura de entrada pendente e dentro do prazo', () =>
   it('a moeda NÃO se negocia, ainda que a fatura esteja no prazo', () => {
     const s = cenario([PENDENTE_NO_PRAZO])
 
-    expect(coberturaPagaDaMoeda(s, COIN)).toBeNull()
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
-    expect(moedaComCustodiaNaoPagaNoEstado(s, SIDNEI, COIN, agora)).toBe(true)
   })
 
   it('não aparece entre as moedas que o dono pode anunciar', () => {
@@ -161,7 +160,7 @@ describe('outras formas de a custódia estar paga — ou não', () => {
 
   it('fatura cancelada não cobre nada', () => {
     const s = cenario([fatura({ id: 'F', status: 'cancelada', dataPagamento: ENTRADA, coberturaAte: FIM_DO_CICLO - 1 })])
-    expect(coberturaPagaDaMoeda(s, COIN)).toBeNull()
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
   })
 
@@ -171,7 +170,7 @@ describe('outras formas de a custódia estar paga — ou não', () => {
     // cópia: a constante é compartilhada pelos outros testes
     const s = cenario([{ ...PAGA_DO_CICLO_1 }])
     s.faturasCustodia![0]!.userEmail = 'vendedor.anterior@exemplo.com.br'
-    expect(coberturaPagaDaMoeda(s, COIN)).toBeNull()
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
   })
 
@@ -214,7 +213,7 @@ describe('outras formas de a custódia estar paga — ou não', () => {
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(false)
   })
 
-  it('plano vigente pago cobre; plano aguardando pagamento não cobre', () => {
+  it('plano NÃO cobre moeda nenhuma (03/11/2026): quem cobre é a fatura paga ligada a ela', () => {
     const plano = {
       id: 'PLC-1',
       userEmail: SIDNEI,
@@ -235,22 +234,26 @@ describe('outras formas de a custódia estar paga — ou não', () => {
       criadoEm: ENTRADA,
       atualizadoEm: ENTRADA,
     }
+    // O caso do Sidnei em 03/11: o plano "pago até 2026-10" travava a moeda em 01/11. O plano sozinho
+    // não cobre mais nada — nem trava por mês do calendário.
     const s = cenario([])
     s.planosCustodia = [plano]
-    expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(false)
-
-    s.planosCustodia = [{ ...plano, status: 'aguardando_pagamento', pagoAteCompetencia: null }]
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
     expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(true)
+
+    // A fatura de contratação do plano, ligada à moeda no aceite com o primeiro ciclo dela, é que cobre.
+    s.faturasCustodia = [fatura({ id: 'FAT-CONTRATACAO', status: 'paga', origem: 'contratacao', planoId: 'PLC-1', dataPagamento: ENTRADA })]
+    expect(custodiaPagaAte(s, COIN)).toBe(FIM_DO_CICLO - 1)
+    expect(custodiaImpedeNegociar(s, COIN, agora)).toBe(false)
   })
 
-  it('fatura antiga sem cobertura gravada cobre até o fim do mês da competência', () => {
-    const s = cenario([fatura({ id: 'F', status: 'paga', competencia: '2026-10', dataPagamento: ENTRADA })])
-    expect(coberturaPagaDaMoeda(s, COIN)).toBe(Date.UTC(2026, 10, 0, 12)) // 31/10, meio-dia UTC
-    expect(custodiaImpedeNegociar(s, COIN, brasilia(2026, 10, 31, 20))).toBe(false)
-    expect(custodiaImpedeNegociar(s, COIN, brasilia(2026, 11, 3))).toBe(true)
+  it('fatura sem cobertura gravada não cobre nada — não existe mais "até o fim do mês" (03/11/2026)', () => {
+    const s = cenario([fatura({ id: 'F', status: 'paga', competencia: '2026-10', dataPagamento: ENTRADA, coberturaAte: null })])
+    expect(custodiaPagaAte(s, COIN)).toBeNull()
+    expect(custodiaImpedeNegociar(s, COIN, brasilia(2026, 10, 20))).toBe(true)
   })
 
-  it('a fatura vencida do dono continua bloqueando, como sempre bloqueou', () => {
+  it('fatura vencida pausa a CONTA (anúncios e retirada); a moeda segue a própria cobertura', () => {
     const vencida = fatura({
       id: 'F-VENCIDA',
       status: 'pendente',
@@ -259,8 +262,8 @@ describe('outras formas de a custódia estar paga — ou não', () => {
       dataVencimento: brasilia(2026, 11, 10),
     })
     const s = cenario([PAGA_DO_CICLO_1, vencida])
-    // coberturas ainda valendo, mas há fatura do dono vencida há mais de um dia
+    // a moeda tem cobertura paga até 11/11 23:59: negocia; a conta, com fatura vencida há mais de um dia, fica em pendência
     expect(custodiaImpedeNegociar(s, COIN, brasilia(2026, 11, 12, 12))).toBe(false)
-    expect(moedaComCustodiaNaoPagaNoEstado(s, SIDNEI, COIN, brasilia(2026, 11, 12, 12))).toBe(true)
+    expect(contaComPendenciaNoEstado(s, SIDNEI, brasilia(2026, 11, 12, 12))).toBe(true)
   })
 })
