@@ -1,0 +1,148 @@
+/* ============================================================================
+   PWA — botão da página inicial, aviso flutuante e painel de instruções (04/11/2026).
+   Lê só tokens --ro-* (marca) e os aliases de tokens.css: vale nos dois temas sem regra própria.
+
+   Alturas (z-index), pensadas contra o que já existe: gaveta 40, ESTE AVISO 43, botão Atendimento 44, "Ver tutorial" 45,
+   folha de atendimento 46, modal 50 (e ESTE PAINEL, via --ro-z-modal), aviso toast 60. O aviso fica ABAIXO dos botões
+   flutuantes de propósito: eles continuam clicáveis, e a regra de `:has` abaixo os sobe para fora do cartão.
+   ========================================================================== */
+
+@keyframes pwa-sobe{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes pwa-fundo{from{opacity:0}to{opacity:1}}
+
+/* ---- Botão "Baixar o app" da página inicial ------------------------------ */
+.pub-instalar svg{width:20px;height:20px;flex:none}
+/* Computador de verdade (mouse + janela larga): escondido já no HTML, sem esperar JavaScript. O público do app é o
+   celular; em janela estreita ou toque, o botão fica e o JavaScript decide se mostra. */
+@media (min-width:900px) and (hover:hover) and (pointer:fine){
+  .pub-instalar{display:none}
+}
+
+/* ---- Aviso flutuante ------------------------------------------------------ */
+.pwa-aviso{
+  position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:43;
+  max-width:460px;margin-inline:auto;padding:14px;
+  background:var(--ro-cartao);color:var(--ro-texto);
+  border:1px solid var(--ro-borda);border-top:2px solid var(--ro-primaria);border-radius:var(--ro-raio-lg);
+  box-shadow:var(--ro-sombra-3);
+  animation:pwa-sobe var(--ro-dur-lenta) var(--ro-curva-saida) both;
+}
+.pwa-aviso-corpo{display:flex;align-items:center;gap:12px}
+.pwa-aviso-emblema{flex:none;width:44px;height:44px;border-radius:50%}
+.pwa-aviso-titulo{margin:0;font:var(--ro-peso-semi) var(--ro-tipo-corpo) var(--ff-display);color:var(--ro-texto)}
+.pwa-aviso-texto{margin:2px 0 0;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
+.pwa-aviso-acoes{display:flex;gap:8px;margin-top:12px}
+/* .btn-gold tem width:100% (é botão de formulário): aqui os dois dividem a linha. */
+/* `nowrap`: em 320px "Como instalar" quebrava em duas linhas dentro dos 44px (visto no teste de 04/11/2026). O ghost
+   cede largura no padding, não no texto. */
+.pwa-aviso-acoes .btn{width:auto;flex:1 1 auto;min-height:44px;padding:0 14px;white-space:nowrap}
+.pwa-aviso-acoes .btn-ghost{flex:0 0 auto;padding:0 10px}
+
+/* Os botões flutuantes da área do cliente (Atendimento e "Ver tutorial") sobem para ficar acima do cartão enquanto ele
+   existe. `--pwa-aviso-altura` é medida em AvisoDeInstalacao.tsx; 150px é só o palpite até a primeira medida.
+   `transform` e não `bottom`: não briga com as regras `body:has(.tutorial-link)` do atendimento.css. */
+body:has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .atd-fab,
+body:has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .tutorial-link{
+  transform:translateY(calc(-1 * (var(--pwa-aviso-altura,150px) + 12px)));
+}
+/* Folha de atendimento, tour e dicas pedem a tela inteira: o aviso se retira enquanto eles existem. */
+body:has(.atd-folha,.tour-camada,.dicas-camada) .pwa-aviso{display:none}
+
+/* ---- Painel de instruções -------------------------------------------------- */
+.pwa-guia-fundo{
+  position:fixed;inset:0;z-index:var(--ro-z-modal);
+  display:flex;align-items:flex-end;justify-content:center;
+  background:var(--ro-veu);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  animation:pwa-fundo var(--ro-dur-base) ease both;
+}
+.pwa-guia{
+  width:100%;max-width:520px;
+  max-height:min(94vh,760px);max-height:min(94dvh,760px);  /* dvh: desconta a barra do navegador no celular */
+  overflow-y:auto;overscroll-behavior:contain;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  background:var(--ro-cartao);color:var(--ro-texto);
+  border:1px solid var(--ro-borda);border-bottom:0;border-top:2px solid var(--ro-primaria);
+  border-radius:var(--ro-raio-xl) var(--ro-raio-xl) 0 0;box-shadow:var(--ro-sombra-4);
+  animation:pwa-sobe var(--ro-dur-lenta) var(--ro-curva-saida) both;
+}
+/* O foco vai para o painel só para o leitor de tela ler o título primeiro: sem anel, ele não é um controle. */
+.pwa-guia:focus{outline:none}
+@media (min-width:640px){
+  .pwa-guia-fundo{align-items:center;padding:24px}
+  .pwa-guia{border-bottom:1px solid var(--ro-borda);border-radius:var(--ro-raio-xl);padding:26px}
+}
+
+.pwa-guia-topo{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.pwa-guia-emblema{flex:none;width:48px;height:48px;border-radius:50%}
+.pwa-guia-titulos{flex:1;min-width:0}
+.pwa-guia-titulos h2{margin:0;font:var(--ro-peso-semi) var(--ro-tipo-titulo-3) var(--ff-display);line-height:1.2;color:var(--ro-texto)}
+.pwa-guia-titulos p{margin:3px 0 0;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
+.pwa-fechar{
+  flex:none;width:44px;height:44px;margin:-6px -8px 0 0;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:0;border-radius:var(--ro-raio-sm);background:transparent;color:var(--text-muted);cursor:pointer;
+}
+.pwa-fechar:hover{color:var(--ro-texto);background:var(--gold-tint-10)}
+.pwa-fechar:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+.pwa-fechar svg{width:20px;height:20px}
+
+/* Abas Android / iPhone */
+.pwa-abas{
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 0 16px;padding:4px;
+  background:var(--ro-superficie-sutil);border:1px solid var(--ro-borda-campo);border-radius:var(--ro-raio-md);
+}
+.pwa-aba{
+  min-height:44px;border:0;border-radius:var(--ro-raio-sm);background:transparent;cursor:pointer;
+  color:var(--ro-texto-suave);font:var(--ro-peso-semi) .9375rem var(--ff-sans);
+  transition:background-color var(--ro-dur-rapida) ease,color var(--ro-dur-rapida) ease;
+}
+.pwa-aba:hover{color:var(--ro-texto)}
+.pwa-aba[aria-selected="true"]{background:var(--ro-primaria);color:var(--on-gold)}
+.pwa-aba:focus-visible{outline:2px solid var(--ro-foco);outline-offset:2px}
+
+/* "Instalar agora" (diálogo nativo do Chrome) e as notas */
+.pwa-direto{margin:0 0 18px;text-align:center}
+.pwa-direto p{margin:8px 0 0;font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave)}
+.pwa-nota,.pwa-embutido{
+  margin:0 0 16px;padding:12px 14px;border-radius:var(--ro-raio-md);
+  border:1px solid var(--ro-borda-campo);background:var(--ro-superficie-sutil);
+  font-size:var(--ro-tipo-corpo-sm);line-height:1.5;color:var(--ro-texto);
+}
+.pwa-embutido p{margin:0 0 10px}
+.pwa-copiado{display:block;margin-top:8px;font-size:var(--ro-tipo-legenda);color:var(--ro-texto-suave)}
+.pwa-copiado:empty{display:none}
+
+/* Passos: o número é um selo no canto do ícone (contador CSS: a lista continua <ol> para o leitor de tela). */
+.pwa-passos{list-style:none;margin:0;padding:0;counter-reset:passo;display:grid;gap:16px}
+.pwa-passo{counter-increment:passo;display:flex;align-items:flex-start;gap:14px}
+.pwa-passo-icone{
+  position:relative;flex:none;width:48px;height:48px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--ro-raio-md);border:1px solid var(--ro-borda-campo);
+  background:var(--ro-superficie-sutil);color:var(--ro-primaria-texto);
+}
+.pwa-passo-icone svg{width:26px;height:26px}
+.pwa-passo-icone::after{
+  content:counter(passo);position:absolute;top:-7px;left:-7px;width:20px;height:20px;border-radius:50%;
+  background:var(--ro-primaria);color:var(--on-gold);font:700 11px/20px var(--ff-sans);text-align:center;
+}
+.pwa-passo-texto{flex:1;min-width:0;padding-top:2px}
+.pwa-passo-titulo{margin:0;font-size:var(--ro-tipo-corpo);font-weight:var(--ro-peso-medio);line-height:1.35;color:var(--ro-texto)}
+.pwa-passo-titulo strong{font-weight:var(--ro-peso-semi);color:var(--ro-primaria-texto)}
+.pwa-passo-dica{margin:3px 0 0;font-size:var(--ro-tipo-legenda);line-height:1.45;color:var(--ro-texto-suave)}
+.pwa-passo-dica strong{font-weight:var(--ro-peso-semi);color:var(--ro-texto)}
+
+/* Ilustração da barra do navegador (BarraDoSafari / BarraDoChrome) */
+.pwa-ilu{display:block;width:100%;max-width:300px;height:auto;margin-top:10px;color:var(--ro-texto-suave)}
+.pwa-ilu .barra{fill:var(--ro-superficie-sutil);stroke:var(--ro-borda-campo);stroke-width:1}
+.pwa-ilu .glifo{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pwa-ilu .alvo{fill:var(--gold-tint-10);stroke:var(--ro-primaria);stroke-width:2}
+.pwa-ilu .glifo-alvo{color:var(--ro-primaria-texto)}
+.pwa-ilu .traco-endereco{fill:var(--ro-borda-campo);opacity:.6}
+
+.pwa-guia-pe{display:grid;gap:8px;margin-top:22px}
+.pwa-guia-pe .btn{width:100%}
+
+@media print{
+  .pwa-aviso,.pwa-guia-fundo,.pub-instalar{display:none}
+}

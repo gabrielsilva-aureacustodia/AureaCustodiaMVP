@@ -70,3 +70,15 @@ contas. É só leitura. Sem `AUREA_RELATORIOS_TOKEN`, o caminho está desligado.
 As duas rotas foram removidas pela frente A. `/cadastrar` agora cria a identidade no
 Supabase e só provisiona saldo e moedas fictícias depois da confirmação. `/entrar` exige
 senha ou Google OAuth. Detalhes em `RISCOS_ASSUMIDOS.md`, RA-15 e RA-17.
+
+---
+
+## RA-60 🟡 — app instalável (PWA), 04/11/2026
+
+**Arquivos nesta pasta:** `manifest.ts` (manifesto), `sw.js/route.ts` (o service worker, com a versão do deploy dentro do
+texto) e `apple-icon.png` (ícone do iPhone, **substituído** por uma composição do emblema oficial sobre `#081226`).
+
+O atalho principal: **nada foi provado num Android nem num iPhone de verdade** — os testes foram em Chrome emulado.
+Os outros (iPhone sem sinal de instalação, `middleware` liberando seis caminhos estáticos, `htmlLimitedBots` global, sem
+screenshots no manifesto) estão em [`src/lib/pwa/ATALHOS.md`](../lib/pwa/ATALHOS.md) e no `RISCOS_ASSUMIDOS.md`, RA-60.
+Para voltar ao ícone anterior: `git checkout src/app/apple-icon.png`.

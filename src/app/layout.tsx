@@ -25,6 +25,7 @@ import type { ReactNode } from 'react'
 import './globals.css'
 
 import { classesDasFontes } from '@/brand/fontes'
+import { RaizDoPwa } from '@/components/pwa/RaizDoPwa'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ModalProvider } from '@/components/ui/Modal'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -32,12 +33,37 @@ import { ToastProvider } from '@/components/ui/Toast'
 export const metadata: Metadata = {
   title: 'Real Olímpico — Custódia de moedas comemorativas',
   description: 'Plataforma de custódia e marketplace de moedas comemorativas brasileiras.',
+  // PWA (04/11/2026). O manifesto vem de src/app/manifest.ts e o ícone do iPhone de src/app/apple-icon.png — o Next
+  // liga os dois ao <head> sozinho. O iPhone NÃO lê o manifesto para o nome nem para o modo de exibição (versões
+  // antigas), então os dois ficam repetidos aqui:
+  //  - `title`: o rótulo embaixo do ícone na tela inicial;
+  //  - `statusBarStyle: 'black'`: a barra de status do iPhone fica preta e o conteúdo começa ABAIXO dela. A alternativa
+  //    `black-translucent` põe o app por baixo da barra e exigiria tratar `safe-area` na topbar da área do cliente.
+  applicationName: 'Real Olímpico',
+  appleWebApp: { capable: true, title: 'Real Olímpico', statusBarStyle: 'black' },
+  formatDetection: { telephone: false },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Barra de endereço do Android e barra de status do app instalado, na cor do fundo do tema escuro (o de nascença).
+  themeColor: '#081226',
 }
+
+/**
+ * CAPTURA PRECOCE DO CONVITE DE INSTALAÇÃO. O Chrome dispara `beforeinstallprompt` UMA vez por carregamento, assim que
+ * julga o site instalável — e isso pode acontecer antes de o React hidratar e montar o ouvinte de verdade
+ * (src/lib/pwa/navegador.ts). Este ouvinte de uma linha só guarda o evento em `window.__roPwaEvento`; a loja de
+ * instalação o recolhe ao iniciar. Sem isso, num celular lento, o botão "Instalar" poderia nascer sem o diálogo nativo.
+ * Não chama `preventDefault()`: o convite do próprio navegador segue funcionando.
+ *
+ * É um <script> inline comum, como o anti-flash do tema, e NÃO `next/script` com `beforeInteractive`: no App Router
+ * esse modo não vira script de verdade no HTML, vira uma entrada na fila `self.__next_s` que só roda quando o bundle
+ * principal carrega — quase tão tarde quanto a hidratação, o que anularia o propósito (verificado no HTML de produção
+ * em 04/11/2026). O inline roda durante o parse, antes de qualquer pacote.
+ */
+const CAPTURA_DO_CONVITE = `window.addEventListener('beforeinstallprompt',function(e){window.__roPwaEvento=e});`
 
 /**
  * SCRIPT ANTI-FLASH — não é enfeite, é requisito.
@@ -74,11 +100,15 @@ export default function RootLayout({ children }: { children: ReactNode }): React
           divergência esperada, não um defeito. */}
       <body data-theme="dark" suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: APLICA_TEMA }} />
+        <script dangerouslySetInnerHTML={{ __html: CAPTURA_DO_CONVITE }} />
         <ThemeProvider>
           <ToastProvider>
             <ModalProvider>{children}</ModalProvider>
           </ToastProvider>
         </ThemeProvider>
+        {/* Fora dos providers de propósito: não usa tema, toast nem modal, e o aviso flutuante não deve herdar nada
+            que possa remontá-lo. Liga o PWA (instalação + service worker) e hospeda o aviso e o painel de instruções. */}
+        <RaizDoPwa />
       </body>
     </html>
   )

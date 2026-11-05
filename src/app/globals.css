@@ -48,6 +48,10 @@
 @import '../styles/tutorial.css';
 @import '../styles/atendimento.css';
 
+/* PWA: botão da página inicial, aviso flutuante e painel de instruções. Depois de atendimento.css e tutorial.css de
+   propósito: a regra que sobe os botões flutuantes de baixo enquanto o aviso aparece precisa vir depois deles. */
+@import '../styles/pwa.css';
+
 /* Painel administrativo (/admin). Sem media query própria: a gaveta mobile vem das
    classes do casco, que responsive.css ajusta logo abaixo. */
 @import '../styles/admin.css';

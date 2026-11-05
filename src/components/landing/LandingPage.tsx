@@ -31,6 +31,7 @@ import { COIN_TYPES } from '@/domain/constants'
 import type { DestaqueDeMercado } from '@/domain/destaques-de-mercado'
 import type { TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
+import { BotaoBaixarApp } from '@/components/pwa/BotaoBaixarApp'
 
 import { CoinSpecimenViewer } from './CoinSpecimenViewer'
 import { DemoNegociacao } from './DemoNegociacao'
@@ -243,6 +244,8 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
               <Link className="pub-btn pub-btn-ghost pub-btn-lg" href="#como-funciona">
                 Ver como funciona
               </Link>
+              {/* PWA: some para quem já instalou e volta se desinstalar (src/components/pwa/BotaoBaixarApp.tsx). */}
+              <BotaoBaixarApp />
             </div>
             <ul className="pub-hero-fatos" aria-label="Taxas em vigor">
               <li>

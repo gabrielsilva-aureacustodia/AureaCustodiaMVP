@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#081226">
+  <title>Sem conexão — Real Olímpico</title>
+  <!--
+    Tela mostrada pelo service worker (src/lib/pwa/service-worker.ts) quando a rede cai numa navegação.
+    Autocontida de propósito: CSS e script inline, nada que dependa de buscar outro arquivo — se a rede caiu,
+    qualquer arquivo extra também falharia. A única imagem (o emblema) vem do cache de pré-carga do worker; se ela
+    faltar, a tela continua legível. Cores = tokens --ro-noite-950, --ro-ouro-500 e --ro-pergaminho-250.
+    Está em public/ e fora do middleware (matcher): precisa abrir sem sessão.
+  -->
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{
+      display:flex;align-items:center;justify-content:center;padding:24px;
+      background:#081226;color:#f2ede0;
+      font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      -webkit-text-size-adjust:100%;
+    }
+    main{width:100%;max-width:380px;text-align:center}
+    img{width:88px;height:88px;margin:0 auto 20px;display:block}
+    h1{margin:0 0 8px;font:600 1.5rem/1.2 Georgia,"Times New Roman",serif;letter-spacing:.01em}
+    p{margin:0 0 24px;color:#8fa0bd}
+    button{
+      min-height:48px;padding:0 28px;border:1px solid #c9a24b;border-radius:10px;
+      background:#c9a24b;color:#081226;font:600 1rem system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;cursor:pointer;
+    }
+    button:focus-visible{outline:2px solid #ebc977;outline-offset:3px}
+    small{display:block;margin-top:18px;font-size:.8125rem;color:#6a7d9f}
+  </style>
+</head>
+<body>
+  <main role="main">
+    <img src="/brand/logo-real-olimpico-emblema.webp" alt="" width="88" height="88">
+    <h1>Sem conexão</h1>
+    <p>O Real Olímpico precisa de internet para mostrar seu saldo e suas moedas sempre atualizados. Confira o Wi-Fi ou o sinal e tente de novo.</p>
+    <button type="button" id="tentar">Tentar de novo</button>
+    <small id="estado" role="status" aria-live="polite"></small>
+  </main>
+  <script>
+    (function () {
+      var estado = document.getElementById('estado');
+      document.getElementById('tentar').addEventListener('click', function () {
+        estado.textContent = 'Tentando conectar…';
+        location.reload();
+      });
+      // Voltou a conexão: recarrega sozinho, sem o cliente precisar tocar em nada.
+      window.addEventListener('online', function () { location.reload(); });
+    })();
+  </script>
+</body>
+</html>

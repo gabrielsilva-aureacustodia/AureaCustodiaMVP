@@ -85,6 +85,15 @@ export const config = {
    * sem sessão era mandado para /entrar ao pedir uma imagem da landing) e os
    * arquivos de raiz que buscadores pedem. Tudo o mais passa por aqui —
    * inclusive rota que ainda não existe, que é exatamente o ponto.
+   *
+   * PWA (04/11/2026): `manifest.webmanifest`, `sw.js`, `offline.html`, `pwa/` (ícones), `icon.png` e `apple-icon.png`.
+   * O navegador busca esses arquivos SEM cookie — o manifesto e o service worker até no meio da instalação, e o
+   * iPhone o ícone no instante em que a pessoa toca em "Adicionar à Tela de Início". Se a rede de segurança os
+   * redirecionasse para /entrar, o visitante deslogado (justamente quem recebe o convite de instalação) ficaria
+   * com um app não instalável, ou com o ícone trocado por uma captura de tela da página de login. São arquivos
+   * estáticos de marca e código, sem dado de ninguém.
    */
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|moedas/|visuais/|robots.txt|sitemap.xml).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|brand/|moedas/|visuais/|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|offline.html|pwa/|icon.png|apple-icon.png).*)',
+  ],
 }

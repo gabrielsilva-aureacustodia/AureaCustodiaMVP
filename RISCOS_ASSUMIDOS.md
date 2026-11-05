@@ -76,6 +76,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-56** | Pagamento aprovado que não pode liquidar vira saldo em conta, sem devolução pelo gateway e sem aviso próprio na tela de pagamento | 🟡 | `src/server/payments/` |
 | **RA-58** | Saque aprovado pela equipe; o Pix automático pelo Mercado Pago nasce DESLIGADO e o aviso de status do gateway não é assinado (só aponta, a consulta decide) | 🟡 | `src/server/saques/`, `src/lib/payments/payouts*.ts`, `src/app/api/webhooks/mercadopago-payouts/` |
 | **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
+| **RA-60** | App instalável (PWA): não provado em aparelho real; iPhone sem sinal de instalação ("Já adicionei" vale 30 dias); `middleware` libera 6 caminhos estáticos sem sessão; `htmlLimitedBots` global; sem screenshots no manifesto nem tela de abertura do iPhone; ícones compostos a partir do emblema oficial (visual aprovado em 05/11/2026) | 🟡 | `src/lib/pwa/`, `src/components/pwa/`, `src/middleware.ts`, `next.config.mjs`, `src/app/manifest.ts`, `src/app/sw.js/` |
 
 ---
 
@@ -1326,3 +1327,40 @@ a equipe por e-mail quando entra pedido novo.
 valor baixo, e só então confiar a fila ao botão.
 
 Nota em `src/lib/payments/ATALHOS.md`.
+
+
+# RA-60 — App instalável (PWA): o que ficou sem prova e o que ficou de fora 🟡
+
+```
+Criado:  04/11/2026
+Pasta:   src/lib/pwa/ · src/components/pwa/ · src/app/manifest.ts · src/app/sw.js/ · src/middleware.ts · next.config.mjs
+Execução: docs/pwa/MD_EXECUCAO.md
+```
+
+**O que foi feito:** o site virou um app instalável em Android e iPhone, com botão "Baixar o app" na página inicial
+(some para quem instalou, volta se desinstalar), aviso flutuante com o passo a passo de cada sistema, e atualização
+automática a cada deploy. O service worker não guarda HTML, API nem dado de conta — só arquivos estáticos e uma tela
+"Sem conexão". Os atalhos que ficaram:
+
+1. **Nada foi provado em aparelho real.** Os testes foram num Chrome emulado e, para o iPhone, num Chrome que se
+   apresenta como iPhone. Falta ver o diálogo de instalação do Chrome, o "Adicionar à Tela de Início" do Safari, a barra
+   de status e a abertura do app num Android e num iPhone de verdade.
+2. **O iPhone não avisa se o app está instalado.** O botão "Já adicionei ao meu iPhone" esconde o convite por 30 dias;
+   depois ele volta, mesmo que o app continue instalado. Limite da Apple.
+3. **O `middleware` libera seis caminhos estáticos sem sessão** (`manifest.webmanifest`, `sw.js`, `offline.html`, `pwa/`,
+   `icon.png`, `apple-icon.png`), porque o navegador os busca sem cookie. São públicos e sem dado de ninguém.
+4. **`htmlLimitedBots: /.*/` vale para o site inteiro**, para as tags do iPhone saírem no `<head>`. Custo esperado perto
+   de zero, não medido em produção.
+5. **Sem `screenshots` no manifesto e sem tela de abertura do iPhone.** Não impede instalar nem usar.
+6. **Os ícones foram compostos por script a partir do emblema oficial** sobre `#081226`, e o `apple-icon.png` anterior
+   foi substituído. Nada novo foi desenhado, e o visual foi aprovado pelo Gabriel em 05/11/2026.
+
+**O que isso custa:** o convite do iPhone pode aparecer para quem já instalou; um erro de configuração no service worker
+só aparece em aparelho real (por isso o teste do item 1 vale antes de divulgar o app); o ícone, já aprovado, ainda precisa ser visto na tela inicial de um aparelho real.
+
+**Como se paga:** (1) instalar num Android e num iPhone depois do deploy e seguir a lista de `docs/pwa/MD_EXECUCAO.md`;
+(2) nada a fazer — é a regra do iOS; (3) manter só arquivo público nesses caminhos; (4) medir o tempo até o primeiro
+byte das rotas dinâmicas; (5) capturas de tela e imagens de abertura quando o visual da landing fechar; (6) ícone
+aprovado em 05/11/2026; só o aspecto no aparelho real (item 1) resta a conferir.
+
+Nota em `src/lib/pwa/ATALHOS.md`.

@@ -29,6 +29,7 @@ export const ROTAS_PUBLICAS_EXATAS: readonly string[] = [
   '/privacidade',
   '/suporte',
   '/taxas',
+  '/sw.js', // service worker do PWA — o navegador o busca sem cookie; é código estático (src/app/sw.js/route.ts)
 ]
 
 /**
