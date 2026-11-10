@@ -669,7 +669,7 @@ describe('administração de usuários', () => {
     const [bancaria] = await executar((tx) => listarAuditoria(tx, { acao: 'admin.usuarios.editar_dados_bancarios' }))
     // A ordem das chaves sai do jsonb, que reordena; o que importa é quais mudaram.
     expect([...(bancaria.detalhes.campos as string[])].sort()).toEqual(['agencia', 'banco', 'chavePix', 'conta', 'tipoChavePix', 'tipoConta'])
-    expect((await editarDadosBancarios(estado, ATENDENTE, 'solares@testeaurea.com.br', { chavePix: 'x', tipoChavePix: 'email' })).ok).toBe(false)
+    expect((await editarDadosBancarios(estado, ATENDENTE, 'solares@testeaurea.com.br', { chavePix: 'x', tipoChavePix: 'email' })).ok).toBe(true)
   })
 
   it('inadimplência manual liga e desliga, e só grava quando muda', async () => {

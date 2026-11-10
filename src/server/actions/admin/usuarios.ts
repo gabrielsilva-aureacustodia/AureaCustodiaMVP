@@ -34,6 +34,7 @@ import {
   marcarInadimplencia,
   mudarSituacaoDaConta,
   redefinirSenha,
+  trocarEmailDeLogin,
 } from '@/server/admin/usuarios'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
@@ -129,6 +130,13 @@ export async function redefinirSenhaNoPainel(email: string, modo: string, senha:
       ehDoCatalogo: alvo in ACCOUNTS,
     })
   })
+}
+
+/** Troca o e-mail de login (e, se vier, a senha) direto no Supabase e no banco. */
+export async function trocarEmailNoPainel(email: string, novoEmail: string, senha: string): Promise<ActionResult> {
+  return comPermissoes(['usuarios.editar'], (membro) =>
+    trocarEmailDeLogin(executorOuNulo(), portaDeIdentidadeDoAmbiente(), membro.email, { de: conta(email), para: novoEmail, senha, ehDoCatalogo: conta(email) in ACCOUNTS }),
+  )
 }
 
 /**

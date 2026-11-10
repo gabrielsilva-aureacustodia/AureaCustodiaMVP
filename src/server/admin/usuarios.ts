@@ -37,6 +37,7 @@ import { chaveDeUsuario } from '@/domain/email'
 import type { AppState, Cadastro, Cents, UserEmail } from '@/domain/types'
 import { inserirNotaDoUsuario, inserirSituacao, situacaoDaConta } from '@/server/db/repositories/admin-usuarios'
 import { lerEstado, mutarEstado } from '@/server/db/estado'
+import { renomearEmailUsuarioNoBanco } from '@/server/db/repositories/users'
 import type { Executor } from '@/server/db/sql'
 
 import { registrarAcaoAdmin, type AcaoAdmin } from './auditar'
@@ -226,7 +227,7 @@ export async function editarCadastro(
     (s): ResultadoAdmin<{ campos: string[]; avisos: string[] }> => {
       const u = s.users[conta]
       if (!u) return CONTA_NAO_ENCONTRADA
-      const v = montarCadastroDoPainel(entrada, u.cadastro, agora)
+      const v = montarCadastroDoPainel({ ...entrada, nome: typeof entrada.nome === 'string' && entrada.nome.trim() ? entrada.nome : u.name }, u.cadastro, agora)
       if (!v.ok) return v
       const campos = camposAlterados({ nome: u.name, ...planoDoCadastro(u.cadastro) }, { nome: v.valor.nome, ...planoDoCadastro(v.valor.cadastro) })
       if (!campos.length) return { ok: true, mensagem: 'Nada mudou no cadastro.', dados: { campos, avisos: v.valor.avisos } }
@@ -259,10 +260,15 @@ export async function editarDadosBancarios(
       const u = s.users[conta]
       if (!u) return CONTA_NAO_ENCONTRADA
       // Os dados bancários moram DENTRO do cadastro, e o cadastro só é gravado inteiro.
-      if (!u.cadastro) return { ok: false, erro: 'Preencha o cadastro antes dos dados bancários: eles são gravados junto com ele.' }
-      const campos = camposAlterados({ ...u.cadastro.dadosBancarios }, { ...v.valor })
+      // Sem cadastro ainda, nasce um em branco só para guardá-los — o painel não trava por isso.
+      const base: Cadastro = u.cadastro ?? {
+        cpf: '', nomeCompleto: '', dataNascimento: '', telefone: '',
+        endereco: { logradouro: '', numero: '', bairro: '', cidade: '', uf: '', cep: '' },
+        dadosBancarios: {}, completadoEm: agora,
+      }
+      const campos = camposAlterados({ ...base.dadosBancarios }, { ...v.valor })
       if (!campos.length) return { ok: true, mensagem: 'Nada mudou nos dados bancários.', dados: { campos } }
-      u.cadastro = { ...u.cadastro, dadosBancarios: v.valor }
+      u.cadastro = { ...base, dadosBancarios: v.valor }
       return { ok: true, mensagem: 'Dados bancários salvos.', dados: { campos } }
     },
     (res) =>
@@ -470,6 +476,51 @@ export async function redefinirSenha(
       identidade_criada: 'Login criado no Supabase com a senha provisória. Passe-a à pessoa por um canal seguro.',
     }[feito],
   }
+}
+
+/* ---------- e-mail de login ---------- */
+
+/**
+ * Troca o e-mail da conta — Supabase Auth primeiro (sem e-mail de confirmação, é o painel quem
+ * garante), depois o banco inteiro (mesmo renomeio do "Meus dados" do cliente). Se o banco
+ * falhar, o Supabase volta ao e-mail antigo para as duas pontas não divergirem. Senha nova é opcional.
+ */
+export async function trocarEmailDeLogin(
+  executar: Executor | null,
+  identidade: PortaDeIdentidade,
+  ator: string,
+  entrada: { de: UserEmail; para: unknown; senha: unknown; ehDoCatalogo: boolean },
+  agora: number = Date.now(),
+): Promise<ResultadoAdmin> {
+  const de = normalizarEmail(entrada.de)
+  const para = typeof entrada.para === 'string' ? normalizarEmail(entrada.para) : ''
+  const senha = typeof entrada.senha === 'string' && entrada.senha ? entrada.senha : undefined
+  if (!executar) return { ok: false, erro: SEM_BANCO }
+  if (!para || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) return { ok: false, erro: 'Informe um e-mail válido.' }
+  if (para === de) return { ok: false, erro: 'O e-mail novo é igual ao atual.' }
+  if (entrada.ehDoCatalogo) return { ok: false, erro: 'Conta do catálogo de demonstração: o e-mail dela é fixo.' }
+  if (senha && senha.length < 8) return { ok: false, erro: 'A senha nova precisa de pelo menos 8 caracteres.' }
+
+  let idSupabase: string | null = null
+  if (identidade.configurada) {
+    if (await identidade.buscar(para)) return { ok: false, erro: 'Já existe um login com este e-mail.' }
+    const atual = await identidade.buscar(de)
+    if (atual) {
+      idSupabase = atual.id
+      const r = await identidade.atualizarLogin(atual.id, { email: para, senha })
+      if (!r.ok) return { ok: false, erro: `O Supabase Auth recusou: ${r.erro}` }
+    }
+  }
+  try {
+    await executar(async (tx) => {
+      await renomearEmailUsuarioNoBanco(tx, de, para)
+      await registrarAcaoAdmin(tx, { ator, area: 'usuarios', verbo: 'trocar_email', entidade: 'usuario', entidadeId: para, usuariosAfetados: [para], detalhes: { de, para, senhaTrocada: Boolean(senha) }, agora })
+    })
+  } catch (err) {
+    if (idSupabase) await identidade.atualizarLogin(idSupabase, { email: de }).catch(() => undefined)
+    return { ok: false, erro: err instanceof Error ? err.message : 'Falha ao trocar o e-mail.' }
+  }
+  return { ok: true, mensagem: `E-mail alterado para ${para}${senha ? ' e senha nova definida' : ''}. O login já vale com o novo e-mail.` }
 }
 
 /* ---------- notas internas ---------- */

@@ -26,6 +26,7 @@ import {
   marcarInadimplenciaNoPainel,
   mudarSituacaoDaContaNoPainel,
   redefinirSenhaNoPainel,
+  trocarEmailNoPainel,
 } from '@/server/actions/admin/usuarios'
 import { reenviarAvisoDeReservaNoPainel, reenviarRedefinicaoSenhaNoPainel } from '@/server/actions/admin/emails'
 
@@ -47,6 +48,7 @@ export function AcoesDaConta({ cabecalho }: { cabecalho: CabecalhoFicha }): Reac
         <h4>Zona de perigo</h4>
         <p className="adm-fraco">Mexem no acesso do cliente. Ficam registradas na trilha com quem fez e o motivo.</p>
         <Situacao email={resumo.email} nome={resumo.nome} ativa={cabecalho.situacao.ativa} ehDaEquipe={cabecalho.ehDaEquipe} semBanco={cabecalho.semBanco} />
+        <EmailDeLogin email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} />
         <Senha email={resumo.email} ehDoCatalogo={cabecalho.ehDoCatalogo} ultimoEnvio={cabecalho.ultimosEnvios.redefinicao_senha ?? null} />
       </div>
     </section>
@@ -182,6 +184,44 @@ function Situacao({ email, nome, ativa, ehDaEquipe, semBanco }: { email: string;
               />
             </form>
           </>
+        )}
+      </div>
+    </details>
+  )
+}
+
+function EmailDeLogin({ email, ehDoCatalogo }: { email: string; ehDoCatalogo: boolean }): ReactNode {
+  const { run } = useAdmin()
+  const [novo, setNovo] = useState('')
+  const [senha, setSenha] = useState('')
+  return (
+    <details className="adm-detalhes">
+      <summary>Trocar e-mail e senha de login</summary>
+      <div className="adm-detalhes-corpo">
+        {ehDoCatalogo ? (
+          <p className="adm-fraco">Conta do catálogo de demonstração: o e-mail dela é fixo.</p>
+        ) : (
+          <form
+            className="adm-form"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              const r = await run(() => trocarEmailNoPainel(email, novo, senha))
+              if (r.ok) window.location.assign(`/admin/usuarios/${encodeURIComponent(novo.trim().toLowerCase())}`)
+            }}
+          >
+            <p className="adm-fraco">Vai direto para o Supabase e para o banco, sem e-mail de confirmação. A senha é opcional (mínimo 8).</p>
+            <div className="field adm-campo-largo">
+              <label htmlFor="troca-email">Novo e-mail (atual: {email})</label>
+              <input id="troca-email" className="tinput" type="email" value={novo} onChange={(e) => setNovo(e.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" />
+            </div>
+            <div className="field adm-campo-largo">
+              <label htmlFor="troca-senha">Nova senha (opcional)</label>
+              <input id="troca-senha" className="tinput" type="text" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="new-password" spellCheck={false} autoCapitalize="none" />
+            </div>
+            <button type="submit" className="btn btn-outline adm-btn-compacto" disabled={!novo.trim()}>
+              Trocar e-mail
+            </button>
+          </form>
         )}
       </div>
     </details>

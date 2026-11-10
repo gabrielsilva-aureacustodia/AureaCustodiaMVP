@@ -116,7 +116,7 @@ describe('editar cadastro', () => {
   it('CPF que não confere é gravado com aviso; campo obrigatório vazio é recusado', () => {
     const comCpfRuim = montarCadastroDoPainel({ ...entrada, cpf: '111.111.111-11' }, CADASTRO, AGORA)
     expect(comCpfRuim.ok && comCpfRuim.valor.avisos).toContain('o CPF não confere com os dígitos verificadores')
-    expect(montarCadastroDoPainel({ ...entrada, telefone: '' }, CADASTRO, AGORA).ok).toBe(false)
+    expect(montarCadastroDoPainel({ ...entrada, telefone: "" }, CADASTRO, AGORA).ok).toBe(true)
   })
 
   it('dados bancários: chave Pix pede o tipo; conta vazia limpa', () => {

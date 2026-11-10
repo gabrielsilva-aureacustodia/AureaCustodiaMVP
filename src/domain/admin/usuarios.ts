@@ -231,20 +231,20 @@ function enderecoDe(v: unknown): Endereco {
  * já existem.
  */
 export function montarCadastroDoPainel(entrada: EntradaCadastro, atual: Cadastro | undefined, agora: Timestamp): Validacao<CadastroMontado> {
+  // Pedido do Gabriel (10/11/2026): o painel nunca recusa uma edição cadastral — só avisa.
+  // O nome de exibição vazio é o único caso que cai no valor atual (a conta não pode ficar sem nome).
+  const avisos: string[] = []
   const nome = texto(entrada.nome, 120)
-  if (nome.length < 2) return { ok: false, erro: 'O nome de exibição precisa de pelo menos 2 caracteres.' }
 
   const cpf = texto(entrada.cpf, 20).replace(/\D/g, '')
   const nomeCompleto = texto(entrada.nomeCompleto)
   const dataNascimento = texto(entrada.dataNascimento, 10)
   const telefone = texto(entrada.telefone, 30).replace(/\D/g, '')
-  if (!cpf || !nomeCompleto || !dataNascimento || !telefone) {
-    return {
-      ok: false,
-      erro: 'CPF, nome completo, data de nascimento e telefone precisam estar preenchidos: o cadastro é gravado inteiro.',
-    }
-  }
-  if (!DATA_ISO.test(dataNascimento)) return { ok: false, erro: 'Data de nascimento no formato AAAA-MM-DD.' }
+  if (!cpf) avisos.push('o CPF está vazio')
+  if (!nomeCompleto) avisos.push('o nome completo está vazio')
+  if (!dataNascimento) avisos.push('a data de nascimento está vazia')
+  else if (!DATA_ISO.test(dataNascimento)) avisos.push('a data de nascimento não está no formato AAAA-MM-DD')
+  if (!telefone) avisos.push('o telefone está vazio')
 
   const cadastro: Cadastro = {
     cpf,
@@ -257,9 +257,8 @@ export function montarCadastroDoPainel(entrada: EntradaCadastro, atual: Cadastro
     ...(atual?.confirmadoEm !== undefined ? { confirmadoEm: atual.confirmadoEm } : {}),
   }
 
-  const avisos: string[] = []
-  if (!cpfValido(cpf)) avisos.push('o CPF não confere com os dígitos verificadores')
-  if (telefone.length < 10 || telefone.length > 11) avisos.push('o telefone não tem DDD e número (10 ou 11 dígitos)')
+  if (cpf && !cpfValido(cpf)) avisos.push('o CPF não confere com os dígitos verificadores')
+  if (telefone && (telefone.length < 10 || telefone.length > 11)) avisos.push('o telefone não tem DDD e número (10 ou 11 dígitos)')
   if (!temCadastroCompleto({ cadastro })) avisos.push('com estes dados o cadastro não libera depósito, compra e saque')
   return { ok: true, valor: { nome, cadastro, avisos } }
 }
