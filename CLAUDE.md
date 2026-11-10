@@ -315,6 +315,10 @@ código** ou a regra de casamento continua sendo mudança de produto.
 
 ## Documentos de referência do projeto
 
+- **Continuidade (09/11/2026):** `docs/INDICE_VEGA.md` (mapa do repositório para o Vega e para qualquer chat novo),
+  `docs/diario/LEIA_PRIMEIRO_AGENTE.md` (abertura e fechamento de sessão) e `docs/diario/execucoes/ESTADO-GERAL-*--MD_EXECUCAO.md`
+  (bloco RETOMADA). Ao fim de toda execução: atualizar o MD de execução, o índice e salvar memória em `docs/memorias/`.
+
 - `README.md` deste repositório — histórico do port, deploy e pendências.
 - `docs/diario/` — rituais de sessão, Critical Debugs e leituras diárias.
 - `docs/PLANO_EXECUCAO_CRITICAL_DEBUGS.md` — o plano verificado dos itens acima.
