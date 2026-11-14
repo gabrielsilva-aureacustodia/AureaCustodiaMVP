@@ -78,7 +78,7 @@ Regras que protegem a qualidade do número:
 
 **A correção:** o Pixel agora **não carrega e não registra visita** em `/admin`, `/painel`, `/recibos/…`, `/conta/aceites/…` e `/relatorios`. Se a pessoa entra nessas áreas navegando de uma página pública, o envio é suspenso enquanto ela estiver lá e volta ao sair.
 
-**Situação:** corrigido no código, com testes, e verificado no navegador local. **Ainda NÃO está no ar.** Enquanto não for publicado, vale a equipe evitar abrir fichas de clientes num navegador que já visitou o site público (o risco real é pequeno, pois o Pixel hoje só roda se a pessoa carregou uma página do site), e o ideal é publicar logo.
+**Situação: parcialmente corrigido.** A trava do commit `c023148` cobre carga de página e o `PageView` do próprio site. Ao testar logado achei que a contagem automática de navegação do Pixel ainda levava a URL de `/relatorios` quando a pessoa navegava de dentro do site; a correção está em C.1c e **ainda não foi publicada**. Sobre o commit `c023148`, 14/11/2026: Conferido no site publicado: em `/painel` o Pixel nem carrega (`fbq` inexistente, sem `fbevents.js`); em `/taxas` e `/cadastrar` carrega e a Meta recebeu exatamente 2 `PageView` e 1 `CliqueCriarConta`, e nenhum evento do `/painel`.
 
 ---
 
@@ -198,15 +198,36 @@ Todos com status **Processado**, origem **Navegador**, método **Configuração 
 
 **Não repeti em produção o teste do cadastro pelo Google** (cookie de evento pendente) porque dispararia um `CompleteRegistration` falso nos dados reais do Pixel, que ainda não tem histórico. Esse caminho foi testado no ambiente local e por testes unitários.
 
+## C.1c Cadastro e telas internas, com contas de teste reais (14/11/2026, 18:50–19:08)
+
+O Gabriel criou duas contas de teste no site de produção (a senha digitada por ele; eu não digito senha). Os dois e-mails são de mentira e **devem ser apagados do Supabase**: `teste.pixel@example.com` e `teste.pixel2@example.com`.
+
+**Cadastro por e-mail (`CompleteRegistration`) — comprovado duas vezes:**
+
+| Conta | Hora | ID do evento | Parâmetros | Quantidade |
+|---|---|---|---|---|
+| `teste.pixel@` | 18:50:31 | `e8401b2c-cc81-4185-a530-36b10c356187` | `status: true`, `content_name: cadastro_email` | 1 |
+| `teste.pixel2@` | 19:02:47 | `4d723693-a3ca-407a-b8d0-83c3848ebda8` | `status: true`, `content_name: cadastro_email` | 1 |
+
+Os dois chegaram como "Processado", origem Navegador, fonte `website`, com IDs diferentes. Antes de cada cadastro houve um `CliqueCriarConta`. A tela de testes da Meta mostra a URL desses eventos como `/`; o endereço realmente enviado é `/cadastrar` (conferido interceptando a requisição), então é detalhe de exibição.
+
+**Telas internas, com a conta logada:** navegando dentro do site (sem recarregar), a Meta recebeu `PageView` de `/mercado` (certo), mas **também de `/relatorios`** (errado: área sem rastreio). Era um **segundo defeito de privacidade**, mais fino que o do A.6.
+
+- **Causa:** o Pixel tem, por padrão, uma contagem automática de troca de URL (`pushState`). Ela dispara no instante da troca, antes de o código do site decidir que a área não pode ser rastreada. A trava do A.6 só valia para o `PageView` que o próprio site dispara; essa contagem automática escapava.
+- **Correção (ainda não publicada):** em `src/components/meta/MetaPixel.tsx`, o snippet passa a definir `fbq.disablePushState = true` e `fbq.allowDuplicatePageViews = true` antes do `init`. A primeira desliga a contagem automática; a segunda impede que o Pixel descarte o `PageView` que o site dispara à mão na navegação interna.
+- **Teste local da correção** (servidor de teste com ID falso, `/` como ponto de partida, navegação interna): `/taxas`, `/suporte`, `/cadastrar` e `/entrar` (para onde `/relatorios` redireciona sem sessão) enviaram **um** `PageView` cada, com a URL certa; `/admin` e `/painel` enviaram **nada**; ao sair de `/painel` para `/taxas` o envio voltou. Typecheck, 1.561 testes e build passaram.
+- **Pendente:** publicar e repetir a conferência em produção, logado.
+
+**Tela que não deveria ser testada:** um recibo (`/recibos/<código>`) só existe para quem tem moeda. A conta de teste não tem moeda, então abrir um código inventado derrubou a página ("Application error"). Foi um teste meu mal escolhido, não um defeito do Pixel. A regra de `/recibos/` continua coberta pelos testes automatizados.
+
 ## C.2 O que AINDA NÃO foi comprovado nem feito
 
-1. **`CompleteRegistration` de ponta a ponta.** Não criei a conta de teste: o formulário exige digitar uma **senha**, o que eu não faço, e o site é o de produção (a conta fica no banco real). Deixei a sessão de teste da Meta aberta e pronta; basta alguém criar uma conta de teste em realolimpico.com.br/cadastrar e eu conferir o evento chegando. O código está coberto por testes unitários e o fluxo foi simulado em ambiente local, mas **o evento ainda não foi visto chegando à Meta**.
+1. **Conferência em produção da correção do `pushState`** (C.1c) e das telas internas logado depois da publicação. O `CompleteRegistration` por e-mail já está comprovado (C.1c).
 2. **Envio pelo servidor (API de Conversões).** Depende da chave `META_CAPI_ACCESS_TOKEN`, ainda não criada. Sem ela só o Pixel do navegador funciona, o que já mede o cadastro, mas perde quem usa bloqueador de anúncio.
 3. **Correspondência avançada automática** (Configurações do Pixel).
 4. **Verificação do domínio** `realolimpico.com.br` no Business Manager (a Meta pede para priorizar eventos).
 5. **Ajuste da campanha.** "Tráfego para Cadastro" usa o objetivo Tráfego, que otimiza clique. Para a Meta otimizar **cadastro**, o conjunto de anúncios precisa de conversão em "Cadastro concluído" (`CompleteRegistration`), o que só pode ser escolhido depois que o Pixel receber esse evento ao menos uma vez.
-6. **Publicar a correção de privacidade** (A.6): precisa de novo commit e deploy, com a sua autorização.
-7. **Eventos de uso** (depósito, envio de moeda, negociação): **não existem.** Dá para medir o funil por URL com "conversões personalizadas". Enviar evento financeiro à Meta é uma decisão do Gabriel, porque envolve dado financeiro de clientes.
+6. **Eventos de uso** (depósito, envio de moeda, negociação): **não existem.** Dá para medir o funil por URL com "conversões personalizadas". Enviar evento financeiro à Meta é uma decisão do Gabriel, porque envolve dado financeiro de clientes.
 
 ## C.3 Riscos em aberto
 
@@ -217,8 +238,7 @@ Todos com status **Processado**, origem **Navegador**, método **Configuração 
 
 ## C.4 Próximos passos sugeridos, em ordem
 
-0. **Publicar a correção de privacidade** (A.6).
-1. Você cria uma **conta de teste** no site (eu preparo e confiro o evento na Meta) e conferimos o `CompleteRegistration` na aba "Eventos de teste".
+1. Publicar a correção do `pushState`, repetir a navegação logado e **apagar as duas contas de teste** do Supabase.
 2. Gerar a **chave da API de Conversões** e colá-la na Vercel como `META_CAPI_ACCESS_TOKEN` (Sensitive), seguido de deploy; repetir o teste e conferir a origem "Navegador e Servidor".
 3. Ligar a correspondência avançada automática e verificar o domínio.
 4. Decisão do jurídico sobre cookies/privacidade (RA-61).

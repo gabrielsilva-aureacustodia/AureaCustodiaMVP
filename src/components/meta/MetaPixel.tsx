@@ -51,9 +51,15 @@ function apagarCookie(nome: string): void {
  * O snippet oficial da Meta (developers.facebook.com/docs/meta-pixel/get-started), com o ID já validado numérico.
  * SEM o `fbq('track','PageView')` do original: o PageView sai sempre do efeito abaixo, que sabe se a página é de uma área
  * sem rastreio (`caminhoSemRastreio`). Com o PageView no snippet, a Meta receberia a URL de uma rota proibida.
+ *
+ * `disablePushState`: por padrão o Pixel manda PageView sozinho a cada troca de URL do navegador (pushState), no instante
+ * da troca, ANTES de o efeito do React rodar — então navegar de uma página pública para /relatorios levava essa URL à
+ * Meta mesmo com a trava (achado em 14/11/2026 testando logado). Desligado, só o nosso efeito dispara PageView.
+ * `allowDuplicatePageViews`: sem isto o Pixel descarta um segundo PageView na mesma carga de página, e o PageView da
+ * navegação interna (que o efeito dispara à mão) sumiria.
  */
 function snippetBase(pixelId: string): string {
-  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');`
+  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq.disablePushState=true;fbq.allowDuplicatePageViews=true;fbq('init','${pixelId}');`
 }
 
 export function MetaPixel({ pixelId }: MetaPixelProps): ReactNode {
