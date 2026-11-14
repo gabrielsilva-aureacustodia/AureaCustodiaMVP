@@ -36,6 +36,7 @@ import { consumirDestinoDoLogin } from '@/server/auth/destino'
 import { consumePendingLegalAcceptance } from '@/server/auth/legal'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
+import { registrarCadastroGoogleNaMeta } from '@/server/meta/cadastro'
 import { setSession } from '@/server/session'
 import { normalizarEmail } from '@/domain/email'
 
@@ -173,6 +174,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     const provisioned = await authorizeProvisionedUser(user.email)
     if (!provisioned) {
       await provisionAuthenticatedUser(user.email, nomeDoUsuario(user))
+      // Meta: pelo Google a conta nasce AQUI. O e-mail já contou no formulário; confirmar o link não conta de novo.
+      if (user.app_metadata.provider === 'google') {
+        await registrarCadastroGoogleNaMeta(user.email, nomeDoUsuario(user), request.headers).catch(() => undefined)
+      }
     }
 
     await setSession(normalizarEmail(user.email))

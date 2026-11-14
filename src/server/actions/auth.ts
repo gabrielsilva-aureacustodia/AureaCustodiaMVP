@@ -23,6 +23,7 @@ import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
+import { registrarCadastroNaMeta } from '@/server/meta/cadastro'
 import { clearSession, getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
 import {
@@ -37,6 +38,11 @@ const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente 
 
 export interface OAuthStartData {
   redirectTo: string
+}
+
+/** O que o formulário de cadastro recebe de volta: o ID do evento da Meta, para o Pixel disparar o par do servidor. */
+export interface CadastroData {
+  eventoCadastroId?: string
 }
 
 function authError<T = unknown>(): ActionResult<T> {
@@ -103,7 +109,7 @@ export async function registerWithEmail(
   senha: string,
   arbitragemAssinada?: boolean,
   nomeAssinaturaArbitragem?: string,
-): Promise<ActionResult> {
+): Promise<ActionResult<CadastroData>> {
   const status = getRegistrationStatus()
   if (!status.enabled) {
     return { ok: false, error: status.reason ?? 'Novos cadastros estão fechados.' }
@@ -156,18 +162,33 @@ export async function registerWithEmail(
       // O registro formal de prova nunca trava a criação de conta nem o fluxo
     }
 
+    // Meta: um CompleteRegistration por conta NOVA. Com e-mail já cadastrado o Supabase não devolve erro (para não revelar
+    // quem tem conta) e responde com `identities` vazio — contar isso inflaria os cadastros da campanha.
+    const contaNova = !data.user || (data.user.identities?.length ?? 1) > 0
+    const eventoCadastroId = contaNova
+      ? registrarCadastroNaMeta({
+          metodo: 'cadastro_email',
+          email: normalizedEmail,
+          nomeCompleto: normalizedName,
+          cabecalhos: await headers(),
+          paginaPadrao: '/cadastrar',
+        })
+      : undefined
+
     if (data.user?.email && data.user.email_confirmed_at) {
       await provisionAuthenticatedUser(data.user.email, normalizedName)
       await client.auth.signOut({ scope: 'local' })
       return {
         ok: true,
         message: 'Conta criada e confirmada. Você já pode entrar.',
+        data: { eventoCadastroId },
       }
     }
     await client.auth.signOut({ scope: 'local' })
     return {
       ok: true,
       message: 'Conta criada. Abra o e-mail de confirmação para validar seu acesso.',
+      data: { eventoCadastroId },
     }
   } catch {
     return authError()

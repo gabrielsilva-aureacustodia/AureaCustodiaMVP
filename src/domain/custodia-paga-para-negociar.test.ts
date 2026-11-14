@@ -10,7 +10,7 @@
  * 2) paga, segue negociável até as 23:59 do dia da próxima cobrança; depois disso, só pagando.
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   casarOrdensRespeitandoPendencia,
@@ -66,6 +66,14 @@ const PAGA_DO_CICLO_1 = fatura({ id: 'FAT-ENT', status: 'paga', dataPagamento: E
 
 describe('o caso do Sidnei: fatura de entrada pendente e dentro do prazo', () => {
   const agora = brasilia(2026, 10, 12, 19, 25) // a hora em que a moeda foi vendida
+
+  // `availableCoinsForSell` e `lotsFromOffers` leem o relógio do sistema. Sem fixá-lo, o teste passou até 12/11/2026 e
+  // quebrou no dia em que o ciclo de custódia do cenário venceu de verdade (14/11/2026, achado ao configurar o Pixel).
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(agora)
+  })
+  afterEach(() => vi.useRealTimers())
 
   it('a moeda NÃO se negocia, ainda que a fatura esteja no prazo', () => {
     const s = cenario([PENDENTE_NO_PRAZO])

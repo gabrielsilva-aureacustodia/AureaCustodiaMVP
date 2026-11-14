@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
+import { parametrosDoCadastro } from '@/lib/meta/eventos'
+import { rastrearPadrao } from '@/lib/meta/pixel'
 import { registerWithEmail, registerWithGoogle } from '@/server/actions/auth'
 
 import { AuthShell } from './AuthShell'
@@ -62,6 +64,14 @@ export function RegisterForm({
       if (!result.ok) {
         setErro(result.error ?? 'Não foi possível criar a conta.')
         return
+      }
+      // Par do Pixel: o servidor já mandou o mesmo evento pela API de Conversões com este ID, e a Meta conta um só.
+      if (result.data?.eventoCadastroId) {
+        rastrearPadrao(
+          'CompleteRegistration',
+          parametrosDoCadastro('cadastro_email'),
+          result.data.eventoCadastroId,
+        )
       }
       setMensagem(result.message ?? 'Conta criada. Confirme seu e-mail.')
     } finally {

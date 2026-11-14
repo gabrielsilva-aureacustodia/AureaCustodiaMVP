@@ -25,6 +25,8 @@ import type { ReactNode } from 'react'
 import './globals.css'
 
 import { classesDasFontes } from '@/brand/fontes'
+import { MetaPixel } from '@/components/meta/MetaPixel'
+import { lerPixelId } from '@/lib/meta/eventos'
 import { RaizDoPwa } from '@/components/pwa/RaizDoPwa'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ModalProvider } from '@/components/ui/Modal'
@@ -109,6 +111,9 @@ export default function RootLayout({ children }: { children: ReactNode }): React
         {/* Fora dos providers de propósito: não usa tema, toast nem modal, e o aviso flutuante não deve herdar nada
             que possa remontá-lo. Liga o PWA (instalação + service worker) e hospeda o aviso e o painel de instruções. */}
         <RaizDoPwa />
+        {/* Pixel da Meta (campanha de tráfego para o site). O ID é lido AQUI, no servidor, para valer no runtime sem
+            rebuild e para ser validado (só dígitos) antes de entrar no script. Sem META_PIXEL_ID, não renderiza nada. */}
+        <MetaPixel pixelId={lerPixelId(process.env.META_PIXEL_ID)} />
       </body>
     </html>
   )

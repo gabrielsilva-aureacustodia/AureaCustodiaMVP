@@ -77,6 +77,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-58** | Saque aprovado pela equipe; o Pix automático pelo Mercado Pago nasce DESLIGADO e o aviso de status do gateway não é assinado (só aponta, a consulta decide) | 🟡 | `src/server/saques/`, `src/lib/payments/payouts*.ts`, `src/app/api/webhooks/mercadopago-payouts/` |
 | **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
 | **RA-60** | App instalável (PWA): não provado em aparelho real; iPhone sem sinal de instalação ("Já adicionei" vale 30 dias); `middleware` libera 6 caminhos estáticos sem sessão; `htmlLimitedBots` global; sem screenshots no manifesto nem tela de abertura do iPhone; ícones compostos a partir do emblema oficial (visual aprovado em 05/11/2026) | 🟡 | `src/lib/pwa/`, `src/components/pwa/`, `src/middleware.ts`, `next.config.mjs`, `src/app/manifest.ts`, `src/app/sw.js/` |
+| **RA-61** | Pixel da Meta no ar sem faixa de consentimento de cookies e sem parágrafo na Política de Privacidade; CompleteRegistration do e-mail conta no envio do formulário (antes de confirmar o e-mail); sem `value` no evento | 🟡 | `src/lib/meta/`, `src/server/meta/`, `src/components/meta/`, `src/app/layout.tsx`, `src/app/entrar/callback/route.ts`, `src/server/actions/auth.ts` |
 
 ---
 
@@ -1364,3 +1365,34 @@ byte das rotas dinâmicas; (5) capturas de tela e imagens de abertura quando o v
 aprovado em 05/11/2026; só o aspecto no aparelho real (item 1) resta a conferir.
 
 Nota em `src/lib/pwa/ATALHOS.md`.
+
+
+# RA-61 — Pixel da Meta: sem faixa de consentimento e sem texto na Política de Privacidade 🟡
+
+```
+Criado:  14/11/2026
+Pasta:   src/lib/meta/ · src/server/meta/ · src/components/meta/ · src/app/layout.tsx · src/app/entrar/callback/route.ts
+Execução: docs/META_PIXEL.md
+```
+
+**O que foi feito:** o Pixel da Meta (navegador) e a API de Conversões (servidor) medem a campanha de tráfego para o
+site. Só rodam com `META_PIXEL_ID` (e, no servidor, `META_CAPI_ACCESS_TOKEN`) definidos; sem eles o site não carrega
+nada da Meta. Eventos: PageView em toda página, `CliqueCriarConta` (clique em qualquer botão para /cadastrar) e
+CompleteRegistration (cadastro por e-mail e por Google), este com o mesmo ID nos dois canais para a Meta contar um só.
+
+1. **Sem faixa de consentimento.** O Pixel grava cookies (`_fbp`, `_fbc`) e roda para todo visitante assim que o site
+   carrega. A LGPD (Lei 13.709/2018) trata cookie de publicidade como dado pessoal e pede base legal e informação clara.
+   Não existe faixa de cookies no site hoje. Decisão do jurídico antes de campanha com cliente real.
+2. **A Política de Privacidade não cita o Pixel nem a Meta.** Texto legal é do jurídico; não foi alterado.
+3. **O CompleteRegistration do e-mail conta no envio do formulário**, antes de a pessoa confirmar o e-mail (parte nunca
+   confirma). Foi escolhido porque o evento chega perto do anúncio e a Meta aprende melhor; o custo é contar conta que
+   nunca ativa. Com e-mail já cadastrado o evento não dispara.
+4. **O evento não leva `value`.** Não há valor de cadastro definido; inventar um distorceria a otimização. Quando houver
+   (ex.: ticket médio do primeiro depósito), entra em `parametrosDoCadastro`.
+5. **Nenhum evento de uso (depósito, envio de moeda, negociação) existe ainda.** Para o uso, o PageView por URL já
+   permite criar conversões personalizadas no Gerenciador de Eventos. Evento de servidor para dinheiro depende de decisão
+   do Gabriel (envia dado financeiro à Meta).
+
+**O que isso custa:** exposição regulatória (LGPD) enquanto não houver faixa e texto; contagem de cadastro por e-mail um
+pouco acima dos contas realmente ativadas.
+
