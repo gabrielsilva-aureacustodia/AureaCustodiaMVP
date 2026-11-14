@@ -1393,6 +1393,10 @@ CompleteRegistration (cadastro por e-mail e por Google), este com o mesmo ID nos
    permite criar conversões personalizadas no Gerenciador de Eventos. Evento de servidor para dinheiro depende de decisão
    do Gabriel (envia dado financeiro à Meta).
 
+6. **O Pixel não roda em `/admin`, `/painel`, `/recibos/…`, `/conta/aceites/…` e `/relatorios`** (14/11/2026): a URL dessas rotas leva
+   e-mail de cliente ou código de moeda, e o PageView manda a URL inteira à Meta. A lista está em `caminhoSemRastreio`
+   (`src/lib/meta/eventos.ts`); rota nova com dado pessoal na URL precisa entrar nela.
+
 **O que isso custa:** exposição regulatória (LGPD) enquanto não houver faixa e texto; contagem de cadastro por e-mail um
 pouco acima dos contas realmente ativadas.
 

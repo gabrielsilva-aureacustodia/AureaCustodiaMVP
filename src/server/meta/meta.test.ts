@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import {
+  caminhoSemRastreio,
   COOKIE_EVENTO_PENDENTE,
   lerEventoPendente,
   lerPixelId,
@@ -211,5 +212,33 @@ describe('contrato compartilhado', () => {
     expect(lerEventoPendente('CompleteRegistration.abc12345.outro')).toBeNull()
     expect(lerEventoPendente(null)).toBeNull()
     expect(COOKIE_EVENTO_PENDENTE).toBe('ro_meta_evt')
+  })
+})
+
+describe('áreas sem rastreio (a URL leva dado de gente à Meta)', () => {
+  it('painel, ficha de cliente por e-mail, recibos e relatórios ficam de fora', () => {
+    for (const c of [
+      '/admin',
+      '/admin/usuarios',
+      '/admin/usuarios/ana%40exemplo.com',
+      '/admin/moedas/RO-000179',
+      '/painel',
+      '/recibos/RO-000179',
+      '/conta/aceites/abc123',
+      '/relatorios',
+    ]) {
+      expect(caminhoSemRastreio(c), c).toBe(true)
+    }
+  })
+
+  it('páginas públicas e do funil continuam rastreadas', () => {
+    for (const c of ['/', '/entrar', '/cadastrar', '/taxas', '/academy', '/suporte', '/termos', '/privacidade', '/inicio', '/mercado', '/recibos', '/conta/extrato']) {
+      expect(caminhoSemRastreio(c), c).toBe(false)
+    }
+  })
+
+  it('não confunde prefixo parecido (/administrador não é /admin)', () => {
+    expect(caminhoSemRastreio('/administrador')).toBe(false)
+    expect(caminhoSemRastreio('/painelzinho')).toBe(false)
   })
 })

@@ -45,6 +45,15 @@ export function rastrearPadrao(
   })
 }
 
+/**
+ * Liga/desliga o envio do Pixel sem descarregá-lo. Usado ao entrar numa área sem rastreio por navegação interna: o script
+ * já foi carregado antes, e `revoke` impede que ele mande qualquer coisa (inclusive o evento automático de clique) enquanto
+ * a pessoa está lá. Oficial: developers.facebook.com/docs/meta-pixel/implementation/gdpr.
+ */
+export function definirEnvio(permitido: boolean): void {
+  quandoPronto((fbq) => fbq('consent', permitido ? 'grant' : 'revoke'))
+}
+
 export function rastrearPersonalizado(
   nome: EventoPersonalizado,
   parametros?: ParametrosDoEvento,

@@ -37,6 +37,19 @@ export function parametrosDoCadastro(metodo: MetodoDeCadastro): ParametrosDoEven
   return { status: true, content_name: metodo }
 }
 
+/**
+ * Áreas onde o Pixel NÃO roda. O PageView leva a URL inteira à Meta, e nestas rotas a URL carrega dado de gente:
+ *  - `/admin/usuarios/<e-mail do cliente>` (ficha da conta, aberta pela equipe), e todo o resto de `/admin` e `/painel`;
+ *  - `/recibos/<código da moeda>` e `/conta/aceites/<id>`;
+ *  - `/relatorios` (relatórios financeiros).
+ * Achado em 14/11/2026, ao testar o Pixel no ar. A lista é por prefixo de caminho e vale no carregamento e na navegação.
+ */
+const AREAS_SEM_RASTREIO = ['/admin', '/painel', '/recibos/', '/conta/aceites', '/relatorios'] as const
+
+export function caminhoSemRastreio(caminho: string): boolean {
+  return AREAS_SEM_RASTREIO.some((p) => caminho === p || caminho.startsWith(p.endsWith('/') ? p : `${p}/`))
+}
+
 /** Identificador único do evento, para deduplicar o Pixel contra a API de Conversões. */
 export function novoEventId(): string {
   return crypto.randomUUID()
