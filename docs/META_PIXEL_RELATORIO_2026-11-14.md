@@ -78,7 +78,7 @@ Regras que protegem a qualidade do número:
 
 **A correção:** o Pixel agora **não carrega e não registra visita** em `/admin`, `/painel`, `/recibos/…`, `/conta/aceites/…` e `/relatorios`. Se a pessoa entra nessas áreas navegando de uma página pública, o envio é suspenso enquanto ela estiver lá e volta ao sair.
 
-**Situação: parcialmente corrigido.** A trava do commit `c023148` cobre carga de página e o `PageView` do próprio site. Ao testar logado achei que a contagem automática de navegação do Pixel ainda levava a URL de `/relatorios` quando a pessoa navegava de dentro do site; a correção está em C.1c e **ainda não foi publicada**. Sobre o commit `c023148`, 14/11/2026: Conferido no site publicado: em `/painel` o Pixel nem carrega (`fbq` inexistente, sem `fbevents.js`); em `/taxas` e `/cadastrar` carrega e a Meta recebeu exatamente 2 `PageView` e 1 `CliqueCriarConta`, e nenhum evento do `/painel`.
+**Situação: corrigido e no ar, em duas etapas.** O commit `c023148` cobriu carga de página e o `PageView` do próprio site. Ao testar logado achei que a contagem automática de navegação do Pixel ainda levava a URL de `/relatorios` quando a pessoa navegava de dentro do site; isso foi corrigido no commit `bddcd4f` (C.1c), já em produção. Conferência da primeira etapa (`c023148`), 14/11/2026: Conferido no site publicado: em `/painel` o Pixel nem carrega (`fbq` inexistente, sem `fbevents.js`); em `/taxas` e `/cadastrar` carrega e a Meta recebeu exatamente 2 `PageView` e 1 `CliqueCriarConta`, e nenhum evento do `/painel`.
 
 ---
 
@@ -216,13 +216,25 @@ Os dois chegaram como "Processado", origem Navegador, fonte `website`, com IDs d
 - **Causa:** o Pixel tem, por padrão, uma contagem automática de troca de URL (`pushState`). Ela dispara no instante da troca, antes de o código do site decidir que a área não pode ser rastreada. A trava do A.6 só valia para o `PageView` que o próprio site dispara; essa contagem automática escapava.
 - **Correção (ainda não publicada):** em `src/components/meta/MetaPixel.tsx`, o snippet passa a definir `fbq.disablePushState = true` e `fbq.allowDuplicatePageViews = true` antes do `init`. A primeira desliga a contagem automática; a segunda impede que o Pixel descarte o `PageView` que o site dispara à mão na navegação interna.
 - **Teste local da correção** (servidor de teste com ID falso, `/` como ponto de partida, navegação interna): `/taxas`, `/suporte`, `/cadastrar` e `/entrar` (para onde `/relatorios` redireciona sem sessão) enviaram **um** `PageView` cada, com a URL certa; `/admin` e `/painel` enviaram **nada**; ao sair de `/painel` para `/taxas` o envio voltou. Typecheck, 1.561 testes e build passaram.
-- **Pendente:** publicar e repetir a conferência em produção, logado.
+- **Publicada** (commit `bddcd4f`, deploy pronto na Vercel) **e conferida em produção, logado como `teste.pixel2@`** (19:12), pela captura das requisições que saem do navegador: `fbq.disablePushState = true` e `allowDuplicatePageViews = true` ativos; navegação interna `/mercado` → `/relatorios` → `/inicio` → `/mercado` → `/relatorios` → `/admin` → `/inicio`:
+
+| Passo | Foi parar em | O que saiu para a Meta |
+|---|---|---|
+| `/mercado` | `/mercado` | 1 `PageView` de `/mercado` |
+| `/relatorios` | `/painel` | **nada** |
+| `/inicio` | `/inicio` | 1 `PageView` de `/inicio` |
+| `/mercado` | `/mercado` | 1 `PageView` de `/mercado` |
+| `/relatorios` | `/painel` | **nada** |
+| `/admin` | `/painel` | **nada** |
+| `/inicio` | `/inicio` | 1 `PageView` de `/inicio` |
+
+  Nota: ao recarregar a aba "Eventos de teste" da Meta para conferir esta rodada, a sessão de teste se perdeu (a aba pede o canal de novo), então **esta rodada não foi lida na lista da Meta**, só na captura do navegador. Os `PageView` das 19:04 (antes da correção) continuam na lista e mostram o defeito: `/relatorios` às 19:04:14 e o recibo inventado às 19:04:25.
 
 **Tela que não deveria ser testada:** um recibo (`/recibos/<código>`) só existe para quem tem moeda. A conta de teste não tem moeda, então abrir um código inventado derrubou a página ("Application error"). Foi um teste meu mal escolhido, não um defeito do Pixel. A regra de `/recibos/` continua coberta pelos testes automatizados.
 
 ## C.2 O que AINDA NÃO foi comprovado nem feito
 
-1. **Conferência em produção da correção do `pushState`** (C.1c) e das telas internas logado depois da publicação. O `CompleteRegistration` por e-mail já está comprovado (C.1c).
+1. **Leitura da rodada pós-correção na lista da Meta.** A correção do `pushState` está comprovada pela captura no navegador (C.1c), não pela lista da Meta. O `CompleteRegistration` por e-mail já está comprovado nos dois lados.
 2. **Envio pelo servidor (API de Conversões).** Depende da chave `META_CAPI_ACCESS_TOKEN`, ainda não criada. Sem ela só o Pixel do navegador funciona, o que já mede o cadastro, mas perde quem usa bloqueador de anúncio.
 3. **Correspondência avançada automática** (Configurações do Pixel).
 4. **Verificação do domínio** `realolimpico.com.br` no Business Manager (a Meta pede para priorizar eventos).
@@ -238,7 +250,7 @@ Os dois chegaram como "Processado", origem Navegador, fonte `website`, com IDs d
 
 ## C.4 Próximos passos sugeridos, em ordem
 
-1. Publicar a correção do `pushState`, repetir a navegação logado e **apagar as duas contas de teste** do Supabase.
+1. **Apagar as duas contas de teste** do Supabase (`teste.pixel@example.com` e `teste.pixel2@example.com`).
 2. Gerar a **chave da API de Conversões** e colá-la na Vercel como `META_CAPI_ACCESS_TOKEN` (Sensitive), seguido de deploy; repetir o teste e conferir a origem "Navegador e Servidor".
 3. Ligar a correspondência avançada automática e verificar o domínio.
 4. Decisão do jurídico sobre cookies/privacidade (RA-61).
