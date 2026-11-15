@@ -232,6 +232,14 @@ Os dois chegaram como "Processado", origem Navegador, fonte `website`, com IDs d
 
 **Tela que não deveria ser testada:** um recibo (`/recibos/<código>`) só existe para quem tem moeda. A conta de teste não tem moeda, então abrir um código inventado derrubou a página ("Application error"). Foi um teste meu mal escolhido, não um defeito do Pixel. A regra de `/recibos/` continua coberta pelos testes automatizados.
 
+## C.1d API de Conversões: token instalado e teste em andamento (15/11/2026)
+
+- **Token instalado:** `META_CAPI_ACCESS_TOKEN` na Vercel (produção, tipo sensível), colado pelo Gabriel pela CLI; deploy feito. O erro "Acesso de desenvolvedor restrito" ao gerar o token sumiu depois da verificação da conta de desenvolvedor.
+- **Cadastros de teste dessa rodada:** `teste.pixel3@example.com` e `teste.pixel4@example.com` (o pixel3 pode ter sido feito antes de o deploy terminar). A Visão geral da Meta não os mostrou nos primeiros ~10 minutos (atraso normal de até 30 min); o Diagnóstico não mostrava erro e os logs da Vercel não tinham nenhum aviso `[meta]`.
+- **Teste do servidor em tempo real — comprovado:** com a variável temporária **`META_TEST_EVENT_CODE=TEST5394`** na produção (commit vazio `6f2ea56` para redeploy), o cadastro de `teste.pixel5@example.com` chegou à aba "Eventos de teste" **duas vezes, pelos dois canais, com o mesmo ID** `a7294db5-4ec7-4c75-8695-8b1db9397cd2`: "Concluir inscrição" origem **Navegador** (16:37:22) e origem **Servidor** (16:37:24), os dois "Processado". É a deduplicação funcionando: a Meta conta um cadastro só. O token e a API de Conversões estão ligados.
+- **Variável temporária removida** em 15/11/2026 (`vercel env rm META_TEST_EVENT_CODE production --confirm-name META_TEST_EVENT_CODE`; a CLI exige a confirmação humana, `--yes` não basta) e produção redeployada sem ela. **Enquanto ela existisse, todo cadastro real pelo servidor iria para a lista de teste e não contaria para a campanha.**
+- **Contas de teste a apagar no Supabase (5):** `teste.pixel`, `pixel2`, `pixel3`, `pixel4` e `pixel5`, todas `@example.com`.
+
 ## C.2 O que AINDA NÃO foi comprovado nem feito
 
 1. **Leitura da rodada pós-correção na lista da Meta.** A correção do `pushState` está comprovada pela captura no navegador (C.1c), não pela lista da Meta. O `CompleteRegistration` por e-mail já está comprovado nos dois lados.
