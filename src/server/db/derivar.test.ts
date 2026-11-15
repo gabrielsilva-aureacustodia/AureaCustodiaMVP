@@ -271,3 +271,41 @@ describe('derivarLancamentos — estorno de custódia cobrada por engano (03/11/
     expect(derivado.lancamentos[0]!.saldoApos).toBe(saldoAntes + 200)
   })
 })
+
+describe('derivarLancamentos — custódia do primeiro mês recebida na venda direta (14/11/2026)', () => {
+  it('lança a entrada com a origem escrita e a custódia paga, sem nenhum ajuste', async () => {
+    const { cobrarEntradaNoAcervo } = await import('@/domain/cobranca-de-entrada')
+    const { planejarDiff } = await import('./diff')
+
+    const antes = seedState()
+    const email = Object.keys(antes.users)[0]!
+    const depois = structuredClone(antes)
+    const moedaId = depois.users[email]!.coins[0]!.id
+    // A moeda é nova no ciclo: o dia de hoje de Brasília é a entrada dela.
+    const agora = Date.now()
+    const saldoAntes = depois.users[email]!.balance
+    depois.faturasCustodia = []
+    depois.planosCustodia = []
+    antes.faturasCustodia = []
+    antes.planosCustodia = []
+    cobrarEntradaNoAcervo(depois, email, [moedaId], { custodiaMensalPorMoeda: 200 }, agora, { primeiroMesRecebidoFora: true })
+
+    const derivado = derivarLancamentos({
+      antes,
+      depois,
+      ops: planejarDiff(antes, depois),
+      semeadura: false,
+      agora,
+      hashAnterior: 'hash_anterior_seed',
+    })
+
+    const entrada = derivado.lancamentos.find((l) => l.tipo === 'deposito')
+    const custodia = derivado.lancamentos.find((l) => l.tipo === 'custodia' && l.sinal === -1)
+    expect(entrada?.descricao).toBe('Custódia do 1º mês recebida na venda direta (embutida no preço)')
+    expect(entrada?.valor).toBe(200)
+    expect(custodia?.valor).toBe(200)
+    expect(derivado.lancamentos.some((l) => l.tipo === 'ajuste')).toBe(false)
+    expect(derivado.ajustes).toEqual([])
+    expect(depois.users[email]!.balance).toBe(saldoAntes)
+  })
+})

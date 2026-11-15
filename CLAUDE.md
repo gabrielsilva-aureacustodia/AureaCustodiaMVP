@@ -138,6 +138,11 @@ cold start.
   gateway não tem nenhuma assinatura recorrente: a cobrança é só fatura do nosso backend.
 - **Cada lote (envio ou cadastro) é uma custódia própria**: `emitirFaturasDosCiclos` emite uma fatura por
   lote em cada ciclo, e o extrato mostra o lote (pedido do Gabriel, 05/10/2026).
+- **Cadastro sem envio pode vir com o primeiro mês já pago** (Gabriel, 14/11/2026, depois do evento de lançamento, em que o Rogério vendeu moeda em mãos com o
+  mês embutido no preço e improvisou com ajuste de saldo): a caixa "Primeiro mês de custódia já pago" grava `Envio.primeiroMesPago` (migration 050). Na ANÁLISE,
+  só para as moedas aprovadas, `cobrarEntradaNoAcervo` cria a fatura de entrada já paga e uma entrada `custodia_recebida_fora` do mesmo valor — o saldo do cliente
+  não muda, o ledger diz de onde veio e a NFS-e sai como de qualquer custódia paga. Moeda recusada não gera nada. O dinheiro físico fica com quem recebeu na venda:
+  o repasse é decisão do Gabriel, não do sistema.
 - **Caixa do cofre tem capacidade e tipo, e valem** (migration 040, `alocarNasCaixas` em
   `src/domain/admin/caixas.ts`): caixa cheia manda a moeda para a próxima do mesmo tipo com vaga, e moeda
   de um tipo não entra em caixa de outro. Sem vaga em nenhuma caixa do tipo, o cadastro volta com erro.

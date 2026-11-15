@@ -283,6 +283,13 @@ export interface Envio {
   pesoInicialMg?: number | null
   caixaInicial?: string | null
   observacao?: string | null
+  /**
+   * O primeiro mês de custódia já foi pago FORA do sistema, embutido no preço da venda direta (Gabriel,
+   * 14/11/2026). Só o cadastro sem envio liga isto. Na análise, a fatura de entrada das moedas APROVADAS nasce
+   * paga, com a entrada de dinheiro rotulada (`custodia_recebida_fora`) — ver `cobrarEntradaNoAcervo`.
+   * Ausente equivale a `false`.
+   */
+  primeiroMesPago?: boolean
   /** Data em que o envio foi desconsiderado após 3 dias sem postagem. */
   desconsideradoEm?: Timestamp | null
   /** Motivo da desconsideração / cancelamento do envio. */
@@ -419,6 +426,11 @@ export type OrigemDeposito =
   | 'oferta_prepaga'
   | 'reserva_compra'
   | 'frete_envio'
+  /**
+   * O primeiro mês de custódia que o cliente pagou numa venda direta, fora do sistema (14/11/2026). Não passa
+   * pelo gateway: nasce e é gasto na mesma transação, então o saldo do cliente não muda.
+   */
+  | 'custodia_recebida_fora'
 
 export type StatusPagamento = 'Pago' | 'Pendente'
 

@@ -274,6 +274,7 @@ export async function cadastrarMoedaSemEnvioNoPainel(entrada: {
   pesoMg?: number
   caixa?: string | null
   observacao?: string | null
+  primeiroMesPago?: boolean
 }): Promise<ActionResult<{ protocolo: string }>> {
   return comPermissao('acervo.cadastro_sem_envio', async (membro) => {
     const e = entrada ?? { userEmail: '', tipoMoeda: '', ano: 0, quantidade: 0 }
@@ -285,6 +286,7 @@ export async function cadastrarMoedaSemEnvioNoPainel(entrada: {
       pesoMg: typeof e.pesoMg === 'number' ? e.pesoMg : 0,
       caixa: typeof e.caixa === 'string' ? e.caixa : null,
       observacao: typeof e.observacao === 'string' ? e.observacao : null,
+      primeiroMesPago: e.primeiroMesPago === true,
     })
 
     if (r.tipo === 'usuario-nao-encontrado') return { ok: false, erro: 'Não existe conta com este e-mail.' }
@@ -315,6 +317,7 @@ export async function cadastrarMoedaSemEnvioNoPainel(entrada: {
             pesoMg: typeof e.pesoMg === 'number' ? e.pesoMg : null,
             caixa: typeof e.caixa === 'string' ? e.caixa : null,
             observacao: typeof e.observacao === 'string' ? e.observacao : null,
+            primeiroMesPago: e.primeiroMesPago === true,
           },
         }),
       )

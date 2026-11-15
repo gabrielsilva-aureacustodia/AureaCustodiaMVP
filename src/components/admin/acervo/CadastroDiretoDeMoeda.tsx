@@ -53,6 +53,7 @@ export function CadastroDiretoDeMoeda({
   const [pesoMg, setPesoMg] = useState('')
   const [caixa, setCaixa] = useState('')
   const [observacao, setObservacao] = useState('')
+  const [primeiroMesPago, setPrimeiroMesPago] = useState(false)
   const [ocupado, setOcupado] = useState(false)
   const direto = modo === 'direto'
   const prefixoId = direto ? 'cd' : 'cse'
@@ -80,12 +81,15 @@ export function CadastroDiretoDeMoeda({
                 pesoMg: pesoMg.trim() ? Number(pesoMg) : 0,
                 caixa: caixa.trim() || null,
                 observacao: observacao.trim() || null,
+                // Só o cadastro sem envio tem o primeiro mês pago na venda direta; o direto não passa pela bancada.
+                ...(direto ? {} : { primeiroMesPago }),
               }),
             )
             setOcupado(false)
             if (r.ok) {
               setQuantidade('1')
               setObservacao('')
+              setPrimeiroMesPago(false)
               router.refresh()
             }
           }}
@@ -174,6 +178,24 @@ export function CadastroDiretoDeMoeda({
                 placeholder="Ex.: acervo já em custódia, anterior à plataforma"
               />
             </div>
+
+            {direto ? null : (
+              <div className="field adm-campo-largo">
+                <label htmlFor={`${prefixoId}-mes-pago`} className="adm-fraco" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <input
+                    id={`${prefixoId}-mes-pago`}
+                    type="checkbox"
+                    checked={primeiroMesPago}
+                    onChange={(ev) => setPrimeiroMesPago(ev.target.checked)}
+                  />
+                  <span>
+                    <strong>Primeiro mês de custódia já pago</strong> (embutido no preço da venda direta). Quando a bancada
+                    aprovar as moedas, a fatura do primeiro mês nasce paga, sem mexer no saldo do cliente. Moeda recusada
+                    não gera cobrança.
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="adm-acoes adm-acima-10">

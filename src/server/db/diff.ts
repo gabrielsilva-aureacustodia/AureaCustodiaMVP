@@ -262,6 +262,8 @@ export function normalizarEnvio(e: Envio): Envio {
     pesoInicialMg: e.pesoInicialMg ?? null,
     caixaInicial: e.caixaInicial ?? null,
     observacao: e.observacao ?? null,
+    // Só vai junto quando ligado: o envio sem a opção continua idêntico ao de antes (migration 050).
+    ...(e.primeiroMesPago ? { primeiroMesPago: true } : {}),
     desconsideradoEm: e.desconsideradoEm ?? null,
     motivoDesconsideracao: e.motivoDesconsideracao ?? null,
     frete: e.frete ? { ...e.frete } : null,

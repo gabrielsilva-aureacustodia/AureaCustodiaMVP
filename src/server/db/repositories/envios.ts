@@ -35,6 +35,7 @@ type LinhaEnvio = {
   motivo_desconsideracao: string | null
   frete: unknown
   pre_postagem: unknown
+  primeiro_mes_pago: boolean | null
 }
 
 export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
@@ -43,7 +44,7 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     `SELECT protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
             data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
             modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-            desconsiderado_em, motivo_desconsideracao, frete, pre_postagem
+            desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago
        FROM ${S}.envios
       ORDER BY ord`,
   )
@@ -64,6 +65,8 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     pesoInicialMg: numOuNulo(r.peso_inicial_mg),
     caixaInicial: r.caixa_inicial,
     observacao: r.observacao,
+    // Migration 050 (14/11/2026): só aparece quando ligado, como no `normalizarEnvio`.
+    ...(r.primeiro_mes_pago ? { primeiroMesPago: true } : {}),
     desconsideradoEm: numOuNulo(r.desconsiderado_em),
     motivoDesconsideracao: r.motivo_desconsideracao,
     // Migration 043 (contrato com os Correios, 22/10/2026).
@@ -79,9 +82,9 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
        (protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
         data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
         modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-        desconsiderado_em, motivo_desconsideracao, frete, pre_postagem)
+        desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, $16, $17, $18,
-             $19::jsonb, $20::jsonb)`,
+             $19::jsonb, $20::jsonb, $21)`,
     [
       e.protocolo,
       e.userEmail,
@@ -103,6 +106,7 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.motivoDesconsideracao ?? null,
       e.frete ? JSON.stringify(e.frete) : null,
       e.prePostagem ? JSON.stringify(e.prePostagem) : null,
+      e.primeiroMesPago === true,
     ],
   )
 }
@@ -116,7 +120,7 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
             codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12, origem = $13,
             peso_inicial_mg = $14, caixa_inicial = $15, observacao = $16,
             desconsiderado_em = $17, motivo_desconsideracao = $18,
-            frete = $19::jsonb, pre_postagem = $20::jsonb
+            frete = $19::jsonb, pre_postagem = $20::jsonb, primeiro_mes_pago = $21
       WHERE protocolo = $1`,
     [
       e.protocolo,
@@ -139,6 +143,7 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.motivoDesconsideracao ?? null,
       e.frete ? JSON.stringify(e.frete) : null,
       e.prePostagem ? JSON.stringify(e.prePostagem) : null,
+      e.primeiroMesPago === true,
     ],
   )
 }

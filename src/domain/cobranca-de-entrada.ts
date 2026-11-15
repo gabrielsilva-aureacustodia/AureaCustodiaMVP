@@ -44,6 +44,14 @@ import type { TabelaDeTaxasPlano } from '@/domain/plano-custodia'
 import { quitarFatura } from '@/domain/quitar-fatura'
 import type { AppState, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
+export interface OpcoesDeCobranca {
+  /**
+   * O primeiro mês já foi pago fora do sistema (venda direta). Só vale na entrada: a fatura nasce paga, com a
+   * entrada de dinheiro `custodia_recebida_fora`, e o saldo do cliente não se mexe.
+   */
+  primeiroMesRecebidoFora?: boolean
+}
+
 /**
  * Emite as faturas dos ciclos que estão devidos para as moedas da conta.
  *
@@ -71,6 +79,7 @@ export function emitirFaturasDosCiclos(
   taxas: TabelaDeTaxasPlano | undefined,
   agora: Timestamp = Date.now(),
   moedaIds?: readonly string[],
+  opcoes: OpcoesDeCobranca = {},
 ): FaturaCustodia[] {
   const user = state.users[userEmail]
   if (!user) return []
@@ -130,9 +139,23 @@ export function emitirFaturasDosCiclos(
     }
     state.faturasCustodia.push(fatura)
 
-    // Débito automático quando há saldo: quem tem dinheiro na conta não precisa
-    // de um boleto para R$ 2,00, e a moeda já sai liberada para anunciar.
-    if (user.balance >= valorCents) {
+    if (opcoes.primeiroMesRecebidoFora && origem === 'entrada_no_acervo') {
+      // O cliente já pagou este mês na venda direta, embutido no preço (14/11/2026). O dinheiro entra como
+      // entrada rotulada e sai na mesma hora para quitar a fatura: o saldo dele não muda e o ledger mostra
+      // de onde veio. Sem isto o painel exigia um "ajuste de saldo" feito à mão, sem origem. NUNCA gasta o
+      // saldo que o cliente já tinha — por isso este ramo vem antes do débito automático.
+      state.deposits.push({
+        userEmail,
+        valor: valorCents,
+        date: agora,
+        origem: 'custodia_recebida_fora',
+        metodo: null,
+        refExterna: fatura.id,
+      })
+      quitarFatura(state, fatura, 'saldo', agora)
+    } else if (user.balance >= valorCents) {
+      // Débito automático quando há saldo: quem tem dinheiro na conta não precisa
+      // de um boleto para R$ 2,00, e a moeda já sai liberada para anunciar.
       user.balance -= valorCents
       quitarFatura(state, fatura, 'saldo', agora)
     }
@@ -156,6 +179,7 @@ export function cobrarEntradaNoAcervo(
   moedaIds: readonly string[],
   taxas?: TabelaDeTaxasPlano,
   agora: Timestamp = Date.now(),
+  opcoes: OpcoesDeCobranca = {},
 ): FaturaCustodia | null {
-  return emitirFaturasDosCiclos(state, userEmail, 'entrada_no_acervo', taxas, agora, moedaIds)[0] ?? null
+  return emitirFaturasDosCiclos(state, userEmail, 'entrada_no_acervo', taxas, agora, moedaIds, opcoes)[0] ?? null
 }

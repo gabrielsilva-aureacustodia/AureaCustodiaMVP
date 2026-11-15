@@ -1401,3 +1401,34 @@ antiga; a única diferença era a moeda travada por engano.
 **Ficou aberto:** o ledger guarda o texto "Depósito simulado em conta" nos 11 lançamentos antigos (append-only, hash
 encadeado — não se reescreve); a NFS-e nº 20 sai da Sefin na próxima passada da rotina de notas.
 
+
+---
+
+# Entrada 019 — 14/11/2026 · Cadastro sem envio ganha a opção "primeiro mês de custódia já pago"
+
+## O que entrou
+
+No evento de lançamento (07 a 09/11/2026) o Rogério vendeu moeda em mãos, com o primeiro mês de custódia embutido
+no preço. O cadastro sem envio não tinha como dizer isso, e ele deu "ajuste de saldo" a cada cliente e quitou a
+fatura na mão: entrada sem origem no ledger e nota fiscal emitida sem fato claro. Agora a tela do cadastro sem envio
+tem a caixa **"Primeiro mês de custódia já pago"** (`Envio.primeiroMesPago`, migration 050). Na análise da bancada,
+só para as moedas **aprovadas**, `cobrarEntradaNoAcervo` cria a fatura de entrada já paga e uma entrada
+`custodia_recebida_fora` do mesmo valor: o saldo do cliente não muda (e o saldo que ele já tinha nunca é gasto), o
+ledger diz de onde veio, e a NFS-e sai como em qualquer custódia paga. Moeda recusada não gera nada.
+
+## Superfície protegida — mudança autorizada pelo Gabriel em 14/11/2026
+
+- **Pedido e autorização:** "Faz a opção de primeiro mês já pago no cadastro sem envio"; aprovou o plano ("Aprovar
+  plano") que listava `types.ts` e a Server Action.
+- **`types.ts`:** `Envio.primeiroMesPago` e a origem de entrada `custodia_recebida_fora`, ambos opcionais/aditivos.
+  Com Postgres a `AUREA_STORE_KEY` não vale, então **sem rotação**.
+- **Server Action** `cadastrarMoedaSemEnvioNoPainel` (`src/server/actions/admin/bancada.ts`): recebe a opção, mesma
+  permissão de antes (`acervo.cadastro_sem_envio`), e a grava na trilha.
+- **Números combinados não mudaram:** comissão, custódia de R$ 2,00/moeda/mês e casamento preço-tempo intocados.
+
+## Análise crítica do que entrou
+
+**O dinheiro físico continua com quem recebeu na venda.** O sistema passa a registrar a entrada com a origem, mas não
+move caixa: o repasse dos R$ 66,00 do evento ao caixa da Áurea é decisão do Gabriel e do contador.
+
+**Ficou aberto:** o cadastro direto (`RO-DIR`) não ganhou a opção, por escolha do Gabriel.

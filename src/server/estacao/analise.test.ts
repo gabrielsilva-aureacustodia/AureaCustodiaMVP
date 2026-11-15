@@ -248,6 +248,44 @@ describe('fecharAnalise', () => {
     expect(faturas[0]!.moedaIds).toContain(novaMoeda.id)
   })
 
+  it('primeiro mês já pago (14/11/2026): 2 aprovadas e 1 recusada — a fatura nasce paga só pelas 2, o saldo não muda', async () => {
+    state.envios = [envio({ quantidade: 3, primeiroMesPago: true })]
+    state.faturasCustodia = []
+    state.deposits = []
+    const saldoAntes = state.users[CLIENTE].balance
+    await fecharAnalise({
+      protocolo: 'RO-ENV-0001',
+      operador: OPERADOR,
+      moedas: [
+        { pesoMg: 27000, veredito: 'aprovada' },
+        { pesoMg: 27000, veredito: 'aprovada' },
+        { pesoMg: 24000, veredito: 'recusada', motivoRecusa: 'Não é a moeda declarada' },
+      ],
+    })
+
+    const faturas = state.faturasCustodia ?? []
+    expect(faturas).toHaveLength(1)
+    expect(faturas[0]!.status).toBe('paga')
+    expect(faturas[0]!.quantidadeMoedas).toBe(2)
+    expect(faturas[0]!.origem).toBe('entrada_no_acervo')
+    expect(state.deposits).toHaveLength(1)
+    expect(state.deposits[0]).toMatchObject({ userEmail: CLIENTE, valor: faturas[0]!.valorCents, origem: 'custodia_recebida_fora' })
+    expect(state.users[CLIENTE].balance).toBe(saldoAntes)
+  })
+
+  it('primeiro mês já pago, mas 100% recusado: nenhuma entrada, fatura ou cobrança', async () => {
+    state.envios = [envio({ quantidade: 1, primeiroMesPago: true })]
+    state.faturasCustodia = []
+    state.deposits = []
+    await fecharAnalise({
+      protocolo: 'RO-ENV-0001',
+      operador: OPERADOR,
+      moedas: [{ pesoMg: 24000, veredito: 'recusada', motivoRecusa: 'Não é a moeda declarada' }],
+    })
+    expect(state.faturasCustodia ?? []).toHaveLength(0)
+    expect(state.deposits).toHaveLength(0)
+  })
+
   it('envio 100% recusado não cria moeda nem fatura — não se guarda o que voltou', async () => {
     state.envios = [envio({ quantidade: 1 })]
     const moedasAntes = state.users[CLIENTE].coins.length

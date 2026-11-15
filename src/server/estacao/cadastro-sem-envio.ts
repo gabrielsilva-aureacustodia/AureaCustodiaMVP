@@ -25,6 +25,8 @@ export interface EntradaCadastroSemEnvio {
   pesoMg?: number
   caixa?: string | null
   observacao?: string | null
+  /** O cliente já pagou o primeiro mês de custódia na venda direta, embutido no preço. */
+  primeiroMesPago?: boolean
 }
 
 export type ResultadoCadastroSemEnvio =
@@ -84,6 +86,7 @@ export async function cadastrarMoedasSemEnvio(
       pesoInicialMg: pesoMg,
       caixaInicial: caixa,
       observacao,
+      ...(entrada.primeiroMesPago === true ? { primeiroMesPago: true } : {}),
     }
     state.envios.push(envio)
     return { tipo: 'ok', protocolo: envio.protocolo }

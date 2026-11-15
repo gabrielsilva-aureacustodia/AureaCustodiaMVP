@@ -524,6 +524,37 @@ function suite(alvo: Alvo): void {
       expect(lido.seq.envio).toBe(semeado.seq.envio + 2)
     })
 
+    it('primeiroMesPago (migration 050) vai e volta do banco, e fica ausente quando desligado', async () => {
+      const semeado = await lerEstado(executar)
+      const email = Object.keys(semeado.users)[0]
+      const novo = (ligado: boolean) =>
+        mutarEstado(executar, (s) => {
+          const protocolo = nextEnvioCode(s.seq)
+          s.envios.push({
+            protocolo,
+            userEmail: email,
+            tipoMoeda: BANDEIRA,
+            ano: 2012,
+            quantidade: 1,
+            codigoRastreio: null,
+            dataPostagem: null,
+            dataRecebimento: null,
+            etapaAtual: 'Recebido pela custódia',
+            createdAt: Date.now(),
+            codigosAtivosGerados: [],
+            origem: 'cadastro_sem_envio',
+            ...(ligado ? { primeiroMesPago: true } : {}),
+          })
+          return protocolo
+        }).then((r) => r.result)
+
+      const ligado = await novo(true)
+      const desligado = await novo(false)
+      const lido = await lerEstado(executar)
+      expect(lido.envios.find((e) => e.protocolo === ligado)?.primeiroMesPago).toBe(true)
+      expect(lido.envios.find((e) => e.protocolo === desligado)).not.toHaveProperty('primeiroMesPago')
+    })
+
     it('wizard completo: postagem, recebimento e recibo emitido criam moedas e a cobrança pendente', async () => {
       const semeado = await lerEstado(executar)
       const email = Object.keys(semeado.users)[3]

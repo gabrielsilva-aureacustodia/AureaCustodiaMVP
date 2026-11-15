@@ -369,6 +369,9 @@ export async function fecharAnalise(
         aprovadas.map((a) => a.codigoMoeda!).filter(Boolean),
         { ...taxas },
         agora,
+        // Cadastro sem envio com o primeiro mês pago na venda direta: só as APROVADAS entram aqui, então
+        // moeda recusada não gera entrada, fatura nem nota (14/11/2026).
+        { primeiroMesRecebidoFora: envio.primeiroMesPago === true },
       )
 
       return {

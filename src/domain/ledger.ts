@@ -207,6 +207,8 @@ export function descricaoDaEntrada(d: Pick<Deposit, 'origem' | 'metodo'>): strin
       return `Pagamento da retirada${por}`
     case 'frete_envio':
       return `Pagamento do frete do envio${por}`
+    case 'custodia_recebida_fora':
+      return 'Custódia do 1º mês recebida na venda direta (embutida no preço)'
     default:
       return 'Entrada por Pix ou cartão'
   }

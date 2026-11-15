@@ -299,3 +299,58 @@ describe('emitirFaturasDosCiclos — sem mês do calendário', () => {
     expect(criadas[0]!.valorCents).toBe(400)
   })
 })
+
+describe('primeiro mês já pago na venda direta (14/11/2026)', () => {
+  const TAXAS = { custodiaMensalPorMoeda: 200 }
+  const opcoes = { primeiroMesRecebidoFora: true }
+
+  it('a fatura nasce paga, a entrada é rotulada e o saldo do cliente não muda', () => {
+    const s = estado(0, [moeda('RO-000001'), moeda('RO-000002')])
+    const f = cobrarEntradaNoAcervo(s, DONO, ['RO-000001', 'RO-000002'], TAXAS, AGORA, opcoes)
+
+    expect(f!.status).toBe('paga')
+    expect(f!.valorCents).toBe(400)
+    expect(f!.origem).toBe('entrada_no_acervo')
+    expect(s.users[DONO]!.balance).toBe(0)
+    expect(s.deposits).toEqual([
+      { userEmail: DONO, valor: 400, date: AGORA, origem: 'custodia_recebida_fora', metodo: null, refExterna: f!.id },
+    ])
+  })
+
+  it('NUNCA gasta o saldo que o cliente já tinha', () => {
+    const s = estado(1000, [moeda('RO-000001')])
+    const f = cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], TAXAS, AGORA, opcoes)
+
+    expect(f!.status).toBe('paga')
+    expect(s.users[DONO]!.balance).toBe(1000)
+  })
+
+  it('sem a opção, tudo continua como antes: pendente sem saldo, débito do saldo com saldo', () => {
+    const semSaldo = estado(0, [moeda('RO-000001')])
+    expect(cobrarEntradaNoAcervo(semSaldo, DONO, ['RO-000001'], TAXAS, AGORA)!.status).toBe('pendente')
+    expect(semSaldo.deposits).toHaveLength(0)
+
+    const comSaldo = estado(1000, [moeda('RO-000001')])
+    cobrarEntradaNoAcervo(comSaldo, DONO, ['RO-000001'], TAXAS, AGORA)
+    expect(comSaldo.users[DONO]!.balance).toBe(800)
+    expect(comSaldo.deposits).toHaveLength(0)
+  })
+
+  it('moeda cujo ciclo já está cobrado não gera fatura nem entrada', () => {
+    const s = estado(0, [moeda('RO-000001')])
+    cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], TAXAS, AGORA, opcoes)
+    const segunda = cobrarEntradaNoAcervo(s, DONO, ['RO-000001'], TAXAS, AGORA, opcoes)
+
+    expect(segunda).toBeNull()
+    expect(s.faturasCustodia).toHaveLength(1)
+    expect(s.deposits).toHaveLength(1)
+  })
+
+  it('a opção só vale na entrada: o ciclo mensal continua cobrando do saldo', () => {
+    const s = estado(0, [moeda('RO-000001')])
+    const criadas = emitirFaturasDosCiclos(s, DONO, 'ciclo_mensal', TAXAS, AGORA, undefined, opcoes)
+
+    expect(criadas[0]!.status).toBe('pendente')
+    expect(s.deposits).toHaveLength(0)
+  })
+})
