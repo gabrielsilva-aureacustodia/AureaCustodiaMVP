@@ -34,8 +34,17 @@ import 'server-only'
  *     com postagem no balcão e código digitado. A tela diz que a cotação é estimativa local.
  */
 
-import { desconsiderarEnvio, envioVenceuPrazoDePostagem, isEnvioDesconsiderado, prePostagemAtiva } from '@/domain/envios'
+import { envioJaPostado } from '@/domain/cancelar-envio'
+import {
+  desconsiderarEnvio,
+  envioVenceuPrazoDePostagem,
+  isEnvioDesconsiderado,
+  prePostagemAtiva,
+  primeiroMesEntraNaDevolucaoAutomatica,
+  temPrimeiroMesPago,
+} from '@/domain/envios'
 import type { Cents, Envio, FreteEnvio, PrePostagemRegistro, Timestamp, User } from '@/domain/types'
+import { cancelarAssinaturaRecorrente } from '@/lib/payments'
 import { calcularFreteCorreios } from '@/lib/shipping/correios'
 import { correiosConfigurado, SERVICOS_CORREIOS } from '@/lib/shipping/cws/config'
 import {
@@ -324,11 +333,32 @@ async function cancelarSemLancar(id: string, protocolo: string): Promise<boolean
  * balcão), 3 postado, 6 estornado — ou um status ausente seguram o envio: na dúvida, não se desfaz
  * um envio que pode estar a caminho.
  */
-const STATUS_NAO_POSTADO = new Set([2, 4, 5, 7])
+export const STATUS_NAO_POSTADO: ReadonlySet<number> = new Set([2, 4, 5, 7])
+
+/**
+ * O que fazer com a etiqueta de um envio que se encerra, dado o status dela nos Correios:
+ *  - 'apagar'   (2 pré-postado, 7 pendente): ainda vale — o DELETE a cancela, e o DELETE ok é a prova de que o
+ *               pacote não foi postado;
+ *  - 'so_anotar' (4 expirado, 5 cancelado): já não vale — NÃO chama o DELETE, só grava `canceladaEm`;
+ *  - 'esperar'  (1 pré-atendido, 3 postado, 6 estornado, ausente): pode estar a caminho — não se mexe.
+ * Decide pelo status da CONSULTA, nunca pelo texto de erro do DELETE (a resposta real dele para etiqueta já
+ * cancelada ou postada nunca foi medida).
+ */
+export type AcaoParaAEtiqueta = 'apagar' | 'so_anotar' | 'esperar'
+
+export function acaoParaStatusDaEtiqueta(status: number | null | undefined): AcaoParaAEtiqueta {
+  if (status === 2 || status === 7) return 'apagar'
+  if (status === 4 || status === 5) return 'so_anotar'
+  return 'esperar'
+}
 
 export interface ResumoVarreduraDeEnvios {
   desconsiderados: string[]
   fretesEstornadosCents: Cents
+  /** 1º mês de custódia devolvido ao saldo, com a NFS-e cancelada (17/11/2026, frente H). */
+  primeirosMesesEstornadosCents: Cents
+  /** Débitos recorrentes no cartão de plano de envio encerrado que foram cancelados no gateway. */
+  assinaturasCanceladas: string[]
   prePostagensCanceladas: string[]
   /** Envios vencidos com etiqueta cujo status nos Correios não deixou desconsiderar (postado, ou sem resposta). */
   aguardandoCorreios: string[]
@@ -336,9 +366,16 @@ export interface ResumoVarreduraDeEnvios {
 
 /**
  * Desconsidera os envios que passaram de 3 dias sem postagem e TÊM dinheiro ou etiqueta envolvidos:
- * frete pago volta ao saldo (status `estornado`, que o ledger lê como `estorno`) e a pré-postagem é
- * cancelada nos Correios. Envio sem frete nem etiqueta não precisa de nada — a leitura já o trata
- * como desconsiderado.
+ * frete pago volta ao saldo (status `estornado`, que o ledger lê como `estorno`), o 1º mês de custódia pago
+ * antes da moeda chegar também volta — com a NFS-e dele cancelada — e a pré-postagem é cancelada nos
+ * Correios. Envio sem frete, sem etiqueta e sem 1º mês não precisa de nada — a leitura já o trata como
+ * desconsiderado.
+ *
+ * O 1º MÊS ENTROU AQUI EM 17/11/2026 (frente H). Antes o candidato era só "frete pago ou etiqueta", e o envio
+ * cujo único dinheiro era o 1º mês (o do Rogério: 15 moedas, R$ 30,00) nunca era varrido — só a leitura o
+ * tratava como desconsiderado, sem devolver nada. **Só para envio criado a partir do corte D-H5**
+ * (`DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE`, em `domain/envios.ts`): envio antigo
+ * volta só o frete, como sempre voltou; o 1º mês e a nota dele só saem por cancelamento manual.
  *
  * Envio com etiqueta só cai depois de os Correios confirmarem que ele não foi postado: o rastreio
  * pode estar um dia atrasado, e desconsiderar um pacote que já está a caminho faria a moeda chegar
@@ -352,17 +389,24 @@ export async function desconsiderarEnviosVencidos(agora: Timestamp = Date.now())
   const resumo: ResumoVarreduraDeEnvios = {
     desconsiderados: [],
     fretesEstornadosCents: 0,
+    primeirosMesesEstornadosCents: 0,
+    assinaturasCanceladas: [],
     prePostagensCanceladas: [],
     aguardandoCorreios: [],
   }
 
   const state = await getState()
+  // O 1º mês só entra como candidato para envio criado a partir do corte D-H5 (`primeiroMesEntraNaDevolucaoAutomatica`):
+  // o envio antigo cujo único dinheiro é o 1º mês continua fora da varredura, como sempre esteve.
   const candidatos = state.envios.filter(
-    (e) => envioVenceuPrazoDePostagem(e, agora) && (e.frete?.status === 'pago' || prePostagemAtiva(e) !== null),
+    (e) =>
+      envioVenceuPrazoDePostagem(e, agora) &&
+      (e.frete?.status === 'pago' || prePostagemAtiva(e) !== null || primeiroMesEntraNaDevolucaoAutomatica(state, e)),
   )
 
   const liberados = new Set<string>()
-  const jaCanceladasNosCorreios = new Set<string>()
+  // O status que os Correios deram na consulta DESTA volta, por protocolo: quem já foi consultado não é consultado de novo.
+  const statusNosCorreios = new Map<string, number | null>()
   for (const e of candidatos) {
     const pp = prePostagemAtiva(e)
     if (!pp) {
@@ -375,9 +419,9 @@ export async function desconsiderarEnviosVencidos(agora: Timestamp = Date.now())
     }
     try {
       const situacao = await consultarPrePostagem(pp.codigoObjeto)
+      statusNosCorreios.set(e.protocolo, situacao?.statusAtual ?? null)
       if (situacao && situacao.statusAtual !== null && STATUS_NAO_POSTADO.has(situacao.statusAtual)) {
         liberados.add(e.protocolo)
-        if (situacao.statusAtual === 5) jaCanceladasNosCorreios.add(e.protocolo)
       } else {
         resumo.aguardandoCorreios.push(e.protocolo)
       }
@@ -387,48 +431,83 @@ export async function desconsiderarEnviosVencidos(agora: Timestamp = Date.now())
     }
   }
 
-  // Pré-postagens de envios já desconsiderados cujo cancelamento falhou numa volta anterior.
+  // Pré-postagens de envios já desconsiderados cujo cancelamento falhou numa volta anterior. Envio JÁ POSTADO
+  // e cancelado pela equipe (frete/1º mês tratados em `cancelarEnvio`) fica de fora: pré-postagem de objeto
+  // postado não se cancela nos Correios, e a tentativa falharia todo dia.
   const aCancelar = new Map<string, PrePostagemRegistro>()
   for (const e of state.envios) {
     const pp = prePostagemAtiva(e)
-    if (e.desconsideradoEm && pp) aCancelar.set(e.protocolo, pp)
+    if (e.desconsideradoEm && pp && !envioJaPostado(e)) aCancelar.set(e.protocolo, pp)
   }
 
   if (liberados.size > 0) {
     const { result } = await mutateState((s) => {
-      const feitos: Array<{ protocolo: string; estornado: Cents; prePostagem: PrePostagemRegistro | null }> = []
+      const feitos: Array<{
+        protocolo: string
+        estornado: Cents
+        primeiroMes: Cents
+        prePostagem: PrePostagemRegistro | null
+      }> = []
       for (const e of s.envios) {
         if (!liberados.has(e.protocolo)) continue
         // Conferido de novo dentro da transação: o rastreio pode ter marcado a postagem no meio.
         if (!envioVenceuPrazoDePostagem(e, agora)) continue
+        const comFrete = e.frete?.status === 'pago'
+        const comPrimeiroMes = primeiroMesEntraNaDevolucaoAutomatica(s, e) && temPrimeiroMesPago(s, e)
         const r = desconsiderarEnvio(
           s,
           e,
           agora,
-          e.frete?.status === 'pago'
-            ? 'Prazo limite de 3 dias para postagem expirado sem postagem nos Correios. O frete pago voltou ao saldo.'
-            : 'Prazo limite de 3 dias para postagem expirado sem postagem nos Correios.',
+          'Prazo limite de 3 dias para postagem expirado sem postagem nos Correios.' +
+            (comFrete ? ' O frete pago voltou ao saldo.' : '') +
+            (comPrimeiroMes ? ' O 1º mês de custódia pago voltou ao saldo e a nota fiscal dele foi cancelada.' : ''),
         )
-        feitos.push({ protocolo: e.protocolo, estornado: r.freteEstornadoCents, prePostagem: r.prePostagemACancelar })
+        feitos.push({
+          protocolo: e.protocolo,
+          estornado: r.freteEstornadoCents,
+          primeiroMes: r.primeiroMes.estornadoCents,
+          prePostagem: r.prePostagemACancelar,
+        })
       }
       return feitos
     })
     for (const f of result) {
       resumo.desconsiderados.push(f.protocolo)
       resumo.fretesEstornadosCents += f.estornado
+      resumo.primeirosMesesEstornadosCents += f.primeiroMes
       if (f.prePostagem) aCancelar.set(f.protocolo, f.prePostagem)
     }
   }
 
+  // O débito recorrente no cartão de um plano que acabou de ser cancelado é I/O: a regra pura não o alcança.
+  // Feito DEPOIS da transação, e refeito a cada volta enquanto restar assinatura num plano cancelado de envio
+  // encerrado — sem isso o cartão do cliente seguiria sendo debitado por um envio que não existe.
+  resumo.assinaturasCanceladas = await cancelarAssinaturasDeEnviosEncerrados()
+
   // Cancelar nos Correios e anotar. Sem contrato não há como cancelar: fica para quando houver.
+  //
+  // A etiqueta que sobrou de uma volta anterior chega aqui SEM consulta, e o DELETE dela pode já ter passado numa
+  // tentativa que não conseguiu anotar: pergunta o status ANTES (quem acabou de ser consultado acima não é
+  // consultado de novo). 4 (expirado) e 5 (cancelado) → só anota, sem DELETE; 2 e 7 → DELETE; o resto (pré-atendido,
+  // postado, estornado, sem resposta) fica como está — na dúvida não se mexe em pacote que pode estar a caminho.
   const cancelados: string[] = []
   for (const [protocolo, pp] of aCancelar) {
-    if (jaCanceladasNosCorreios.has(protocolo)) {
-      cancelados.push(protocolo)
+    if (!correiosConfigurado()) continue
+    let status = statusNosCorreios.get(protocolo)
+    if (status === undefined) {
+      try {
+        status = (await consultarPrePostagem(pp.codigoObjeto))?.statusAtual ?? null
+      } catch (err) {
+        console.error(`[frete-envio] situação da pré-postagem do ${protocolo} não leu:`, err)
+        continue
+      }
+    }
+    const acao = acaoParaStatusDaEtiqueta(status)
+    if (acao === 'esperar') {
+      if (!resumo.aguardandoCorreios.includes(protocolo)) resumo.aguardandoCorreios.push(protocolo)
       continue
     }
-    if (!correiosConfigurado()) continue
-    if (await cancelarSemLancar(pp.id, protocolo)) cancelados.push(protocolo)
+    if (acao === 'so_anotar' || (await cancelarSemLancar(pp.id, protocolo))) cancelados.push(protocolo)
   }
   if (cancelados.length > 0) {
     const quando = Date.now()
@@ -442,4 +521,41 @@ export async function desconsiderarEnviosVencidos(agora: Timestamp = Date.now())
   }
 
   return resumo
+}
+
+/**
+ * Cancela no Mercado Pago o débito recorrente de plano CANCELADO cujo envio foi encerrado (desconsiderado ou
+ * cancelado), e tira a referência do plano. Devolve as assinaturas canceladas.
+ *
+ * Só olha plano `cancelado`: a regra pura (`devolverPrimeiroMesDoEnvio`) o cancelou junto com a fatura, e
+ * deixou o id da assinatura de propósito — apagá-lo antes de o gateway confirmar perderia a única pista de
+ * um cartão que continuaria sendo debitado. Falha do gateway fica para a próxima volta.
+ */
+export async function cancelarAssinaturasDeEnviosEncerrados(): Promise<string[]> {
+  const state = await getState()
+  const encerrados = new Set(state.envios.filter((e) => e.desconsideradoEm).map((e) => e.protocolo))
+  const alvos = (state.planosCustodia ?? []).filter(
+    (p) => p.status === 'cancelado' && p.assinaturaId && encerrados.has(p.protocoloEnvio),
+  )
+  if (alvos.length === 0) return []
+
+  const canceladas: string[] = []
+  for (const p of alvos) {
+    const assinaturaId = p.assinaturaId as string
+    try {
+      const r = await cancelarAssinaturaRecorrente(assinaturaId)
+      if (r.ok) canceladas.push(assinaturaId)
+      else console.error(`[frete-envio] assinatura ${assinaturaId} (${p.protocoloEnvio}) não cancelou: ${r.error ?? 'sem detalhe'}`)
+    } catch (err) {
+      console.error(`[frete-envio] assinatura ${assinaturaId} (${p.protocoloEnvio}) não cancelou:`, err)
+    }
+  }
+  if (canceladas.length > 0) {
+    await mutateState((s) => {
+      for (const p of s.planosCustodia ?? []) {
+        if (p.assinaturaId && canceladas.includes(p.assinaturaId)) p.assinaturaId = null
+      }
+    })
+  }
+  return canceladas
 }

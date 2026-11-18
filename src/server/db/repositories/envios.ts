@@ -36,6 +36,9 @@ type LinhaEnvio = {
   frete: unknown
   pre_postagem: unknown
   primeiro_mes_pago: boolean | null
+  cancelado_em: unknown
+  cancelado_por: string | null
+  motivo_cancelamento: string | null
 }
 
 export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
@@ -44,7 +47,8 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     `SELECT protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
             data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
             modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-            desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago
+            desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago,
+            cancelado_em, cancelado_por, motivo_cancelamento
        FROM ${S}.envios
       ORDER BY ord`,
   )
@@ -69,6 +73,14 @@ export async function carregarEnvios(tx: Consulta): Promise<Envio[]> {
     ...(r.primeiro_mes_pago ? { primeiroMesPago: true } : {}),
     desconsideradoEm: numOuNulo(r.desconsiderado_em),
     motivoDesconsideracao: r.motivo_desconsideracao,
+    // Migration 056 (cancelar envio, 17/11/2026): só aparece quando o envio foi cancelado, como no `normalizarEnvio`.
+    ...(r.cancelado_em !== null && r.cancelado_em !== undefined
+      ? {
+          canceladoEm: numOuNulo(r.cancelado_em),
+          canceladoPor: (r.cancelado_por as 'cliente' | 'equipe' | null) ?? null,
+          motivoCancelamento: r.motivo_cancelamento,
+        }
+      : {}),
     // Migration 043 (contrato com os Correios, 22/10/2026).
     frete: json<FreteEnvio>(r.frete) ?? null,
     prePostagem: json<PrePostagemRegistro>(r.pre_postagem) ?? null,
@@ -82,9 +94,10 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
        (protocolo, user_email, tipo_moeda, ano, quantidade, codigo_rastreio,
         data_postagem, data_recebimento, etapa_atual, created_at, codigos_ativos_gerados,
         modalidade_envio, origem, peso_inicial_mg, caixa_inicial, observacao,
-        desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago)
+        desconsiderado_em, motivo_desconsideracao, frete, pre_postagem, primeiro_mes_pago,
+        cancelado_em, cancelado_por, motivo_cancelamento)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, $16, $17, $18,
-             $19::jsonb, $20::jsonb, $21)`,
+             $19::jsonb, $20::jsonb, $21, $22, $23, $24)`,
     [
       e.protocolo,
       e.userEmail,
@@ -107,6 +120,9 @@ export async function inserirEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.frete ? JSON.stringify(e.frete) : null,
       e.prePostagem ? JSON.stringify(e.prePostagem) : null,
       e.primeiroMesPago === true,
+      e.canceladoEm ?? null,
+      e.canceladoPor ?? null,
+      e.motivoCancelamento ?? null,
     ],
   )
 }
@@ -120,7 +136,8 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
             codigos_ativos_gerados = $11::jsonb, modalidade_envio = $12, origem = $13,
             peso_inicial_mg = $14, caixa_inicial = $15, observacao = $16,
             desconsiderado_em = $17, motivo_desconsideracao = $18,
-            frete = $19::jsonb, pre_postagem = $20::jsonb, primeiro_mes_pago = $21
+            frete = $19::jsonb, pre_postagem = $20::jsonb, primeiro_mes_pago = $21,
+            cancelado_em = $22, cancelado_por = $23, motivo_cancelamento = $24
       WHERE protocolo = $1`,
     [
       e.protocolo,
@@ -144,6 +161,9 @@ export async function atualizarEnvio(tx: Consulta, e: Envio): Promise<void> {
       e.frete ? JSON.stringify(e.frete) : null,
       e.prePostagem ? JSON.stringify(e.prePostagem) : null,
       e.primeiroMesPago === true,
+      e.canceladoEm ?? null,
+      e.canceladoPor ?? null,
+      e.motivoCancelamento ?? null,
     ],
   )
 }

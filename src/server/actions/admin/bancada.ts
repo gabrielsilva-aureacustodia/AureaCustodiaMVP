@@ -6,7 +6,7 @@
  * A REGRA DESTA PASTA: toda ação confere a permissão POR CONTA PRÓPRIA, antes de qualquer outra
  * coisa.
  *  - atualizar a fila e o quadro de caixas: `bancada.ver`;
- *  - abrir e fechar a análise, assinar o vídeo, cadastrar caixa: `bancada.analisar`;
+ *  - abrir e fechar a análise, cancelar a validação, assinar o vídeo, cadastrar caixa: `bancada.analisar`;
  *  - verificar a corrente e assistir ao vídeo de uma análise: `bancada.auditoria`.
  *
  * O `operador` da análise é o e-mail do membro que a sessão identifica — na web não existe campo
@@ -19,6 +19,7 @@ import type { EntradaCaixa, OcupacaoDaCaixa } from '@/domain/admin/caixas'
 import { ocupacaoDasCaixas, ocupantesDoCofre } from '@/domain/admin/caixas'
 import type { ItemDaFilaBancada, MoedaDigitada } from '@/domain/admin/bancada'
 import type { VerificacaoDoAcervo } from '@/domain/admin/moedas'
+import { envioCancelado } from '@/domain/envios'
 import type { ActionResult } from '@/domain/types'
 import { permissaoParaAcao } from '@/server/admin/acesso'
 import { registrarAcaoAdmin } from '@/server/admin/auditar'
@@ -31,7 +32,8 @@ import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { cadastrarMoedasDiretamente, MAX_POR_CADASTRO_DIRETO } from '@/server/estacao/cadastro-direto'
 import { cadastrarMoedasSemEnvio } from '@/server/estacao/cadastro-sem-envio'
 import type { SaidaFechamento } from '@/server/estacao/analise'
-import { filaDeAnalise } from '@/server/estacao/analise'
+import { ETAPAS_DA_BANCADA, filaDeAnalise } from '@/server/estacao/analise'
+import { cancelarEnvioPelaEquipe, type DadosDoCancelamentoDaEquipe } from '@/server/shipping/cancelar-envio-equipe'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { getState } from '@/server/state'
 import { normalizarEmail } from '@/domain/email'
@@ -112,6 +114,38 @@ export async function fecharAnaliseNoPainel(protocolo: string, moedas: MoedaDigi
       caminhoVideo: typeof caminhoVideo === 'string' ? caminhoVideo : null,
     }),
   )
+}
+
+/**
+ * "Cancelar validação" (frente H, 17/11/2026): o envio está na fila da bancada, mas o pacote não chegou ou o
+ * envio nunca foi feito. Encerra o protocolo SEM criar moeda e devolve ao saldo do cliente o que ele pagou — frete
+ * (só se o pacote não foi postado), 1º mês de custódia — cancelando a nota fiscal e a etiqueta dos Correios.
+ *
+ * O QUE ISTO NÃO TOCA: a corrente de hash das análises. Análise aberta ainda não tem linha em `analises` (as linhas
+ * nascem em `fecharAnalise`), então não há o que cancelar nela; o cancelamento fica nos campos do próprio `Envio`
+ * (quem, quando, por quê) e na trilha `admin.logistica.cancelar_envio` com `via: 'bancada'` — a MESMA do painel de
+ * logística, gravada pelo mesmo módulo (`cancelar-envio-equipe.ts`). A fórmula do hash e `CAMPOS_DA_ANALISE` não mudam.
+ *
+ * Pede `bancada.analisar` (quem opera a bancada), não `logistica.expedir`; só envio que está na fila da bancada
+ * (ou já cancelado, para o segundo clique) — cancelar envio fora dela é pela Logística.
+ */
+export async function cancelarValidacaoNoPainel(protocolo: string, motivo: string): Promise<ActionResult<DadosDoCancelamentoDaEquipe>> {
+  return comPermissao('bancada.analisar', async (membro) => {
+    const id = texto(protocolo).trim()
+    if (!id) return { ok: false, erro: 'Envio não informado.' }
+
+    const envio = (await getState()).envios.find((e) => e.protocolo === id)
+    if (!envio) return { ok: false, erro: `Envio ${id} não encontrado.` }
+    if (!envioCancelado(envio) && !(ETAPAS_DA_BANCADA as readonly string[]).includes(envio.etapaAtual)) {
+      return {
+        ok: false,
+        erro: `O envio ${id} não está na fila da bancada (etapa "${envio.etapaAtual}"). Para cancelá-lo, use a Logística.`,
+      }
+    }
+
+    const r = await cancelarEnvioPelaEquipe({ membro, via: 'bancada', protocolo: id, motivo: texto(motivo) })
+    return r.ok && r.data ? { ok: true, mensagem: r.message ?? '', dados: r.data } : { ok: false, erro: r.error ?? FALHA }
+  })
 }
 
 export async function salvarCaixaNoPainel(entrada: EntradaCaixa, criando: boolean): Promise<ActionResult> {

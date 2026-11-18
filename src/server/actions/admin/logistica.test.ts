@@ -33,6 +33,7 @@ const m = vi.hoisted(() => {
     cancelarPrePostagem: vi.fn(),
     correiosConfigurado: vi.fn(),
     atualizarRastreiosPendentes: vi.fn(),
+    cancelarEnvioNoServidor: vi.fn(),
     banco: new Map<string, Retirada>(),
     estado: { users: {}, sellOffers: [], trades: [], retiradas: [] } as unknown as AppState,
     ErroCorreios,
@@ -58,12 +59,15 @@ vi.mock('@/server/shipping/retiradas', () => ({
   }),
 }))
 vi.mock('@/server/shipping/rastreios', () => ({ atualizarRastreiosPendentes: m.atualizarRastreiosPendentes }))
+// A ordem do cancelamento (Correios → cartão → estado) tem teste próprio em src/server/shipping/; aqui ela é dublê
+// e o que se prova é a permissão e a trilha, que `cancelar-envio-equipe.ts` roda de verdade.
+vi.mock('@/server/shipping/cancelar-envio', () => ({ cancelarEnvioNoServidor: m.cancelarEnvioNoServidor }))
 vi.mock('@/server/state', () => ({
   getState: async () => m.estado,
   mutateState: async (fn: (s: AppState) => unknown) => ({ state: m.estado, result: await fn(m.estado) }),
 }))
 
-import { atualizarRastreiosAgora, cancelarEtiquetaRetirada, emitirEtiquetaRetirada, marcarRetiradaPostadaManual } from './logistica'
+import { atualizarRastreiosAgora, cancelarEnvioNoPainel, cancelarEtiquetaRetirada, emitirEtiquetaRetirada, marcarRetiradaPostadaManual } from './logistica'
 
 const MEMBRO = { email: 'operador@aureacustodia.com.br', nome: 'Operador' }
 const NEGADO = { ok: false as const, status: 403 as const, erro: 'Esta área é restrita à equipe do Real Olímpico.' }
@@ -355,5 +359,136 @@ describe('atualizarRastreiosAgora', () => {
     m.atualizarRastreiosPendentes.mockResolvedValue({ ...RODADA, verificados: 0, retiradasVerificadas: 0, enviosPostados: 0, retiradasEntregues: 0 })
     const r = await atualizarRastreiosAgora()
     expect(r.ok && r.message).toBe('Nenhum objeto em trânsito para consultar nos Correios.')
+  })
+})
+
+// 17/11/2026 (frente H): a equipe cancela um ENVIO — a permissão vem antes de tudo e a trilha
+// `admin.logistica.cancelar_envio` leva o motivo, o titular e o que foi devolvido.
+describe('cancelarEnvioNoPainel', () => {
+  const PROTOCOLO = 'RO-ENV-0017'
+  const MOTIVO = 'O cliente desistiu e pediu o dinheiro de volta.'
+  const RESUMO = {
+    protocolo: PROTOCOLO,
+    por: 'equipe' as const,
+    motivo: MOTIVO,
+    jaPostado: false,
+    freteEstornadoCents: 2_114,
+    freteRetidoCents: 0,
+    primeiroMesEstornadoCents: 3_000,
+    primeiroMesCanceladoCents: 0,
+    totalAoSaldoCents: 5_114,
+    faturaIds: ['FAT-2026-11-rogerio-1'],
+    planoIds: ['PLC-000010'],
+    assinaturaIds: [],
+    prePostagemACancelar: null,
+    avisoDoMes: null,
+  }
+  const FEITO = { ok: true, jaCancelado: false, resumo: RESUMO, mensagem: 'Envio cancelado.', etiqueta: 'cancelada', titular: DONO }
+
+  beforeEach(() => {
+    for (const f of [m.permissaoParaAcao, m.bancoConfigurado, m.executarNoBanco, m.registrarAcaoAdmin, m.cancelarEnvioNoServidor]) f.mockReset()
+    m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+    m.bancoConfigurado.mockReturnValue(true)
+    m.executarNoBanco.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({}))
+    m.cancelarEnvioNoServidor.mockResolvedValue(FEITO)
+  })
+
+  it('sem logistica.expedir: recusa, nada é cancelado e nada é gravado na trilha', async () => {
+    m.permissaoParaAcao.mockResolvedValue(NEGADO)
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r.ok).toBe(false)
+    expect(m.permissaoParaAcao).toHaveBeenCalledWith('logistica.expedir')
+    expect(m.cancelarEnvioNoServidor).not.toHaveBeenCalled()
+    expect(m.registrarAcaoAdmin).not.toHaveBeenCalled()
+  })
+
+  it('com a chave: cancela "pela equipe" (sem dono esperado) e grava admin.logistica.cancelar_envio com motivo, titular e valores', async () => {
+    const r = await cancelarEnvioNoPainel(` ${PROTOCOLO} `, MOTIVO)
+
+    expect(r).toMatchObject({ ok: true, message: 'Envio cancelado.', data: { protocolo: PROTOCOLO, titular: DONO, totalAoSaldoCents: 5_114 } })
+    expect(m.cancelarEnvioNoServidor).toHaveBeenCalledWith({ protocolo: PROTOCOLO, por: 'equipe', motivo: MOTIVO })
+    expect(verbosAuditados()).toEqual(['admin.logistica.cancelar_envio'])
+    const [, acao] = m.registrarAcaoAdmin.mock.calls[0]!
+    expect(acao).toMatchObject({
+      ator: MEMBRO.email,
+      area: 'logistica',
+      verbo: 'cancelar_envio',
+      entidade: 'envio',
+      entidadeId: PROTOCOLO,
+      usuariosAfetados: [DONO],
+    })
+    expect(acao.detalhes).toMatchObject({
+      ok: true,
+      via: 'logistica',
+      motivo: MOTIVO,
+      jaPostado: false,
+      freteEstornadoCents: 2_114,
+      freteRetidoCents: 0,
+      primeiroMesEstornadoCents: 3_000,
+      totalAoSaldoCents: 5_114,
+      faturas: ['FAT-2026-11-rogerio-1'],
+      planos: ['PLC-000010'],
+      etiqueta: 'cancelada',
+    })
+  })
+
+  it('recusa do domínio (moeda aceita, motivo curto…): volta o erro e a trilha não registra ação que não houve', async () => {
+    m.cancelarEnvioNoServidor.mockResolvedValue({ ok: false, erro: 'Este envio já virou moeda no cofre.' })
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r).toEqual({ ok: false, error: 'Este envio já virou moeda no cofre.' })
+    expect(m.registrarAcaoAdmin).not.toHaveBeenCalled()
+  })
+
+  it('segundo clique (já cancelado): responde ok e não grava a trilha de novo', async () => {
+    m.cancelarEnvioNoServidor.mockResolvedValue({ ...FEITO, jaCancelado: true, mensagem: 'O envio já estava cancelado.' })
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r).toMatchObject({ ok: true, data: { jaCancelado: true } })
+    expect(m.registrarAcaoAdmin).not.toHaveBeenCalled()
+  })
+
+  it('envio já postado e nota de outro mês: o aviso do contador chega à tela e a trilha diz que o frete ficou retido', async () => {
+    const aviso = 'Atenção: a nota do 1º mês é de 2026-10 e o cancelamento é de 2026-11. O contador pede o cancelamento dentro do mês da nota — avise-o.'
+    m.cancelarEnvioNoServidor.mockResolvedValue({
+      ...FEITO,
+      resumo: { ...RESUMO, jaPostado: true, freteEstornadoCents: 0, freteRetidoCents: 2_114, totalAoSaldoCents: 3_000, avisoDoMes: aviso },
+      mensagem: `Envio cancelado. ${aviso}`,
+    })
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r.ok && r.data?.avisoDoMes).toBe(aviso)
+    expect(r.ok && r.message).toContain('avise-o')
+    const [, acao] = m.registrarAcaoAdmin.mock.calls[0]!
+    expect(acao.detalhes).toMatchObject({ jaPostado: true, freteEstornadoCents: 0, freteRetidoCents: 2_114 })
+  })
+
+  it('a trilha que falha não desfaz o cancelamento (o dinheiro já voltou)', async () => {
+    m.registrarAcaoAdmin.mockRejectedValue(new Error('banco fora'))
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r.ok).toBe(true)
+  })
+
+  it('sem banco configurado não tenta gravar trilha, mas cancela', async () => {
+    m.bancoConfigurado.mockReturnValue(false)
+
+    const r = await cancelarEnvioNoPainel(PROTOCOLO, MOTIVO)
+
+    expect(r.ok).toBe(true)
+    expect(m.executarNoBanco).not.toHaveBeenCalled()
+  })
+
+  it('protocolo em branco é recusado antes de chamar o cancelamento', async () => {
+    const r = await cancelarEnvioNoPainel('   ', MOTIVO)
+
+    expect(r.ok).toBe(false)
+    expect(m.cancelarEnvioNoServidor).not.toHaveBeenCalled()
   })
 })

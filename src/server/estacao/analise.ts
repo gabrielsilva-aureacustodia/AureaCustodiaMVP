@@ -14,6 +14,7 @@ import { TAXAS_PADRAO } from '@/domain/fees'
 import { GENESIS } from '@/domain/hash'
 import { medianSellPrice } from '@/domain/market'
 import { nextCoinCode } from '@/domain/codes'
+import { envioCancelado } from '@/domain/envios'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { Analise, AppState, Cents, Coin, CoinType, Envio, VereditoAnalise } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
@@ -61,8 +62,11 @@ export interface ItemDaFila {
   observacao: string | null
 }
 
-/** Etapas em que a bancada pode pegar um envio para trabalhar. */
-const ETAPAS_DA_BANCADA = ['Recebido pela custódia', 'Em análise física'] as const
+/**
+ * Etapas em que a bancada pode pegar um envio para trabalhar. Exportada para o "Cancelar validação" do painel
+ * (frente H, 17/11/2026) cancelar só o que está de fato na fila.
+ */
+export const ETAPAS_DA_BANCADA = ['Recebido pela custódia', 'Em análise física'] as const
 
 /**
  * O que está esperando na bancada.
@@ -73,8 +77,10 @@ const ETAPAS_DA_BANCADA = ['Recebido pela custódia', 'Em análise física'] as 
  */
 export async function filaDeAnalise(): Promise<ItemDaFila[]> {
   const state = await getState()
-  const naBancada = state.envios.filter((e) =>
-    (ETAPAS_DA_BANCADA as readonly string[]).includes(e.etapaAtual),
+  // Envio cancelado pela equipe ("Cancelar validação", frente H) sai da fila: o dinheiro já voltou e a moeda
+  // nunca vai nascer. O cancelamento não muda `etapaAtual` (o histórico fica como foi), então o filtro é este.
+  const naBancada = state.envios.filter(
+    (e) => !envioCancelado(e) && (ETAPAS_DA_BANCADA as readonly string[]).includes(e.etapaAtual),
   )
   return naBancada.map((e) => ({
     protocolo: e.protocolo,
@@ -114,12 +120,14 @@ export async function abrirAnalise(protocolo: string): Promise<ResultadoEstacao>
     const { result } = await mutateState((state) => {
       const envio = state.envios.find((e) => e.protocolo === protocolo)
       if (!envio) return 'nao-encontrado' as const
+      if (envioCancelado(envio)) return 'cancelado' as const
       if (envio.etapaAtual === 'Em análise física') return 'ok' as const
       if (envio.etapaAtual !== 'Recebido pela custódia') return 'etapa-errada' as const
       envio.etapaAtual = 'Em análise física'
       return 'ok' as const
     })
     if (result === 'nao-encontrado') return naoEncontrado(protocolo)
+    if (result === 'cancelado') return { ok: false, status: 409, erro: erroDeEnvioCancelado(protocolo) }
     if (result === 'etapa-errada') {
       return {
         ok: false,
@@ -167,6 +175,11 @@ export interface SaidaFechamento {
 
 function naoEncontrado(protocolo: string): ResultadoEstacao<never> {
   return { ok: false, status: 404, erro: `Envio ${protocolo} não encontrado.` }
+}
+
+/** A estação e a bancada web recebem a mesma frase: o envio foi cancelado, então não se abre nem se fecha análise. */
+function erroDeEnvioCancelado(protocolo: string): string {
+  return `O envio ${protocolo} foi cancelado e não pode mais ser analisado. Atualize a fila.`
 }
 
 /**
@@ -227,6 +240,10 @@ export async function fecharAnalise(
     const { result } = await mutateState((state) => {
       const envio: Envio | undefined = state.envios.find((e) => e.protocolo === protocolo)
       if (!envio) return { tipo: 'nao-encontrado' as const }
+
+      // O notebook da bancada pode estar com a fila velha e fechar um envio que a equipe cancelou no meio
+      // tempo: sem esta recusa nasceria moeda de um envio cujo dinheiro já voltou ao cliente.
+      if (envioCancelado(envio)) return { tipo: 'cancelado' as const }
 
       if (envio.etapaAtual === 'Recibo emitido') {
         return { tipo: 'ja-fechado' as const }
@@ -393,6 +410,8 @@ export async function fecharAnalise(
     switch (result.tipo) {
       case 'nao-encontrado':
         return naoEncontrado(protocolo)
+      case 'cancelado':
+        return { ok: false, status: 409, erro: erroDeEnvioCancelado(protocolo) }
       case 'ja-fechado':
         return {
           ok: false,

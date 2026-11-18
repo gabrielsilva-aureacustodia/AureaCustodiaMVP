@@ -11,6 +11,10 @@
  *   "Ainda não postado — o sistema ainda não reconheceu nenhum código de postagem."
  * - Envio não postado é desconsiderado em até 3 dias, exibindo o tempo restante antes
  *   de expirar e saindo da lista ativa quando expira (permanecendo com o desfecho no histórico).
+ * - Envio cancelado (pelo cliente ou pela equipe, frente H, 17/11/2026) tem aba e bloco próprios, com o motivo:
+ *   não é "desconsiderado" (que é o que acontece sozinho, em 3 dias) e não mostra o texto dos 3 dias.
+ * - A ação "Cancelar este envio" NÃO mora aqui: a página passa `acaoDoEnvio`, e esta lista só a encaixa no envio
+ *   ainda não postado. Assim a lista continua sem saber de Server Action nem de estado de conta.
  * - Client Component: NUNCA importar `@/server/*`.
  */
 
@@ -19,7 +23,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 
 import { fdate } from '@/domain/dates'
-import { isEnvioDesconsiderado, prazoPostagemEnvio, statusFaseEnvio } from '@/domain/envios'
+import { envioCancelado, isEnvioDesconsiderado, prazoPostagemEnvio, statusFaseEnvio } from '@/domain/envios'
 import { rotuloStatusRastreio, textoDoRastreio } from '@/domain/rastreio'
 import type { Envio } from '@/domain/types'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
@@ -34,34 +38,44 @@ export interface HistoricoEnviosProps {
   envios: Envio[]
   rastreios: Record<string, RastreioNaLista>
   onContinuarEnvio?: (protocolo: string) => void
+  /**
+   * Ação extra por envio, desenhada pela página (hoje: "Cancelar este envio"). Só é chamada para envio que
+   * ainda não foi postado — é a única fase em que o cliente pode cancelar.
+   */
+  acaoDoEnvio?: (envio: Envio) => ReactNode
 }
 
-type FiltroTab = 'todos' | 'em_andamento' | 'concluidos' | 'desconsiderados'
+type FiltroTab = 'todos' | 'em_andamento' | 'concluidos' | 'desconsiderados' | 'cancelados'
 
 export function HistoricoEnvios({
   envios,
   rastreios,
   onContinuarEnvio,
+  acaoDoEnvio,
 }: HistoricoEnviosProps): ReactNode {
   const [filtro, setFiltro] = useState<FiltroTab>('todos')
 
   const agora = Date.now()
 
   // Classificação dos envios
-  const { todos, emAndamento, concluidos, desconsiderados } = useMemo(() => {
+  const { todos, emAndamento, concluidos, desconsiderados, cancelados } = useMemo(() => {
     const ordenados = [...envios].sort((a, b) => b.createdAt - a.createdAt)
 
+    // O cancelamento também grava `desconsideradoEm` (é o que faz as guardas antigas valerem), então o
+    // "em andamento" já o deixa de fora; a aba "Desconsiderados" é só o que expirou sozinho.
     const emAndamentoList = ordenados.filter(
       (e) => e.etapaAtual !== 'Recibo emitido' && !isEnvioDesconsiderado(e, agora),
     )
     const concluidosList = ordenados.filter((e) => e.etapaAtual === 'Recibo emitido')
-    const desconsideradosList = ordenados.filter((e) => isEnvioDesconsiderado(e, agora))
+    const desconsideradosList = ordenados.filter((e) => isEnvioDesconsiderado(e, agora) && !envioCancelado(e))
+    const canceladosList = ordenados.filter((e) => envioCancelado(e))
 
     return {
       todos: ordenados,
       emAndamento: emAndamentoList,
       concluidos: concluidosList,
       desconsiderados: desconsideradosList,
+      cancelados: canceladosList,
     }
   }, [envios, agora])
 
@@ -73,11 +87,13 @@ export function HistoricoEnvios({
         return concluidos
       case 'desconsiderados':
         return desconsiderados
+      case 'cancelados':
+        return cancelados
       case 'todos':
       default:
         return todos
     }
-  }, [filtro, todos, emAndamento, concluidos, desconsiderados])
+  }, [filtro, todos, emAndamento, concluidos, desconsiderados, cancelados])
 
   if (envios.length === 0) {
     return (
@@ -142,6 +158,16 @@ export function HistoricoEnvios({
               Desconsiderados ({desconsiderados.length})
             </button>
           )}
+          {cancelados.length > 0 && (
+            <button
+              type="button"
+              className="chip"
+              aria-pressed={filtro === 'cancelados'}
+              onClick={() => setFiltro('cancelados')}
+            >
+              Cancelados ({cancelados.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -160,7 +186,8 @@ export function HistoricoEnvios({
             const rastreio = rastreios[item.protocolo] ?? null
             const statusInfo = statusFaseEnvio(item, rastreio, agora)
             const prazo = prazoPostagemEnvio(item, agora)
-            const desconsiderado = isEnvioDesconsiderado(item, agora)
+            // O fundo vermelho é do que expirou sozinho. O cancelado (decisão do cliente ou da equipe) não é falha.
+            const desconsiderado = statusInfo.fase === 'desconsiderado'
 
             // Cor do selo pela variante, só com tokens (eram hexadecimais soltos).
             const badgeCls = `hist-selo ${statusInfo.badgeVariant}`
@@ -227,6 +254,18 @@ export function HistoricoEnvios({
                         Continue o envio para pagar o frete do contrato e imprimir a etiqueta oficial dos Correios. Se você já postou pagando no balcão, informe lá o código do comprovante.
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* A ação desenhada pela página (cancelar). Linha própria: a confirmação abre por baixo e
+                    precisa da largura inteira do cartão, não do espaço que sobra ao lado do botão. */}
+                {statusInfo.fase === 'nao_postado' && acaoDoEnvio && <div>{acaoDoEnvio(item)}</div>}
+
+                {statusInfo.fase === 'cancelado' && (
+                  <div className="note hist-nota">
+                    <b>Envio cancelado{item.canceladoEm ? ` em ${fdate(item.canceladoEm)}` : ''}.</b>{' '}
+                    {statusInfo.descricao} O protocolo foi encerrado e não pode ser reaberto. O que foi devolvido
+                    ao saldo aparece no extrato da conta.
                   </div>
                 )}
 

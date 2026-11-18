@@ -266,6 +266,11 @@ export function normalizarEnvio(e: Envio): Envio {
     ...(e.primeiroMesPago ? { primeiroMesPago: true } : {}),
     desconsideradoEm: e.desconsideradoEm ?? null,
     motivoDesconsideracao: e.motivoDesconsideracao ?? null,
+    // Cancelamento (migration 056, 17/11/2026): só vai junto quando cancelado — o envio nunca cancelado
+    // continua idêntico ao de antes e o diff não acha que a linha mudou.
+    ...(e.canceladoEm
+      ? { canceladoEm: e.canceladoEm, canceladoPor: e.canceladoPor ?? null, motivoCancelamento: e.motivoCancelamento ?? null }
+      : {}),
     frete: e.frete ? { ...e.frete } : null,
     prePostagem: e.prePostagem ? { ...e.prePostagem } : null,
   }

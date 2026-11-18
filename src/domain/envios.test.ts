@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
+import { cancelamentosDeNfse } from '@/domain/nfse/pedidos'
 import type { AppState, Envio } from '@/domain/types'
 import {
+  DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE,
   PRAZO_DESCARTE_ENVIO_MS,
   desconsiderarEnvio,
+  envioCancelado,
   envioVenceuPrazoDePostagem,
   isEnvioDesconsiderado,
   prePostagemAtiva,
   prazoPostagemEnvio,
+  primeiroMesEntraNaDevolucaoAutomatica,
   statusFaseEnvio,
+  temPrimeiroMesADevolver,
+  temPrimeiroMesPago,
 } from './envios'
 
 function makeEnvio(parciais: Partial<Envio> = {}): Envio {
@@ -241,5 +247,251 @@ describe('Domínio de Envios — frete pago e etiqueta oficial (22/10/2026)', ()
     expect(desconsiderarEnvio(state, envio, vencido).freteEstornadoCents).toBe(0)
     expect(state.users[envio.userEmail].balance).toBe(500)
     expect(envio.frete?.status).toBe('cotado')
+  })
+})
+
+describe('Domínio de Envios — o desconsiderar de 3 dias devolve também o 1º mês e a nota (17/11/2026, T6)', () => {
+  // Envio NOVO: criado no instante do corte D-H5 (ver o describe do corte, mais abaixo).
+  const CRIADO = DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE
+  const vencido = CRIADO + PRAZO_DESCARTE_ENVIO_MS + 1
+  const FRETE = {
+    modalidade: 'PAC' as const,
+    codigoServico: '03301',
+    valorCents: 2114,
+    valorDeclaradoCents: 15000,
+    prazoDiasUteis: 5,
+    cotadoEm: 1000000,
+    status: 'pago' as const,
+    pagoEm: 1000000,
+    forma: 'saldo' as const,
+  }
+
+  function comPrimeiroMes(statusFatura: 'paga' | 'pendente', extra: Partial<Envio> = {}) {
+    const envio = makeEnvio({ createdAt: CRIADO, ...extra })
+    const state = {
+      users: { [envio.userEmail]: { name: 'Rogério', balance: 500, coins: [] } },
+      envios: [envio],
+      trades: [],
+      planosCustodia: [
+        {
+          id: 'PLC-000010',
+          userEmail: envio.userEmail,
+          protocoloEnvio: envio.protocolo,
+          modalidade: 'mensal',
+          quantidadeContratada: 15,
+          moedaIds: [],
+          valorPorMoedaCents: 200,
+          valorTotalCents: 3000,
+          parcelasMax: 1,
+          inicioCompetencia: '2026-11',
+          pagoAteCompetencia: statusFatura === 'paga' ? '2026-11' : null,
+          status: statusFatura === 'paga' ? 'vigente' : 'aguardando_pagamento',
+          formaPagamento: null,
+          paymentIntentRef: null,
+          assinaturaId: null,
+          estornadoCents: 0,
+          criadoEm: 1,
+          atualizadoEm: 1,
+        },
+      ],
+      faturasCustodia: [
+        {
+          id: 'FAT-2026-11-rogerio-1',
+          userEmail: envio.userEmail,
+          competencia: '2026-11',
+          quantidadeMoedas: 15,
+          moedaIds: [],
+          valorCents: 3000,
+          status: statusFatura,
+          dataEmissao: 1,
+          dataVencimento: 2,
+          dataPagamento: statusFatura === 'paga' ? 5 : null,
+          formaPagamento: statusFatura === 'paga' ? 'saldo' : null,
+          planoId: 'PLC-000010',
+          origem: 'contratacao',
+        },
+      ],
+    } as unknown as AppState
+    return { envio, state }
+  }
+
+  it('1º mês pago e nenhum frete (o caso do Rogério): volta ao saldo, a fatura é cancelada e o plano também', () => {
+    const { envio, state } = comPrimeiroMes('paga')
+    const r = desconsiderarEnvio(state, envio, vencido)
+
+    expect(r.freteEstornadoCents).toBe(0)
+    expect(r.primeiroMes).toMatchObject({ estornadoCents: 3000, faturaIds: ['FAT-2026-11-rogerio-1'], planoIds: ['PLC-000010'] })
+    expect(state.users[envio.userEmail].balance).toBe(3500)
+    expect(state.faturasCustodia![0]!.status).toBe('cancelada')
+    expect(state.planosCustodia![0]!.status).toBe('cancelado')
+    expect(state.planosCustodia![0]!.estornadoCents).toBe(0)
+  })
+
+  it('frete e 1º mês voltam juntos, cada um uma vez', () => {
+    const { envio, state } = comPrimeiroMes('paga', { frete: { ...FRETE } })
+    const r = desconsiderarEnvio(state, envio, vencido)
+    expect(r.freteEstornadoCents).toBe(2114)
+    expect(r.primeiroMes.estornadoCents).toBe(3000)
+    expect(state.users[envio.userEmail].balance).toBe(500 + 2114 + 3000)
+
+    const de2 = desconsiderarEnvio(state, envio, vencido + 1)
+    expect(de2).toMatchObject({ freteEstornadoCents: 0, primeiroMes: { estornadoCents: 0 } })
+    expect(state.users[envio.userEmail].balance).toBe(500 + 2114 + 3000)
+  })
+
+  it('1º mês em aberto: só cancela a fatura e o plano, sem dinheiro algum', () => {
+    const { envio, state } = comPrimeiroMes('pendente')
+    const r = desconsiderarEnvio(state, envio, vencido)
+    expect(r.primeiroMes).toMatchObject({ estornadoCents: 0, canceladoCents: 3000 })
+    expect(state.users[envio.userEmail].balance).toBe(500)
+    expect(state.faturasCustodia![0]!.status).toBe('cancelada')
+    expect(state.planosCustodia![0]!.status).toBe('cancelado')
+  })
+
+  it('a varredura enxerga o envio cujo único dinheiro é o 1º mês; e não enxerga quando já foi devolvido', () => {
+    const { envio, state } = comPrimeiroMes('paga')
+    expect(temPrimeiroMesPago(state, envio)).toBe(true)
+    expect(temPrimeiroMesADevolver(state, envio)).toBe(true)
+    desconsiderarEnvio(state, envio, vencido)
+    expect(temPrimeiroMesPago(state, envio)).toBe(false)
+    expect(temPrimeiroMesADevolver(state, envio)).toBe(false)
+  })
+
+  it('envio sem plano nenhum não é candidato', () => {
+    const envio = makeEnvio()
+    const state = { users: {}, envios: [envio] } as unknown as AppState
+    expect(temPrimeiroMesADevolver(state, envio)).toBe(false)
+  })
+})
+
+describe('Domínio de Envios — o corte D-H5: a devolução AUTOMÁTICA do 1º mês só vale para envio novo', () => {
+  const CORTE = DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE
+  const FRETE = {
+    modalidade: 'PAC' as const,
+    codigoServico: '03301',
+    valorCents: 2114,
+    valorDeclaradoCents: 15000,
+    prazoDiasUteis: 5,
+    cotadoEm: 1,
+    status: 'pago' as const,
+    pagoEm: 1,
+    forma: 'saldo' as const,
+  }
+
+  function cenario(createdAt: number) {
+    const envio = makeEnvio({ createdAt, frete: { ...FRETE } })
+    const state = {
+      users: { [envio.userEmail]: { name: 'Rogério', balance: 500, coins: [] } },
+      envios: [envio],
+      trades: [],
+      planosCustodia: [
+        {
+          id: 'PLC-000010', userEmail: envio.userEmail, protocoloEnvio: envio.protocolo, modalidade: 'mensal',
+          quantidadeContratada: 15, moedaIds: [], valorPorMoedaCents: 200, valorTotalCents: 3000, parcelasMax: 1,
+          inicioCompetencia: '2026-11', pagoAteCompetencia: '2026-11', status: 'vigente', formaPagamento: null,
+          paymentIntentRef: null, assinaturaId: null, estornadoCents: 0, criadoEm: 1, atualizadoEm: 1,
+        },
+      ],
+      faturasCustodia: [
+        {
+          id: 'FAT-2026-11-rogerio-1', userEmail: envio.userEmail, competencia: '2026-11', quantidadeMoedas: 15,
+          moedaIds: [], valorCents: 3000, status: 'paga', dataEmissao: 1, dataVencimento: 2, dataPagamento: 5,
+          formaPagamento: 'saldo', planoId: 'PLC-000010', origem: 'contratacao',
+        },
+      ],
+    } as unknown as AppState
+    return { envio, state }
+  }
+
+  it('o corte é o instante em que o fluxo novo da B foi ao ar (17/11/2026 23:00:50.154 em Brasília); 0 liga o retroativo', () => {
+    // Se este número mudar, o teste diz o que mudou: é decisão de cobrança do Gabriel, não um detalhe de código.
+    expect(CORTE).toBe(1794967250154)
+    expect(new Date(CORTE).toISOString()).toBe('2026-11-18T02:00:50.154Z')
+  })
+
+  it('envio ANTIGO desconsiderado com 1º mês ligado a ele: o motivo diz que o cancelamento é com a equipe; o NOVO não diz', () => {
+    const antigo = cenario(CORTE - 1)
+    desconsiderarEnvio(antigo.state, antigo.envio, CORTE + PRAZO_DESCARTE_ENVIO_MS, 'Prazo limite de 3 dias para postagem expirado.')
+    expect(antigo.envio.motivoDesconsideracao).toContain('peça o cancelamento à equipe do Real Olímpico')
+
+    const novo = cenario(CORTE)
+    desconsiderarEnvio(novo.state, novo.envio, CORTE + PRAZO_DESCARTE_ENVIO_MS, 'Prazo limite de 3 dias para postagem expirado.')
+    expect(novo.envio.motivoDesconsideracao).toBe('Prazo limite de 3 dias para postagem expirado.')
+
+    // Envio antigo SEM 1º mês ligado a ele não ganha aviso nenhum.
+    const semMes = makeEnvio({ createdAt: CORTE - 1 })
+    const estado = { users: {}, envios: [semMes] } as unknown as AppState
+    desconsiderarEnvio(estado, semMes, CORTE + PRAZO_DESCARTE_ENVIO_MS, 'Prazo limite de 3 dias para postagem expirado.')
+    expect(semMes.motivoDesconsideracao).toBe('Prazo limite de 3 dias para postagem expirado.')
+  })
+
+  it('a função do corte compara a data de criação do envio, exatamente no instante do corte', () => {
+    const antes = cenario(CORTE - 1)
+    const no = cenario(CORTE)
+    expect(primeiroMesEntraNaDevolucaoAutomatica(antes.state, antes.envio)).toBe(false)
+    expect(primeiroMesEntraNaDevolucaoAutomatica(no.state, no.envio)).toBe(true)
+  })
+
+  it('sem 1º mês a devolver, nem o envio novo entra', () => {
+    const envio = makeEnvio({ createdAt: CORTE + 1 })
+    const state = { users: {}, envios: [envio] } as unknown as AppState
+    expect(primeiroMesEntraNaDevolucaoAutomatica(state, envio)).toBe(false)
+  })
+
+  it('envio criado ANTES do corte: a regra dos 3 dias devolve só o frete — fatura, plano e nota ficam como estão', () => {
+    const { envio, state } = cenario(CORTE - 1)
+    const antes = structuredClone(state)
+
+    const r = desconsiderarEnvio(state, envio, CORTE + PRAZO_DESCARTE_ENVIO_MS)
+
+    expect(r.freteEstornadoCents).toBe(2114)
+    expect(r.primeiroMes).toMatchObject({ estornadoCents: 0, canceladoCents: 0, faturaIds: [], planoIds: [], assinaturaIds: [] })
+    expect(state.users[envio.userEmail].balance).toBe(500 + 2114)
+    expect(state.faturasCustodia![0]!.status).toBe('paga')
+    expect(state.planosCustodia![0]!.status).toBe('vigente')
+    expect(cancelamentosDeNfse(antes, state)).toEqual([])
+  })
+
+  it('envio criado A PARTIR do corte: devolve frete + 1º mês, e a nota do 1º mês entra no cancelamento', () => {
+    const { envio, state } = cenario(CORTE)
+    const antes = structuredClone(state)
+
+    const r = desconsiderarEnvio(state, envio, CORTE + PRAZO_DESCARTE_ENVIO_MS)
+
+    expect(r.freteEstornadoCents).toBe(2114)
+    expect(r.primeiroMes.estornadoCents).toBe(3000)
+    expect(state.users[envio.userEmail].balance).toBe(500 + 2114 + 3000)
+    expect(state.faturasCustodia![0]!.status).toBe('cancelada')
+    expect(cancelamentosDeNfse(antes, state)).toEqual([
+      expect.objectContaining({ chave: 'custodia:FAT-2026-11-rogerio-1' }),
+    ])
+  })
+})
+
+describe('Domínio de Envios — envio cancelado a pedido', () => {
+  it('a fase é "Cancelado", com quem cancelou e por quê — e não o texto de "3 dias"', () => {
+    const envio = makeEnvio({
+      desconsideradoEm: 5,
+      canceladoEm: 5,
+      canceladoPor: 'equipe',
+      motivoCancelamento: 'Pedido do Rogério: as moedas não foram enviadas.',
+    })
+    const s = statusFaseEnvio(envio)
+    expect(s.fase).toBe('cancelado')
+    expect(s.rotulo).toBe('Cancelado')
+    expect(s.descricao).toContain('pela equipe do Real Olímpico')
+    expect(s.descricao).toContain('Pedido do Rogério')
+    expect(s.descricao).not.toContain('3 dias')
+    expect(envioCancelado(envio)).toBe(true)
+  })
+
+  it('o prazo de postagem de envio cancelado diz "cancelado", não "expirado em 3 dias"', () => {
+    const envio = makeEnvio({ desconsideradoEm: 5, canceladoEm: 5, canceladoPor: 'cliente' })
+    expect(prazoPostagemEnvio(envio).mensagemAlerta).toBe('Envio cancelado.')
+  })
+
+  it('envio nunca cancelado não é cancelado', () => {
+    expect(envioCancelado(makeEnvio())).toBe(false)
+    expect(envioCancelado(makeEnvio({ canceladoEm: null }))).toBe(false)
   })
 })

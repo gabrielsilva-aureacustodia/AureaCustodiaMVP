@@ -76,6 +76,7 @@ import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio 
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, prePostagemAtiva } from '@/domain/envios'
 import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
+import { CancelarEnvio } from '@/components/envios/CancelarEnvio'
 
 /** Os cinco passos da tela. */
 type Passo = 1 | 2 | 3 | 4 | 5
@@ -1432,6 +1433,7 @@ export default function EnviosPage(): ReactNode {
         envios={state.envios.filter((e) => e.userEmail === session)}
         rastreios={todosRastreios}
         onContinuarEnvio={handleContinuarEnvio}
+        acaoDoEnvio={(e) => <CancelarEnvio envio={e} />}
       />
     </>
   )

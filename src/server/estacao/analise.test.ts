@@ -9,6 +9,7 @@ vi.mock('server-only', () => ({}))
 vi.mock('@/server/state', () => ({ mutateState: mutateStateMock, getState: getStateMock }))
 
 import { conferirCadeia } from '@/domain/analise'
+import { cancelarEnvio } from '@/domain/cancelar-envio'
 import { GENESIS } from '@/domain/hash'
 import { seedState } from '@/domain/seed'
 import type { AppState, Envio } from '@/domain/types'
@@ -386,5 +387,77 @@ describe('fecharAnalise', () => {
     expect(plano.moedaIds).toHaveLength(2)
     expect(plano.estornadoCents).toBe(200) // R$ 2,00
     expect(state.users[CLIENTE].balance).toBe(saldoAntes + 200) // Saldo sobe R$ 2,00
+  })
+})
+
+// Frente H (17/11/2026): "Cancelar validação". O envio cancelado sai da fila e nem a estação (com a fila velha no
+// notebook) nem a bancada web conseguem abrir ou fechar a análise dele — senão nasceria moeda de um envio cujo
+// dinheiro já voltou ao cliente. E o cancelamento NÃO escreve na corrente: o hash não muda.
+describe('envio cancelado pela equipe ("Cancelar validação")', () => {
+  const MOTIVO = 'O pacote nunca chegou à custódia.'
+
+  async function cancelar(protocolo: string): Promise<void> {
+    const r = cancelarEnvio(state, protocolo, { agora: Date.UTC(2026, 10, 17, 15), por: 'equipe', motivo: MOTIVO })
+    expect(r.ok).toBe(true)
+  }
+
+  it('sai da fila da bancada, mesmo continuando em "Recebido pela custódia" (o histórico não é reescrito)', async () => {
+    state.envios = [envio({ protocolo: 'RO-ENV-0001' }), envio({ protocolo: 'RO-ENV-0002', etapaAtual: 'Em análise física' })]
+    await cancelar('RO-ENV-0002')
+
+    expect((await filaDeAnalise()).map((f) => f.protocolo)).toEqual(['RO-ENV-0001'])
+    expect(state.envios[1].etapaAtual).toBe('Em análise física')
+  })
+
+  it('abrir a análise de envio cancelado é recusado (409) e a etapa não muda', async () => {
+    state.envios = [envio()]
+    await cancelar('RO-ENV-0001')
+
+    const r = await abrirAnalise('RO-ENV-0001')
+
+    expect(r).toMatchObject({ ok: false, status: 409 })
+    expect(r.ok === false && r.erro).toContain('cancelado')
+    expect(state.envios[0].etapaAtual).toBe('Recebido pela custódia')
+  })
+
+  it('fechar a análise de envio cancelado é recusado (409): nenhuma moeda, nenhuma linha na corrente', async () => {
+    state.envios = [envio({ quantidade: 2 })]
+    await cancelar('RO-ENV-0001')
+    const moedasAntes = state.users[CLIENTE].coins.length
+
+    const r = await fecharAnalise({
+      protocolo: 'RO-ENV-0001',
+      operador: OPERADOR,
+      moedas: [
+        { pesoMg: 27000, veredito: 'aprovada', caixa: 'EB-001', posicao: 1 },
+        { pesoMg: 27010, veredito: 'aprovada', caixa: 'EB-001', posicao: 2 },
+      ],
+    })
+
+    expect(r).toMatchObject({ ok: false, status: 409 })
+    expect(state.users[CLIENTE].coins).toHaveLength(moedasAntes)
+    expect(state.analises).toHaveLength(0)
+    expect(state.envios[0].codigosAtivosGerados).toEqual([])
+  })
+
+  it('cancelar a validação de UM envio não mexe na corrente de hashes dos outros: as análises ficam idênticas e a corrente confere', async () => {
+    state.envios = [envio({ protocolo: 'RO-ENV-0001', quantidade: 2 }), envio({ protocolo: 'RO-ENV-0002', quantidade: 1 })]
+    await fecharAnalise({
+      protocolo: 'RO-ENV-0001',
+      operador: OPERADOR,
+      moedas: [
+        { pesoMg: 27000, veredito: 'aprovada', caixa: 'EB-001', posicao: 1 },
+        { pesoMg: 27010, veredito: 'aprovada', caixa: 'EB-001', posicao: 2 },
+      ],
+    })
+    const antes = structuredClone(state.analises)
+    expect(antes).toHaveLength(2)
+
+    await cancelar('RO-ENV-0002')
+    const depois = await fecharAnalise({ protocolo: 'RO-ENV-0002', operador: OPERADOR, moedas: [{ pesoMg: 27000, veredito: 'aprovada', caixa: 'EB-001', posicao: 3 }] })
+
+    expect(depois).toMatchObject({ ok: false, status: 409 })
+    expect(state.analises).toEqual(antes)
+    expect(conferirCadeia(state.analises, GENESIS)).toBe(-1)
   })
 })

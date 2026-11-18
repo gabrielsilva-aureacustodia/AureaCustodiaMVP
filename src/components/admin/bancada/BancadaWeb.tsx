@@ -19,11 +19,12 @@ import type { ReactNode } from 'react'
 import { pesoPadraoOuInicial, validarMoedasDaBancada, type ItemDaFilaBancada, type MoedaDigitada } from '@/domain/admin/bancada'
 import { caixaCorrente, chaveDeCaixa, proximasPosicoesDaCaixa, type OcupacaoDaCaixa } from '@/domain/admin/caixas'
 import type { ActionResult } from '@/domain/types'
-import { abrirAnaliseNoPainel, atualizarBancadaNoPainel, fecharAnaliseNoPainel } from '@/server/actions/admin/bancada'
+import { abrirAnaliseNoPainel, atualizarBancadaNoPainel, cancelarValidacaoNoPainel, fecharAnaliseNoPainel } from '@/server/actions/admin/bancada'
 import type { SaidaFechamento } from '@/server/estacao/analise'
 import { useToast } from '@/components/ui/Toast'
 
 import { dataHora, numero } from '../formatos'
+import { CancelarEnvioDaEquipe } from '../logistica/CancelarEnvioDaEquipe'
 import { GravadorDeVideo } from './GravadorDeVideo'
 import { QuadroDeCaixas } from './QuadroDeCaixas'
 
@@ -392,6 +393,31 @@ export function BancadaWeb({
                     {fechando ? 'Gravando a análise…' : 'Fechar análise'}
                   </button>
                   <span className="adm-fraco">{video.caminho ? 'Com vídeo.' : 'Sem vídeo — a análise registra a ausência no hash.'}</span>
+                </div>
+
+                {/* "Cancelar validação" (frente H, 17/11/2026): o envio não chegou ou nunca foi feito. Encerra o
+                    protocolo sem criar moeda e devolve o que o cliente pagou; NÃO escreve na corrente de hash. */}
+                <div className="adm-secao">
+                  <p className="adm-fraco">O pacote não chegou, ou o envio nunca foi feito? Cancele a validação em vez de fechar a análise.</p>
+                  <CancelarEnvioDaEquipe
+                    protocolo={envio.protocolo}
+                    rotulo="Cancelar validação"
+                    jaPostado={envio.origem !== 'cadastro_sem_envio'}
+                    usoNome="bancada:cancelar_validacao"
+                    aoCancelar={async (motivo) => {
+                      const protocolo = envio.protocolo
+                      const r = await cancelarValidacaoNoPainel(protocolo, motivo)
+                      if (r.ok) {
+                        // Sai da fila local e da mesa: o envio deixou de existir para a bancada.
+                        setFila((f) => f.filter((x) => x.protocolo !== protocolo))
+                        setEnvio(null)
+                        setMoedas([])
+                        setErros([])
+                        void atualizar()
+                      }
+                      return r
+                    }}
+                  />
                 </div>
               </>
             )}

@@ -18,7 +18,8 @@
  * Regra pura: o relógio entra por parâmetro.
  */
 
-import { isEnvioDesconsiderado } from '@/domain/envios'
+import { envioJaPostado, recusaDoCancelamento } from '@/domain/cancelar-envio'
+import { envioCancelado, isEnvioDesconsiderado } from '@/domain/envios'
 import { etiquetaAtivaDaRetirada } from '@/domain/retirada'
 import type { Envio, EventoHistoricoRetirada, ModalidadeRetirada, Retirada, StatusRetirada } from '@/domain/types'
 
@@ -68,8 +69,16 @@ export interface LinhaEnvio {
   dataPostagem: number | null
   dataRecebimento: number | null
   aberto: boolean
-  /** Protocolo descartado por não ter sido postado no prazo (`isEnvioDesconsiderado`). */
+  /** Protocolo descartado SOZINHO por não ter sido postado no prazo (`isEnvioDesconsiderado`). O cancelado não entra aqui. */
   desconsiderado: boolean
+  /** Envio cancelado a pedido do cliente ou pela equipe (frente H, 17/11/2026), com o motivo gravado. */
+  cancelado: boolean
+  canceladoPor: 'cliente' | 'equipe' | null
+  motivoCancelamento: string | null
+  /** O pacote já saiu de "Protocolo gerado": está (ou esteve) com os Correios. Cancelar não devolve o frete. */
+  jaPostado: boolean
+  /** A equipe pode cancelar este envio agora (não é moeda já aceita e ainda não foi cancelado). */
+  podeCancelar: boolean
   atrasado: boolean
   /** Frase do alerta, pronta para a tela. */
   alerta: string | null
@@ -104,8 +113,14 @@ const RETIRADA_ENCERRADA: readonly StatusRetirada[] = ['entregue', 'cancelada']
 export function linhaDeEnvio(e: Envio, nome: string, agora: number, prazos: PrazosLogistica = PRAZOS_LOGISTICA_PADRAO): LinhaEnvio {
   // Protocolo descartado (não postado em 3 dias) não está "em andamento" (27/10/2026): a tela do cliente
   // já o tirava da lista ativa, e o painel o contava como envio aberto para sempre.
-  const desconsiderado = isEnvioDesconsiderado(e, agora)
-  const aberto = e.etapaAtual !== ULTIMA_ETAPA_ENVIO && !desconsiderado
+  //
+  // O cancelamento também grava `desconsideradoEm` (é o que faz as guardas antigas valerem), então o envio
+  // cancelado é "encerrado" como o desconsiderado — mas a linha o mostra como CANCELADO, com o motivo, e não
+  // com o texto de "não postado em 3 dias", que seria mentira.
+  const cancelado = envioCancelado(e)
+  const encerrado = isEnvioDesconsiderado(e, agora)
+  const desconsiderado = encerrado && !cancelado
+  const aberto = e.etapaAtual !== ULTIMA_ETAPA_ENVIO && !encerrado
   let alerta: string | null = null
   let atrasado = false
 
@@ -138,6 +153,12 @@ export function linhaDeEnvio(e: Envio, nome: string, agora: number, prazos: Praz
     dataRecebimento: e.dataRecebimento,
     aberto,
     desconsiderado,
+    cancelado,
+    canceladoPor: cancelado ? (e.canceladoPor ?? null) : null,
+    motivoCancelamento: cancelado ? (e.motivoCancelamento ?? null) : null,
+    jaPostado: envioJaPostado(e),
+    // Quem decide é o mesmo `recusaDoCancelamento` que o servidor usa: botão e recusa nunca divergem.
+    podeCancelar: !cancelado && recusaDoCancelamento(e, 'equipe') === null,
     atrasado,
     alerta,
   }
