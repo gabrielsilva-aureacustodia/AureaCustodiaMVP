@@ -241,3 +241,15 @@ Não feito: tudo dos tópicos.
 Bloqueios para o humano: nada.
 Teste rodado? não
 Próximo ato (um): abrir Execução, Auditoria e Específico e criar a rotina de 5 minutos.
+
+### Sessão 2026-11-17 (Execução — nível 3)
+
+Tipo: implementação (T1–T7)
+Feito: mapa (T1); núcleo `cancelarEnvio` + fase `cancelado` + 3 campos opcionais + migration 056 + repositório/diff (T2); ação do cliente e botão (T3); ação da equipe na logística com trilha `admin.logistica.cancelar_envio` (T4); "Cancelar validação" na bancada com guardas em `analise.ts` e hash intacto (T5); devolução automática do 1º mês com o corte D-H5 (T6); `CASO_ROGERIO.md` como registro + consultas + passo a passo (T7); ordem dos Correios "consultar → cancelar etiqueta → estornar" (D-H6) e varredura consultando antes do DELETE; texto do envio antigo mandando pedir o 1º mês à equipe.
+Não feito: conferência visual (só em produção depois do deploy — regra do Gabriel); typecheck/lint/suíte inteira/build da versão final (Controle no merge); nada executado em produção.
+Bloqueios para o humano: as perguntas do Gabriel listadas no RETOMADA (R$ 2,00 do `RO-ENV-0017`; corte por criação × pagamento; textos "cobrada por engano"; D-H1).
+Teste rodado? **Sim, em duas levas:**
+- ANTES do D-H5, da nova ordem dos Correios e da constante nova (22:52–23:00): `npm run typecheck` limpo; `npm run lint` 0 erros; suíte inteira com `--maxWorkers=2`: 166 arquivos / 1.658 verdes / 1 pulado. O `npm run build` foi interrompido quando chegou o alerta de memória.
+- DEPOIS (23:04–23:25): `eslint` nos 27 arquivos `.ts/.tsx` da H (0 problemas) e vitest um arquivo por vez — `domain/envios.test.ts` (29), `domain/cancelar-envio.test.ts` (33), `server/shipping/cancelar-envio.test.ts` (31), `server/actions/cancelar-envio.test.ts`, `server/actions/admin/logistica.test.ts` e `domain/admin/logistica.test.ts` (50 juntos) — todos verdes.
+- **O D-H5 (constante `1794967250154` + `primeiroMesEntraNaDevolucaoAutomatica`), a ordem dos Correios (`acaoParaStatusDaEtiqueta`, `SituacaoDaEtiqueta` sem `'pendente'`) e o texto novo do motivo NÃO passaram por `tsc`, nem pela suíte inteira, nem pelo build: o Controle roda no merge.**
+Próximo ato (um): o Controle roda typecheck, lint, suíte e build no merge e aplica a migration 056 junto com o commit.
