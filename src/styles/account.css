@@ -198,3 +198,26 @@ button.qk-row:last-child,a.qk-row:last-child{border-bottom:none}
 .aceite-explica{font-size:13px;color:var(--cert-ink-label);margin:0 0 12px}
 .aceite-rodape{margin-top:32px;padding-top:16px;border-top:1px solid var(--cert-divider);font-size:11px;color:var(--cert-ink-foot);text-align:center}
 .aceite-pagina .legal-proof-sheet h3{font-size:18px;margin:24px 0 10px;border-bottom:1px solid var(--cert-divider);padding-bottom:6px;color:var(--qr-ink)}
+
+/* Notas fiscais (/conta/notas) — frente G, 18/11/2026. Cartões e não tabela: a 320px uma tabela de seis colunas
+   obrigaria a rolar de lado, e o que o cliente faz aqui é achar a nota e baixar. Alvo de toque de 44px. */
+.notas-intro{font-size:13.5px;color:var(--text-muted);line-height:1.55;margin:6px 0 16px;max-width:70ch}
+.nota-lista{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.nota-card{border:1px solid var(--line-soft);border-radius:12px;padding:14px 16px;background:var(--card);scroll-margin-top:84px}
+.nota-card:target{border-color:var(--gold)}
+.nota-card--cancelada{background:var(--bg-panel)}
+.nota-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.nota-cab h3{margin:0;font-size:15px;color:var(--text-strong)}
+.nota-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 16px;margin:12px 0 0}
+.nota-meta dt{font-size:11px;color:var(--text-muted)}
+.nota-meta dd{margin:2px 0 0;font-size:13.5px;color:var(--text)}
+.nota-meta .nota-valor{font-weight:700;color:var(--text-strong)}
+.nota-desc{font-size:12px;color:var(--text-muted);margin:10px 0 0;line-height:1.45;overflow-wrap:anywhere}
+.nota-aviso{font-size:13px;color:var(--text);margin:10px 0 0;line-height:1.5}
+.nota-link{display:inline-flex;align-items:center;min-height:44px;color:var(--ro-primaria-texto);font-weight:600}
+.nota-chave{margin-top:10px;font-size:12px;color:var(--text-muted)}
+.nota-chave summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.nota-chave code{display:block;font-size:12px;color:var(--text);overflow-wrap:anywhere;word-break:break-all;padding:0 0 8px}
+.nota-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.nota-acoes .btn{min-height:44px;flex:1 1 140px}
+.nota-ver{display:inline-flex;align-items:center;min-height:44px;font-size:12.5px;font-weight:600;color:var(--ro-primaria-texto);white-space:nowrap}

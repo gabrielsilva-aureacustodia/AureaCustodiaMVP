@@ -9,12 +9,14 @@
  * 3. Lista de planos de custódia contratados e vigentes (anual, moedas cobertas, pago até).
  */
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 
 import { fimDaCoberturaDaFatura } from '@/domain/custody'
 import { custodiaDoPlanoPagaAte, rotuloDaOrigem, lotesDaFatura } from '@/domain/custodia-do-cliente'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
+import type { NotaDoCliente } from '@/domain/nfse/notas-do-cliente'
 import type { FaturaCustodia, PlanoCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
@@ -22,6 +24,7 @@ import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
 import { Selo } from '@/components/ui/Selo'
 import { Esqueleto } from '@/components/ui/Esqueleto'
+import { listarMinhasNotas } from '@/server/actions/notas'
 import {
   iniciarCartaoFatura,
   iniciarPixFatura,
@@ -35,21 +38,30 @@ export function FaturasCustodia(): ReactNode {
   const { minhaContaBloqueada, consultar } = useBloqueioPorPendencia()
   const [faturas, setFaturas] = useState<FaturaCustodia[]>([])
   const [planos, setPlanos] = useState<PlanoCustodia[]>([])
+  // A nota de cada fatura (frente G, 18/11/2026): só o link "Ver nota"; as notas em si moram em /conta/notas.
+  const [notasPorFatura, setNotasPorFatura] = useState<Record<string, NotaDoCliente>>({})
   const [carregando, setCarregando] = useState(true)
   const [faturaEmPagamento, setFaturaEmPagamento] = useState<string | null>(null)
   const [abaAtiva, setAbaAtiva] = useState<'faturas' | 'planos'>('faturas')
 
   const carregar = useCallback(async () => {
     try {
-      const [resFaturas, resPlanos] = await Promise.all([
+      const [resFaturas, resPlanos, resNotas] = await Promise.all([
         listarMinhasFaturas(),
         listarMeusPlanos(),
+        // Falha ao ler as notas nunca derruba a lista de faturas: sem elas, a coluna só não mostra o link.
+        listarMinhasNotas().catch(() => null),
       ])
       if (resFaturas.ok && resFaturas.data) {
         setFaturas(resFaturas.data)
       }
       if (resPlanos.ok && resPlanos.data) {
         setPlanos(resPlanos.data)
+      }
+      if (resNotas?.ok && resNotas.data) {
+        const mapa: Record<string, NotaDoCliente> = {}
+        for (const n of resNotas.data) if (n.faturaId) mapa[n.faturaId] = n
+        setNotasPorFatura(mapa)
       }
     } finally {
       setCarregando(false)
@@ -290,6 +302,16 @@ export function FaturasCustodia(): ReactNode {
                               >
                                 Pagar fatura<span className="sr-only"> {f.id} de {brl(f.valorCents)}</span>
                               </button>
+                            ) : notasPorFatura[f.id] ? (
+                              // Só o link: a nota (estado, XML, PDF) vive em /conta/notas. Fatura paga sem pedido de nota
+                              // (paga antes da emissão automática de 23/10/2026) não promete nada: segue "—".
+                              notasPorFatura[f.id].estado === 'em_preparacao' || notasPorFatura[f.id].estado === 'falta_cadastro' ? (
+                                <span className="cel-sub">Nota em preparação</span>
+                              ) : (
+                                <Link href={`/conta/notas#nota-${notasPorFatura[f.id].id}`} className="nota-ver">
+                                  Ver nota<span className="sr-only"> da fatura {f.id}</span>
+                                </Link>
+                              )
                             ) : (
                               <span className="cel-sub">—</span>
                             )}
