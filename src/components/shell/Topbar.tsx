@@ -139,6 +139,12 @@ function tituloDaRota(pathname: string, me: User): Titulo {
       p: 'Cobranças da guarda das suas moedas e formas de pagamento.',
     }
   }
+  if (pathname === '/conta/notas') {
+    return {
+      h1: 'Notas fiscais',
+      p: 'As notas fiscais de serviço emitidas em seu nome, com o XML e o PDF para baixar.',
+    }
+  }
   if (pathname === '/conta/configuracoes') {
     return {
       h1: 'Configurações e segurança',

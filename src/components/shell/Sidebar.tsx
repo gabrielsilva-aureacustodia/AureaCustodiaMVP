@@ -239,6 +239,18 @@ const NAV: NavLink[] = [
     ),
   },
   {
+    // Notas fiscais de serviço (NFS-e) emitidas em nome do cliente — frente G, 18/11/2026.
+    href: '/conta/notas',
+    grupo: 'Conta',
+    label: 'Notas fiscais',
+    icon: (
+      <>
+        <path d="M6 3h9l4 4v14H6z" />
+        <path d="M9 14l2.2 2.2L15.5 11.5" />
+      </>
+    ),
+  },
+  {
     href: '/conta',
     grupo: 'Conta',
     label: 'Minha conta',
@@ -287,6 +299,11 @@ export function Sidebar(): ReactNode {
   const pathname = usePathname()
   const sair = useLogout()
   const itens = admin ? [...NAV, NAV_ADMIN] : NAV
+  // Um item só aceso: o de href mais específico que casa com a rota. Sem isto, /conta/notas acendia também
+  // "Minha conta" (/conta é prefixo dela) e o menu mostrava dois "onde estou".
+  const hrefAceso = itens
+    .filter((i) => itemAtivo(pathname, i.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   // Os grupos saem da própria lista, na ordem em que aparecem: nada de segunda lista para manter.
   const grupos: { nome: string; itens: NavLink[] }[] = []
@@ -322,7 +339,7 @@ export function Sidebar(): ReactNode {
                 {g.nome}
               </div>
               {g.itens.map((item) => {
-                const ativo = itemAtivo(pathname, item.href)
+                const ativo = item.href === hrefAceso
                 return (
                   <Link
                     key={item.href}
