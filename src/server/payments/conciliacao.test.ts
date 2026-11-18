@@ -46,6 +46,10 @@ import { conciliarPagamento } from './conciliacao'
 import { _limparRecebimentosEmMemoria, buscarRecebimentoPorPaymentId } from './recebimentos'
 import { _limparRepositoriosEmMemoria, repositorioIntencoes } from './repositorios'
 import { custodiaEmDia } from '@/domain/testing/fixtures'
+import { faturasDoEnvio, primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
+import type { AppState } from '@/domain/types'
+import { derivarLancamentos } from '@/server/db/derivar'
+import { planejarDiff } from '@/server/db/diff'
 import { getState, mutateState } from '@/server/state'
 
 const EMAIL = 'gabrielsilva@testeaurea.com.br'
@@ -804,5 +808,185 @@ describe('conciliarPagamento — frete do envio (22/10/2026)', () => {
     expect(r.motivo).toBe('frete_recotado_creditado_em_saldo')
     expect(await saldo()).toBe(antes + VALOR - 100)
     expect((await envio()).frete?.status).toBe('cotado')
+  })
+
+  /* O 1º mês de custódia no mesmo pagamento do envio (frente B, D4, 17/11/2026). O envio de teste tem 1 moeda:
+   * o mês é R$ 2,00 e a cobrança é VALOR + MES_UMA_MOEDA. */
+  describe('com o 1º mês de custódia na mesma cobrança', () => {
+    const MES = 200
+
+    async function criarIntencaoComMes(ref: string, mes: number, metodo: 'pix' | 'checkout_pro' = 'pix', valor = VALOR + mes) {
+      const agora = Date.now()
+      await repositorioIntencoes().criar({
+        externalReference: ref,
+        userEmail: EMAIL,
+        valor,
+        metodo,
+        status: 'pendente',
+        tipoOperacao: 'frete_envio',
+        metadata: { protocolo, primeiroMesCents: mes },
+        paymentId: null,
+        motivoRecusa: null,
+        createdAt: agora,
+        updatedAt: agora,
+      })
+    }
+
+    async function ledgerDaConciliacao(antes: AppState) {
+      const depois = await getState()
+      return derivarLancamentos({
+        antes,
+        depois,
+        ops: planejarDiff(antes, depois),
+        semeadura: false,
+        agora: Date.now(),
+        hashAnterior: 'h',
+      })
+    }
+
+    it('Pix: o pagamento quita o frete E a fatura do mês, sem mexer no saldo, e o ledger fecha sem ajuste', async () => {
+      const ref = 'FRT-mes-pix'
+      await criarIntencaoComMes(ref, MES)
+      consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR + MES))
+      criarPrePostagem.mockResolvedValue({ id: 'PRI10', codigoObjeto: 'AP444555666BR', prazoPostagem: null, statusAtual: 2 })
+
+      const antes = structuredClone(await getState())
+      const r = await conciliarPagamento('pay-1')
+
+      expect(r).toMatchObject({ creditado: true, motivo: 'frete_envio_liquidado' })
+      // Dinheiro de fora: entra e sai na mesma operação.
+      expect(await saldo()).toBe(antes.users[EMAIL].balance)
+
+      const s = await getState()
+      const e = await envio()
+      expect(e.frete).toMatchObject({ status: 'pago', forma: 'pix', valorCents: VALOR })
+      expect(e.prePostagem?.codigoObjeto).toBe('AP444555666BR')
+
+      // A fatura do mês: da conta, paga, ligada ao protocolo pelo plano, com a referência do gateway.
+      const achado = primeiroMesDoEnvio(s, protocolo)
+      expect(achado?.plano).toMatchObject({ protocoloEnvio: protocolo, status: 'vigente', formaPagamento: 'pix' })
+      expect(achado?.fatura).toMatchObject({
+        origem: 'contratacao',
+        status: 'paga',
+        formaPagamento: 'pix',
+        valorCents: MES,
+        paymentIntentId: ref,
+        planoId: achado?.plano.id,
+      })
+      // A entrada de dinheiro diz de onde veio e vale o TOTAL.
+      expect(s.deposits.at(-1)).toMatchObject({ valor: VALOR + MES, origem: 'frete_envio', metodo: 'pix', refExterna: ref })
+
+      const d = await ledgerDaConciliacao(antes)
+      expect(d.ajustes).toEqual([])
+      expect(d.lancamentos.map((l) => l.tipo).sort()).toEqual(['custodia', 'deposito', 'frete'])
+    })
+
+    it('cartão: o mesmo — frete pago, fatura do mês paga no cartão', async () => {
+      const ref = 'FRT-mes-cartao'
+      await criarIntencaoComMes(ref, MES, 'checkout_pro')
+      consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR + MES))
+      criarPrePostagem.mockResolvedValue({ id: 'PRI11', codigoObjeto: 'AP777888999BR', prazoPostagem: null, statusAtual: 2 })
+
+      const antes = await saldo()
+      const r = await conciliarPagamento('pay-1')
+
+      expect(r.motivo).toBe('frete_envio_liquidado')
+      expect(await saldo()).toBe(antes)
+      expect((await envio()).frete).toMatchObject({ status: 'pago', forma: 'cartao' })
+      expect(primeiroMesDoEnvio(await getState(), protocolo)?.fatura).toMatchObject({
+        status: 'paga',
+        formaPagamento: 'cartao',
+        valorCents: MES,
+        paymentIntentId: ref,
+      })
+    })
+
+    it('vale o mês COBRADO (congelado na intenção), mesmo que a tabela tenha mudado depois', async () => {
+      const ref = 'FRT-mes-congelado'
+      // A cobrança abriu com a custódia a R$ 3,50; hoje a tabela do teste voltou ao padrão (R$ 2,00).
+      await criarIntencaoComMes(ref, 350)
+      consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR + 350))
+
+      const r = await conciliarPagamento('pay-1')
+
+      expect(r.motivo).toBe('frete_envio_liquidado')
+      expect(primeiroMesDoEnvio(await getState(), protocolo)?.fatura).toMatchObject({ status: 'paga', valorCents: 350 })
+    })
+
+    it('o mês já tinha sido pago por outro caminho: o frete é pago e o mês a mais volta ao saldo', async () => {
+      const ref = 'FRT-mes-ja-pago'
+      await mutateState((s) => {
+        s.planosCustodia = [
+          {
+            id: 'PLC-JA-PAGO',
+            userEmail: EMAIL,
+            protocoloEnvio: protocolo,
+            modalidade: 'mensal',
+            quantidadeContratada: 1,
+            moedaIds: [],
+            valorPorMoedaCents: 200,
+            valorTotalCents: 200,
+            parcelasMax: 1,
+            inicioCompetencia: '2026-11',
+            pagoAteCompetencia: '2026-11',
+            status: 'vigente',
+            formaPagamento: 'saldo',
+            paymentIntentRef: null,
+            assinaturaId: null,
+            estornadoCents: 0,
+            criadoEm: Date.now(),
+            atualizadoEm: Date.now(),
+          },
+          ...(s.planosCustodia ?? []),
+        ]
+        s.faturasCustodia = [
+          {
+            id: 'FAT-JA-PAGA',
+            userEmail: EMAIL,
+            competencia: '2026-11',
+            quantidadeMoedas: 1,
+            moedaIds: [],
+            valorCents: 200,
+            status: 'paga',
+            dataEmissao: Date.now(),
+            dataVencimento: Date.now() + 864_000_000,
+            dataPagamento: Date.now(),
+            formaPagamento: 'saldo',
+            paymentIntentId: null,
+            planoId: 'PLC-JA-PAGO',
+            origem: 'contratacao',
+          },
+          ...(s.faturasCustodia ?? []),
+        ]
+      })
+      await criarIntencaoComMes(ref, MES)
+      consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR + MES))
+
+      const antes = structuredClone(await getState())
+      const r = await conciliarPagamento('pay-1')
+
+      expect(r.motivo).toBe('frete_envio_liquidado')
+      expect((await envio()).frete?.status).toBe('pago')
+      expect(await saldo()).toBe(antes.users[EMAIL].balance + MES)
+      expect(faturasDoEnvio(await getState(), protocolo)).toHaveLength(1)
+
+      const d = await ledgerDaConciliacao(antes)
+      expect(d.ajustes).toEqual([])
+    })
+
+    it('cobrado diferente de frete + mês: o pago vira saldo e nada é quitado', async () => {
+      const ref = 'FRT-mes-divergente'
+      // A intenção diz que o mês cobrado foi R$ 1,00, mas o valor pedido foi VALOR + R$ 2,00.
+      await criarIntencaoComMes(ref, 100, 'pix', VALOR + MES)
+      consultarPagamentoMercadoPago.mockResolvedValue(aprovado(ref, VALOR + MES))
+
+      const antes = await saldo()
+      const r = await conciliarPagamento('pay-1')
+
+      expect(r.motivo).toBe('frete_recotado_creditado_em_saldo')
+      expect(await saldo()).toBe(antes + VALOR + MES)
+      expect((await envio()).frete?.status).toBe('cotado')
+      expect(faturasDoEnvio(await getState(), protocolo)).toEqual([])
+    })
   })
 })

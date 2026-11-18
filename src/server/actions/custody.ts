@@ -33,8 +33,10 @@ import { medianSellPrice } from '@/domain/market'
 import { moedaEmReservaAberta } from '@/domain/reserva-de-compra'
 import { mkCoin } from '@/domain/seed'
 import { ETAPAS_ENVIO } from '@/domain/types'
-import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, FreteEnvio, StatusRecibo, User } from '@/domain/types'
+import type { ActionResult, AppState, Cents, Coin, Envio, EtapaEnvio, FaturaCustodia, FreteEnvio, StatusRecibo, User } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
+import { garantirPrimeiroMesDoEnvio, primeiroMesAPagar, primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
+import { quitarFatura } from '@/domain/quitar-fatura'
 import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
@@ -497,6 +499,12 @@ export async function cotarFreteEnvio(
  * O VALOR É SEMPRE DO SERVIDOR. Nenhuma destas ações recebe valor: cotar grava o frete, pagar lê o
  * frete gravado. Cotação com mais de 24 h é refeita antes de cobrar; se o preço mudou, a cobrança
  * não acontece e o cliente vê o valor novo antes de pagar.
+ *
+ * O PAGAMENTO DO ENVIO É UM SÓ: FRETE + 1º MÊS DE CUSTÓDIA (D4, 17/11/2026, pedido do Rogério). O mês é
+ * quantidade × `custodiaMensalPorMoeda` da tabela vigente, lido aqui no servidor, e entra na MESMA cobrança —
+ * no saldo, no Pix e no cartão. O frete continua sendo só o frete (`envio.frete.valorCents`: é o que os
+ * Correios cobram, e o que a DRE tira do repasse); o mês é a fatura de contratação do envio, quitada na mesma
+ * transação. A regra do par plano + fatura está em src/domain/primeiro-mes-do-envio.ts.
  */
 
 const MODALIDADE_FRETE_INVALIDA = 'Modalidade de envio inválida. Escolha PAC ou SEDEX.'
@@ -506,21 +514,43 @@ const SEM_ENDERECO_PARA_FRETE = 'Complete o cadastro com o seu endereço para ca
 /** O que a tela recebe de uma cotação sobre o protocolo. */
 export interface CotacaoFreteDoEnvio {
   modalidade: ModalidadeEnvio
+  /** O frete dos Correios, sozinho. */
   valorCents: number
   prazoDiasUteis: number
   cotadoEm: number
   /** `'tabela'` = estimativa local, sem contrato: não se paga no site. */
   origem: 'correios' | 'tabela'
+  /** O 1º mês de custódia que o pagamento do envio vai cobrar junto: quantidade × tabela vigente (0 se já pago). */
+  primeiroMesCents: Cents
+  /** `true` quando o mês deste envio já foi pago (envio do fluxo antigo, com o plano pago à parte). */
+  primeiroMesJaPago: boolean
+  /** O que o cliente paga de uma vez: frete + 1º mês. */
+  totalCents: Cents
 }
 
 /** Envio da sessão — `null` se não existe ou é de outra conta (o protocolo alheio é "não encontrado"). */
 async function envioDaSessao(
   session: string,
   protocolo: string,
-): Promise<{ envio: Envio; dono: User | undefined } | null> {
+): Promise<{ envio: Envio; dono: User | undefined; state: AppState } | null> {
   const state = await getState()
   const envio = state.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
-  return envio ? { envio, dono: state.users[session] } : null
+  return envio ? { envio, dono: state.users[session], state } : null
+}
+
+/**
+ * O que o pagamento do envio cobra além do frete: o 1º mês de custódia que ainda falta pagar, e o total. Lê o
+ * preço da tabela vigente do painel (nunca um número fixo) e só LÊ — quem cria a fatura é a transação que a quita.
+ */
+async function totalDoPagamentoDoEnvio(
+  session: string,
+  protocolo: string,
+  freteCents: Cents,
+): Promise<{ primeiroMesCents: Cents; totalCents: Cents }> {
+  const { taxas } = await carregarRegrasDoMercado()
+  const achado = await envioDaSessao(session, protocolo)
+  const primeiroMesCents = achado ? primeiroMesAPagar(achado.state, achado.envio, { ...taxas }) : 0
+  return { primeiroMesCents, totalCents: freteCents + primeiroMesCents }
 }
 
 /**
@@ -565,6 +595,8 @@ export async function cotarFreteDoEnvio(
       if (result) return { ok: false, error: result }
     }
 
+    // O 1º mês vai junto: a tela mostra as duas linhas e o total que o SERVIDOR calculou (D4).
+    const mes = await totalDoPagamentoDoEnvio(session, protocolo, cot.frete.valorCents)
     return {
       ok: true,
       data: {
@@ -573,6 +605,9 @@ export async function cotarFreteDoEnvio(
         prazoDiasUteis: cot.frete.prazoDiasUteis,
         cotadoEm: cot.frete.cotadoEm,
         origem: cot.origem,
+        primeiroMesCents: mes.primeiroMesCents,
+        primeiroMesJaPago: primeiroMesDoEnvio(achado.state, protocolo)?.fatura?.status === 'paga',
+        totalCents: mes.totalCents,
       },
     }
   } catch {
@@ -638,7 +673,13 @@ function avisoDaEmissao(emissao: Awaited<ReturnType<typeof emitirPrePostagemDoEn
 }
 
 /**
- * Paga o frete com o saldo em conta e, em seguida, emite a etiqueta oficial.
+ * Paga o frete E o 1º mês de custódia com o saldo em conta, numa cobrança só, e em seguida emite a etiqueta
+ * oficial.
+ *
+ * O mês entra na mesma transação do frete (D4, 17/11/2026): o débito é o total, o frete passa a `pago` (o
+ * ledger lança o `frete`) e a fatura de contratação do envio passa a paga por `quitarFatura` (o ledger lança a
+ * `custodia` e a NFS-e do mês sai com a data deste pagamento). Quem pagou o plano à parte, no fluxo antigo, não
+ * paga o mês de novo: `primeiroMesAPagar` devolve zero.
  *
  * A emissão vem DEPOIS da transação do pagamento e não a desfaz se falhar: o dinheiro saiu do saldo
  * para um frete que continua `pago`, e a etiqueta pode ser pedida de novo (`emitirEtiquetaDoEnvio`).
@@ -652,6 +693,8 @@ export async function pagarFreteComSaldo(
   try {
     const pronto = await freteParaCobrar(session, protocolo)
     if (!pronto.ok) return { ok: false, error: pronto.error }
+    // A tabela vigente é lida antes da transação (leitura que pode ir ao banco não fica presa na linha do estado).
+    const { taxas } = await carregarRegrasDoMercado()
 
     const { result } = await mutateState((state) => {
       const u = state.users[session]
@@ -667,18 +710,31 @@ export async function pagarFreteComSaldo(
       if (!frete || frete.status !== 'cotado' || frete.valorCents !== pronto.frete.valorCents) {
         return { ok: false, error: 'O frete mudou desde que você abriu a tela. Confira o valor e pague de novo.' } as const
       }
-      if (u.balance < frete.valorCents) {
+      // O 1º mês de custódia vai no mesmo pagamento: lido da tabela vigente, nunca número fixo. Conferido
+      // ANTES de criar qualquer coisa, para recusa por saldo não deixar plano nem fatura para trás.
+      const mesCents = primeiroMesAPagar(state, envio, { ...taxas })
+      const totalCents = frete.valorCents + mesCents
+      if (u.balance < totalCents) {
         return {
           ok: false,
-          error: `Saldo insuficiente para o frete (${brl(frete.valorCents)}). Seu saldo atual é ${brl(u.balance)}.`,
+          error:
+            mesCents > 0
+              ? `Saldo insuficiente para o frete e o 1º mês de custódia (${brl(totalCents)}). Seu saldo atual é ${brl(u.balance)}.`
+              : `Saldo insuficiente para o frete (${brl(frete.valorCents)}). Seu saldo atual é ${brl(u.balance)}.`,
         } as const
       }
 
       // O débito e a transição para 'pago' juntos: é a transição que o ledger lê para lançar o
-      // `frete` (derivar.ts), e sem ela o débito viraria um `ajuste` sem explicação.
-      u.balance -= frete.valorCents
-      envio.frete = { ...frete, status: 'pago', pagoEm: Date.now(), forma: 'saldo', paymentIntentRef: null }
-      return { ok: true, valor: frete.valorCents } as const
+      // `frete` (derivar.ts), e sem ela o débito viraria um `ajuste` sem explicação. O mesmo vale para o
+      // mês: a fatura passa a paga na mesma mutação, e é essa transição que o ledger lê como `custodia`.
+      const agora = Date.now()
+      u.balance -= totalCents
+      envio.frete = { ...frete, status: 'pago', pagoEm: agora, forma: 'saldo', paymentIntentRef: null }
+      if (mesCents > 0) {
+        const { fatura } = garantirPrimeiroMesDoEnvio(state, envio, { ...taxas }, agora)
+        quitarFatura(state, fatura, 'saldo', agora)
+      }
+      return { ok: true, valor: frete.valorCents, mes: mesCents } as const
     })
 
     if (!result.ok) return { ok: false, error: result.error }
@@ -686,7 +742,10 @@ export async function pagarFreteComSaldo(
     const emissao = await emitirPrePostagemDoEnvio(protocolo)
     return {
       ok: true,
-      message: `Frete de ${brl(result.valor)} pago com saldo. ${avisoDaEmissao(emissao)}`,
+      message:
+        result.mes > 0
+          ? `Frete de ${brl(result.valor)} e 1º mês de custódia de ${brl(result.mes)} pagos com saldo. ${avisoDaEmissao(emissao)}`
+          : `Frete de ${brl(result.valor)} pago com saldo. ${avisoDaEmissao(emissao)}`,
       data: { codigoRastreio: emissao.ok ? emissao.prePostagem.codigoObjeto : null },
     }
   } catch {
@@ -710,9 +769,23 @@ async function anotarCobrancaNoFrete(
   })
 }
 
+/** O texto da cobrança do envio, para o gateway: com o mês, diz que o pagamento leva as duas coisas. */
+function tituloDaCobrancaDoEnvio(protocolo: string, primeiroMesCents: Cents): string {
+  return primeiroMesCents > 0
+    ? `Frete dos Correios e 1º mês de custódia — Real Olímpico (${protocolo})`
+    : `Frete dos Correios — Real Olímpico (${protocolo})`
+}
+
+function descricaoDaCobrancaDoEnvio(frete: FreteEnvio, protocolo: string, primeiroMesCents: Cents): string {
+  const base = `Frete ${frete.modalidade} do envio ${protocolo} para a custódia`
+  return primeiroMesCents > 0 ? `${base} + 1º mês de custódia das moedas do envio` : base
+}
+
 /**
- * Abre a cobrança Pix do frete. Quem marca o frete como pago é a conciliação do gateway
- * (`liquidarFreteEnvio`), e é ela que pede a etiqueta depois de liquidar.
+ * Abre a cobrança Pix do envio: frete + 1º mês de custódia, UMA cobrança (D4, 17/11/2026). Quem marca o frete
+ * como pago e quita o mês é a conciliação do gateway (`liquidarFreteEnvio`), e é ela que pede a etiqueta depois
+ * de liquidar. O valor do mês fica congelado na intenção (`primeiroMesCents`), como a comissão da compra direta:
+ * o valor cobrado não muda depois de a cobrança abrir, e a conciliação confere contra ele.
  */
 export async function iniciarPixFrete(
   protocolo: string,
@@ -724,6 +797,7 @@ export async function iniciarPixFrete(
     const pronto = await freteParaCobrar(session, protocolo)
     if (!pronto.ok) return { ok: false, error: pronto.error }
     const { frete } = pronto
+    const { primeiroMesCents, totalCents } = await totalDoPagamentoDoEnvio(session, protocolo, frete.valorCents)
 
     const externalReference = `FRT-${randomUUID()}`
     const agora = Date.now()
@@ -731,12 +805,12 @@ export async function iniciarPixFrete(
     await intencoes.criar({
       externalReference,
       userEmail: session,
-      valor: frete.valorCents,
+      valor: totalCents,
       metodo: 'pix',
       status: 'pendente',
       tipoOperacao: 'frete_envio',
       parcelasMax: 1,
-      metadata: { protocolo },
+      metadata: { protocolo, primeiroMesCents },
       paymentId: null,
       motivoRecusa: null,
       createdAt: agora,
@@ -746,9 +820,9 @@ export async function iniciarPixFrete(
     const pix = await criarCobrancaPix({
       externalReference,
       userEmail: session,
-      valorCents: frete.valorCents,
-      titulo: `Frete dos Correios — Real Olímpico (${protocolo})`,
-      descricao: `Frete ${frete.modalidade} do envio ${protocolo} para a custódia`,
+      valorCents: totalCents,
+      titulo: tituloDaCobrancaDoEnvio(protocolo, primeiroMesCents),
+      descricao: descricaoDaCobrancaDoEnvio(frete, protocolo, primeiroMesCents),
       parcelasMax: 1,
     })
     await intencoes.anotarPagamento(externalReference, pix.paymentId)
@@ -760,7 +834,11 @@ export async function iniciarPixFrete(
   }
 }
 
-/** Abre o Checkout Pro do frete (cartão, à vista — frete não se parcela). */
+/**
+ * Abre o Checkout Pro do envio (cartão, à vista — frete não se parcela): frete + 1º mês de custódia numa
+ * cobrança só, como no Pix. O cartão do envio é cobrança única; a cobrança recorrente mensal das moedas já
+ * guardadas continua nas faturas (`iniciarCartaoFatura`).
+ */
 export async function iniciarCartaoFrete(
   protocolo: string,
 ): Promise<ActionResult<CobrancaCartao & { forma: 'cartao' }>> {
@@ -771,18 +849,19 @@ export async function iniciarCartaoFrete(
     const pronto = await freteParaCobrar(session, protocolo)
     if (!pronto.ok) return { ok: false, error: pronto.error }
     const { frete } = pronto
+    const { primeiroMesCents, totalCents } = await totalDoPagamentoDoEnvio(session, protocolo, frete.valorCents)
 
     const externalReference = `FRT-${randomUUID()}`
     const agora = Date.now()
     await repositorioIntencoes().criar({
       externalReference,
       userEmail: session,
-      valor: frete.valorCents,
+      valor: totalCents,
       metodo: 'checkout_pro',
       status: 'pendente',
       tipoOperacao: 'frete_envio',
       parcelasMax: 1,
-      metadata: { protocolo },
+      metadata: { protocolo, primeiroMesCents },
       paymentId: null,
       motivoRecusa: null,
       createdAt: agora,
@@ -792,9 +871,9 @@ export async function iniciarCartaoFrete(
     const cartao = await criarCobrancaCartao({
       externalReference,
       userEmail: session,
-      valorCents: frete.valorCents,
-      titulo: `Frete dos Correios — Real Olímpico (${protocolo})`,
-      descricao: `Frete ${frete.modalidade} do envio ${protocolo} para a custódia`,
+      valorCents: totalCents,
+      titulo: tituloDaCobrancaDoEnvio(protocolo, primeiroMesCents),
+      descricao: descricaoDaCobrancaDoEnvio(frete, protocolo, primeiroMesCents),
       parcelasMax: 1,
       voltarPara: { sucesso: '/envios', pendente: '/envios', falha: '/envios' },
     })

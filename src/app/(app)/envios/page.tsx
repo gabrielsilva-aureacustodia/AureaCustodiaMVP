@@ -43,7 +43,7 @@ import { COIN_TYPES, coinTypeInfo, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodiaDoEnvio } from '@/domain/custodia-texto'
 import { brl } from '@/domain/money'
-import { valorDoPlano } from '@/domain/plano-custodia'
+import { primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import type { AppState, Cents, Envio, UserEmail } from '@/domain/types'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
@@ -54,6 +54,8 @@ import { PhotoSlot } from '@/components/custody/PhotoSlot'
 import { Timeline } from '@/components/custody/Timeline'
 import { WizardSteps } from '@/components/custody/WizardSteps'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
+import { ResumoDoPagamentoDoEnvio } from '@/components/envios/ResumoDoPagamentoDoEnvio'
+import { LinhaCustodiaNaCompra } from '@/components/market/LinhaCustodiaNaCompra'
 import {
   consultarCepEnvio,
   cotarFreteDoEnvio,
@@ -67,7 +69,6 @@ import {
 } from '@/server/actions/custody'
 import type { CotacaoFreteDoEnvio } from '@/server/actions/custody'
 import { contratarPlanoCustodia, iniciarCartaoFatura, iniciarPixFatura, pagarFaturaComSaldo } from '@/server/actions/plano-custodia'
-import type { ModalidadePlanoCustodia } from '@/domain/types'
 import type { ModalidadeEnvio } from '@/lib/shipping'
 import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio } from '@/domain/rastreio'
 // Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
@@ -75,7 +76,6 @@ import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio 
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, prePostagemAtiva } from '@/domain/envios'
 import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
-import { Esqueleto } from '@/components/ui/Esqueleto'
 
 /** Os cinco passos da tela. */
 type Passo = 1 | 2 | 3 | 4 | 5
@@ -429,26 +429,6 @@ export default function EnviosPage(): ReactNode {
     }
   }, [cepOrigem, modalidade, quantidade])
 
-  /* ---------- plano de custódia (passo 3) ---------- */
-  const [modalidadePlano, setModalidadePlano] = useState<ModalidadePlanoCustodia>('mensal')
-  const [faturaId, setFaturaId] = useState<string | null>(null)
-
-  // Quando o usuário entra no passo 3 ou troca a modalidade, garante que o plano/fatura está inicializado
-  useEffect(() => {
-    if (wizard.passo === 3 && wizard.protocolo) {
-      let ativo = true
-      void (async () => {
-        const res = await contratarPlanoCustodia(wizard.protocolo!, modalidadePlano)
-        if (ativo && res.ok && res.data) {
-          setFaturaId(res.data.faturaId)
-        }
-      })()
-      return () => {
-        ativo = false
-      }
-    }
-  }, [wizard.passo, wizard.protocolo, modalidadePlano])
-
   /* ---------- ações ---------- */
 
   const escolherFoto = useCallback((dataUrl: string) => setFoto(dataUrl), [])
@@ -463,14 +443,18 @@ export default function EnviosPage(): ReactNode {
     if (res.ok && res.data) setWizard({ passo: 3, protocolo: res.data.protocolo })
   }, [run, tipoMoeda, ano, quantidade, modalidade])
 
-  /** Avança para o passo 4 sem pagar agora (deixa fatura pendente). */
-  const handlePagarDepois = useCallback(async () => {
+  /**
+   * Passo 3 → 4. O 1º mês de custódia NÃO se paga aqui: vai junto com o frete, no passo 4, em um só pagamento
+   * (decisão D4, 17/11/2026). Este botão só garante que o plano e a fatura do mês existem (idempotente) para o
+   * passo 4 poder mostrar o valor e, no ambiente sem contrato dos Correios, a fatura a pagar.
+   */
+  const continuarParaOPagamento = useCallback(async () => {
     if (!wizard.protocolo) return
-    const res = await run(() => contratarPlanoCustodia(wizard.protocolo!, modalidadePlano))
+    const res = await run(() => contratarPlanoCustodia(wizard.protocolo!, 'mensal'))
     if (res.ok) {
       setWizard({ passo: 4, protocolo: wizard.protocolo })
     }
-  }, [wizard.protocolo, modalidadePlano, run])
+  }, [wizard.protocolo, run])
 
   /**
    * `markPostado` (2153-2163). Note que NÃO troca de passo: o usuário fica no 3
@@ -929,7 +913,7 @@ export default function EnviosPage(): ReactNode {
               <CartaoDePlano
                 titulo="Plano Mensal"
                 selecionado={true}
-                aoEscolher={() => setModalidadePlano('mensal')}
+                aoEscolher={() => undefined}
                 total={envio.quantidade * taxas.custodiaMensalPorMoeda}
                 periodo="por mês"
                 porMoeda={`${brl(taxas.custodiaMensalPorMoeda)} por moeda / mês`}
@@ -953,46 +937,24 @@ export default function EnviosPage(): ReactNode {
               </span>
             </div>
 
-            {/* Painel de Pagamento Inline */}
-            <div className="passo-bloco">
-              <h4 className="passo-sub">Pagar custódia agora</h4>
-              {faturaId ? (
-                <PainelPagamento
-                  valorCents={(state.faturasCustodia ?? []).find((f) => f.id === faturaId)?.valorCents ?? valorDoPlano(modalidadePlano, envio.quantidade, { ...taxas }).total}
-                  parcelasMax={valorDoPlano(modalidadePlano, envio.quantidade, { ...taxas }).parcelasMax}
-                  saldoDisponivel={me?.balance ?? 0}
-                  pagarComSaldo={async () => {
-                    const res = await pagarFaturaComSaldo(faturaId)
-                    if (!res.ok) throw new Error(res.error)
-                  }}
-                  iniciarPix={async () => {
-                    const res = await iniciarPixFatura(faturaId)
-                    return res.ok && res.data ? res.data : null
-                  }}
-                  iniciarCartao={async () => {
-                    const res = await iniciarCartaoFatura(faturaId)
-                    return res.ok && res.data ? res.data : null
-                  }}
-                  aoConcluir={() => {
-                    setWizard({ passo: 4, protocolo: envio.protocolo })
-                  }}
-                />
-              ) : (
-                <div className="carregando" role="status" aria-busy="true" aria-label="Carregando opções de pagamento...">
-                  <Esqueleto altura="14px" largura="100%" />
-                  <Esqueleto altura="14px" largura="82%" />
-                </div>
-              )}
+            {/*
+              O 1º MÊS NÃO SE PAGA NESTE PASSO (17/11/2026, D4). Até aqui o cliente pagava a custódia aqui e o frete
+              no passo seguinte — dois pagamentos — ou pulava com "Pagar depois" e a moeda chegava ao cofre sem custódia
+              paga. Agora o mês é obrigatório e vai junto com o frete, em um só pagamento, no passo 4: sem painel de
+              pagamento e sem "Pagar depois" aqui, só o aviso do que vem a seguir.
+            */}
+            <div className="summary-box passo-resumo">
+              <LinhaCustodiaNaCompra cents={envio.quantidade * taxas.custodiaMensalPorMoeda} />
             </div>
+            <p className="campo-dica">
+              O 1º mês de custódia é pago <b>junto com o frete dos Correios</b>, no próximo passo, em um só pagamento
+              (saldo, Pix ou cartão).
+            </p>
 
-            {/* Ação secundária: Pagar depois */}
             <div className="passo-rodape">
-              <button type="button" className="btn btn-outline" onClick={() => void handlePagarDepois()}>
-                Pagar depois (avançar para postagem nos Correios) →
+              <button type="button" className="btn btn-gold btn-link-cheio" onClick={() => void continuarParaOPagamento()}>
+                Continuar para o frete e o pagamento →
               </button>
-              <p className="campo-dica">
-                Você pode enviar a moeda agora e quitar a fatura a qualquer momento em <b>Minha conta › Faturas</b>.
-              </p>
 
               {/* Voltar para a conferência dos dados. O protocolo JÁ FOI
                   GERADO e continua valendo — voltar aqui é rever o que foi
@@ -1187,6 +1149,42 @@ export default function EnviosPage(): ReactNode {
                   </span>
                 </div>
 
+                {/*
+                  SEM CONTRATO DOS CORREIOS NÃO HÁ PAGAMENTO ÚNICO: o frete é pago na agência, então o 1º mês de
+                  custódia (obrigatório, D4) é a fatura do envio, paga aqui mesmo por saldo, Pix ou cartão. Com o
+                  contrato configurado — produção — este bloco não aparece e o mês vai junto com o frete.
+                */}
+                {(() => {
+                  const fatura = primeiroMesDoEnvio(state, envio.protocolo)?.fatura
+                  if (!fatura || fatura.status === 'paga') return null
+                  return (
+                    <div className="passo-bloco">
+                      <h4 className="passo-sub">1º mês de custódia</h4>
+                      <div className="summary-box passo-resumo">
+                        <LinhaCustodiaNaCompra cents={fatura.valorCents} />
+                      </div>
+                      <PainelPagamento
+                        key={`${fatura.id}-${fatura.valorCents}`}
+                        valorCents={fatura.valorCents}
+                        saldoDisponivel={me?.balance ?? 0}
+                        pagarComSaldo={async () => {
+                          const res = await pagarFaturaComSaldo(fatura.id)
+                          if (!res.ok) throw new Error(res.error)
+                        }}
+                        iniciarPix={async () => {
+                          const res = await iniciarPixFatura(fatura.id)
+                          return res.ok && res.data ? res.data : null
+                        }}
+                        iniciarCartao={async () => {
+                          const res = await iniciarCartaoFatura(fatura.id)
+                          return res.ok && res.data ? res.data : null
+                        }}
+                        aoConcluir={() => void refresh()}
+                      />
+                    </div>
+                  )
+                })()}
+
                 <div className="passo-acoes">
                   <a
                     href={`/api/envios/etiqueta/${envio.protocolo}`}
@@ -1288,11 +1286,15 @@ export default function EnviosPage(): ReactNode {
                   </>
                 ) : freteDoEnvio && freteDoEnvio.modalidade === modalidadeFrete ? (
                   <>
+                    {/* Frete + 1º mês de custódia + total: UM pagamento (D4, 17/11/2026). O servidor calcula tudo. */}
+                    <ResumoDoPagamentoDoEnvio
+                      rotuloDoFrete={`Frete ${freteDoEnvio.modalidade} (contrato dos Correios)`}
+                      freteCents={freteDoEnvio.valorCents}
+                      primeiroMesCents={freteDoEnvio.primeiroMesCents}
+                      primeiroMesJaPago={freteDoEnvio.primeiroMesJaPago}
+                      totalCents={freteDoEnvio.totalCents}
+                    />
                     <div className="summary-box passo-resumo">
-                      <div className="sr">
-                        <span className="k">Frete {freteDoEnvio.modalidade} (contrato dos Correios)</span>
-                        <span className="v">{brl(freteDoEnvio.valorCents)}</span>
-                      </div>
                       <div className="sr">
                         <span className="k">Prazo de entrega</span>
                         <span className="v">{freteDoEnvio.prazoDiasUteis} dia(s) útil(eis) após a postagem</span>
@@ -1303,14 +1305,17 @@ export default function EnviosPage(): ReactNode {
                       </div>
                     </div>
                     <p className="campo-dica">
-                      Preço do contrato dos Correios, sem margem do Real Olímpico. Pago o frete, a etiqueta
+                      O frete é o preço do contrato dos Correios, sem margem do Real Olímpico. Pago o envio, a etiqueta
                       oficial sai na hora e você posta em qualquer agência sem pagar nada no balcão.
+                      {freteDoEnvio.primeiroMesJaPago
+                        ? ''
+                        : ' Se alguma moeda for recusada na análise, o 1º mês de custódia dela volta para o seu saldo.'}
                     </p>
 
                     <PainelPagamento
                       // Trocar PAC/SEDEX muda o valor: a chave descarta um Pix aberto para o valor anterior.
-                      key={`${envio.protocolo}-${freteDoEnvio.modalidade}-${freteDoEnvio.valorCents}`}
-                      valorCents={freteDoEnvio.valorCents}
+                      key={`${envio.protocolo}-${freteDoEnvio.modalidade}-${freteDoEnvio.totalCents}`}
+                      valorCents={freteDoEnvio.totalCents}
                       saldoDisponivel={me?.balance ?? 0}
                       pagarComSaldo={async () => {
                         const res = await pagarFreteComSaldo(envio.protocolo)

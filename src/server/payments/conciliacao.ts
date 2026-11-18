@@ -15,6 +15,7 @@ import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
+import { garantirPrimeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import { quitarFatura } from '@/domain/quitar-fatura'
 import { calcularPrazoLimiteRetirada } from '@/domain/retirada'
 import type { AppState, FaturaCustodia, FormaPagamentoFatura } from '@/domain/types'
@@ -629,15 +630,37 @@ function liquidarFreteEnvio(
   if (!envio || !envio.frete) return devolverComoSaldo('frete_envio_nao_localizado_creditado_saldo')
   if (envio.frete.status === 'pago') return devolverComoSaldo('frete_ja_pago_creditado_em_saldo')
   if (recusaDoEnvioParaFrete(envio, agora)) return devolverComoSaldo('envio_encerrado_frete_creditado_em_saldo')
-  if (envio.frete.valorCents !== reivindicada.valor) return devolverComoSaldo('frete_recotado_creditado_em_saldo')
 
+  // O PAGAMENTO LEVA O FRETE E O 1º MÊS DE CUSTÓDIA (D4, 17/11/2026). O valor do mês é o que ficou congelado
+  // na intenção quando a cobrança abriu (`primeiroMesCents`) — não o da tabela de agora: o cliente pagou o que
+  // viu. Intenção aberta antes de 17/11 não tem o campo e vale zero, que é exatamente o que o gateway cobrou.
+  const quantidade = Math.max(1, envio.quantidade || 1)
+  const mesBruto = Number(reivindicada.metadata?.primeiroMesCents ?? 0)
+  const mesCobrado = Number.isInteger(mesBruto) && mesBruto > 0 ? mesBruto : 0
+  if (mesCobrado % quantidade !== 0) return devolverComoSaldo('primeiro_mes_invalido_creditado_em_saldo')
+  if (envio.frete.valorCents + mesCobrado !== reivindicada.valor) return devolverComoSaldo('frete_recotado_creditado_em_saldo')
+
+  const forma = reivindicada.metodo === 'pix' ? 'pix' : 'cartao'
   s.deposits.push({ userEmail: reivindicada.userEmail, valor: reivindicada.valor, date: agora })
   envio.frete = {
     ...envio.frete,
     status: 'pago',
     pagoEm: agora,
-    forma: reivindicada.metodo === 'pix' ? 'pix' : 'cartao',
+    forma,
     paymentIntentRef: reivindicada.externalReference,
+  }
+
+  if (mesCobrado > 0) {
+    // O mês quita a fatura de contratação do envio, criada aqui se o cliente nunca passou pelo passo do plano.
+    // O preço por moeda sai do que foi cobrado, para a fatura valer exatamente o que o gateway recebeu.
+    const { fatura } = garantirPrimeiroMesDoEnvio(s, envio, { custodiaMensalPorMoeda: mesCobrado / quantidade }, agora)
+    if (fatura.status === 'paga') {
+      // O mês foi pago por outro caminho no meio: o que entrou a mais volta ao saldo, e o ledger fecha pela
+      // entrada de dinheiro (depósito do total − frete lançado).
+      cliente.balance += mesCobrado
+    } else {
+      quitarFatura(s, fatura, forma, agora, reivindicada.externalReference)
+    }
   }
   return { sucesso: true, motivo: 'frete_envio_liquidado' }
 }
