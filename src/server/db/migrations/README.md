@@ -27,8 +27,9 @@ Aplicados por `npm run db:migrate` (Supabase) e por `../migrar.ts` (testes). A t
 | `048_casos_de_atendimento.sql` | `casos`, `casos_mensagens` e `casos_anexos` (31/10/2026): o botão Atendimento do cliente e a fila `/admin/casos`. RLS ligado, anexo em `bytea` privado. Só tabelas novas |
 | `049_origem_do_deposito.sql` | `origem`, `metodo` e `ref_externa` em `deposits`, e as entradas antigas casadas com a intenção do gateway: o extrato deixa de chamar pagamento real de "Depósito simulado" (03/11/2026). Aditiva |
 | `050_primeiro_mes_pago_no_envio.sql` | `envios.primeiro_mes_pago` (boolean, padrão falso): o cadastro sem envio pode dizer que o primeiro mês de custódia já foi pago na venda direta; a análise então cria a fatura de entrada paga, com a entrada `custodia_recebida_fora` (14/11/2026). Aditiva |
+| `057_gasto_de_marketing.sql` | `marketing_gastos` (frente J, 18/11/2026): o gasto de mídia que a equipe digita por canal e intervalo de dias, para o CAC do painel de KPIs. Sem edição nem exclusão (cancela com motivo). Só tabela e índice novos |
 
-A próxima é a **051**. As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
+A próxima é a **051** (a 057 foi reservada à frente J e a ordem de aplicação é por nome). As migrations 027 a 029 foram reservadas na rodada de 15/09/2026 e não usadas; o aplicador ordena por nome e não exige sequência. A limpeza do passo 9 do M1 continua pendente — ver
 `docs/prompts/AGENTE_B2_POS_PRODUCAO.md`.
 
 > **Aprendizado da queda de 11/09/2026 — leia antes de rodar `db:migrate`.**

@@ -10,11 +10,23 @@ import 'server-only'
 
 import { somarColunasDeDinheiro, resumirFinanceiro, type ResumoFinanceiro } from '@/domain/admin/financeiro'
 import type { PeriodoEscolhido } from '@/domain/admin/periodo'
+import { ehEmailProtegido, emailsDaLista, normalizarEmail } from '@/domain/admin/permissoes'
 import { primeirasVendasDe } from '@/domain/admin/uso'
 import { PLANO_DE_CONTAS, type ContaContabil, type Dre } from '@/domain/dre'
-import { montarKpis, type Kpis, type PlanoKpi } from '@/domain/kpis'
+import { diaDeBrasilia, meioDiaDeBrasilia } from '@/domain/financeiro/controle'
+import {
+  janelaDoPeriodo,
+  janelasDeReferencia,
+  montarKpis,
+  montarKpisDeAquisicao,
+  type Kpis,
+  type KpisAquisicao,
+  type PlanoKpi,
+} from '@/domain/kpis'
 import type { AppState, Cents } from '@/domain/types'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { datasDeCriacao } from '@/server/db/repositories/admin-usuarios'
+import { lerCasosParaKpi, listarGastos, type GastoGravado } from '@/server/db/repositories/marketing'
 import {
   garantirCatalogos,
   listarContas,
@@ -139,6 +151,98 @@ export async function carregarKpis(p: PeriodoEscolhido): Promise<{ kpis: Kpis; s
   return {
     kpis: montarKpis({ state, retiradas, periodo: p.periodo, agora: Date.now(), historicoDaFila: historico, planos }),
     semBanco: !bancoConfigurado(),
+  }
+}
+
+/* ---------- Aquisição e atendimento (frente J, 18/11/2026) ---------- */
+
+export interface DadosAquisicao {
+  kpis: KpisAquisicao
+  /**
+   * As entradas de gasto digitadas pela equipe, as mais recentes primeiro, inclusive as canceladas (a tela as
+   * risca). `null` = sem banco ou migration 057 ainda não aplicada.
+   */
+  gastos: GastoGravado[] | null
+  semBanco: boolean
+  /** true = o banco ainda não tem `marketing_gastos` (migration 057). */
+  migracaoPendente: boolean
+  /** false = a conta não tem `cs.ver`: o atendimento nem é lido do banco. */
+  atendimentoLiberado: boolean
+  /** O dia de hoje em Brasília, 'AAAA-MM-DD' — o padrão do formulário de gasto. */
+  hoje: string
+}
+
+const LIMITE_GASTOS = 1000
+const LIMITE_CASOS = 20_000
+const MEIO_DIA_MS = 12 * 60 * 60 * 1000
+
+function tabelaAusente(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: string }).code === '42P01'
+}
+
+/**
+ * Quem NÃO é cliente captado: contas da equipe (e-mail institucional e lista de administradores do ambiente) e as
+ * de teste (`@testeaurea.com.br`). Elas não entram em cadastro nem em ativação — o CAC mede quem veio de fora.
+ */
+function contasQueNaoSaoCliente(state: AppState): Set<string> {
+  const doAmbiente = new Set(emailsDaLista(process.env.AUREA_ADMIN_EMAILS) ?? [])
+  return new Set(Object.keys(state.users).filter((email) => ehEmailProtegido(email) || doAmbiente.has(normalizarEmail(email))))
+}
+
+/**
+ * Carrega o painel de aquisição e atendimento. Cada leitura do banco roda na sua transação e falha sozinha: uma
+ * tabela ausente (a 057 antes de aplicada, a 048) deixa só aquele número `null`, e a tela diz por quê, em vez de
+ * cair. O atendimento só é lido por quem tem `cs.ver`, e a página confere a permissão antes de chamar isto.
+ */
+export async function carregarAquisicao(p: PeriodoEscolhido, pode: { atendimento: boolean }, agora: number = Date.now()): Promise<DadosAquisicao> {
+  const state = await getState()
+  const periodo = janelaDoPeriodo(p, p.periodo.rotulo)
+  const base = { state, janelas: janelasDeReferencia(agora), periodo, agora, ignorar: contasQueNaoSaoCliente(state) }
+  const hoje = diaDeBrasilia(agora)
+
+  if (!bancoConfigurado()) {
+    return {
+      kpis: montarKpisDeAquisicao({ ...base, criadasEm: null, gastos: null, casos: null }),
+      gastos: null,
+      semBanco: true,
+      migracaoPendente: false,
+      atendimentoLiberado: pode.atendimento,
+      hoje,
+    }
+  }
+
+  const lerGastos = async (): Promise<{ gastos: GastoGravado[] | null; pendente: boolean }> => {
+    try {
+      return { gastos: await executarNoBanco((tx) => listarGastos(tx, LIMITE_GASTOS), { somenteLeitura: true }), pendente: false }
+    } catch (err) {
+      if (tabelaAusente(err)) return { gastos: null, pendente: true }
+      console.error('[admin] falha ao ler o gasto de marketing:', err)
+      return { gastos: null, pendente: false }
+    }
+  }
+  const de = meioDiaDeBrasilia(periodo.de) - MEIO_DIA_MS
+  const ate = meioDiaDeBrasilia(periodo.ate) + MEIO_DIA_MS
+  const [criadasEm, lidos, casos] = await Promise.all([
+    executarNoBanco((tx) => datasDeCriacao(tx), { somenteLeitura: true }).catch((err: unknown) => {
+      console.error('[admin] falha ao ler as datas de cadastro:', err)
+      return null
+    }),
+    lerGastos(),
+    pode.atendimento
+      ? executarNoBanco((tx) => lerCasosParaKpi(tx, de, ate, LIMITE_CASOS), { somenteLeitura: true }).catch((err: unknown) => {
+          console.error('[admin] falha ao ler os casos para os KPIs:', err)
+          return null
+        })
+      : Promise.resolve(null),
+  ])
+
+  return {
+    kpis: montarKpisDeAquisicao({ ...base, criadasEm, gastos: lidos.gastos ? lidos.gastos.filter((g) => g.canceladoEm === null) : null, casos }),
+    gastos: lidos.gastos,
+    semBanco: false,
+    migracaoPendente: lidos.pendente,
+    atendimentoLiberado: pode.atendimento,
+    hoje,
   }
 }
 

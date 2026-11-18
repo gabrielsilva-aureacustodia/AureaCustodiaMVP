@@ -86,6 +86,10 @@
     "param(filtro.limite)",
     "where"
   ],
+  "src/server/db/repositories/marketing.ts": [
+    "COLUNAS",
+    "S"
+  ],
   "src/server/db/repositories/nfse.ts": [
     "COLUNAS",
     "S"

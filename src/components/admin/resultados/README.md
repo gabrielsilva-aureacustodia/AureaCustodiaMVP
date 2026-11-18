@@ -6,6 +6,8 @@
 | `TabelaDre.tsx` | A DRE linha a linha, com observação | não | `LinhaDre[]` |
 | `Contabil.tsx` | Abas: lançamentos manuais (lançar e estornar), alíquotas (com as nulas em destaque), plano de contas, exportações e envio ao Sheets | sim | `PropsContabil` |
 | `Indicadores.tsx` | KPIs: mercado, fila, acervo e contas, envios e análise, faturas e planos | não | `Kpis` |
+| `Aquisicao.tsx` | KPIs do conselho: CAC por janela, funil visita → cadastro → 1ª transação, gasto por canal, atendimento (frente J, 18/11/2026) | não | `DadosAquisicao` |
+| `GastoDeMarketing.tsx` | A entrada manual do gasto de marketing por canal e intervalo de dias, com a lista e o cancelamento (`contabil.lancar`) | sim | gastos, hoje e permissões |
 | `Uso.tsx` | Resumo do registro de uso e a trilha de auditoria | não | `DadosUso` |
 | `FiltroTrilha.tsx` | Filtro por ator e ação da trilha, com atalhos | sim | período e filtro atuais |
 
