@@ -6,6 +6,7 @@ Node puro, sem TypeScript e sem bundler: rodam fora do Next, direto com `node`.
 |---|---|---|
 | `db-check.mjs` | `npm run db:check` | **Somente leitura.** Diz se a conexão vale, se a migration foi aplicada, se as tabelas existem com RLS e se há tabela em `public`. Sai com código 0 quando está pronto e 1 quando falta algo |
 | `db-migrate.mjs` | `npm run db:migrate` | Aplica `src/server/db/migrations/*.sql`, registrando em `<schema>.schema_migrations`. Idempotente |
+| `medir-armazenamento.mjs` | `node scripts/medir-armazenamento.mjs [--json]` | **Somente leitura.** Lista o balde `analises` (vídeos das análises) e soma os tamanhos: total, média, por mês, por envio; confere com `storage.objects` em `BEGIN READ ONLY`; cruza com `aurea.analises` (vídeos sem análise, análises sem arquivo). Não escreve, não apaga, não assina URL; nenhum segredo sai na tela. Relatório: `docs/RELATORIO_ARMAZENAMENTO_VIDEOS.md` |
 | `env-local.mjs` | — | Módulo compartilhado: acha o `.env.local` e descreve a URL sem revelar a senha |
 
 ## `env-local.mjs` — por que existe
