@@ -9,7 +9,7 @@ O frete que o cliente paga no envio passou a ser **preço do contrato dos Correi
 - Parâmetro **operacional, não taxa** — a ficha proíbe tocar `TAXAS_PADRAO`/`fees.ts`; no grupo `taxas` ele publicaria versão nova da Tabela de Taxas, e frete não é taxa de negociação.
 - Soma **dentro de `lib/shipping`** — a estimativa do passo 1 (`cotarFreteEnvio`), o frete que se paga e a tela nascem do mesmo número, sem mudar nenhuma Server Action.
 - `Envio.frete.valorCents` = **total** (contrato H→K: o estorno devolve o total); `envios.frete` é jsonb, então **sem migration** (a 058 não foi usada). `config_plataforma.chave` é texto livre: também sem migration.
-- **Retirada não ganha acréscimo**: ela paga taxa fixa (R$ 50/R$ 180, editável no painel) e o frete dela vai direto para a fatura do contrato; nenhuma ação cota a saída. Se o Rogério quis R$ 4 a mais na retirada, é mudar a taxa pela tela. (D5 a confirmar com o Gabriel.)
+- **Retirada não ganha acréscimo**: ela paga taxa fixa (R$ 50/R$ 180, editável no painel) e o frete dela vai direto para a fatura do contrato; nenhuma ação cota a saída. Se o Rogério quiser R$ 4 a mais na retirada, é mudar a taxa pela tela. **D5 confirmado pelo Gabriel em 18/11/2026: por objeto postado, só no envio** — por isso uma cotação de saída (nenhuma ação a faz hoje) também sai sem acréscimo.
 - **Fiscal sem inventar:** o acréscimo não gera NFS-e; a DRE o soma, como todo frete, em "frete repassado" (fora do resultado) — pergunta nº 21 em `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`.
 - Exceções ao Do-not-touch da ficha, declaradas: `src/server/actions/custody.ts` (2 linhas: `CotacaoFreteDoEnvio.acrescimoCents?`) porque a tela precisa do valor congelado na cotação; `src/domain/types.ts` (2 campos opcionais em `FreteEnvio`, superfície protegida); `envios/page.tsx` e `ResumoDoPagamentoDoEnvio.tsx` porque "sem margem do Real Olímpico" passou a ser falso.
 
@@ -20,7 +20,7 @@ O frete que o cliente paga no envio passou a ser **preço do contrato dos Correi
 - O texto público da Tabela de Taxas v1 (`src/domain/documentos-legais/tabela-de-taxas-v1.ts`, §1.2) ainda diz que o frete "é escolhido e pago diretamente pelo cliente nos Correios" — já era falso desde 22/10 (frete pago no site) e fica mais distante com o acréscimo. É documento legal versionado: decisão do Gabriel, não mexi.
 
 ## 4. Como continuar (próximos passos exatos)
-1. Gabriel aprova (ou muda) o texto da tela e confirma D5 (por objeto, só no envio).
+1. Gabriel aprova (ou muda) o texto da tela. (D5 já confirmado: por objeto, só no envio.)
 2. Conferência visual **em produção**, depois do deploy do Controle: `/envios`, passo do frete — frete = contrato + R$ 4,00, frase embaixo, total = frete + 1º mês. Mudar o valor em `/admin/configuracao` → Operacional e ver a cotação seguinte mudar.
 3. Contador responde a pergunta 21; só então decidir NFS-e/DRE do acréscimo (ledger/DRE/NFS-e estão fora da K). O contrato e o acréscimo já estão separados em `Envio.frete` para isso.
 

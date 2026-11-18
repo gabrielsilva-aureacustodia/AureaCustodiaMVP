@@ -226,7 +226,8 @@ cold start.
   editável em `/admin/configuracao`, somado dentro de `calcularFreteCorreios`; `Envio.frete.valorCents` é o total cobrado e
   `valorContratoCents`/`acrescimoCents` guardam o preço do contrato à parte; a retirada não cobra frete dos Correios).
   **Falta o contador dizer como esse acréscimo se classifica** (pergunta nº 21 em `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`)
-  e o Gabriel confirmar D5 e o texto da tela — até lá, nada fiscal foi codificado para ele. Pago, o
+  e o Gabriel aprovar o texto da tela (D5 — por objeto postado, só no envio — ele confirmou em 18/11, segundo a frente K) — até
+  lá, nada fiscal foi codificado para ele. Pago, o
   servidor cria a pré-postagem e o cliente imprime a etiqueta oficial e posta de graça. O código de rastreio
   nasce nos Correios — a API de rastreio só enxerga objetos do contrato. A retirada ganha etiqueta de saída
   emitida no `/admin/logistica`. O job diário avança sozinho o envio para "Envio postado" e a retirada para
