@@ -30,6 +30,7 @@ import type { ReactNode } from 'react'
 
 import { initials } from '@/domain/codes'
 import { brl } from '@/domain/money'
+import { resumoDaConta } from '@/domain/statement'
 import type { User } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
@@ -172,7 +173,10 @@ const NOME_DOCUMENTO_NA_FAIXA: Record<string, string> = {
 }
 
 export function Topbar(): ReactNode {
-  const { me, aceitesPendentes } = useApp()
+  const { me, aceitesPendentes, state, session } = useApp()
+  // O saldo do topo é o DISPONÍVEL (`me.balance`) — o mesmo número do extrato. O dinheiro em reserva (oferta de
+  // compra pré-paga, saque a caminho do banco) vem da mesma função do extrato e só aparece quando existe (frente F).
+  const reserva = resumoDaConta(state, session)
   const { dark, toggle } = useTheme()
   const { open, toggle: alternarGaveta } = useSidebar()
   const pathname = usePathname()
@@ -276,6 +280,14 @@ export function Topbar(): ReactNode {
               <div className="ubal">
                 <span className="ubal-lbl">Saldo</span> {brl(me.balance)}
               </div>
+              {reserva.emReserva > 0 && (
+                <div
+                  className="ubal-reserva"
+                  title="O saldo é o valor disponível. A reserva é dinheiro que já saiu dele e ainda está a caminho (oferta de compra pré-paga ou saque). O total é a soma dos dois."
+                >
+                  Em reserva {brl(reserva.emReserva)} · Total {brl(reserva.total)}
+                </div>
+              )}
             </div>
           </div>
 

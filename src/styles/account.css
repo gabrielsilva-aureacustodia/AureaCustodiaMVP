@@ -123,6 +123,9 @@ button.qk-row:last-child,a.qk-row:last-child{border-bottom:none}
 .imp-pos{color:var(--ro-sucesso-texto);font-weight:700}
 .imp-neg{color:var(--ro-perigo-texto);font-weight:700}
 .imp-zero{color:var(--text-muted)}
+/* Coluna "Saldo depois" (frente F): o número que fecha com o topo da página, sempre em destaque neutro. */
+.ro-tabela td.saldo-depois{font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
+.extrato-reserva{margin:0 0 12px}
 .panel .acoes .btn{min-height:44px}
 
 /* Minha custódia (planos, resumo, extrato pago) */

@@ -79,6 +79,8 @@
 }
 .user-chip .uname{font-weight:700;color:var(--text-strong);font-size:15px;line-height:1.2}
 .user-chip .ubal{color:var(--ro-primaria-texto);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+/* Dinheiro em reserva e total, abaixo do saldo — só existe quando há reserva (frente F, extrato = saldo). */
+.user-chip .ubal-reserva{color:var(--text-muted);font-weight:600;font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:1px}
 .theme-box{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-muted);font-weight:600}
 .logout{font-size:12.5px;color:var(--text-muted);cursor:pointer;text-decoration:underline;
   display:inline-flex;align-items:center;min-height:44px;padding:0 6px}

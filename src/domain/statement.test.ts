@@ -1,9 +1,11 @@
 /**
  * Testes do extrato — consistência contábil.
  *
- * O invariante central: saldo inicial + soma dos impactos do extrato = saldo
- * atual da conta. É o que faz o extrato ser um documento conferível em vez de
- * uma lista bonita.
+ * O invariante central: a soma dos impactos do extrato = o saldo atual da conta. É o que faz o extrato ser um
+ * documento conferível em vez de uma lista bonita. Desde 18/11/2026 o saldo inicial NÃO é somado por fora: o que
+ * o estado não explica aparece como a linha "Ajuste de saldo" no começo do extrato. A prova com TODOS os tipos
+ * de movimento (frete, retirada, estornos, saque recusado, ajuste, pré-paga…) está em
+ * `statement-invariante.test.ts`; aqui ficam as regras de linha de cada tipo.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -19,7 +21,6 @@ describe('userStatement', () => {
       eu: usuario('Eu', 100_000, [moeda('RO-000001', BAN)]),
       outro: usuario('Outro', 100_000, []),
     })
-    const saldoInicial = s.users.eu.balance
 
     // Depósito simulado, do jeito que a server action grava.
     s.users.eu.balance += 50_000
@@ -35,9 +36,12 @@ describe('userStatement', () => {
 
     // A fatura de valor zero do fixture `custodiaEmDia` (a custódia em dia do vendedor) não move saldo.
     const reais = linhas.filter((l) => !(l.kind === 'Taxa de custódia' && l.taxa === 0))
-    expect(reais).toHaveLength(2)
-    expect(reais[0].kind).toBe('Depósito') // ordem crescente: extrato se soma de cima para baixo
-    expect(saldoInicial + tot.variacaoSaldo).toBe(s.users.eu.balance)
+    // O saldo de R$ 1.000,00 que a conta já tinha é a primeira linha, e depois vêm o depósito e a venda.
+    expect(reais.map((l) => l.kind)).toEqual(['Ajuste de saldo', 'Depósito', 'Venda']) // ordem crescente: extrato se soma de cima para baixo
+    expect(reais[0].impacto).toBe(100_000)
+    // O coração do item 15: o extrato fecha com o saldo, sem somar nada por fora.
+    expect(tot.variacaoSaldo).toBe(s.users.eu.balance)
+    expect(linhas[linhas.length - 1].saldoApos).toBe(s.users.eu.balance)
   })
 
   it('a comissão aparece nos dois lados (comprador e vendedor), e é a mesma do motor', () => {
@@ -82,11 +86,11 @@ describe('userStatement', () => {
     const tot = statementTotals(linhas)
     expect(tot.taxasPagas).toBe(0)
     expect(tot.compradoValor).toBe(28_500)
-    expect(linhas[0].taxa).toBeNull()
+    expect(linhas.find((l) => l.kind === 'Compra')?.taxa).toBeNull()
   })
 
   it('fatura pendente e envio entram com impacto ZERO — não movem saldo', () => {
-    const s = estado({ eu: usuario('Eu', 100_000, []) })
+    const s = estado({ eu: usuario('Eu', 0, []) })
     // Fatura PENDENTE: registrada, não debitada. Só fatura liquidada com saldo
     // move a conta — ver a nota em statement.ts.
     s.faturasCustodia = [
