@@ -55,6 +55,7 @@ import { DESCRICAO_CONTEUDO_PADRAO, dimensoesParaMoedas, type ModalidadeEnvio } 
 import { permissaoParaAcao } from '@/server/admin/acesso'
 import { registrarAcaoAdmin } from '@/server/admin/auditar'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { avisarRetiradaPostada } from '@/server/emails'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
 import { getState, mutateState } from '@/server/state'
@@ -371,6 +372,9 @@ export async function marcarRetiradaPostadaManual(retiradaId: string, codigo: st
 
     await gravarRetirada(atualizada)
     await auditar(membro, 'postar_manual', atualizada, id, { codigoRastreio: rastreio, de: retirada.status, para: 'postada' })
+    // E-mail "retirada postada" (encaixe E2 da frente C, 17/11/2026, autorizado pelo Gabriel): a postagem à mão
+    // não passa pelo diff de `mutarEstado`; o aviso só sai se a retirada gravada está postada e nunca lança.
+    await avisarRetiradaPostada(atualizada.id)
     return { ok: true, message: `Retirada ${id} marcada como postada (${rastreio}).` }
   })
 }
