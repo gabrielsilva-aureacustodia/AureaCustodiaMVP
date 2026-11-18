@@ -15,6 +15,7 @@
 import type { jsPDF } from 'jspdf'
 import type { Coin } from '@/domain/types'
 import { COIN } from '@/domain/constants'
+import { rotuloDoNumeroDaMoeda } from '@/components/recibo/numero-da-moeda'
 
 /**
  * Desenha o "QR" decorativo ponto a ponto. Usa o mesmo PRNG do QR em SVG da
@@ -40,6 +41,19 @@ export async function baixarReciboPdf(params: {
   coin: Coin
   ownerName: string
 }): Promise<void> {
+  const doc = await montarReciboPdf(params)
+  doc.save(`recibo-${params.coin.recibo.codigo}.pdf`)
+}
+
+/**
+ * Monta o documento do recibo SEM baixar. Foi separado de `baixarReciboPdf` em 17/11/2026 só para o
+ * teste conseguir ler o que vai impresso (o `doc.save` depende do DOM do navegador); a página, as
+ * coordenadas e os textos são exatamente os de antes, com UMA linha a mais — o número da moeda.
+ */
+export async function montarReciboPdf(params: {
+  coin: Coin
+  ownerName: string
+}): Promise<jsPDF> {
   const { coin, ownerName } = params
 
   const mod = await import('jspdf').catch((): never => {
@@ -78,10 +92,20 @@ export async function baixarReciboPdf(params: {
   doc.setTextColor(138, 108, 42)
   doc.text(coin.recibo.codigo, 240, 168, { align: 'center' })
 
+  // NÚMERO DA MOEDA (item 12, 17/11/2026): logo abaixo do código do recibo, na mesma tinta e no
+  // mesmo corpo — a mesma 2ª linha que a folha da tela desenha dentro da .cert-code. É uma linha do
+  // CABEÇALHO, e não um sexto campo: um campo a mais empurraria o selo e o rodapé 30pt. O texto vem
+  // do helper que a tela usa; aqui o espaço inseparável vira espaço comum, porque a linha é
+  // centralizada e curta (não há quebra a evitar) e a métrica da fonte padrão do jsPDF não tem
+  // garantia para o U+00A0.
+  doc.text(rotuloDoNumeroDaMoeda(coin.id).replace(/ /g, ' '), 240, 185, { align: 'center' })
+
   // Os CINCO campos do original, nesta ordem. Não acrescente linha aqui: o `y`
   // é acumulador (30pt por campo) e tudo que vem depois — selo, QR e rodapé —
   // é posicionado a partir dele. Um campo a mais empurra o recibo inteiro
-  // 30pt para baixo e desmonta a página de 660pt.
+  // 30pt para baixo e desmonta a página de 660pt. O primeiro campo começa em
+  // y=206 (era 198) para abrir o respiro depois da linha do número da moeda; o
+  // selo e o rodapé acompanham os 8pt, e sobram mais de 150pt até a moldura.
   // O ano só aparece junto do tipo quando NÃO é a moeda negociável — para ela
   // o ano é sempre 2012 e repetir seria ruído.
   const fields: Array<[string, string]> = [
@@ -98,7 +122,7 @@ export async function baixarReciboPdf(params: {
     ['Proprietário atual', ownerName],
     ['Hash (curto)', coin.recibo.hash],
   ]
-  let y = 198
+  let y = 206
   for (const [k, v] of fields) {
     doc.setFont('times', 'normal')
     doc.setFontSize(10.5)
@@ -161,5 +185,5 @@ export async function baixarReciboPdf(params: {
     doc.text('Recibo temporariamente bloqueado por pendência administrativa ou financeira.', 240, 280, { align: 'center' })
   }
 
-  doc.save(`recibo-${coin.recibo.codigo}.pdf`)
+  return doc
 }

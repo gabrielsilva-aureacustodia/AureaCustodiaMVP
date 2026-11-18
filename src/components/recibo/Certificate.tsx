@@ -157,6 +157,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
           tipoMoeda={coin.tipoMoeda}
           ano={coin.ano}
           codigo={coin.recibo.codigo}
+          numeroDaMoeda={coin.id}
           hash={coin.recibo.hash}
           dataEmissao={coin.recibo.dataEmissao}
           proprietario={ownerName}
