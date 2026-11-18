@@ -13,7 +13,7 @@ src/components/pwa/
 ├── AvisoDeInstalacao.tsx   Cartão que sobe do rodapé. "Instalar" (Chrome) ou "Como instalar"; "Agora não".
 ├── GuiaDeInstalacao.tsx    Painel (folha no celular, janela centrada ≥640px) com abas Android | iPhone.
 ├── BotaoBaixarApp.tsx      "Baixar o app" no herói da página inicial. Some se instalou; volta se desinstalar.
-└── IconesDoGuia.tsx        Ícones SVG dos passos e as duas barras desenhadas (Chrome do Android, Safari do iPhone).
+└── IconesDoGuia.tsx        Ícones SVG dos passos e a barra desenhada do Chrome do Android (a do Safari saiu em 17/11/2026).
 ```
 
 CSS: `src/styles/pwa.css` (importado em `globals.css`, antes de `admin` e `responsive`).
@@ -23,8 +23,13 @@ CSS: `src/styles/pwa.css` (importado em `globals.css`, antes de `admin` e `respo
 - **Uma só implementação do painel**, aberta pelo aviso e pelo botão. Cada aba tem a versão do sistema: a aba padrão
   é a do aparelho (iPhone abre em iPhone). O botão "Já adicionei" aparece **só** em aparelho iOS, na aba iPhone, e nunca
   dentro de outro aplicativo (Instagram etc.), onde não há como ter instalado.
-- **Fora do Safari no iPhone** (Chrome, Firefox, Edge): o painel avisa que o Compartilhar fica na barra de endereço e a
-  barra desenhada do Safari não aparece, porque mostraria uma tela que a pessoa não vê.
+- **Aba iPhone** (texto revisado em 17/11/2026 contra o iOS 27.x; fontes em `docs/pwa/DIAGNOSTICO_PWA.md`): abre com a nota
+  "entre na sua conta antes de adicionar" (o iOS copia o login só na hora de adicionar, desde o 17.2); o passo 3 pede para
+  deixar ligada a chave "Abrir como app web" (iOS 26+; desligada, o ícone vira atalho do Safari). **Não** diz onde fica o
+  Compartilhar nem desenha a barra do Safari: a posição varia com o desenho do navegador.
+- **Fora do Safari no iPhone** (Chrome, Firefox, Edge): o painel diz que o caminho mais seguro é o Safari e que o
+  Compartilhar do outro navegador também pode funcionar. Dentro de outro aplicativo (Instagram etc.) a nota de "entre
+  antes" some: lá o aviso de cima já manda abrir no navegador.
 - **O botão da página inicial nasce visível no HTML do servidor** (antes de hidratar) e some depois, se for o caso. Se
   só nascesse depois, o herói empurraria o conteúdo no meio da leitura (deslocamento de layout). No computador (mouse e
   ≥900px) o CSS o esconde desde o HTML.

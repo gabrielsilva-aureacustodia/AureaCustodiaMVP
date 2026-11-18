@@ -132,7 +132,7 @@ body:has(.atd-folha,.tour-camada,.dicas-camada) .pwa-aviso{display:none}
 .pwa-passo-dica{margin:3px 0 0;font-size:var(--ro-tipo-legenda);line-height:1.45;color:var(--ro-texto-suave)}
 .pwa-passo-dica strong{font-weight:var(--ro-peso-semi);color:var(--ro-texto)}
 
-/* Ilustração da barra do navegador (BarraDoSafari / BarraDoChrome) */
+/* Ilustração da barra do navegador (BarraDoChrome, só na aba Android; a do Safari saiu em 17/11/2026) */
 .pwa-ilu{display:block;width:100%;max-width:300px;height:auto;margin-top:10px;color:var(--ro-texto-suave)}
 .pwa-ilu .barra{fill:var(--ro-superficie-sutil);stroke:var(--ro-borda-campo);stroke-width:1}
 .pwa-ilu .glifo{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

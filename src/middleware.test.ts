@@ -20,7 +20,7 @@ import { join } from 'node:path'
 import { NextRequest } from 'next/server'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { middleware } from '@/middleware'
+import { config, middleware } from '@/middleware'
 import { ROTAS_PUBLICAS_EXATAS, ehRotaPublica } from '@/server/rotas-publicas'
 import { valorDoCookie } from '@/server/session-core'
 
@@ -192,5 +192,76 @@ describe('inventário: toda rota do projeto tem situação declarada', () => {
     const existentes = new Set(todas.map(url))
     const fantasmas = ROTAS_PUBLICAS_EXATAS.filter((r) => !existentes.has(r))
     expect(fantasmas, 'rota pública declarada que não existe mais no disco').toEqual([])
+  })
+})
+
+/**
+ * O `matcher` decide ANTES do middleware quais caminhos nem chegam a ser conferidos. Os arquivos do PWA ficam de fora
+ * de propósito (o navegador os busca sem cookie), mas uma exclusão larga demais deixaria uma rota logada sem a rede de
+ * segurança — e nenhum teste de `middleware()` veria isso, porque ele só roda para o que o matcher deixa entrar.
+ * Frente E, 17/11/2026: este bloco existe para qualquer mudança futura do matcher provar que nenhuma rota logada saiu dele.
+ */
+describe('matcher: quem fica fora da rede de segurança', () => {
+  // O matcher do Next é um padrão de caminho cujo único grupo é uma expressão regular; para o teste, a mesma
+  // expressão, ancorada, responde "este caminho passa pelo middleware?".
+  const padrao = config.matcher[0] ?? ''
+  const passaPeloMiddleware = (caminho: string): boolean => new RegExp(`^${padrao}$`).test(caminho)
+
+  it('os arquivos que o navegador busca sem cookie ficam de fora (senão o app não instala)', () => {
+    const livres = [
+      '/manifest.webmanifest',
+      '/sw.js',
+      '/offline.html',
+      '/pwa/icon-192.png',
+      '/pwa/icon-512.png',
+      '/pwa/icon-maskable-512.png',
+      '/apple-icon.png',
+      '/icon.png',
+      '/brand/logo-real-olimpico-emblema.webp',
+    ]
+    for (const caminho of livres) expect(passaPeloMiddleware(caminho), caminho).toBe(false)
+  })
+
+  it('a página e a API do app logado continuam passando pelo middleware', () => {
+    const logadas = [
+      '/inicio',
+      '/mercado',
+      '/vender',
+      '/conta/extrato',
+      '/recibos/RO-000001',
+      '/admin',
+      '/admin/usuarios',
+      '/api/state',
+      '/entrar/nova-senha',
+      // Nomes que lembram os arquivos liberados, mas não são eles: uma exclusão por prefixo solto os engoliria.
+      '/pwa',
+      '/offline',
+      '/manifest',
+      '/icones',
+    ]
+    for (const caminho of logadas) expect(passaPeloMiddleware(caminho), caminho).toBe(true)
+  })
+
+  it('toda página do disco dentro de (app) e (admin) passa pelo middleware', () => {
+    function paginas(dir: string, achadas: string[] = []): string[] {
+      for (const nome of readdirSync(dir)) {
+        const caminho = join(dir, nome)
+        if (statSync(caminho).isDirectory()) paginas(caminho, achadas)
+        else if (nome === 'page.tsx') achadas.push(caminho.replace(/\\/g, '/'))
+      }
+      return achadas
+    }
+    // `(app)/conta/extrato/page.tsx` -> `/conta/extrato`; `[param]` vira um valor qualquer.
+    const urlDe = (arquivo: string): string =>
+      arquivo
+        .replace(/^src\/app/, '')
+        .replace(/\/page\.tsx$/, '')
+        .replace(/\/\([^)]+\)/g, '')
+        .replace(/\[[^\]]+\]/g, 'x') || '/'
+
+    const logadas = [...paginas('src/app/(app)'), ...paginas('src/app/(admin)')].map(urlDe)
+    expect(logadas.length).toBeGreaterThan(20)
+    const foraDaRede = logadas.filter((caminho) => !passaPeloMiddleware(caminho))
+    expect(foraDaRede, 'página logada que o matcher deixa passar sem conferir a sessão').toEqual([])
   })
 })

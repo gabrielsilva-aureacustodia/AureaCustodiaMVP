@@ -28,7 +28,6 @@ import type { AbaDoGuia, Ambiente, Navegador } from '@/lib/pwa/instalacao'
 
 import {
   BarraDoChrome,
-  BarraDoSafari,
   IconeAppNaTela,
   IconeBaixar,
   IconeCompartilhar,
@@ -76,7 +75,7 @@ function Passo({
   )
 }
 
-function PassosAndroid({
+export function PassosAndroid({
   ambiente,
   podeInstalarDireto,
   instalando,
@@ -147,16 +146,39 @@ function PassosAndroid({
   )
 }
 
-function PassosIphone({ ambiente }: { ambiente: Ambiente }): ReactNode {
+/**
+ * Aba do iPhone. Texto revisado em 17/11/2026 contra o iOS 27.x (docs/pwa/DIAGNOSTICO_PWA.md, ponto 8; pesquisa com fonte
+ * e data em docs/diario/execucoes/pesquisa/e-ios-requisitos.md) e aprovado pelo chat de branch. O que mudou, e por quê:
+ *  - NOTA "entre antes de adicionar": o iOS copia o login do Safari para o app uma única vez, na hora de "Adicionar"
+ *    (iOS 17.2). Quem adiciona sem estar logado abre o app na tela de entrada. Redigida sem prometer ("costuma"): é o que a
+ *    documentação diz, e só um iPhone real confirma (docs/pwa/ROTEIRO_IPHONE_REAL.md).
+ *  - PASSO 3, chave "Abrir como app web" (iOS 26+): desligada, o ícone abre só um atalho dentro do Safari, e a pessoa conclui
+ *    que "não é app". O rótulo exato só o aparelho confirma, então o EFEITO vem descrito e a frase cobre o caso de a chave
+ *    nem aparecer.
+ *  - Sem a ilustração da barra do Safari e sem dizer ONDE fica o Compartilhar: a posição varia com o desenho do Safari, e
+ *    uma figura errada confunde mais do que ajuda. O ícone de cada passo continua.
+ *  - Fora do Safari (Chrome, Edge, Firefox): o caminho mais seguro no iPhone é o Safari; os outros podem oferecer a opção
+ *    (iOS 16.4+), conforme a versão do aplicativo.
+ * Mantém o mesmo número de passos da aba Android (README de src/components/pwa/).
+ */
+export function PassosIphone({ ambiente }: { ambiente: Ambiente }): ReactNode {
   const foraDoSafari = ambiente.plataforma === 'ios' && ambiente.navegador !== 'safari' && !ambiente.embutido
   return (
     <>
       {foraDoSafari ? (
         <p className="pwa-nota">
-          Você está no {NOME_DO_NAVEGADOR[ambiente.navegador]}. Dá certo pelo botão <strong>Compartilhar</strong> dele, na
-          barra de endereço. Se “Adicionar à Tela de Início” não aparecer, abra este endereço no <strong>Safari</strong>.
+          Você está no {NOME_DO_NAVEGADOR[ambiente.navegador]}. O caminho mais seguro no iPhone é o <strong>Safari</strong>.
+          Pelo {NOME_DO_NAVEGADOR[ambiente.navegador]} também pode dar certo, no botão <strong>Compartilhar</strong>; se
+          “Adicionar à Tela de Início” não aparecer, abra este endereço no <strong>Safari</strong>.
         </p>
       ) : null}
+      {/* Dentro de outro aplicativo (Instagram etc.) o aviso de cima já manda abrir no navegador: esta nota ficaria cedo demais. */}
+      {ambiente.embutido ? null : (
+        <p className="pwa-nota">
+          <strong>Antes de adicionar, entre na sua conta.</strong> Assim o app costuma abrir já com o seu acesso. Se ele pedir o
+          seu login na primeira vez, é só entrar de novo.
+        </p>
+      )}
       <ol className="pwa-passos" role="list">
         <Passo
           icone={<IconeCompartilhar />}
@@ -167,12 +189,9 @@ function PassosIphone({ ambiente }: { ambiente: Ambiente }): ReactNode {
           }
           dica={
             <>
-              O quadrado com a seta para cima, {foraDoSafari ? 'na barra de endereço' : 'na barra do Safari'}. Não achou? Toque
-              em <strong>⋯</strong> (Mais).
+              O ícone é um quadrado com uma seta para cima. Não achou? Toque em <strong>⋯</strong> (Mais).
             </>
           }
-          // A barra desenhada é a do Safari: em outro navegador do iPhone ela mostraria uma tela que a pessoa não vê.
-          ilustracao={foraDoSafari ? undefined : <BarraDoSafari />}
         />
         <Passo
           icone={<IconeMaisQuadrado />}
@@ -187,10 +206,10 @@ function PassosIphone({ ambiente }: { ambiente: Ambiente }): ReactNode {
           icone={<IconeConfirmar />}
           titulo={
             <>
-              Toque em <strong>Adicionar</strong>
+              Deixe ligada a chave <strong>Abrir como app web</strong> e toque em <strong>Adicionar</strong>
             </>
           }
-          dica="No canto superior direito da tela."
+          dica="Ligada, o ícone abre o Real Olímpico em tela cheia. Desligada, ele abre só um atalho dentro do Safari. Se a chave não aparecer no seu iPhone, é só tocar em Adicionar."
         />
         <Passo
           icone={<IconeAppNaTela />}

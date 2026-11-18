@@ -6,9 +6,10 @@
  * sozinho não ajuda quem nunca percebeu esse botão. São desenhos genéricos de interface (não os logotipos da Apple ou
  * do Google) e herdam a cor do texto, então valem nos dois temas.
  *
- * As duas ilustrações (`BarraDoSafari`, `BarraDoChrome`) mostram ONDE o botão fica na barra do navegador, com um anel
- * dourado em volta dele. Sem texto dentro do SVG: o texto da tela já explica, e o SVG não precisa ser traduzido nem
- * lido por leitor de tela (`aria-hidden`).
+ * A ilustração `BarraDoChrome` mostra ONDE o botão fica na barra do Chrome do Android, com um anel dourado em volta dele.
+ * Sem texto dentro do SVG: o texto da tela já explica, e o SVG não precisa ser traduzido nem lido por leitor de tela
+ * (`aria-hidden`). A barra do Safari do iPhone NÃO é mais desenhada (17/11/2026): a posição do Compartilhar varia com o
+ * desenho do Safari, e uma figura que não bate com a tela da pessoa confunde mais do que ajuda.
  *
  * Sem 'use client': só marcação.
  */
@@ -127,38 +128,6 @@ export function IconeCopiar(props: Props): ReactNode {
       <rect x="9" y="9" width="11" height="11" rx="2.5" />
       <path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9" />
     </Traco>
-  )
-}
-
-/**
- * Barra de baixo do Safari (iPhone), com o botão Compartilhar destacado. Na ordem em que o Safari as mostra:
- * voltar, avançar, COMPARTILHAR, favoritos e abas.
- */
-export function BarraDoSafari(): ReactNode {
-  return (
-    <svg className="pwa-ilu" viewBox="0 0 300 60" aria-hidden="true" focusable="false">
-      <rect className="barra" x="1" y="8" width="298" height="44" rx="22" />
-      <g className="glifo" transform="translate(24 18)">
-        <path d="M14 5 7 12l7 7" />
-      </g>
-      <g className="glifo" transform="translate(78 18)">
-        <path d="m10 5 7 7-7 7" />
-      </g>
-      <circle className="alvo" cx="150" cy="30" r="21" />
-      <g className="glifo glifo-alvo" transform="translate(138 18)">
-        <path d="M12 15V3.5" />
-        <path d="M8 7.5 12 3.5l4 4" />
-        <path d="M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5" />
-      </g>
-      <g className="glifo" transform="translate(198 18)">
-        <path d="M12 6.5c-1.5-1.3-3.5-2-6-2v13c2.5 0 4.5.7 6 2 1.5-1.3 3.5-2 6-2v-13c-2.5 0-4.5.7-6 2z" />
-        <path d="M12 6.5v13" />
-      </g>
-      <g className="glifo" transform="translate(252 18)">
-        <rect x="8" y="8" width="12" height="12" rx="2.2" />
-        <path d="M4.5 15.5V6.7A2.2 2.2 0 0 1 6.7 4.5h8.8" />
-      </g>
-    </svg>
   )
 }
 

@@ -28,6 +28,7 @@ import { classesDasFontes } from '@/brand/fontes'
 import { MetaPixel } from '@/components/meta/MetaPixel'
 import { lerPixelId } from '@/lib/meta/eventos'
 import { RaizDoPwa } from '@/components/pwa/RaizDoPwa'
+import { METADADOS_DO_PWA } from '@/lib/pwa/metadados'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { ModalProvider } from '@/components/ui/Modal'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -36,14 +37,9 @@ export const metadata: Metadata = {
   title: 'Real Olímpico — Custódia de moedas comemorativas',
   description: 'Plataforma de custódia e marketplace de moedas comemorativas brasileiras.',
   // PWA (04/11/2026). O manifesto vem de src/app/manifest.ts e o ícone do iPhone de src/app/apple-icon.png — o Next
-  // liga os dois ao <head> sozinho. O iPhone NÃO lê o manifesto para o nome nem para o modo de exibição (versões
-  // antigas), então os dois ficam repetidos aqui:
-  //  - `title`: o rótulo embaixo do ícone na tela inicial;
-  //  - `statusBarStyle: 'black'`: a barra de status do iPhone fica preta e o conteúdo começa ABAIXO dela. A alternativa
-  //    `black-translucent` põe o app por baixo da barra e exigiria tratar `safe-area` na topbar da área do cliente.
-  applicationName: 'Real Olímpico',
-  appleWebApp: { capable: true, title: 'Real Olímpico', statusBarStyle: 'black' },
-  formatDetection: { telephone: false },
+  // liga os dois ao <head> sozinho. As metatags do iPhone (nome, barra de status, modo app) ficam em
+  // src/lib/pwa/metadados.ts, onde um teste confere o que sai no <head>; o motivo de cada uma está lá.
+  ...METADADOS_DO_PWA,
 }
 
 export const viewport: Viewport = {
