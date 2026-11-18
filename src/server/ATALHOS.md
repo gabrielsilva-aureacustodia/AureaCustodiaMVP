@@ -54,3 +54,12 @@ subir um container, semear e exercitar as ações ponta a ponta.
 O provisionamento fictício passou para `auth/provisioning.ts` e só roda depois de a
 identidade ser confirmada pelo Supabase. A contingência das sete contas do seed está no
 RA-17 e em `src/server/auth/ATALHOS.md`.
+
+---
+
+## RA-62 🟡 — nota fiscal do cliente: PDF auxiliar (18/11/2026)
+
+`nfse/consulta.ts` e `actions/notas.ts` só leem, e só do dono (filtro dentro do `WHERE`, e-mail da sessão). O PDF
+(`src/lib/pdf/nota-pdf.ts`) é um Documento Auxiliar montado no navegador, **sem QR Code e fora do layout oficial do DANFSe**
+(NT 008); o XML é o documento oficial. Como se paga: layout oficial como tarefa fiscal com o contador. Detalhe no
+`RISCOS_ASSUMIDOS.md`, RA-62.

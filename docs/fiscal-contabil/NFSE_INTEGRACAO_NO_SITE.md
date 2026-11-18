@@ -22,7 +22,11 @@ feita com chave e cadeia em PEM); a Sefin exige a declaração `<?xml … encodi
 `gIBSCBS`, mas `indDest` ainda no grupo IBSCBS). Recusa de esquema (E1235) não gera nota nem gasta número,
 então o envio tenta o formato seguinte.
 
-**Não feito ainda:** PDF (DANFSe) gerado pela plataforma; cancelamento manual de uma nota pelo painel (o
+**Atualização de 18/11/2026 (frente G):** o cliente já vê e baixa as próprias notas em `/conta/notas` (XML oficial e um
+**Documento Auxiliar em PDF**, sem QR Code e fora do layout oficial do DANFSe — RA-62); a consulta é só leitura e filtra
+pelo dono dentro do `WHERE` (`src/server/nfse/consulta.ts`).
+
+**Não feito ainda:** PDF no layout oficial (DANFSe v2.0, NT 008; decisão fiscal com o contador); cancelamento manual de uma nota pelo painel (o
 automático, do saque recusado, existe); consolidado sob demanda (seção 5b); emissão retroativa das operações
 anteriores a 23/10/2026 (decisão do Gabriel). O frete não terá nota: é despesa do cliente (contador, 23/10/2026).
 

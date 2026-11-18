@@ -78,6 +78,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
 | **RA-60** | App instalável (PWA): não provado em aparelho real; iPhone sem sinal de instalação ("Já adicionei" vale 30 dias); `middleware` libera 6 caminhos estáticos sem sessão; `htmlLimitedBots` global; sem screenshots no manifesto nem tela de abertura do iPhone; ícones compostos a partir do emblema oficial (visual aprovado em 05/11/2026) | 🟡 | `src/lib/pwa/`, `src/components/pwa/`, `src/middleware.ts`, `next.config.mjs`, `src/app/manifest.ts`, `src/app/sw.js/` |
 | **RA-61** | Pixel da Meta no ar sem faixa de consentimento de cookies e sem parágrafo na Política de Privacidade; CompleteRegistration do e-mail conta no envio do formulário (antes de confirmar o e-mail); sem `value` no evento | 🟡 | `src/lib/meta/`, `src/server/meta/`, `src/components/meta/`, `src/app/layout.tsx`, `src/app/entrar/callback/route.ts`, `src/server/actions/auth.ts` |
+| **RA-62** | PDF da nota fiscal do cliente é um "Documento Auxiliar da NFS-e" montado no navegador a partir do XML guardado: sem QR Code e fora do layout oficial do DANFSe v2.0 (NT 008); o XML é o documento oficial. Nota nº 1 a 3 (contador, 22/10) não estão na fila e não aparecem na página | 🟡 | `src/lib/pdf/nota-pdf.ts`, `src/app/(app)/conta/notas/`, `src/server/nfse/consulta.ts` |
 
 ---
 
@@ -1400,3 +1401,29 @@ CompleteRegistration (cadastro por e-mail e por Google), este com o mesmo ID nos
 **O que isso custa:** exposição regulatória (LGPD) enquanto não houver faixa e texto; contagem de cadastro por e-mail um
 pouco acima dos contas realmente ativadas.
 
+
+# RA-62 — Nota fiscal do cliente: PDF auxiliar, sem QR Code e fora do layout oficial 🟡
+
+```
+Criado:  18/11/2026
+Pasta:   src/lib/pdf/nota-pdf.ts · src/app/(app)/conta/notas/ · src/server/nfse/consulta.ts · src/server/actions/notas.ts
+Execução: docs/diario/execucoes/2026-11-17--manut-g-notas-do-cliente--MD_EXECUCAO.md
+```
+
+**O que foi feito:** o cliente abre `/conta/notas`, vê só as próprias notas (o filtro de dono está dentro do `WHERE`, e o
+e-mail vem só da sessão) e baixa o XML e um PDF de cada uma. Em `/conta/faturas`, a fatura que já virou nota ganha "Ver nota".
+
+1. **O PDF não é o DANFSe oficial.** É um "Documento Auxiliar da NFS-e" montado no navegador (jsPDF) a partir do XML guardado,
+   **sem QR Code** e fora do layout da NT 008 (DANFSe v2.0). A API oficial do DANFSe foi suspensa em 03/08/2026, e quem
+   emite desenha o PDF. O XML é o documento fiscal oficial, e o PDF diz isso no rodapé. Layout oficial é decisão fiscal:
+   tarefa à parte, com o contador.
+2. **As notas nº 1 a 3 (22/10, feitas à mão pelo contador no Emissor Web) não estão em `nfse_emissoes`** e não aparecem
+   na página. As do sistema começam na nº 4 (23/10).
+3. **Treze pedidos de nota estão presos por cadastro incompleto** (cliente sem CPF ou nome; 5 tentativas, a rodada diária
+   não os pega). A página mostra "Falta completar o cadastro"; depois que o cliente completar, alguém precisa dar
+   "Reprocessar" em `/admin/resultados/fiscal`.
+4. **Treze faturas pagas até 22/10 (R$ 326,00) não têm pedido de nota nenhum**; a página não promete nota para elas.
+   Emissão retroativa é decisão do Gabriel e do contador.
+
+**O que isso custa:** o cliente que precisar de um PDF no layout oficial (por exemplo, para a contabilidade dele) não o
+tem pelo site, só o XML; risco de reclamação, não fiscal, porque o XML autorizado é o documento válido.

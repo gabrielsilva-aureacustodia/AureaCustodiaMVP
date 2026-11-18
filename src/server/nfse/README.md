@@ -11,6 +11,7 @@ Só servidor: carrega o certificado e-CNPJ A1 da empresa. Nada daqui pode ser im
 | `emissao.ts` | `processarNotasPendentes`: reivindica a fila, barra cadastro incompleto, reserva número, monta, assina, envia, grava. Recupera envio interrompido sem emitir duas vezes; troca de formato em recusa de esquema (E1235) e de número em E0014 |
 | (cancelamento) | `processarNotasPendentes` também registra na Sefin o cancelamento das notas `cancelando` (`enviarEvento`, evento 101101) |
 | `agendar.ts` | Dispara o envio logo depois da operação, com `after()` |
+| `consulta.ts` | **Só leitura**, para o cliente ver as próprias notas (`/conta/notas`): o filtro de dono (`lower(tomador_email)`) está dentro do `WHERE` de toda consulta; nota de outra conta responde igual a id inexistente. O PDF auxiliar sai de `src/lib/pdf/nota-pdf.ts` (RA-62) |
 
 ## Fluxo
 
