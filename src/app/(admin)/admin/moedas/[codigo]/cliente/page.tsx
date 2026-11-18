@@ -76,6 +76,7 @@ export default async function MoedaComoOClienteVePage({ params }: { params: Prom
           tipoMoeda={linha.tipoMoeda}
           ano={linha.ano}
           codigo={linha.recibo.codigo}
+          numeroDaMoeda={linha.codigo}
           hash={linha.recibo.hash}
           dataEmissao={linha.recibo.dataEmissao}
           proprietario={linha.nomeDono}
