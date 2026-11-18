@@ -120,6 +120,7 @@ Fonte do detalhe: `docs/diario/execucoes/ESTADO-GERAL-2026-11-09--MD_EXECUCAO.md
 | 31/10 | Atendimento ao cliente (botão, `/atendimento`, `/admin/casos`) | migration 048 aplicada em produção (commit d009f6a) | `docs/atendimento/EXECUCAO.md` |
 | 03/11 | Custódia numa regra só | `custodia-da-moeda.ts`, `quitar-fatura.ts`; plano por mês e cobrança do dia 1º saíram | `docs/ALTERACOES_2026-11-03_CUSTODIA_REGRA_UNICA.md` |
 | 04–05/11 | PWA instalável com atualização automática | `2b48b04`; falta teste em aparelho real | `docs/pwa/MD_EXECUCAO.md` |
+| 17/11 | Manutenção pedida pelo Rogério (16 itens, 12 frentes A–L); prazo 30/11 | Mescladas: I (número da moeda no recibo), D (cadastro com Google primeiro), C (e-mails de movimentação, migration 053 `emails_pendentes`), B (frete + 1º mês no envio), E (PWA no iPhone: diagnóstico e roteiro); pacote em `docs/manutencao-2026-11/` | `docs/manutencao-2026-11/README.md`, `docs/memorias/2026-11-17--*`, `docs/pwa/DIAGNOSTICO_PWA.md`, `docs/diario/execucoes/PESQUISA_CUSTO_EMAIL.md`, `src/server/emails/` |
 
 ## 7. Testes e comandos
 
