@@ -74,3 +74,7 @@
 
 ## 2026-11-17 22:52 — B/auditoria: sem mudança
 - Código e MD (22:46) iguais; 0 commits (9e21fe1). Aguardando merge.
+
+## 2026-11-17 22:55 — COMMIT NOVO 8f5cf4f
+- 8f5cf4f "Envio: frete e 1º mês de custódia numa só cobrança, recusa devolve o mês da moeda" (conta gabrielsilva-aureacustodia, 22:54) sobre 9e21fe1, nesta branch. 21 arquivos, +1979/-188: todo o código da B + MDs de trabalho + 5 relatórios + memória R11 + pesquisa. Working tree limpo.
+- Avaliação: B1 proíbe commit DURANTE a branch; este veio depois de "FRENTE B PRONTA" e da papelada, provavelmente pelo Controle/Gabriel (autor = conta do Gabriel; a Auditoria não sabe quem executou). Conteúdo conferido: sem .env.local/segredo, sem migration, sem custodia-da-moeda.ts/types.ts/fees/constants. Observação: o commit leva MD de execução/LOG/CONTINUIDADE (B2 diz commit só após execução completa — cumprido) mas esses MDs ficaram congelados nesta versão; edições posteriores da Auditoria vão como alteração nova. Correção pedida: nenhuma; informar o chat de branch.
