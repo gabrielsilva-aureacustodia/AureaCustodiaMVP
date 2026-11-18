@@ -28,6 +28,7 @@ import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } fro
 import { brl } from '@/domain/money'
 import type { ActionResult, Cents } from '@/domain/types'
 import { criarPixDeposito, criarPreferenciaDeposito, isMercadoPagoSandbox } from '@/lib/payments'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
@@ -182,6 +183,10 @@ export async function iniciarCompraDireta(
   if (metodo !== 'pix' && metodo !== 'checkout_pro') {
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
   }
+
+  // Compra direta por Pix ou cartão é compra: mesma janela de 5 min do `buyLot` (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   const state = await getState()
   const user = state.users[email]

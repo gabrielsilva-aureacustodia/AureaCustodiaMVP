@@ -38,6 +38,7 @@ import {
   type CobrancaCartao,
   type CobrancaPix,
 } from '@/lib/payments'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { repositorioIntencoes } from '@/server/payments/repositorios'
 import { getSessionEmail } from '@/server/session'
@@ -78,6 +79,10 @@ export async function listarMinhasReservas(): Promise<ActionResult<ReservaNaTela
 export async function pagarReservaComSaldo(reservaId: string): Promise<ActionResult> {
   const session = await getSessionEmail()
   if (!session) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // Pagar a reserva com o saldo fecha uma compra: senha por janela de 5 min (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   const { taxas } = await carregarRegrasDoMercado()
 
@@ -184,6 +189,10 @@ export async function iniciarPagamentoReserva(
   if (forma !== 'pix' && forma !== 'cartao') {
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
   }
+
+  // Abre a cobrança de uma compra (Pix ou cartão): mesma janela (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   const agora = Date.now()
   const state = await getState()
@@ -293,6 +302,10 @@ export async function iniciarOfertaPrePaga(
   if (forma !== 'pix' && forma !== 'cartao') {
     return { ok: false, error: 'Forma de pagamento desconhecida.' }
   }
+
+  // Oferta pré-paga é compra comprometida: mesma janela de 5 min (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   // TODA NEGOCIAÇÃO EXIGE CADASTRO COMPLETO (28/09/2026, decisão do Gabriel).
   // Esta é a porta de entrada da oferta pré-paga: abrir a cobrança antes de
@@ -422,6 +435,10 @@ export async function publicarOfertaPrePagaComSaldo(
   if (!isNegociavel(tipoMoeda, catalogo)) {
     return { ok: false, error: 'Este tipo de moeda não é negociável no mercado.' }
   }
+
+  // Publicar a oferta pré-paga com saldo prende dinheiro da conta: mesma janela de 5 min (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   const total = custoDeCompraPorMoeda(preco, taxas) * qty
 

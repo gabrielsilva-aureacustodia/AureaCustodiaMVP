@@ -51,6 +51,7 @@ import {
 import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { contaBloqueavel, vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 
@@ -114,6 +115,10 @@ export async function publishOffer(
   if (!coinIds.length || priceCents <= 0) {
     return { ok: false, data: { limparSelecao: false } }
   }
+
+  // Anunciar moeda é vender patrimônio: senha por janela de 5 min (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
 
   // A observação é texto livre que aparece na vitrine das OUTRAS contas. O
   // maxlength do textarea é enfeite do lado de fora; o corte real é aqui.
@@ -443,6 +448,11 @@ export async function editLot(
 export async function sellToBid(bidId: string, qtyWanted: number): Promise<ActionResult> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // Vender direto para uma oferta de compra move moeda e dinheiro na hora: mesma janela da venda (D3).
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
+
   const { taxas, catalogo } = await carregarRegrasDoMercado()
   const bloqueavel = await contaBloqueavel(email)
 

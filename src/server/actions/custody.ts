@@ -36,6 +36,7 @@ import { ETAPAS_ENVIO } from '@/domain/types'
 import type { ActionResult, Coin, Envio, EtapaEnvio, FaturaCustodia, FreteEnvio, StatusRecibo, User } from '@/domain/types'
 import { alimentarPlanoNaAnalise } from '@/domain/plano-custodia'
 import { cobrarEntradaNoAcervo } from '@/domain/cobranca-de-entrada'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { pagarFaturaCustodiaComSaldo } from '@/server/custodia/faturamento'
 import {
@@ -882,6 +883,10 @@ export async function solicitarRetirada(
   if (modalidade !== 'comum' && modalidade !== 'segura') {
     return { ok: false, error: 'Modalidade de retirada inválida. Escolha comum ou segura.' }
   }
+
+  // Retirada física leva a moeda para fora da custódia (D8): sempre pede a senha, como o saque.
+  const bloqueio = await exigirReautenticacao('sempre')
+  if (bloqueio) return bloqueio
 
   // A taxa da retirada é a da Tabela de Taxas vigente (C3) e fica congelada na solicitação.
   const { taxas } = await carregarRegrasDoMercado()

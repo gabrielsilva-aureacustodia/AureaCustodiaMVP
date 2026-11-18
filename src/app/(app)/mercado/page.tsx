@@ -29,6 +29,7 @@ import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPend
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { COIN, LOGO_REAL_EMBLEMA, tiposNegociaveis } from '@/domain/constants'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
@@ -629,6 +630,9 @@ function ConfirmarCompraModal({
 }): ReactNode {
   const { me, run, taxas } = useApp()
   const { close, open } = useModal()
+  // Comprar pede a senha por uma janela de 5 minutos (frente A). O diálogo abre POR CIMA desta modal; por isso ela
+  // só fecha depois da confirmação — fechar antes a desmontaria e o diálogo, que mora aqui, sumiria junto.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [enviando, setEnviando] = useState(false)
   const [pix, setPix] = useState<CompraDiretaIniciada | null>(null)
@@ -642,9 +646,18 @@ function ConfirmarCompraModal({
   const temSaldo = me.balance >= total
 
   async function confirmarComSaldo(): Promise<void> {
-    close()
-    const res = await run(() => buyLot(lot.lotId, qty))
-    if (res.ok) aoConcluir()
+    // `enviando` segura o duplo clique no lugar do `close()` que vinha antes (a modal fecha quando a compra termina).
+    setEnviando(true)
+    const res = await run(() => confirmar(() => buyLot(lot.lotId, qty)))
+    if (res.ok) {
+      close()
+      aoConcluir()
+      return
+    }
+    // Recusa com texto: o toast do run() explica e a modal fecha, como sempre foi. Sem texto = a pessoa desistiu
+    // da confirmação: a modal continua aberta para ela tentar de novo ou escolher outra forma de pagar.
+    if (res.error) close()
+    else setEnviando(false)
   }
 
   async function cobrarDireto(metodo: MetodoDeposito): Promise<void> {
@@ -663,9 +676,10 @@ function ConfirmarCompraModal({
     setEnviando(true)
     setErroMp('')
     try {
-      const res = await iniciarCompraDireta(lot.lotId, qty, metodo)
+      const res = await confirmar(() => iniciarCompraDireta(lot.lotId, qty, metodo))
       if (!res.ok || !res.data) {
-        setErroMp(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
+        // Falha sem texto de erro = a pessoa desistiu da confirmação: não há o que avisar.
+        if (res.error || res.ok) setErroMp(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
         return
       }
       if (res.data.simulado) {
@@ -810,6 +824,7 @@ function ConfirmarCompraModal({
           Fechar<span className="sr-only"> a confirmação de compra</span>
         </button>
       </div>
+      {dialogo}
     </>
   )
 }

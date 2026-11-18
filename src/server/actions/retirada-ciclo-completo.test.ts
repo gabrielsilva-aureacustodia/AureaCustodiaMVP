@@ -7,6 +7,8 @@ const { getSessionEmailMock, mutateStateMock, getStateMock } = vi.hoisted(() => 
 }))
 
 vi.mock('server-only', () => ({}))
+// A confirmação por senha tem testes próprios (reautenticacao*.test.ts); aqui a ação roda já confirmada.
+vi.mock('@/server/auth/reautenticacao', () => ({ exigirReautenticacao: async () => null }))
 vi.mock('@/server/session', () => ({ getSessionEmail: getSessionEmailMock }))
 vi.mock('@/server/state', () => ({ mutateState: mutateStateMock, getState: getStateMock }))
 

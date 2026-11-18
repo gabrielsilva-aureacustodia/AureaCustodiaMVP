@@ -43,6 +43,7 @@ import { normalizarEmail } from '@/domain/email'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { changePassword, solicitarSaque, toggleNotif, updatePersonal, verificarTrocaEmail } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
 import { ModalCadastro } from './ModalCadastro'
@@ -71,6 +72,8 @@ const NOTIF_LABEL: Record<NotifKey, string> = {
 export function ModalDadosPessoais(): ReactNode {
   const { me, session, run } = useApp()
   const { close, open } = useModal()
+  // Trocar nome ou e-mail pede a senha (frente A): o diálogo abre por cima desta modal, sem apagar o que foi digitado.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [nome, setNome] = useState(me.name)
   const [email, setEmail] = useState(session)
@@ -85,7 +88,7 @@ export function ModalDadosPessoais(): ReactNode {
     const emailMudou = novoEmailLimpo !== normalizarEmail(session)
 
     if (!emailMudou) {
-      const res = await run(() => updatePersonal(nome))
+      const res = await run(() => confirmar(() => updatePersonal(nome)))
       if (res.ok) {
         close()
       } else {
@@ -116,7 +119,7 @@ export function ModalDadosPessoais(): ReactNode {
     }
 
     // Usuário já tinha senha (login por e-mail e senha)
-    const res = await run(() => updatePersonal(nome, novoEmailLimpo))
+    const res = await run(() => confirmar(() => updatePersonal(nome, novoEmailLimpo)))
     if (res.ok) {
       close()
       window.location.reload()
@@ -196,6 +199,7 @@ export function ModalDadosPessoais(): ReactNode {
           {salvando ? 'Salvando...' : 'Salvar'}
         </button>
       </div>
+      {dialogo}
     </>
   )
 }
@@ -215,6 +219,9 @@ export function ModalDefinirSenhaTrocaEmail({
 }): ReactNode {
   const { run } = useApp()
   const { close } = useModal()
+  // Conta Google que troca de e-mail e define senha é o caminho de tomada de conta: confirma por código no e-mail.
+  // Renomeado (`confirmarIdentidade`): este modal já tem a sua própria função `confirmar` (o botão "Confirmar").
+  const { confirmar: confirmarIdentidade, dialogo } = useConfirmarSenha()
 
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
@@ -233,7 +240,7 @@ export function ModalDefinirSenhaTrocaEmail({
 
     setSalvando(true)
     setErro('')
-    const res = await run(() => updatePersonal(nome, novoEmail, novaSenha))
+    const res = await run(() => confirmarIdentidade(() => updatePersonal(nome, novoEmail, novaSenha)))
     if (res.ok) {
       close()
       window.location.reload()
@@ -295,6 +302,7 @@ export function ModalDefinirSenhaTrocaEmail({
           {salvando ? 'Salvando...' : 'Confirmar e salvar'}
         </button>
       </div>
+      {dialogo}
     </>
   )
 }
@@ -306,6 +314,9 @@ export function ModalDefinirSenhaTrocaEmail({
 export function ModalSenha(): ReactNode {
   const { run } = useApp()
   const { close } = useModal()
+  // A "senha atual" desta tela já é a confirmação para conta com senha (o servidor a confere sem abrir o diálogo);
+  // o diálogo só aparece para a conta que entra com o Google.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [atual, setAtual] = useState('')
   const [nova, setNova] = useState('')
@@ -317,7 +328,7 @@ export function ModalSenha(): ReactNode {
     // um duplo clique mandaria a segunda troca com a senha ATUAL já obsoleta, e
     // o usuário veria 'Senha atual incorreta.' logo depois do sucesso.
     setSalvando(true)
-    const res = await run(() => changePassword(atual, nova, confirmacao))
+    const res = await run(() => confirmar(() => changePassword(atual, nova, confirmacao)))
     if (res.ok) close()
     else setSalvando(false)
   }
@@ -369,6 +380,7 @@ export function ModalSenha(): ReactNode {
           Salvar nova senha
         </button>
       </div>
+      {dialogo}
     </>
   )
 }
@@ -576,6 +588,8 @@ export function ModalSaque(): ReactNode {
   // Tarifa da Tabela de Taxas vigente (C3); sem banco, a do código.
   const TAXA_SAQUE_FIXA_CENTS = taxas.taxaSaqueFixa
   const { close, open } = useModal()
+  // Saque pede a senha SEMPRE (frente A). Fica antes do `return` antecipado abaixo: hook não pode ficar depois de condição.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [valorTexto, setValorTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -629,11 +643,12 @@ export function ModalSaque(): ReactNode {
     setEnviando(true)
     setErro('')
     try {
-      const res = await run(() => solicitarSaque(cents))
+      const res = await run(() => confirmar(() => solicitarSaque(cents)))
       if (res.ok) {
         close()
       } else {
-        setErro(res.error ?? 'Não foi possível solicitar o saque.')
+        // Sem texto = a pessoa desistiu da confirmação (Cancelar ou Esc): nada a avisar.
+        if (res.error) setErro(res.error)
         setEnviando(false)
       }
     } catch (e) {
@@ -745,6 +760,7 @@ export function ModalSaque(): ReactNode {
         A liquidação é realizada via Pix para a conta informada. O débito no saldo é imediato e a
         transferência ocorre em até 3 dias úteis.
       </div>
+      {dialogo}
     </>
   )
 }

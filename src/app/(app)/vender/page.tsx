@@ -55,12 +55,14 @@ import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAconte
 import { CoinPicker } from '@/components/sell/CoinPicker'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { ModalCustodiaNaoPaga } from '@/components/sell/ModalCustodiaNaoPaga'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { useModal } from '@/components/ui/Modal'
 import { publishOffer } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
   const { state, session, me, run, taxas, catalogo } = useApp()
   const modal = useModal()
+  const { confirmar, dialogo } = useConfirmarSenha()
   const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
 
   useEffect(() => {
@@ -243,7 +245,9 @@ export default function VenderPage(): ReactNode {
     // fecha o caminho do teclado.
     if (!podePublicar) return
 
-    const res = await run(() => publishOffer(selecionadas, cents, obs.trim()))
+    // Anunciar moeda é vender patrimônio: pede a senha por janela de 5 minutos (frente A). Se a pessoa desiste da
+    // confirmação, o resultado vem sem dados nem texto e a seleção e o formulário ficam como estavam.
+    const res = await run(() => confirmar(() => publishOffer(selecionadas, cents, obs.trim())))
 
     // O servidor avisa quando a seleção deixou de fazer sentido — publicou, ou
     // as moedas sumiram do inventário no meio do caminho. Nos dois casos o
@@ -498,6 +502,7 @@ export default function VenderPage(): ReactNode {
       <div className="bloco-seguinte">
         <MinhasOfertas />
       </div>
+      {dialogo}
     </>
   )
 }
