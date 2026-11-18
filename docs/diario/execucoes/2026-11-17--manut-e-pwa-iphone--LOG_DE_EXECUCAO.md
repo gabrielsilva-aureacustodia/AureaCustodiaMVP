@@ -51,3 +51,9 @@ Mudou: MD de execução 22:51:24 — T5 fechado: contrato D↔E no diagnóstico;
 
 ## 2026-11-17 22:58
 FRENTE E PRONTA (Execução; chat de branch confirma HEAD 9e21fe1, 0 commits, nada staged — conferido por mim: nada staged). Relatórios (EXECUCOES e RESUMO, MODIFICACOES e RESUMO, FEATURES) e memória R11 fechados com o resultado do T5 e a lista exata de arquivos; NÃO FEITO em negrito. Desvio: nenhum.
+
+## 2026-11-17 22:56
+Mudou: apareceu o commit 82257a7 (22:54:21, autor gabrielsilva-aureacustodia) 'App instalável no iPhone: metatags revisadas, painel com a orientação certa e diagnóstico', sobre 9e21fe1, 24 arquivos (+1856/-59). a: é commit depois do 'FRENTE E PRONTA' e da janela do Controle; B1 só proíbe commit ANTES do fim — não sei quem o fez (Execução, chat de branch, Controle ou Gabriel): pergunta enviada ao chat de branch, sem presumir desvio. b/c/h/i: o commit leva exatamente a lista da frente (7 modificados + novos + MDs/relatórios/memória); sem .env, sem migration, sem middleware.ts/rotas-publicas.ts, sem arquivo de D. Working tree limpa. Observação: os textos dos relatórios dizem '0 commits' e agora estão defasados. Desvio: nenhum confirmado.
+
+## 2026-11-17 23:00
+Chat de branch: commit 82257a7 não foi dele nem da Execução; provável Controle (a confirmar). Sem desvio. Relatórios (EXECUCOES, RESUMO, MODIFICACOES) e memória R11 atualizados com a nota Git: 0 commits durante o trabalho; 82257a7 depois do PRONTA, fora da branch de trabalho, working tree limpa naquele momento. Estes arquivos (LOG, CONTINUIDADE, 3 relatórios, memória) ficaram modificados depois do commit e entram no merge.

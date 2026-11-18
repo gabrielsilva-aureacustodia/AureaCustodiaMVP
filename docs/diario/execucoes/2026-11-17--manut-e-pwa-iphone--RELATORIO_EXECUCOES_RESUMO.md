@@ -1,4 +1,4 @@
-﻿Branch: claude/manut-pwa-iphone-eb49d6 (frente E · pwa-iphone) · base 9e21fe1 · 0 commits
+﻿Branch: claude/manut-pwa-iphone-eb49d6 (frente E · pwa-iphone) · base 9e21fe1 · 0 commits durante o trabalho
 Feito:
 - T1 diagnóstico dos 8 pontos + pesquisa iOS 27.x
 - T2 (replanejado) leitura HTTP de produção: produção == código
@@ -13,3 +13,6 @@ Teste: verde · T5: verde às 22:50 (17/11): `npm run typecheck` sem erro; `vite
 
 
 **NÃO FEITO: teste em iPhone real e em Android real (Gabriel/Rogério, depois do deploy); Lighthouse e emulação WebKit (cancelados por regra do Gabriel: sem servidor local); `npm run build`, `npm test` inteiro e `npm run lint` (bateria pós-merge do Controle).**
+
+Git: Durante o trabalho da branch: 0 commits (B1 respeitado). Depois do "FRENTE E PRONTA" apareceu o commit 82257a7 (22:54), feito fora da branch de trabalho (autoria operacional a confirmar com o Controle); working tree limpa naquele momento.
+

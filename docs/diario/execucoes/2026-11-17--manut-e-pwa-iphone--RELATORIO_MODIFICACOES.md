@@ -1,6 +1,6 @@
-# Relatório de Modificações — frente E · manut-pwa-iphone
+﻿# Relatório de Modificações — frente E · manut-pwa-iphone
 
-Comparado a: `9e21fe1` · sem commit · rascunho 17/11/2026 22:50.
+Comparado a: `9e21fe1` · rascunho 17/11/2026 22:50.
 
 | Item | Tipo | Path | Consequência |
 |---|---|---|---|
@@ -20,4 +20,7 @@ Comparado a: `9e21fe1` · sem commit · rascunho 17/11/2026 22:50.
 **Modificados (7):** `src/app/layout.tsx` (só o bloco `metadata`) · `src/components/pwa/GuiaDeInstalacao.tsx` · `src/components/pwa/IconesDoGuia.tsx` · `src/components/pwa/README.md` · `src/middleware.test.ts` · `src/styles/pwa.css` (só comentário) · `docs/pwa/MD_EXECUCAO.md`.
 **Novos de código (4):** `src/lib/pwa/metadados.ts` · `src/lib/pwa/metadados.test.ts` · `src/lib/pwa/service-worker.test.ts` · `src/components/pwa/GuiaDeInstalacao.test.ts`.
 **Novos de documento:** `docs/pwa/DIAGNOSTICO_PWA.md` · `docs/pwa/ROTEIRO_IPHONE_REAL.md` · `docs/diario/execucoes/pesquisa/e-ios-requisitos.md` · `docs/diario/execucoes/pesquisa/e-producao-leitura.md` · arquivos de processo `docs/diario/execucoes/2026-11-17--manut-e-pwa-iphone--*` (MD de execução, LOG, CONTINUIDADE, relatórios) · memória `docs/memorias/2026-11-17--claude-code--manut-pwa-iphone.md`.
-**Não tocados:** `middleware.ts`, `rotas-publicas.ts`, `manifest.ts`, `next.config.mjs`, `service-worker.ts`, login, `src/app/entrar|cadastrar`, landing, superfície protegida. Migration: nenhuma. Commits: 0.
+**Não tocados:** `middleware.ts`, `rotas-publicas.ts`, `manifest.ts`, `next.config.mjs`, `service-worker.ts`, login, `src/app/entrar|cadastrar`, landing, superfície protegida. Migration: nenhuma. Commits: ver nota Git abaixo.
+
+**Git:** Durante o trabalho da branch: 0 commits (B1 respeitado). Depois do "FRENTE E PRONTA" apareceu o commit 82257a7 (22:54), feito fora da branch de trabalho (autoria operacional a confirmar com o Controle); working tree limpa naquele momento.
+
