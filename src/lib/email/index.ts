@@ -46,6 +46,8 @@ function criarResend(chave: string, remetente: string): ProvedorDeEmail {
           headers: {
             Authorization: `Bearer ${chave}`,
             'Content-Type': 'application/json',
+            // Cabeçalho de idempotência do Resend (validade e limite de tamanho: ver pesquisa do T1). A nossa chave é curta.
+            ...(m.idempotencyKey ? { 'Idempotency-Key': m.idempotencyKey.slice(0, 256) } : {}),
           },
           body: JSON.stringify({
             from: remetente,

@@ -30,6 +30,7 @@ import { estadoVazio } from '@/domain/estado-vazio'
 import { cancelamentosDeNfse, pedidosDeNfse } from '@/domain/nfse/pedidos'
 import { seedState } from '@/domain/seed'
 import type { AppState } from '@/domain/types'
+import { pedirEmailsDaMutacao } from '@/server/emails/gancho'
 
 import { derivarHistoricoOfertas, derivarLancamentos, resumirParaAuditoria } from './derivar'
 import { normalizarTrade } from './diff'
@@ -75,7 +76,7 @@ export async function mutarEstado<T>(
   executar: Executor,
   fn: (state: AppState) => T | Promise<T>,
   contexto: ContextoMutacao = { ator: 'sistema' },
-): Promise<{ state: AppState; result: T; nfsePedidas: number }> {
+): Promise<{ state: AppState; result: T; nfsePedidas: number; emailsPedidos: number }> {
   return executar(async (tx) => {
     const antes = await carregarEstado(tx, { travar: true })
     const semeadura = estaVazio(antes)
@@ -99,6 +100,7 @@ export async function mutarEstado<T>(
     // Nada gravado (recusa, leitura disfarçada de mutação): nem ledger nem
     // auditoria. Uma trilha cheia de "nada aconteceu" esconde o que aconteceu.
     let nfsePedidas = 0
+    let emailsPedidos = 0
     if (ops.length > 0) {
       const agora = Date.now()
       const hashAnterior = await ultimoHash(tx)
@@ -126,6 +128,11 @@ export async function mutarEstado<T>(
         // Saque recusado: a tarifa volta ao saldo e a nota dela é cancelada (serviço não prestado).
         const cancelamentos = cancelamentosDeNfse(antes, state)
         if (cancelamentos.length) nfsePedidas += await marcarParaCancelar(tx, cancelamentos, agora)
+
+        // E-mails de movimentação (17/11/2026): o aviso ao cliente nasce na MESMA transação, como a nota —
+        // se a mutação desfaz, o e-mail some junto. O envio é depois, fora daqui (src/server/emails/); e
+        // `pedirEmailsDaMutacao` nunca derruba a operação (derivação em try/catch, fila num SAVEPOINT).
+        emailsPedidos = await pedirEmailsDaMutacao(tx, antes, state, agora)
       }
 
       const resumo = resumirParaAuditoria(ops, semeadura, ajustes)
@@ -140,7 +147,7 @@ export async function mutarEstado<T>(
       })
     }
 
-    return { state, result, nfsePedidas }
+    return { state, result, nfsePedidas, emailsPedidos }
   })
 }
 

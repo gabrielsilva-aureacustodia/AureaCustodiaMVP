@@ -134,6 +134,9 @@
   "src/server/db/repositories/users.ts": [
     "S"
   ],
+  "src/server/emails/fila.ts": [
+    "S"
+  ],
   "src/server/payments/recebimentos.ts": [
     "S"
   ],

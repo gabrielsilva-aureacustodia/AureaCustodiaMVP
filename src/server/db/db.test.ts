@@ -229,6 +229,8 @@ function suite(alvo: Alvo): void {
         'deposits',
         // Migration 016 — documentos legais e aceites formais (A3).
         'documentos_legais',
+        // Migration 053 — a fila de e-mails de movimentação (frente C da manutenção de novembro/2026).
+        'emails_pendentes',
         'envios',
         // Migration 021 — registro de uso da plataforma (frente C, C1).
         'eventos_uso',
