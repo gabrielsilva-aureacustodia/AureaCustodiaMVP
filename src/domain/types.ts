@@ -294,6 +294,16 @@ export interface Envio {
   desconsideradoEm?: Timestamp | null
   /** Motivo da desconsideração / cancelamento do envio. */
   motivoDesconsideracao?: string | null
+  /**
+   * Cancelamento do envio a pedido do cliente ou da equipe (frente H, 17/11/2026) — migration 056.
+   *
+   * O cancelamento TAMBÉM grava `desconsideradoEm`: é isso que faz as guardas que já existiam para o
+   * "envio encerrado sem moeda" (rastreio, frete, bancada, listas) valerem para o cancelado sem edição.
+   * Estes três campos só dizem quem encerrou e por quê. Ausentes em envio nunca cancelado.
+   */
+  canceladoEm?: Timestamp | null
+  canceladoPor?: 'cliente' | 'equipe' | null
+  motivoCancelamento?: string | null
 }
 
 // ---------------------------------------------------------------------------

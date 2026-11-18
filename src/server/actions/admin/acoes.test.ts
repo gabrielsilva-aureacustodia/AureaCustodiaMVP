@@ -10,6 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+// Os envios que `getState` devolve. Fora de `m` de propósito: o `beforeEach` dá `mockReset` em tudo que está em `m`.
+const envios = vi.hoisted(() => ({ lista: [] as Array<{ protocolo: string; etapaAtual: string; canceladoEm?: number | null }> }))
+
 const m = vi.hoisted(() => ({
   permissaoParaAcao: vi.fn(),
   bancoConfigurado: vi.fn(),
@@ -59,6 +62,8 @@ const m = vi.hoisted(() => ({
   publicarDocumentoVigente: vi.fn(),
   salvarTipoDeMoeda: vi.fn(),
   pagarFaturaCustodiaComSaldo: vi.fn(),
+  // frente H — "Cancelar validação" (o cancelamento em si tem teste próprio em src/server/shipping/)
+  cancelarEnvioPelaEquipe: vi.fn(),
   // controle financeiro (migration 046)
   salvarRecorrente: vi.fn(),
   alternarRecorrente: vi.fn(),
@@ -103,9 +108,13 @@ vi.mock('@/server/admin/bancada', () => ({
 vi.mock('@/server/admin/moedas', () => ({ verificarCorrenteDoAcervo: m.verificarCorrenteDoAcervo }))
 vi.mock('@/server/custodia/faturamento', () => ({ pagarFaturaCustodiaComSaldo: m.pagarFaturaCustodiaComSaldo }))
 vi.mock('@/server/admin/video', () => ({ urlDeLeituraDoVideo: m.urlDeLeituraDoVideo, VideoNaoConfigurado: class extends Error {} }))
-vi.mock('@/server/estacao/analise', () => ({ filaDeAnalise: m.filaDeAnalise }))
+vi.mock('@/server/estacao/analise', () => ({
+  filaDeAnalise: m.filaDeAnalise,
+  ETAPAS_DA_BANCADA: ['Recebido pela custódia', 'Em análise física'],
+}))
+vi.mock('@/server/shipping/cancelar-envio-equipe', () => ({ cancelarEnvioPelaEquipe: m.cancelarEnvioPelaEquipe }))
 vi.mock('@/server/shipping/retiradas', () => ({ repositorioRetiradas: () => ({ listarTodas: async () => [] }) }))
-vi.mock('@/server/state', () => ({ getState: async () => ({ users: {}, analises: [] }) }))
+vi.mock('@/server/state', () => ({ getState: async () => ({ users: {}, analises: [], envios: envios.lista }) }))
 vi.mock('@/server/admin/configuracao', () => ({
   SEM_TABELA_CONFIG: 'Rode npm run db:migrate (024).',
   salvarGrupoDeConfiguracao: m.salvarGrupoDeConfiguracao,
@@ -152,6 +161,7 @@ import {
   abrirAnaliseNoPainel,
   assinarVideoNoPainel,
   atualizarBancadaNoPainel,
+  cancelarValidacaoNoPainel,
   fecharAnaliseNoPainel,
   salvarCaixaNoPainel,
   urlDoVideoNoPainel,
@@ -255,6 +265,7 @@ const casos: Array<[string, string, () => Promise<{ ok: boolean }>, ReturnType<t
   ['abrir análise', 'bancada.analisar', () => abrirAnaliseNoPainel('RO-ENV-0001'), m.abrirPelaBancadaWeb],
   ['assinar o vídeo', 'bancada.analisar', () => assinarVideoNoPainel('RO-ENV-0001', 'webm'), m.assinarVideoPelaBancadaWeb],
   ['fechar análise', 'bancada.analisar', () => fecharAnaliseNoPainel('RO-ENV-0001', [], null), m.fecharPelaBancadaWeb],
+  ['cancelar validação', 'bancada.analisar', () => cancelarValidacaoNoPainel('RO-ENV-0001', 'O pacote nunca chegou à custódia.'), m.cancelarEnvioPelaEquipe],
   ['cadastrar caixa', 'bancada.analisar', () => salvarCaixaNoPainel({ codigo: 'EB-001', rotulo: '', local: '', capacidade: null, ativa: true }, true), m.salvarCaixa],
   ['verificar corrente', 'bancada.auditoria', () => verificarCorrenteNoPainel(), m.verificarCorrenteDoAcervo],
   ['assistir ao vídeo', 'bancada.auditoria', () => urlDoVideoNoPainel('RO-ENV-0001/RO-ENV-0001-1.webm'), m.urlDeLeituraDoVideo],
@@ -346,6 +357,64 @@ describe('permitido', () => {
     await fecharAnaliseNoPainel('RO-ENV-0001', moedas, 'RO-ENV-0001/RO-ENV-0001-1.webm')
     expect(m.fecharPelaBancadaWeb.mock.calls[0][1]).toBe(MEMBRO.email)
     expect(m.fecharPelaBancadaWeb.mock.calls[0][2]).toEqual({ protocolo: 'RO-ENV-0001', moedas, caminhoVideo: 'RO-ENV-0001/RO-ENV-0001-1.webm' })
+  })
+
+  // Frente H (17/11/2026): "Cancelar validação" pede `bancada.analisar` (a permissão de quem opera a bancada, não a
+  // da logística), só cancela o que está na fila da bancada e entra pelo MESMO módulo de trilha do painel de logística.
+  describe('cancelar validação na bancada', () => {
+    const MOTIVO = 'O pacote nunca chegou à custódia.'
+    const FEITO = { ok: true, message: 'Envio cancelado.', data: { protocolo: 'RO-ENV-0001', titular: 'cliente@x.com', totalAoSaldoCents: 3_000 } }
+
+    beforeEach(() => {
+      m.permissaoParaAcao.mockResolvedValue({ ok: true, membro: MEMBRO })
+      m.cancelarEnvioPelaEquipe.mockResolvedValue(FEITO)
+      envios.lista = [{ protocolo: 'RO-ENV-0001', etapaAtual: 'Em análise física' }]
+    })
+
+    it('envio na bancada: cancela como "bancada", com o membro da sessão, o protocolo e o motivo', async () => {
+      const r = await cancelarValidacaoNoPainel(' RO-ENV-0001 ', MOTIVO)
+
+      expect(r).toEqual({ ok: true, message: 'Envio cancelado.', data: FEITO.data })
+      expect(m.cancelarEnvioPelaEquipe).toHaveBeenCalledWith({ membro: MEMBRO, via: 'bancada', protocolo: 'RO-ENV-0001', motivo: MOTIVO })
+    })
+
+    it('envio que NÃO está na bancada (ex.: ainda não postado) é recusado — para esse, a porta é a Logística', async () => {
+      envios.lista = [{ protocolo: 'RO-ENV-0001', etapaAtual: 'Protocolo gerado' }]
+
+      const r = await cancelarValidacaoNoPainel('RO-ENV-0001', MOTIVO)
+
+      expect(r.ok).toBe(false)
+      expect(r.error).toContain('Logística')
+      expect(m.cancelarEnvioPelaEquipe).not.toHaveBeenCalled()
+    })
+
+    it('segundo clique: envio já cancelado passa (o cancelamento responde "já cancelado" sem devolver de novo)', async () => {
+      envios.lista = [{ protocolo: 'RO-ENV-0001', etapaAtual: 'Protocolo gerado', canceladoEm: 5 }]
+
+      expect((await cancelarValidacaoNoPainel('RO-ENV-0001', MOTIVO)).ok).toBe(true)
+      expect(m.cancelarEnvioPelaEquipe).toHaveBeenCalledTimes(1)
+    })
+
+    it('protocolo inexistente ou em branco: recusa sem chamar o cancelamento', async () => {
+      expect((await cancelarValidacaoNoPainel('RO-ENV-9999', MOTIVO)).ok).toBe(false)
+      expect((await cancelarValidacaoNoPainel('   ', MOTIVO)).ok).toBe(false)
+      expect(m.cancelarEnvioPelaEquipe).not.toHaveBeenCalled()
+    })
+
+    it('recusa do cancelamento (motivo curto, moeda já aceita…) volta como erro da tela', async () => {
+      m.cancelarEnvioPelaEquipe.mockResolvedValue({ ok: false, error: 'Informe o motivo do cancelamento (ao menos 10 caracteres).' })
+
+      expect(await cancelarValidacaoNoPainel('RO-ENV-0001', 'curto')).toEqual({ ok: false, error: 'Informe o motivo do cancelamento (ao menos 10 caracteres).' })
+    })
+
+    it('só `bancada.ver` NÃO basta: a chave pedida é `bancada.analisar`', async () => {
+      m.permissaoParaAcao.mockImplementation(async (chave: string) => (chave === 'bancada.ver' ? { ok: true, membro: MEMBRO } : RECUSA))
+
+      const r = await cancelarValidacaoNoPainel('RO-ENV-0001', MOTIVO)
+
+      expect(r).toEqual({ ok: false, error: RECUSA.erro })
+      expect(m.cancelarEnvioPelaEquipe).not.toHaveBeenCalled()
+    })
   })
 
   it('quitar fatura chama a liquidação da frente B com o dono da ficha e grava admin.usuarios.quitar_fatura', async () => {

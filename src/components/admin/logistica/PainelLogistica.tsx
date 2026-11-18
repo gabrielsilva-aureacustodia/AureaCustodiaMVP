@@ -18,6 +18,8 @@ import type { ReactNode } from 'react'
 
 import { ROTULO_FORMA_PAGAMENTO, ROTULO_STATUS_RETIRADA, type FiltroLogistica } from '@/domain/admin/logistica'
 import { AcoesDoEnvio } from '../registros'
+import { cancelarEnvioNoPainel } from '@/server/actions/admin/logistica'
+import { CancelarEnvioDaEquipe } from './CancelarEnvioDaEquipe'
 import { ExpedicaoDaRetirada, type EtiquetaDaRetirada } from './ExpedicaoDaRetirada'
 import type { RastreioGravado } from '@/server/db/repositories/rastreios'
 import type { DadosDaLogistica } from '@/server/admin/logistica'
@@ -181,6 +183,12 @@ export function PainelLogistica({
                       <td>
                         {e.etapaAtual}
                         {e.desconsiderado ? <div className="adm-fraco">desconsiderado: não postado em 3 dias</div> : null}
+                        {e.cancelado ? (
+                          <div className="adm-fraco">
+                            cancelado {e.canceladoPor === 'cliente' ? 'pelo cliente' : 'pela equipe'}
+                            {e.motivoCancelamento ? `: ${e.motivoCancelamento}` : ''}
+                          </div>
+                        ) : null}
                         {e.alerta ? <div className="adm-alerta-texto">{e.alerta}</div> : null}
                       </td>
                       <td>
@@ -202,6 +210,16 @@ export function PainelLogistica({
                               quantidade declarada ou apagar o envio. Apagar
                               recusa se o envio já virou acervo. */}
                           <AcoesDoEnvio protocolo={e.protocolo} quantidade={e.quantidade} />
+                          {/* Cancelar o envio devolve frete + 1º mês, cancela a nota e a etiqueta (frente H,
+                              17/11/2026). A Server Action confere `logistica.expedir` por conta própria. */}
+                          {podeExpedir && e.podeCancelar ? (
+                            <CancelarEnvioDaEquipe
+                              protocolo={e.protocolo}
+                              jaPostado={e.jaPostado}
+                              aoCancelar={cancelarEnvioNoPainel.bind(null, e.protocolo)}
+                              usoNome="envio:cancelar"
+                            />
+                          ) : null}
                         </div>
                       </td>
                     </tr>

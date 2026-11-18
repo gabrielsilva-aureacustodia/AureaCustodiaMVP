@@ -117,6 +117,38 @@ describe('filtro da logística', () => {
     expect(filtrarEnvios([l], FILTRO_LOGISTICA_PADRAO)).toEqual([])
   })
 
+  // Frente H (17/11/2026): o cancelamento também grava `desconsideradoEm`, mas a linha não pode dizer que o
+  // envio "não foi postado em 3 dias" — ele foi cancelado, e a equipe precisa ver o motivo.
+  it('envio cancelado é "cancelado", não "desconsiderado", mostra quem e por quê e não pode ser cancelado de novo', () => {
+    const agora = dia(2026, 11, 17)
+    const e = envio({ createdAt: dia(2026, 11, 16), canceladoEm: agora, canceladoPor: 'equipe', motivoCancelamento: 'Não chegou à custódia.', desconsideradoEm: agora })
+    const l = linhaDeEnvio(e, 'Alex', agora)
+    expect(l).toMatchObject({
+      aberto: false,
+      desconsiderado: false,
+      cancelado: true,
+      canceladoPor: 'equipe',
+      motivoCancelamento: 'Não chegou à custódia.',
+      podeCancelar: false,
+    })
+    expect(filtrarEnvios([l], FILTRO_LOGISTICA_PADRAO)).toEqual([])
+    expect(filtrarEnvios([l], { ...FILTRO_LOGISTICA_PADRAO, situacao: 'todos' })).toHaveLength(1)
+  })
+
+  it('a equipe pode cancelar envio não postado, postado e até o já desconsiderado; moeda já aceita, não', () => {
+    const agora = dia(2026, 11, 17)
+    // Não postado, dentro do prazo.
+    expect(linhaDeEnvio(envio({ createdAt: agora - 1000 }), 'Alex', agora)).toMatchObject({ podeCancelar: true, jaPostado: false, cancelado: false })
+    // Desconsiderado sozinho: o 1º mês pago continua lá, e é justamente o que a equipe precisa conseguir devolver.
+    expect(linhaDeEnvio(envio({ createdAt: dia(2026, 11, 1), codigoRastreio: null }), 'Alex', agora)).toMatchObject({ desconsiderado: true, podeCancelar: true })
+    // Postado e em análise: pode (frete não volta, mas o 1º mês e a nota sim).
+    expect(
+      linhaDeEnvio(envio({ etapaAtual: 'Em análise física', dataPostagem: dia(2026, 11, 5), dataRecebimento: dia(2026, 11, 9) }), 'Alex', agora),
+    ).toMatchObject({ podeCancelar: true, jaPostado: true })
+    // Já virou moeda: o caminho é a retirada.
+    expect(linhaDeEnvio(envio({ etapaAtual: 'Recibo emitido', codigosAtivosGerados: ['RO-000001'] }), 'Alex', agora).podeCancelar).toBe(false)
+  })
+
   it('atrasados primeiro; "abertos" esconde o que terminou; busca por rastreio e nome', () => {
     const agora = dia(2026, 9, 15)
     const envios = [

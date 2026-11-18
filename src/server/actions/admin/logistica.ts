@@ -26,8 +26,14 @@
  * painel passariam a contar histórias diferentes.
  *
  * Toda ação grava `admin.logistica.<verbo>` em `audit_log`: `emitir_etiqueta`, `cancelar_etiqueta`,
- * `postar_manual`. Como em saques.ts, a trilha é gravada depois da ação e não a desfaz se falhar — a
- * etiqueta já existe nos Correios.
+ * `postar_manual`, `cancelar_envio`. Como em saques.ts, a trilha é gravada depois da ação e não a desfaz se
+ * falhar — a etiqueta já existe nos Correios.
+ *
+ * 17/11/2026 (frente H) — `cancelarEnvioNoPainel`: a equipe cancela um ENVIO (não a etiqueta da retirada)
+ * e tudo que ele gerou volta junto — frete, 1º mês de custódia, nota fiscal e etiqueta dos Correios. A regra
+ * e a ordem moram em `src/server/shipping/cancelar-envio*.ts`, que NÃO são `'use server'` de propósito (todo
+ * export daqui vira endpoint, e aquela função devolve dinheiro ao saldo de qualquer conta). Esta ação só faz o
+ * que é dela: conferir `logistica.expedir` antes de tudo.
  */
 
 import type { ChavePermissao, MembroAdmin } from '@/domain/admin/permissoes'
@@ -55,6 +61,7 @@ import { DESCRICAO_CONTEUDO_PADRAO, dimensoesParaMoedas, type ModalidadeEnvio } 
 import { permissaoParaAcao } from '@/server/admin/acesso'
 import { registrarAcaoAdmin } from '@/server/admin/auditar'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { cancelarEnvioPelaEquipe, type DadosDoCancelamentoDaEquipe } from '@/server/shipping/cancelar-envio-equipe'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { atualizarRastreiosPendentes } from '@/server/shipping/rastreios'
 import { getState, mutateState } from '@/server/state'
@@ -331,6 +338,19 @@ export async function cancelarEtiquetaRetirada(retiradaId: string): Promise<Acti
     await auditar(membro, 'cancelar_etiqueta', atualizada, id, { ok: true, prePostagem: ativa.id, codigoObjeto: ativa.codigoObjeto })
     return { ok: true, message: `Etiqueta ${ativa.codigoObjeto} cancelada nos Correios.` }
   })
+}
+
+/**
+ * Cancela um ENVIO para a custódia pela equipe — vencido, abandonado ou a pedido do cliente. Devolve ao
+ * saldo do titular o frete e o 1º mês de custódia pagos, cancela a nota fiscal do 1º mês e a etiqueta dos
+ * Correios, e marca o envio como cancelado, com o motivo. Motivo obrigatório (mínimo de 10 caracteres).
+ *
+ * Envio já postado também pode ser cancelado pela equipe (o cliente não pode): o 1º mês e a nota voltam, o
+ * frete NÃO — os Correios já cobraram o serviço da Áurea (decisão de cobrança do Gabriel, em
+ * `DEVOLVE_FRETE_DE_ENVIO_JA_POSTADO`). Envio cuja moeda já foi aceita é recusado: o caminho é a retirada.
+ */
+export async function cancelarEnvioNoPainel(protocolo: string, motivo: string): Promise<ActionResult<DadosDoCancelamentoDaEquipe>> {
+  return comPermissao('logistica.expedir', (membro) => cancelarEnvioPelaEquipe({ membro, via: 'logistica', protocolo, motivo }))
 }
 
 /**
