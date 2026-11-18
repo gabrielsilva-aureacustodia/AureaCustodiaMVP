@@ -95,3 +95,21 @@ Append-only. Escrito pela AUDITORIA. Base 9e21fe1. Rotina de 3 em 3 min (CronCre
 - Desde 17/11 23:12: 0 commits (HEAD 9e21fe1), mesmos arquivos de código, MD de execução parado em 23:12:07. Vários disparos da rotina se acumularam (máquina parada); tratados em uma única checagem. Frente aguardando merge do Controle.
 
 ## 2026-11-18 02:15 - A/auditoria: sem mudança
+
+## 2026-11-18 02:18 - commit 96c2afe apareceu (esperado, pós-merge)
+- Git: commit 96c2afe, 18/11 02:16, conta gabrielsilva-aureacustodia: "Frente A: confirmação por senha (ou código por e-mail) nas ações sensíveis, com evento seguranca.* em audit_log". 57 arquivos, +4542/-46. Árvore limpa (0 itens no status).
+- B1: o commit é o único, feito DEPOIS do fim da frente e pelo agente de commit (Controle/Gabriel), não pela Execução durante a branch: não é desvio.
+- Conferência do conteúdo (nomes): sem .env, .sql, src/domain, docs/memorias/README.md, INDICE_VEGA nem ESTADO-GERAL. Não li o diff (modo barato).
+- Desvio: nenhum. Frente A: commitada; pendências restantes são do Controle (deploy, conferência da tela e do link real de recuperação) e do Gabriel (modelo Magic Link).
+
+## 2026-11-18 02:21 - A/auditoria: sem mudança
+- HEAD 96c2afe; só LOG e CONTINUIDADE (meus) aparecem modificados após o commit.
+
+## 2026-11-18 02:24 - A/auditoria: sem mudança
+
+## 2026-11-18 12:01 - A/auditoria: sem mudança
+- HEAD 96c2afe; só LOG e CONTINUIDADE (meus) modificados; MD de execução 23:12:07. A checagem anterior demorou além de 120 s (máquina sob carga) e foi lida do arquivo de saída.
+
+## 2026-11-18 12:03 - A/auditoria: sem mudança
+
+## 2026-11-18 12:06 - A/auditoria: sem mudança
