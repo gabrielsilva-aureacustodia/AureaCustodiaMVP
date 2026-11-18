@@ -37,6 +37,7 @@ import {
   salvarRastreioDeRetirada,
   type RastreioGravado,
 } from '@/server/db/repositories/rastreios'
+import { avisarRetiradaPostada } from '@/server/emails'
 import { repositorioRetiradas } from '@/server/shipping/retiradas'
 import { getState, mutateState } from '@/server/state'
 
@@ -306,6 +307,9 @@ export async function atualizarRastreiosPendentes(): Promise<ResumoAtualizacao> 
     try {
       const feito = await avancarRetirada(ret.id, r, idsNoEstado.has(ret.id))
       if (feito.postada) resumo.retiradasPostadas += 1
+      // E-mail "retirada postada" (frente C, 17/11/2026): o avanço vem do rastreio, fora do diff de
+      // `mutarEstado`; o aviso só sai se a retirada de fato está postada e nunca lança.
+      if (feito.postada) await avisarRetiradaPostada(ret.id)
       if (feito.entregue) resumo.retiradasEntregues += 1
     } catch (err) {
       console.error(`[rastreio] avanço da retirada ${ret.id} não gravou:`, err)

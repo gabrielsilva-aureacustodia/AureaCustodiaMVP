@@ -5,6 +5,7 @@ import { processarCicloFaturamento } from '@/server/custodia/faturamento'
 import { processarNotasPendentes } from '@/server/nfse/emissao'
 import { lancarVencidos } from '@/server/admin/financeiro'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
+import { despacharEmailsPendentes } from '@/server/emails'
 
 /**
  * Job agendado de faturamento de custódia (Sessão B-5 / Bloco 8).
@@ -48,11 +49,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         recorrentes = { falhou: true }
       }
     }
+    // E-mails de movimentação (frente C, 17/11/2026): o despacho já roda depois de cada mutação; aqui a
+    // rodada diária reforça o reenvio do que falhou e não teve mutação depois. Falhar aqui não desfaz nada.
+    let emails: unknown = null
+    try {
+      emails = await despacharEmailsPendentes()
+    } catch (erroEmails) {
+      console.error('[Cron Faturamento] Falha no reenvio dos e-mails pendentes:', erroEmails)
+      emails = { falhou: true }
+    }
     return NextResponse.json({
       ok: true,
       ...relatorio,
       nfse,
       recorrentes,
+      emails,
       executadoEm: new Date().toISOString(),
     })
   } catch (error) {
