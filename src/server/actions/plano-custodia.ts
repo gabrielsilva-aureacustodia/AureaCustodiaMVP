@@ -12,13 +12,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { nextPlanoCode } from '@/domain/codes'
-import {
-  calcularVencimentoFatura,
-  competenciaAtual,
-  DIAS_TOLERANCIA_FATURA,
-} from '@/domain/custody'
-import { valorDoPlano } from '@/domain/plano-custodia'
+import { garantirPrimeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import { pagarFaturaComSaldoNoEstado } from '@/domain/quitar-fatura'
 import type {
   ActionResult,
@@ -71,84 +65,17 @@ export async function contratarPlanoCustodia(
       const envio = s.envios.find((e) => e.protocolo === protocolo && e.userEmail === session)
       if (!envio) return { ok: false, error: 'Envio não encontrado.' }
 
-      const quantidade = Math.max(1, envio.quantidade || 1)
-      const agora = Date.now()
-
-      s.planosCustodia = s.planosCustodia ?? []
-      s.faturasCustodia = s.faturasCustodia ?? []
-
-      // Se já existe plano para este envio não cancelado:
-      const planoExistente = s.planosCustodia.find(
-        (p) => p.protocoloEnvio === protocolo && p.status !== 'cancelado',
-      )
-
-      if (planoExistente) {
-        const fatura = s.faturasCustodia.find((f) => f.planoId === planoExistente.id)
-        return {
-          ok: true,
-          data: {
-            faturaId: fatura?.id || '',
-            planoId: planoExistente.id,
-          },
-        }
-      }
-
-      // Cria novo plano mensal
-      const planoId = nextPlanoCode(s.seq)
-      const { porMoeda, total } = valorDoPlano(modalidade, quantidade, {
-        ...taxas,
-      })
-      const inicioCompetencia = competenciaAtual(agora)
-
-      const novoPlano: PlanoCustodia = {
-        id: planoId,
-        userEmail: session,
-        protocoloEnvio: protocolo,
-        modalidade: 'mensal',
-        quantidadeContratada: quantidade,
-        moedaIds: [],
-        valorPorMoedaCents: porMoeda,
-        valorTotalCents: total,
-        parcelasMax: 1,
-        inicioCompetencia,
-        pagoAteCompetencia: null,
-        status: 'aguardando_pagamento',
-        formaPagamento: null,
-        paymentIntentRef: null,
-        assinaturaId: null,
-        estornadoCents: 0,
-        criadoEm: agora,
-        atualizadoEm: agora,
-      }
-
-      const sanitizeEmail = session.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
-      const faturaId = `FAT-${inicioCompetencia}-${sanitizeEmail}-${agora}`
-
-      const novaFatura: FaturaCustodia = {
-        id: faturaId,
-        userEmail: session,
-        competencia: inicioCompetencia,
-        quantidadeMoedas: quantidade,
-        moedaIds: [],
-        valorCents: total,
-        status: 'pendente',
-        dataEmissao: agora,
-        dataVencimento: calcularVencimentoFatura(agora, DIAS_TOLERANCIA_FATURA),
-        dataPagamento: null,
-        formaPagamento: null,
-        paymentIntentId: null,
-        planoId,
-        origem: 'contratacao',
-      }
-
-      s.planosCustodia.push(novoPlano)
-      s.faturasCustodia.push(novaFatura)
+      // O par plano + fatura de contratação mora em src/domain/primeiro-mes-do-envio.ts desde 17/11/2026,
+      // porque o pagamento do frete também precisa criá-lo (o mês é cobrado junto, e quem paga o envio sem
+      // ter passado por aqui não pode escapar da cobrança). Idempotente: o par que já existe é reaproveitado,
+      // e a fatura ainda em aberto acompanha a tabela vigente.
+      const { plano, fatura } = garantirPrimeiroMesDoEnvio(s, envio, { ...taxas }, Date.now())
 
       return {
         ok: true,
         data: {
-          faturaId,
-          planoId,
+          faturaId: fatura.id,
+          planoId: plano.id,
         },
       }
     })
