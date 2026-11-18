@@ -8,6 +8,7 @@ import { calcularTaxaRetirada, PRAZO_RETIRADA_DIAS, validarEnderecoRetirada } fr
 import type { Coin, EnderecoEntrega, ModalidadeRetirada, Retirada } from '@/domain/types'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { useApp } from '@/components/providers/AppProvider'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -27,6 +28,9 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
   const { me, run, taxas } = useApp()
   const { close } = useModal()
   const toast = useToast()
+  // Retirar a moeda física leva o acervo para fora da custódia: pede a senha SEMPRE (frente A). O hook fica antes dos
+  // `return` antecipados abaixo; o diálogo é desenhado na etapa do formulário, que é onde a ação é chamada.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [etapa, setEtapa] = useState<'formulario' | 'pagamento'>('formulario')
   const [retiradaIdCriada, setRetiradaIdCriada] = useState<string | null>(null)
@@ -102,11 +106,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
 
     setSubmetendo(true)
     try {
-      const res = await run(() => solicitarRetirada(coin.id, modalidade, endereco))
+      const res = await run(() => confirmar(() => solicitarRetirada(coin.id, modalidade, endereco)))
       if (res.ok && res.data) {
         setRetiradaIdCriada(res.data.retiradaId)
         setEtapa('pagamento')
-      } else {
+      } else if (res.error || res.ok) {
+        // Falha sem texto de erro = a pessoa desistiu da confirmação: o formulário fica como está, sem aviso.
         setErro(res.error || 'Falha ao solicitar retirada física.')
       }
     } finally {
@@ -414,6 +419,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           {submetendo ? 'Processando...' : 'Avançar para pagamento'}
         </button>
       </div>
+      {dialogo}
     </div>
   )
 }

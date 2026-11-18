@@ -45,6 +45,7 @@ import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { vendedoresBloqueaveis } from '@/server/custodia/isencao-da-equipe'
 import { notificarReservasPendentes } from '@/server/mercado/aviso-de-reserva'
 import { carregarRegrasDoMercado, type RegrasDoMercado } from '@/server/config/carregar'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
 import { sincronizarAssinaturaCustodia } from '@/server/custodia/assinatura'
@@ -168,6 +169,10 @@ function inteiroSeguro(v: number): number {
  * uma oferta escolhida a dedo, fora do livro. O original também não chamava.
  */
 export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionResult> {
+  // Comprar move dinheiro: a senha vale por uma janela curta (D3, 5 min), para quem compra várias moedas em sequência.
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
+
   const bloqueaveis = await vendedoresBloqueaveis()
   let sellerIdParaSync: string | null = null
   const res = await executar((state, session, { taxas }) => {
@@ -307,8 +312,6 @@ export async function publishBid(
   tipoMoeda: string,
   modalidade: ModalidadeOfertaCompra = 'saldo',
 ): Promise<ActionResult<{ bidId: string; qty: number; aPagarCents: Cents }>> {
-  const bloqueaveis = await vendedoresBloqueaveis()
-
   if (modalidade !== 'saldo' && modalidade !== 'prepago' && modalidade !== 'pospago') {
     return { ok: false, error: 'Forma de pagamento da oferta desconhecida.' }
   }
@@ -340,6 +343,12 @@ export async function publishBid(
         'A oferta pré-paga é publicada pelo pagamento. Use a tela de pagamento da oferta — ela entra no mercado assim que o valor for confirmado.',
     }
   }
+
+  // Oferta de compra compromete dinheiro (casa sozinha): mesma janela de 5 min da compra (D3). Depois das recusas baratas acima.
+  const bloqueio = await exigirReautenticacao('janela')
+  if (bloqueio) return bloqueio
+
+  const bloqueaveis = await vendedoresBloqueaveis()
 
   const res = await executar((state, session, { taxas, catalogo }) => {
     const qtyRaw = inteiroSeguro(qtyPedida)

@@ -19,6 +19,7 @@ import { validarCpf } from '@/domain/cpf'
 import type { TipoChavePix, TipoContaBancaria } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { salvarCadastro } from '@/server/actions/account'
 import { consultarCepEnvio } from '@/server/actions/custody'
 
@@ -32,6 +33,8 @@ export interface ModalCadastroProps {
 export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroProps): ReactNode {
   const { me, run } = useApp()
   const { close } = useModal()
+  // Mudar Pix, banco ou dado pessoal de um cadastro já gravado pede a senha (frente A); o primeiro preenchimento não.
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const cadExistente = me.cadastro
 
@@ -171,29 +174,32 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
     setSalvando(true)
     try {
       const res = await run(() =>
-        salvarCadastro({
-          cpf: cpfLimpo,
-          nomeCompleto: nomeCompleto.trim(),
-          dataNascimento: dataNascimento.trim(),
-          telefone: telLimpo,
-          endereco: {
-            cep: cepLimpo,
-            logradouro: logradouro.trim(),
-            numero: numero.trim(),
-            complemento: complemento.trim() || undefined,
-            bairro: bairro.trim(),
-            cidade: cidade.trim(),
-            uf: uf.trim().toUpperCase(),
-          },
-          dadosBancarios: dadosBancariosPayload,
-        }),
+        confirmar(() =>
+          salvarCadastro({
+            cpf: cpfLimpo,
+            nomeCompleto: nomeCompleto.trim(),
+            dataNascimento: dataNascimento.trim(),
+            telefone: telLimpo,
+            endereco: {
+              cep: cepLimpo,
+              logradouro: logradouro.trim(),
+              numero: numero.trim(),
+              complemento: complemento.trim() || undefined,
+              bairro: bairro.trim(),
+              cidade: cidade.trim(),
+              uf: uf.trim().toUpperCase(),
+            },
+            dadosBancarios: dadosBancariosPayload,
+          }),
+        ),
       )
 
       if (res.ok) {
         close()
         if (onSuccess) onSuccess()
-      } else {
-        setErroForm(res.error || 'Não foi possível salvar o cadastro.')
+      } else if (res.error) {
+        // Sem texto = a pessoa desistiu da confirmação (Cancelar ou Esc): o formulário fica como está, sem aviso.
+        setErroForm(res.error)
       }
     } finally {
       setSalvando(false)
@@ -557,6 +563,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
           {salvando ? 'Salvando...' : 'Salvar cadastro'}
         </button>
       </div>
+      {dialogo}
     </>
   )
 }

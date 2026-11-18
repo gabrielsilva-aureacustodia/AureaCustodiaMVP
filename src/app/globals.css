@@ -56,5 +56,9 @@
    classes do casco, que responsive.css ajusta logo abaixo. */
 @import '../styles/admin.css';
 
+/* Confirmação por senha nas ações sensíveis (diálogo que abre por cima do modal do site). Depois de base.css,
+   de que reaproveita .modal-bg/.modal/.btn/.tinput, e antes de responsive.css, que fecha a cascata. */
+@import '../styles/seguranca.css';
+
 /* SEMPRE POR ÚLTIMO — ver a explicação no topo deste arquivo. */
 @import '../styles/responsive.css';

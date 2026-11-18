@@ -22,6 +22,9 @@ import { destinoPermitido, lembrarDestinoDoLogin, type DestinoDoLogin } from '@/
 import { setPendingLegalAcceptance } from '@/server/auth/legal'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
+import { EXIGIR_LINK_RECENTE_NA_NOVA_SENHA } from '@/server/auth/reautenticacao-config'
+import { registrarEventoDeSeguranca } from '@/server/auth/reautenticacao-eventos'
+import { metodosDeAcessoDoToken, sessaoVeioDeLinkDeEmailRecente } from '@/server/auth/sessao-de-recuperacao'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { registrarCadastroNaMeta } from '@/server/meta/cadastro'
 import { clearSession, getSessionEmail, setSession } from '@/server/session'
@@ -261,8 +264,10 @@ export async function logout(): Promise<ActionResult> {
 /**
  * Tela de nova senha do link de redefinição (P-C2-05, RA-50). Não pede a senha atual porque quem
  * chega pelo link a esqueceu; a autorização é a sessão de recuperação que o callback deixou nos
- * cookies do Supabase, e a conferência de e-mail impede trocar a senha de outra identidade. Tamanho
- * da senha fica com o Supabase, como no cadastro (RA-18).
+ * cookies do Supabase — e, desde 17/11/2026, só vale se o token dessa sessão mostra um método de
+ * link de e-mail usado há pouco (`sessaoVeioDeLinkDeEmailRecente`): sessão comum não troca a senha
+ * por aqui. A conferência de e-mail impede trocar a senha de outra identidade. Tamanho da senha
+ * fica com o Supabase, como no cadastro (RA-18).
  */
 export async function definirNovaSenha(
   nova: string,
@@ -296,6 +301,27 @@ export async function definirNovaSenha(
       }
     }
 
+    // RA-50 (frente A, 17/11/2026): trocar a senha SEM a atual só vale para a sessão que um link do e-mail acabou de
+    // abrir. Uma sessão comum — inclusive roubada — não passa daqui; para ela a troca é a de "Alterar senha", que
+    // pede a senha atual. Na dúvida (token sem `amr`, ilegível), bloqueia: ver sessao-de-recuperacao.ts. A resposta
+    // é o mesmo texto do link vencido porque, para quem usa esta tela, é a mesma situação: pedir um link novo.
+    // `EXIGIR_LINK_RECENTE_NA_NOVA_SENHA` (reautenticacao-config.ts) desliga esta guarda numa linha, se o nome do
+    // método que o link de recuperação grava no `amr` não for um dos três que a lista conhece.
+    if (EXIGIR_LINK_RECENTE_NA_NOVA_SENHA) {
+      const { data: dadosDaSessao } = await client.auth.getSession()
+      const tokenDeAcesso = dadosDaSessao?.session?.access_token
+      if (!sessaoVeioDeLinkDeEmailRecente(tokenDeAcesso)) {
+        console.warn(
+          '[auth] definirNovaSenha recusada: a sessão não veio de um link de e-mail recente. Métodos no token:',
+          metodosDeAcessoDoToken(tokenDeAcesso).map((m) => m.metodo),
+        )
+        return {
+          ok: false,
+          error: 'O link de redefinição expirou ou já foi usado. Peça um novo ao atendimento.',
+        }
+      }
+    }
+
     const { error: updateError } = await client.auth.updateUser({ password: nova })
     if (updateError) {
       if (updateError.code === 'same_password') {
@@ -306,6 +332,13 @@ export async function definirNovaSenha(
       }
       return { ok: false, error: updateError.message || FALHA_AUTENTICACAO }
     }
+
+    // Evento de segurança (A → C): a senha mudou pelo link de redefinição. Nunca derruba a troca.
+    await registrarEventoDeSeguranca({
+      tipo: 'senha_alterada',
+      conta: email,
+      detalhes: { via: 'link_de_redefinicao' },
+    })
 
     return { ok: true, message: 'Senha nova salva. Use-a no próximo login.' }
   } catch (error) {

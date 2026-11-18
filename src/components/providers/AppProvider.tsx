@@ -43,6 +43,7 @@ import { CONFIG_DO_CLIENTE_PADRAO, type ConfigDoCliente } from '@/domain/admin/c
 import type { TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, CoinType, Trade, User, UserEmail } from '@/domain/types'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { useToast } from '@/components/ui/Toast'
 
 /**
@@ -158,6 +159,7 @@ interface Props {
 
 export function AppProvider({ initialState, session: sessionProp, admin = false, config: configInicial = CONFIG_DO_CLIENTE_PADRAO, aceitesPendentes: pendentesIniciais = null, children }: Props): ReactNode {
   const toast = useToast()
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [session, setSession] = useState<UserEmail>(sessionProp)
   useEffect(() => {
@@ -248,7 +250,12 @@ export function AppProvider({ initialState, session: sessionProp, admin = false,
     async <T,>(fn: () => Promise<ActionResult<T>>): Promise<ActionResult<T>> => {
       let res: ActionResult<T>
       try {
-        res = await fn()
+        // Rede de segurança da confirmação por senha (frente A, 17/11/2026): se a ação responder "falta a
+        // confirmação", o diálogo abre aqui e a mesma ação é reenviada depois. Ação que não pede nada passa
+        // direto, e as telas que já embrulham a chamada em `confirmar(...)` nunca chegam a este ponto com um
+        // pedido em aberto — o diálogo delas resolve antes. Serve a toda ação sensível chamada por `run()`
+        // que alguma tela futura esqueça de embrulhar.
+        res = await confirmar(fn)
       } catch {
         // Server action que nem chega a responder. Sem este catch a promessa
         // rejeitada some no vazio e a interface fica muda — o usuário clica,
@@ -271,7 +278,7 @@ export function AppProvider({ initialState, session: sessionProp, admin = false,
       await refresh()
       return res
     },
-    [toast, refresh],
+    [toast, refresh, confirmar],
   )
 
   /* ---------- ciclo de sincronização (padrão SYNC_MS = 10s; desde a C3, configurável no painel) ---------- */
@@ -330,5 +337,10 @@ export function AppProvider({ initialState, session: sessionProp, admin = false,
     [state, session, me, admin, config, aceitesPendentes, refresh, run],
   )
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {dialogo}
+    </Ctx.Provider>
+  )
 }

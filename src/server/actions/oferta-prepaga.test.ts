@@ -16,6 +16,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+// A confirmação por senha tem testes próprios (reautenticacao*.test.ts); aqui a ação roda já confirmada.
+vi.mock('@/server/auth/reautenticacao', () => ({ exigirReautenticacao: async () => null }))
 
 const { getSessionEmail } = vi.hoisted(() => ({ getSessionEmail: vi.fn() }))
 vi.mock('@/server/session', () => ({ getSessionEmail }))

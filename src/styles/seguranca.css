@@ -1,0 +1,28 @@
+/* ============================================================================
+   CONFIRMAÇÃO POR SENHA (frente A, 17/11/2026) — só o que é DESTE diálogo.
+
+   O véu, a caixa, os botões e os campos vêm de base.css (.modal-bg, .modal, .btn,
+   .tinput), com os tokens de tema claro e escuro; alvos de toque de 44 px já valem
+   para .btn e .tinput. Aqui entra apenas o que muda:
+
+   - a camada: o diálogo abre POR CIMA do modal do site (z-index do modal + 5) e
+     fica abaixo do toast (z-index do toast = modal + 10), para o aviso de erro de
+     uma ação continuar aparecendo;
+   - o campo do código de 6 dígitos: grande, centrado e com número de largura fixa,
+     para o olho conferir o que digitou;
+   - a linha de ações secundárias ("Já tenho um código", "Reenviar código").
+   ========================================================================= */
+
+.modal-bg.confirma-bg{z-index:calc(var(--ro-z-modal) + 5)}
+
+.modal.confirma{max-width:420px}
+.confirma .tinput{margin-bottom:0}
+
+.confirma .tinput.confirma-codigo{
+  text-align:center;font-size:1.5rem;font-weight:var(--ro-peso-semi);
+  letter-spacing:.4em;font-variant-numeric:tabular-nums;
+  padding-left:calc(13px + .4em); /* o espaçamento depois do último dígito empurraria o número para a esquerda */
+}
+
+.confirma-extra{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.confirma-extra .btn{flex:1 1 100%}

@@ -37,6 +37,7 @@ import { useState, type ReactNode } from 'react'
 import { brl } from '@/domain/money'
 import type { Cents } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { useModal } from '@/components/ui/Modal'
 import {
   iniciarOfertaPrePaga,
@@ -59,6 +60,9 @@ export function ModalOfertaPrePaga({
 }: ModalOfertaPrePagaProps): ReactNode {
   const { me, run, taxas } = useApp()
   const { close } = useModal()
+  // A oferta pré-paga é compra comprometida: pede a senha por janela de 5 minutos (frente A). O diálogo abre por
+  // cima deste pop-up, que continua aberto (o `close()` só vem depois do pagamento).
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
@@ -73,7 +77,7 @@ export function ModalOfertaPrePaga({
     setEnviando(true)
     setErro('')
     try {
-      const res = await run(() => publicarOfertaPrePagaComSaldo(qty, precoUnit, tipoMoeda))
+      const res = await run(() => confirmar(() => publicarOfertaPrePagaComSaldo(qty, precoUnit, tipoMoeda)))
       if (res.ok) close()
     } finally {
       setEnviando(false)
@@ -84,9 +88,10 @@ export function ModalOfertaPrePaga({
     setEnviando(true)
     setErro('')
     try {
-      const res = await iniciarOfertaPrePaga(qty, precoUnit, tipoMoeda, forma)
+      const res = await confirmar(() => iniciarOfertaPrePaga(qty, precoUnit, tipoMoeda, forma))
       if (!res.ok || !res.data) {
-        setErro(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
+        // Falha sem texto de erro = a pessoa desistiu da confirmação: não há o que avisar.
+        if (res.error || res.ok) setErro(res.error ?? 'Não foi possível abrir a cobrança. Tente novamente.')
         return
       }
       if (forma === 'pix' && res.data.forma === 'pix') {
@@ -240,6 +245,7 @@ export function ModalOfertaPrePaga({
           Fechar
         </button>
       </div>
+      {dialogo}
     </>
   )
 }

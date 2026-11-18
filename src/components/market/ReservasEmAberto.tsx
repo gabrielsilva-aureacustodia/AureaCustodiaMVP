@@ -25,6 +25,7 @@ import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
 import { useApp } from '@/components/providers/AppProvider'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import {
   listarMinhasReservas,
   pagarReservaComSaldo,
@@ -40,6 +41,9 @@ function mmss(ms: number): string {
 
 export function ReservasEmAberto(): ReactNode {
   const { run } = useApp()
+  // Pagar a reserva com o saldo fecha uma compra: pede a senha por janela de 5 minutos (frente A). O prazo da reserva
+  // continua correndo enquanto o diálogo está aberto — por isso quem acabou de confirmar uma compra não é perguntado de novo.
+  const { confirmar, dialogo } = useConfirmarSenha()
   const [reservas, setReservas] = useState<ReservaNaTela[]>([])
   const [tick, setTick] = useState(0)
 
@@ -60,7 +64,8 @@ export function ReservasEmAberto(): ReactNode {
     }
   }, [])
 
-  if (reservas.length === 0) return null
+  // Sem reserva não há bloco, mas o diálogo (quando aberto) não pode sumir junto: a espera dele ficaria pendurada.
+  if (reservas.length === 0) return dialogo
 
   return (
     <section className="panel warn-box reservas" role="region" aria-label="Compras reservadas aguardando pagamento">
@@ -110,7 +115,7 @@ export function ReservasEmAberto(): ReactNode {
               className="btn btn-gold auto"
               disabled={restante <= 0}
               onClick={async () => {
-                const res = await run(() => pagarReservaComSaldo(r.id))
+                const res = await run(() => confirmar(() => pagarReservaComSaldo(r.id)))
                 if (res.ok) await carregar()
               }}
             >
@@ -123,6 +128,7 @@ export function ReservasEmAberto(): ReactNode {
       <div className="note">
         Sem saldo suficiente? Deposite em Minha Conta e volte aqui — o prazo continua correndo.
       </div>
+      {dialogo}
     </section>
   )
 }

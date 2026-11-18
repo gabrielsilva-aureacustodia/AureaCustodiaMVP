@@ -32,6 +32,8 @@ import type { ActionResult, Cadastro, Cents, Saque } from '@/domain/types'
 import { emailValido, ehEmailProtegido, normalizarEmail } from '@/domain/admin/permissoes'
 import { createAuthClient } from '@/server/auth/client'
 import { AuthConfigurationError } from '@/server/auth/config'
+import { exigirReautenticacao } from '@/server/auth/reautenticacao'
+import { camposBancariosAlterados, registrarEventoDeSeguranca } from '@/server/auth/reautenticacao-eventos'
 import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { portaDeIdentidadeDoAmbiente } from '@/server/admin/portas'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
@@ -121,6 +123,10 @@ export async function changePassword(
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
+  // A "senha atual" da tela já é a confirmação (a guarda a confere e não abre o modal); conta só Google confirma por código.
+  const bloqueio = await exigirReautenticacao('sempre', { senhaDigitada: atual })
+  if (bloqueio) return bloqueio
+
   try {
     const client = await createAuthClient()
     const { error: loginError } = await client.auth.signInWithPassword({
@@ -135,6 +141,9 @@ export async function changePassword(
 
     const { error: updateError } = await client.auth.updateUser({ password: nova })
     if (updateError) return { ok: false, error: FALHA_GRAVACAO }
+
+    // Evento de segurança (A → C): a senha mudou. Nunca derruba a troca; ver reautenticacao-eventos.ts.
+    await registrarEventoDeSeguranca({ tipo: 'senha_alterada', conta: email })
 
     return {
       ok: true,
@@ -226,6 +235,10 @@ export async function updatePersonal(
   const mudouEmail = para !== de
 
   if (!mudouEmail) {
+    // Nome é dado pessoal: pede a confirmação (D3). Fica depois do "nome válido" para o erro de digitação não gastar a senha.
+    const bloqueioNome = await exigirReautenticacao('sempre')
+    if (bloqueioNome) return bloqueioNome
+
     try {
       const { result } = await mutateState<ActionResult<{ emailAlterado: boolean }>>((s) => {
         const u = s.users[de]
@@ -280,6 +293,11 @@ export async function updatePersonal(
     }
   }
 
+  // Troca de e-mail — e, em conta Google, definição de senha nova e desvínculo do Google: é o caminho de tomada de
+  // conta. A confirmação entra DEPOIS das conferências de e-mail e ANTES de qualquer efeito no Supabase ou no banco.
+  const bloqueioEmail = await exigirReautenticacao('sempre')
+  if (bloqueioEmail) return bloqueioEmail
+
   // Atualiza no Supabase Auth se configurado
   if (porta.configurada && identidadeId) {
     const resp = await porta.atualizarLogin(identidadeId, {
@@ -306,6 +324,15 @@ export async function updatePersonal(
 
     // Atualiza o cookie de sessão para manter o usuário conectado com o novo e-mail
     await setSession(para)
+
+    // Evento de segurança (A → C): o e-mail da conta mudou. Em conta Google a troca também define senha nova e
+    // desvincula o Google — o caminho de tomada de conta —, e isso vai nos detalhes (sem a senha em si).
+    await registrarEventoDeSeguranca({
+      tipo: 'email_alterado',
+      conta: de,
+      tambemAfeta: [para],
+      detalhes: { de, para, senhaDefinida: Boolean(senha), googleDesvinculado: ehGoogle },
+    })
 
     return {
       ok: true,
@@ -434,6 +461,34 @@ export interface CadastroInput {
   }
 }
 
+/*
+ * Comparação do que o cliente digitou com o que está gravado, para saber se salvar o cadastro MUDA algo.
+ * As duas pontas são levadas ao mesmo formato (sem espaço nas bordas, UF em maiúscula, só dígitos em CEP e
+ * telefone, campo vazio = ausente). Funções comuns, não exportadas: arquivo 'use server' só exporta ação.
+ */
+function assinaturaDosDadosPessoais(d: {
+  cpf: string
+  nomeCompleto: string
+  dataNascimento: string
+  telefone: string
+  endereco: { logradouro: string; numero: string; complemento?: string; bairro: string; cidade: string; uf: string; cep: string }
+}): string {
+  const e = d.endereco
+  return JSON.stringify([
+    limparCpf(d.cpf),
+    d.nomeCompleto.trim(),
+    d.dataNascimento.trim(),
+    d.telefone.replace(/\D/g, ''),
+    e.logradouro.trim(),
+    e.numero.trim(),
+    e.complemento?.trim() || '',
+    e.bairro.trim(),
+    e.cidade.trim(),
+    e.uf.trim().toUpperCase(),
+    e.cep.replace(/\D/g, ''),
+  ])
+}
+
 /**
  * Salva ou atualiza o cadastro formal progressivo do usuário autenticado (sessão B-1).
  *
@@ -493,6 +548,36 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
     }
   }
 
+  // MUDAR UM CADASTRO JÁ GRAVADO PEDE CONFIRMAÇÃO (Pix, banco, CPF, nome, telefone, endereço — D3).
+  // O PRIMEIRO preenchimento não pede: não há Pix antigo a proteger, e o saque seguinte já exige a senha.
+  // Salvar sem mudar nada também não pede (a tela reenvia o formulário inteiro ao confirmar).
+  // `camposBancarios` (nomes dos campos de Pix/banco que mudam) serve à guarda daqui e ao evento de segurança lá embaixo:
+  // uma régua só para "mudou o Pix?".
+  const cadastroGravado = (await getState()).users[email]?.cadastro
+  const camposBancarios = camposBancariosAlterados(cadastroGravado?.dadosBancarios, db)
+  if (cadastroGravado) {
+    const mudou =
+      camposBancarios.length > 0 ||
+      assinaturaDosDadosPessoais({
+        cpf: cadastroGravado.cpf,
+        nomeCompleto: cadastroGravado.nomeCompleto,
+        dataNascimento: cadastroGravado.dataNascimento,
+        telefone: cadastroGravado.telefone,
+        endereco: cadastroGravado.endereco,
+      }) !==
+        assinaturaDosDadosPessoais({
+          cpf: limparCpf(input.cpf),
+          nomeCompleto,
+          dataNascimento,
+          telefone,
+          endereco: { ...end, cep, uf: end.uf.trim() },
+        })
+    if (mudou) {
+      const bloqueio = await exigirReautenticacao('sempre')
+      if (bloqueio) return bloqueio
+    }
+  }
+
   try {
     const { result } = await mutateState<ActionResult>((s) => {
       const u = s.users[email]
@@ -530,6 +615,17 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
         message: 'Cadastro concluído com sucesso.',
       }
     })
+
+    // Evento de segurança (A → C): o destino do dinheiro do saque mudou. Só Pix e banco entram — mudar nome ou
+    // endereço pede a senha mas não é evento de segurança (D3). O primeiro preenchimento também fica na trilha, com
+    // `primeiroCadastro: true`, para a C decidir se avisa; vão só os NOMES dos campos, nunca a chave.
+    if (result.ok && (!cadastroGravado || camposBancarios.length > 0)) {
+      await registrarEventoDeSeguranca({
+        tipo: 'pix_alterado',
+        conta: email,
+        detalhes: { primeiroCadastro: !cadastroGravado, campos: camposBancarios },
+      })
+    }
     return result
   } catch {
     return { ok: false, error: FALHA_GRAVACAO }
@@ -593,6 +689,10 @@ export async function solicitarSaque(
       error: `O valor mínimo para saque é de ${brl(tarifaSaque + 1).replace(/\s/g, ' ')} (para cobrir a tarifa fixa de ${brl(tarifaSaque)}).`,
     }
   }
+
+  // SAQUE SEMPRE PEDE A SENHA (ou o código, em conta só Google) — D3. Era o caminho do dinheiro de uma conta invadida.
+  const bloqueio = await exigirReautenticacao('sempre')
+  if (bloqueio) return bloqueio
 
   try {
     const { result } = await mutateState<ActionResult<SolicitacaoSaqueResult>>((s) => {

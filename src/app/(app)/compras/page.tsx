@@ -17,6 +17,7 @@ import { ComoNegociacaoAcontece } from '@/components/market/ComoNegociacaoAconte
 import { MinhasOfertas } from '@/components/market/MinhasOfertas'
 import { TipoSelector } from '@/components/market/TipoSelector'
 import { useApp } from '@/components/providers/AppProvider'
+import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { tiposNegociaveis } from '@/domain/constants'
@@ -35,6 +36,7 @@ export default function ComprasPage(): ReactNode {
   const { state, me, run, taxas, catalogo } = useApp()
   const toast = useToast()
   const { open } = useModal()
+  const { confirmar, dialogo } = useConfirmarSenha()
 
   /** Tipos que a plataforma aceita negociar hoje — do catálogo vigente. */
   const NEGOCIAVEIS = tiposNegociaveis(catalogo)
@@ -104,7 +106,9 @@ export default function ComprasPage(): ReactNode {
       return
     }
 
-    const res = await run(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo, modalidadeBid))
+    // A oferta de compra compromete dinheiro (casa sozinha): pede a senha por janela de 5 minutos (frente A).
+    // Se a pessoa desiste da confirmação, o resultado vem sem texto e o formulário fica como estava.
+    const res = await run(() => confirmar(() => publishBid(qtyRaw, bidPriceCents, tipoAtivo, modalidadeBid)))
     if (!res.ok) return
 
     setBidQty('1')
@@ -337,6 +341,7 @@ export default function ComprasPage(): ReactNode {
         Todas as moedas são armazenadas com segurança no Real Olímpico. A plataforma não recomenda
         preço; valores são definidos por oferta e demanda.
       </div>
+      {dialogo}
     </>
   )
 }
