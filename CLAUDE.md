@@ -221,7 +221,12 @@ cold start.
 - **Correios por contrato (Platinum 1, API CWS, 22/10/2026).** O envio do cliente para a custódia é
   **logística reversa**: o cliente **paga o frete no site** pelo preço do contrato, sem margem (decisão do
   Gabriel), por saldo, Pix ou cartão (`frete_envio`, ledger `frete`). É **despesa do cliente** (contador, 23/10/2026):
-  sem NFS-e e fora do resultado da DRE inteiro — nem receita, nem abatimento de despesa; pago, o
+  sem NFS-e e fora do resultado da DRE inteiro — nem receita, nem abatimento de despesa. **Desde 18/11/2026 o frete
+  cobrado soma R$ 4,00 ao preço do contrato** (pedido do Rogério, item 11; parâmetro `acrescimoDoFreteCents`, padrão 400,
+  editável em `/admin/configuracao`, somado dentro de `calcularFreteCorreios`; `Envio.frete.valorCents` é o total cobrado e
+  `valorContratoCents`/`acrescimoCents` guardam o preço do contrato à parte; a retirada não cobra frete dos Correios).
+  **Falta o contador dizer como esse acréscimo se classifica** (pergunta nº 21 em `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`)
+  e o Gabriel confirmar D5 e o texto da tela — até lá, nada fiscal foi codificado para ele. Pago, o
   servidor cria a pré-postagem e o cliente imprime a etiqueta oficial e posta de graça. O código de rastreio
   nasce nos Correios — a API de rastreio só enxerga objetos do contrato. A retirada ganha etiqueta de saída
   emitida no `/admin/logistica`. O job diário avança sozinho o envio para "Envio postado" e a retirada para
