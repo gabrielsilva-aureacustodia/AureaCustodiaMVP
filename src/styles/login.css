@@ -65,4 +65,79 @@
 .pw-toggle.on svg{stroke:var(--gold)}
 
 .login-error{color:var(--red);font-size:13px;min-height:18px;margin-bottom:10px}
+
+/* ============================================================================
+   GOOGLE PRIMEIRO (frente D — /cadastrar e /entrar)
+
+   O botão do Google é a ação principal; e-mail e senha ficam num <details>
+   recolhido. Todos os seletores levam `.pub-auth` na frente de propósito: este
+   arquivo é importado ANTES de landing.css, e as regras antigas de lá
+   (.register-card, .auth-feedback, .register-signinwrap, .auth-google) têm a
+   mesma especificidade de uma classe só — sem o prefixo elas vencem pela ordem.
+   landing.css não é desta frente e não foi tocado.
+   ========================================================================= */
+
+/* O cartão de cadastro era largo (720px) por causa da grade de quatro campos; com o Google em cima, um botão
+   esticado em 720px fica desproporcional. 520px acomoda o botão e ainda deixa o formulário de e-mail legível. */
+.pub-auth .register-card{width:min(100%,520px)}
+
+/* Botão do Google: grande no topo (56px), com o "G" num selo branco — o G colorido só pode ficar sobre fundo claro. */
+.pub-auth .auth-primary{min-height:56px;padding:12px 18px;gap:12px;font-size:1.0625rem;line-height:1.25;text-align:center}
+.pub-auth .auth-google-g{display:inline-flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgb(0 0 0 / .22)}
+.pub-auth .auth-google-g svg{width:18px;height:18px}
+
+/* Declaração legal sob o botão: fica visível junto da ação, não escondida no formulário de e-mail. */
+.pub-auth .auth-legal-topo{margin:12px 0 0}
+
+/* Região de aviso vazia não ocupa espaço (a de cima só tem texto quando o servidor ou o Google devolve algo). */
+.pub-auth .auth-feedback:empty{min-height:0;margin:0}
+.pub-auth .auth-feedback:not(:empty){margin:12px 0 0}
+.pub-auth .auth-alt .auth-feedback:not(:empty){margin:4px 0 10px}
+
+/* "Prefiro usar e-mail e senha" — <details> nativo. O resumo tem 48px de alto (alvo de toque ≥ 44px) e o foco
+   visível vem do :focus-visible global de base.css. */
+.pub-auth .auth-alt{margin-top:20px;border-top:1px solid var(--line-soft)}
+.pub-auth .auth-alt>summary{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:6px 2px;
+  cursor:pointer;list-style:none;color:var(--ro-primaria-texto);font-weight:var(--ro-peso-semi);font-size:.9375rem;
+  border-radius:var(--ro-raio-sm);-webkit-tap-highlight-color:transparent;
+}
+.pub-auth .auth-alt>summary::-webkit-details-marker{display:none}
+.pub-auth .auth-alt>summary svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pub-auth .auth-alt>summary:hover{color:var(--ro-primaria-forte)}
+.pub-auth .auth-alt[open]>summary svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:no-preference){
+  .pub-auth .auth-alt>summary svg{transition:transform var(--ro-dur-rapida) ease}
+}
+.pub-auth .auth-alt-corpo{padding:6px 0 4px}
+.pub-auth .auth-alt-dica{margin:0 0 14px;color:var(--text-muted);font-size:13px;line-height:1.45}
+.pub-auth .auth-alt .btn{width:100%}
+
+/* "Veja como se cadastrar" (DemonstracaoDoCadastro): vídeo mudo opcional + passos numerados em texto. A caixa do
+   vídeo tem proporção fixa (a do próprio arquivo quando ele carrega) para a página não pular quando o player abre. */
+.pub-auth .auth-demo{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-soft)}
+.pub-auth .auth-demo-titulo{margin:0 0 12px;font-family:var(--ff-display);font-size:1.25rem;line-height:1.2;color:var(--text-strong)}
+.pub-auth .auth-demo-video{
+  display:block;width:100%;height:auto;max-height:420px;aspect-ratio:auto 4 / 3;object-fit:contain;
+  margin:0 0 14px;border:1px solid var(--line-soft);border-radius:var(--ro-raio-md);background:var(--bg);
+}
+.pub-auth .auth-demo-passos{list-style:none;counter-reset:passo;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.pub-auth .auth-demo-passos li{
+  counter-increment:passo;display:flex;gap:12px;align-items:flex-start;
+  color:var(--text);font-size:.9375rem;line-height:1.5;
+}
+/* O número fica num selo redondo de 28px; `flex:none` impede que ele amasse quando o texto é longo. */
+.pub-auth .auth-demo-passos li::before{
+  content:counter(passo);flex:none;display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;margin-top:-1px;border-radius:50%;
+  border:1px solid var(--ro-primaria);color:var(--ro-primaria-texto);font-size:.8125rem;font-weight:var(--ro-peso-semi);
+}
+
+/* Telas estreitas (320–400px): o rótulo "Continuar com o Google" cabia em duas linhas porque o cartão perdia 48px só
+   de enchimento. Menos enchimento lateral e o texto em 16px mantêm o botão numa linha, ainda com 56px de alto. */
+@media (max-width:400px){
+  .pub-auth .register-card,.pub-auth .login-card{padding-left:16px;padding-right:16px}
+  .pub-auth .auth-primary{padding:12px 10px;gap:8px;font-size:1rem}
+  .pub-auth .auth-google-g{width:30px;height:30px}
+}
 .env-tag{margin-top:16px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted)}

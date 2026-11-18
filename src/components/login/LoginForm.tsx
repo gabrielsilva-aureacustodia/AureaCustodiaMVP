@@ -6,6 +6,11 @@
  * A página continua sendo Server Component para barrar quem já está logado;
  * este filho concentra apenas estado de formulário, acessibilidade e a chamada
  * à Server Action. Nenhum cliente ou segredo do Supabase cruza esta fronteira.
+ *
+ * Google primeiro (frente D, item 4 do Rogério, 17/11/2026): "Entrar com o Google" é a ação principal e e-mail e
+ * senha — os mesmos campos, olho de revelar e chamada de `login` de antes — ficaram recolhidos em "Prefiro usar
+ * e-mail e senha". Os avisos seguem a regra do RegisterForm: o que vem do servidor (conta desativada, retorno do
+ * OAuth, e-mail confirmado) e o erro do Google aparecem sob o botão do Google; erro da senha, dentro do bloco.
  */
 
 import Link from 'next/link'
@@ -16,6 +21,8 @@ import type { FormEvent, ReactNode } from 'react'
 import { login, loginWithGoogle } from '@/server/actions/auth'
 
 import { AuthShell } from './AuthShell'
+import { EmailAlternativo } from './EmailAlternativo'
+import { GoogleButton } from './GoogleButton'
 
 const PW_REVEAL_MS = 3000
 const ERRO_GENERICO = 'Não foi possível entrar. Tente novamente.'
@@ -53,6 +60,8 @@ export function LoginForm({
   const [mensagem, setMensagem] = useState(initialMessage)
   const [revelada, setRevelada] = useState(false)
   const [enviando, setEnviando] = useState(false)
+  // Em qual das duas regiões de aviso o texto aparece (ver o cabeçalho do arquivo).
+  const [ondeAvisar, setOndeAvisar] = useState<'topo' | 'email'>('topo')
   const timerRevelar = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -66,6 +75,7 @@ export function LoginForm({
   async function entrar(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     if (enviando) return
+    setOndeAvisar('email')
     setEnviando(true)
     setErro('')
     setMensagem('')
@@ -85,6 +95,7 @@ export function LoginForm({
 
   async function entrarGoogle(): Promise<void> {
     if (enviando) return
+    setOndeAvisar('topo')
     setEnviando(true)
     setErro('')
     setMensagem('')
@@ -101,6 +112,14 @@ export function LoginForm({
     }
   }
 
+  // Mesmo conteúdo para as duas regiões de aviso; só uma delas o recebe (ver o cabeçalho do arquivo).
+  const avisos = (
+    <>
+      {erro ? <p className="login-error">{erro}</p> : null}
+      {mensagem ? <p className="auth-success">{mensagem}</p> : null}
+    </>
+  )
+
   return (
     <AuthShell titulo="Acesse sua conta e acompanhe sua coleção.">
       <section className="login-card" aria-labelledby="login-title">
@@ -109,65 +128,60 @@ export function LoginForm({
         </h1>
         <p className="login-sub">Entre com a conta confirmada dos sócios.</p>
 
-        <form onSubmit={(event) => void entrar(event)}>
-          <div className="field">
-            <label htmlFor="loginEmail">E-mail</label>
-            <input
-              id="loginEmail"
-              type="email"
-              placeholder="seuemail@exemplo.com.br"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
+        <GoogleButton rotulo="Entrar com o Google" disabled={enviando} onClick={() => void entrarGoogle()} />
+        <div className="auth-feedback" aria-live="polite">
+          {ondeAvisar === 'topo' ? avisos : null}
+        </div>
 
-          <div className="field">
-            <label htmlFor="loginPass">Senha</label>
-            <div className="pw-wrap">
+        <EmailAlternativo aberto={Boolean(initialError)}>
+          <form onSubmit={(event) => void entrar(event)}>
+            <div className="field">
+              <label htmlFor="loginEmail">E-mail</label>
               <input
-                id="loginPass"
-                type={revelada ? 'text' : 'password'}
-                placeholder="••••••••"
-                autoComplete="current-password"
+                id="loginEmail"
+                type="email"
+                placeholder="seuemail@exemplo.com.br"
+                autoComplete="username"
                 required
-                value={senha}
-                onChange={(event) => setSenha(event.target.value)}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
               />
-              <button
-                type="button"
-                className={revelada ? 'pw-toggle on' : 'pw-toggle'}
-                onClick={() => setRevelada((value) => !value)}
-                aria-label={revelada ? 'Ocultar senha' : 'Mostrar senha'}
-                aria-pressed={revelada}
-                aria-controls="loginPass"
-              >
-                {revelada ? IconeOlhoCortado : IconeOlho}
-              </button>
             </div>
-          </div>
 
-          <div className="auth-feedback" aria-live="polite">
-            {erro ? <p className="login-error">{erro}</p> : null}
-            {mensagem ? <p className="auth-success">{mensagem}</p> : null}
-          </div>
+            <div className="field">
+              <label htmlFor="loginPass">Senha</label>
+              <div className="pw-wrap">
+                <input
+                  id="loginPass"
+                  type={revelada ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  required
+                  value={senha}
+                  onChange={(event) => setSenha(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className={revelada ? 'pw-toggle on' : 'pw-toggle'}
+                  onClick={() => setRevelada((value) => !value)}
+                  aria-label={revelada ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-pressed={revelada}
+                  aria-controls="loginPass"
+                >
+                  {revelada ? IconeOlhoCortado : IconeOlho}
+                </button>
+              </div>
+            </div>
 
-          <button className="btn btn-gold" type="submit" disabled={enviando}>
-            {enviando ? 'Entrando…' : 'Entrar'}
-          </button>
-          <div className="auth-divider" aria-hidden="true">
-            <span>ou</span>
-          </div>
-          <button
-            className="btn btn-outline auth-google"
-            type="button"
-            disabled={enviando}
-            onClick={() => void entrarGoogle()}
-          >
-            Entrar com Google
-          </button>
-        </form>
+            <div className="auth-feedback" aria-live="polite">
+              {ondeAvisar === 'email' ? avisos : null}
+            </div>
+
+            <button className="btn btn-outline" type="submit" disabled={enviando}>
+              {enviando ? 'Entrando…' : 'Entrar'}
+            </button>
+          </form>
+        </EmailAlternativo>
 
         <p className="auth-switch">
           {registrationOpen ? 'Ainda não tem conta?' : 'Novos cadastros estão fechados.'}{' '}
