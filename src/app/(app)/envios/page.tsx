@@ -74,6 +74,8 @@ import { normalizarRastreio, RASTREIO_INVALIDO, rastreioValido, textoDoRastreio 
 // Direto de `endereco-central`, nunca do barril `@/lib/shipping`: o barril arrasta
 // `correios.ts`, que é `server-only` e derrubaria o build deste Client Component.
 import { ENDERECO_CENTRAL_AUREA, RAZAO_SOCIAL_POSTAL } from '@/lib/shipping/endereco-central'
+// Direto de `acrescimo` (regra pura, sem `server-only`), pelo mesmo motivo: a frase "o valor do frete inclui…" (frente K).
+import { textoDoAcrescimoNoFrete } from '@/lib/shipping/acrescimo'
 import { isEnvioDesconsiderado, prazoPostagemEnvio, prePostagemAtiva } from '@/domain/envios'
 import { HistoricoEnvios } from '@/components/custody/HistoricoEnvios'
 import { CancelarEnvio } from '@/components/envios/CancelarEnvio'
@@ -350,6 +352,8 @@ export default function EnviosPage(): ReactNode {
   const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
   const [cotacaoFrete, setCotacaoFrete] = useState<{
     valorTotal: number
+    /** O acréscimo que `valorTotal` já inclui (frente K). */
+    acrescimo: number
     prazo: number
     origem: 'correios' | 'tabela'
   } | null>(null)
@@ -418,6 +422,7 @@ export default function EnviosPage(): ReactNode {
         if (cot.ok && cot.data) {
           setCotacaoFrete({
             valorTotal: cot.data.valorTotalCents,
+            acrescimo: cot.data.acrescimoCents,
             prazo: cot.data.prazoDiasUteis,
             origem: cot.data.origem,
           })
@@ -696,7 +701,10 @@ export default function EnviosPage(): ReactNode {
                 <b>Endereço:</b> {enderecoDescricao}
                 {cotacaoFrete && (
                   <div>
-                    <b>Estimativa Correios:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
+                    <b>Estimativa de frete:</b> {brl(cotacaoFrete.valorTotal)} (Prazo: {cotacaoFrete.prazo} dias úteis)
+                    {textoDoAcrescimoNoFrete(cotacaoFrete.acrescimo) && (
+                      <> — <i>{textoDoAcrescimoNoFrete(cotacaoFrete.acrescimo)}</i></>
+                    )}
                     {cotacaoFrete.origem === 'tabela' && (
                       <> — <i>estimativa local — contrato não configurado</i></>
                     )}
@@ -1289,8 +1297,9 @@ export default function EnviosPage(): ReactNode {
                   <>
                     {/* Frete + 1º mês de custódia + total: UM pagamento (D4, 17/11/2026). O servidor calcula tudo. */}
                     <ResumoDoPagamentoDoEnvio
-                      rotuloDoFrete={`Frete ${freteDoEnvio.modalidade} (contrato dos Correios)`}
+                      rotuloDoFrete={`Frete ${freteDoEnvio.modalidade} (Correios)`}
                       freteCents={freteDoEnvio.valorCents}
+                      acrescimoCents={freteDoEnvio.acrescimoCents}
                       primeiroMesCents={freteDoEnvio.primeiroMesCents}
                       primeiroMesJaPago={freteDoEnvio.primeiroMesJaPago}
                       totalCents={freteDoEnvio.totalCents}
@@ -1306,7 +1315,10 @@ export default function EnviosPage(): ReactNode {
                       </div>
                     </div>
                     <p className="campo-dica">
-                      O frete é o preço do contrato dos Correios, sem margem do Real Olímpico. Pago o envio, a etiqueta
+                      {freteDoEnvio.acrescimoCents
+                        ? 'O frete é o preço do contrato dos Correios mais a taxa de postagem do Real Olímpico.'
+                        : 'O frete é o preço do contrato dos Correios, sem margem do Real Olímpico.'}{' '}
+                      Pago o envio, a etiqueta
                       oficial sai na hora e você posta em qualquer agência sem pagar nada no balcão.
                       {freteDoEnvio.primeiroMesJaPago
                         ? ''

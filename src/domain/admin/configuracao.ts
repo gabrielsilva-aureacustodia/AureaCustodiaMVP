@@ -23,6 +23,7 @@ import { PARAMETROS_LEGAIS } from '@/domain/documentos-legais/parametros'
 import { comissaoPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import type { Cents, CoinType } from '@/domain/types'
+import { ACRESCIMO_DO_FRETE_PADRAO_CENTS } from '@/lib/shipping/acrescimo'
 
 import type { PrazosLogistica } from './logistica'
 import { emailValido } from './permissoes'
@@ -80,6 +81,8 @@ export const DEFINICOES_CONFIG: readonly DefinicaoConfig[] = [
   { chave: 'syncSegundos', grupo: 'operacional', tipo: 'inteiro', padrao: Math.round(SYNC_MS / 1000), min: 3, max: 120, unidade: 's', rotulo: 'Ciclo de sincronização', descricao: 'De quanto em quanto tempo a tela de cada cliente relê o estado da plataforma.' },
   { chave: 'prazoValidacaoDiasUteis', grupo: 'operacional', tipo: 'inteiro', padrao: 2, min: 1, max: 30, unidade: 'dia(s) útil(eis)', rotulo: 'Alerta de validação na bancada', descricao: 'Envio recebido há mais que isso, sem recibo, aparece em vermelho na logística.' },
   { chave: 'prazoTransitoEnvioDias', grupo: 'operacional', tipo: 'inteiro', padrao: 15, min: 1, max: 120, unidade: 'dias', rotulo: 'Alerta de envio em trânsito', descricao: 'Envio postado há mais que isso, sem chegar ao cofre, aparece em vermelho na logística.' },
+  // Frente K (18/11/2026). NÃO é taxa de negociação: não entra em TabelaDeTaxas nem publica versão da Tabela de Taxas.
+  { chave: 'acrescimoDoFreteCents', grupo: 'operacional', tipo: 'centavos', padrao: ACRESCIMO_DO_FRETE_PADRAO_CENTS, min: 0, max: 100_000, rotulo: 'Frete do envio — acréscimo sobre o contrato dos Correios', descricao: 'Somado ao preço do contrato, por envio postado. O preço do contrato fica guardado à parte, para conferir com a fatura dos Correios. Vale para as cotações novas; frete já cotado mantém o valor.' },
 
   // Termos — mudar qualquer um publica versão nova dos Termos de Uso.
   { chave: 'termosVigencia', grupo: 'termos', tipo: 'texto', formato: 'data', padrao: PARAMETROS_LEGAIS.vigencia, rotulo: 'Entrada em vigor', descricao: 'Data que o texto dos Termos declara (dd/mm/aaaa).' },
@@ -242,6 +245,8 @@ export interface ParametrosOperacionais {
   depositoMaxCents: Cents
   syncMs: number
   prazos: PrazosLogistica
+  /** Acréscimo somado ao preço do contrato dos Correios no frete do envio (frente K). */
+  acrescimoDoFreteCents: Cents
 }
 
 export function operacionalDe(v: ValoresConfig): ParametrosOperacionais {
@@ -249,6 +254,7 @@ export function operacionalDe(v: ValoresConfig): ParametrosOperacionais {
     depositoMaxCents: Number(v.depositoMaxCents),
     syncMs: Number(v.syncSegundos) * 1000,
     prazos: { validacaoDiasUteis: Number(v.prazoValidacaoDiasUteis), transitoEnvioDias: Number(v.prazoTransitoEnvioDias) },
+    acrescimoDoFreteCents: Number(v.acrescimoDoFreteCents),
   }
 }
 

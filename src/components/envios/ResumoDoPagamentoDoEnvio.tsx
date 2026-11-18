@@ -15,12 +15,19 @@ import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
 import type { Cents } from '@/domain/types'
+import { textoDoAcrescimoNoFrete } from '@/lib/shipping/acrescimo'
 import { LinhaCustodiaNaCompra } from '../market/LinhaCustodiaNaCompra'
 
 export interface ResumoDoPagamentoDoEnvioProps {
-  /** Texto do rótulo do frete, ex.: "Frete SEDEX (contrato dos Correios)". */
+  /** Texto do rótulo do frete, ex.: "Frete SEDEX". */
   rotuloDoFrete: string
+  /** O frete que o cliente paga — o preço do contrato dos Correios JÁ somado ao acréscimo. */
   freteCents: Cents
+  /**
+   * O acréscimo que `freteCents` já inclui (frente K, 18/11/2026). Maior que zero, a tela diz que o valor o
+   * inclui; ele não é uma linha a mais, porque já está dentro do frete e do total.
+   */
+  acrescimoCents?: Cents
   /** O 1º mês que o mesmo pagamento cobra (0 quando já foi pago). */
   primeiroMesCents: Cents
   primeiroMesJaPago: boolean
@@ -31,16 +38,23 @@ export interface ResumoDoPagamentoDoEnvioProps {
 export function ResumoDoPagamentoDoEnvio({
   rotuloDoFrete,
   freteCents,
+  acrescimoCents = 0,
   primeiroMesCents,
   primeiroMesJaPago,
   totalCents,
 }: ResumoDoPagamentoDoEnvioProps): ReactNode {
+  const avisoDoAcrescimo = textoDoAcrescimoNoFrete(acrescimoCents)
   return (
     <div className="summary-box passo-resumo" data-testid="resumo-pagamento-envio">
       <div className="summary-row">
         <span className="k">{rotuloDoFrete}</span>
         <span className="v">{brl(freteCents)}</span>
       </div>
+      {avisoDoAcrescimo ? (
+        <p className="campo-dica" data-testid="frete-acrescimo">
+          {avisoDoAcrescimo}
+        </p>
+      ) : null}
       {primeiroMesJaPago ? (
         <div className="summary-row">
           <span className="k">Custódia (1º mês)</span>

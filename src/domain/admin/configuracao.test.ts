@@ -38,7 +38,12 @@ describe('catálogo de configuração', () => {
   it('sem nada gravado, tudo vale o padrão do código', () => {
     const v = valoresVigentes({})
     expect(tabelaDeTaxasDe(v)).toEqual(TAXAS_PADRAO)
-    expect(operacionalDe(v)).toEqual({ depositoMaxCents: DEPOSITO_MAX, syncMs: SYNC_MS, prazos: { validacaoDiasUteis: 2, transitoEnvioDias: 15 } })
+    expect(operacionalDe(v)).toEqual({
+      depositoMaxCents: DEPOSITO_MAX,
+      syncMs: SYNC_MS,
+      prazos: { validacaoDiasUteis: 2, transitoEnvioDias: 15 },
+      acrescimoDoFreteCents: 400,
+    })
     expect(termosDe(v)).toEqual({
       vigencia: PARAMETROS_LEGAIS.vigencia,
       prazoValidacaoCustodia: PARAMETROS_LEGAIS.prazoValidacaoCustodia,
@@ -113,6 +118,48 @@ describe('mudanças de um grupo', () => {
     const r = prepararMudancas('taxas', { comissaoCompradorBp: 'x', taxaSaqueFixa: '6,00' }, {})
     expect(r.ok).toBe(false)
     expect(prepararMudancas('sistema', { tabelaDeTaxasVigencia: '01/01/2027' }, {}).ok).toBe(false)
+  })
+})
+
+describe('acréscimo do frete (frente K)', () => {
+  it('é um parâmetro OPERACIONAL, não uma taxa: fora da TabelaDeTaxas e do documento da Tabela de Taxas', () => {
+    expect(def('acrescimoDoFreteCents').grupo).toBe('operacional')
+    expect(Object.keys(TAXAS_PADRAO)).not.toContain('acrescimoDoFreteCents')
+    expect(Object.keys(tabelaDeTaxasDe(valoresVigentes({ acrescimoDoFreteCents: 900 })))).not.toContain('acrescimoDoFreteCents')
+  })
+
+  it('o padrão é R$ 4,00 e o valor gravado vale; zero é aceito (sem acréscimo)', () => {
+    expect(operacionalDe(valoresVigentes({})).acrescimoDoFreteCents).toBe(400)
+    expect(operacionalDe(valoresVigentes({ acrescimoDoFreteCents: 650 })).acrescimoDoFreteCents).toBe(650)
+    expect(operacionalDe(valoresVigentes({ acrescimoDoFreteCents: 0 })).acrescimoDoFreteCents).toBe(0)
+  })
+
+  it('valor gravado inválido cai no padrão — banco editado à mão não zera nem embute lixo no frete', () => {
+    for (const lixo of ['quatro', -100, 4.5, null, 100_001]) {
+      expect(operacionalDe(valoresVigentes({ acrescimoDoFreteCents: lixo })).acrescimoDoFreteCents).toBe(400)
+    }
+  })
+
+  it('a tela edita pelo grupo operacional: "5,50" grava 550 e guarda o valor de antes para o histórico', () => {
+    const r = prepararMudancas('operacional', { acrescimoDoFreteCents: '5,50' }, {})
+    expect(r).toEqual({
+      ok: true,
+      mudancas: [
+        {
+          chave: 'acrescimoDoFreteCents',
+          rotulo: 'Frete do envio — acréscimo sobre o contrato dos Correios',
+          antes: 400,
+          depois: 550,
+          eraPadrao: true,
+        },
+      ],
+    })
+    expect(valorParaCampo(def('acrescimoDoFreteCents'), 400)).toBe('4,00')
+    expect(prepararMudancas('operacional', { acrescimoDoFreteCents: 'abc' }, {}).ok).toBe(false)
+  })
+
+  it('editar o acréscimo pelo grupo de taxas não existe: ele não aparece lá', () => {
+    expect(prepararMudancas('taxas', { acrescimoDoFreteCents: '9,00' }, {})).toEqual({ ok: true, mudancas: [] })
   })
 })
 

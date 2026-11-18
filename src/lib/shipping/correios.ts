@@ -13,6 +13,8 @@ import 'server-only'
  *  - Valores monetários em centavos (`Cents`).
  */
 
+import { somarAcrescimoAoFrete } from './acrescimo'
+import { acrescimoVigenteDoFreteCents } from './acrescimo-vigente'
 import { correiosConfigurado, SERVICOS_CORREIOS } from './cws/config'
 import { cotarServico } from './cws/preco-prazo'
 import type { CotacaoFreteInput, CotacaoFreteResult, ModalidadeEnvio } from './types'
@@ -61,18 +63,41 @@ export function normalizarCep(cep: string): string {
   return cep.replace(/\D/g, '').padStart(8, '0').slice(0, 8)
 }
 
+/** A cotação como os Correios a devolvem — o preço do contrato, ainda SEM o acréscimo do Real Olímpico. */
+type CotacaoDoContrato = Omit<CotacaoFreteResult, 'valorContratoCents' | 'acrescimoCents'>
+
+type EntradaDaCotacao = CotacaoFreteInput & { sentido?: 'entrada' | 'saida'; quantidade?: number }
+
 /**
- * Prazo e frete de um envio de moedas, pelo contrato dos Correios.
+ * Prazo e frete de um envio de moedas: o preço do contrato dos Correios MAIS o acréscimo do Real Olímpico
+ * (frente K, 18/11/2026 — item 11 do Rogério; R$ 4,00 de padrão, editável em `/admin/configuracao`).
+ *
+ * O resultado separa as duas partes: `valorContratoCents` é o que os Correios cobram (para conferir com a
+ * fatura deles), `acrescimoCents` é o que se soma, e `valorTotalCents` — o que o cliente paga — é a soma. O
+ * acréscimo é aplicado AQUI, e não em quem chama, de propósito: a estimativa do passo 1, o frete que se paga e a
+ * tela leem o mesmo número, e nenhuma Server Action precisa saber dele. `acrescimoCents` na entrada fixa o valor
+ * (testes, scripts); sem ele, vale o parâmetro vigente do painel.
  *
  * `sentido` escolhe o serviço: `'entrada'` (padrão) é a logística reversa do cliente para a
- * custódia; `'saida'` é a retirada, da custódia para o cliente. Com o contrato configurado o valor
- * é o que os Correios vão faturar (`origem: 'correios'`) e uma falha deles SOBE como erro — até
- * 22/10/2026 a falha caía calada na tabela abaixo, e a tela mostrava um frete inventado como se
- * fosse o oficial. Sem contrato (desenvolvimento local), vale a tabela, marcada `origem: 'tabela'`.
+ * custódia; `'saida'` é a retirada, da custódia para o cliente. O ACRÉSCIMO É SÓ DO ENVIO (decisão do Gabriel,
+ * 18/11/2026, ao confirmar o D5): a retirada paga uma taxa fixa (`taxaRetiradaComum`/`taxaRetiradaSegura`), e o
+ * frete dela vai direto para a fatura do contrato — nenhuma ação cota a saída, e se uma cotar, ela sai SEM
+ * acréscimo (o valor passado à mão em `acrescimoCents` ainda vale, para quem souber o que está fazendo).
+ *
+ * Com o contrato configurado o valor do contrato é o que os Correios vão faturar (`origem: 'correios'`) e uma
+ * falha deles SOBE como erro — até 22/10/2026 a falha caía calada na tabela abaixo, e a tela mostrava um frete
+ * inventado como se fosse o oficial. Sem contrato (desenvolvimento local), vale a tabela, marcada `origem: 'tabela'`.
  */
-export async function calcularFreteCorreios(
-  input: CotacaoFreteInput & { sentido?: 'entrada' | 'saida'; quantidade?: number },
-): Promise<CotacaoFreteResult> {
+export async function calcularFreteCorreios(input: EntradaDaCotacao & { acrescimoCents?: number }): Promise<CotacaoFreteResult> {
+  const cotacao = await cotarPeloContrato(input)
+  const { valorContratoCents, acrescimoCents, valorCobradoCents } = somarAcrescimoAoFrete(
+    cotacao.valorTotalCents,
+    input.acrescimoCents ?? (input.sentido === 'saida' ? 0 : await acrescimoVigenteDoFreteCents()),
+  )
+  return { ...cotacao, valorContratoCents, acrescimoCents, valorTotalCents: valorCobradoCents }
+}
+
+async function cotarPeloContrato(input: EntradaDaCotacao): Promise<CotacaoDoContrato> {
   const { cepOrigem, cepDestino, modalidade, valorDeclaradoCents } = input
   validarModalidadeEnvio(modalidade)
 

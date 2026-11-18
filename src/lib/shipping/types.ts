@@ -48,9 +48,19 @@ export interface CotacaoFreteInput {
 export interface CotacaoFreteResult {
   modalidade: ModalidadeEnvio
   prazoDiasUteis: number
+  /** O serviço, pelo contrato (sem o acréscimo e sem o seguro). */
   valorFreteCents: Cents
+  /** Os serviços adicionais (valor declarado), pelo contrato. */
   valorSeguroCents: Cents
+  /**
+   * O que o CLIENTE PAGA: `valorContratoCents + acrescimoCents` (frente K, 18/11/2026). Até 17/11 era o próprio
+   * preço do contrato; quem lê este campo para cobrar continua certo sem mudar uma linha.
+   */
   valorTotalCents: Cents
+  /** O que os Correios cobram no contrato (frete + seguro) — é com este número que se confere a fatura deles. */
+  valorContratoCents: Cents
+  /** O acréscimo do Real Olímpico sobre o contrato (parâmetro editável no painel; R$ 4,00 de padrão). */
+  acrescimoCents: Cents
   avisoRecebimento: boolean
   maoPropria: boolean
   /**

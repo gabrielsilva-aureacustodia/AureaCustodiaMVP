@@ -56,6 +56,8 @@ vi.mock('@/server/config/carregar', async (importOriginal) => {
         ? base
         : { ...base, taxas: { ...base.taxas, custodiaMensalPorMoeda: tabela.custodiaMensalPorMoeda } }
     }),
+    // Frente K: este arquivo prova o 1º mês, não o frete — o acréscimo do frete fica zerado, como antes.
+    carregarParametrosOperacionais: vi.fn(async () => ({ ...(await original.carregarParametrosOperacionais()), acrescimoDoFreteCents: 0 })),
   }
 })
 
