@@ -166,7 +166,8 @@ export async function removerUser(tx: Consulta, email: UserEmail): Promise<void>
  * estrangeira:
  *  1. Confere se o novo e-mail já existe;
  *  2. Insere a nova linha em `aurea.users` clonando os dados do e-mail anterior;
- *  3. Reponta todas as tabelas dependentes do e-mail antigo para o novo;
+ *  3. Reponta todas as tabelas dependentes do e-mail antigo para o novo (inclusive os pedidos de NFS-e,
+ *     `nfse_emissoes.tomador_email`, para o cliente continuar vendo as notas que já tem);
  *  4. Remove a linha do e-mail antigo em `aurea.users`;
  *  5. Registra o evento na trilha de auditoria (`audit_log`).
  */
@@ -236,6 +237,13 @@ export async function renomearEmailUsuarioNoBanco(
   await tx.query(`UPDATE ${S}.planos_custodia SET user_email = $2 WHERE user_email = $1`, [de, para])
   await tx.query(`UPDATE ${S}.retiradas SET user_email = $2 WHERE user_email = $1`, [de, para])
   await tx.query(`UPDATE ${S}.payment_intents SET user_email = $2 WHERE user_email = $1`, [de, para])
+
+  // Notas fiscais (NFS-e): é por este e-mail que `/conta/notas` acha as notas do cliente. Sem esta linha, quem
+  // troca de e-mail perde de vista as que já tem (frente G, 18/11/2026). Não há chave estrangeira aqui, a chave
+  // de dedupe (`custodia:FAT-…`) vem do fato e não do e-mail, e o XML guardado não leva o e-mail do tomador
+  // (só CPF, nome e endereço): reapontar a coluna não mexe em nenhum documento fiscal. `lower()` espelha a
+  // consulta do cliente (`src/server/nfse/consulta.ts`), para uma linha gravada com outra caixa acompanhar também.
+  await tx.query(`UPDATE ${S}.nfse_emissoes SET tomador_email = $2 WHERE lower(tomador_email) = $1`, [de, para])
 
   const { rows: rAceites } = await tx.query<{ existe: string | null }>(
     `SELECT to_regclass($1)::text AS existe`,

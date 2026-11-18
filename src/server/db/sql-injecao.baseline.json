@@ -137,6 +137,10 @@
   "src/server/emails/fila.ts": [
     "S"
   ],
+  "src/server/nfse/consulta.ts": [
+    "COLUNAS",
+    "S"
+  ],
   "src/server/payments/recebimentos.ts": [
     "S"
   ],

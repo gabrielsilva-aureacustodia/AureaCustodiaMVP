@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { ehEmailProtegido } from '@/domain/admin/permissoes'
 import type { AppState, User } from '@/domain/types'
+import { listarNotasDoDono } from '@/server/nfse/consulta'
 import { aplicarMigrations } from './migrar'
 import { renomearEmailNoAppState, renomearEmailUsuarioNoBanco } from './repositories/users'
 import type { Consulta, Executor } from './sql'
@@ -199,6 +200,60 @@ describe('Renomeação de e-mail no banco de dados (PGlite)', () => {
         )
       }),
     ).rejects.toThrow('Já existe uma conta com este e-mail.')
+  })
+
+  it('as notas fiscais antigas continuam aparecendo para o dono depois da troca de e-mail (e só para ele)', async () => {
+    const antigo = 'cliente.com.notas@teste.com'
+    const novo = 'cliente.com.notas.novo@teste.com'
+    const outro = 'outro.cliente.nfse@teste.com'
+
+    // Pedido de nota autorizado (com o XML guardado) do cliente que vai trocar de e-mail, mais uma nota de OUTRO
+    // cliente: a troca não pode arrastar a nota dele junto, e a dele não pode aparecer na lista de quem trocou.
+    // `tomador_email` do antigo é gravado com outra caixa de propósito: a consulta compara em minúsculas.
+    await executar(async (tx) => {
+      await tx.query(`INSERT INTO aurea.users (email, name, balance) VALUES ($1, 'Com Notas', 0)`, [antigo])
+      await tx.query(`INSERT INTO aurea.users (email, name, balance) VALUES ($1, 'Outro Cliente', 0)`, [outro])
+      for (const [chave, ref, email, numero] of [
+        ['custodia:FAT-NFSE-1', 'FAT-NFSE-1', antigo.toUpperCase(), '41'],
+        ['custodia:FAT-NFSE-2', 'FAT-NFSE-2', antigo, '42'],
+        ['custodia:FAT-NFSE-3', 'FAT-NFSE-3', outro, '43'],
+      ]) {
+        await tx.query(
+          `INSERT INTO aurea.nfse_emissoes
+             (chave, servico, ref_fato, tomador_email, valor, ocorrido_em, competencia, descricao, quantidade_moedas,
+              status, ambiente, chave_acesso, numero_nfse, xml_nfse, autorizada_em, criado_em, atualizado_em)
+           VALUES ($1, 'custodia', $2, $3, 200, $5, '2026-11-16', 'CUSTODIA MENSAL - TESTE', 1,
+                   'autorizada', 'producao', $4, $6, '<NFSe/>', $5, $5, $5)`,
+          [chave, ref, email, `CHAVE-${ref}`, Date.UTC(2026, 10, 16, 18), numero],
+        )
+      }
+    })
+
+    const antes = await executar((tx) => listarNotasDoDono(tx, antigo))
+    expect(antes.map((n) => n.numero).sort()).toEqual(['41', '42'])
+
+    await executar((tx) => renomearEmailUsuarioNoBanco(tx, antigo, novo))
+
+    await executar(async (tx) => {
+      // As duas notas do cliente acompanham o e-mail novo, com os mesmos dados fiscais.
+      const depois = await listarNotasDoDono(tx, novo)
+      expect(depois.map((n) => n.numero).sort()).toEqual(['41', '42'])
+      expect(depois.every((n) => n.estado === 'emitida' && n.podeBaixar)).toBe(true)
+
+      // O e-mail velho não enxerga mais nada; o outro cliente continua com a nota dele, e só com ela.
+      expect(await listarNotasDoDono(tx, antigo)).toHaveLength(0)
+      const doOutro = await listarNotasDoDono(tx, outro)
+      expect(doOutro.map((n) => n.numero)).toEqual(['43'])
+
+      // A coluna guarda o e-mail normalizado, e o número, a chave de dedupe e o XML não mudaram.
+      const { rows } = await tx.query<{ chave: string; tomador_email: string; numero_nfse: string; xml_nfse: string }>(
+        `SELECT chave, tomador_email, numero_nfse, xml_nfse FROM aurea.nfse_emissoes
+          WHERE chave IN ('custodia:FAT-NFSE-1', 'custodia:FAT-NFSE-2') ORDER BY chave`,
+      )
+      expect(rows.map((r) => r.tomador_email)).toEqual([novo, novo])
+      expect(rows.map((r) => r.numero_nfse)).toEqual(['41', '42'])
+      expect(rows.every((r) => r.xml_nfse === '<NFSe/>')).toBe(true)
+    })
   })
 })
 
