@@ -38,6 +38,7 @@ import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { portaDeIdentidadeDoAmbiente } from '@/server/admin/portas'
 import { bancoConfigurado, executarNoBanco } from '@/server/db/client'
 import { renomearEmailNoAppState, renomearEmailUsuarioNoBanco } from '@/server/db/repositories/users'
+import { avisarSeguranca } from '@/server/emails'
 import { avisarClienteDoSaque, avisarEquipeDoNovoSaque } from '@/server/saques/avisos'
 import { getSessionEmail, setSession } from '@/server/session'
 import { getState, mutateState } from '@/server/state'
@@ -144,6 +145,8 @@ export async function changePassword(
 
     // Evento de segurança (A → C): a senha mudou. Nunca derruba a troca; ver reautenticacao-eventos.ts.
     await registrarEventoDeSeguranca({ tipo: 'senha_alterada', conta: email })
+    // E-mail de aviso (C): quem não fez a troca descobre na hora. Nunca derruba a troca — `avisarSeguranca` engole o erro.
+    await avisarSeguranca({ tipo: 'senha', para: email })
 
     return {
       ok: true,
@@ -333,6 +336,8 @@ export async function updatePersonal(
       tambemAfeta: [para],
       detalhes: { de, para, senhaDefinida: Boolean(senha), googleDesvinculado: ehGoogle },
     })
+    // E-mail de aviso (C) para o endereço ANTIGO: é quem percebe que não foi ele. Só aqui, quando o e-mail mudou.
+    await avisarSeguranca({ tipo: 'email', para: de })
 
     return {
       ok: true,
