@@ -241,6 +241,8 @@ function suite(alvo: Alvo): void {
         // Migration 046 — controle financeiro: custos e receitas recorrentes por setor (25/10/2026).
         'lancamentos_recorrentes',
         'ledger_entries',
+        // Migration 057 — gasto de marketing digitado pela equipe, base do CAC (frente J, 18/11/2026).
+        'marketing_gastos',
         // Migration 044 — a fila das NFS-e e a numeração das DPS (23/10/2026).
         'nfse_emissoes',
         'nfse_numeracao',

@@ -180,7 +180,7 @@ export async function exportStatementXlsx(
   const ws = XLSX.utils.json_to_sheet(toFileRows(rows))
   ws['!cols'] = COL_WIDTHS
 
-  const resumo = [
+  const linhasDoResumo = [
     { Indicador: 'Total depositado', Valor: reais(totais.depositado) },
     { Indicador: 'Total sacado', Valor: reais(totais.sacado) },
     { Indicador: 'Moedas compradas', Valor: totais.compradoQtd },
@@ -203,7 +203,7 @@ export async function exportStatementXlsx(
         ]
       : []),
   ]
-  const wsResumo = XLSX.utils.json_to_sheet(resumo)
+  const wsResumo = XLSX.utils.json_to_sheet(linhasDoResumo)
   wsResumo['!cols'] = [{ wch: 30 }, { wch: 16 }]
 
   const wb = XLSX.utils.book_new()
