@@ -9,11 +9,19 @@
 import type { ReactNode } from 'react'
 
 import { CoinArt } from '@/components/svg/CoinArt'
+import { rotuloDoNumeroDaMoeda } from '@/components/recibo/numero-da-moeda'
 
 export interface FolhaDoReciboProps {
   tipoMoeda: string
   ano: number
   codigo: string
+  /**
+   * Número da moeda (`Coin.id`, 'RO-000042'), impresso logo abaixo do código do recibo. OPCIONAL de
+   * propósito (decisão do Controle, 17/11/2026): a visão do Admin ("Ver como o cliente vê") também
+   * desenha esta folha, e uma prop obrigatória quebraria o typecheck de uma página fora da frente.
+   * Sem a prop, a linha simplesmente não aparece. Só exibição — nunca entra em hash.
+   */
+  numeroDaMoeda?: string
   hash: string
   dataEmissao: string
   proprietario: string
@@ -24,7 +32,7 @@ export interface FolhaDoReciboProps {
   pendencia: boolean
 }
 
-export function FolhaDoRecibo({ tipoMoeda, ano, codigo, hash, dataEmissao, proprietario, status, negociavel, extinto, bloqueado, pendencia }: FolhaDoReciboProps): ReactNode {
+export function FolhaDoRecibo({ tipoMoeda, ano, codigo, numeroDaMoeda, hash, dataEmissao, proprietario, status, negociavel, extinto, bloqueado, pendencia }: FolhaDoReciboProps): ReactNode {
   return (
     <div className="cert">
       {extinto ? (
@@ -55,12 +63,26 @@ export function FolhaDoRecibo({ tipoMoeda, ano, codigo, hash, dataEmissao, propr
       <div className="cert-sub">Real Olímpico</div>
       <div className="cert-rule"></div>
       <div className="cert-title">Recibo de Custódia</div>
-      <div className="cert-code">{codigo}</div>
+      {/* O número da moeda vai na MESMA .cert-code, numa segunda linha (item 12, 17/11/2026): herda a
+          tinta dourada já ajustada para o contraste AA no creme e a margem de baixo que separa o
+          cabeçalho dos campos — por isso não há CSS novo. Um <br /> e não um segundo bloco, porque
+          o segundo bloco duplicaria a margem de 22px e abriria um vão entre as duas linhas. O
+          mesmo texto sai no PDF (@/lib/pdf/recibo-pdf) pelo mesmo helper. */}
+      <div className="cert-code">
+        {codigo}
+        {numeroDaMoeda ? (
+          <>
+            <br />
+            <span className="cert-numero-da-moeda">{rotuloDoNumeroDaMoeda(numeroDaMoeda)}</span>
+          </>
+        ) : null}
+      </div>
 
       {/* Os CINCO campos do documento, nesta ordem e com estes textos. É a
           mesma lista que @/lib/pdf/recibo-pdf imprime: tela e PDF precisam
           dizer a mesma coisa, senão o recibo baixado contradiz o que a
-          pessoa viu. Dado novo entra no painel lateral, não aqui. */}
+          pessoa viu. Dado novo entra no painel lateral, não aqui. O número
+          da moeda não é um sexto campo: é uma linha do cabeçalho, acima. */}
       <div className="cert-fields">
         <div className="cf-row">
           <span className="k">Moeda</span>

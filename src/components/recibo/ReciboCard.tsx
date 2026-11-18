@@ -19,6 +19,7 @@ import type { ReactNode } from 'react'
 import { COIN } from '@/domain/constants'
 import { brl } from '@/domain/money'
 import type { Cents, Coin } from '@/domain/types'
+import { rotuloDoNumeroDaMoeda } from '@/components/recibo/numero-da-moeda'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { Selo, type TomDoSelo } from '@/components/ui/Selo'
 
@@ -67,7 +68,10 @@ export function ReciboCard({ coin, valor, listed }: ReciboCardProps): ReactNode 
           {coin.tipoMoeda}
           {coin.tipoMoeda !== COIN.name ? ' · ' + coin.ano : ''}
         </h4>
+        {/* Número da moeda (item 12, 17/11/2026): a mesma .recibo-code do código do recibo, na linha
+            de baixo — sem CSS novo. O texto vem do helper que a folha e o PDF também usam. */}
         <div className="recibo-code">{coin.recibo.codigo}</div>
+        <div className="recibo-code">{rotuloDoNumeroDaMoeda(coin.id)}</div>
       </div>
       <div className="ro-cartao-moeda__meta">
         <span className="recibo-val">{brl(valor)}</span>
