@@ -141,6 +141,7 @@
   .app-cliente .user-chip .avatar{display:none}
   .ubal-lbl{display:block;margin:0}
   .app-cliente .user-chip .ubal{text-align:right;font-size:14px}
+  .app-cliente .user-chip .ubal-reserva{text-align:right;font-size:11px}
   /* No celular o chip é alvo de toque; no desktop 36px basta para o mouse (tópico 35). */
   .chip{min-height:44px}
   .acoes{flex-direction:column;align-items:stretch}

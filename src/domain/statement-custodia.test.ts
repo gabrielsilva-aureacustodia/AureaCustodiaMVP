@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { userStatement } from '@/domain/statement'
+import { userStatement as extratoCompleto } from '@/domain/statement'
 import type { AppState, FaturaCustodia, PlanoCustodia, User } from '@/domain/types'
+
+/**
+ * Só as linhas de fatura: a conta destes testes nasce com R$ 500,00 e o extrato (18/11/2026) mostra o que ele não
+ * explica por fatos numa linha de "Ajuste de saldo" — coberta em `statement-invariante.test.ts`, não aqui.
+ */
+const userStatement: typeof extratoCompleto = (state, email) =>
+  extratoCompleto(state, email).filter((r) => r.kind !== 'Ajuste de saldo')
 
 describe('userStatement — descrições e impactos de faturas de custódia', () => {
   const email = 'cliente@exemplo.com.br'
@@ -129,7 +136,7 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     expect(row.impacto).toBe(-600)
   })
 
-  it('fatura paga com saldo gera impacto negativo; fatura pendente ou paga por fora gera impacto 0', () => {
+  it('fatura paga sai do saldo seja qual for a forma (o Pix entra como linha própria e se anula); só a fatura em aberto não move nada', () => {
     const faturaPendente: FaturaCustodia = {
       id: 'FAT-PEND',
       userEmail: email,
@@ -180,7 +187,9 @@ describe('userStatement — descrições e impactos de faturas de custódia', ()
     const rowSaldo = rows.find((r) => r.descricao.includes('2026-07'))!
 
     expect(rowPendente.impacto).toBe(0)
-    expect(rowPix.impacto).toBe(0)
+    // Até 17/11/2026 a fatura paga por Pix entrava com impacto 0 e a ENTRADA do Pix aparecia sozinha: o extrato
+    // dizia +R$ 6,00 enquanto o saldo não saía do lugar. Hoje a saída existe, como no livro-razão.
+    expect(rowPix.impacto).toBe(-600)
     expect(rowSaldo.impacto).toBe(-600)
   })
 })

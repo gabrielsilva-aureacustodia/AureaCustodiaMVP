@@ -21,7 +21,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
-import { statementTotals, userStatement } from '@/domain/statement'
+import { resumoDaConta, statementTotals, userStatement } from '@/domain/statement'
 import type { StatementKind } from '@/domain/statement'
 import { useApp } from '@/components/providers/AppProvider'
 import { useToast } from '@/components/ui/Toast'
@@ -39,13 +39,30 @@ const FILTROS: ReadonlyArray<{ chave: 'Tudo' | StatementKind; rotulo: string }> 
   { chave: 'Venda', rotulo: 'Vendas' },
   { chave: 'Envio para custódia', rotulo: 'Envios' },
   { chave: 'Taxa de custódia', rotulo: 'Custódia' },
+  // Os quatro de baixo (18/11/2026) só aparecem quando a conta tem uma linha do tipo: o extrato passou a
+  // mostrar frete, taxa de retirada, estorno e ajuste, e um chip que nunca tem nada só atrapalha.
+  { chave: 'Frete do envio', rotulo: 'Fretes' },
+  { chave: 'Taxa de retirada', rotulo: 'Retiradas' },
+  { chave: 'Estorno', rotulo: 'Estornos' },
+  { chave: 'Ajuste de saldo', rotulo: 'Ajustes' },
 ]
+
+/** Os tipos que o chip mostra sempre; os demais, só se existirem na conta. */
+const FILTROS_FIXOS: ReadonlySet<'Tudo' | StatementKind> = new Set<'Tudo' | StatementKind>([
+  'Tudo',
+  'Depósito',
+  'Saque',
+  'Compra',
+  'Venda',
+  'Envio para custódia',
+  'Taxa de custódia',
+])
 
 /** Texto da falha de exportação — o mesmo padrão dos outros exportadores. */
 const FALHA_EXPORT = 'Não foi possível gerar o arquivo. Tente novamente.'
 
 export default function ExtratoPage(): ReactNode {
-  const { state, session, me } = useApp()
+  const { state, session } = useApp()
   const toast = useToast()
 
   const [filtro, setFiltro] = useState<'Tudo' | StatementKind>('Tudo')
@@ -56,6 +73,11 @@ export default function ExtratoPage(): ReactNode {
   // porque quem abre quer ver primeiro o que acabou de acontecer.
   const linhas = userStatement(state, session)
   const totais = statementTotals(linhas)
+  // O MESMO número da barra superior (`me.balance`), mais o dinheiro que está em reserva. O topo e esta tela
+  // leem a conta de um lugar só, `resumoDaConta`, para nunca mostrarem dois saldos.
+  const resumo = resumoDaConta(state, session)
+  const filtrosVisiveis = FILTROS.filter((f) => FILTROS_FIXOS.has(f.chave) || linhas.some((l) => l.kind === f.chave))
+  const temAjuste = linhas.some((l) => l.kind === 'Ajuste de saldo')
   const visiveis = (filtro === 'Tudo' ? linhas : linhas.filter((l) => l.kind === filtro))
     .slice()
     .reverse()
@@ -85,7 +107,7 @@ export default function ExtratoPage(): ReactNode {
         mod.exportStatementCsv(linhas, sufixo)
         toast(`Extrato exportado em CSV (${linhas.length} movimentação(ões)).`)
       } else {
-        await mod.exportStatementXlsx(linhas, totais, sufixo)
+        await mod.exportStatementXlsx(linhas, totais, sufixo, resumo)
         toast(`Extrato exportado em XLSX (${linhas.length} movimentação(ões)).`)
       }
     } catch (err) {
@@ -101,16 +123,32 @@ export default function ExtratoPage(): ReactNode {
         ‹ Voltar para minha conta
       </Link>
 
-      {/* Totais acima da tabela, como o "Money in / Money out" dos extratos de referência
-          (BENCHMARK.md §1.5). Os mesmos quatro números de antes. */}
+      {/* O primeiro número é o MESMO da barra superior: o saldo que o cliente pode usar agora. A coluna "Saldo depois"
+          da tabela termina nele. Quando há dinheiro em reserva, ele vem em seguida e a soma dos dois é o total. */}
       <section className="kpis" aria-label="Resumo da conta">
         <div className="kpi">
-          <div className="lbl">Saldo atual</div>
-          <div className="val ouro">{brl(me.balance)}</div>
+          <div className="lbl">Saldo disponível</div>
+          <div className="val ouro">{brl(resumo.disponivel)}</div>
+          <div className="sub">O mesmo valor do topo da página</div>
         </div>
+        {resumo.emReserva > 0 && (
+          <>
+            <div className="kpi">
+              <div className="lbl">Em reserva</div>
+              <div className="val">{brl(resumo.emReserva)}</div>
+              <div className="sub">Já saiu do disponível e ainda está a caminho</div>
+            </div>
+            <div className="kpi">
+              <div className="lbl">Total na conta</div>
+              <div className="val">{brl(resumo.total)}</div>
+              <div className="sub">Disponível + em reserva</div>
+            </div>
+          </>
+        )}
         <div className="kpi">
           <div className="lbl">Total depositado</div>
           <div className="val">{brl(totais.depositado)}</div>
+          <div className="sub">Pix e cartão que entraram na conta</div>
         </div>
         <div className="kpi">
           <div className="lbl">Comprado / vendido</div>
@@ -146,7 +184,7 @@ export default function ExtratoPage(): ReactNode {
         </div>
 
         <div className="chips extrato-filtros" role="group" aria-label="Filtrar movimentações por tipo">
-          {FILTROS.map((f) => (
+          {filtrosVisiveis.map((f) => (
             <button
               key={f.chave}
               type="button"
@@ -159,13 +197,29 @@ export default function ExtratoPage(): ReactNode {
           ))}
         </div>
 
+        {resumo.emReserva > 0 && (
+          <div className="note extrato-reserva" role="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            <span>
+              <strong>Em reserva: {brl(resumo.emReserva)}.</strong>{' '}
+              {resumo.reservas.ofertasPrePagas > 0 && <>Oferta de compra pré-paga: {brl(resumo.reservas.ofertasPrePagas)}. </>}
+              {resumo.reservas.saquesACaminho > 0 && <>Saque a caminho do banco: {brl(resumo.reservas.saquesACaminho)}. </>}
+              Esse dinheiro já saiu do saldo disponível e ainda não terminou o caminho. O total na conta é o disponível
+              mais a reserva.
+            </span>
+          </div>
+        )}
+
         {visiveis.length ? (
           <>
             <p className="contagem">
               {visiveis.length} movimentação(ões){filtro !== FILTROS[0].chave ? ' neste filtro' : ''}
             </p>
             {/* .tabela-fixa (shell.css): a data, que identifica a linha, fica parada enquanto as
-                outras sete colunas rolam no celular. */}
+                outras oito colunas rolam no celular. */}
             <div className="tabela-fixa" tabIndex={0} role="region" aria-label="Movimentações da conta (role para o lado no celular)">
               <table className="ro-tabela">
                 <thead>
@@ -184,7 +238,10 @@ export default function ExtratoPage(): ReactNode {
                       Taxa
                     </th>
                     <th scope="col" className="num">
-                      Saldo
+                      Movimento
+                    </th>
+                    <th scope="col" className="num">
+                      Saldo depois
                     </th>
                   </tr>
                 </thead>
@@ -210,6 +267,8 @@ export default function ExtratoPage(): ReactNode {
                         {l.impacto > 0 ? '+' : ''}
                         {brl(l.impacto)}
                       </td>
+                      {/* O saldo da conta logo depois desta linha. É absoluto: o filtro esconde linhas, mas não muda a conta. */}
+                      <td className="num saldo-depois">{brl(l.saldoApos)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -235,23 +294,36 @@ export default function ExtratoPage(): ReactNode {
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16.5v.5" />
           </svg>
-          O arquivo exportado traz sempre o extrato completo, independentemente do filtro selecionado
-          acima. A comissão de negociação é cobrada de quem compra e de quem vende, pelos valores da{' '}
-          <Link href="/taxas">Tabela de Taxas</Link> vigente, e aparece na coluna Taxa das linhas de
-          compra e de venda.
+          A coluna <strong>Saldo depois</strong> é o saldo da conta logo depois de cada linha, e a última linha é o
+          mesmo valor que aparece no topo da página. O arquivo exportado traz sempre o extrato completo,
+          independentemente do filtro selecionado acima. A comissão de negociação é cobrada de quem compra e de quem
+          vende, pelos valores da <Link href="/taxas">Tabela de Taxas</Link> vigente, e aparece na coluna Taxa das
+          linhas de compra e de venda.
         </div>
 
-        {/* Notas informativas sobre faturas de custódia e comissões vigentes. */}
         <div className="note">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v5M12 16.5v.5" />
           </svg>
-          Cada fatura de custódia é uma linha, com o mês de referência, a quantidade de moedas e o
-          valor. A fatura paga com o saldo da conta aparece como saída; a fatura em aberto, ou paga
-          por Pix ou cartão, não mexe no saldo. Faturas e planos ficam em{' '}
+          Quando você paga um serviço (frete do envio, custódia, retirada) por Pix ou cartão, o dinheiro entra na conta
+          e sai na mesma hora para pagar o serviço: por isso aparecem duas linhas e o saldo não muda. Estornos e
+          devoluções aparecem como linhas próprias. Cada fatura de custódia é uma linha, com o mês de referência, a
+          quantidade de moedas e o valor; a fatura em aberto não mexe no saldo. Faturas e planos ficam em{' '}
           <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link>.
         </div>
+
+        {temAjuste && (
+          <div className="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5M12 16.5v.5" />
+            </svg>
+            A linha <strong>Saldo anterior e ajustes feitos pela equipe</strong> reúne o que a conta já tinha antes do
+            primeiro movimento abaixo e os ajustes feitos pela equipe. Ela existe para o extrato fechar com o seu
+            saldo; se tiver dúvida sobre ela, fale com o atendimento.
+          </div>
+        )}
       </div>
     </>
   )

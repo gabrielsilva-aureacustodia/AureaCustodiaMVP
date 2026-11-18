@@ -22,7 +22,7 @@
  * documento com outro propósito.
  */
 
-import type { StatementRow, StatementTotals } from '@/domain/statement'
+import type { ResumoDaConta, StatementRow, StatementTotals } from '@/domain/statement'
 
 /**
  * Uma linha do arquivo. As chaves viram o cabeçalho da planilha, então os nomes
@@ -42,6 +42,8 @@ export interface StatementFileRow {
   Valor_Unitario: number | ''
   Taxa: number | ''
   Impacto_Saldo: number
+  /** O saldo da conta logo depois da linha — a mesma coluna "Saldo depois" da tela (18/11/2026). */
+  Saldo_Depois: number
 }
 
 const SHEET_NAME = 'Extrato'
@@ -67,6 +69,7 @@ export function toFileRows(rows: readonly StatementRow[]): StatementFileRow[] {
     Valor_Unitario: r.valorUnitario === null ? '' : reais(r.valorUnitario),
     Taxa: r.taxa === null ? '' : reais(r.taxa),
     Impacto_Saldo: reais(r.impacto),
+    Saldo_Depois: reais(r.saldoApos),
   }))
 }
 
@@ -122,6 +125,7 @@ export function exportStatementCsv(rows: readonly StatementRow[], sufixo: string
     'Valor_Unitario',
     'Taxa',
     'Impacto_Saldo',
+    'Saldo_Depois',
   ]
 
   const corpo = linhas.map((l) =>
@@ -138,7 +142,7 @@ export function exportStatementCsv(rows: readonly StatementRow[], sufixo: string
   baixarBlob(new Blob([texto], { type: 'text/csv;charset=utf-8' }), `${BASE_NAME}-${sufixo}.csv`)
 }
 
-/** Larguras das oito colunas, na ordem. */
+/** Larguras das nove colunas, na ordem. */
 const COL_WIDTHS = [
   { wch: 12 },
   { wch: 20 },
@@ -147,6 +151,7 @@ const COL_WIDTHS = [
   { wch: 11 },
   { wch: 14 },
   { wch: 11 },
+  { wch: 14 },
   { wch: 14 },
 ]
 
@@ -164,6 +169,7 @@ export async function exportStatementXlsx(
   rows: readonly StatementRow[],
   totais: StatementTotals,
   sufixo: string,
+  resumo?: ResumoDaConta,
 ): Promise<void> {
   const XLSX = await import('xlsx').catch((): never => {
     throw new Error(
@@ -183,6 +189,19 @@ export async function exportStatementXlsx(
     { Indicador: 'Valor bruto das vendas', Valor: reais(totais.vendidoValor) },
     { Indicador: 'Comissões pagas', Valor: reais(totais.taxasPagas) },
     { Indicador: 'Variação líquida de saldo', Valor: reais(totais.variacaoSaldo) },
+    // Os mesmos números do topo e do cabeçalho da tela (frente F): o saldo disponível é a última linha de
+    // "Saldo_Depois", e a reserva e o total só entram quando a conta tem dinheiro em reserva.
+    ...(resumo
+      ? [
+          { Indicador: 'Saldo disponível (igual ao topo)', Valor: reais(resumo.disponivel) },
+          ...(resumo.emReserva > 0
+            ? [
+                { Indicador: 'Em reserva', Valor: reais(resumo.emReserva) },
+                { Indicador: 'Total na conta (disponível + reserva)', Valor: reais(resumo.total) },
+              ]
+            : []),
+        ]
+      : []),
   ]
   const wsResumo = XLSX.utils.json_to_sheet(resumo)
   wsResumo['!cols'] = [{ wch: 30 }, { wch: 16 }]
