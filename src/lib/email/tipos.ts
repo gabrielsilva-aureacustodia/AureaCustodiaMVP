@@ -15,6 +15,13 @@ export interface MensagemDeEmail {
   texto: string
   /** Corpo em HTML, opcional. Sem ele, o provedor manda só o texto. */
   html?: string
+  /**
+   * Identidade do evento que originou este e-mail (frente C, 17/11/2026). O Resend a recebe no cabeçalho
+   * `Idempotency-Key`: se o servidor mandou e caiu antes de anotar, a repetição com a mesma chave não gera um
+   * segundo e-mail. É uma camada EXTRA — a garantia de não duplicar é a chave única da fila
+   * (src/server/emails/fila.ts). Ausente = sem proteção do provedor, como era antes.
+   */
+  idempotencyKey?: string
 }
 
 export interface ResultadoDeEnvio {

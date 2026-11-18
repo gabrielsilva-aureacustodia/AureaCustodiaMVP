@@ -19,6 +19,10 @@ import type { AppState } from '@/domain/types'
 
 import { bancoConfigurado, executarNoBanco } from './db/client'
 import { lerEstado, mutarEstado } from './db/estado'
+import { agendarEnvioDeEmails } from './emails/agendar'
+import { enviarSemFila } from './emails/despacho'
+import { eventosDeEmail } from './emails/eventos'
+import type { EventoDeEmail } from './emails/tipos'
 import { agendarEmissaoNfse } from './nfse/agendar'
 import { getSessionEmail } from './session'
 import { getStore } from './store'
@@ -179,6 +183,8 @@ export async function mutateState<T>(
     const r = await mutarEstado(executarNoBanco, fn, { ator: await atorDaRequisicao() })
     // A operação pediu nota fiscal (comissão ou custódia paga): envia logo depois da resposta.
     if (r.nfsePedidas > 0) agendarEmissaoNfse()
+    // A operação pediu e-mail ao cliente (compra, depósito, fatura paga…): vão da fila logo depois da resposta.
+    if (r.emailsPedidos > 0) agendarEnvioDeEmails()
     return r
   }
 
@@ -188,12 +194,22 @@ export async function mutateState<T>(
   // produzido por `fn` é guardado aqui e entregue pelo `pick`. A caixa existe
   // para distinguir "ainda não rodou" de "rodou e devolveu undefined".
   let captured: { value: T } | null = null
+  // E-mails da mutação (frente C, 17/11/2026). Sem banco não há transação nem fila: o mutator deriva os eventos
+  // do antes/depois e o envio é direto, logo abaixo. Só existe fora de produção, que sempre tem POSTGRES_URL.
+  let emails: EventoDeEmail[] = []
 
-  return store.mutate<T, AppState>(
+  const r = await store.mutate<T, AppState>(
     STORE_KEY,
     async (current) => {
       const state = garantirFormato(current ?? estadoInicial())
+      const antes = structuredClone(state)
       captured = { value: await fn(state) }
+      try {
+        emails = eventosDeEmail(antes, state, Date.now())
+      } catch (err) {
+        emails = []
+        console.error('[aurea] e-mails: a derivação dos eventos falhou; a operação segue sem aviso:', err)
+      }
       return state
     },
     () => {
@@ -203,4 +219,7 @@ export async function mutateState<T>(
       return captured.value
     },
   )
+  // Depois do `mutate` voltar: o que não foi gravado não vira aviso. `enviarSemFila` nunca lança.
+  await enviarSemFila(emails)
+  return r
 }
