@@ -39,6 +39,7 @@ de falha de gravação, nunca um erro na tela.
 | | `salvarTipoDeMoedaNoPainel` | `config.catalogo` |
 | `logistica.ts` (22/10/2026) | `emitirEtiquetaRetirada` (pré-postagem de saída nos Correios; `paga` → `separacao`, nunca `postada`), `cancelarEtiquetaRetirada`, `marcarRetiradaPostadaManual` (sem contrato: código do balcão) | `logistica.expedir` |
 | `financeiro.ts` (25/10/2026) | `salvarRecorrenteNoPainel`, `alternarRecorrenteNoPainel`, `lancarVencidosNoPainel`, `salvarSetorNoPainel` — controle financeiro (migration 046); cada ocorrência vencida vira lançamento manual e entra na DRE | `contabil.lancar` |
+| `marketing.ts` (18/11/2026) | `registrarGastoNoPainel`, `cancelarGastoNoPainel` — o gasto de marketing que a equipe digita por canal e intervalo de dias (migration 057) e que o CAC do painel de KPIs lê; nada se edita, errou cancela e lança de novo. Grava `admin.marketing.registrar` e `admin.marketing.cancelar` | `contabil.lancar` |
 | `saques.ts` | `aprovarSaque`, `conferirSaque`, `marcarSaquePago`, `recusarSaque` | `saques.pagar` |
 | `acoes.test.ts` | 51 testes: cada ação pede a sua permissão e, recusada, não chama o serviço nem olha o banco; dados bancários pedem as duas; ator = e-mail do membro, e o membro é o operador da análise; o grupo `sistema` da configuração é recusado; tabela ausente vira a instrução do `db:migrate`; exceção vira mensagem | — |
 

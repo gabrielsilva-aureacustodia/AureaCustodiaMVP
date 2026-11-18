@@ -26,9 +26,11 @@
  * comissão", não para fechar o mês.
  */
 
+import type { EstadoDoCaso } from '@/domain/atendimento/casos'
 import { isInadimplente, verificarStatusFatura } from '@/domain/custody'
 import type { Periodo } from '@/domain/dre'
 import { tradeFee } from '@/domain/fees'
+import { diaDeBrasilia } from '@/domain/financeiro/controle'
 import { ETAPAS_ENVIO } from '@/domain/types'
 import type { AppState, Cents, EtapaEnvio, Retirada, StatusRetirada, Timestamp, Trade } from '@/domain/types'
 
@@ -382,4 +384,420 @@ export function montarKpis({ state, retiradas, periodo, agora, historicoDaFila, 
     fila: { porTipo: fila, tempoAteExecucao },
     planos: resumoPlanos,
   }
+}
+
+/* ====================================================================================
+ * AQUISIÇÃO E ATENDIMENTO — os KPIs do conselho (frente J, 18/11/2026)
+ *
+ * Pedido do Rogério (item 7 da manutenção): a proposta de KPIs indicada pelo conselho, calculada
+ * dentro do sistema. A fonte é o slide "3.1 Cronograma, Números e Metrificação" (CAC diário e
+ * semanal, análise analógica e digital, atendimento semanal); a lista final do WhatsApp de 3/11
+ * ainda não chegou (D2) e entra na tabela de `docs/kpis/PROPOSTA_DE_KPIS.md`.
+ *
+ * A REGRA DESTE BLOCO É A DO ARQUIVO: sem fonte, o resultado é `null` — nunca zero. Zero diria "não
+ * houve", e o certo é dizer "ninguém informou". Por isso o CAC de uma janela sem gasto informado é
+ * `null`, e o número de cadastros sem banco também.
+ *
+ * TUDO NO DIA DE BRASÍLIA. Cadastro, ativação, gasto e caso são contados por 'AAAA-MM-DD' (UTC−3),
+ * o dia em que a equipe vive. As janelas do painel não usam `Periodo` (que nasce no fuso do servidor)
+ * porque um dia de diferença na borda do mês trocaria o CAC.
+ *
+ * O GASTO DE MÍDIA VEM DE FORA e é digitado pela equipe: um valor por canal e por INTERVALO de dias
+ * (um dia, uma semana, um mês). Dentro do intervalo ele se reparte em partes iguais pelos dias —
+ * conta que o Rogério refaz na calculadora —, e a janela que pega só um pedaço do intervalo é marcada
+ * `aproximado`: o número é uma estimativa, e a tela diz isso.
+ * ==================================================================================*/
+
+export type NaturezaDoCanal = 'digital' | 'analogico' | 'geral'
+
+/**
+ * Onde o dinheiro de marketing é gasto. "Serviço" é a mensalidade de quem cuida da campanha (R$ 3.600,00 no
+ * slide do conselho): entra no CAC completo, mas não no CAC "só de mídia", e não é digital nem analógico.
+ */
+export const CANAIS_DE_MARKETING = [
+  { chave: 'meta', rotulo: 'Meta (Instagram e Facebook)', natureza: 'digital' },
+  { chave: 'google', rotulo: 'Google', natureza: 'digital' },
+  { chave: 'outro_digital', rotulo: 'Outro canal digital', natureza: 'digital' },
+  { chave: 'evento', rotulo: 'Evento ou ação presencial', natureza: 'analogico' },
+  { chave: 'impresso', rotulo: 'Material impresso', natureza: 'analogico' },
+  { chave: 'outro_analogico', rotulo: 'Outro canal analógico', natureza: 'analogico' },
+  { chave: 'servico', rotulo: 'Serviço de marketing (mensalidade)', natureza: 'geral' },
+] as const
+
+export type CanalDeMarketing = (typeof CANAIS_DE_MARKETING)[number]['chave']
+
+export const ROTULO_NATUREZA: Readonly<Record<NaturezaDoCanal, string>> = {
+  digital: 'Digital',
+  analogico: 'Analógico',
+  geral: 'Geral (serviço)',
+}
+
+export function ehCanalDeMarketing(x: unknown): x is CanalDeMarketing {
+  return CANAIS_DE_MARKETING.some((c) => c.chave === x)
+}
+
+export function naturezaDoCanal(canal: CanalDeMarketing): NaturezaDoCanal {
+  return CANAIS_DE_MARKETING.find((c) => c.chave === canal)!.natureza
+}
+
+export function rotuloDoCanal(canal: string): string {
+  return CANAIS_DE_MARKETING.find((c) => c.chave === canal)?.rotulo ?? canal
+}
+
+/** Uma entrada de gasto, como a equipe digitou (`aurea.marketing_gastos`). Dias em 'AAAA-MM-DD' de Brasília, inclusive. */
+export interface GastoDeMarketing {
+  id: number
+  canal: CanalDeMarketing
+  de: string
+  ate: string
+  valor: Cents
+  /** Visitas ao site no intervalo, lidas pela equipe do gerenciador de anúncios; opcional. */
+  visitas: number | null
+}
+
+/** Um recorte de dias de Brasília, extremos incluídos. */
+export interface JanelaDeDias {
+  rotulo: string
+  de: string
+  ate: string
+}
+
+/** Um caso de atendimento, só com o que os KPIs leem (`aurea.casos` + a 1ª resposta da equipe em `casos_mensagens`). */
+export interface CasoParaKpi {
+  estado: EstadoDoCaso
+  criadoEm: Timestamp
+  fechadoEm: Timestamp | null
+  primeiraRespostaDaEquipeEm: Timestamp | null
+}
+
+export interface FontesAquisicao {
+  state: AppState
+  /**
+   * E-mail → instante em que a conta nasceu (o `saldo_inicial` do ledger). `null` = sem banco: não há data de
+   * cadastro, e os números que dependem dela ficam `null`.
+   */
+  criadasEm: Readonly<Record<string, Timestamp>> | null
+  /** `null` = a tabela de gastos não existe neste banco (migration 057 não aplicada). */
+  gastos: readonly GastoDeMarketing[] | null
+  /** `null` = sem banco ou sem permissão para ver o atendimento (`cs.ver`). */
+  casos: readonly CasoParaKpi[] | null
+  /** As janelas do quadro de CAC: hoje, últimos 7 dias, mês corrente… */
+  janelas: readonly JanelaDeDias[]
+  /** O período escolhido na tela: vale para o funil, o gasto por canal e o atendimento. */
+  periodo: JanelaDeDias
+  agora: Timestamp
+  /** Contas que não são cliente captado (equipe e teste): não entram em cadastro nem em ativação. */
+  ignorar: ReadonlySet<string>
+}
+
+export interface CacDaJanela {
+  rotulo: string
+  de: string
+  ate: string
+  /** Contas criadas nos dias da janela. `null` sem banco. */
+  cadastros: number | null
+  /** Contas cuja 1ª transação caiu nos dias da janela. */
+  ativados: number
+  /** Gasto informado que cai na janela, todos os canais. `null` = ninguém informou. */
+  gasto: Cents | null
+  /** O mesmo sem o canal "serviço": só a mídia. */
+  gastoMidia: Cents | null
+  /** true quando alguma entrada de gasto cobre mais dias que a janela (o valor é uma estimativa). */
+  aproximado: boolean
+  /** gasto ÷ ativados. `null` sem gasto ou sem ativado (dividir por zero não é zero). */
+  cac: Cents | null
+  cacMidia: Cents | null
+  /** gasto ÷ cadastros. */
+  custoPorCadastro: Cents | null
+}
+
+export interface KpisAquisicao {
+  porJanela: CacDaJanela[]
+  /** No período escolhido. Visitas → cadastros → ativados (dos cadastrados no período, até hoje). */
+  funil: {
+    visitas: number | null
+    visitasEstimadas: boolean
+    cadastros: number | null
+    ativadosDosCadastrados: number | null
+    visitaParaCadastroBp: number | null
+    cadastroParaAtivacaoBp: number | null
+  }
+  gastoPorCanal: Array<{ canal: CanalDeMarketing; natureza: NaturezaDoCanal; valor: Cents }>
+  gastoPorNatureza: { digital: Cents | null; analogico: Cents | null; geral: Cents | null }
+  gastoAproximado: boolean
+  /**
+   * Origem do cadastro (analógico × digital): o cadastro NÃO tem o campo, então não há como dizer de onde veio
+   * cada cliente. `null` até a proposta de `docs/kpis/PROPOSTA_DE_KPIS.md` ser decidida — não se inventa.
+   */
+  origemDoCadastro: null
+  /** `null` = sem fonte de atendimento (sem banco ou sem `cs.ver`). */
+  atendimento: {
+    /** Esperando a equipe (estado `aberto`), de qualquer data. */
+    abertosAgora: number
+    emAndamentoAgora: number
+    criadosNoPeriodo: number
+    /** Dos criados no período, os que a equipe ainda não respondeu. */
+    semRespostaDaEquipe: number
+    resolvidosNoPeriodo: number
+    /** Do caso criado no período até a 1ª mensagem da equipe. */
+    tempoAtePrimeiraResposta: Media
+  } | null
+}
+
+/* ---------- dias de Brasília ---------- */
+
+function indiceDoDia(dia: string): number {
+  const [a, m, d] = dia.split('-').map(Number)
+  return Math.round(Date.UTC(a!, m! - 1, d!) / DIA_MS)
+}
+
+function diaDoIndice(i: number): string {
+  return new Date(i * DIA_MS).toISOString().slice(0, 10)
+}
+
+/** A data `n` dias depois (ou antes, com `n` negativo) de 'AAAA-MM-DD'. */
+export function somarDias(dia: string, n: number): string {
+  return diaDoIndice(indiceDoDia(dia) + n)
+}
+
+/** Quantos dias o intervalo tem, extremos incluídos. */
+export function diasDoIntervalo(de: string, ate: string): number {
+  return indiceDoDia(ate) - indiceDoDia(de) + 1
+}
+
+export function ehDiaDeBrasilia(s: unknown): s is string {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const [a, m, d] = s.split('-').map(Number)
+  const dt = new Date(Date.UTC(a!, m! - 1, d!))
+  return dt.getUTCFullYear() === a && dt.getUTCMonth() === m! - 1 && dt.getUTCDate() === d
+}
+
+const naJanela = (ts: Timestamp | null | undefined, j: JanelaDeDias): boolean => {
+  if (typeof ts !== 'number') return false
+  const dia = diaDeBrasilia(ts)
+  return dia >= j.de && dia <= j.ate
+}
+
+/**
+ * As três janelas fixas do quadro de CAC, relativas ao dia de `agora`: o dia, os 7 dias que terminam nele e o mês
+ * corrente até ele. É o "diário e semanal" do slide do conselho, mais o mês.
+ */
+export function janelasDeReferencia(agora: Timestamp): JanelaDeDias[] {
+  const hoje = diaDeBrasilia(agora)
+  return [
+    { rotulo: 'Hoje', de: hoje, ate: hoje },
+    { rotulo: 'Últimos 7 dias', de: somarDias(hoje, -6), ate: hoje },
+    { rotulo: 'Mês até hoje', de: `${hoje.slice(0, 8)}01`, ate: hoje },
+  ]
+}
+
+/** O período da tela (`?ano=&mes=&trimestre=`) em dias de Brasília. Sem mês nem trimestre, o ano inteiro. */
+export function janelaDoPeriodo(p: { ano: number; mes: number | null; trimestre: number | null }, rotulo: string): JanelaDeDias {
+  const primeiroMes = p.mes ?? (p.trimestre ? (p.trimestre - 1) * 3 + 1 : 1)
+  const ultimoMes = p.mes ?? (p.trimestre ? p.trimestre * 3 : 12)
+  const dd = (n: number): string => String(n).padStart(2, '0')
+  const ultimoDia = new Date(Date.UTC(p.ano, ultimoMes, 0)).getUTCDate()
+  return { rotulo, de: `${p.ano}-${dd(primeiroMes)}-01`, ate: `${p.ano}-${dd(ultimoMes)}-${dd(ultimoDia)}` }
+}
+
+/* ---------- gasto: repartir um intervalo pelos dias da janela ---------- */
+
+interface ParteDoGasto {
+  /** Soma das partes que caem na janela, em centavos. */
+  valor: number
+  /** true quando alguma entrada tem mais dias que a janela, ou a janela só pega um pedaço dela. */
+  aproximado: boolean
+  /** false = nenhuma entrada toca a janela (e o resultado é `null`, não zero). */
+  houve: boolean
+}
+
+function repartir(entradas: ReadonlyArray<{ de: string; ate: string; quantia: number }>, j: JanelaDeDias): ParteDoGasto {
+  const jIni = indiceDoDia(j.de)
+  const jFim = indiceDoDia(j.ate)
+  let soma = 0
+  let aproximado = false
+  let houve = false
+  for (const e of entradas) {
+    const eIni = indiceDoDia(e.de)
+    const eFim = indiceDoDia(e.ate)
+    const dias = eFim - eIni + 1
+    const dentro = Math.min(eFim, jFim) - Math.max(eIni, jIni) + 1
+    if (dentro <= 0 || dias <= 0) continue
+    houve = true
+    soma += (e.quantia * dentro) / dias
+    if (dentro < dias) aproximado = true
+  }
+  return { valor: Math.round(soma), aproximado, houve }
+}
+
+/* ---------- ativação ---------- */
+
+/**
+ * O instante da 1ª transação de cada conta — o que a torna "ativada".
+ *
+ * TRANSAÇÃO = dinheiro ou moeda que de fato se mexeu por ato do cliente: a primeira entrada de dinheiro
+ * confirmada (Pix ou cartão, de qualquer finalidade: depósito, frete, custódia, compra) ou a primeira compra ou
+ * venda. Fica de fora a `custodia_recebida_fora`, que é a EQUIPE registrando o que o cliente pagou em mãos, e
+ * ficam de fora as contas em `ignorar` (equipe e teste). Só conta quem existe em `state.users`.
+ */
+export function primeiraTransacaoPorConta(state: AppState, ignorar: ReadonlySet<string>): Map<string, Timestamp> {
+  const primeira = new Map<string, Timestamp>()
+  const marcar = (email: string, ts: Timestamp): void => {
+    if (ignorar.has(email) || !state.users[email] || typeof ts !== 'number') return
+    const atual = primeira.get(email)
+    if (atual === undefined || ts < atual) primeira.set(email, ts)
+  }
+  for (const d of state.deposits) {
+    if (d.origem === 'custodia_recebida_fora') continue
+    marcar(d.userEmail, d.date)
+  }
+  for (const t of state.trades) {
+    marcar(t.buyer, t.date)
+    marcar(t.seller, t.date)
+  }
+  return primeira
+}
+
+/* ---------- o cálculo ---------- */
+
+export function montarKpisDeAquisicao(f: FontesAquisicao): KpisAquisicao {
+  const primeira = primeiraTransacaoPorConta(f.state, f.ignorar)
+  const gastos = f.gastos
+  const entradasDeGasto = (so: (g: GastoDeMarketing) => boolean): Array<{ de: string; ate: string; quantia: number }> =>
+    (gastos ?? []).filter(so).map((g) => ({ de: g.de, ate: g.ate, quantia: g.valor }))
+  const todas = entradasDeGasto(() => true)
+  const soMidia = entradasDeGasto((g) => naturezaDoCanal(g.canal) !== 'geral')
+
+  const contasCriadasNaJanela = (j: JanelaDeDias): string[] | null =>
+    f.criadasEm === null
+      ? null
+      : Object.entries(f.criadasEm)
+          .filter(([email, ts]) => !f.ignorar.has(email) && Boolean(f.state.users[email]) && naJanela(ts, j))
+          .map(([email]) => email)
+
+  const dividir = (valor: Cents | null, por: number | null): Cents | null => (valor !== null && por !== null && por > 0 ? Math.round(valor / por) : null)
+
+  const porJanela: CacDaJanela[] = f.janelas.map((j) => {
+    const cadastradas = contasCriadasNaJanela(j)
+    const ativados = [...primeira.values()].filter((ts) => naJanela(ts, j)).length
+    const gasto = repartir(todas, j)
+    const midia = repartir(soMidia, j)
+    const gastoCents = gasto.houve ? gasto.valor : null
+    const midiaCents = midia.houve ? midia.valor : null
+    return {
+      rotulo: j.rotulo,
+      de: j.de,
+      ate: j.ate,
+      cadastros: cadastradas === null ? null : cadastradas.length,
+      ativados,
+      gasto: gastoCents,
+      gastoMidia: midiaCents,
+      aproximado: gasto.aproximado || midia.aproximado,
+      cac: dividir(gastoCents, ativados),
+      cacMidia: dividir(midiaCents, ativados),
+      custoPorCadastro: dividir(gastoCents, cadastradas === null ? null : cadastradas.length),
+    }
+  })
+
+  /* funil e gasto por canal, no período escolhido */
+  const cadastradasNoPeriodo = contasCriadasNaJanela(f.periodo)
+  const comVisitas = (gastos ?? []).filter((g) => g.visitas !== null).map((g) => ({ de: g.de, ate: g.ate, quantia: g.visitas as number }))
+  const visitas = repartir(comVisitas, f.periodo)
+  const visitasNoPeriodo = visitas.houve ? visitas.valor : null
+  const ativadosDosCadastrados = cadastradasNoPeriodo === null ? null : cadastradasNoPeriodo.filter((email) => primeira.has(email)).length
+
+  const porCanal = new Map<CanalDeMarketing, number>()
+  let gastoAproximado = false
+  for (const c of CANAIS_DE_MARKETING) {
+    const parte = repartir(entradasDeGasto((g) => g.canal === c.chave), f.periodo)
+    if (!parte.houve) continue
+    porCanal.set(c.chave, parte.valor)
+    if (parte.aproximado) gastoAproximado = true
+  }
+  const gastoPorCanal = CANAIS_DE_MARKETING.filter((c) => porCanal.has(c.chave)).map((c) => ({ canal: c.chave, natureza: c.natureza, valor: porCanal.get(c.chave)! }))
+  const somaDa = (n: NaturezaDoCanal): Cents | null => {
+    const itens = gastoPorCanal.filter((g) => g.natureza === n)
+    return itens.length ? itens.reduce((s, g) => s + g.valor, 0) : null
+  }
+
+  /* atendimento */
+  let atendimento: KpisAquisicao['atendimento'] = null
+  if (f.casos) {
+    const criados = f.casos.filter((c) => naJanela(c.criadoEm, f.periodo))
+    const esperas = criados.filter((c) => c.primeiraRespostaDaEquipeEm !== null && c.primeiraRespostaDaEquipeEm >= c.criadoEm).map((c) => (c.primeiraRespostaDaEquipeEm as number) - c.criadoEm)
+    atendimento = {
+      abertosAgora: f.casos.filter((c) => c.estado === 'aberto').length,
+      emAndamentoAgora: f.casos.filter((c) => c.estado === 'em_andamento').length,
+      criadosNoPeriodo: criados.length,
+      semRespostaDaEquipe: criados.filter((c) => c.primeiraRespostaDaEquipeEm === null).length,
+      resolvidosNoPeriodo: f.casos.filter((c) => c.estado === 'resolvido' && naJanela(c.fechadoEm, f.periodo)).length,
+      tempoAtePrimeiraResposta: media(esperas),
+    }
+  }
+
+  const cadastros = cadastradasNoPeriodo === null ? null : cadastradasNoPeriodo.length
+  return {
+    porJanela,
+    funil: {
+      visitas: visitasNoPeriodo,
+      visitasEstimadas: visitas.aproximado,
+      cadastros,
+      ativadosDosCadastrados,
+      visitaParaCadastroBp: visitasNoPeriodo !== null && cadastros !== null ? bp(cadastros, visitasNoPeriodo) : null,
+      cadastroParaAtivacaoBp: cadastros !== null && ativadosDosCadastrados !== null ? bp(ativadosDosCadastrados, cadastros) : null,
+    },
+    gastoPorCanal,
+    gastoPorNatureza: { digital: somaDa('digital'), analogico: somaDa('analogico'), geral: somaDa('geral') },
+    gastoAproximado,
+    origemDoCadastro: null,
+    atendimento,
+  }
+}
+
+/* ---------- a entrada manual do gasto ---------- */
+
+/** O que a tela manda: texto cru, que o servidor valida. */
+export interface EntradaDeGasto {
+  canal: unknown
+  de: unknown
+  ate: unknown
+  valorCents: unknown
+  visitas: unknown
+  observacao: unknown
+}
+
+export interface GastoValidado {
+  canal: CanalDeMarketing
+  de: string
+  ate: string
+  valor: Cents
+  visitas: number | null
+  observacao: string
+}
+
+export type ValidacaoDeGasto = { ok: true; valor: GastoValidado } | { ok: false; erro: string }
+
+/** R$ 1.000.000,00: acima disso é erro de digitação, não campanha. */
+export const GASTO_MAXIMO: Cents = 100_000_000
+export const GASTO_DIAS_MAXIMOS = 366
+export const GASTO_DIA_MINIMO = '2024-01-01'
+
+export function validarGastoDeMarketing(e: EntradaDeGasto): ValidacaoDeGasto {
+  if (!ehCanalDeMarketing(e.canal)) return { ok: false, erro: 'Escolha o canal do gasto.' }
+  if (!ehDiaDeBrasilia(e.de) || !ehDiaDeBrasilia(e.ate)) return { ok: false, erro: 'Informe o primeiro e o último dia do gasto.' }
+  if (e.de < GASTO_DIA_MINIMO) return { ok: false, erro: 'O primeiro dia é anterior ao início das campanhas.' }
+  if (e.ate < e.de) return { ok: false, erro: 'O último dia não pode ser antes do primeiro.' }
+  if (diasDoIntervalo(e.de, e.ate) > GASTO_DIAS_MAXIMOS) return { ok: false, erro: 'O intervalo passa de um ano. Informe o gasto por mês.' }
+  if (typeof e.valorCents !== 'number' || !Number.isInteger(e.valorCents) || e.valorCents <= 0) return { ok: false, erro: 'Informe o valor gasto, maior que zero.' }
+  if (e.valorCents > GASTO_MAXIMO) return { ok: false, erro: 'Valor acima de R$ 1.000.000,00. Confira os zeros.' }
+  let visitas: number | null = null
+  if (e.visitas !== null && e.visitas !== undefined && e.visitas !== '') {
+    if (typeof e.visitas !== 'number' || !Number.isInteger(e.visitas) || e.visitas < 0 || e.visitas > 100_000_000) {
+      return { ok: false, erro: 'As visitas devem ser um número inteiro, de zero para cima.' }
+    }
+    visitas = e.visitas
+  }
+  const observacao = typeof e.observacao === 'string' ? e.observacao.trim() : ''
+  if (observacao.length > 200) return { ok: false, erro: 'A observação passa de 200 caracteres.' }
+  return { ok: true, valor: { canal: e.canal, de: e.de, ate: e.ate, valor: e.valorCents, visitas, observacao } }
 }
