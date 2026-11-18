@@ -89,6 +89,22 @@ Falta só ver como fica na tela inicial de um aparelho real.
 - `screenshots` no manifesto (instalação "rica" do Android) pedem capturas do visual final da landing.
 - Tela de abertura (splash) do iPhone: sem imagem por aparelho; o iOS tende a abrir com fundo branco por ~1 s.
 
+## Manutenção de 17/11/2026 (frente E, "PWA no iPhone") — o que mudou depois deste documento
+
+Pedido do Rogério (item 10b): o Real Olímpico "pode ser visualizado como app, mas não está funcionando, principalmente no iPhone".
+Diagnóstico completo, com fonte e data de cada afirmação, em `docs/pwa/DIAGNOSTICO_PWA.md`; roteiro do aparelho real em
+`docs/pwa/ROTEIRO_IPHONE_REAL.md`. O que este documento afirmava e **mudou**:
+
+- A linha "`apple-mobile-web-app-*` … todas no `<head>`" estava **errada para uma tag**: o Next 15.5 só emite
+  `mobile-web-app-capable` a partir de `appleWebApp.capable`; a `apple-mobile-web-app-capable` não saía. Agora sai, por
+  `src/lib/pwa/metadados.ts` (usado por `layout.tsx`), com teste. É menor: o iOS atual lê o modo app do manifesto.
+- A aba do iPhone do painel "Baixe o app" foi reescrita (pedir para **entrar antes de adicionar**; deixar ligada a chave
+  **"Abrir como app web"**; sem dizer onde fica o Compartilhar). A ilustração `BarraDoSafari` foi apagada.
+- Entraram testes que não existiam: comportamento do service worker (`service-worker.test.ts`), texto do painel
+  (`GuiaDeInstalacao.test.ts`) e o filtro do middleware (`middleware.test.ts`, bloco "matcher").
+- Produção lida em 17/11 (só `GET`/`HEAD`): manifesto e `/sw.js` publicados são idênticos ao código.
+- O que **só o aparelho** responde (login copiado ao adicionar, Google no app instalado, qual tela o ícone abre) está no roteiro.
+
 ## Conflitos prováveis no merge
 `src/app/layout.tsx` e `src/components/landing/LandingPage.tsx` também são editados pelas frentes de polimento
 (landing, brandbook). As mudanças do PWA são pequenas e localizadas: no layout, três linhas de metadata, a constante
