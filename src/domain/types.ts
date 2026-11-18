@@ -921,7 +921,18 @@ export interface FreteEnvio {
   modalidade: 'PAC' | 'SEDEX'
   /** Serviço do contrato cotado (03301 PAC reverso, 03247 SEDEX reverso). */
   codigoServico: string
+  /**
+   * O que o CLIENTE PAGA pelo frete: preço do contrato + acréscimo (frente K, 18/11/2026). É o número que o
+   * saldo, o Pix, o cartão, o ledger e o estorno do cancelamento (frente H) leem — o estorno devolve o total.
+   */
   valorCents: Cents
+  /**
+   * O preço do contrato dos Correios, à parte, para conferir com a fatura que eles mandam. Ausente em frete
+   * cotado antes da frente K: ali o contrato era o próprio `valorCents` (ver `dividirFreteCobrado`).
+   */
+  valorContratoCents?: Cents
+  /** O acréscimo do Real Olímpico embutido em `valorCents` (R$ 4,00 de padrão). Ausente = zero. */
+  acrescimoCents?: Cents
   valorDeclaradoCents: Cents
   prazoDiasUteis: number
   cotadoEm: Timestamp

@@ -16,7 +16,10 @@ import 'server-only'
  * pertence ao contrato"), então nenhum envio era rastreado de verdade. Com o contrato, o servidor
  * gera a pré-postagem de LOGÍSTICA REVERSA: o código nasce nos Correios, já ligado ao nosso cartão de
  * postagem, a etiqueta é a oficial deles e o cliente posta de graça em qualquer agência. O frete cai
- * na fatura do contrato, e o cliente o paga aqui pelo mesmo preço, sem margem (decisão do Gabriel).
+ * na fatura do contrato, e o cliente o paga aqui pelo mesmo preço, sem margem (decisão do Gabriel). DESDE
+ * 18/11/2026 (frente K, item 11 do Rogério) o cliente paga o preço do contrato MAIS um acréscimo por objeto
+ * postado (R$ 4,00 de padrão, parâmetro `acrescimoDoFreteCents` em /admin/configuracao); `calcularFreteCorreios`
+ * soma, `Envio.frete.valorCents` é o total cobrado e o contrato fica à parte em `valorContratoCents`.
  *
  * A ORDEM QUE ESTE ARQUIVO PROTEGE
  * --------------------------------
@@ -178,7 +181,11 @@ export async function cotarFreteDoServidor(
     frete: {
       modalidade,
       codigoServico: cot.codigoServico ?? SERVICOS_CORREIOS.entrada[modalidade],
+      // O TOTAL COBRADO (contrato + acréscimo, frente K): é o que tudo a jusante lê e o que o estorno devolve.
+      // O contrato e o acréscimo ficam gravados à parte, para conferir com a fatura dos Correios.
       valorCents: cot.valorTotalCents,
+      valorContratoCents: cot.valorContratoCents,
+      acrescimoCents: cot.acrescimoCents,
       valorDeclaradoCents,
       prazoDiasUteis: cot.prazoDiasUteis,
       cotadoEm: agora,

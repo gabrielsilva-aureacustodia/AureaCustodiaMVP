@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+// O parâmetro vigente do painel (`acrescimoDoFreteCents`): o teste o muda à vontade, sem banco.
+const config = vi.hoisted(() => ({ acrescimoDoFreteCents: 400 as unknown }))
+vi.mock('@/server/config/carregar', () => ({
+  carregarParametrosOperacionais: async () => ({ acrescimoDoFreteCents: config.acrescimoDoFreteCents }),
+}))
+
 import { _resetTokenParaTestes } from './cws/cliente'
 import { calcularFreteCorreios, CODIGOS_SERVICO_CORREIOS, normalizarCep, validarModalidadeEnvio } from './correios'
 import { dimensoesParaMoedas } from './types'
@@ -19,6 +25,7 @@ describe('Correios — Cálculo de Frete', () => {
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
     _resetTokenParaTestes()
+    config.acrescimoDoFreteCents = 400
   })
 
   it('normaliza CEPs para 8 dígitos numéricos', () => {
@@ -46,8 +53,59 @@ describe('Correios — Cálculo de Frete', () => {
       valorDeclaradoCents: 50000,
     })
     expect(res.origem).toBe('tabela')
-    expect(res.valorTotalCents).toBe(res.valorFreteCents + res.valorSeguroCents)
+    // O contrato (frete + seguro) e o acréscimo ficam à parte; o total é a soma.
+    expect(res.valorContratoCents).toBe(res.valorFreteCents + res.valorSeguroCents)
+    expect(res.acrescimoCents).toBe(400)
+    expect(res.valorTotalCents).toBe(res.valorContratoCents + 400)
     expect(res.prazoDiasUteis).toBeGreaterThan(0)
+  })
+
+  describe('acréscimo do frete (frente K)', () => {
+    const base = { cepOrigem: '01310-100', cepDestino: '30315-970', modalidade: 'PAC' as const, valorDeclaradoCents: 50000 }
+
+    it('o valor passado à mão fixa o acréscimo, sem ler o parâmetro do painel', async () => {
+      config.acrescimoDoFreteCents = 999
+      const res = await calcularFreteCorreios({ ...base, acrescimoCents: 650 })
+      expect(res.acrescimoCents).toBe(650)
+      expect(res.valorTotalCents).toBe(res.valorContratoCents + 650)
+    })
+
+    it('sem valor à mão, vale o parâmetro vigente do painel', async () => {
+      config.acrescimoDoFreteCents = 900
+      const res = await calcularFreteCorreios(base)
+      expect(res.acrescimoCents).toBe(900)
+      expect(res.valorTotalCents).toBe(res.valorContratoCents + 900)
+    })
+
+    it('parâmetro zerado = o frete é o preço do contrato, igual a antes da frente K', async () => {
+      config.acrescimoDoFreteCents = 0
+      const res = await calcularFreteCorreios(base)
+      expect(res.acrescimoCents).toBe(0)
+      expect(res.valorTotalCents).toBe(res.valorContratoCents)
+      expect(res.valorTotalCents).toBe(res.valorFreteCents + res.valorSeguroCents)
+    })
+
+    it('valor inválido no parâmetro (negativo, fração, lixo) vira zero — nunca reduz o frete', async () => {
+      for (const lixo of [-400, 4.5, Number.NaN, 'quatro', null]) {
+        config.acrescimoDoFreteCents = lixo
+        const res = await calcularFreteCorreios(base)
+        expect(res.acrescimoCents).toBe(0)
+        expect(res.valorTotalCents).toBe(res.valorContratoCents)
+      }
+    })
+
+    it('a saída (retirada) NÃO leva o acréscimo — ele é só do envio (decisão do Gabriel, 18/11/2026)', async () => {
+      const res = await calcularFreteCorreios({ ...base, sentido: 'saida' })
+      expect(res.acrescimoCents).toBe(0)
+      expect(res.valorTotalCents).toBe(res.valorContratoCents)
+      // A entrada, no mesmo teste e com o mesmo parâmetro, continua com ele.
+      const entrada = await calcularFreteCorreios({ ...base, sentido: 'entrada' })
+      expect(entrada.acrescimoCents).toBe(400)
+    })
+
+    it('CEP ou modalidade inválidos continuam recusados antes de qualquer acréscimo', async () => {
+      await expect(calcularFreteCorreios({ ...base, modalidade: 'CARTA' as never })).rejects.toThrow(/Carta comum/)
+    })
   })
 
   it('SEDEX tem prazo menor ou igual ao PAC na tabela', async () => {
@@ -80,10 +138,13 @@ describe('Correios — Cálculo de Frete', () => {
       modalidade: 'SEDEX',
       valorDeclaradoCents: 30000,
     })
+    // O contrato (R$ 31,59 = 28,85 + 2,74) fica à parte; o cliente paga o contrato + R$ 4,00.
     expect(entrada).toMatchObject({
       origem: 'correios',
       codigoServico: '03247',
-      valorTotalCents: 3159,
+      valorContratoCents: 3159,
+      acrescimoCents: 400,
+      valorTotalCents: 3559,
       valorFreteCents: 2885,
       valorSeguroCents: 274,
       prazoDiasUteis: 1,

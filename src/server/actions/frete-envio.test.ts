@@ -33,7 +33,12 @@ const correios = vi.hoisted(() => ({
 
 // A tabela vigente do painel: `undefined` = a do código (R$ 2,00); o teste do mês a muda para provar que o
 // valor vem da tabela e não de um número fixo.
-const tabela = vi.hoisted(() => ({ custodiaMensalPorMoeda: undefined as number | undefined }))
+const tabela = vi.hoisted(() => ({
+  custodiaMensalPorMoeda: undefined as number | undefined,
+  // O acréscimo do frete (frente K): os testes de cima rodam com ele ZERADO, para seguirem provando o frete do
+  // contrato como antes (R$ 21,14); o bloco "acréscimo do frete" do fim o liga em R$ 4,00.
+  acrescimoDoFreteCents: 0,
+}))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/server/session', () => ({ getSessionEmail: getSessionEmailMock }))
@@ -48,6 +53,10 @@ vi.mock('@/server/config/carregar', async (importOriginal) => {
         ? base
         : { ...base, taxas: { ...base.taxas, custodiaMensalPorMoeda: tabela.custodiaMensalPorMoeda } }
     }),
+    carregarParametrosOperacionais: vi.fn(async () => ({
+      ...(await original.carregarParametrosOperacionais()),
+      acrescimoDoFreteCents: tabela.acrescimoDoFreteCents,
+    })),
   }
 })
 vi.mock('@/lib/shipping/cws/config', async (importOriginal) => {
@@ -77,6 +86,7 @@ vi.mock('@/server/payments/repositorios', () => ({
 
 import { PRAZO_DESCARTE_ENVIO_MS } from '@/domain/envios'
 import { faturasDoEnvio, primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
+import { calcularTaxaRetirada } from '@/domain/retirada'
 import { seedState } from '@/domain/seed'
 import type { AppState, Envio } from '@/domain/types'
 import { derivarLancamentos } from '@/server/db/derivar'
@@ -136,6 +146,7 @@ beforeEach(() => {
 
   for (const f of Object.values(correios)) f.mockReset()
   tabela.custodiaMensalPorMoeda = undefined
+  tabela.acrescimoDoFreteCents = 0
   correios.correiosConfigurado.mockReturnValue(true)
   correios.cotarServico.mockImplementation(async (i: { codigoServico: string }) => ({
     codigoServico: i.codigoServico,
@@ -402,6 +413,103 @@ describe('desconsiderarEnviosVencidos', () => {
     expect(r2.desconsiderados).toEqual([])
     expect(r2.prePostagensCanceladas).toEqual([PROTOCOLO])
     expect(state.users[EMAIL].balance).toBe(10_000 - MES)
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * O acréscimo do frete (frente K, 18/11/2026)                         *
+ * ------------------------------------------------------------------ */
+
+describe('acréscimo do frete — o cliente paga o contrato + R$ 4,00 e o contrato fica guardado à parte', () => {
+  const CONTRATO = 2_114
+  const ACRESCIMO = 400
+  const COBRADO = CONTRATO + ACRESCIMO
+
+  beforeEach(() => {
+    tabela.acrescimoDoFreteCents = ACRESCIMO
+  })
+
+  it('COTAÇÃO: o valor da tela e o gravado são o total; o contrato e o acréscimo ficam à parte', async () => {
+    const r = await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    expect(r.data).toMatchObject({ valorCents: COBRADO, acrescimoCents: ACRESCIMO, primeiroMesCents: MES, totalCents: COBRADO + MES })
+    expect(envio().frete).toMatchObject({ status: 'cotado', valorCents: COBRADO, valorContratoCents: CONTRATO, acrescimoCents: ACRESCIMO })
+  })
+
+  it('COTAÇÃO com o parâmetro ZERADO: igual ao preço do contrato, sem acréscimo', async () => {
+    tabela.acrescimoDoFreteCents = 0
+    const r = await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    expect(r.data).toMatchObject({ valorCents: CONTRATO, acrescimoCents: 0, totalCents: CONTRATO + MES })
+    expect(envio().frete).toMatchObject({ valorCents: CONTRATO, valorContratoCents: CONTRATO, acrescimoCents: 0 })
+  })
+
+  it('o valor do painel manda: trocado para R$ 6,50, a cotação seguinte sai com R$ 6,50', async () => {
+    tabela.acrescimoDoFreteCents = 650
+    const r = await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    expect(r.data).toMatchObject({ valorCents: CONTRATO + 650, acrescimoCents: 650 })
+  })
+
+  it('PAGAMENTO POR SALDO: debita o total (frete com acréscimo + 1º mês); o ledger lança o total no `frete`', async () => {
+    await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    const antes = structuredClone(state)
+
+    const r = await pagarFreteComSaldo(PROTOCOLO)
+
+    expect(r.ok).toBe(true)
+    expect(state.users[EMAIL].balance).toBe(10_000 - COBRADO - MES)
+    expect(envio().frete).toMatchObject({ status: 'pago', forma: 'saldo', valorCents: COBRADO, valorContratoCents: CONTRATO, acrescimoCents: ACRESCIMO })
+
+    const d = derivarLancamentos({ antes, depois: state, ops: planejarDiff(antes, state), semeadura: false, agora: Date.now(), hashAnterior: 'h' })
+    expect(d.ajustes).toEqual([])
+    const lancamentoDoFrete = d.lancamentos.find((l) => l.tipo === 'frete')
+    expect(Math.abs(lancamentoDoFrete!.valor)).toBe(COBRADO)
+  })
+
+  it('PAGAMENTO POR PIX: a intenção leva o total cobrado (frete com acréscimo + 1º mês)', async () => {
+    await cotarFreteDoEnvio(PROTOCOLO, 'SEDEX')
+    await iniciarPixFrete(PROTOCOLO)
+    expect(correios.criarIntencao.mock.calls[0][0]).toMatchObject({
+      tipoOperacao: 'frete_envio',
+      valor: 3_159 + ACRESCIMO + MES,
+      metadata: { protocolo: PROTOCOLO, primeiroMesCents: MES },
+    })
+  })
+
+  it('PAGAMENTO NO CARTÃO: a cobrança leva o total cobrado (frete com acréscimo + 1º mês)', async () => {
+    correios.criarCobrancaCartao.mockImplementation(async (p: { externalReference: string; valorCents: number }) => ({
+      id: 'pref-1',
+      initPoint: 'https://mp.test/checkout',
+      sandboxInitPoint: 'https://mp.test/checkout',
+      externalReference: p.externalReference,
+      valorCents: p.valorCents,
+      parcelasMax: 1,
+      createdAt: Date.now(),
+    }))
+    await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    const r = await iniciarCartaoFrete(PROTOCOLO)
+    expect(r.ok).toBe(true)
+    // O gateway recebe UM valor só — nunca contrato e acréscimo em cobranças separadas.
+    expect(correios.criarIntencao.mock.calls[0][0]).toMatchObject({ tipoOperacao: 'frete_envio', valor: COBRADO + MES })
+    expect(correios.criarCobrancaCartao.mock.calls[0][0]).toMatchObject({ valorCents: COBRADO + MES })
+  })
+
+  it('ESTORNO: envio vencido sem postar devolve o TOTAL cobrado (contrato + acréscimo), como o cancelamento da frente H', async () => {
+    await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
+    await pagarFreteComSaldo(PROTOCOLO)
+    envio().createdAt = Date.now() - PRAZO_DESCARTE_ENVIO_MS - 1
+    correios.consultarPrePostagem.mockResolvedValue({ id: 'PRI1', codigoObjeto: 'AP123456789BR', statusAtual: 2, descricao: 'Pré-postado' })
+
+    const r = await desconsiderarEnviosVencidos()
+
+    expect(r.fretesEstornadosCents).toBe(COBRADO)
+    // Só o frete volta (o 1º mês pago é da frente H): o acréscimo volta junto, porque faz parte do que foi cobrado.
+    expect(state.users[EMAIL].balance).toBe(10_000 - MES)
+    expect(envio().frete).toMatchObject({ status: 'estornado', valorCents: COBRADO, valorContratoCents: CONTRATO, acrescimoCents: ACRESCIMO })
+  })
+
+  it('RETIRADA: não cota frete dos Correios — a taxa fixa do painel segue sendo a cobrança, sem acréscimo', () => {
+    // A retirada paga `taxaRetiradaComum`/`taxaRetiradaSegura`; o frete dela vai direto para a fatura do contrato.
+    expect(calcularTaxaRetirada('comum')).toBe(5_000)
+    expect(calcularTaxaRetirada('segura')).toBe(18_000)
   })
 })
 

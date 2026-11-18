@@ -515,8 +515,10 @@ const SEM_ENDERECO_PARA_FRETE = 'Complete o cadastro com o seu endereço para ca
 /** O que a tela recebe de uma cotação sobre o protocolo. */
 export interface CotacaoFreteDoEnvio {
   modalidade: ModalidadeEnvio
-  /** O frete dos Correios, sozinho. */
+  /** O frete que o cliente paga, sozinho: o preço do contrato dos Correios + o acréscimo (frente K, 18/11/2026). */
   valorCents: number
+  /** O acréscimo que `valorCents` já inclui (R$ 4,00 de padrão): a tela o mostra e diz que está incluído. */
+  acrescimoCents?: Cents
   prazoDiasUteis: number
   cotadoEm: number
   /** `'tabela'` = estimativa local, sem contrato: não se paga no site. */
@@ -603,6 +605,7 @@ export async function cotarFreteDoEnvio(
       data: {
         modalidade,
         valorCents: cot.frete.valorCents,
+        acrescimoCents: cot.frete.acrescimoCents ?? 0,
         prazoDiasUteis: cot.frete.prazoDiasUteis,
         cotadoEm: cot.frete.cotadoEm,
         origem: cot.origem,

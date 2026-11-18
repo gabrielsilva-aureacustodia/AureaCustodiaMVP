@@ -92,6 +92,15 @@ Até o Gabriel responder, nada disto vira regra nem código:
 19. **Prazo de guarda** que ele exige (proposta: 10 anos) e e-Financeira (IN RFB 2.278/2025).
 20. **Responsabilidade de plataforma digital pelo IBS/CBS a partir de 2027** (LC 214): vale para negociações entre
     pessoas físicas?
+21. **Acréscimo de R$ 4,00 no frete do envio (frente K, 18/11/2026; pedido do Rogério, item 11):** o cliente passa a
+    pagar o preço do contrato dos Correios **mais R$ 4,00 por objeto postado**, e a Áurea fica com esses R$ 4,00 (os
+    Correios faturam só o contrato). Como classificar a parte retida: receita de serviço (com NFS-e e ISS/PIS/COFINS),
+    ressarcimento de despesa do cliente ou outra? Em que código de serviço, se houver nota? Resposta de 23/10/2026
+    ("despesa de cliente", §0 item 3) vale para o contrato, **não** para o acréscimo. **Até a resposta:** o acréscimo
+    **não** gera NFS-e e **não** tem tratamento próprio na DRE — vai no lançamento `frete` do ledger (total cobrado),
+    portanto fica em "frete repassado", fora do resultado. O contrato e o acréscimo ficam gravados à parte em
+    `Envio.frete` (`valorContratoCents`, `acrescimoCents`) para separar depois. O Gabriel confirmou em 18/11/2026 que
+    o acréscimo é por objeto postado e só no envio (D5), não na retirada.
 
 ## 3. Perguntas ao Mercado Pago / conferências no painel
 

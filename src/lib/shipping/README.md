@@ -8,7 +8,9 @@ com a **API CWS do contrato Platinum 1** (nº 9912766936, cartão de postagem 00
 ```
 src/lib/shipping/
 ├── types.ts            Tipos do módulo; ModalidadeEnvio = 'PAC' | 'SEDEX'; dimensoesParaMoedas()
-├── correios.ts         calcularFreteCorreios() — preço/prazo do contrato, ou tabela local sem contrato
+├── correios.ts         calcularFreteCorreios() — preço/prazo do contrato + o acréscimo do frete, ou tabela local sem contrato
+├── acrescimo.ts        Regra pura do acréscimo (R$ 4,00 de padrão), a soma e a frase da tela (sem server-only)
+├── acrescimo-vigente.ts O valor vigente em /admin/configuracao, lido por import() dinâmico (server-only)
 ├── tracking.ts         atualizarRastreiosEmLote() — a porta do job de rastreio
 ├── cep.ts              consultarCep() — CEP oficial dos Correios, ViaCEP de reserva (LGPD: nada gravado)
 ├── endereco-central.ts Caixa Postal 7990 (sem server-only: a tela lê o mesmo valor que a etiqueta)
@@ -41,10 +43,32 @@ isso), o rastreio volta "indisponível" com o motivo, e a pré-postagem não aco
 
 | Sentido | PAC | SEDEX | Quem paga |
 |---|---|---|---|
-| Entrada — cliente → custódia (**logística reversa**) | 03301 PAC REVERSO | 03247 SEDEX REVERSO | O cliente, no site, pelo preço do contrato; os Correios faturam a Áurea |
-| Saída — custódia → cliente (retirada) | 03298 PAC CONTRATO AG | 03220 SEDEX CONTRATO AG | Coberto pela taxa de retirada |
+| Entrada — cliente → custódia (**logística reversa**) | 03301 PAC REVERSO | 03247 SEDEX REVERSO | O cliente, no site, pelo preço do contrato **mais o acréscimo do frete**; os Correios faturam a Áurea só o contrato |
+| Saída — custódia → cliente (retirada) | 03298 PAC CONTRATO AG | 03220 SEDEX CONTRATO AG | Coberto pela taxa de retirada (fixa, no painel): nenhuma ação cota a saída |
 
 Valor declarado: **SEDEX usa o adicional `019`, PAC usa `064`** (019 no PAC dá `ERP-054`). Mínimo R$ 24,50.
+
+## O acréscimo do frete (frente K, 18/11/2026 — item 11 do Rogério)
+
+O cliente paga o preço do contrato **mais um valor por objeto postado**: R$ 4,00 de padrão, parâmetro
+`acrescimoDoFreteCents` no grupo **Operacional** de `/admin/configuracao` (com histórico; **não é taxa de
+negociação**, não toca `fees.ts` e não publica versão da Tabela de Taxas). Pedido do Rogério: "somar 4 reais no
+valor do faturamento dos Correios"; o Gabriel confirmou em 18/11/2026 (D5): **por objeto postado, só no envio**.
+
+- **Onde soma:** dentro de `calcularFreteCorreios`, para que a estimativa do passo 1, o frete que se paga e a tela
+  leiam o mesmo número sem nenhuma Server Action saber dele. `acrescimoCents` na entrada fixa o valor (teste,
+  script); sem ele vale o parâmetro vigente (`acrescimo-vigente.ts`).
+- **O que a cotação devolve:** `valorContratoCents` (o que os Correios cobram — é com ele que se confere a fatura
+  deles), `acrescimoCents` e `valorTotalCents` = contrato + acréscimo (o que o cliente paga).
+- **O que se grava:** `Envio.frete.valorCents` é o **total cobrado** (saldo, Pix, cartão, ledger `frete` e o estorno
+  do cancelamento leem esse número), com `valorContratoCents` e `acrescimoCents` ao lado. Frete cotado antes da
+  frente K não tem os dois campos: o contrato é o próprio total (`dividirFreteCobrado`). `envios.frete` é jsonb:
+  sem migration.
+- **Parâmetro zerado** = frete igual ao contrato, como era. Valor inválido no banco vale zero, nunca reduz o frete.
+- **Retirada:** não cota frete dos Correios; paga a taxa fixa do painel, e o acréscimo **não** vale para ela. Uma
+  cotação de saída (nenhuma ação a faz hoje) sai sem acréscimo.
+- **Fiscal (em aberto):** sem NFS-e e sem tratamento próprio na DRE até o contador responder — ver
+  `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`. O total entra no ledger `frete`, como todo frete.
 
 ## Regras que este módulo garante
 

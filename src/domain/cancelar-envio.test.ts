@@ -175,6 +175,21 @@ describe('cancelarEnvio — só o frete (envio sem 1º mês)', () => {
     expect(state.users[email]!.balance).toBe(SALDO_INICIAL + FRETE_CENTS + 350)
   })
 
+  it('frete com o contrato e o acréscimo gravados à parte (frente K): o estorno devolve o TOTAL, e os dois campos ficam intactos', () => {
+    const acrescimo = 400
+    const frete: FreteEnvio = { ...FRETE_PAGO, valorCents: FRETE_CENTS + acrescimo, valorContratoCents: FRETE_CENTS, acrescimoCents: acrescimo }
+    const { state, email } = cenario({ fatura: null, envio: { frete } })
+    const r = cancelarComoCliente(state, email)
+    expect(r.ok && r.resumo.freteEstornadoCents).toBe(FRETE_CENTS + acrescimo)
+    expect(state.users[email]!.balance).toBe(SALDO_INICIAL + FRETE_CENTS + acrescimo)
+    expect(state.envios[0]!.frete).toMatchObject({
+      status: 'estornado',
+      valorCents: FRETE_CENTS + acrescimo,
+      valorContratoCents: FRETE_CENTS,
+      acrescimoCents: acrescimo,
+    })
+  })
+
   it('frete só cotado (nunca pago) não devolve nada', () => {
     const { state, email } = cenario({ fatura: null, envio: { frete: { ...FRETE_PAGO, status: 'cotado', pagoEm: null } } })
     const r = cancelarComoCliente(state, email)
