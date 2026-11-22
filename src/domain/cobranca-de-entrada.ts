@@ -36,6 +36,7 @@
  * quando a moeda entra no armazém, então a cobrança também começa ali.
  */
 
+import { ehIsentoDeCustodia } from '@/domain/isencao'
 import { cicloDaMoeda, dataBrasilia, type CicloDaMoeda } from '@/domain/ciclo-custodia'
 import { cicloJaCobrado } from '@/domain/custodia-da-moeda'
 import { moedasFaturaveis } from '@/domain/custody'
@@ -83,6 +84,8 @@ export function emitirFaturasDosCiclos(
 ): FaturaCustodia[] {
   const user = state.users[userEmail]
   if (!user) return []
+  // A conta da Áurea e a do CEO não pagam custódia: não há fatura de ciclo nem de entrada (src/domain/isencao.ts).
+  if (ehIsentoDeCustodia(userEmail)) return []
 
   state.faturasCustodia = state.faturasCustodia ?? []
 

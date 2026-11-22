@@ -94,7 +94,9 @@ export function gramasParaMg(texto: string): number | null {
  * Devolve string em gramas com vírgula, pronta para o input (ex.: "7", "7,84").
  */
 export function pesoPadraoOuInicial(tipoMoeda: string, pesoInicialMg: number | null | undefined): string {
-  const peso = pesoInicialMg && pesoInicialMg > 0 ? pesoInicialMg : COIN_TYPES.find((t) => t.key === tipoMoeda)?.pesoPadraoMg
+  // Peso inicial abaixo de 1 g é quase sempre "7" (gramas) digitado onde se pedia miligramas — a bancada
+  // mostrava "0,007". Vale o padrão do catálogo (22/11/2026).
+  const peso = pesoInicialMg && pesoInicialMg >= PESO_MIN_MG ? pesoInicialMg : COIN_TYPES.find((t) => t.key === tipoMoeda)?.pesoPadraoMg
   return peso && peso > 0 ? String(peso / 1000).replace('.', ',') : ''
 }
 

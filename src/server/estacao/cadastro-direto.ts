@@ -141,7 +141,7 @@ export async function cadastrarMoedasDiretamente(
 
   const email = normalizarEmail(entrada.userEmail)
   const informado = Number.isFinite(entrada.pesoMg) ? Math.max(0, Math.round(entrada.pesoMg as number)) : 0
-  const pesoMg = informado > 0 ? informado : (catalogo.find((t) => t.key === entrada.tipoMoeda)?.pesoPadraoMg ?? 0)
+  const pesoMg = informado >= 1000 ? informado : (catalogo.find((t) => t.key === entrada.tipoMoeda)?.pesoPadraoMg ?? 0)
   const caixa = entrada.caixa?.trim() || null
   const observacao = entrada.observacao?.trim() || null
 

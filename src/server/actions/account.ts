@@ -27,7 +27,7 @@ import { calcularDataLimiteSaque, PRAZO_SAQUE_DIAS } from '@/domain/dates'
 import { temDadosBancarios } from '@/domain/cadastro'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
-import { limparCpf, validarCpf } from '@/domain/cpf'
+import { limparCpf, validarDocumento } from '@/domain/cpf'
 import type { ActionResult, Cadastro, Cents, Saque } from '@/domain/types'
 import { emailValido, ehEmailProtegido, normalizarEmail } from '@/domain/admin/permissoes'
 import { createAuthClient } from '@/server/auth/client'
@@ -506,8 +506,8 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
 
   if (!input) return { ok: false, error: 'Dados cadastrais não informados.' }
 
-  if (!validarCpf(input.cpf)) {
-    return { ok: false, error: 'CPF inválido.' }
+  if (!validarDocumento(input.cpf)) {
+    return { ok: false, error: 'CPF ou CNPJ inválido.' }
   }
 
   const nomeCompleto = (input.nomeCompleto || '').trim()

@@ -4,6 +4,7 @@
  * Módulo 100% puro — sem dependências de banco de dados, servidor ou React.
  */
 
+import { validarDocumento } from './cpf'
 import type { Cadastro, DadosBancarios } from './types'
 
 /**
@@ -48,7 +49,8 @@ export function temCadastroCompleto(user?: { cadastro?: Cadastro } | null): bool
   if (!user || !user.cadastro) return false
   const c = user.cadastro
 
-  if (!cpfValido(c.cpf)) return false
+  // O campo guarda CPF (PF) ou CNPJ (PJ): o nome `cpf` é histórico e o tipo é protegido.
+  if (!validarDocumento(c.cpf)) return false
   if (!c.nomeCompleto || c.nomeCompleto.trim().length < 3) return false
   if (!c.dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(c.dataNascimento.trim())) return false
 

@@ -78,7 +78,7 @@ export function CadastroDiretoDeMoeda({
                 tipoMoeda,
                 ano: Number(ano),
                 quantidade: Number(quantidade),
-                pesoMg: pesoMg.trim() ? Number(pesoMg) : 0,
+                pesoMg: pesoMg.trim() ? Math.round(Number(pesoMg.replace(',', '.')) * 1000) : 0,
                 caixa: caixa.trim() || null,
                 observacao: observacao.trim() || null,
                 // Só o cadastro sem envio tem o primeiro mês pago na venda direta; o direto não passa pela bancada.
@@ -150,16 +150,16 @@ export function CadastroDiretoDeMoeda({
             </div>
 
             <div className="field">
-              <label htmlFor={`${prefixoId}-peso`}>Peso aferido, em miligramas (opcional)</label>
+              <label htmlFor={`${prefixoId}-peso`}>Peso aferido, em gramas (opcional)</label>
               <input
                 id={`${prefixoId}-peso`}
                 className="tinput"
-                type="number"
-                min={0}
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
                 value={pesoMg}
                 onChange={(ev) => setPesoMg(ev.target.value)}
-                placeholder="deixe vazio se não houve pesagem"
+                placeholder="vazio = peso padrão do tipo (ex.: 7)"
               />
             </div>
 

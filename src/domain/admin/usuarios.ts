@@ -16,7 +16,8 @@
  * (src/server/db/repositories/users.ts descarta o cadastro inteiro se faltar um).
  */
 
-import { cpfValido, temCadastroCompleto } from '@/domain/cadastro'
+import { temCadastroCompleto } from '@/domain/cadastro'
+import { validarDocumento } from '@/domain/cpf'
 import { isInadimplente, verificarStatusFatura } from '@/domain/custody'
 import { chaveDeUsuario } from '@/domain/email'
 import type {
@@ -240,7 +241,7 @@ export function montarCadastroDoPainel(entrada: EntradaCadastro, atual: Cadastro
   const nomeCompleto = texto(entrada.nomeCompleto)
   const dataNascimento = texto(entrada.dataNascimento, 10)
   const telefone = texto(entrada.telefone, 30).replace(/\D/g, '')
-  if (!cpf) avisos.push('o CPF está vazio')
+  if (!cpf) avisos.push('o CPF ou CNPJ está vazio')
   if (!nomeCompleto) avisos.push('o nome completo está vazio')
   if (!dataNascimento) avisos.push('a data de nascimento está vazia')
   else if (!DATA_ISO.test(dataNascimento)) avisos.push('a data de nascimento não está no formato AAAA-MM-DD')
@@ -257,7 +258,7 @@ export function montarCadastroDoPainel(entrada: EntradaCadastro, atual: Cadastro
     ...(atual?.confirmadoEm !== undefined ? { confirmadoEm: atual.confirmadoEm } : {}),
   }
 
-  if (cpf && !cpfValido(cpf)) avisos.push('o CPF não confere com os dígitos verificadores')
+  if (cpf && !validarDocumento(cpf)) avisos.push('o CPF ou CNPJ não confere com os dígitos verificadores')
   if (telefone && (telefone.length < 10 || telefone.length > 11)) avisos.push('o telefone não tem DDD e número (10 ou 11 dígitos)')
   if (!temCadastroCompleto({ cadastro })) avisos.push('com estes dados o cadastro não libera depósito, compra e saque')
   return { ok: true, valor: { nome, cadastro, avisos } }

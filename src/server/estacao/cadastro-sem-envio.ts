@@ -38,7 +38,8 @@ export type ResultadoCadastroSemEnvio =
 
 function pesoInicial(entrada: EntradaCadastroSemEnvio, catalogo: readonly CoinType[]): number | null {
   const informado = Number.isFinite(entrada.pesoMg) ? Math.round(entrada.pesoMg as number) : 0
-  if (informado > 0) return informado
+  // Menos de 1 g (1000 mg) não é peso de moeda: é "7" digitado onde se pedia miligramas. Cai no padrão do tipo.
+  if (informado >= 1000) return informado
   const padrao = catalogo.find((tipo) => tipo.key === entrada.tipoMoeda)?.pesoPadraoMg
   return typeof padrao === 'number' && padrao > 0 ? Math.round(padrao) : null
 }

@@ -15,7 +15,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { descreverDadosBancarios, formatarCep, formatarCpf, formatarTelefone } from '@/domain/cadastro'
+import { descreverDadosBancarios, formatarCep, formatarTelefone } from '@/domain/cadastro'
+import { formatarDocumento } from '@/domain/cpf'
 import type { AbaCadastro as DadosAbaCadastro } from '@/server/admin/ficha'
 import { editarCadastroNoPainel, editarDadosBancariosNoPainel } from '@/server/actions/admin/usuarios'
 
@@ -65,7 +66,7 @@ export function AbaCadastro({ email, nome, dados, semBanco }: { email: string; n
         ) : c ? (
           <dl className="adm-pares">
             <Par rotulo="Nome completo">{c.nomeCompleto}</Par>
-            <Par rotulo="CPF">{formatarCpf(c.cpf)}</Par>
+            <Par rotulo={c.cpf.replace(/\D/g, '').length === 14 ? 'CNPJ' : 'CPF'}>{formatarDocumento(c.cpf)}</Par>
             <Par rotulo="Nascimento">{c.dataNascimento.split('-').reverse().join('/')}</Par>
             <Par rotulo="Telefone">{formatarTelefone(c.telefone)}</Par>
             <Par rotulo="Endereço">
@@ -185,7 +186,7 @@ function EditarCadastro({ email, nome, dados, aoSalvar }: { email: string; nome:
   const c = dados.cadastro
   const [campos, setCampos] = useState({
     nome,
-    cpf: c ? formatarCpf(c.cpf) : '',
+    cpf: c ? formatarDocumento(c.cpf) : '',
     nomeCompleto: c?.nomeCompleto ?? '',
     dataNascimento: c?.dataNascimento ?? '',
     telefone: c ? formatarTelefone(c.telefone) : '',
@@ -231,12 +232,12 @@ function EditarCadastro({ email, nome, dados, aoSalvar }: { email: string; nome:
       }}
     >
       <p className="adm-fraco">
-        Qualquer campo pode ser corrigido, inclusive o CPF. O nome de exibição é o que aparece no topo do app.
+        Qualquer campo pode ser corrigido, inclusive o CPF (ou CNPJ, nas contas PJ). O nome de exibição é o que aparece no topo do app.
       </p>
       <div className="adm-form">
         {campo('nome', 'Nome de exibição', { largo: true })}
         {campo('nomeCompleto', 'Nome completo', { largo: true })}
-        {campo('cpf', 'CPF')}
+        {campo('cpf', 'CPF ou CNPJ')}
         {campo('dataNascimento', 'Nascimento', { tipo: 'date' })}
         {campo('telefone', 'Telefone')}
       </div>

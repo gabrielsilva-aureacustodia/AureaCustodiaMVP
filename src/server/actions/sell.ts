@@ -31,6 +31,7 @@
  *    negociação que não moveu moeda nenhuma.
  */
 
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { isNegociavel } from '@/domain/constants'
 import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
@@ -513,19 +514,21 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
-      const affordable = Math.floor(buyer.balance / custoDeCompraPorMoeda(bo.price, taxas))
+      // Isenção da conta da Áurea / par Áurea ↔ CEO: só desta negociação (src/domain/isencao.ts).
+      const taxasPar = taxasDaNegociacao(bo.buyer, email, taxas)
+      const affordable = Math.floor(buyer.balance / Math.max(1, custoDeCompraPorMoeda(bo.price, taxasPar)))
       const execN = Math.min(n, affordable)
       if (execN <= 0) return { ok: false, error: 'O comprador não possui saldo suficiente no momento.' }
 
-      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price, taxas)
+      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price, taxasPar)
 
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]
         const price = bo.price
         // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
-        buyer.balance -= custoDeCompraPorMoeda(price, taxas)
+        buyer.balance -= custoDeCompraPorMoeda(price, taxasPar)
         seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
-        transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, taxas)
+        transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, taxasPar)
       }
 
       const feeComprador = feeCompradorUnit * execN

@@ -583,7 +583,7 @@ describe('salvarCadastro: o primeiro preenchimento não pede, mudar o que está 
     const res = await salvarCadastro({ ...CADASTRO_VALIDO, cpf: '123.456.789-00' })
 
     expect(pedeConfirmacao(res)).toBe(false)
-    expect(res).toEqual({ ok: false, error: 'CPF inválido.' })
+    expect(res).toEqual({ ok: false, error: 'CPF ou CNPJ inválido.' })
   })
 })
 
@@ -769,7 +769,7 @@ describe('evento de segurança: troca de senha, e-mail ou Pix é registrada, e s
     it('cadastro com erro de preenchimento não emite nada', async () => {
       const res = await salvarCadastro({ ...CADASTRO_VALIDO, cpf: '123.456.789-00' })
 
-      expect(res).toEqual({ ok: false, error: 'CPF inválido.' })
+      expect(res).toEqual({ ok: false, error: 'CPF ou CNPJ inválido.' })
       expect(eventoMock).not.toHaveBeenCalled()
     })
   })

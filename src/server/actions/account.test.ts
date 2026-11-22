@@ -46,7 +46,7 @@ describe('Server Actions de Cadastro (account.ts)', () => {
 
   it('rejeita CPF inválido', async () => {
     const res = await salvarCadastro({ ...inputValido, cpf: '123.456.789-00' })
-    expect(res).toEqual({ ok: false, error: 'CPF inválido.' })
+    expect(res).toEqual({ ok: false, error: 'CPF ou CNPJ inválido.' })
   })
 
   it('rejeita nome completo com menos de 3 caracteres', async () => {

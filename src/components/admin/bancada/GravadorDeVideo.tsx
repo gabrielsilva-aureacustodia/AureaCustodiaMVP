@@ -98,6 +98,8 @@ export function GravadorDeVideo({
   const formato = useRef<(typeof FORMATOS)[number]>(FORMATOS[0])
   const urlLocal = useRef<string | null>(null)
   const ultima = useRef<{ blob: Blob; ext: 'webm' | 'mp4' } | null>(null)
+  /** Caminho já enviado ao Storage, por envio, enquanto a página está aberta. */
+  const subidos = useRef<Map<string, string>>(new Map())
 
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [camera, setCamera] = useState('')
@@ -163,10 +165,19 @@ export function GravadorDeVideo({
 
   // Troca de envio: nova gravação, câmera reaberta; ao sair da página, câmera desligada.
   useEffect(() => {
-    setEnvio('sem_gravacao')
+    // Voltar a um envio cujo vídeo JÁ subiu devolve o caminho em vez de zerá-lo: antes (22/11/2026, envios 12, 24,
+    // 37 e 44) trocar de envio na fila e voltar fechava a análise com `caminhoVideo: null` e o vídeo ficava órfão.
+    const jaSubiu = subidos.current.get(protocolo)
     setCopia(null)
     ultima.current = null
-    aoMudar({ caminho: null, gravando: false })
+    if (jaSubiu) {
+      setEnvio('enviado')
+      setAviso('Gravação deste envio já está no armazenamento. Ela entra na análise ao fechar.')
+      aoMudar({ caminho: jaSubiu, gravando: false })
+    } else {
+      setEnvio('sem_gravacao')
+      aoMudar({ caminho: null, gravando: false })
+    }
     if (habilitado) void ligar(lembrada())
     return () => {
       if (gravador.current && gravador.current.state !== 'inactive') gravador.current.stop()
@@ -212,6 +223,7 @@ export function GravadorDeVideo({
       setEnvio('enviado')
       setAviso('Gravação enviada para o armazenamento. Ela entra na análise ao fechar.')
       ultima.current = null
+      subidos.current.set(protocolo, assinatura.data.caminho)
       aoMudar({ caminho: assinatura.data.caminho, gravando: false })
     } catch (e) {
       setEnvio('nao_subiu')

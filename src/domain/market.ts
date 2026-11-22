@@ -21,6 +21,7 @@ import type {
   User,
   UserEmail,
 } from '@/domain/types'
+import { ehIsentoDeCustodia, taxasDaNegociacao } from '@/domain/isencao'
 import { isNegociavel } from '@/domain/constants'
 import { dataBrasilia } from '@/domain/ciclo-custodia'
 import { registrarCustodiaDaCompra } from '@/domain/custodia-da-compra'
@@ -286,7 +287,8 @@ export function transferirMoedaVendida(
   // fatura nasce aqui, na mesma transação da transferência, e o caminho de compra debita o valor junto
   // com o preço e a comissão (`custoDeCompraPorMoeda`). A custódia que o vendedor pagou não vale para o
   // comprador — ver `custodiaPagaAte` (src/domain/custodia-da-moeda.ts). Daí em diante, o ciclo cobra o dono novo.
-  registrarCustodiaDaCompra(state, buyerEmail, coin, _taxas, agora)
+  // A conta da Áurea e a do CEO não pagam custódia nem o primeiro mês da compra (src/domain/isencao.ts): sem fatura.
+  if (!ehIsentoDeCustodia(buyerEmail)) registrarCustodiaDaCompra(state, buyerEmail, coin, _taxas, agora)
   return coin
 }
 
@@ -451,9 +453,11 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
         break
       }
 
-      const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxas)
+      // Isenção da conta da Áurea / par Áurea ↔ CEO: a tabela é trocada só para ESTA negociação.
+      const taxasPar = taxasDaNegociacao(bo.buyer, so.seller, taxas)
+      const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxasPar)
       // Preço + comissão + o primeiro mês de custódia: é o que o comprador precisa ter e o que paga.
-      const custoUnit = custoDeCompraPorMoeda(so.price, taxas)
+      const custoUnit = custoDeCompraPorMoeda(so.price, taxasPar)
 
       // PÓS-PAGO: a moeda sai do livro e fica RESERVADA, sem trocar de dono.
       //
@@ -473,7 +477,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
             bo,
             oferta: so,
             comissaoCompradorCents: feeComprador,
-            custodiaCents: custodiaDaCompraPorMoeda(taxas),
+            custodiaCents: custodiaDaCompraPorMoeda(taxasPar),
             agora: Date.now(),
           }),
         )
@@ -510,7 +514,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
           so.seller,
           bo.buyer,
           so.coinId,
-          taxas,
+          taxasPar,
         )
         if (!coin) {
           state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)

@@ -14,8 +14,8 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { formatarCep, formatarCpf, formatarTelefone } from '@/domain/cadastro'
-import { validarCpf } from '@/domain/cpf'
+import { formatarCep, formatarTelefone } from '@/domain/cadastro'
+import { formatarDocumento, validarDocumento } from '@/domain/cpf'
 import type { TipoChavePix, TipoContaBancaria } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -39,7 +39,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
   const cadExistente = me.cadastro
 
   // Campos de Identificação
-  const [cpf, setCpf] = useState(cadExistente?.cpf ? formatarCpf(cadExistente.cpf) : '')
+  const [cpf, setCpf] = useState(cadExistente?.cpf ? formatarDocumento(cadExistente.cpf) : '')
   const [nomeCompleto, setNomeCompleto] = useState(cadExistente?.nomeCompleto || me.name || '')
   const [dataNascimento, setDataNascimento] = useState(cadExistente?.dataNascimento || '')
   const [telefone, setTelefone] = useState(
@@ -80,7 +80,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
   // Validação em tempo real de CPF
   const cpfLimpo = cpf.replace(/\D/g, '')
-  const cpfValido = cpfLimpo.length === 11 ? validarCpf(cpfLimpo) : null
+  const cpfValido = cpfLimpo.length === 11 || cpfLimpo.length === 14 ? validarDocumento(cpfLimpo) : null
 
   async function handleBuscarCep(cepValor: string): Promise<void> {
     const digitos = cepValor.replace(/\D/g, '')
@@ -111,8 +111,8 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
   async function salvar(): Promise<void> {
     setErroForm('')
 
-    if (!validarCpf(cpfLimpo)) {
-      setErroForm('CPF inválido. Verifique os dígitos informados.')
+    if (!validarDocumento(cpfLimpo)) {
+      setErroForm('CPF ou CNPJ inválido. Verifique os dígitos informados.')
       return
     }
 
@@ -251,20 +251,20 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-grade-2">
         <div>
-          <label className="u-sutil" htmlFor="cad-cpf">CPF</label>
+          <label className="u-sutil" htmlFor="cad-cpf">CPF ou CNPJ</label>
           <input
             className="tinput"
-            placeholder="000.000.000-00"
+            placeholder="CPF ou CNPJ"
             value={cpf}
-            onChange={(e) => setCpf(formatarCpf(e.target.value))}
-            maxLength={14}
+            onChange={(e) => setCpf(formatarDocumento(e.target.value))}
+            maxLength={18}
             id="cad-cpf"
             aria-invalid={cpfValido === false}
             aria-describedby={cpfValido === false ? 'cad-cpf-erro' : undefined}
             inputMode="numeric"
           />
           {cpfValido === false && (
-            <span id="cad-cpf-erro" className="u-f11 u-erro">CPF inválido</span>
+            <span id="cad-cpf-erro" className="u-f11 u-erro">CPF ou CNPJ inválido</span>
           )}
         </div>
 

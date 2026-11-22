@@ -17,6 +17,7 @@
  * depois que o gateway confirma — aqui só se abre a cobrança.
  */
 
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
@@ -130,7 +131,7 @@ export async function pagarReservaComSaldo(reservaId: string): Promise<ActionRes
         return { ok: false, error: 'A moeda reservada não está mais disponível com o vendedor.' }
       }
 
-      const { vendedor: feeVendedor } = comissaoPorMoeda(r.precoCents, taxas)
+      const { vendedor: feeVendedor } = comissaoPorMoeda(r.precoCents, taxasDaNegociacao(r.comprador, r.vendedor, taxas))
       comprador.balance -= r.totalCents
       vendedor.balance += r.precoCents - feeVendedor
 
@@ -332,8 +333,10 @@ export async function iniciarOfertaPrePaga(
     return { ok: false, error: 'Este tipo de moeda não é negociável no mercado.' }
   }
 
-  const total = custoDeCompraPorMoeda(preco, taxas) * qty
-  const { comprador: fee } = comissaoPorMoeda(preco, taxas)
+  // Comprador = conta da Áurea: sem comissão de compra nem 1º mês de custódia (src/domain/isencao.ts).
+  const taxasDoBid = taxasDaNegociacao(session as string, '', taxas)
+  const total = custoDeCompraPorMoeda(preco, taxasDoBid) * qty
+  const { comprador: fee } = comissaoPorMoeda(preco, taxasDoBid)
 
   const externalReference = `PRE-${randomUUID()}`
   const agora = Date.now()
@@ -440,7 +443,7 @@ export async function publicarOfertaPrePagaComSaldo(
   const bloqueio = await exigirReautenticacao('janela')
   if (bloqueio) return bloqueio
 
-  const total = custoDeCompraPorMoeda(preco, taxas) * qty
+  const total = custoDeCompraPorMoeda(preco, taxasDaNegociacao(session, '', taxas)) * qty
 
   try {
     const { result } = await mutateState<ActionResult<{ bidId: string; pagoCents: Cents }>>((s) => {

@@ -30,6 +30,14 @@ describe('peso digitado na bancada web', () => {
     expect(pesoPadraoOuInicial('Tipo Sem Padrão Nem Inicial', null)).toBe('')
   })
 
+  it('7 g gravado certo mostra "7"; "7" gravado em mg (erro de 22/11) cai no padrão, nunca em "0,007"', () => {
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', 7000)).toBe('7')
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', 7)).toBe('7')
+    expect(pesoPadraoOuInicial('Direitos Humanos', 789)).toBe('7,84')
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', 999)).toBe('7')
+    expect(pesoPadraoOuInicial('Entrega da Bandeira Olímpica', 1000)).toBe('1')
+  })
+
   it('posição vazia é nula; posição que não é inteiro positivo é erro', () => {
     expect(lerPosicao('')).toEqual({ ok: true, posicao: null })
     expect(lerPosicao(' 12 ')).toEqual({ ok: true, posicao: 12 })

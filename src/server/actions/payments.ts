@@ -21,6 +21,7 @@
  * produção, a cobrança é de verdade; não há parecer a esperar.
  */
 
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
@@ -238,9 +239,11 @@ export async function iniciarCompraDireta(
   //
   // Desde 21/10/2026 o total também leva o PRIMEIRO MÊS DE CUSTÓDIA da moeda (preço + comissão +
   // custódia). Fica congelado na intenção junto com a comissão, pelo mesmo motivo.
-  const comissaoCompradorPorMoeda = comissaoPorMoeda(price, 'comprador', taxas)
-  const custodiaPorMoeda = custodiaDaCompraPorMoeda(taxas)
-  const valorTotal = custoDeCompraPorMoeda(price, taxas) * qty
+  // Isenção da conta da Áurea / par Áurea ↔ CEO: o valor cobrado já nasce sem a comissão e a custódia dispensadas.
+  const taxasPar = taxasDaNegociacao(email, sellerId, taxas)
+  const comissaoCompradorPorMoeda = comissaoPorMoeda(price, 'comprador', taxasPar)
+  const custodiaPorMoeda = custodiaDaCompraPorMoeda(taxasPar)
+  const valorTotal = custoDeCompraPorMoeda(price, taxasPar) * qty
 
   if (valorTotal <= 0) return { ok: false, error: 'Valor da compra inválido.' }
   if (valorTotal > depositoMaxCents) {

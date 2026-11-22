@@ -65,3 +65,23 @@ describe('Validação de CPF no domínio (validarCpf)', () => {
     expect(formatarCpf('123')).toBe('123') // não altera se inválido
   })
 })
+
+describe('CNPJ e documento (conta PJ, 22/11/2026)', () => {
+  it('valida CNPJ pelos dígitos verificadores', async () => {
+    const { validarCnpj, validarDocumento, formatarDocumento } = await import('@/domain/cpf')
+    expect(validarCnpj('11.222.333/0001-81')).toBe(true)
+    expect(validarCnpj('11222333000181')).toBe(true)
+    expect(validarCnpj('11.222.333/0001-82')).toBe(false)
+    expect(validarCnpj('11111111111111')).toBe(false)
+    expect(validarCnpj('1122233300018')).toBe(false)
+    expect(validarCnpj('')).toBe(false)
+    expect(validarCnpj(null)).toBe(false)
+    // O documento decide pelo tamanho: CPF com 11, CNPJ com 14, e um não passa pelo outro.
+    expect(validarDocumento('529.982.247-25')).toBe(true)
+    expect(validarDocumento('11.222.333/0001-81')).toBe(true)
+    expect(validarDocumento('12345678900')).toBe(false)
+    expect(validarDocumento('1122233300018')).toBe(false)
+    expect(formatarDocumento('11222333000181')).toBe('11.222.333/0001-81')
+    expect(formatarDocumento('52998224725')).toBe('529.982.247-25')
+  })
+})

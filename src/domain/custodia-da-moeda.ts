@@ -35,6 +35,7 @@
  */
 
 import { cicloDaMoeda, inicioDoDiaBrasilia, type CicloDaMoeda } from '@/domain/ciclo-custodia'
+import { ehIsentoDeCustodia } from '@/domain/isencao'
 import { DIAS_CARENCIA_BLOQUEIO } from '@/domain/custody'
 import type { AppState, Coin, FaturaCustodia, Timestamp, UserEmail } from '@/domain/types'
 
@@ -138,6 +139,8 @@ export function custodiaImpedeNegociar(
   coinId: string,
   agora: Timestamp = Date.now(),
 ): boolean {
+  // A conta da Áurea e a do CEO não pagam custódia: a moeda dela nunca trava por isso (src/domain/isencao.ts).
+  if (ehIsentoDeCustodia(donoAtualDaMoeda(state, coinId)?.email)) return false
   const pagaAte = custodiaPagaAte(state, coinId)
   if (pagaAte === null) return true
   return agora > travaDaCustodiaEm(pagaAte)

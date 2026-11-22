@@ -28,6 +28,7 @@
  * isolado e sem nenhuma amarra com as ações de compra.
  */
 
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { novoBidId } from '@/domain/codes'
 import { devolverLastroDoBid } from '@/domain/reserva-de-compra'
@@ -218,7 +219,9 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
 
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
-    const custoUnit = custoDeCompraPorMoeda(price, taxas)
+    // Isenção da conta da Áurea (e do par Áurea ↔ CEO): só vale para esta negociação (src/domain/isencao.ts).
+    const taxasPar = taxasDaNegociacao(session, sellerId, taxas)
+    const custoUnit = custoDeCompraPorMoeda(price, taxasPar)
     if (buyer.balance < custoUnit * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
 
     /*
@@ -239,11 +242,11 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     const toBuy = offers.slice(0, qty)
     const idsConsumidos = new Set<string>()
     let compradas = 0
-    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price, taxas)
+    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price, taxasPar)
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, taxas)) continue
+      if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, taxasPar)) continue
       buyer.balance -= custoUnit // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
       seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1

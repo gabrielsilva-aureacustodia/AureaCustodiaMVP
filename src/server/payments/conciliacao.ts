@@ -8,6 +8,7 @@
 
 import 'server-only'
 
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
@@ -148,11 +149,12 @@ function liquidarCompraDireta(
     const price = offers[0].price
     const idsConsumidos = new Set<string>()
     let compradas = 0
-    const feeVendedorUnit = comissaoPorMoeda(price, 'vendedor', regras.taxas)
+    const taxasPar = taxasDaNegociacao(reivindicada.userEmail, sellerId as string, regras.taxas)
+    const feeVendedorUnit = comissaoPorMoeda(price, 'vendedor', taxasPar)
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferirMoedaVendida(s, seller, buyer, sellerId, reivindicada.userEmail, o.coinId, regras.taxas))
+      if (!transferirMoedaVendida(s, seller, buyer, sellerId, reivindicada.userEmail, o.coinId, taxasPar))
         continue
       seller.balance += price - feeVendedorUnit
       compradas += 1
@@ -570,7 +572,7 @@ function liquidarReservaCompra(
     return devolverComoSaldo('moeda_indisponivel_creditado_em_saldo')
   }
 
-  const feeVendedor = comissaoPorMoeda(r.precoCents, 'vendedor', regras.taxas)
+  const feeVendedor = comissaoPorMoeda(r.precoCents, 'vendedor', taxasDaNegociacao(r.comprador, r.vendedor, regras.taxas))
   vendedor.balance += r.precoCents - feeVendedor
   r.status = 'paga'
 
