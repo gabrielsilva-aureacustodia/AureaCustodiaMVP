@@ -24,3 +24,16 @@ Criada em 22/11/2026, só para o repositório **Áurea Custódia / Real Olímpic
 - A lista de chats é uma foto de 22/11/2026 ~20:50; os ids `local_…` mudam entre contas. Não abri a transcrição de cada chat (ver "Honestidade" no topo do MD dos chats).
 - Algumas continuidades mais novas moram só em worktrees, sem commit: `01_continuidade/versoes-das-worktrees/`.
 - O repositório é **público de propósito** (RA-11): as memórias e os MDs aqui não têm senha nem chave (verificado), mas conferir antes de qualquer push.
+
+## Acréscimo da conta atual (22/11/2026) [conta-atual-22/11]
+- [`06_origem_conta_atual/`](06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md): índice extra do que veio da conta atual. Esta conta não tem os 69 chats deste repositório; as memórias são idênticas (47 de 47).
+
+<!-- m22:ini -->
+## Acréscimo de 22/11/2026 (Processo Padrão) [central-22/11]
+- `01_continuidade/manutencao-22-11/`: MD de execução de T1–T6 e R1–R4.
+- `02_planos_de_execucao/manutencao-22-11-garantias-e-planos/`: Garantias, planos, quadro do docx, KPIs, pendências de e-mail.
+- `03_relatorios/manutencao-22-11-qa-davi-e-conselho/`: relatórios do QA do Davi, tester, auditoria, polimento, incidente B01, KPIs.
+- `04_chats/`: seção 8 e CSV com os 17 chats de hoje (ids `local_…`, papel, rotina, como recriar).
+- `05_memorias_da_conta/`: memórias novas de hoje (`memorias-de-sessao-22-11/` + as da conta criadas depois da foto).
+Cada índice lista os arquivos novos; o original sempre manda.
+<!-- m22:fim -->

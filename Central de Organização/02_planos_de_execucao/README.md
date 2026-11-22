@@ -207,3 +207,18 @@
 | `PUBLICACAO_FASE_0.md` | `docs/prompts/PUBLICACAO_FASE_0.md` | Prompt — Fase 0 · Terminologia, vitrine e lacre |  |
 | `README.md` | `docs/prompts/README.md` | `docs/prompts/` — as mensagens de abertura de cada frente |  |
 
+<!-- m22:ini -->
+## Garantias e planos de 22/11/2026 [central-22/11]
+
+Garantias de Execução, planos hiperdetalhados, quadro dos itens do docx, KPIs e pendências de e-mail. `docs/manutencao-2026-11/garantias/` ainda não está commitado (o Controle commita no fim); as cópias aqui valem como espelho.
+
+| Arquivo (cópia aqui) | Caminho original (manda) | O que é | Tarefa |
+|---|---|---|---|
+| `GARANTIA_DE_EXECUCAO__Manutencao_Pendencias_22-11.md` | `docs/manutencao-2026-11/garantias/GARANTIA_DE_EXECUCAO__Manutencao_Pendencias_22-11.md` | Garantia de Execução / Manutenção Real Olímpico — Pendências do docx + pedidos de 22/11/2026 | Manutenção 22-11 / QA Davi / KPIs |
+| `PLANO_HIPERDETALHADO__Manutencao_Pendencias_22-11.md` | `docs/manutencao-2026-11/garantias/PLANO_HIPERDETALHADO__Manutencao_Pendencias_22-11.md` | Plano hiperdetalhado / Manutenção — Pendências do docx + pedidos de 22/11/2026 | Manutenção 22-11 / QA Davi / KPIs |
+| `QUADRO_ITENS_DOCX_22-11.md` | `docs/manutencao-2026-11/garantias/QUADRO_ITENS_DOCX_22-11.md` | Quadro dos itens do docx × estado real (T4 · N1) | Manutenção 22-11 / QA Davi / KPIs |
+| `GARANTIA_DE_EXECUCAO__Relatorio_QA_Davi_22-11.md` | `docs/manutencao-2026-11/garantias/GARANTIA_DE_EXECUCAO__Relatorio_QA_Davi_22-11.md` | Garantia de Execução / Relatório de QA do Davi Bego (relatório-final-realolimpico.pdf) | Manutenção 22-11 / QA Davi / KPIs |
+| `PLANO_HIPERDETALHADO__Relatorio_QA_Davi_22-11.md` | `docs/manutencao-2026-11/garantias/PLANO_HIPERDETALHADO__Relatorio_QA_Davi_22-11.md` | Plano hiperdetalhado / Relatório de QA do Davi Bego (22/11/2026) | Manutenção 22-11 / QA Davi / KPIs |
+| `PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` | `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` | Pendências de e-mail — resolvem-se juntas, em 23/11/2026 (decisão do Gabriel) | Manutenção 22-11 / QA Davi / KPIs |
+| `PROPOSTA_DE_KPIS.md` | `docs/kpis/PROPOSTA_DE_KPIS.md` | Proposta de KPIs do conselho — Real Olímpico | Manutenção 22-11 / QA Davi / KPIs |
+<!-- m22:fim -->

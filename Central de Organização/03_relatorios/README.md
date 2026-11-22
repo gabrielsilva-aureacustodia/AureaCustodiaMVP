@@ -111,3 +111,21 @@ Três famílias. **(a) Manutenção 17–18/11:** para cada frente há cinco rel
 | `RELATORIO_FINAL_BRANCH_A_LOGIN_LANDING.md` | `docs/RELATORIO_FINAL_BRANCH_A_LOGIN_LANDING.md` | Relatório final — Branch A `feat/auth-landing` |  |
 | `RELATORIO_FINAL_FRENTE_C_PAGAMENTOS_CORREIOS_AUDITORIA.md` | `docs/RELATORIO_FINAL_FRENTE_C_PAGAMENTOS_CORREIOS_AUDITORIA.md` | Relatório de Execução Final — Frente C: Gateway de Pagamentos, Correios & Auditoria Financeira |  |
 
+<!-- m22:ini -->
+## Relatórios de 22/11/2026 (QA do Davi, tester, auditoria, polimento, KPIs) [central-22/11]
+
+Relatórios dos chats de hoje, ligados ao código e às decisões. Original manda.
+
+| Arquivo (cópia aqui) | Caminho original (manda) | O que é | Tarefa |
+|---|---|---|---|
+| `RELATORIO_QA_DAVI_BEGO_texto.md` | `docs/manutencao-2026-11/relatorio-qa-davi/RELATORIO_QA_DAVI_BEGO_texto.md` | RELATORIO_QA_DAVI_BEGO_texto.md | Manutenção 22-11 / QA Davi / KPIs |
+| `RELATORIO_STATUS_QA_DAVI_22-11.md` | `docs/manutencao-2026-11/garantias/RELATORIO_STATUS_QA_DAVI_22-11.md` | Relatório de status / QA do Davi Bego (22/11/2026) | Manutenção 22-11 / QA Davi / KPIs |
+| `AUDITORIA_QA_DAVI_22-11.md` | `docs/manutencao-2026-11/garantias/AUDITORIA_QA_DAVI_22-11.md` | Auditoria QA Davi 22-11 (só leitura) | Manutenção 22-11 / QA Davi / KPIs |
+| `TESTER_22-11.md` | `docs/manutencao-2026-11/garantias/TESTER_22-11.md` | TESTER — validação no ar, 22/11/2026 | Manutenção 22-11 / QA Davi / KPIs |
+| `POLIMENTO_QA_DAVI_22-11.md` | `docs/manutencao-2026-11/garantias/POLIMENTO_QA_DAVI_22-11.md` | Polimento (Distilla) / QA Davi 22-11 | Manutenção 22-11 / QA Davi / KPIs |
+| `INCIDENTE_B01_22-11.md` | `docs/manutencao-2026-11/garantias/INCIDENTE_B01_22-11.md` | Incidente B01 — dados de todos os clientes no código das páginas logadas | Manutenção 22-11 / QA Davi / KPIs |
+| `A09_PROPOSTA_BANNER_COOKIES.md` | `docs/manutencao-2026-11/garantias/A09_PROPOSTA_BANNER_COOKIES.md` | A09 — proposta de texto do banner de cookies (NÃO LIGADA) | Manutenção 22-11 / QA Davi / KPIs |
+| `TERMOS_CLAUSULAS_PARA_O_JURIDICO.md` | `docs/manutencao-2026-11/garantias/TERMOS_CLAUSULAS_PARA_O_JURIDICO.md` | Termos e Política — pontos para o jurídico decidir (QA Davi, B08/A13) | Manutenção 22-11 / QA Davi / KPIs |
+| `TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` | `docs/manutencao-2026-11/garantias/TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` | TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff | Manutenção 22-11 / QA Davi / KPIs |
+| `PENDENCIAS_DE_DADOS_E_AUTOMACOES.md` | `docs/kpis/PENDENCIAS_DE_DADOS_E_AUTOMACOES.md` | KPIs do conselho — respostas, o que ficou sem cálculo e o que falta | Manutenção 22-11 / QA Davi / KPIs |
+<!-- m22:fim -->

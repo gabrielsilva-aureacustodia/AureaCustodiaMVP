@@ -1,0 +1,88 @@
+const fs=require('fs'),crypto=require('node:crypto'),pg=require('C:/dev/AureaCustodiaMVP/node_modules/pg')
+const env=fs.readFileSync('C:/dev/AureaCustodiaMVP/.env.local','utf8')
+const url=env.match(/^POSTGRES_URL="?([^"\r\n]+)/m)[1]
+const GENESIS='0'.repeat(64)
+const BACKUP='C:/Users/Gabriel/AppData/Local/Claude-Data/claude_pzs8sxrjxfjjc/side-session-notes/local_e60062ca-6f76-4427-b0f8-5a8d5c7ed6b5/backup-analises-recibos-22-11-antes-do-reverso.json'
+function campoCanonico(v) {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) throw new Error(`Campo numérico inválido: ${String(v)}`)
+    return String(v)
+  }
+  return v
+}
+
+function hashEncadeado(hashAnterior, campos) {
+  const texto = hashAnterior + '\n' + campos.map(campoCanonico).join('|')
+  return crypto.createHash('sha256').update(texto, 'utf8').digest('hex')
+}
+
+/** CAMPOS_DA_ANALISE, na ordem de src/domain/analise.ts. */
+function camposDaAnalise(a) {
+  return [
+    a.protocolo,
+    a.protocolo_envio,
+    a.codigo_moeda,
+    a.codigo_recibo,
+    a.tipo_moeda,
+    Number(a.ano),
+    Number(a.peso_mg),
+    a.veredito,
+    a.motivo_recusa,
+    a.operador,
+    a.aprovador,
+    a.caixa,
+    a.posicao_caixa === null ? null : Number(a.posicao_caixa),
+    Number(a.validado_em),
+    a.caminho_video,
+  ]
+}
+
+function correnteDe(analises) {
+  let anterior = GENESIS
+  return analises.map((a) => {
+    const hash = hashEncadeado(anterior, camposDaAnalise(a))
+    const par = { hashAnterior: anterior, hash }
+    anterior = hash
+    return par
+  })
+}
+
+const COLUNAS = `posicao, protocolo, protocolo_envio, codigo_moeda, codigo_recibo, tipo_moeda, ano, peso_mg, veredito, motivo_recusa, operador, aprovador, caixa, posicao_caixa, validado_em, caminho_video, hash_anterior, hash`
+const ALVO={}
+for(let n=191;n<=201;n++) ALVO['RO-000'+n]=['EB-002',n-106]
+ALVO['RO-000202']=['EB-002',83];ALVO['RO-000203']=['EB-002',84]
+ALVO['RO-000209']=['EB003',2];ALVO['RO-000210']=['EB003',3];ALVO['RO-000211']=['EB003',4];ALVO['RO-000212']=['EB003',5];ALVO['RO-000213']=['EB003',1]
+;(async()=>{
+const c=new pg.Client({connectionString:url,ssl:{rejectUnauthorized:false}});await c.connect()
+const {rows:an}=await c.query(`SELECT ${COLUNAS} FROM aurea.analises ORDER BY posicao`)
+const at=correnteDe(an)
+if(an.some((a,i)=>a.hash!==at[i].hash||a.hash_anterior!==at[i].hashAnterior)){console.error('ABORTADO: corrente atual não fecha');process.exit(1)}
+const {rows:rec}=await c.query('SELECT * FROM aurea.recibos')
+fs.writeFileSync(BACKUP,JSON.stringify({quando:new Date().toISOString(),analises:an,recibos:rec}))
+console.log('backup ok',an.length,rec.length)
+await c.query('begin')
+try{
+ let n=0
+ for(const [cod,[cx,p]] of Object.entries(ALVO)){
+  const r=await c.query('UPDATE aurea.analises SET posicao_caixa=$1 WHERE codigo_moeda=$2 AND caixa=$3',[p,cod,cx]); if(r.rowCount!==1) throw new Error('alvo não achado '+cod); n++
+ }
+ const {rows:dep}=await c.query(`SELECT ${COLUNAS} FROM aurea.analises ORDER BY posicao`)
+ // posição repetida na mesma caixa?
+ const vistos=new Set();for(const a of dep){if(a.veredito==='aprovada'&&a.caixa&&a.posicao_caixa!=null){const k=a.caixa+'/'+a.posicao_caixa;if(vistos.has(k))throw new Error('posição repetida '+k);vistos.add(k)}}
+ const nova=correnteDe(dep)
+ for(let i=0;i<dep.length;i++){
+  await c.query('UPDATE aurea.analises SET hash_anterior=$1, hash=$2 WHERE posicao=$3',[nova[i].hashAnterior,nova[i].hash,dep[i].posicao])
+  await c.query('UPDATE aurea.recibos SET hash=$1 WHERE codigo=$2',[nova[i].hash,dep[i].codigo_recibo])
+ }
+ const {rows:conf}=await c.query(`SELECT ${COLUNAS} FROM aurea.analises ORDER BY posicao`)
+ const esp=correnteDe(conf)
+ const quebras=conf.filter((a,i)=>a.hash!==esp[i].hash||a.hash_anterior!==esp[i].hashAnterior).length
+ if(quebras) throw new Error('quebras '+quebras)
+ await c.query('commit');console.log('COMMIT. alvos',n,'quebras',quebras)
+}catch(e){await c.query('rollback');console.error('ROLLBACK',e.message);process.exitCode=1}
+await c.query('BEGIN READ ONLY')
+console.log((await c.query(`select codigo_moeda,caixa,posicao_caixa from aurea.analises where codigo_moeda in ('RO-000191','RO-000201','RO-000202','RO-000203','RO-000209','RO-000213','RO-000183') order by 1`)).rows)
+const {rows:fin}=await c.query(`SELECT ${COLUNAS} FROM aurea.analises ORDER BY posicao`);const ef=correnteDe(fin)
+console.log('quebras finais',fin.filter((a,i)=>a.hash!==ef[i].hash||a.hash_anterior!==ef[i].hashAnterior).length,'recibos com hash diferente',(await c.query(`select count(*) from aurea.recibos r join aurea.analises a on a.codigo_recibo=r.codigo where r.hash<>a.hash`)).rows[0].count)
+await c.query('ROLLBACK');await c.end()})()

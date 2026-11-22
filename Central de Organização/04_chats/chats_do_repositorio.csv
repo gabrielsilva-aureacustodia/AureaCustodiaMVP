@@ -1,4 +1,4 @@
-﻿id_curto;id_completo;titulo;nome_curto;pai;pasta_ou_worktree;arquivado;ultima_atividade_utc
+id_curto;id_completo;titulo;nome_curto;pai;pasta_ou_worktree;arquivado;ultima_atividade_utc
 54e9b8c9;local_54e9b8c9-5603-442f-a363-448cd689bf9e;Projeto Aurea;;— (nível superior);pasta completa;não;2026-09-02T06:35:37.781Z
 d3b04b08;local_d3b04b08-08b2-4167-a8b3-d65df09dfc2c;Análise da Branch A para publicação;;— (nível superior);pasta completa;não;2026-09-06T06:35:48.718Z
 8e3d0f36;local_8e3d0f36-b25e-453f-8a39-e9e68fb8bda0;Plano executivo: software análise de moedas;;— (nível superior);pasta completa;não;2026-09-10T22:22:35.439Z
@@ -68,3 +68,20 @@ ce0440a7;local_ce0440a7-71a0-46ca-a840-f599c7038f14;L · Vídeos: espaço e arma
 e0f19b80;local_e0f19b80-5a0d-4841-a81c-26be3de337f7;G · Notas: NFS-e acessível ao cliente (2);manut-g-2;Manutenção Real Olímpico -- Pendências | Controle;manut-notas-do-cliente-802669;não;2026-11-18T22:00:56.014Z
 9dec9ee3;local_9dec9ee3-e424-4bd2-9369-8a752b695734;J · KPIs: painel do conselho no admin;manut-j;Manutenção Real Olímpico -- Pendências | Controle;manut-kpis-do-conselho-7a21c4;não;2026-11-18T22:01:43.675Z
 e259126b;local_e259126b-4373-4132-9e89-79edb7fa94ec;Manutenção Real Olímpico -- Pendências | Controle;manut-controle;— (nível superior);pasta completa;não;2026-11-19T03:15:06.366Z
+e60062ca;local_e60062ca-6f76-4427-b0f8-5a8d5c7ed6b5;Pendências de manutenção do site;controle-manut-22-11;— (nível superior);pasta completa;não;2026-11-22
+a27216af;local_a27216af-a775-4b4e-979c-d039e8ee40d0;Manutenção 22-11 | T1 Financeiro e saldos | Branch;m2-t1-financeiro;Controle local_e60062ca;pasta completa;não;2026-11-22
+40a1dbab;local_40a1dbab-fc6d-464a-9fbf-2845fc981204;Manutenção 22-11 | T2 Isenção Áurea e PJ | Branch;m2-t2-isencao;Controle local_e60062ca;pasta completa;não;2026-11-22
+70ef50cf;local_70ef50cf-a0d9-400a-9c13-3f4d4d948300;Manutenção 22-11 | T3 Balcão vídeos peso caixas | Branch;m2-t3-balcao;Controle local_e60062ca;pasta completa;não;2026-11-22
+c020356b;local_c020356b-87d1-4cc2-a9d8-c0891d2b0ae8;Manutenção 22-11 | T4 Pendências do docx | Branch;m2-t4-docx;Controle local_e60062ca;pasta completa;não;2026-11-22
+711cf8fa;local_711cf8fa-6992-45cf-ab73-d2f0d8c394a5;Manutenção 22-11 | T5 KPIs do conselho (5 do slide 3.1) | Branch;m2-t5-kpis;Controle local_e60062ca;pasta completa;não;2026-11-22
+b475ca05;local_b475ca05-a67a-4a18-8673-a02f82ba311a;Manutenção 22-11 | T6 PWA iPhone e login Google no app | Branch;m2-t6-pwa-iphone;Controle local_e60062ca;pasta completa;não;2026-11-22
+58a21059;local_58a21059-f34f-431c-b6ae-f40f223ae5ca;Manutenção 22-11 | Tester | Tester;m2-tester;Controle local_e60062ca;pasta completa;não;2026-11-22
+a4087db9;local_a4087db9-9947-4518-84b4-ae4fceb8d90e;QA Davi 22-11 | R1 Segurança e dados | Execução;qa-r1-exec;Controle local_e60062ca;pasta completa;não;2026-11-22
+8be63880;local_8be63880-5d61-43d5-9264-b2e270e7fb37;QA Davi 22-11 | R2 Cadastro e conta | Execução;qa-r2-exec;Controle local_e60062ca;pasta completa;não;2026-11-22
+ae06dcfd;local_ae06dcfd-00bb-41fc-a1b0-d6df9dabecde;QA Davi 22-11 | R3 Dinheiro e formulários | Execução;qa-r3-exec;Controle local_e60062ca;pasta completa;não;2026-11-22
+e1b9d044;local_e1b9d044-b226-4711-b92d-3c8ab1ca1247;QA Davi 22-11 | R4 Texto legal e usabilidade | Execução;qa-r4-exec;Controle local_e60062ca;pasta completa;não;2026-11-22
+0b016b67;local_0b016b67-f208-46ea-9a74-5c997af7493c;QA Davi 22-11 | R1 a R4 | Auditoria;qa-auditoria;Controle local_e60062ca;pasta completa;não;2026-11-22
+8792da9b;local_8792da9b-6732-4fbe-93a4-23259bd1f010;QA Davi 22-11 | Polimento (Distilla) | Polimento;qa-polimento;Controle local_e60062ca;pasta completa;não;2026-11-22
+42ffd257;local_42ffd257-365e-4056-8fc7-716dbc646904;QA Davi 22-11 | Merge, Push, Deploy | Merge/Deploy;qa-merge-deploy;Controle local_e60062ca;pasta completa;não;2026-11-22
+4ef6a6e4;local_4ef6a6e4-97aa-440d-a287-f83e252b0e47;QA Davi 22-11 | Relatórios | Relatórios;qa-relatorios;Controle local_e60062ca;pasta completa;não;2026-11-22
+c3a2f593;local_c3a2f593-603a-4d76-8048-8dbdf0069550;QA Davi 22-11 | Higienização | Higienização;qa-higienizacao;Controle local_e60062ca;pasta completa;não;2026-11-22

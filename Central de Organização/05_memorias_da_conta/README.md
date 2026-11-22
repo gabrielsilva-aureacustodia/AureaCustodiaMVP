@@ -53,3 +53,17 @@
 | `variaveis-da-vercel-sao-minhas.md` | Criar e editar variáveis de ambiente da Vercel é trabalho MEU (MCP da Vercel ou CLI), nunca do Gabriel; só peço o valor de segredo que existe apenas numa tela de terceiro, e tento buscá-lo sozinho antes | memory | 2026-11-18 |
 | `variavel-ja-cadastrada-nao-se-pede-de-novo.md` | Na Vercel da Áurea Custódia, SUPABASE_SERVICE_ROLE_KEY já está cadastrada — não pedir para criar ou atualizar variável de ambiente sem um motivo concreto e dito. | memory | 2026-09-15 |
 | `verificar-caminhos-de-painel.md` | Não descrever caminhos de menu de painéis externos (Cloudflare, HostGator, Supabase, Vercel) de memória — verificar a documentação atual antes, porque as interfaces mudam e Gabriel perde tempo procurando o que não existe. | memory | 2026-09-06 |
+
+<!-- m22:ini -->
+## Memórias novas de 22/11/2026 [central-22/11]
+
+Memórias da conta criadas depois da foto original (cópia literal em `05_memorias_da_conta/`) e memórias de sessão do repositório (`memorias-de-sessao-22-11/`; original em `docs/memorias/`).
+
+| Arquivo (cópia aqui) | Caminho original (manda) | O que é | Tarefa |
+|---|---|---|---|
+| `email-fica-para-amanha-registrar-tudo.md` | `../../Users/Gabriel/.claude/projects/C--dev-AureaCustodiaMVP/memory/email-fica-para-amanha-registrar-tudo.md` | email-fica-para-amanha-registrar-tudo.md | Memória da conta nova (22/11) |
+| `2026-11-22--claude-code--manut2-balcao-posicao-e-video.md` | `docs/memorias/2026-11-22--claude-code--manut2-balcao-posicao-e-video.md` | Balcão: posição = lugar físico, vídeo e armazenamento (T3) — memória do agente | Memória de sessão (repo) |
+| `2026-11-22--claude-code--manut2-fechamento-da-documentacao.md` | `docs/memorias/2026-11-22--claude-code--manut2-fechamento-da-documentacao.md` | Fechamento da Manutenção 22-11 (Processo Padrão) — memória do agente | Memória de sessão (repo) |
+| `2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | `docs/memorias/2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | Isenção da Áurea/CEO e CPF ou CNPJ (T2) — memória do agente | Memória de sessão (repo) |
+| `2026-11-22--claude-code--manut2-kpis-do-conselho.md` | `docs/memorias/2026-11-22--claude-code--manut2-kpis-do-conselho.md` | KPIs do conselho: regras de cálculo (T5) — memória do agente | Memória de sessão (repo) |
+<!-- m22:fim -->

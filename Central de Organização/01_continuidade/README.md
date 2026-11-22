@@ -111,3 +111,22 @@ Um MD de continuidade diz **onde parou, o que foi feito, o que falta e o próxim
 | `2026-11-17--manut-k-frete-mais-4-reais--MD_EXECUCAO__WORKTREE_frete.md` | `.claude/worktrees/manut-frete-mais-4-c9a96a/docs/diario/execucoes/2026-11-17--manut-k-frete-mais-4-reais--MD_EXECUCAO.md` | MD de execução — frente K (frete-mais-4-reais) — Real Olímpico | K · Frete: acréscimo de R$ 4,00 |
 | `2026-11-18--manut-c-emails--TAREFAS_QUE_DEPENDEM_DO_ENVIO--PLANO__WORKTREE_emails.md` | `.claude/worktrees/manut-emails-de-movimentacao-c46333/docs/diario/execucoes/2026-11-18--manut-c-emails--TAREFAS_QUE_DEPENDEM_DO_ENVIO--PLANO.md` | Tarefas e features que dependem do envio automático de e-mail | C · E-mails de confirmação de compra e movimentação |
 
+<!-- m22:ini -->
+## Manutenção 22-11 e QA Davi (22/11/2026) [central-22/11]
+
+MD de execução de cada chat de hoje; o original em `docs/diario/execucoes/` é o que vale (cada RETOMADA aponta para ele). Cópia em `manutencao-22-11/`.
+
+| Arquivo (cópia aqui) | Caminho original (manda) | O que é | Tarefa |
+|---|---|---|---|
+| `2026-11-22--manut2-t1-financeiro--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t1-financeiro--MD_EXECUCAO.md` | Manutenção 22-11 · T1 Financeiro e saldos — MD de execução | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t2-isencao--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t2-isencao--MD_EXECUCAO.md` | MD de execução — Manutenção 22-11 / T2 Isenção Áurea e PJ | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t3-balcao--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t3-balcao--MD_EXECUCAO.md` | MD de execução / Manutenção 22-11 · T3 Balcão: vídeos, peso, caixas e hashes | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t3-reverso-posicoes.cjs.txt` | `docs/diario/execucoes/2026-11-22--manut2-t3-reverso-posicoes.cjs.txt` | 2026-11-22--manut2-t3-reverso-posicoes.cjs.txt | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t4-docx--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t4-docx--MD_EXECUCAO.md` | MD de execução / Manutenção 22-11 · T4 Pendências do docx (N1) | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t5-kpis--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t5-kpis--MD_EXECUCAO.md` | MD de execução — Manutenção 22-11 / T5 KPIs do conselho | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--manut2-t6-pwa--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--manut2-t6-pwa--MD_EXECUCAO.md` | Manutenção 22-11 / T6 PWA iPhone e login Google no app — MD de execução | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--qa-r1-seguranca--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r1-seguranca--MD_EXECUCAO.md` | MD de execução — QA Davi 22-11 / R1 Segurança e dados | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--qa-r2-cadastro--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r2-cadastro--MD_EXECUCAO.md` | QA Davi 22-11 / R2 Cadastro e conta — MD de execução | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--qa-r3-dinheiro--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r3-dinheiro--MD_EXECUCAO.md` | QA Davi 22-11 / R3 Dinheiro e formulários / Execução — 22/11/2026 | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+| `2026-11-22--qa-r4-textos--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r4-textos--MD_EXECUCAO.md` | MD de execução — QA Davi 22-11 · R4 Texto legal e usabilidade (22/11/2026) | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
+<!-- m22:fim -->

@@ -1,0 +1,80 @@
+# Polimento (Distilla) | QA Davi 22-11
+
+Dono: chat Polimento. Não edita `src`. Rotina: a cada 15 min lê os MDs `docs/diario/execucoes/2026-11-22--qa-r*-*--MD_EXECUCAO.md` e o que mudou.
+
+## Lista de conferência (vale para toda correção)
+1. Marca **Real Olímpico**, masculino ("o Real Olímpico"). Razão social AUREA CUSTODIA LTDA só onde há CNPJ/contrato.
+2. Proibido: token, NFT, cripto, ativo digital, investimento, rentabilidade.
+3. Alvo de toque mínimo 44px (celular 375px).
+4. Claro e escuro: sem cor fixa fora dos tokens; contraste do texto de erro legível nos dois.
+5. Erro diz **o que houve + o que fazer**, sem jargão ("falhou", "inválido" sozinhos não bastam).
+6. Número e data em formato brasileiro (R$ 1.234,56 · 20/11/2026).
+
+## Estado em 22/11 (1ª leitura)
+- Ainda não existem MDs `qa-r*` de execução. Sinais de início: `src/domain/dias-uteis.ts` (R3, B06) criado. `src/app/not-found.tsx` ainda não existe (R4, B10).
+- Nada a revisar ainda. Abaixo, redação sugerida **antes** de a Execução escrever, para ela adotar se quiser.
+
+## Propostas de redação (linguagem do Rogério)
+
+### 404 (B10)
+- Título: **Página não encontrada**
+- Texto: "O endereço que você abriu não existe ou foi trocado de lugar. Confira se digitou certo ou volte para uma das páginas abaixo."
+- Links logado: Início · Mercado · Minhas moedas · Suporte. Deslogado: Página inicial · Entrar · Criar conta · Suporte.
+- Evitar "Oops", "Erro 404 fatal" e humor; manter o tom sóbrio da marca. Botões com 44px.
+
+### Aviso de e-mail não confirmado (B02)
+- Faixa: "Confirme seu e-mail para depositar, comprar e sacar. Enviamos um link para **{email}**."
+- Botão: "Reenviar link". Depois de reenviar: "Pronto, enviamos de novo. Veja também a caixa de spam."
+- Selo: "E-mail confirmado" só depois do clique (nunca "Verificado" antes).
+- Bloqueio (depósito/compra/saque): "Esta ação fica liberada depois que você confirmar seu e-mail." (a política de bloqueio ainda é decisão do Gabriel).
+
+### Saque em dias úteis (B06 / A06)
+- "Previsão de pagamento: **{data}** (até 3 dias úteis; fins de semana e feriados não contam)."
+- Enquanto o envio de e-mail estiver desligado, **não** escrever "você receberá um e-mail". Usar: "Acompanhe o andamento em Extrato."
+- Nota (Controle, 22/11): o saque em dias úteis ("D+3 úteis") já é a regra do site; o erro do B06 era só a data prevista contar dias corridos. O texto acima vale. A01 é outra coisa: o prazo da retirada física, decisão do Gabriel.
+
+### Depósito (B07)
+- Um aviso só, com cara de erro: "Informe um valor em reais, só com números. Exemplo: 150,00."
+- Se houver mínimo (decisão pendente): "O depósito mínimo é de R$ {valor}."
+- Sem valor válido, mostrar "—" no saldo previsto, nunca "R$ NaN".
+
+### Oferta sem saldo (S04)
+- Botão desabilitado + motivo logo abaixo: "Saldo insuficiente. Faltam R$ {valor}. Deposite para continuar."
+- Quantidade/preço: "Informe um número maior que zero."
+
+### CEP (S03)
+- "Não encontramos este CEP. Confira os números ou preencha o endereço à mão."
+- Botão Continuar desabilitado mostra: "Falta preencher: {campos}."
+
+### Banner de cookies (A09) — texto proposto, NÃO ligar (decisão do Gabriel)
+- "Usamos cookies essenciais para o site funcionar e, com a sua permissão, cookies de medição para entender como o Real Olímpico é usado. Você pode mudar a escolha quando quiser. Saiba mais na Política de Privacidade."
+- Botões de peso igual (44px): **Aceitar todos** · **Só os essenciais**; link "Personalizar". Não pré-marcar medição. Citar a Meta pelo nome na Política, não no banner.
+
+### Validação de cadastro (B03/A16)
+- Data: "Informe uma data de nascimento válida. É preciso ter 18 anos ou mais."
+- Telefone: "Informe o telefone com DDD. Exemplo: (11) 91234-5678."
+- Pix: e-mail "Informe um e-mail completo, com @ e domínio."; CPF "Este CPF não parece correto. Confira os números."; aleatória "A chave aleatória tem 36 caracteres. Copie e cole."
+- Nome: "Use seu nome completo, como no documento."
+
+### Termos (B08)
+Só formatação e erros materiais. Cláusulas citadas por número errado: lista ao jurídico, sem inventar texto.
+
+## Revisões de texto (leitura do código, 22/11 ~20:35)
+Ainda não há aviso de "corrigido" do Tester/Controle; isto é leitura antecipada do working tree. Nenhuma palavra proibida encontrada; marca ok.
+
+**R3 (validacao-dinheiro, validacao-cadastro, AccountModals, /compras, /envios, /vender)** — aprovado, com 4 ajustes de redação:
+1. Chave Pix aleatória (`validacao-cadastro.ts`): "tem o formato 123e4567-… (32 letras e números)" confunde, pois o exemplo tem hífens e 36 caracteres. Sugestão: "A chave aleatória tem 36 caracteres, com hífens. Exemplo: 123e4567-e89b-12d3-a456-426614174000. Copie e cole."
+2. CPF Pix: "precisa ser um CPF válido (11 dígitos)" → "Este CPF não parece correto. Confira os 11 números."
+3. "Informe nome e sobrenome, como estão no seu documento" está bom. Padronizar "nome de exibição" nas outras mensagens: ok como está.
+4. Aviso de e-mail no Sacar: "o aviso por e-mail ainda não está ativo" é honesto, mas ficou negativo para o cliente. Sugestão: "Acompanhe o andamento do saque no Extrato." e deixar a frase do e-mail só nas Notificações. (R3 já anotou para reverter quando o envio ligar.)
+5. Faltou conferir no ar: toque 44px do link "termos de publicação" (é texto em linha; ok se a linha tiver altura de 44px no celular) e contraste do erro (`role=alert`) no escuro.
+
+**R2 (conta-acesso.ts, email-pendente.ts)** — textos bons ("Se este e-mail tem conta, enviamos um link…" não revela quem tem conta: correto). Ajuste: "Aguarde um minuto antes de pedir outro link." → "Aguarde 1 minuto para pedir outro link." (mais direto). Falta ver a faixa de "e-mail não confirmado" na tela; revisar quando existir.
+
+**R4** — sem `not-found.tsx`, sem banner de cookies ainda. Aguardando.
+
+## Revisões de correção
+(nenhuma recebida ainda)
+
+## Log da rotina
+- 22/11 ~20:20: criada; primeira leitura sem MDs de execução.
