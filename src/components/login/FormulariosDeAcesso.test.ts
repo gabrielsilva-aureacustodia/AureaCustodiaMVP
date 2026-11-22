@@ -19,6 +19,10 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('@/lib/meta/pixel', () => ({ rastrearPadrao: vi.fn() }))
+vi.mock('@/server/actions/conta-acesso', () => ({
+  solicitarRedefinicaoDeSenha: vi.fn(),
+  reenviarLinkDeAcesso: vi.fn(),
+}))
 vi.mock('@/server/actions/auth', () => ({
   login: vi.fn(),
   loginWithGoogle: vi.fn(),
@@ -97,6 +101,20 @@ describe('cadastro: Google primeiro', () => {
     // A declaração do caminho por e-mail continua dentro do formulário, ao lado da do Google.
     expect(html.match(/declara ter lido e concordado/g)).toHaveLength(2)
     expect(html).toContain('Já tem conta?')
+  })
+
+  it('QA Davi 22/11: cadastro tem "Mostrar senha" nos dois campos e marca os obrigatórios', () => {
+    const html = cadastro()
+    expect(html).toContain('aria-label="Mostrar senha"')
+    expect(html).toContain('aria-label="Mostrar confirmação da senha"')
+    expect(html).toContain('Nome completo *')
+    expect(html).toContain('Campos com * são obrigatórios')
+  })
+
+  it('QA Davi 22/11 (S01 e B02): a entrada tem "Esqueci minha senha" e "Reenviar link de confirmação"', () => {
+    const html = entrada()
+    expect(html).toContain('Esqueci minha senha')
+    expect(html).toContain('Reenviar link de confirmação')
   })
 
   it('o aceite legal aponta para os três documentos, junto do botão do Google', () => {

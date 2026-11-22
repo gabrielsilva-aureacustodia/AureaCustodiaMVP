@@ -16,6 +16,13 @@ import type { ReactNode } from 'react'
 
 import { formatarCep, formatarTelefone } from '@/domain/cadastro'
 import { formatarDocumento, validarDocumento } from '@/domain/cpf'
+import {
+  normalizarNome,
+  validarChavePix,
+  validarNascimento,
+  validarNomeCompleto,
+  validarTelefone,
+} from '@/domain/validacao-cadastro'
 import type { TipoChavePix, TipoContaBancaria } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useModal } from '@/components/ui/Modal'
@@ -116,21 +123,26 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       return
     }
 
-    if (nomeCompleto.trim().length < 3) {
-      setErroForm('Informe seu nome completo.')
+    // B03 + A16 (QA Davi 22/11/2026): as mesmas regras puras que o servidor aplica (`validacao-cadastro.ts`) —
+    // aqui só para avisar sem ida e volta; quem decide é o servidor.
+    const erroNome = validarNomeCompleto(nomeCompleto)
+    if (erroNome) {
+      setErroForm(erroNome)
       return
     }
 
-    if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento.trim())) {
-      setErroForm('Data de nascimento inválida (use o formato AAAA-MM-DD).')
+    const erroNascimento = validarNascimento(dataNascimento)
+    if (erroNascimento) {
+      setErroForm(erroNascimento)
       return
     }
 
+    const erroTelefone = validarTelefone(telefone)
+    if (erroTelefone) {
+      setErroForm(erroTelefone)
+      return
+    }
     const telLimpo = telefone.replace(/\D/g, '')
-    if (telLimpo.length < 10 || telLimpo.length > 11) {
-      setErroForm('Informe um telefone válido com DDD (10 ou 11 dígitos).')
-      return
-    }
 
     const cepLimpo = cep.replace(/\D/g, '')
     if (
@@ -163,6 +175,14 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       return
     }
 
+    if (metodoBancario === 'pix') {
+      const erroPix = validarChavePix(tipoChavePix, chavePix)
+      if (erroPix) {
+        setErroForm(erroPix)
+        return
+      }
+    }
+
     if (
       metodoBancario === 'conta' &&
       (!banco.trim() || !agencia.trim() || !conta.trim())
@@ -177,7 +197,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
         confirmar(() =>
           salvarCadastro({
             cpf: cpfLimpo,
-            nomeCompleto: nomeCompleto.trim(),
+            nomeCompleto: normalizarNome(nomeCompleto),
             dataNascimento: dataNascimento.trim(),
             telefone: telLimpo,
             endereco: {
@@ -246,12 +266,14 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
         </p>
       )}
 
+      <p className="u-sutil u-mb14">Campos marcados com * são obrigatórios.</p>
+
       {/* ---------------- 1. DADOS PESSOAIS ---------------- */}
       <div className="field-lbl">1. Identificação pessoal</div>
 
       <div className="u-grade-2">
         <div>
-          <label className="u-sutil" htmlFor="cad-cpf">CPF ou CNPJ</label>
+          <label className="u-sutil" htmlFor="cad-cpf">CPF ou CNPJ *</label>
           <input
             className="tinput"
             placeholder="CPF ou CNPJ"
@@ -269,9 +291,12 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
         </div>
 
         <div>
-          <label className="u-sutil" htmlFor="cad-nascimento">Data de nascimento</label>
+          <label className="u-sutil" htmlFor="cad-nascimento">Data de nascimento *</label>
           <input
             type="date"
+            required
+            min="1900-01-01"
+            max={new Date().toISOString().slice(0, 10)}
             className="tinput"
             value={dataNascimento}
             onChange={(e) => setDataNascimento(e.target.value)}
@@ -282,7 +307,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       </div>
 
       <div className="u-mt6">
-        <label className="u-sutil" htmlFor="cad-nome">Nome completo (do titular)</label>
+        <label className="u-sutil" htmlFor="cad-nome">Nome completo (do titular) *</label>
         <input
           className="tinput"
           placeholder="Nome idêntico ao documento"
@@ -295,7 +320,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       </div>
 
       <div className="u-mt6">
-        <label className="u-sutil" htmlFor="cad-telefone">Telefone com DDD</label>
+        <label className="u-sutil" htmlFor="cad-telefone">Telefone com DDD *</label>
         <input
           className="tinput"
           placeholder="(11) 99999-9999"
@@ -315,7 +340,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-linha8 u-base">
         <div className="u-flex1">
-          <label className="u-sutil" htmlFor="cad-cep">CEP</label>
+          <label className="u-sutil" htmlFor="cad-cep">CEP *</label>
           <input
             className="tinput"
             placeholder="00000-000"
@@ -348,7 +373,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
       )}
 
       <div className="u-mt6">
-        <label className="u-sutil" htmlFor="cad-logradouro">Logradouro / Rua</label>
+        <label className="u-sutil" htmlFor="cad-logradouro">Logradouro / Rua *</label>
         <input
           className="tinput"
           placeholder="Rua, Avenida, etc."
@@ -362,7 +387,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-grade-1-2 u-mt6">
         <div>
-          <label className="u-sutil" htmlFor="cad-numero">Número</label>
+          <label className="u-sutil" htmlFor="cad-numero">Número *</label>
           <input
             className="tinput"
             placeholder="123"
@@ -386,7 +411,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
 
       <div className="u-grade-3a u-mt6">
         <div>
-          <label className="u-sutil" htmlFor="cad-bairro">Bairro</label>
+          <label className="u-sutil" htmlFor="cad-bairro">Bairro *</label>
           <input
             className="tinput"
             placeholder="Bairro"
@@ -398,7 +423,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
           />
         </div>
         <div>
-          <label className="u-sutil" htmlFor="cad-cidade">Cidade</label>
+          <label className="u-sutil" htmlFor="cad-cidade">Cidade *</label>
           <input
             className="tinput"
             placeholder="Cidade"
@@ -410,7 +435,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
           />
         </div>
         <div>
-          <label className="u-sutil" htmlFor="cad-uf">UF</label>
+          <label className="u-sutil" htmlFor="cad-uf">UF *</label>
           <input
             className="tinput"
             placeholder="UF"
@@ -465,7 +490,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
             </select>
           </div>
           <div>
-            <label className="u-sutil" htmlFor="cad-chave-pix">Chave Pix</label>
+            <label className="u-sutil" htmlFor="cad-chave-pix">Chave Pix *</label>
             <input
               className="tinput"
               placeholder={

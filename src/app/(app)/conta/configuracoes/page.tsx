@@ -20,6 +20,7 @@ import { useApp } from '@/components/providers/AppProvider'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useModal } from '@/components/ui/Modal'
 import { toggle2FA } from '@/server/actions/account'
+import { reenviarLinkParaMinhaConta, situacaoDoEmailDaConta } from '@/server/actions/conta-acesso'
 import { Selo } from '@/components/ui/Selo'
 import { Esqueleto } from '@/components/ui/Esqueleto'
 import {
@@ -50,6 +51,13 @@ export default function ConfiguracoesPage(): ReactNode {
   // Estado para documentos e aceites formais (A3)
   const [aceites, setAceites] = useState<AceiteDocumentoGravado[]>([])
   const [carregandoAceites, setCarregandoAceites] = useState(true)
+  // A04 (QA Davi 22/11/2026): o aceite do cadastro ESTAVA gravado (conferido no banco), mas a tela engolia a falha de
+  // leitura e mostrava "nenhum registro". Agora a falha aparece, com nova tentativa, e a lista não finge estar vazia.
+  const [erroAceites, setErroAceites] = useState('')
+  const [tentativaAceites, setTentativaAceites] = useState(0)
+  // B02: o selo "E-mail verificado" vem do servidor (era texto fixo). `null` = ainda consultando.
+  const [emailConfirmado, setEmailConfirmado] = useState<boolean | null>(null)
+  const [avisoLink, setAvisoLink] = useState('')
   const [arbitragemAssinada, setArbitragemAssinada] = useState(false)
   const [aceiteArbitragem, setAceiteArbitragem] = useState<AceiteDocumentoGravado | null>(null)
   const [querAssinarArbitragem, setQuerAssinarArbitragem] = useState(false)
@@ -61,6 +69,7 @@ export default function ConfiguracoesPage(): ReactNode {
   useEffect(() => {
     async function carregarDadosLegais() {
       setCarregandoAceites(true)
+      setErroAceites('')
       try {
         const [resAceites, resArbitragem] = await Promise.all([
           listarMeusAceites(),
@@ -68,6 +77,8 @@ export default function ConfiguracoesPage(): ReactNode {
         ])
         if (resAceites.ok && resAceites.data) {
           setAceites(resAceites.data)
+        } else {
+          setErroAceites(resAceites.error ?? 'Não foi possível carregar o histórico de aceites agora.')
         }
         if (resArbitragem.ok && resArbitragem.data) {
           setArbitragemAssinada(resArbitragem.data.assinada)
@@ -78,7 +89,19 @@ export default function ConfiguracoesPage(): ReactNode {
       }
     }
     void carregarDadosLegais()
+  }, [tentativaAceites])
+
+  useEffect(() => {
+    void situacaoDoEmailDaConta().then((res) => {
+      setEmailConfirmado(res.ok && res.data ? res.data.confirmado : null)
+    })
   }, [])
+
+  async function reenviarLink(): Promise<void> {
+    setAvisoLink('')
+    const res = await reenviarLinkParaMinhaConta()
+    setAvisoLink(res.ok ? (res.message ?? 'Link enviado.') : (res.error ?? 'Não foi possível enviar agora.'))
+  }
 
   async function handleAssinarArbitragem() {
     if (!nomeAssinatura.trim()) {
@@ -194,8 +217,23 @@ export default function ConfiguracoesPage(): ReactNode {
             <h3>Resumo de segurança</h3>
             <div className="sec-row">
               <span className="k">E-mail verificado</span>
-              <Selo tom="sucesso">Verificado</Selo>
+              {emailConfirmado === null ? (
+                <span className="forte">Conferindo…</span>
+              ) : emailConfirmado ? (
+                <Selo tom="sucesso">Verificado</Selo>
+              ) : (
+                <Selo tom="aviso">Pendente</Selo>
+              )}
             </div>
+            {emailConfirmado === false ? (
+              <div className="sec-row">
+                <span className="k">Abra o link que enviamos ao seu e-mail.</span>
+                <button className="btn btn-outline" type="button" onClick={() => void reenviarLink()}>
+                  Reenviar link
+                </button>
+              </div>
+            ) : null}
+            {avisoLink ? <p className="note" role="status">{avisoLink}</p> : null}
             <div className="sec-row">
               <span className="k">Verificação em duas etapas</span>
               <Selo tom={s.twoFA ? 'sucesso' : 'aviso'}>{s.twoFA ? 'Ativa' : 'Pendente'}</Selo>
@@ -335,10 +373,19 @@ export default function ConfiguracoesPage(): ReactNode {
                     </div>
                   </td>
                 </tr>
+              ) : erroAceites ? (
+                <tr>
+                  <td colSpan={5} className="cel-vazia" role="alert">
+                    {erroAceites}{' '}
+                    <button className="btn btn-outline" type="button" onClick={() => setTentativaAceites((n) => n + 1)}>
+                      Tentar de novo
+                    </button>
+                  </td>
+                </tr>
               ) : aceites.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="cel-vazia">
-                    Nenhum registro formal localizado no banco de dados. Os aceites são gerados automaticamente na criação da conta ou na confirmação dos termos.
+                    Nenhum aceite registrado para esta conta até agora. Os aceites são gerados automaticamente na criação da conta ou na confirmação dos termos.
                   </td>
                 </tr>
               ) : (

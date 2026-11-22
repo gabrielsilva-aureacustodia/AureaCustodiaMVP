@@ -51,22 +51,34 @@ describe('Server Actions de Cadastro (account.ts)', () => {
 
   it('rejeita nome completo com menos de 3 caracteres', async () => {
     const res = await salvarCadastro({ ...inputValido, nomeCompleto: 'Ga' })
-    expect(res).toEqual({ ok: false, error: 'Informe seu nome completo.' })
+    expect(res).toEqual({ ok: false, error: 'Informe nome e sobrenome, como estão no seu documento.' })
+  })
+
+  // B03 + A16 (QA Davi 22/11/2026): os valores que o relatório conseguiu gravar em produção.
+  it('rejeita o nome "a a a", a data futura, o telefone repetido e o Pix e-mail sem @', async () => {
+    expect((await salvarCadastro({ ...inputValido, nomeCompleto: 'a a a' })).ok).toBe(false)
+    const futura = await salvarCadastro({ ...inputValido, dataNascimento: '2999-04-14' })
+    expect(futura).toEqual({ ok: false, error: 'A data de nascimento não pode ser futura.' })
+    const menor = await salvarCadastro({ ...inputValido, dataNascimento: new Date().toISOString().slice(0, 10) })
+    expect(menor.ok).toBe(false)
+    expect((await salvarCadastro({ ...inputValido, telefone: '(11) 11111-1111' })).ok).toBe(false)
+    const pix = await salvarCadastro({
+      ...inputValido,
+      dadosBancarios: { chavePix: '123123123123123', tipoChavePix: 'email' },
+    })
+    expect(pix.ok).toBe(false)
   })
 
   it('rejeita data de nascimento fora do padrão AAAA-MM-DD', async () => {
     const res = await salvarCadastro({ ...inputValido, dataNascimento: '20/08/1990' })
-    expect(res).toEqual({
-      ok: false,
-      error: 'Data de nascimento inválida (use o formato AAAA-MM-DD).',
-    })
+    expect(res).toEqual({ ok: false, error: 'Informe uma data de nascimento válida.' })
   })
 
   it('rejeita telefone sem DDD ou com tamanho inválido', async () => {
     const res = await salvarCadastro({ ...inputValido, telefone: '98765432' })
     expect(res).toEqual({
       ok: false,
-      error: 'Informe um telefone válido com DDD (10 ou 11 dígitos).',
+      error: 'Informe um telefone válido com DDD, por exemplo (11) 91234-5678.',
     })
   })
 
@@ -152,7 +164,7 @@ describe('Server Actions de Dados Pessoais e Troca de E-mail (account.ts)', () =
 
   it('rejeita nome com menos de 2 caracteres', async () => {
     const res = await updatePersonal('A')
-    expect(res).toEqual({ ok: false, error: 'Informe um nome válido.' })
+    expect(res).toEqual({ ok: false, error: 'Informe um nome de exibição com pelo menos 2 letras.' })
   })
 
   it('rejeita troca de e-mail se a conta atual for protegida da equipe', async () => {

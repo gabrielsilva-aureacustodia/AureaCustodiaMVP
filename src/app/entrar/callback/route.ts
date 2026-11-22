@@ -34,6 +34,7 @@ import {
 } from '@/server/auth/conta-desativada'
 import { consumirDestinoDoLogin } from '@/server/auth/destino'
 import { consumePendingLegalAcceptance } from '@/server/auth/legal'
+import { liberarEmailPendente } from '@/server/auth/email-pendente'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { registrarCadastroGoogleNaMeta } from '@/server/meta/cadastro'
@@ -187,6 +188,9 @@ export async function GET(request: Request): Promise<NextResponse> {
         await registrarCadastroGoogleNaMeta(user.email, nomeDoUsuario(user), request.headers).catch(() => undefined)
       }
     }
+
+    // B02: chegar aqui por um link do e-mail prova que a pessoa lê a caixa — tira a marca de "e-mail por confirmar".
+    await liberarEmailPendente(user.id, user.app_metadata)
 
     await setSession(normalizarEmail(user.email))
 

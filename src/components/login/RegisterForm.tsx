@@ -19,12 +19,28 @@ import type { FormEvent, ReactNode } from 'react'
 
 import { parametrosDoCadastro } from '@/lib/meta/eventos'
 import { rastrearPadrao } from '@/lib/meta/pixel'
+import { normalizarNome, validarNomeCompleto } from '@/domain/validacao-cadastro'
 import { registerWithEmail, registerWithGoogle } from '@/server/actions/auth'
 
 import { AuthShell } from './AuthShell'
 import { DemonstracaoDoCadastro } from './DemonstracaoDoCadastro'
 import { EmailAlternativo } from './EmailAlternativo'
 import { GoogleButton } from './GoogleButton'
+
+const IconeOlho = (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M1.8 12S5.6 5.2 12 5.2 22.2 12 22.2 12 18.4 18.8 12 18.8 1.8 12 1.8 12z" />
+    <circle cx="12" cy="12" r="3.2" />
+  </svg>
+)
+
+const IconeOlhoCortado = (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9.9 5.5A8.6 8.6 0 0112 5.2c6.4 0 10.2 6.8 10.2 6.8a17 17 0 01-3.3 4.1M6.4 6.5A17 17 0 001.8 12S5.6 18.8 12 18.8a8.9 8.9 0 004-.9" />
+    <path d="M9.7 9.7a3.2 3.2 0 004.5 4.5" />
+    <path d="M3 3l18 18" strokeLinecap="round" />
+  </svg>
+)
 
 interface RegistrationStatusView {
   enabled: boolean
@@ -46,6 +62,9 @@ export function RegisterForm({
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
+  // "Mostrar senha" (sugestão do QA, 22/11/2026): o mesmo padrão do login, um olho por campo.
+  const [senhaVisivel, setSenhaVisivel] = useState(false)
+  const [confirmacaoVisivel, setConfirmacaoVisivel] = useState(false)
   const [arbitragemAssinada, setArbitragemAssinada] = useState(false)
   const [nomeArbitragem, setNomeArbitragem] = useState('')
   const [erro, setErro] = useState(initialError)
@@ -58,6 +77,11 @@ export function RegisterForm({
     event.preventDefault()
     if (enviando || !registration.enabled) return
     setOndeAvisar('email')
+    const erroDoNome = validarNomeCompleto(name)
+    if (erroDoNome) {
+      setErro(erroDoNome)
+      return
+    }
     if (senha !== confirmacao) {
       setErro('As senhas informadas não são iguais.')
       return
@@ -72,7 +96,7 @@ export function RegisterForm({
     setMensagem('')
     try {
       const result = await registerWithEmail(
-        name,
+        normalizarNome(name),
         email,
         senha,
         arbitragemAssinada,
@@ -175,12 +199,14 @@ export function RegisterForm({
         </div>
 
         <EmailAlternativo aberto={Boolean(initialError)}>
-          <p className="auth-alt-dica">Use seu e-mail real para receber a confirmação de acesso.</p>
+          <p className="auth-alt-dica">
+            Use seu e-mail real para receber a confirmação de acesso. A conta só fica ativa depois do clique no link. Campos com * são obrigatórios.
+          </p>
           <form onSubmit={(event) => void cadastrar(event)}>
             <fieldset disabled={disabled}>
               <div className="register-grid">
                 <div className="field">
-                  <label htmlFor="registerName">Nome completo</label>
+                  <label htmlFor="registerName">Nome completo *</label>
                   <input
                     id="registerName"
                     type="text"
@@ -191,7 +217,7 @@ export function RegisterForm({
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="registerEmail">E-mail</label>
+                  <label htmlFor="registerEmail">E-mail *</label>
                   <input
                     id="registerEmail"
                     type="email"
@@ -202,28 +228,52 @@ export function RegisterForm({
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="registerPassword">Senha</label>
-                  <input
-                    id="registerPassword"
-                    type="password"
-                    minLength={8}
-                    autoComplete="new-password"
-                    required
-                    value={senha}
-                    onChange={(event) => setSenha(event.target.value)}
-                  />
+                  <label htmlFor="registerPassword">Senha *</label>
+                  <div className="pw-wrap">
+                    <input
+                      id="registerPassword"
+                      type={senhaVisivel ? 'text' : 'password'}
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                      value={senha}
+                      onChange={(event) => setSenha(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={senhaVisivel ? 'pw-toggle on' : 'pw-toggle'}
+                      onClick={() => setSenhaVisivel((v) => !v)}
+                      aria-label={senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'}
+                      aria-pressed={senhaVisivel}
+                      aria-controls="registerPassword"
+                    >
+                      {senhaVisivel ? IconeOlhoCortado : IconeOlho}
+                    </button>
+                  </div>
                 </div>
                 <div className="field">
-                  <label htmlFor="registerPasswordConfirmation">Confirmar senha</label>
-                  <input
-                    id="registerPasswordConfirmation"
-                    type="password"
-                    minLength={8}
-                    autoComplete="new-password"
-                    required
-                    value={confirmacao}
-                    onChange={(event) => setConfirmacao(event.target.value)}
-                  />
+                  <label htmlFor="registerPasswordConfirmation">Confirmar senha *</label>
+                  <div className="pw-wrap">
+                    <input
+                      id="registerPasswordConfirmation"
+                      type={confirmacaoVisivel ? 'text' : 'password'}
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                      value={confirmacao}
+                      onChange={(event) => setConfirmacao(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={confirmacaoVisivel ? 'pw-toggle on' : 'pw-toggle'}
+                      onClick={() => setConfirmacaoVisivel((v) => !v)}
+                      aria-label={confirmacaoVisivel ? 'Ocultar confirmação da senha' : 'Mostrar confirmação da senha'}
+                      aria-pressed={confirmacaoVisivel}
+                      aria-controls="registerPasswordConfirmation"
+                    >
+                      {confirmacaoVisivel ? IconeOlhoCortado : IconeOlho}
+                    </button>
+                  </div>
                 </div>
               </div>
 

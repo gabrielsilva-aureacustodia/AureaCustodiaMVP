@@ -39,10 +39,12 @@ import type { ReactNode } from 'react'
 import { descreverDadosBancarios, temCadastroCompleto, temDadosBancarios } from '@/domain/cadastro'
 import { brl, parsePrice } from '@/domain/money'
 import { calcularDataLimiteSaque } from '@/domain/dates'
+import { somenteNumerico, validarDeposito } from '@/domain/validacao-dinheiro'
 import { normalizarEmail } from '@/domain/email'
+import { validarNomeDeExibicao } from '@/domain/validacao-cadastro'
 import { getSettings } from '@/domain/selectors'
 import { useApp } from '@/components/providers/AppProvider'
-import { useModal } from '@/components/ui/Modal'
+import { FechaComEscEClique, useModal } from '@/components/ui/Modal'
 import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { changePassword, solicitarSaque, toggleNotif, updatePersonal, verificarTrocaEmail } from '@/server/actions/account'
 import { iniciarDeposito } from '@/server/actions/payments'
@@ -82,6 +84,11 @@ export function ModalDadosPessoais(): ReactNode {
   const completo = temCadastroCompleto(me)
 
   async function salvar(): Promise<void> {
+    const erroDoNome = validarNomeDeExibicao(nome)
+    if (erroDoNome) {
+      setErro(erroDoNome)
+      return
+    }
     setSalvando(true)
     setErro('')
     const novoEmailLimpo = normalizarEmail(email)
@@ -131,14 +138,17 @@ export function ModalDadosPessoais(): ReactNode {
 
   return (
     <>
+      {/* Esc/clique fora só enquanto nada foi alterado (S06). */}
+      <FechaComEscEClique ativo={!salvando && nome === me.name && email === session} />
       <h3 className="serif">Dados pessoais</h3>
 
-      <div className="field-lbl">Nome completo</div>
+      {/* A16 (QA Davi 22/11/2026): este nome NÃO é o do titular — o do documento fica no cadastro formal. */}
+      <div className="field-lbl">Nome de exibição</div>
       <input
         className="tinput"
         value={nome}
         onChange={(e) => setNome(e.target.value)}
-        aria-label="Nome completo"
+        aria-label="Nome de exibição"
         autoComplete="name"
         autoCapitalize="words"
       />
@@ -402,6 +412,7 @@ export function ModalNotificacoes(): ReactNode {
 
   return (
     <>
+      <FechaComEscEClique />
       <h3 className="serif">Notificações por e-mail</h3>
       <p className="u-mb10">
         Escolha quais avisos você quer receber. O envio por e-mail ainda não está ativo — por
@@ -497,10 +508,13 @@ export function ModalDeposito(): ReactNode {
   }
 
   const cents = parsePrice(valorTexto)
-  const podeDepositar = cents > 0 && cents <= DEPOSITO_MAX
+  // B07: um só veredito (valor, aviso e saldo saem dele); valor inválido não calcula saldo.
+  const veredito = validarDeposito(cents, DEPOSITO_MAX, brl)
+  const podeDepositar = veredito.valido
 
   return (
     <>
+      <FechaComEscEClique ativo={valorTexto.trim() === ''} />
       <h3 className="serif">Depositar em conta</h3>
       <p className="u-mb10">
         O saldo entra na sua conta <b>depois</b> que o pagamento for confirmado pelo banco ou pela
@@ -521,7 +535,7 @@ export function ModalDeposito(): ReactNode {
           placeholder="0,00"
           aria-label="Valor a depositar em reais"
           value={valorTexto}
-          onChange={(e) => setValorTexto(e.target.value)}
+          onChange={(e) => setValorTexto(somenteNumerico(e.target.value))}
         />
       </div>
       {/* O limite por operação fica sempre à vista (25/10/2026), e não só depois de a pessoa passar
@@ -531,13 +545,13 @@ export function ModalDeposito(): ReactNode {
       <div className="summary-row total">
         <span className="k">Saldo após o depósito</span>
         <span className="v u-v19">
-          {cents > 0 ? brl(me.balance + cents) : '—'}
+          {veredito.valido ? brl(me.balance + cents) : '—'}
         </span>
       </div>
 
-      {cents > DEPOSITO_MAX ? (
-        <div className="note u-mt10">
-          O depósito máximo por operação é {brl(DEPOSITO_MAX)}.
+      {!veredito.valido && veredito.motivo ? (
+        <div className="note u-mt10 u-erro" role="alert">
+          {veredito.motivo}
         </div>
       ) : null}
 
@@ -564,9 +578,8 @@ export function ModalDeposito(): ReactNode {
         </div>
       ) : (
         <div className="note u-mt14">
-          {cents > DEPOSITO_MAX
-            ? `O depósito máximo por operação é ${brl(DEPOSITO_MAX)}.`
-            : 'Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.'}
+          {/* O motivo do erro já está no aviso acima; aqui só a orientação, para não repetir (B07). */}
+          Informe o valor desejado acima para escolher o pagamento por Pix ou Cartão.
         </div>
       )}
 
@@ -659,6 +672,7 @@ export function ModalSaque(): ReactNode {
 
   return (
     <>
+      <FechaComEscEClique ativo={!enviando && valorTexto.trim() === ''} />
       <h3 className="serif">Solicitar saque</h3>
       <p className="u-mb10">
         Transferência do saldo em conta para sua chave Pix ou conta bancária cadastrada.
@@ -697,7 +711,7 @@ export function ModalSaque(): ReactNode {
           placeholder="0,00"
           aria-label="Valor a sacar em reais"
           value={valorTexto}
-          onChange={(e) => setValorTexto(e.target.value)}
+          onChange={(e) => setValorTexto(somenteNumerico(e.target.value))}
         />
       </div>
 
@@ -720,8 +734,8 @@ export function ModalSaque(): ReactNode {
 
       <div className="note u-mt10">
         Cada pedido é conferido pela nossa equipe antes do envio do Pix. O valor sai do seu saldo agora e fica
-        reservado para o saque; se o pedido for recusado, ele volta integralmente. Você recebe um e-mail quando
-        o saque for pago.
+        reservado para o saque; se o pedido for recusado, ele volta integralmente. Acompanhe o andamento no
+        Extrato.
       </div>
 
       {cents > 0 && cents <= TAXA_SAQUE_FIXA_CENTS ? (

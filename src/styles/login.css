@@ -143,3 +143,8 @@
   .pub-auth .auth-google-g{width:30px;height:30px}
 }
 .env-tag{margin-top:16px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted)}
+
+/* S01/B02 (QA Davi 22/11/2026): links de texto sob a senha, com alvo de toque de 44px no celular. */
+.auth-forgot{margin:6px 0 4px;font-size:13px;line-height:1.4}
+.auth-link-btn{background:none;border:0;padding:12px 4px;min-height:44px;color:var(--gold);text-decoration:underline;cursor:pointer;font:inherit}
+.auth-link-btn:disabled{opacity:.5;cursor:default}

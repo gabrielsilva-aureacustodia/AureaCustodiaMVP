@@ -25,6 +25,15 @@
 import { ACCOUNTS } from '@/domain/constants'
 import { calcularDataLimiteSaque, PRAZO_SAQUE_DIAS } from '@/domain/dates'
 import { temDadosBancarios } from '@/domain/cadastro'
+import { emailDaSessaoEstaPendente } from '@/server/auth/email-pendente'
+import {
+  normalizarNome,
+  validarChavePix,
+  validarNascimento,
+  validarNomeCompleto,
+  validarNomeDeExibicao,
+  validarTelefone,
+} from '@/domain/validacao-cadastro'
 import { brl } from '@/domain/money'
 import { getSettings } from '@/domain/selectors'
 import { limparCpf, validarDocumento } from '@/domain/cpf'
@@ -230,8 +239,9 @@ export async function updatePersonal(
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
-  const nv = nome.trim()
-  if (nv.length < 2) return { ok: false, error: 'Informe um nome válido.' }
+  const nv = normalizarNome(nome)
+  const erroNome = validarNomeDeExibicao(nv)
+  if (erroNome) return { ok: false, error: erroNome }
 
   const de = normalizarEmail(email)
   const para = novoEmail ? normalizarEmail(novoEmail) : de
@@ -506,24 +516,31 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
 
   if (!input) return { ok: false, error: 'Dados cadastrais não informados.' }
 
+  // B02 (QA Davi 22/11/2026): sem e-mail confirmado não há cadastro formal — e sem ele não há depósito, compra,
+  // venda nem saque (todos exigem `temCadastroCompleto`). Política provisória; a decisão é do Gabriel.
+  if (await emailDaSessaoEstaPendente()) {
+    return {
+      ok: false,
+      error: 'Confirme seu e-mail antes de completar o cadastro: abra o link que enviamos ou peça outro em Minha conta → Segurança.',
+    }
+  }
+
   if (!validarDocumento(input.cpf)) {
     return { ok: false, error: 'CPF ou CNPJ inválido.' }
   }
 
-  const nomeCompleto = (input.nomeCompleto || '').trim()
-  if (nomeCompleto.length < 3) {
-    return { ok: false, error: 'Informe seu nome completo.' }
-  }
+  // B03 + A16 (QA Davi 22/11/2026): a tela avisa, mas quem decide é este servidor — as mesmas regras puras do navegador.
+  const nomeCompleto = normalizarNome(input.nomeCompleto || '')
+  const erroNomeCompleto = validarNomeCompleto(nomeCompleto)
+  if (erroNomeCompleto) return { ok: false, error: erroNomeCompleto }
 
   const dataNascimento = (input.dataNascimento || '').trim()
-  if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) {
-    return { ok: false, error: 'Data de nascimento inválida (use o formato AAAA-MM-DD).' }
-  }
+  const erroNascimento = validarNascimento(dataNascimento)
+  if (erroNascimento) return { ok: false, error: erroNascimento }
 
+  const erroTelefone = validarTelefone(input.telefone || '')
+  if (erroTelefone) return { ok: false, error: erroTelefone }
   const telefone = (input.telefone || '').replace(/\D/g, '')
-  if (telefone.length < 10 || telefone.length > 11) {
-    return { ok: false, error: 'Informe um telefone válido com DDD (10 ou 11 dígitos).' }
-  }
 
   const end = input.endereco
   if (
@@ -546,6 +563,10 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
   const db = input.dadosBancarios
   const temPix = Boolean(db?.chavePix?.trim() && db?.tipoChavePix)
   const temConta = Boolean(db?.banco?.trim() && db?.agencia?.trim() && db?.conta?.trim() && db?.tipoConta)
+  if (temPix) {
+    const erroPix = validarChavePix(db.tipoChavePix, db.chavePix ?? '')
+    if (erroPix) return { ok: false, error: erroPix }
+  }
   if (!temPix && !temConta) {
     return {
       ok: false,

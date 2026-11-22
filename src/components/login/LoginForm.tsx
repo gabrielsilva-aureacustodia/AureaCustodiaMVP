@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
 import { login, loginWithGoogle } from '@/server/actions/auth'
+import { reenviarLinkDeAcesso, solicitarRedefinicaoDeSenha } from '@/server/actions/conta-acesso'
 
 import { AuthShell } from './AuthShell'
 import { AvisoDoGoogleNoApp } from './AvisoDoGoogleNoApp'
@@ -94,6 +95,29 @@ export function LoginForm({
     }
   }
 
+  /** S01 e B02: pede por e-mail o link de nova senha ou o de confirmação. Usa o e-mail já digitado no campo. */
+  async function pedirLink(qual: 'senha' | 'acesso'): Promise<void> {
+    if (enviando) return
+    setOndeAvisar('email')
+    setErro('')
+    setMensagem('')
+    if (!email.trim()) {
+      setErro('Digite o e-mail da sua conta no campo acima e toque de novo.')
+      return
+    }
+    setEnviando(true)
+    try {
+      const result = qual === 'senha' ? await solicitarRedefinicaoDeSenha(email) : await reenviarLinkDeAcesso(email)
+      if (!result.ok) {
+        setErro(result.error ?? ERRO_GENERICO)
+        return
+      }
+      setMensagem(result.message ?? 'Pedido enviado.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   async function entrarGoogle(): Promise<void> {
     if (enviando) return
     setOndeAvisar('topo')
@@ -127,7 +151,7 @@ export function LoginForm({
         <h1 className="login-title" id="login-title">
           Acessar plataforma
         </h1>
-        <p className="login-sub">Entre com a conta confirmada dos sócios.</p>
+        <p className="login-sub">Entre com o e-mail e a senha da sua conta.</p>
 
         <GoogleButton rotulo="Entrar com o Google" disabled={enviando} onClick={() => void entrarGoogle()} />
         <AvisoDoGoogleNoApp />
@@ -174,6 +198,16 @@ export function LoginForm({
                 </button>
               </div>
             </div>
+
+            <p className="auth-forgot">
+              <button type="button" className="auth-link-btn" disabled={enviando} onClick={() => void pedirLink('senha')}>
+                Esqueci minha senha
+              </button>
+              {' · '}
+              <button type="button" className="auth-link-btn" disabled={enviando} onClick={() => void pedirLink('acesso')}>
+                Reenviar link de confirmação
+              </button>
+            </p>
 
             <div className="auth-feedback" aria-live="polite">
               {ondeAvisar === 'email' ? avisos : null}

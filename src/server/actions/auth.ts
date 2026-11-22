@@ -35,6 +35,8 @@ import {
   MENSAGEM_CONTA_DESATIVADA,
 } from '@/server/auth/conta-desativada'
 import { normalizarEmail } from '@/domain/email'
+import { normalizarNome, validarNomeCompleto } from '@/domain/validacao-cadastro'
+import { marcarEmailPendente } from '@/server/auth/email-pendente'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
@@ -78,6 +80,14 @@ export async function login(email: string, senha: string): Promise<ActionResult>
       return { ok: false, error: MENSAGEM_CONTA_DESATIVADA }
     }
 
+    // Com a confirmação do Supabase ligada, quem não clicou no link recebe este erro: dizer o motivo (e a saída)
+    // é melhor que "senha incorreta" — a senha está certa.
+    if (error?.code === 'email_not_confirmed') {
+      return {
+        ok: false,
+        error: 'Confirme seu e-mail para entrar: use o link que enviamos ou peça outro em "Reenviar link de confirmação".',
+      }
+    }
     if (error || !data.user?.email) return { ok: false, error: CREDENCIAIS_INVALIDAS }
 
     if (await barrarContaDesativada(data.user.email)) {
@@ -120,7 +130,11 @@ export async function registerWithEmail(
 
   // Sem validacao local de nome, e-mail ou tamanho de senha: quem valida e o
   // Supabase, e a mensagem dele e mais precisa do que a nossa. Ver RA-18.
-  const normalizedName = name.trim()
+  // A16 (QA Davi 22/11/2026): o nome do cadastro passa pelas regras de nome e sobrenome; e-mail e tamanho de senha
+  // continuam com o Supabase.
+  const normalizedName = normalizarNome(name)
+  const erroDoNome = validarNomeCompleto(normalizedName)
+  if (erroDoNome) return { ok: false, error: erroDoNome }
   const normalizedEmail = normalizarEmail(email)
 
   try {
@@ -178,19 +192,30 @@ export async function registerWithEmail(
         })
       : undefined
 
-    if (data.user?.email && data.user.email_confirmed_at) {
-      await provisionAuthenticatedUser(data.user.email, normalizedName)
-      await client.auth.signOut({ scope: 'local' })
-      return {
-        ok: true,
-        message: 'Conta criada e confirmada. Você já pode entrar.',
-        data: { eventoCadastroId },
-      }
+    // B02 (QA Davi 22/11/2026): a conta pelo e-mail NASCE com o e-mail por confirmar, venha o Supabase com a confirmação
+    // ligada ou não (em produção ele está com `mailer_autoconfirm`, e foi assim que "a@a.co" virou "Verificado").
+    // A marca cai no clique do link, no callback (ver `email-pendente.ts`). Antes, esta rota provisionava a conta já
+    // aqui quando o Supabase a devolvia confirmada; agora quem cria o registro é o primeiro acesso — o clique no
+    // link (callback) ou o login —, como já era com a confirmação ligada.
+    const contaNovaComUsuario = contaNova && data.user ? data.user : null
+    if (contaNovaComUsuario) {
+      const marcada = await marcarEmailPendente(contaNovaComUsuario.id)
+      if (!marcada) console.error('[auth] cadastro sem a marca de e-mail pendente (chave de serviço ausente ou recusada).')
     }
+    const jaVeioConfirmada = Boolean(contaNovaComUsuario?.email_confirmed_at)
     await client.auth.signOut({ scope: 'local' })
+    if (jaVeioConfirmada) {
+      // Com a confirmação do Supabase desligada nenhum e-mail sai no cadastro: o link de acesso é o e-mail de confirmação.
+      await client.auth
+        .signInWithOtp({
+          email: normalizedEmail,
+          options: { shouldCreateUser: false, emailRedirectTo: await authCallbackUrl() },
+        })
+        .catch(() => undefined)
+    }
     return {
       ok: true,
-      message: 'Conta criada. Abra o e-mail de confirmação para validar seu acesso.',
+      message: `Conta criada. Enviamos um link para ${normalizedEmail}: clique nele para confirmar o e-mail e entrar. Confira também o spam.`,
       data: { eventoCadastroId },
     }
   } catch {
