@@ -26,7 +26,7 @@ import { ACCOUNTS } from '@/domain/constants'
 import { verificarStatusFatura } from '@/domain/custody'
 import { custodiaDoPlanoPagaAte } from '@/domain/custodia-do-cliente'
 import { posicaoNaFila, type InfoPosicaoFila } from '@/domain/market'
-import { statementTotals, userStatement, type StatementRow, type StatementTotals } from '@/domain/statement'
+import { resumoDaConta, statementTotals, userStatement, type ResumoDaConta, type StatementRow, type StatementTotals } from '@/domain/statement'
 import type {
   AppState,
   BuyOrder,
@@ -201,6 +201,8 @@ export interface PlanoNaFicha {
 export interface AbaFinanceiro {
   aba: 'financeiro'
   saldo: Cents
+  /** O mesmo cabeçalho do extrato do cliente: disponível, em reserva e total (`resumoDaConta`). */
+  resumo: ResumoDaConta
   extrato: StatementRow[]
   totais: StatementTotals
   /** `explicacao`: o motivo da ação do painel por trás de um `ajuste` (domain/admin/explicar-ajustes.ts). */
@@ -324,6 +326,7 @@ async function conteudoDaAba(aba: AbaFicha, state: AppState, email: string, reti
       return {
         aba,
         saldo: u.balance,
+        resumo: resumoDaConta(state, email),
         extrato: extrato.slice(-LIMITE_EXTRATO).reverse(),
         totais: statementTotals(extrato),
         ledger: ledgerExplicado ? [...ledgerExplicado].reverse() : null,

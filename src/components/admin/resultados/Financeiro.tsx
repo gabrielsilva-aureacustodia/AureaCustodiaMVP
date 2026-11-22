@@ -39,7 +39,8 @@ export function Financeiro({
   periodo: PeriodoEscolhido
   podeExportar: boolean
 }): ReactNode {
-  const { dre, resumo, recebimentos } = dados
+  const { dre, resumo, recebimentos, saldoClientes } = dados
+  const recon = saldoClientes.reconciliacao
   const q = consultaDoPeriodo(periodo)
   const receitaPorLinha = dre.linhas.filter((l) => l.codigo.startsWith('3.1.'))
   const pendencias = dre.pendencias
@@ -78,14 +79,22 @@ export function Financeiro({
       {!dados.cadeiaOk ? (
         <div className="note adm-secao" role="alert">
           <span>
-            <b>A cadeia de hashes do livro-razão não confere.</b> Algum lançamento foi alterado por fora do sistema. Use
-            &ldquo;Conferir o livro-razão&rdquo; na DRE para ver onde.
+            <b>A cadeia de hashes do livro-razão não confere.</b> Algum lançamento foi alterado depois de gravado (por
+            exemplo, o e-mail de uma conta foi corrigido e levou consigo as linhas antigas dela). Isso é um aviso de
+            integridade, não de dinheiro: {recon.diferencaAExplicar === 0 ? 'os saldos dos clientes continuam batendo, ao centavo, com a soma dos lançamentos' : 'confira a “diferença a explicar” em “Saldo dos clientes”'}.
+            Use &ldquo;Conferir o livro-razão&rdquo; na DRE para ver onde.
           </span>
         </div>
       ) : null}
 
       <div className="adm-inds">
-        <Indicador rotulo="Receita bruta" valor={dinheiro(dre.totais.receitaBruta)} detalhe={dre.periodo.rotulo} tom="ouro" />
+        <Indicador
+          rotulo="Saldo dos clientes"
+          valor={dinheiro(saldoClientes.total)}
+          detalhe={`Dinheiro dos clientes que o Real Olímpico guarda (não é receita). Disponível ${dinheiro(saldoClientes.disponivel)} · em reserva ${dinheiro(saldoClientes.emReserva)} · ${numero(saldoClientes.contas)} conta(s)`}
+          tom="ouro"
+        />
+        <Indicador rotulo="Receita bruta" valor={dinheiro(dre.totais.receitaBruta)} detalhe={`${dre.periodo.rotulo} · o que o Real Olímpico ganhou: comissões + custódia paga + tarifas`} />
         <Indicador
           rotulo="Resultado líquido"
           valor={dinheiro(dre.totais.resultadoLiquido)}
@@ -96,7 +105,7 @@ export function Financeiro({
         <Indicador
           rotulo="Custódia faturada"
           valor={dinheiro(resumo.custodiaFaturada.valor)}
-          detalhe={`${numero(resumo.custodiaFaturada.faturas)} fatura(s) · ${dinheiro(resumo.custodiaFaturada.pago)} pago`}
+          detalhe={`${numero(resumo.custodiaFaturada.faturas)} fatura(s) emitida(s) · ${dinheiro(resumo.custodiaFaturada.pago)} já paga(s)`}
         />
         <Indicador
           rotulo="Saques pagos"
@@ -106,9 +115,9 @@ export function Financeiro({
           tom={resumo.saquesPendentes.quantidade ? 'atencao' : 'neutro'}
         />
         <Indicador
-          rotulo="Depósitos"
+          rotulo="Depósitos de clientes"
           valor={dinheiro(resumo.depositos.valor)}
-          detalhe={`${numero(resumo.depositos.quantidade)} depósito(s) · ${dinheiro(resumo.depositos.peloGateway.valor)} confirmado(s) pelo gateway`}
+          detalhe={`Entrou no saldo dos clientes (não é receita) · ${numero(resumo.depositos.quantidade)} depósito(s) · ${dinheiro(resumo.depositos.peloGateway.valor)} confirmado(s) pelo gateway`}
         />
         {recebimentos ? (
           <Indicador
@@ -128,6 +137,66 @@ export function Financeiro({
           </span>
         </div>
       ) : null}
+
+      <Secao
+        id="fin-saldo-clientes"
+        titulo="Saldo dos clientes: de onde vem cada centavo"
+        descricao="Todo o histórico, não só o período. Disponível = a soma dos saldos das contas; ele tem de ser igual à soma dos lançamentos do livro-razão."
+      >
+        {dados.semBanco ? (
+          <Vazio titulo="A conta que fecha o saldo existe só com banco configurado.">Sem o livro-razão não há de onde somar.</Vazio>
+        ) : (
+          <TabelaRolavel rotulo="Conta que fecha o saldo dos clientes">
+            <table className="audit-table">
+              <caption className="adm-sr">Conta que fecha o saldo dos clientes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Movimento</th>
+                  <th scope="col" className="adm-num">Efeito no saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recon.linhas
+                  .filter((l) => l.valor !== 0)
+                  .map((l) => (
+                    <tr key={l.chave}>
+                      <td>{l.rotulo}</td>
+                      <td className={l.valor < 0 ? 'adm-num adm-negativo' : 'adm-num'}>{dinheiro(l.valor)}</td>
+                    </tr>
+                  ))}
+                <tr>
+                  <td><b>Soma dos lançamentos</b></td>
+                  <td className="adm-num"><b>{dinheiro(recon.somaDosLancamentos)}</b></td>
+                </tr>
+                <tr>
+                  <td><b>Saldo disponível nas contas</b></td>
+                  <td className="adm-num"><b>{dinheiro(saldoClientes.disponivel)}</b></td>
+                </tr>
+                <tr>
+                  <td>
+                    Diferença a explicar
+                    <div className="adm-fraco">Zero quando tudo fecha. Se não for zero, ela fica aqui à vista, nunca escondida.</div>
+                  </td>
+                  <td className={recon.diferencaAExplicar !== 0 ? 'adm-num adm-negativo' : 'adm-num'}>{dinheiro(recon.diferencaAExplicar)}</td>
+                </tr>
+                <tr>
+                  <td>
+                    Em reserva (já saiu do disponível, ainda não terminou o caminho)
+                    <div className="adm-fraco">
+                      Ofertas de compra pré-pagas {dinheiro(saldoClientes.reservas.ofertasPrePagas)} · saques a caminho {dinheiro(saldoClientes.reservas.saquesACaminho)}
+                    </div>
+                  </td>
+                  <td className="adm-num">{dinheiro(saldoClientes.emReserva)}</td>
+                </tr>
+                <tr>
+                  <td><b>Saldo dos clientes (disponível + em reserva)</b></td>
+                  <td className="adm-num"><b>{dinheiro(saldoClientes.total)}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </TabelaRolavel>
+        )}
+      </Secao>
 
       <div className="adm-zonas">
         <div className="adm-zona-principal">

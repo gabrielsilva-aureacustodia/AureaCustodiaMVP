@@ -60,7 +60,11 @@ describe('userStatement', () => {
     const doComprador = statementTotals(linhasComprador)
 
     expect(doVendedor.taxasPagas).toBe(comissaoPorMoeda(28_500, 'vendedor'))
-    expect(doComprador.taxasPagas).toBe(comissaoPorMoeda(28_500, 'comprador'))
+    // Desde 22/11/2026 "taxas pagas" inclui a custódia paga (pedido do Rogério): o comprador também pagou o 1º mês
+    // da moeda (R$ 2,00, `custodiaDaCompraPorMoeda`), que entra na compra. A comissão em si continua a do motor.
+    expect(doComprador.comissoesPagas).toBe(comissaoPorMoeda(28_500, 'comprador'))
+    expect(doComprador.custodiaPaga).toBe(200)
+    expect(doComprador.taxasPagas).toBe(doComprador.comissoesPagas + doComprador.custodiaPaga + doComprador.outrasTarifas)
     expect(doComprador.compradoValor).toBe(28_500)
 
     // Extensão da D-5: anonimato no extrato — nenhum nome ou e-mail de terceiro é exposto

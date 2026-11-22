@@ -128,6 +128,95 @@ export function resumirFinanceiro(entrada: {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Saldo dos clientes (Rogério, 22/11/2026: "quanto temos em nossa     *
+ * conta bancária que pertence aos clientes")                          *
+ * ------------------------------------------------------------------ */
+
+/** Uma linha da conta que fecha o saldo: o que ela é, de onde vem e quanto mexeu no saldo (com sinal). */
+export interface LinhaDeReconciliacao {
+  chave: string
+  rotulo: string
+  /** Com sinal: positivo aumentou o saldo dos clientes, negativo diminuiu. */
+  valor: Cents
+}
+
+export interface SaldoDosClientes {
+  /** Quantas contas entram na soma. */
+  contas: number
+  /** Σ `balance`: o que cada cliente pode gastar agora. */
+  disponivel: Cents
+  /** Dinheiro que saiu do disponível e ainda não terminou o caminho: ofertas pré-pagas + saques a caminho. */
+  emReserva: Cents
+  reservas: { ofertasPrePagas: Cents; saquesACaminho: Cents }
+  /** `disponivel + emReserva`: o dinheiro de terceiros que a Áurea guarda. */
+  total: Cents
+  /** A conta que fecha o disponível a partir do livro-razão (todo o histórico, não só o período). */
+  reconciliacao: {
+    linhas: LinhaDeReconciliacao[]
+    /** Σ dos lançamentos com sinal, das mesmas contas. */
+    somaDosLancamentos: Cents
+    /** `disponivel − somaDosLancamentos`. Zero quando fecha; senão aparece como "diferença a explicar", nunca escondida. */
+    diferencaAExplicar: Cents
+  }
+}
+
+/** Como cada tipo de lançamento entra na conta que fecha o saldo (rótulo de cliente leigo). */
+const LINHAS_DA_RECONCILIACAO: ReadonlyArray<{ chave: string; rotulo: string; tipos: readonly string[] }> = [
+  { chave: 'saldo_inicial', rotulo: 'Saldo anterior (aberto com a conta)', tipos: ['saldo_inicial'] },
+  { chave: 'deposito', rotulo: 'Depósitos dos clientes', tipos: ['deposito'] },
+  { chave: 'venda', rotulo: 'Vendas de moedas', tipos: ['venda'] },
+  { chave: 'compra', rotulo: 'Compras de moedas', tipos: ['compra'] },
+  { chave: 'saque', rotulo: 'Saques pedidos', tipos: ['saque'] },
+  { chave: 'comissao', rotulo: 'Comissões de negociação', tipos: ['comissao'] },
+  { chave: 'custodia', rotulo: 'Custódia paga', tipos: ['custodia'] },
+  { chave: 'tarifas', rotulo: 'Tarifas de saque e de retirada', tipos: ['taxa_saque', 'taxa_retirada'] },
+  { chave: 'frete', rotulo: 'Frete dos envios (repasse aos Correios)', tipos: ['frete'] },
+  { chave: 'estorno', rotulo: 'Estornos (dinheiro devolvido)', tipos: ['estorno'] },
+  { chave: 'ajuste', rotulo: 'Ajustes feitos pela equipe', tipos: ['ajuste'] },
+]
+
+/**
+ * O dinheiro dos clientes dentro da Áurea, em duas partes — disponível e em reserva — e a conta que o fecha.
+ *
+ * `excluir` tira da soma as contas que não são de cliente (a da própria Áurea): o dinheiro dela não é de terceiros.
+ * Conta da equipe continua dentro até o Gabriel mandar tirar.
+ */
+export function saldoDosClientes(entrada: {
+  usuarios: Readonly<Record<string, { balance: Cents }>>
+  ofertasDeCompra: ReadonlyArray<{ buyer: string; modalidade?: string; pagoAntecipadoCents?: Cents }>
+  saques: readonly Saque[]
+  ledger: readonly LedgerEntry[]
+  excluir?: (email: string) => boolean
+}): SaldoDosClientes {
+  const fora = entrada.excluir ?? (() => false)
+  const emails = Object.keys(entrada.usuarios).filter((e) => !fora(e))
+  const disponivel = emails.reduce((s, e) => s + entrada.usuarios[e].balance, 0)
+  const ofertasPrePagas = entrada.ofertasDeCompra
+    .filter((b) => b.modalidade === 'prepago' && !fora(b.buyer))
+    .reduce((s, b) => s + Math.max(0, b.pagoAntecipadoCents ?? 0), 0)
+  const saquesACaminho = entrada.saques
+    .filter((s) => (s.status === 'solicitado' || s.status === 'em_processamento') && !fora(s.userEmail))
+    .reduce((s, x) => s + x.valorTotal, 0)
+
+  const doLivro = entrada.ledger.filter((l) => !fora(l.userEmail))
+  const linhas: LinhaDeReconciliacao[] = LINHAS_DA_RECONCILIACAO.map((def) => ({
+    chave: def.chave,
+    rotulo: def.rotulo,
+    valor: doLivro.filter((l) => def.tipos.includes(l.tipo)).reduce((s, l) => s + l.valor * l.sinal, 0),
+  }))
+  const somaDosLancamentos = doLivro.reduce((s, l) => s + l.valor * l.sinal, 0)
+
+  return {
+    contas: emails.length,
+    disponivel,
+    emReserva: ofertasPrePagas + saquesACaminho,
+    reservas: { ofertasPrePagas, saquesACaminho },
+    total: disponivel + ofertasPrePagas + saquesACaminho,
+    reconciliacao: { linhas, somaDosLancamentos, diferencaAExplicar: disponivel - somaDosLancamentos },
+  }
+}
+
 /**
  * Soma as colunas de dinheiro de um relatório pelo NOME da coluna — é assim que a tela
  * lê o relatório `recebimentos-gateway`, que a frente B cria na B3. O contrato dos

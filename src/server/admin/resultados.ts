@@ -8,7 +8,8 @@
 
 import 'server-only'
 
-import { somarColunasDeDinheiro, resumirFinanceiro, type ResumoFinanceiro } from '@/domain/admin/financeiro'
+import { saldoDosClientes, somarColunasDeDinheiro, resumirFinanceiro, type ResumoFinanceiro, type SaldoDosClientes } from '@/domain/admin/financeiro'
+import { ehContaDaAurea } from '@/domain/isencao'
 import type { PeriodoEscolhido } from '@/domain/admin/periodo'
 import { ehEmailProtegido, emailsDaLista, normalizarEmail } from '@/domain/admin/permissoes'
 import { primeirasVendasDe } from '@/domain/admin/uso'
@@ -63,6 +64,8 @@ export interface DadosFinanceiro {
   resumo: ResumoFinanceiro
   cadeiaOk: boolean
   semBanco: boolean
+  /** O dinheiro dos clientes que a Áurea guarda, e a conta que o fecha (22/11/2026). */
+  saldoClientes: SaldoDosClientes
   /** `null` enquanto o relatório `recebimentos-gateway` (frente B, B3) não existir. */
   recebimentos: RecebimentosGateway | null
 }
@@ -93,6 +96,14 @@ export async function carregarFinanceiro(p: PeriodoEscolhido): Promise<DadosFina
     resumo: resumirFinanceiro({ ledger: completa.ledger, saques: state.saques ?? [], faturas: state.faturasCustodia ?? [], periodo: p.periodo }),
     cadeiaOk: completa.cadeiaOk,
     semBanco: completa.semBanco,
+    // A conta da própria Áurea fica de fora: o dinheiro dela não é de terceiros.
+    saldoClientes: saldoDosClientes({
+      usuarios: state.users,
+      ofertasDeCompra: state.buyOrders,
+      saques: state.saques ?? [],
+      ledger: completa.ledger,
+      excluir: ehContaDaAurea,
+    }),
     recebimentos,
   }
 }

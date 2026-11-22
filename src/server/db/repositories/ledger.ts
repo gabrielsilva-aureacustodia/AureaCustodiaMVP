@@ -111,6 +111,21 @@ export interface FiltroLedger {
   limite?: number
 }
 
+/**
+ * Todos os e-mails que a conta já teve, o atual primeiro. O livro-razão guarda o e-mail da época de cada linha
+ * (ele entra no hash e a troca de e-mail não reescreve o livro), então quem lê "o livro desta conta" precisa
+ * procurar por todos. Sem a tabela de histórico (migration 058 pendente), vale só o e-mail dado.
+ */
+export async function emailsDaConta(tx: Consulta, email: string): Promise<string[]> {
+  const S = nomeDoSchema()
+  try {
+    const { rows } = await tx.query<{ email_antigo: string }>(`SELECT email_antigo FROM ${S}.email_historico WHERE email_atual = $1`, [email])
+    return [email, ...rows.map((r) => r.email_antigo)]
+  } catch {
+    return [email]
+  }
+}
+
 /** Lê o livro (ou um recorte dele) na ordem de gravação. */
 export async function listarLancamentos(tx: Consulta, filtro: FiltroLedger = {}): Promise<LedgerEntryGravado[]> {
   const S = nomeDoSchema()
@@ -120,7 +135,7 @@ export async function listarLancamentos(tx: Consulta, filtro: FiltroLedger = {})
     valores.push(v)
     return `$${valores.length}`
   }
-  if (filtro.userEmail) condicoes.push(`user_email = ${param(filtro.userEmail)}`)
+  if (filtro.userEmail) condicoes.push(`user_email = ANY(${param(await emailsDaConta(tx, filtro.userEmail))})`)
   if (filtro.tipo) condicoes.push(`tipo = ${param(filtro.tipo)}`)
   if (filtro.de !== undefined) condicoes.push(`created_at >= ${param(filtro.de)}`)
   if (filtro.ate !== undefined) condicoes.push(`created_at < ${param(filtro.ate)}`)
@@ -137,8 +152,10 @@ export async function listarLancamentos(tx: Consulta, filtro: FiltroLedger = {})
 export async function saldosPeloLedger(tx: Consulta): Promise<Record<string, number>> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<{ user_email: string; saldo: unknown }>(
-    `SELECT user_email, COALESCE(SUM(valor * sinal), 0) AS saldo
-       FROM ${S}.ledger_entries GROUP BY user_email`,
+    // `COALESCE(h.email_atual, …)`: as linhas de um e-mail antigo somam na conta de hoje.
+    `SELECT COALESCE(h.email_atual, l.user_email) AS user_email, COALESCE(SUM(l.valor * l.sinal), 0) AS saldo
+       FROM ${S}.ledger_entries l LEFT JOIN ${S}.email_historico h ON h.email_antigo = l.user_email
+      GROUP BY COALESCE(h.email_atual, l.user_email)`,
   )
   const saida: Record<string, number> = {}
   for (const r of rows) saida[r.user_email] = num(r.saldo)

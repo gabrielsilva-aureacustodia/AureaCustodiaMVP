@@ -94,7 +94,9 @@ export async function contasDesativadas(tx: Consulta): Promise<Set<string>> {
 export async function datasDeCriacao(tx: Consulta): Promise<Record<string, number>> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<{ user_email: string; criado: unknown }>(
-    `SELECT user_email, min(created_at) AS criado FROM ${S}.ledger_entries WHERE tipo = 'saldo_inicial' GROUP BY user_email`,
+    `SELECT COALESCE(h.email_atual, l.user_email) AS user_email, min(l.created_at) AS criado
+       FROM ${S}.ledger_entries l LEFT JOIN ${S}.email_historico h ON h.email_antigo = l.user_email
+      WHERE l.tipo = 'saldo_inicial' GROUP BY COALESCE(h.email_atual, l.user_email)`,
   )
   const datas: Record<string, number> = {}
   for (const r of rows) datas[r.user_email] = num(r.criado)

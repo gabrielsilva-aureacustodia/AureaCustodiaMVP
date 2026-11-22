@@ -61,12 +61,28 @@ export function AbaFinanceiro({
   return (
     <>
       <div className="adm-grade">
-        <Cartao rotulo="Saldo" valor={dinheiro(dados.saldo)} />
+        <Cartao rotulo="Saldo disponível" valor={dinheiro(dados.resumo.disponivel)} detalhe="o que o cliente pode usar agora" />
+        {dados.resumo.emReserva > 0 ? (
+          <>
+            <Cartao
+              rotulo="Em reserva"
+              valor={dinheiro(dados.resumo.emReserva)}
+              detalhe={`ofertas pré-pagas ${dinheiro(dados.resumo.reservas.ofertasPrePagas)} · saques a caminho ${dinheiro(dados.resumo.reservas.saquesACaminho)}`}
+            />
+            <Cartao rotulo="Total na plataforma" valor={dinheiro(dados.resumo.total)} detalhe="disponível + em reserva" />
+          </>
+        ) : null}
         <Cartao rotulo="Depositado" valor={dinheiro(t.depositado)} />
         <Cartao rotulo="Sacado" valor={dinheiro(t.sacado)} />
         <Cartao rotulo="Comprado" valor={dinheiro(t.compradoValor)} detalhe={`${numero(t.compradoQtd)} moeda(s)`} />
         <Cartao rotulo="Vendido" valor={dinheiro(t.vendidoValor)} detalhe={`${numero(t.vendidoQtd)} moeda(s)`} />
-        <Cartao rotulo="Taxas pagas" valor={dinheiro(t.taxasPagas)} />
+        <Cartao rotulo="Comissões" valor={dinheiro(t.comissoesPagas)} detalhe="de compra e de venda" />
+        <Cartao rotulo="Custódia paga" valor={dinheiro(t.custodiaPaga)} detalhe="faturas pagas, menos estornos" />
+        <Cartao
+          rotulo="Taxas pagas"
+          valor={dinheiro(t.taxasPagas)}
+          detalhe={`Comissões ${dinheiro(t.comissoesPagas)} · custódia ${dinheiro(t.custodiaPaga)} · tarifas ${dinheiro(t.outrasTarifas)}`}
+        />
       </div>
 
       <details className="adm-detalhes" open>
@@ -84,6 +100,7 @@ export function AbaFinanceiro({
                     <th scope="col" className="adm-num">Qtd</th>
                     <th scope="col" className="adm-num">Taxa</th>
                     <th scope="col" className="adm-num">Efeito no saldo</th>
+                    <th scope="col" className="adm-num">Saldo depois</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -95,6 +112,7 @@ export function AbaFinanceiro({
                       <td className="adm-num">{l.quantidade === null ? '—' : numero(l.quantidade)}</td>
                       <td className="adm-num">{l.taxa === null ? '—' : dinheiro(l.taxa)}</td>
                       <td className={l.impacto < 0 ? 'adm-num adm-negativo' : 'adm-num'}>{dinheiro(l.impacto)}</td>
+                      <td className="adm-num">{dinheiro(l.saldoApos)}</td>
                     </tr>
                   ))}
                 </tbody>

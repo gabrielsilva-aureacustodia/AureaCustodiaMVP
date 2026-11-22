@@ -231,7 +231,15 @@ export async function renomearEmailUsuarioNoBanco(
   await tx.query(`UPDATE ${S}.trades SET seller = $2 WHERE seller = $1`, [de, para])
   await tx.query(`UPDATE ${S}.envios SET user_email = $2 WHERE user_email = $1`, [de, para])
   await tx.query(`UPDATE ${S}.deposits SET user_email = $2 WHERE user_email = $1`, [de, para])
-  await tx.query(`UPDATE ${S}.ledger_entries SET user_email = $2 WHERE user_email = $1`, [de, para])
+  // O LIVRO-RAZÃO NÃO SE TOCA (append-only, e `user_email` entra no hash de cada linha). Reescrever o e-mail aqui
+  // quebrou a cadeia de hashes em 10/11/2026 (…@gamil.com → …@gmail.com). A ligação entre o e-mail antigo e o novo
+  // fica em `email_historico` (migration 058); a leitura por conta junta as gerações (ledger.ts, `emailsDaConta`).
+  await tx.query(`UPDATE ${S}.email_historico SET email_atual = $2 WHERE email_atual = $1`, [de, para])
+  await tx.query(
+    `INSERT INTO ${S}.email_historico (email_antigo, email_atual, trocado_em) VALUES ($1, $2, $3)
+     ON CONFLICT (email_antigo) DO UPDATE SET email_atual = EXCLUDED.email_atual, trocado_em = EXCLUDED.trocado_em`,
+    [de, para, Date.now()],
+  )
   await tx.query(`UPDATE ${S}.saques SET user_email = $2 WHERE user_email = $1`, [de, para])
   await tx.query(`UPDATE ${S}.faturas_custodia SET user_email = $2 WHERE user_email = $1`, [de, para])
   await tx.query(`UPDATE ${S}.planos_custodia SET user_email = $2 WHERE user_email = $1`, [de, para])

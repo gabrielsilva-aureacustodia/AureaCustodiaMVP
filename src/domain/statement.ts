@@ -109,7 +109,18 @@ export interface StatementTotals {
   compradoQtd: number
   vendidoValor: Cents
   vendidoQtd: number
+  /**
+   * TUDO o que a conta pagou à plataforma, já devolvido o que foi estornado: comissões de compra e venda, tarifa de
+   * saque, custódia e taxa de retirada (Rogério, 22/11/2026: "a custódia tem que entrar nas taxas pagas" — sem ela
+   * a conta não fechava). É `comissoesPagas + custodiaPaga + outrasTarifas`.
+   */
   taxasPagas: Cents
+  /** Só as comissões de negociação (compra e venda). */
+  comissoesPagas: Cents
+  /** Custódia paga (faturas pagas menos as devolvidas). */
+  custodiaPaga: Cents
+  /** Tarifa de saque e taxa de retirada física. */
+  outrasTarifas: Cents
   /** Soma de todos os `impacto` — a variação líquida de saldo do extrato. */
   variacaoSaldo: Cents
 }
@@ -502,6 +513,9 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
     vendidoValor: 0,
     vendidoQtd: 0,
     taxasPagas: 0,
+    comissoesPagas: 0,
+    custodiaPaga: 0,
+    outrasTarifas: 0,
     variacaoSaldo: 0,
   }
 
@@ -511,11 +525,26 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
     if (r.kind === 'Saque') {
       t.sacado += -r.impacto
       t.taxasPagas += r.taxa ?? 0
+      t.outrasTarifas += r.taxa ?? 0
+    }
+    if (r.kind === 'Taxa de custódia') {
+      // Só conta o que saiu do saldo: fatura em aberto tem impacto 0 e não é paga.
+      t.custodiaPaga += -r.impacto
+      t.taxasPagas += -r.impacto
+    }
+    if (r.kind === 'Taxa de retirada') {
+      t.outrasTarifas += -r.impacto
+      t.taxasPagas += -r.impacto
     }
     if (r.kind === 'Estorno' && r.estornoDe === 'Saque') {
       // Saque recusado: o valor e a tarifa voltaram, então não contam como sacado nem como tarifa paga.
       t.sacado -= r.impacto
       t.taxasPagas -= r.taxa ?? 0
+      t.outrasTarifas -= r.taxa ?? 0
+    }
+    if (r.kind === 'Estorno' && r.estornoDe === 'Taxa de custódia') {
+      t.custodiaPaga -= r.impacto
+      t.taxasPagas -= r.impacto
     }
     if (r.kind === 'Compra') {
       // Valor das moedas compradas: o total debitado do saldo está em `impacto`
@@ -524,6 +553,7 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
       t.compradoValor += -r.impacto - (r.taxa ?? 0)
       t.compradoQtd += r.quantidade ?? 0
       t.taxasPagas += r.taxa ?? 0
+      t.comissoesPagas += r.taxa ?? 0
     }
     if (r.kind === 'Venda') {
       // Valor BRUTO da venda: o líquido já está em `impacto`, e mostrar os dois
@@ -531,6 +561,7 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
       t.vendidoValor += r.impacto + (r.taxa ?? 0)
       t.vendidoQtd += r.quantidade ?? 0
       t.taxasPagas += r.taxa ?? 0
+      t.comissoesPagas += r.taxa ?? 0
     }
   })
 

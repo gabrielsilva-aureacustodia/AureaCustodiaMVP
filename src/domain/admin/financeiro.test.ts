@@ -4,7 +4,7 @@ import { periodoMensal, periodoTrimestral } from '@/domain/dre'
 import type { LedgerEntry, LedgerTipo, Sinal } from '@/domain/ledger'
 import type { FaturaCustodia, Saque } from '@/domain/types'
 
-import { resumirFinanceiro, somarColunasDeDinheiro } from './financeiro'
+import { resumirFinanceiro, saldoDosClientes, somarColunasDeDinheiro } from './financeiro'
 
 const EM = (mes: number, dia: number): number => new Date(2026, mes - 1, dia, 12).getTime()
 
@@ -110,5 +110,39 @@ describe('somarColunasDeDinheiro', () => {
       { bruto: /bruto/i, tarifa: /tarifa/i, liquido: /liquido/i, parcelas: /parcela/i },
     )
     expect(soma).toEqual({ bruto: 25210, tarifa: 301, liquido: 4901, parcelas: null })
+  })
+})
+
+
+describe('saldoDosClientes', () => {
+  const lanc = (email: string, tipo: LedgerTipo, valor: number, sinal: Sinal): LedgerEntry => ({ ...l(tipo, valor, EM(8, 1), sinal), userEmail: email })
+
+  it('soma disponível e reservas, fecha com o livro-razão e deixa a conta da Áurea de fora', () => {
+    const ledger = [
+      lanc('a@x.com', 'deposito', 10_000, 1),
+      lanc('a@x.com', 'compra', 6_000, -1),
+      lanc('a@x.com', 'comissao', 100, -1),
+      lanc('a@x.com', 'saque', 2_000, -1),
+      lanc('b@x.com', 'deposito', 500, 1),
+      lanc('aurea@x.com', 'deposito', 99_999, 1),
+    ]
+    const r = saldoDosClientes({
+      usuarios: { 'a@x.com': { balance: 1_900 }, 'b@x.com': { balance: 500 }, 'aurea@x.com': { balance: 99_999 } },
+      ofertasDeCompra: [{ buyer: 'a@x.com', modalidade: 'prepago', pagoAntecipadoCents: 700 }, { buyer: 'b@x.com', modalidade: 'pospago', pagoAntecipadoCents: 50 }],
+      saques: [saque('SAQ-1', 'solicitado', 1_500, 500, null), saque('SAQ-2', 'pago', 300, 0, EM(8, 2))],
+      ledger,
+      excluir: (e) => e === 'aurea@x.com',
+    })
+    expect(r.contas).toBe(2)
+    expect(r.disponivel).toBe(2_400)
+    expect(r.reservas).toEqual({ ofertasPrePagas: 700, saquesACaminho: 2_000 })
+    expect(r.total).toBe(5_100)
+    expect(r.reconciliacao.somaDosLancamentos).toBe(2_400)
+    expect(r.reconciliacao.diferencaAExplicar).toBe(0)
+  })
+
+  it('mostra a diferença a explicar quando o livro não fecha com os saldos', () => {
+    const r = saldoDosClientes({ usuarios: { 'a@x.com': { balance: 1_000 } }, ofertasDeCompra: [], saques: [], ledger: [lanc('a@x.com', 'deposito', 900, 1)] })
+    expect(r.reconciliacao.diferencaAExplicar).toBe(100)
   })
 })

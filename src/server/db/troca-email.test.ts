@@ -12,6 +12,7 @@ import { ehEmailProtegido } from '@/domain/admin/permissoes'
 import type { AppState, User } from '@/domain/types'
 import { listarNotasDoDono } from '@/server/nfse/consulta'
 import { aplicarMigrations } from './migrar'
+import { emailsDaConta, listarLancamentos, saldosPeloLedger } from './repositories/ledger'
 import { renomearEmailNoAppState, renomearEmailUsuarioNoBanco } from './repositories/users'
 import type { Consulta, Executor } from './sql'
 
@@ -173,7 +174,17 @@ describe('Renomeação de e-mail no banco de dados (PGlite)', () => {
         'SELECT user_email FROM aurea.ledger_entries WHERE hash = $1',
         ['hash_ledger_1'],
       )
-      expect(ledger[0].user_email).toBe(novo)
+      // O livro-razão é append-only e o e-mail entra no hash: a troca NÃO o reescreve (T1, 22/11/2026).
+      expect(ledger[0].user_email).toBe(antigo)
+      // A ligação fica no histórico, e a leitura por conta acha o livro pelas duas gerações.
+      const { rows: historico } = await tx.query<{ email_antigo: string; email_atual: string }>(
+        'SELECT email_antigo, email_atual FROM aurea.email_historico WHERE email_antigo = $1',
+        [antigo],
+      )
+      expect(historico).toEqual([{ email_antigo: antigo, email_atual: novo }])
+      expect(await emailsDaConta(tx, novo)).toEqual([novo, antigo])
+      expect((await listarLancamentos(tx, { userEmail: novo })).map((l) => l.hash)).toEqual(['hash_ledger_1'])
+      expect((await saldosPeloLedger(tx))[novo]).toBe(100000)
 
       // Confere audit log
       const { rows: audit } = await tx.query<{ acao: string; entidade: string }>(

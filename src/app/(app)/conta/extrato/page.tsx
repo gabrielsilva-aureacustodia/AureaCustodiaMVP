@@ -157,8 +157,11 @@ export default function ExtratoPage(): ReactNode {
           </div>
         </div>
         <div className="kpi">
-          <div className="lbl">Comissões pagas</div>
+          <div className="lbl">Taxas pagas</div>
           <div className="val">{brl(totais.taxasPagas)}</div>
+          <div className="sub">
+            Comissões {brl(totais.comissoesPagas)} · custódia {brl(totais.custodiaPaga)} · tarifas {brl(totais.outrasTarifas)}
+          </div>
         </div>
       </section>
 

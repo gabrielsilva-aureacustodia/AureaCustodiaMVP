@@ -229,6 +229,8 @@ function suite(alvo: Alvo): void {
         'deposits',
         // Migration 016 — documentos legais e aceites formais (A3).
         'documentos_legais',
+        // Migration 058 — de/para das trocas de e-mail, para o livro-razão não ser reescrito (22/11/2026).
+        'email_historico',
         // Migration 053 — a fila de e-mails de movimentação (frente C da manutenção de novembro/2026).
         'emails_pendentes',
         'envios',
