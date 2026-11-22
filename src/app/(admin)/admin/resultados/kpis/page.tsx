@@ -1,9 +1,10 @@
 /**
  * /admin/resultados/kpis — os indicadores do negócio (src/domain/kpis.ts).
  *
- * Três abas (`?aba=`), com o período (`?ano=&mes=&trimestre=`) valendo para todas:
+ * Quatro abas (`?aba=`), com o período (`?ano=&mes=&trimestre=`) valendo para todas:
  *   - `negocio` (padrão): mercado, acervo, envios, faturas — os KPIs de sempre;
  *   - `aquisicao` (18/11/2026, frente J): cadastros, 1ª transação, CAC, funil e atendimento — os KPIs do conselho;
+ *   - `conselho` (T5, 22/11/2026): os 5 KPIs prioritários do conselho, em texto leigo;
  *   - `gasto`: a entrada manual do gasto de marketing, que é o numerador do CAC.
  *
  * Server Component: confere `resultados.ver` ANTES de ler qualquer dado. O atendimento só é lido com `cs.ver`, e o
@@ -15,11 +16,13 @@ import type { ReactNode } from 'react'
 import { SemPermissao } from '@/components/admin/Blocos'
 import { Abas } from '@/components/admin/Pecas'
 import { Aquisicao } from '@/components/admin/resultados/Aquisicao'
+import { Conselho } from '@/components/admin/resultados/Conselho'
 import { GastoDeMarketing } from '@/components/admin/resultados/GastoDeMarketing'
 import { Indicadores } from '@/components/admin/resultados/Indicadores'
 import { consultaDoPeriodo, lerPeriodo, primeiroValor, type ParametrosDaUrl } from '@/domain/admin/periodo'
 import { temPermissao } from '@/domain/admin/permissoes'
 import { membroDaPagina } from '@/server/admin/acesso'
+import { carregarKpisDoConselho } from '@/server/admin/kpis-conselho'
 import { carregarAquisicao, carregarKpis } from '@/server/admin/resultados'
 import type { Metadata } from 'next'
 import { tituloDaPagina } from '@/components/admin/navegacao'
@@ -30,6 +33,7 @@ export const dynamic = 'force-dynamic'
 
 const ABAS = [
   { id: 'negocio', rotulo: 'Negócio' },
+  { id: 'conselho', rotulo: 'KPIs do conselho' },
   { id: 'aquisicao', rotulo: 'Aquisição e atendimento' },
   { id: 'gasto', rotulo: 'Gasto de marketing' },
 ] as const
@@ -57,6 +61,16 @@ export default async function KpisPage({ searchParams }: { searchParams: Promise
       <>
         {abas}
         <Indicadores kpis={kpis} periodo={periodo} semBanco={semBanco} />
+      </>
+    )
+  }
+
+  if (aba === 'conselho') {
+    const dadosConselho = await carregarKpisDoConselho(periodo)
+    return (
+      <>
+        {abas}
+        <Conselho dados={dadosConselho} periodo={periodo} />
       </>
     )
   }

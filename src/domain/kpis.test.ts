@@ -22,6 +22,7 @@ import {
   ladosDaComissao,
   montarKpis,
   montarKpisDeAquisicao,
+  montarKpisDoConselho,
   primeiraTransacaoPorConta,
   somarDias,
   validarGastoDeMarketing,
@@ -29,6 +30,7 @@ import {
   type EntradaDeGasto,
   type EventoDaFilaKpi,
   type FontesAquisicao,
+  type FontesConselho,
   type FontesKpi,
   type GastoDeMarketing,
 } from './kpis'
@@ -487,5 +489,178 @@ describe('KPIs de aquisição e atendimento', () => {
       expect(r.ok).toBe(false)
       if (!r.ok) expect(r.erro.length).toBeGreaterThan(5)
     })
+  })
+})
+
+/* ====================================================================================
+ * Os 5 KPIs prioritários do conselho (T5, 22/11/2026)
+ *
+ * Cenário de novembro/2026, hoje = 18/11 15h de Brasília, conferido à mão:
+ *   c1 — 2 moedas (RO-000001, RO-000002), por envio postal; depositou 17/11; tem 1 oferta de venda aberta
+ *   c2 — 1 moeda (RO-000003) por cadastro sem envio; comprou em 18/11
+ *   c3 — enviou RO-000009, pagou custódia e RETIROU a moeda em 12/11 (hoje sem moeda) → saiu
+ *   c4 — só se cadastrou
+ *   c5 — cadastrou em outubro (fora do período)
+ *   equipe — nunca entra
+ * ==================================================================================*/
+
+describe('KPIs do conselho', () => {
+  const BR = (mes: number, dia: number, hora = 12): number => Date.UTC(2026, mes - 1, dia, hora + 3, 0, 0)
+  const HOJE = BR(11, 18, 15)
+  const NOV = janelaDoPeriodo({ ano: 2026, mes: 11, trimestre: null }, 'novembro de 2026')
+  const metaMensal: GastoDeMarketing = { id: 1, canal: 'meta', de: '2026-11-01', ate: '2026-11-30', valor: 300_000, visitas: null }
+
+  function fontes(parcial: Partial<FontesConselho> = {}): FontesConselho {
+    const extinta = moeda('RO-000009', DH)
+    extinta.recibo.status = 'Extinto'
+    const s = estado({
+      'c1@x.com': usuario('C1', 0, [moeda('RO-000001', BAN), moeda('RO-000002', BAN)]),
+      'c2@x.com': usuario('C2', 0, [moeda('RO-000003', BAN)]),
+      'c3@x.com': usuario('C3', 0, [extinta]),
+      'c4@x.com': usuario('C4', 0, []),
+      'c5@x.com': usuario('C5', 0, []),
+      'equipe@x.com': usuario('Equipe', 0, [moeda('RO-000008', BAN)]),
+    })
+    s.deposits = [
+      { userEmail: 'c1@x.com', valor: 5000, date: BR(11, 17, 15), origem: 'deposito', metodo: 'pix' },
+      { userEmail: 'c3@x.com', valor: 3000, date: BR(11, 10, 9), origem: 'frete_envio', metodo: 'pix' },
+    ]
+    s.trades = [{ price: 10000, qty: 1, date: BR(11, 18, 10), buyer: 'c2@x.com', seller: 'c1@x.com', fee: 400, tipoMoeda: BAN }]
+    s.envios = [
+      envio({ protocolo: 'E1', userEmail: 'c1@x.com', createdAt: BR(11, 5), etapaAtual: 'Recibo emitido', quantidade: 2 }),
+      envio({ protocolo: 'E2', userEmail: 'c2@x.com', createdAt: BR(11, 14), etapaAtual: 'Recibo emitido', quantidade: 1, origem: 'cadastro_sem_envio' }),
+      envio({ protocolo: 'E3', userEmail: 'c3@x.com', createdAt: BR(11, 6), etapaAtual: 'Recibo emitido', quantidade: 1 }),
+      envio({ protocolo: 'E8', userEmail: 'equipe@x.com', createdAt: BR(11, 6), etapaAtual: 'Recibo emitido', quantidade: 1 }),
+    ]
+    s.analises = [
+      analise({ protocolo: 'A1', protocoloEnvio: 'E1', veredito: 'aprovada', codigoMoeda: 'RO-000001', validadoEm: BR(11, 11) }),
+      analise({ protocolo: 'A2', protocoloEnvio: 'E1', veredito: 'aprovada', codigoMoeda: 'RO-000002', validadoEm: BR(11, 11) }),
+      analise({ protocolo: 'A3', protocoloEnvio: 'E2', veredito: 'aprovada', codigoMoeda: 'RO-000003', validadoEm: BR(11, 15) }),
+      analise({ protocolo: 'A9', protocoloEnvio: 'E3', veredito: 'aprovada', codigoMoeda: 'RO-000009', validadoEm: BR(11, 12) }),
+      analise({ protocolo: 'A8', protocoloEnvio: 'E8', veredito: 'aprovada', codigoMoeda: 'RO-000008', validadoEm: BR(11, 12) }),
+    ]
+    s.faturasCustodia = [
+      fatura({ id: 'F1', userEmail: 'c1@x.com', status: 'paga', dataEmissao: BR(11, 3), valorCents: 400, moedaIds: ['RO-000001', 'RO-000002'] }),
+      fatura({ id: 'F2', userEmail: 'c2@x.com', status: 'paga', dataEmissao: BR(11, 3), valorCents: 200, moedaIds: ['RO-000003'] }),
+      fatura({ id: 'F3', userEmail: 'c3@x.com', status: 'paga', dataEmissao: BR(11, 3), valorCents: 200, moedaIds: ['RO-000009'] }),
+      fatura({ id: 'F4', userEmail: 'c1@x.com', status: 'pendente', dataEmissao: BR(11, 5), valorCents: 400, moedaIds: ['RO-000001', 'RO-000002'], dataVencimento: BR(11, 10) }),
+    ]
+    s.sellOffers = [{ id: 'O1', coinId: 'RO-000001', seller: 'c1@x.com', price: 30000, obs: '', lotId: 'L1', createdAt: BR(11, 9), tipoMoeda: BAN }]
+    return {
+      state: s,
+      retiradas: [{ ...retirada('R1', 'paga'), coinId: 'RO-000009', userEmail: 'c3@x.com', solicitadoEm: BR(11, 12) }],
+      criadasEm: {
+        'c1@x.com': BR(11, 4),
+        'c2@x.com': BR(11, 13),
+        'c3@x.com': BR(11, 6),
+        'c4@x.com': BR(11, 18, 7),
+        'c5@x.com': BR(10, 20),
+        'equipe@x.com': BR(11, 1),
+      },
+      gastos: [metaMensal],
+      periodo: NOV,
+      agora: HOJE,
+      ignorar: new Set(['equipe@x.com']),
+      custodiaMensalPorMoedaCents: 200,
+      custoLogisticoPorMoedaCents: 2500,
+      historicoDaFila: [
+        { ofertaId: 'A', lado: 'venda', tipoMoeda: BAN, evento: 'publicada', createdAt: BR(11, 10) },
+        { ofertaId: 'A', lado: 'venda', tipoMoeda: BAN, evento: 'executada', createdAt: BR(11, 12) },
+        { ofertaId: 'B', lado: 'venda', tipoMoeda: BAN, evento: 'publicada', createdAt: BR(11, 11) },
+        { ofertaId: 'C', lado: 'venda', tipoMoeda: BAN, evento: 'publicada', createdAt: BR(10, 11) },
+        { ofertaId: 'C', lado: 'venda', tipoMoeda: BAN, evento: 'executada', createdAt: BR(11, 2) },
+      ],
+      ...parcial,
+    }
+  }
+
+  it('1 — CAC, custódia por cliente, payback e LTV', () => {
+    const { cacPayback: c } = montarKpisDoConselho(fontes())
+    // 3 ativados no mês (c1, c2, c3); R$ 3.000,00 ÷ 3 = R$ 1.000,00.
+    expect(c).toMatchObject({ gasto: 300_000, ativados: 3, cac: 100_000 })
+    // 3 moedas de 2 clientes (a da equipe e a retirada não contam) = 1,5 moeda × R$ 2,00 = R$ 3,00 por mês.
+    expect(c).toMatchObject({ clientesComMoeda: 2, moedasEmCustodia: 3, receitaMensalPorCliente: 300 })
+    expect(c.paybackMeses).toBe(333.3)
+    expect(c.ltv).toBe(3600)
+    expect(c.ltvSobreCacBp).toBe(360)
+  })
+
+  it('1 — sem gasto, sem tabela ou sem cliente com moeda: null, nunca zero', () => {
+    expect(montarKpisDoConselho(fontes({ gastos: [] })).cacPayback).toMatchObject({ gasto: null, cac: null, paybackMeses: null, ltvSobreCacBp: null })
+    expect(montarKpisDoConselho(fontes({ gastos: null })).cacPayback.cac).toBeNull()
+    const semMoeda = fontes()
+    for (const u of Object.values(semMoeda.state.users)) u.coins = []
+    expect(montarKpisDoConselho(semMoeda).cacPayback).toMatchObject({ receitaMensalPorCliente: null, paybackMeses: null, ltv: null })
+  })
+
+  it('2 — margem por moeda captada: custódia paga menos o custo logístico digitado, só nas postais', () => {
+    const { margemPorMoeda: m } = montarKpisDoConselho(fontes())
+    // Captadas válidas: RO-1, RO-2, RO-3 (sem envio) e RO-9; a da equipe fica de fora. Postais: 3.
+    expect(m).toMatchObject({ moedasCaptadas: 4, moedasCaptadasPostais: 3, receitaDeCustodia: 800, custoLogisticoTotal: 7500 })
+    expect(m.margemTotal).toBe(800 - 7500)
+    expect(m.margemPorMoeda).toBe(-1675)
+    // Comissão à parte: R$ 4,00 numa moeda negociada.
+    expect(m.comissaoMediaPorMoedaNegociada).toBe(400)
+  })
+
+  it('2 — o custo é parâmetro: outro valor muda a margem; sem custo informado ou sem moeda captada, null', () => {
+    expect(montarKpisDoConselho(fontes({ custoLogisticoPorMoedaCents: 0 })).margemPorMoeda.margemPorMoeda).toBe(200)
+    const semCusto = montarKpisDoConselho(fontes({ custoLogisticoPorMoedaCents: null })).margemPorMoeda
+    expect(semCusto).toMatchObject({ margemPorMoeda: null, margemTotal: null, custoLogisticoTotal: null, custoLogisticoPorMoeda: null })
+    const dezembro = montarKpisDoConselho(fontes({ periodo: janelaDoPeriodo({ ano: 2026, mes: 12, trimestre: null }, 'dezembro') })).margemPorMoeda
+    expect(dezembro).toMatchObject({ moedasCaptadas: 0, receitaDeCustodia: null, margemPorMoeda: null })
+  })
+
+  it('3 — conversão: dos cadastrados no período, quem transacionou, depositou moeda e pagou custódia', () => {
+    const { conversao: v } = montarKpisDoConselho(fontes())
+    // Cadastros de novembro: c1, c2, c3, c4 (c5 é de outubro, a equipe não conta).
+    expect(v).toMatchObject({ cadastros: 4, ativados: 3, depositaramMoeda: 3, pagaramCustodia: 3, cadastroParaAtivacaoBp: 7500, cadastroParaMoedaBp: 7500 })
+  })
+
+  it('3 — sem banco (sem data de cadastro) tudo é null', () => {
+    expect(montarKpisDoConselho(fontes({ criadasEm: null })).conversao).toEqual({
+      cadastros: null,
+      ativados: null,
+      depositaramMoeda: null,
+      cadastroParaAtivacaoBp: null,
+      cadastroParaMoedaBp: null,
+      pagaramCustodia: null,
+    })
+  })
+
+  it('4 — inadimplência sobre o emitido e churn pela retirada', () => {
+    const { inadimplenciaChurn: i } = montarKpisDoConselho(fontes())
+    // Emitido R$ 12,00 no mês (4 faturas); R$ 4,00 atrasados hoje (F4 venceu em 10/11).
+    expect(i).toMatchObject({ valorEmitido: 1200, valorAtrasado: 400, taxaInadimplenciaBp: 3333, moedasRetiradas: 1 })
+    // c3 retirou e não guarda mais nada; ficam c1 e c2 → 1 de 3.
+    expect(i).toMatchObject({ clientesQueSairam: 1, churnDeClientesBp: 3333, receitaRecorrenteMensal: 600 })
+    // Base de moedas = 3 hoje + 1 saída − 4 entradas = 0: sem base, null (não zero).
+    expect(i.churnDeMoedasBp).toBeNull()
+  })
+
+  it('4 — churn de moedas com base: 1 retirada para 12 moedas que estavam lá no começo', () => {
+    const f = fontes()
+    f.state.analises = [] // ninguém captado no período: nenhuma entrada a descontar
+    f.state.users['c1@x.com']!.coins = Array.from({ length: 10 }, (_, k) => moeda(`RO-0002${k}0`, BAN))
+    // Hoje: 10 (c1) + 1 (c2) = 11, mais 1 retirada = 12 no começo; 1 ÷ 12 = 8,33%.
+    expect(montarKpisDoConselho(f).inadimplenciaChurn.churnDeMoedasBp).toBe(833)
+  })
+
+  it('5 — GMV, comissão, giro e histórico da fila', () => {
+    const { liquidez: l } = montarKpisDoConselho(fontes())
+    expect(l).toMatchObject({ negociacoes: 1, moedasNegociadas: 1, gmv: 10_000, comissao: 400, ofertasDeVendaAbertas: 1 })
+    expect(l.moedasAnunciadasBp).toBe(3333) // 1 de 3 moedas em custódia
+    expect(l.giroBp).toBe(5000) // 1 vendida ÷ (1 vendida + 1 ainda anunciada)
+    // A e B publicadas em novembro; só A vendeu, em 2 dias. C foi publicada em outubro: fora do período.
+    expect(l.historico).toMatchObject({ publicadas: 2, executadas: 1, taxaDeVendaBp: 5000 })
+    expect(l.historico!.tempoAteVenda).toEqual({ mediaMs: 2 * 24 * 60 * 60 * 1000, amostras: 1 })
+  })
+
+  it('5 — sem histórico da fila, o bloco do histórico é null; sem negociação nem oferta, giro null', () => {
+    expect(montarKpisDoConselho(fontes({ historicoDaFila: null })).liquidez.historico).toBeNull()
+    const f = fontes()
+    f.state.trades = []
+    f.state.sellOffers = []
+    expect(montarKpisDoConselho(f).liquidez).toMatchObject({ gmv: 0, giroBp: null, moedasAnunciadasBp: 0 })
   })
 })

@@ -754,6 +754,282 @@ export function montarKpisDeAquisicao(f: FontesAquisicao): KpisAquisicao {
   }
 }
 
+/* ====================================================================================
+ * OS 5 KPIs PRIORITÁRIOS DO CONSELHO (slide 3.1) — frente T5, 22/11/2026
+ *
+ * Pedido do Rogério (item 7): os cinco números que o conselho escolheu ainda "não estavam no site".
+ * Parte já existia espalhada (CAC, GMV, comissão, inadimplência, funil); faltavam payback/LTV, margem por moeda
+ * captada, churn, conversão de pagantes e liquidez. Mapa completo em `docs/kpis/PROPOSTA_DE_KPIS.md`, seção 3.
+ *
+ * MESMA REGRA DO ARQUIVO: sem fonte, `null` — nunca zero. Dinheiro em centavos; proporção em pontos-base; dia de
+ * Brasília. NENHUMA alíquota e nenhuma decisão fiscal aqui: "margem" é receita de custódia menos o custo
+ * logístico que a equipe digitou, não resultado contábil (esse é o da DRE).
+ *
+ * O CUSTO LOGÍSTICO NÃO É FIXO EM CÓDIGO: chega de fora (`custoLogisticoPorMoedaCents`, de /admin/configuracao),
+ * porque o contrato novo dos Correios está em avaliação. `null` = ninguém informou, e a margem fica `null`.
+ * ==================================================================================*/
+
+/** O horizonte do LTV simples: quantos meses de custódia o cliente é suposto pagar. É uma premissa de leitura, não uma regra. */
+export const LTV_HORIZONTE_MESES = 12
+
+export interface FontesConselho {
+  state: AppState
+  retiradas: readonly Retirada[]
+  /** E-mail → instante em que a conta nasceu; `null` = sem banco. */
+  criadasEm: Readonly<Record<string, Timestamp>> | null
+  /** `null` = a tabela de gastos não existe neste banco. */
+  gastos: readonly GastoDeMarketing[] | null
+  periodo: JanelaDeDias
+  agora: Timestamp
+  ignorar: ReadonlySet<string>
+  /** Preço da custódia por moeda por mês, da tabela de taxas vigente (R$ 2,00 no padrão). */
+  custodiaMensalPorMoedaCents: Cents
+  /** Custo logístico (Correios) por moeda captada por envio postal; `null` = ninguém informou. */
+  custoLogisticoPorMoedaCents: Cents | null
+  /** `null` = sem histórico da fila neste banco. */
+  historicoDaFila: readonly EventoDaFilaKpi[] | null
+}
+
+export interface KpisConselho {
+  /** 1 — CAC × payback. */
+  cacPayback: {
+    gasto: Cents | null
+    ativados: number
+    cac: Cents | null
+    /** Clientes (fora equipe e teste) com moeda em custódia hoje. */
+    clientesComMoeda: number
+    moedasEmCustodia: number
+    /** Custódia mensal média por cliente que guarda moeda: moedas por cliente × preço da custódia. `null` sem cliente. */
+    receitaMensalPorCliente: Cents | null
+    /** Meses para a custódia pagar o CAC, com uma casa decimal. `null` sem CAC ou sem receita. */
+    paybackMeses: number | null
+    /** Receita de custódia de `LTV_HORIZONTE_MESES` meses por cliente. */
+    ltv: Cents | null
+    ltvSobreCacBp: number | null
+    custodiaPorMoedaCents: Cents
+  }
+  /** 2 — margem por moeda captada. */
+  margemPorMoeda: {
+    /** Moedas aprovadas na análise no período, de clientes captados. */
+    moedasCaptadas: number
+    /** Das captadas, as que chegaram por envio postal (as que têm frete dos Correios). */
+    moedasCaptadasPostais: number
+    /** Custódia JÁ PAGA dessas moedas (fatura paga ÷ moedas da fatura, só as captadas). */
+    receitaDeCustodia: Cents | null
+    custoLogisticoPorMoeda: Cents | null
+    custoLogisticoTotal: Cents | null
+    /** (receita de custódia − custo logístico) ÷ moedas captadas. `null` sem custo informado ou sem moeda captada. */
+    margemPorMoeda: Cents | null
+    margemTotal: Cents | null
+    /** Comissão média por moeda negociada no período — à parte, porque a negociação não registra qual moeda foi. */
+    comissaoMediaPorMoedaNegociada: Cents | null
+  }
+  /** 3 — conversão de pagantes: do cadastro à 1ª moeda depositada. */
+  conversao: {
+    /** `null` sem banco. */
+    cadastros: number | null
+    ativados: number | null
+    depositaramMoeda: number | null
+    cadastroParaAtivacaoBp: number | null
+    cadastroParaMoedaBp: number | null
+    /** Dos que depositaram moeda, os que já pagaram alguma fatura de custódia. */
+    pagaramCustodia: number | null
+  }
+  /** 4 — inadimplência e churn. */
+  inadimplenciaChurn: {
+    /** Das faturas emitidas no período, o valor atrasado hoje sobre o emitido. */
+    taxaInadimplenciaBp: number | null
+    valorEmitido: Cents
+    valorAtrasado: Cents
+    contasInadimplentes: number
+    /** Moedas que o cliente pediu para sair da custódia no período (retirada não cancelada). */
+    moedasRetiradas: number
+    /** Retiradas ÷ moedas que estavam na custódia no começo do período (estimativa: hoje + saídas − entradas). */
+    churnDeMoedasBp: number | null
+    /** Clientes que retiraram e hoje não guardam mais nenhuma moeda. */
+    clientesQueSairam: number
+    churnDeClientesBp: number | null
+    /** Moedas em custódia × preço da custódia: o que entraria por mês se todas estivessem pagas. */
+    receitaRecorrenteMensal: Cents
+  }
+  /** 5 — liquidez interna e GMV. */
+  liquidez: {
+    negociacoes: number
+    moedasNegociadas: number
+    gmv: Cents
+    comissao: Cents
+    ofertasDeVendaAbertas: number
+    /** Moedas em custódia (de qualquer dono) hoje que estão anunciadas. */
+    moedasAnunciadasBp: number | null
+    /** Moedas vendidas no período ÷ (vendidas + ainda anunciadas hoje). */
+    giroBp: number | null
+    /** Do histórico da fila: ofertas de venda publicadas no período que já foram executadas. `null` sem histórico. */
+    historico: { publicadas: number; executadas: number; taxaDeVendaBp: number | null; tempoAteVenda: Media } | null
+  }
+}
+
+export function montarKpisDoConselho(f: FontesConselho): KpisConselho {
+  const { state, periodo } = f
+  const valido = (email: string): boolean => !f.ignorar.has(email) && Boolean(state.users[email])
+  const usuarios = Object.entries(state.users).filter(([email]) => valido(email))
+  const dividir = (a: number | null, b: number | null): Cents | null => (a !== null && b !== null && b > 0 ? Math.round(a / b) : null)
+
+  /* ---- 1. CAC × payback ---- */
+  const primeira = primeiraTransacaoPorConta(state, f.ignorar)
+  const ativados = [...primeira.values()].filter((ts) => naJanela(ts, periodo)).length
+  const parteDoGasto = repartir((f.gastos ?? []).map((g) => ({ de: g.de, ate: g.ate, quantia: g.valor })), periodo)
+  const gasto = f.gastos !== null && parteDoGasto.houve ? parteDoGasto.valor : null
+  const cac = dividir(gasto, ativados)
+  const comMoeda = usuarios.filter(([, u]) => u.coins.some((c) => c.recibo.status !== 'Extinto'))
+  const moedasEmCustodia = comMoeda.reduce((s, [, u]) => s + u.coins.filter((c) => c.recibo.status !== 'Extinto').length, 0)
+  const receitaMensalPorCliente = comMoeda.length ? Math.round((moedasEmCustodia * f.custodiaMensalPorMoedaCents) / comMoeda.length) : null
+  const paybackMeses = cac !== null && receitaMensalPorCliente ? Math.round((cac * 10) / receitaMensalPorCliente) / 10 : null
+  const ltv = receitaMensalPorCliente === null ? null : receitaMensalPorCliente * LTV_HORIZONTE_MESES
+
+  /* ---- 2. margem por moeda captada ---- */
+  const donoDoEnvio = new Map(state.envios.map((e) => [e.protocolo, e]))
+  const captadas = new Map<string, boolean>() // código da moeda → chegou por envio postal?
+  for (const a of state.analises) {
+    if (a.veredito !== 'aprovada' || !a.codigoMoeda || !naJanela(a.validadoEm, periodo)) continue
+    const e = donoDoEnvio.get(a.protocoloEnvio)
+    if (!e || !valido(e.userEmail)) continue
+    captadas.set(a.codigoMoeda, e.origem !== 'cadastro_sem_envio')
+  }
+  const postais = [...captadas.values()].filter(Boolean).length
+  let receitaCustodia = 0
+  for (const fa of state.faturasCustodia ?? []) {
+    if (fa.status !== 'paga' || !fa.moedaIds.length) continue
+    const dasCaptadas = fa.moedaIds.filter((id) => captadas.has(id)).length
+    receitaCustodia += (fa.valorCents * dasCaptadas) / fa.moedaIds.length
+  }
+  receitaCustodia = Math.round(receitaCustodia)
+  const temCaptada = captadas.size > 0
+  const custoTotal = f.custoLogisticoPorMoedaCents === null ? null : f.custoLogisticoPorMoedaCents * postais
+  const margemTotal = temCaptada && custoTotal !== null ? receitaCustodia - custoTotal : null
+
+  const negociacoes = state.trades.filter((t) => naJanela(t.date, periodo))
+  let moedasNegociadas = 0
+  let gmv = 0
+  let comissao = 0
+  for (const t of negociacoes) {
+    const qtd = t.qty || 1
+    const l = ladosDaComissao(t)
+    moedasNegociadas += qtd
+    gmv += t.price * qtd
+    comissao += l.comprador + l.vendedor
+  }
+
+  /* ---- 3. conversão de pagantes ---- */
+  const donoDaMoedaAprovada = new Set<string>()
+  for (const a of state.analises) {
+    if (a.veredito !== 'aprovada') continue
+    const e = donoDoEnvio.get(a.protocoloEnvio)
+    if (e) donoDaMoedaAprovada.add(e.userEmail)
+  }
+  const pagaramFatura = new Set((state.faturasCustodia ?? []).filter((fa) => fa.status === 'paga').map((fa) => fa.userEmail))
+  const cadastrados =
+    f.criadasEm === null
+      ? null
+      : Object.entries(f.criadasEm)
+          .filter(([email, ts]) => valido(email) && naJanela(ts, periodo))
+          .map(([email]) => email)
+  const dosCadastrados = (so: (email: string) => boolean): number | null => (cadastrados === null ? null : cadastrados.filter(so).length)
+  const nCadastros = cadastrados === null ? null : cadastrados.length
+  const nAtivados = dosCadastrados((e) => primeira.has(e))
+  const nMoeda = dosCadastrados((e) => donoDaMoedaAprovada.has(e))
+
+  /* ---- 4. inadimplência e churn ---- */
+  const faturas = state.faturasCustodia ?? []
+  const emitidas = faturas.filter((fa) => fa.status !== 'cancelada' && naJanela(fa.dataEmissao, periodo))
+  const valorEmitido = emitidas.reduce((s, fa) => s + fa.valorCents, 0)
+  const valorAtrasado = emitidas.filter((fa) => verificarStatusFatura(fa, f.agora) === 'atrasada').reduce((s, fa) => s + fa.valorCents, 0)
+  const faturasPorConta = new Map<string, typeof faturas>()
+  for (const fa of faturas) faturasPorConta.set(fa.userEmail, [...(faturasPorConta.get(fa.userEmail) ?? []), fa])
+  const retiradasDoPeriodo = f.retiradas.filter((r) => r.status !== 'cancelada' && valido(r.userEmail) && naJanela(r.solicitadoEm, periodo))
+  const moedasRetiradas = retiradasDoPeriodo.length
+  const baseDeMoedas = moedasEmCustodia + moedasRetiradas - captadas.size
+  const quemRetirou = new Set(retiradasDoPeriodo.map((r) => r.userEmail))
+  const comMoedaHoje = new Set(comMoeda.map(([email]) => email))
+  const sairam = [...quemRetirou].filter((e) => !comMoedaHoje.has(e)).length
+  const baseDeClientes = comMoedaHoje.size + sairam
+
+  /* ---- 5. liquidez ---- */
+  const aVenda = state.sellOffers.length
+  const idsEmCustodia = new Set(usuarios.flatMap(([, u]) => u.coins.filter((c) => c.recibo.status !== 'Extinto').map((c) => c.id)))
+  const anunciadas = state.sellOffers.filter((o) => idsEmCustodia.has(o.coinId)).length
+  let historico: KpisConselho['liquidez']['historico'] = null
+  if (f.historicoDaFila) {
+    const publicada = new Map<string, Timestamp>()
+    const executada = new Map<string, Timestamp>()
+    for (const ev of f.historicoDaFila) {
+      if (ev.lado !== 'venda') continue
+      if (ev.evento === 'publicada' && !publicada.has(ev.ofertaId)) publicada.set(ev.ofertaId, ev.createdAt)
+      if (ev.evento === 'executada' && !executada.has(ev.ofertaId)) executada.set(ev.ofertaId, ev.createdAt)
+    }
+    const dasDoPeriodo = [...publicada.entries()].filter(([, ts]) => naJanela(ts, periodo))
+    const espera: number[] = []
+    for (const [id, pub] of dasDoPeriodo) {
+      const ex = executada.get(id)
+      if (ex !== undefined && ex >= pub) espera.push(ex - pub)
+    }
+    historico = { publicadas: dasDoPeriodo.length, executadas: espera.length, taxaDeVendaBp: bp(espera.length, dasDoPeriodo.length), tempoAteVenda: media(espera) }
+  }
+
+  return {
+    cacPayback: {
+      gasto,
+      ativados,
+      cac,
+      clientesComMoeda: comMoeda.length,
+      moedasEmCustodia,
+      receitaMensalPorCliente,
+      paybackMeses,
+      ltv,
+      ltvSobreCacBp: ltv !== null && cac !== null && cac > 0 ? bp(ltv, cac) : null,
+      custodiaPorMoedaCents: f.custodiaMensalPorMoedaCents,
+    },
+    margemPorMoeda: {
+      moedasCaptadas: captadas.size,
+      moedasCaptadasPostais: postais,
+      receitaDeCustodia: temCaptada ? receitaCustodia : null,
+      custoLogisticoPorMoeda: f.custoLogisticoPorMoedaCents,
+      custoLogisticoTotal: temCaptada ? custoTotal : null,
+      margemPorMoeda: dividir(margemTotal, captadas.size),
+      margemTotal,
+      comissaoMediaPorMoedaNegociada: moedasNegociadas ? Math.round(comissao / moedasNegociadas) : null,
+    },
+    conversao: {
+      cadastros: nCadastros,
+      ativados: nAtivados,
+      depositaramMoeda: nMoeda,
+      cadastroParaAtivacaoBp: nCadastros !== null && nAtivados !== null ? bp(nAtivados, nCadastros) : null,
+      cadastroParaMoedaBp: nCadastros !== null && nMoeda !== null ? bp(nMoeda, nCadastros) : null,
+      pagaramCustodia: dosCadastrados((e) => donoDaMoedaAprovada.has(e) && pagaramFatura.has(e)),
+    },
+    inadimplenciaChurn: {
+      taxaInadimplenciaBp: bp(valorAtrasado, valorEmitido),
+      valorEmitido,
+      valorAtrasado,
+      contasInadimplentes: usuarios.filter(([email, u]) => isInadimplente(u, faturasPorConta.get(email) ?? [], f.agora) || Boolean(u.inadimplente)).length,
+      moedasRetiradas,
+      churnDeMoedasBp: baseDeMoedas > 0 ? bp(moedasRetiradas, baseDeMoedas) : null,
+      clientesQueSairam: sairam,
+      churnDeClientesBp: bp(sairam, baseDeClientes),
+      receitaRecorrenteMensal: moedasEmCustodia * f.custodiaMensalPorMoedaCents,
+    },
+    liquidez: {
+      negociacoes: negociacoes.length,
+      moedasNegociadas,
+      gmv,
+      comissao,
+      ofertasDeVendaAbertas: aVenda,
+      moedasAnunciadasBp: bp(anunciadas, moedasEmCustodia),
+      giroBp: bp(moedasNegociadas, moedasNegociadas + aVenda),
+      historico,
+    },
+  }
+}
+
 /* ---------- a entrada manual do gasto ---------- */
 
 /** O que a tela manda: texto cru, que o servidor valida. */

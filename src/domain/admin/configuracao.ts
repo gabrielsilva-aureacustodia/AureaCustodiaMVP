@@ -83,6 +83,8 @@ export const DEFINICOES_CONFIG: readonly DefinicaoConfig[] = [
   { chave: 'prazoTransitoEnvioDias', grupo: 'operacional', tipo: 'inteiro', padrao: 15, min: 1, max: 120, unidade: 'dias', rotulo: 'Alerta de envio em trânsito', descricao: 'Envio postado há mais que isso, sem chegar ao cofre, aparece em vermelho na logística.' },
   // Frente K (18/11/2026). NÃO é taxa de negociação: não entra em TabelaDeTaxas nem publica versão da Tabela de Taxas.
   { chave: 'acrescimoDoFreteCents', grupo: 'operacional', tipo: 'centavos', padrao: ACRESCIMO_DO_FRETE_PADRAO_CENTS, min: 0, max: 100_000, rotulo: 'Frete do envio — acréscimo sobre o contrato dos Correios', descricao: 'Somado ao preço do contrato, por envio postado. O preço do contrato fica guardado à parte, para conferir com a fatura dos Correios. Vale para as cotações novas; frete já cotado mantém o valor.' },
+  // T5 (22/11/2026). Só alimenta o KPI "margem por moeda captada" do painel: não cobra nada de ninguém e não é taxa.
+  { chave: 'custoLogisticoPorMoedaCents', grupo: 'operacional', tipo: 'centavos', padrao: 2500, min: 0, max: 100_000, rotulo: 'Custo logístico por moeda captada (KPI do conselho)', descricao: 'Quanto a Áurea gasta com os Correios por moeda que chega por envio postal (cerca de R$ 25,00 hoje; o contrato novo está em avaliação). Só entra na margem por moeda de Gestão → Indicadores; não muda frete nem cobrança.' },
 
   // Termos — mudar qualquer um publica versão nova dos Termos de Uso.
   { chave: 'termosVigencia', grupo: 'termos', tipo: 'texto', formato: 'data', padrao: PARAMETROS_LEGAIS.vigencia, rotulo: 'Entrada em vigor', descricao: 'Data que o texto dos Termos declara (dd/mm/aaaa).' },
@@ -247,6 +249,8 @@ export interface ParametrosOperacionais {
   prazos: PrazosLogistica
   /** Acréscimo somado ao preço do contrato dos Correios no frete do envio (frente K). */
   acrescimoDoFreteCents: Cents
+  /** Custo logístico por moeda captada, só para o KPI de margem do conselho (T5). */
+  custoLogisticoPorMoedaCents: Cents
 }
 
 export function operacionalDe(v: ValoresConfig): ParametrosOperacionais {
@@ -255,6 +259,7 @@ export function operacionalDe(v: ValoresConfig): ParametrosOperacionais {
     syncMs: Number(v.syncSegundos) * 1000,
     prazos: { validacaoDiasUteis: Number(v.prazoValidacaoDiasUteis), transitoEnvioDias: Number(v.prazoTransitoEnvioDias) },
     acrescimoDoFreteCents: Number(v.acrescimoDoFreteCents),
+    custoLogisticoPorMoedaCents: Number(v.custoLogisticoPorMoedaCents),
   }
 }
 

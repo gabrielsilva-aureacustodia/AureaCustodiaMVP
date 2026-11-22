@@ -4,9 +4,9 @@
 Data:      18/11/2026 · frente J da manutenção (item 7 do Rogério)
 Fonte:     slide "3.1 Cronograma, Números e Metrificação" da apresentação do conselho (CAC diário e semanal,
            análise analógica e digital, atendimento comercial semanal) + os KPIs que o painel já tinha
-Falta:     a lista final do WhatsApp de 3/11 — a tabela da seção 3 espera o Gabriel completar
+Falta:     conferir com o Gabriel se a lista final do WhatsApp de 3/11 tem algo além dos 5 do slide 3.1 (seção 3)
 Onde:      painel → Gestão → Indicadores → abas "Aquisição e atendimento" e "Gasto de marketing"
-           (/admin/resultados/kpis)
+           (/admin/resultados/kpis) · aba nova "KPIs do conselho" (T5, 22/11/2026)
 ```
 
 ## 1. Em duas frases
@@ -35,17 +35,25 @@ informado, o painel mostra "—": **nenhum número é inventado**.
 **Os KPIs de negócio que já existiam seguem na aba "Negócio"**: volume e comissão por negociação, moedas em custódia, envios e aprovação na análise, faturas
 pagas e atrasadas. O slide 5 do conselho pede "receita recorrente mensal estável": o painel responde com *faturado × pago no período* (faturas de custódia).
 
-## 3. Tabela para o Gabriel completar (lista do WhatsApp de 3/11)
+## 3. Os 5 KPIs prioritários do conselho — onde estão no site (T5, 22/11/2026)
 
-Preencher o que o conselho listou e que ainda não está acima. Quando voltar preenchida, a próxima rodada transforma cada linha em número no painel.
+Pedido do Rogério (item 7): os cinco do slide 3.1. Agora todos têm número no painel, na aba **Gestão → Indicadores → KPIs do conselho**
+(`/admin/resultados/kpis?aba=conselho`), com uma frase de "o que é" em cada bloco. Sem dado, a tela mostra "—", nunca zero.
 
-| # | KPI pedido pelo conselho | Definição | Fórmula | Fonte do dado (banco / Pixel / digitado) | Frequência | Dono |
-|---|---|---|---|---|---|---|
-| 1 | | | | | | |
-| 2 | | | | | | |
-| 3 | | | | | | |
-| 4 | | | | | | |
-| 5 | | | | | | |
+| # | KPI do conselho | Já existia | Entrou nesta rodada | Fórmula | Fonte do dado | Frequência | Dono (sugestão) |
+|---|---|---|---|---|---|---|---|
+| 1 | CAC × payback (orçamento de marketing R$ 3.600/mês; LTV × custo de aquisição; receita de custódia inicial R$ 2,00) | CAC por janela e CAC só da mídia (aba Aquisição) | **CAC do período, custódia por cliente por mês, payback em meses, LTV de 12 meses e LTV ÷ CAC** | CAC = gasto ÷ ativados; custódia/cliente = moedas por cliente × preço da custódia vigente (R$ 2,00); payback = CAC ÷ custódia/cliente; LTV = custódia/cliente × 12 | Gasto: digitado (aba Gasto de marketing; o R$ 3.600 entra como "Serviço"). Ativados e moedas: banco. Preço: tabela de taxas | Mensal | Rogério + Marketing |
+| 2 | Margem de contribuição líquida por moeda captada | Comissão por tipo (aba Negócio) | **Moedas captadas, custódia já paga por elas, custo logístico, margem por moeda e total** | (custódia paga das moedas captadas − custo logístico × moedas por envio postal) ÷ moedas captadas | Moedas e custódia: banco. **Custo logístico: parâmetro editável em Configuração** ("Custo logístico por moeda captada", padrão R$ 25,00; contrato novo dos Correios em avaliação) | Mensal | Gabriel |
+| 3 | Taxa de conversão de clientes pagantes | Cadastro → 1ª transação | **Cadastro → moeda depositada** (moeda aprovada na análise) e quantos já pagaram custódia | depositaram moeda ÷ cadastros do período | Banco, automático | Semanal | Rogério + Gabriel |
+| 4 | Inadimplência e churn (custódia mensal recorrente) | Taxa de inadimplência e contas inadimplentes (aba Negócio) | **Retiradas, churn de moedas, clientes que saíram e custódia recorrente por mês** | churn de moedas = retiradas ÷ moedas na custódia no começo do período (estimativa); clientes que saíram = retiraram e não guardam mais moeda | Banco (retiradas, moedas, faturas) | Mensal | Gabriel |
+| 5 | Liquidez interna e volume negociado (GMV) | Volume, comissão, ofertas abertas (aba Negócio) | **Giro, % das moedas em custódia que estão anunciadas, % dos anúncios que venderam e tempo até a venda** | giro = vendidas ÷ (vendidas + ainda anunciadas); anúncios que venderam = executadas ÷ publicadas no período | Banco; o histórico da fila (migration 015) dá os dois últimos | Semanal | Rogério |
+
+**Limites honestos** (a tela escreve os mesmos):
+
+- **Comissão por moeda captada** fica à parte ("comissão por moeda negociada"): a negociação não registra qual moeda foi vendida, então não dá para ligar a comissão à moeda captada sem inventar.
+- **Churn** é medido pelo pedido de retirada: o sistema não guarda a data em que alguém "deixa de ser cliente". Moeda vendida no mercado muda de dono e não conta como saída.
+- **Payback e LTV** usam só a custódia e o preço de hoje; o horizonte de 12 meses é uma premissa de leitura (`LTV_HORIZONTE_MESES`), não decisão de negócio.
+- **Nada fiscal**: margem aqui é custódia paga menos custo logístico digitado, não resultado contábil (esse é o da DRE).
 
 ## 4. Origem analógica × digital — o que falta e a proposta
 
@@ -73,7 +81,8 @@ Quem lança precisa da permissão de lançar (a mesma do controle financeiro). V
 
 | # | Decisão | Padrão usado |
 |---|---|---|
-| D2 | A lista final de KPIs do conselho (WhatsApp de 3/11) | slide 3.1 + KPIs existentes; tabela da seção 3 |
+| D2 | A lista final de KPIs do conselho (WhatsApp de 3/11) | os 5 do slide 3.1, na seção 3; se a lista do WhatsApp tiver outros, entram numa próxima rodada |
+| T5-1 | Custo logístico por moeda captada | R$ 25,00, editável em Configuração até o contrato novo dos Correios fechar |
 | J1 | O que conta como "1ª transação" | entrada de dinheiro confirmada, compra ou venda; o pagamento que a **equipe** registra em mãos não conta |
 | J2 | Contas da equipe e de teste entram no CAC? | **não** (e-mail institucional, lista de administradores e `@testeaurea.com.br`) |
 | J3 | O CAC inclui a mensalidade do serviço de marketing? | mostra os dois: CAC (tudo) e CAC só da mídia |
