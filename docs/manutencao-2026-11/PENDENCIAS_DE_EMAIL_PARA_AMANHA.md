@@ -11,8 +11,8 @@ Regra do Gabriel (22/11/2026): **tudo que envolve e-mail fica para amanhã**, qu
 |---|---|---|
 | Docx 3 | E-mail de confirmação de compra e movimentação (frente C) | código pronto (`src/server/emails/`, fila `aurea.emails_pendentes`, migration 053); **não envia** sem a chave |
 | Docx 1 | Aviso de segurança por e-mail (troca de senha, e-mail, Pix; frente A) | código pronto; idem |
-| QA Davi B02 | Confirmação de e-mail no cadastro | código do R2 pronto; **só fecha de verdade** se o Supabase de produção desligar o autoconfirm (`mailer_autoconfirm: true` hoje) ou se o caminho `signInWithOtp` funcionar; **fluxo de e-mail nunca testado**; contas antigas (ex.: `a@a.co`) seguem "verificadas" |
-| QA Davi B02 | `SUPABASE_SERVICE_ROLE_KEY` precisa estar na Vercel para a conta nova receber a marca de e-mail pendente (conferir) | a conferir |
+| QA Davi B02 | Confirmação de e-mail no cadastro | código do R2 pronto; **só fecha de verdade** se o Supabase de produção desligar o autoconfirm (`mailer_autoconfirm: true` confirmado em 22/11 pela API pública de configurações do Supabase) ou se o caminho `signInWithOtp` funcionar; **fluxo de e-mail nunca testado**; contas antigas (ex.: `a@a.co`) seguem "verificadas" |
+| QA Davi B02 | `SUPABASE_SERVICE_ROLE_KEY` na Vercel (a conta nova recebe a marca de e-mail pendente) | **conferido em 22/11: existe em production, preview e development**; nada a fazer |
 | QA Davi S01 / docx 1 | "Esqueci minha senha": link real nunca testado; modelo Magic Link do Supabase com `{{ .Token }}` | pendente |
 | QA Davi A06 | Promessa "Você recebe um e-mail quando o saque for pago" | texto trocado por "Acompanhe o andamento no Extrato" enquanto o envio está desligado; **voltar a texto de e-mail quando o envio ligar** |
 | QA Davi (R2) | "Aguarde 1 minuto para pedir outro link" (reenvio) | texto pronto; testar com e-mail real |
