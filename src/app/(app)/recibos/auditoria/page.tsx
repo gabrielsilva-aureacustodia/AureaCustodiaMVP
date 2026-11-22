@@ -26,7 +26,7 @@ import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
 import { fdate } from '@/domain/dates'
-import { allCoinsFlat, coinStatusDigital, envioDateFor } from '@/domain/selectors'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { useApp } from '@/components/providers/AppProvider'
 import { useToast } from '@/components/ui/Toast'
 import { Selo, type TomDoSelo } from '@/components/ui/Selo'
@@ -50,32 +50,28 @@ export default function AuditoriaPage(): ReactNode {
   const { state } = useApp()
   const toast = useToast()
 
-  // Inventário global do sistema, já ordenado por código do ativo crescente.
-  const flat = allCoinsFlat(state)
+  // Inventário global e totais vêm PRONTOS do servidor (B01, 22/11/2026): antes o navegador somava as contas de
+  // todos os clientes, o que obrigava a página a receber CPF, Pix e banco de todo mundo. Aqui chega só o estoque
+  // sem dono e os totais. Se saldo/receita da empresa devem aparecer a todo cliente é pergunta aberta (A08).
+  const publico = state.publico
+  const flat = publico?.estoque ?? []
   const totalCust = flat.length
-  const recibosAtivos = flat.filter(({ coin }) => coin.recibo.status === 'Ativo').length
+  const recibosAtivos = flat.filter((m) => m.reciboAtivo).length
 
-  // Métricas financeiras e de esteira de recebimento
-  const totalSaldo = Object.values(state.users).reduce((acc, u) => acc + (u.balance || 0), 0)
-  // Receita de custódia = faturas mensais emitidas. Até 11/09/2026 vinha de
-  // `custodyCharges`, o mecanismo antigo.
-  const totalTaxas = (state.faturasCustodia ?? []).reduce(
-    (acc, f) => acc + (f.status === 'cancelada' ? 0 : f.valorCents),
-    0,
-  )
-  const totalComissoes = state.trades.reduce((acc, t) => acc + (t.fee || 0), 0)
+  const aud = publico?.auditoria
+  const totalSaldo = aud?.totalSaldoCents ?? 0
+  const totalTaxas = aud?.totalTaxasCents ?? 0
+  const totalComissoes = aud?.totalComissoesCents ?? 0
   const totalReceita = totalTaxas + totalComissoes
-  const enviosEmTransito = state.envios.filter((e) => e.etapaAtual === 'Envio postado').length
-  const enviosNaCentral = state.envios.filter(
-    (e) => e.etapaAtual !== 'Envio postado' && e.etapaAtual !== 'Protocolo gerado' && e.etapaAtual !== 'Recibo emitido',
-  ).length
+  const enviosEmTransito = aud?.enviosEmTransito ?? 0
+  const enviosNaCentral = aud?.enviosNaCentral ?? 0
 
   // As mais recentes primeiro. O original ordenava uma CÓPIA (slice()) em ordem
   // decrescente de código e pegava as 8 primeiras — o código do ativo é
   // sequencial, então ordenar por ele é ordenar por data de emissão.
   const ultimas = flat
     .slice()
-    .sort((a, b) => (a.coin.id < b.coin.id ? 1 : -1))
+    .sort((a, b) => (a.id < b.id ? 1 : -1))
     .slice(0, ULTIMAS)
 
   const exportar = useCallback(async () => {
@@ -83,11 +79,11 @@ export default function AuditoriaPage(): ReactNode {
     // exportAuditXlsx recebe a lista já montada e já ordenada, não reordena nada.
     // E, por regra de negócio, NENHUMA coluna de proprietário entra aqui — é a
     // promessa que a nota logo abaixo do botão faz ao usuário.
-    const rows: AuditRow[] = allCoinsFlat(state).map(({ coin }) => ({
-      Codigo_Moeda: coin.id,
-      Tipo_Moeda: coin.tipoMoeda,
-      Data_Envio: envioDateFor(state, coin),
-      Data_Avaliacao: coin.recibo.dataEmissao,
+    const rows: AuditRow[] = flat.map((m) => ({
+      Codigo_Moeda: m.id,
+      Tipo_Moeda: m.tipoMoeda,
+      Data_Envio: m.dataEnvio,
+      Data_Avaliacao: m.reciboDataEmissao,
     }))
 
     try {
@@ -107,7 +103,7 @@ export default function AuditoriaPage(): ReactNode {
           : 'Não foi possível carregar o gerador de planilhas — verifique a conexão e recarregue a página.',
       )
     }
-  }, [state, toast])
+  }, [flat, toast])
 
   return (
     <>
@@ -145,11 +141,11 @@ export default function AuditoriaPage(): ReactNode {
               </div>
               <div className="kpi">
                 <div className="lbl">Em trânsito postal (Correios)</div>
-                <div className="val">{enviosEmTransito} pacote(s)</div>
+                <div className="val">{quantidadeComUnidade(enviosEmTransito, 'pacote', 'pacotes')}</div>
               </div>
               <div className="kpi">
                 <div className="lbl">Triagem na central</div>
-                <div className="val">{enviosNaCentral} lote(s)</div>
+                <div className="val">{quantidadeComUnidade(enviosNaCentral, 'lote', 'lotes')}</div>
               </div>
               <div className="kpi">
                 <div className="lbl">Status da conciliação</div>
@@ -225,12 +221,12 @@ export default function AuditoriaPage(): ReactNode {
                   </tr>
                 </thead>
                 <tbody>
-                  {ultimas.map(({ coin }) => {
+                  {ultimas.map((coin) => {
                     // O status digital é derivado do estado (ofertas abertas
                     // viram 'Negociando'), então precisa do state como primeiro
                     // argumento. Calculado uma vez por linha: o original chamava
                     // a função três vezes na mesma <td>.
-                    const digital = coinStatusDigital(state, coin)
+                    const digital = coin.statusDigital
                     return (
                       // A chave é o código do ativo — sequencial e único no sistema.
                       <tr key={coin.id}>
@@ -249,7 +245,7 @@ export default function AuditoriaPage(): ReactNode {
                           <Selo tom={tomDigital(digital)}>{digital}</Selo>
                         </td>
                         <td className="nowrap">{coin.entrada}</td>
-                        <td className="nowrap">{coin.recibo.codigo}</td>
+                        <td className="nowrap">{coin.reciboCodigo}</td>
                       </tr>
                     )
                   })}

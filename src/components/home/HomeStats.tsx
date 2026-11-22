@@ -35,7 +35,8 @@ export function HomeStats(): ReactNode {
 
   // Estoque custodiado de TODAS as contas, não só o da sessão: o painel mostra
   // o tamanho da custódia, que é um número público (original, linha 1190).
-  const totalCoins = Object.values(state.users).reduce((s, x) => s + x.coins.length, 0)
+  // Somado no servidor (B01): o navegador não recebe mais as contas dos outros clientes.
+  const totalCoins = state.publico?.totalMoedas ?? 0
 
   // `t.qty || 1` é do original (linha 1191) e fica: registros antigos do seed
   // podem não ter quantidade, e sem a guarda o volume viraria NaN.
@@ -59,7 +60,7 @@ export function HomeStats(): ReactNode {
           </svg>
         </div>
         <div>
-          <div className="lbl">Moedas no Mercado</div>
+          <div className="lbl">Moedas em custódia</div>
           <div className="val">{totalCoins}</div>
         </div>
       </div>

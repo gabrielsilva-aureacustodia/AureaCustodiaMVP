@@ -36,6 +36,7 @@ import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { pctChange, roDailySeries } from '@/domain/selectors'
 import type { Cents, CryptoData, Lot } from '@/domain/types'
 import { buyLot, cancelBid } from '@/server/actions/market'
@@ -216,7 +217,8 @@ export default function MercadoPage(): ReactNode {
     { name: 'USDT', color: '#26a17b', points: cs.map((x) => ({ t: x.t, v: x.usdt })) },
   ]
 
-  const totalCoins = Object.values(state.users).reduce((s, x) => s + x.coins.length, 0)
+  // Somado no servidor (B01): o navegador não recebe mais as contas dos outros clientes.
+  const totalCoins = state.publico?.totalMoedas ?? 0
   const vol = state.trades.reduce((s, t) => s + t.price * (t.qty || 1), 0)
   const lt = lastTrade(state)
 
@@ -244,7 +246,7 @@ export default function MercadoPage(): ReactNode {
                   <CoinArt type={t.key} />
                   <div>
                     <h3 className="cotacao-nome">{t.key}</h3>
-                    <p className="cotacao-sub">{vendas.length} anúncio(s) à venda</p>
+                    <p className="cotacao-sub">{quantidadeComUnidade(vendas.length, 'anúncio', 'anúncios')} à venda</p>
                   </div>
                 </div>
                 <dl className="cotacao-numeros">
@@ -340,7 +342,7 @@ export default function MercadoPage(): ReactNode {
                   {lotsFiltrados.length > limiteVenda ? (
                     <div className="livro-mais">
                       <p>
-                        Exibindo {lotsVisiveis.length} de {lotsFiltrados.length} oferta(s)
+                        Exibindo {lotsVisiveis.length} de {quantidadeComUnidade(lotsFiltrados.length, 'oferta', 'ofertas')}
                       </p>
                       <button type="button" className="btn btn-outline" onClick={() => setLimiteVenda((prev) => prev + 10)}>
                         Ver mais ofertas de venda (+10)
@@ -408,7 +410,7 @@ export default function MercadoPage(): ReactNode {
                   {bidsFiltrados.length > limiteCompra ? (
                     <div className="livro-mais">
                       <p>
-                        Exibindo {bidsVisiveis.length} de {bidsFiltrados.length} oferta(s)
+                        Exibindo {bidsVisiveis.length} de {quantidadeComUnidade(bidsFiltrados.length, 'oferta', 'ofertas')}
                       </p>
                       <button type="button" className="btn btn-outline" onClick={() => setLimiteCompra((prev) => prev + 10)}>
                         Ver mais ofertas de compra (+10)
@@ -704,7 +706,7 @@ function ConfirmarCompraModal({
     <>
       <h3 className="serif">Confirmar compra</h3>
       <p className="modal-sub">
-        <b>{lot.tipoMoeda}</b> · {qty} unidade(s)
+        <b>{lot.tipoMoeda}</b> · {quantidadeComUnidade(qty, 'unidade', 'unidades')}
       </p>
 
       <div className="summary-row">
@@ -713,7 +715,7 @@ function ConfirmarCompraModal({
       </div>
       <div className="summary-row">
         <span className="k">Quantidade</span>
-        <span className="v">{qty} unidade(s)</span>
+        <span className="v">{quantidadeComUnidade(qty, 'unidade', 'unidades')}</span>
       </div>
       <div className="summary-row">
         <span className="k">Subtotal das moedas</span>
@@ -760,7 +762,7 @@ function ConfirmarCompraModal({
       <div className="caixa-pag">
         <div className="t">Comprar com Pix ou cartão</div>
         <div className="d">
-          Pague {brl(total)} direto por Pix ou cartão — as moedas, a taxa de compra e o primeiro mês de custódia —, sem
+          Pague {brl(total)} por Pix ou cartão (moedas, taxa de compra e 1º mês de custódia) sem
           usar o saldo em conta. A moeda entra no seu acervo assim que o pagamento for aprovado.
           Se, nessa hora, o anúncio já tiver sido vendido, tiver subido de preço ou estiver
           pausado, o valor pago entra inteiro no seu saldo em conta.

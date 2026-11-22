@@ -977,6 +977,38 @@ export interface AppState {
   retiradas?: Retirada[]
   /** Reservas de compra pós-paga em aberto e o histórico delas. */
   reservas?: ReservaDeCompra[]
+  /**
+   * Números públicos já somados no servidor (B01, 22/11/2026). Só existe na VISÃO do cliente
+   * (`estadoDoUsuario`), onde `users` traz apenas a própria conta; o estado completo não tem o campo.
+   */
+  publico?: ResumoPublico
+}
+
+/** Uma moeda do estoque da custódia como o público a vê: sem dono. */
+export interface EstoquePublico {
+  id: string
+  tipoMoeda: string
+  statusFisico: StatusFisico
+  statusDigital: string
+  entrada: DateBR
+  dataEnvio: string
+  reciboCodigo: string
+  reciboDataEmissao: DateBR
+  reciboAtivo: boolean
+}
+
+export interface ResumoPublico {
+  totalMoedas: number
+  volumeNegociadoCents: Cents
+  estoque: EstoquePublico[]
+  /** Saldo, taxas e comissões da empresa — A08: manter visível ou não é decisão do Gabriel. */
+  auditoria: {
+    totalSaldoCents: Cents
+    totalTaxasCents: Cents
+    totalComissoesCents: Cents
+    enviosEmTransito: number
+    enviosNaCentral: number
+  }
 }
 
 /* === Finalizações · Frente C === */

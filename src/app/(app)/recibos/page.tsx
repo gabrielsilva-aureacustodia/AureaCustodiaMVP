@@ -24,7 +24,7 @@ import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { medianSellPrice } from '@/domain/market'
 import { brl } from '@/domain/money'
-import { allCoinsFlat } from '@/domain/selectors'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import type { Cents, Coin } from '@/domain/types'
 import { ReciboCard } from '@/components/recibo/ReciboCard'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
@@ -62,8 +62,9 @@ export default function RecibosPage(): ReactNode {
 
   /* ---- auditoria de estoque (resumo por tipo) ---- */
   const porTipo = new Map<string, number>()
-  allCoinsFlat(state).forEach(({ coin }) => {
-    porTipo.set(coin.tipoMoeda, (porTipo.get(coin.tipoMoeda) ?? 0) + 1)
+  // Estoque de toda a custódia, sem dono (B01): vem do resumo público calculado no servidor.
+  ;(state.publico?.estoque ?? []).forEach((m) => {
+    porTipo.set(m.tipoMoeda, (porTipo.get(m.tipoMoeda) ?? 0) + 1)
   })
   const linhasAuditoria = [...porTipo.entries()].sort((a, b) => b[1] - a[1])
   const hoje = fdate(Date.now())
@@ -180,7 +181,7 @@ export default function RecibosPage(): ReactNode {
           <h3>Resumo</h3>
           <div className="summary-row">
             <span className="k">Total em custódia</span>
-            <span className="v">{coins.length} moeda(s)</span>
+            <span className="v">{quantidadeComUnidade(coins.length, 'moeda', 'moedas')}</span>
           </div>
           <div className="summary-row">
             <span className="k">Valor estimado</span>

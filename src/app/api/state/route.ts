@@ -28,6 +28,7 @@ import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/car
 import { documentosPendentesDeAceite } from '@/server/config/documentos'
 import { barrarContaDesativada } from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
+import { visaoDoUsuario } from '@/server/estado-do-usuario'
 import { getState } from '@/server/state'
 
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,7 @@ export async function GET(): Promise<NextResponse> {
     // derrubam a resposta — sem banco, voltam o padrão do código e `null`.
     const config = await carregarConfiguracaoDoSite()
     const aceitesPendentes = await documentosPendentesDeAceite(session, config)
-    return NextResponse.json({ state, session, config: configDoCliente(config), aceitesPendentes }, { headers: SEM_CACHE })
+    return NextResponse.json({ state: visaoDoUsuario(state, session), session, config: configDoCliente(config), aceitesPendentes }, { headers: SEM_CACHE })
   } catch {
     // getState propaga exceção (banco fora do ar, variável de ambiente errada).
     // O AppProvider ignora respostas não-ok e mantém o último estado conhecido

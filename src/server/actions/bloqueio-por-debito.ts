@@ -11,6 +11,7 @@
  */
 
 import type { UserEmail } from '@/domain/types'
+import { pseudonimoDoEmail } from '@/server/estado-do-usuario'
 import { getSessionEmail } from '@/server/session'
 import { getState } from '@/server/state'
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
@@ -29,7 +30,8 @@ export async function situacaoDoBloqueioPorPendencia(): Promise<SituacaoBloqueio
     }
 
     const vendedoresSet = await vendedoresBloqueaveis()
-    const vendedoresPausados = Array.from(vendedoresSet)
+    // Pseudônimos, não e-mails (B01): o livro que o cliente recebe identifica o vendedor do mesmo jeito.
+    const vendedoresPausados = Array.from(vendedoresSet).map((v) => (v === email ? v : pseudonimoDoEmail(v)))
 
     const bloqueavel = await contaBloqueavel(email)
     if (!bloqueavel) {

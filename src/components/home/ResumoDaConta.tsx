@@ -42,7 +42,7 @@ export function ResumoDaConta(): ReactNode {
   const aVenda = state.sellOffers.filter((o) => o.seller === session).length
   const aCompra = state.buyOrders.filter((b) => b.buyer === session).reduce((s, b) => s + b.qty, 0)
   const [inteiro, centavos] = partesDoValor(brl(me.balance))
-  const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' })
 
   return (
     <>

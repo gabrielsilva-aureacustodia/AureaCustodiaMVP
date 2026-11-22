@@ -24,7 +24,9 @@ export async function createAuthClient(): Promise<SupabaseClient> {
       getAll: () => jar.getAll(),
       setAll: (values) => {
         for (const { name, value, options } of values) {
-          jar.set(name, value, options)
+          // Cookie do Supabase (`sb-…-auth-token`, verificador PKCE) sem Secure foi achado do QA do Davi (22/11/2026):
+          // em produção só trafega por HTTPS. Em desenvolvimento (http://localhost) exigir Secure impediria gravar.
+          jar.set(name, value, process.env.NODE_ENV === 'production' ? { ...options, secure: true } : options)
         }
       },
     },

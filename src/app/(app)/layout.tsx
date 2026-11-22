@@ -42,6 +42,7 @@ import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/car
 import { documentosPendentesDeAceite } from '@/server/config/documentos'
 import { barrarContaDesativada, SAIDA_DA_CONTA_DESATIVADA } from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
+import { visaoDoUsuario } from '@/server/estado-do-usuario'
 import { getState } from '@/server/state'
 
 export default async function AppLayout({
@@ -76,7 +77,7 @@ export default async function AppLayout({
     // `admin` é decidido aqui, no servidor, e só liga o item "Administração" do
     // menu. O painel e as rotas de API conferem de novo — o menu é conveniência,
     // não barreira.
-    <AppProvider initialState={state} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
+    <AppProvider initialState={visaoDoUsuario(state, session)} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
       {/* Tutorial guiado: tour da primeira visita, dicas por página e o exemplo de custódia do tour. */}
       <TutorialProvider>
       {/* 1024px = o `lg` em que a área do cliente volta a ter coluna lateral (ver SidebarProvider). */}

@@ -27,6 +27,7 @@ vi.mock('@/server/auth/conta-desativada', () => ({
   barrarContaDesativada: vi.fn(),
 }))
 
+import { estadoVazio } from '@/domain/estado-vazio'
 import type { AppState } from '@/domain/types'
 import { GET } from './route'
 import { barrarContaDesativada } from '@/server/auth/conta-desativada'
@@ -48,13 +49,15 @@ describe('GET /api/state — conta desativada', () => {
   it('sessão de conta ativa continua recebendo o estado', async () => {
     vi.mocked(getSessionEmail).mockResolvedValue('ativa@teste.com')
     vi.mocked(barrarContaDesativada).mockResolvedValue(false)
-    const mockState = { users: {}, sellOffers: [], buyOrders: [], trades: [] }
-    vi.mocked(getState).mockResolvedValue(mockState as unknown as AppState)
+    const mockState = estadoVazio()
+    vi.mocked(getState).mockResolvedValue(mockState as AppState)
 
     const res = await GET()
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data.state).toEqual(mockState)
+    // B01: o cliente recebe a VISÃO dele (com o resumo público), nunca o estado inteiro.
+    expect(data.state.users).toEqual({})
+    expect(data.state.publico).toBeDefined()
     expect(data.session).toBe('ativa@teste.com')
   })
 })
