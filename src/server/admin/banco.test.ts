@@ -654,7 +654,7 @@ describe('administração de usuários', () => {
       telefone: '(11) 98888-1111',
       endereco: { logradouro: 'Rua B', numero: '2', bairro: 'Centro', cidade: 'São Paulo', uf: 'sp', cep: '01001-000' },
     })
-    expect(r.ok && r.mensagem).toContain('o CPF não confere')
+    expect(r.ok && r.mensagem).toContain('o CPF ou CNPJ não confere')
     const u = (await lerEstado(executar)).users['goturuba@testeaurea.com.br']
     expect(u.cadastro).toMatchObject({ cpf: '11111111111', nomeCompleto: 'Goturuba Novo', telefone: '11988881111', dadosBancarios: CADASTRO_ALEX.dadosBancarios })
     const [linha] = await executar((tx) => listarAuditoria(tx, { acao: 'admin.usuarios.editar_cadastro' }))
