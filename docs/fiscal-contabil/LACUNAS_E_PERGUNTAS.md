@@ -123,3 +123,21 @@ Até o Gabriel responder, nada disto vira regra nem código:
 31. Limite de requisições (nenhum documentado).
 32. Se a numeração da DPS pode ter buracos (só a regra E0014 de unicidade foi encontrada).
 33. ~~Arredondamento~~ — **conferido centavo a centavo** contra as notas do contador (23/10/2026).
+
+## 5. Frente B (1º mês de custódia no envio, 17/11/2026): perguntas ao contador
+
+Texto da frente B (`docs/manutencao-2026-11/registro/B.md`), encaixado aqui em 22/11/2026. **Nada fiscal foi codificado:**
+hoje o 1º mês é cobrado junto com o frete, a NFS-e do mês nasce no pagamento (regra geral: nota só de custódia paga) e
+a recusa de moeda devolve o mês ao saldo por `estorno` no ledger, sem mexer na nota.
+
+34. **Data da nota do 1º mês no envio.** O 1º mês é cobrado no ato do pagamento do envio, ANTES de a moeda chegar e ser
+    aceita. A NFS-e de custódia deve sair na data desse pagamento antecipado ou só quando a moeda for aceita? (Hoje: no
+    pagamento.)
+35. **Recusa de moeda.** Quando uma moeda é recusada na análise, o mês dela volta ao saldo do cliente mas a NFS-e desse
+    mês **não** é cancelada. Deve ser cancelada (como a frente H faz no cancelamento do envio), ajustada ou mantida?
+    Se cancelada, em que prazo e com que evento?
+36. **Recusa total do envio.** Se todas as moedas são recusadas, a fatura do 1º mês segue `paga` (o dinheiro voltou por
+    estorno, mas a fatura não muda de estado). Ela deve passar a cancelada/estornada? Isso muda a receita de custódia da
+    DRE do mês?
+
+**Decisão do Gabriel/contador antes de qualquer código.** Até lá, o comportamento atual fica como está.
