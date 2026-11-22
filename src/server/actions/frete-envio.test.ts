@@ -84,7 +84,12 @@ vi.mock('@/server/payments/repositorios', () => ({
   repositorioIntencoes: () => ({ criar: correios.criarIntencao, anotarPagamento: vi.fn() }),
 }))
 
-import { PRAZO_DESCARTE_ENVIO_MS } from '@/domain/envios'
+import { DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE } from '@/domain/envios'
+
+// Envio ANTIGO e vencido: criado antes do corte D-H5, então a devolução automática leva só o frete (o 1º mês sai por
+// cancelamento manual). Era `Date.now() - PRAZO - 1`, que vira envio NOVO assim que o relógio passa do corte + 3 dias
+// (18/11/2026 + 3) e passou a devolver o mês também — o teste dependia da data de hoje.
+const CRIADO_ANTES_DO_CORTE_E_VENCIDO = DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE - 1
 import { faturasDoEnvio, primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import { calcularTaxaRetirada } from '@/domain/retirada'
 import { seedState } from '@/domain/seed'
@@ -337,7 +342,7 @@ describe('markPosted com etiqueta oficial', () => {
     await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
     correios.criarPrePostagem.mockRejectedValueOnce(new Error('fora do ar'))
     await pagarFreteComSaldo(PROTOCOLO)
-    envio().createdAt = Date.now() - PRAZO_DESCARTE_ENVIO_MS - 1
+    envio().createdAt = CRIADO_ANTES_DO_CORTE_E_VENCIDO
 
     const r = await markPosted(PROTOCOLO, 'AA123456789BR')
     expect(r.ok).toBe(false)
@@ -354,7 +359,7 @@ describe('desconsiderarEnviosVencidos', () => {
   async function envioPagoComEtiqueta(): Promise<void> {
     await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
     await pagarFreteComSaldo(PROTOCOLO)
-    envio().createdAt = Date.now() - PRAZO_DESCARTE_ENVIO_MS - 1
+    envio().createdAt = CRIADO_ANTES_DO_CORTE_E_VENCIDO
   }
 
   it('não postado nos Correios: desconsidera, devolve o frete e cancela a pré-postagem', async () => {
@@ -377,6 +382,22 @@ describe('desconsiderarEnviosVencidos', () => {
     const d = derivarLancamentos({ antes, depois: state, ops: [], semeadura: false, agora: Date.now(), hashAnterior: 'h' })
     expect(d.ajustes).toEqual([])
     expect(d.lancamentos.map((l) => l.tipo)).toEqual(['estorno'])
+  })
+
+  it('envio NOVO (a partir do corte D-H5), vencido e não postado: devolve o frete E o 1º mês', async () => {
+    await envioPagoComEtiqueta()
+    envio().createdAt = DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE
+    correios.consultarPrePostagem.mockResolvedValue({ id: 'PRI1', codigoObjeto: 'AP123456789BR', statusAtual: 2, descricao: 'Pré-postado' })
+    // O envio recém-criado ainda não venceu pela data; o relógio de teste avança além do prazo.
+    const agora = Date.now
+    Date.now = () => DEVOLUCAO_AUTOMATICA_DO_PRIMEIRO_MES_VALE_PARA_ENVIO_CRIADO_A_PARTIR_DE + 4 * 86_400_000
+    try {
+      const r = await desconsiderarEnviosVencidos()
+      expect(r.desconsiderados).toEqual([PROTOCOLO])
+    } finally {
+      Date.now = agora
+    }
+    expect(state.users[EMAIL].balance).toBe(10_000)
   })
 
   it('postado nos Correios (rastreio atrasado): NÃO desconsidera nem devolve', async () => {
@@ -495,7 +516,7 @@ describe('acréscimo do frete — o cliente paga o contrato + R$ 4,00 e o contra
   it('ESTORNO: envio vencido sem postar devolve o TOTAL cobrado (contrato + acréscimo), como o cancelamento da frente H', async () => {
     await cotarFreteDoEnvio(PROTOCOLO, 'PAC')
     await pagarFreteComSaldo(PROTOCOLO)
-    envio().createdAt = Date.now() - PRAZO_DESCARTE_ENVIO_MS - 1
+    envio().createdAt = CRIADO_ANTES_DO_CORTE_E_VENCIDO
     correios.consultarPrePostagem.mockResolvedValue({ id: 'PRI1', codigoObjeto: 'AP123456789BR', statusAtual: 2, descricao: 'Pré-postado' })
 
     const r = await desconsiderarEnviosVencidos()
