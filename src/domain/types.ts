@@ -1001,11 +1001,8 @@ export interface ResumoPublico {
   totalMoedas: number
   volumeNegociadoCents: Cents
   estoque: EstoquePublico[]
-  /** Saldo, taxas e comissões da empresa — A08: manter visível ou não é decisão do Gabriel. */
+  /** Só contagens de logística: o dinheiro da empresa não vai ao cliente (A08). */
   auditoria: {
-    totalSaldoCents: Cents
-    totalTaxasCents: Cents
-    totalComissoesCents: Cents
     enviosEmTransito: number
     enviosNaCentral: number
   }

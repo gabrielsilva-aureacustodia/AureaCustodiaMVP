@@ -154,6 +154,10 @@ describe('estadoDoUsuario — o payload de um cliente não contém dado de outro
     expect(v.sellOffers.find((o) => o.id === 'OF-A')?.seller).toBe(A)
   })
 
+  it('A08: o dinheiro da empresa (saldo dos clientes, taxas, comissões) não vai ao navegador do cliente', () => {
+    expect(Object.keys(visaoA.publico?.auditoria ?? {}).sort()).toEqual(['enviosEmTransito', 'enviosNaCentral'])
+  })
+
   it('o resumo público traz totais e estoque sem dono', () => {
     const total = Object.values(seedState().users).reduce((n, u) => n + u.coins.length, 0)
     expect(visaoA.publico?.totalMoedas).toBe(total)

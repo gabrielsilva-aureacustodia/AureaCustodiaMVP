@@ -111,8 +111,8 @@ export function estadoDoUsuario(
  * O que as telas públicas (Início, Mercado, Auditoria de estoque) somavam sobre o estado inteiro. Calculado
  * aqui, sobre o estado completo, e entregue como número — nunca como a lista de onde veio.
  *
- * `auditoria` (saldo, taxas e comissões da empresa) mantém o que a tela de auditoria já mostrava: se isso
- * deve continuar visível a todo cliente é pergunta aberta ao Gabriel (A08), e esta visão não decide por ele.
+ * `auditoria` leva só contagens de logística. Saldo dos clientes, receita, taxas e comissões da empresa NÃO vão
+ * ao navegador de cliente (A08, 22/11/2026: dado financeiro da empresa é da equipe e vive em /admin).
  */
 export function resumoPublico(state: AppState): NonNullable<AppState['publico']> {
   const estoque: EstoquePublico[] = []
@@ -133,19 +133,11 @@ export function resumoPublico(state: AppState): NonNullable<AppState['publico']>
   }
   estoque.sort((a, b) => (a.id < b.id ? -1 : 1))
 
-  const totalTaxas = (state.faturasCustodia ?? []).reduce(
-    (acc, f) => acc + (f.status === 'cancelada' ? 0 : f.valorCents),
-    0,
-  )
-
   return {
     totalMoedas: estoque.length,
     volumeNegociadoCents: state.trades.reduce((s, t) => s + t.price * (t.qty || 1), 0),
     estoque,
     auditoria: {
-      totalSaldoCents: Object.values(state.users).reduce((acc, u) => acc + (u.balance || 0), 0),
-      totalTaxasCents: totalTaxas,
-      totalComissoesCents: state.trades.reduce((acc, t) => acc + (t.fee || 0), 0),
       enviosEmTransito: state.envios.filter((e) => e.etapaAtual === 'Envio postado').length,
       enviosNaCentral: state.envios.filter(
         (e) =>

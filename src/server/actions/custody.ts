@@ -156,10 +156,14 @@ export async function createProtocol(
   // item silenciosamente, e uma moeda de tipo inventado entraria no inventário.
   // Desde a C3 o catálogo é o do painel, e só tipo ativo aceita envio novo.
   const { catalogo } = await carregarRegrasDoMercado()
-  if (!tiposAtivos(catalogo).some((t) => t.key === tipoMoeda)) return { ok: false, error: DADOS_INVALIDOS }
+  const tipoEscolhido = tiposAtivos(catalogo).find((t) => t.key === tipoMoeda)
+  if (!tipoEscolhido) return { ok: false, error: DADOS_INVALIDOS }
   if (!Number.isInteger(ano) || ano < ANO_MIN || ano > ANO_MAX) {
     return { ok: false, error: DADOS_INVALIDOS }
   }
+  // B09 (22/11/2026): o ano é o do tipo de moeda, e o servidor confere — a tela já o trava, mas quem fala
+  // direto com a Server Action podia registrar uma Bandeira Olímpica de 1985.
+  if (ano !== tipoEscolhido.anoPadrao) return { ok: false, error: DADOS_INVALIDOS }
   if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > QTD_MAX) {
     return { ok: false, error: DADOS_INVALIDOS }
   }

@@ -24,7 +24,6 @@ import Link from 'next/link'
 import { useCallback } from 'react'
 import type { ReactNode } from 'react'
 
-import { brl } from '@/domain/money'
 import { fdate } from '@/domain/dates'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { useApp } from '@/components/providers/AppProvider'
@@ -59,10 +58,6 @@ export default function AuditoriaPage(): ReactNode {
   const recibosAtivos = flat.filter((m) => m.reciboAtivo).length
 
   const aud = publico?.auditoria
-  const totalSaldo = aud?.totalSaldoCents ?? 0
-  const totalTaxas = aud?.totalTaxasCents ?? 0
-  const totalComissoes = aud?.totalComissoesCents ?? 0
-  const totalReceita = totalTaxas + totalComissoes
   const enviosEmTransito = aud?.enviosEmTransito ?? 0
   const enviosNaCentral = aud?.enviosNaCentral ?? 0
 
@@ -113,32 +108,11 @@ export default function AuditoriaPage(): ReactNode {
 
       <div className="cols-rev">
         <div className="coluna-pilha">
-          {/* Painel de Conciliação Financeira Gateway x Ledger */}
+          {/* Esteira de custódia: só logística. Saldo, receita, taxas e comissões da empresa saíram daqui (A08). */}
           <section className="panel" aria-labelledby="aud-concil-t">
-            <h3 id="aud-concil-t">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              Conciliação Financeira & Esteira de Custódia
-            </h3>
+            <h3 id="aud-concil-t">Esteira de custódia</h3>
 
             <div className="kpis kpis-justos">
-              <div className="kpi">
-                <div className="lbl">Saldo em custódia</div>
-                <div className="val ouro">{brl(totalSaldo)}</div>
-              </div>
-              <div className="kpi">
-                <div className="lbl">Receita arrecadada</div>
-                <div className="val">{brl(totalReceita)}</div>
-              </div>
-              <div className="kpi">
-                <div className="lbl">Taxas de custódia</div>
-                <div className="val">{brl(totalTaxas)}</div>
-              </div>
-              <div className="kpi">
-                <div className="lbl">Comissões de mercado</div>
-                <div className="val">{brl(totalComissoes)}</div>
-              </div>
               <div className="kpi">
                 <div className="lbl">Em trânsito postal (Correios)</div>
                 <div className="val">{quantidadeComUnidade(enviosEmTransito, 'pacote', 'pacotes')}</div>
@@ -146,10 +120,6 @@ export default function AuditoriaPage(): ReactNode {
               <div className="kpi">
                 <div className="lbl">Triagem na central</div>
                 <div className="val">{quantidadeComUnidade(enviosNaCentral, 'lote', 'lotes')}</div>
-              </div>
-              <div className="kpi">
-                <div className="lbl">Status da conciliação</div>
-                <div className="val verde">✓ Conciliado 1:1</div>
               </div>
             </div>
           </section>
