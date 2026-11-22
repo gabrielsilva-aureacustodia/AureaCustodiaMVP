@@ -73,6 +73,12 @@ Ainda não há aviso de "corrigido" do Tester/Controle; isto é leitura antecipa
 
 **R4** — sem `not-found.tsx`, sem banner de cookies ainda. Aguardando.
 
+## Rodada 20:50 — R4 e R2
+- R2 aplicou meus 3 ajustes (Pix aleatória, CPF, "Aguarde 1 minuto"). Fechado.
+- **404 (`not-found.tsx`)**: aprovado na estrutura: PT, status 404, links por estado, botões e links com 44px (`legal.css`), usa tokens (claro/escuro herdado). Um ajuste: o título "Ops… esta página não existe." destoa do tom sóbrio da marca. Sugestão: **"Página não encontrada"** (o eyebrow "Erro 404" já fica acima). Texto: "O endereço pode ter mudado ou foi digitado errado. Confira ou escolha uma das opções abaixo." A frase "Sua coleção continua guardada no cofre." é boa e coerente com a landing; manter.
+- Aguardando: banner de cookies (não existe, correto: decisão do Gabriel), faixa de e-mail não confirmado (R2).
+- R4 segurou os Termos em 2.1 (bom). Patch em `TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` não lido por mim: é texto jurídico.
+
 ## Revisões de correção
 (nenhuma recebida ainda)
 

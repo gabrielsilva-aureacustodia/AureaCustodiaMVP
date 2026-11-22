@@ -47,3 +47,32 @@ Escuro: fundo `rgb(8,18,38)` nas quatro. Claro: só medi o fundo em 1280 na home
 ## Limpeza
 
 Nada criado, nada alterado. Emulação de viewport restaurada para desktop.
+
+---
+
+# Rodada 2 — reteste do Relatório QA do Davi (deploy 4b2f48f READY)
+
+Só leitura, via fetch sem credenciais nas páginas públicas. Telas logadas e B01 NÃO testados (B01 só com conta de teste do repositório).
+
+| Item | Resultado no ar |
+|---|---|
+| CSP (R1) | Só `content-security-policy-report-only` (não bloqueia); script-src com 'unsafe-inline'. x-frame-options, HSTS, referrer-policy ok |
+| Cookies Secure (R1) | `sb-…-auth-token.0/.1` e `code-verifier` com Secure=false (sessão pode ser anterior ao deploy; precisa login novo) |
+| A09 `_fbp` | Sem banner de cookies (decisão do Gabriel, esperado) |
+| B10 404 | OK, em português com links |
+| A11 `/entrar` | Subtítulo "Entre com o e-mail e a senha…"; "Prefiro usar e-mail e senha"; "Esqueci minha senha" presente |
+| B02 passo 4 de `/cadastrar` | Texto igual ("Depois confirme o cadastro no e-mail") — conferir a política com o Gabriel |
+| B08 Termos | "a))" sumiu; **ainda** "A observará" (14.5.4) e "Cláusula 13.2" citada em 14.4/14.6 apontando para a definição da LGPD |
+| A01 Termos 7.5.6 | "30 dias úteis" (decisão do Gabriel, esperado) |
+| Academy | "até30" corrigido; seguro e "mesma moeda" com texto novo |
+| Taxas seção 2 | Seguro postal por conta do remetente (texto coerente) |
+
+Pendente (exige login/conta de teste): B01, A08 `/recibos`, 418, B06, B07, S04, B09, S03, B04, S05, S06, A12, A13 etc.
+Achados enviados ao R1 e ao R4. Nada criado/alterado.
+
+## Resposta do R1 (rodada 2)
+- CSP só Report-Only é de propósito nesta fase; próximo passo é ler as violações no console de uma página logada (/mercado, /conta com pagamento) e então bloquear com nonce. **Pendente:** anotar violações (precisa de tela logada).
+- Cookies `sb-*`: gravados só em `src/server/auth/client.ts:29` com secure em produção; os vistos são anteriores ao deploy. **Pendente:** confirmar após SAIR/ENTRAR com conta de teste.
+- B01: view-source de /inicio e GET /api/state sem e-mail/CPF/Pix de outra conta — **pendente**, só conta de teste (testes automatizados já existem).
+- 418: correção = fuso America/Sao_Paulo; **pendente** conferir console logado em Mercado, Compras e Recibos, de preferência após 21h de Brasília.
+- A08 mostrar saldo/receita da empresa é de propósito (pergunta aberta ao Gabriel).

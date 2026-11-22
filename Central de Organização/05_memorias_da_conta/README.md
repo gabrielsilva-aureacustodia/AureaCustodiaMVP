@@ -61,7 +61,6 @@ Memórias da conta criadas depois da foto original (cópia literal em `05_memori
 
 | Arquivo (cópia aqui) | Caminho original (manda) | O que é | Tarefa |
 |---|---|---|---|
-| `email-fica-para-amanha-registrar-tudo.md` | `../../Users/Gabriel/.claude/projects/C--dev-AureaCustodiaMVP/memory/email-fica-para-amanha-registrar-tudo.md` | email-fica-para-amanha-registrar-tudo.md | Memória da conta nova (22/11) |
 | `2026-11-22--claude-code--manut2-balcao-posicao-e-video.md` | `docs/memorias/2026-11-22--claude-code--manut2-balcao-posicao-e-video.md` | Balcão: posição = lugar físico, vídeo e armazenamento (T3) — memória do agente | Memória de sessão (repo) |
 | `2026-11-22--claude-code--manut2-fechamento-da-documentacao.md` | `docs/memorias/2026-11-22--claude-code--manut2-fechamento-da-documentacao.md` | Fechamento da Manutenção 22-11 (Processo Padrão) — memória do agente | Memória de sessão (repo) |
 | `2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | `docs/memorias/2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | Isenção da Áurea/CEO e CPF ou CNPJ (T2) — memória do agente | Memória de sessão (repo) |
