@@ -43,7 +43,6 @@ describe('catálogo de configuração', () => {
       syncMs: SYNC_MS,
       prazos: { validacaoDiasUteis: 2, transitoEnvioDias: 15 },
       acrescimoDoFreteCents: 400,
-      custoLogisticoPorMoedaCents: 2500,
     })
     expect(termosDe(v)).toEqual({
       vigencia: PARAMETROS_LEGAIS.vigencia,

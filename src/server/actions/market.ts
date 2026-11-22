@@ -242,6 +242,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     const toBuy = offers.slice(0, qty)
     const idsConsumidos = new Set<string>()
     let compradas = 0
+    const coinIdsComprados: string[] = []
     const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price, taxasPar)
 
     for (const o of toBuy) {
@@ -250,6 +251,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
       buyer.balance -= custoUnit // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
       seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1
+      coinIdsComprados.push(o.coinId)
     }
 
     state.sellOffers = state.sellOffers.filter((o) => !idsConsumidos.has(o.id))
@@ -275,6 +277,7 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
       feeVendedor,
       fee: feeComprador + feeVendedor,
       tipoMoeda,
+      coinIds: coinIdsComprados,
     })
 
     return {

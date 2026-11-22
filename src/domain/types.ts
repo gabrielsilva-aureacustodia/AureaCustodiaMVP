@@ -230,6 +230,11 @@ export interface Trade {
    * mercado nenhum.
    */
   tipoMoeda: string
+  /**
+   * Códigos das moedas da negociação ('RO-000042'), um por unidade (T5, 22/11/2026, migration 059). Liga a comissão
+   * à moeda no KPI de margem. Negociação anterior à migration fica sem código (`null`/ausente): não se inventa.
+   */
+  coinIds?: string[] | null
 }
 
 /**

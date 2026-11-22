@@ -496,8 +496,8 @@ describe('KPIs de aquisição e atendimento', () => {
  * Os 5 KPIs prioritários do conselho (T5, 22/11/2026)
  *
  * Cenário de novembro/2026, hoje = 18/11 15h de Brasília, conferido à mão:
- *   c1 — 2 moedas (RO-000001, RO-000002), por envio postal; depositou 17/11; tem 1 oferta de venda aberta
- *   c2 — 1 moeda (RO-000003) por cadastro sem envio; comprou em 18/11
+ *   c1 — pagou custódia; 2 moedas (RO-000001, RO-000002), por envio postal; depositou 17/11; tem 1 oferta de venda aberta
+ *   c2 — pagou custódia; 1 moeda (RO-000003) por cadastro sem envio; comprou RO-000001 de c1 em 18/11
  *   c3 — enviou RO-000009, pagou custódia e RETIROU a moeda em 12/11 (hoje sem moeda) → saiu
  *   c4 — só se cadastrou
  *   c5 — cadastrou em outubro (fora do período)
@@ -525,7 +525,7 @@ describe('KPIs do conselho', () => {
       { userEmail: 'c1@x.com', valor: 5000, date: BR(11, 17, 15), origem: 'deposito', metodo: 'pix' },
       { userEmail: 'c3@x.com', valor: 3000, date: BR(11, 10, 9), origem: 'frete_envio', metodo: 'pix' },
     ]
-    s.trades = [{ price: 10000, qty: 1, date: BR(11, 18, 10), buyer: 'c2@x.com', seller: 'c1@x.com', fee: 400, tipoMoeda: BAN }]
+    s.trades = [{ price: 10000, qty: 1, date: BR(11, 18, 10), buyer: 'c2@x.com', seller: 'c1@x.com', fee: 400, tipoMoeda: BAN, coinIds: ['RO-000001'] }]
     s.envios = [
       envio({ protocolo: 'E1', userEmail: 'c1@x.com', createdAt: BR(11, 5), etapaAtual: 'Recibo emitido', quantidade: 2 }),
       envio({ protocolo: 'E2', userEmail: 'c2@x.com', createdAt: BR(11, 14), etapaAtual: 'Recibo emitido', quantidade: 1, origem: 'cadastro_sem_envio' }),
@@ -562,7 +562,6 @@ describe('KPIs do conselho', () => {
       agora: HOJE,
       ignorar: new Set(['equipe@x.com']),
       custodiaMensalPorMoedaCents: 200,
-      custoLogisticoPorMoedaCents: 2500,
       historicoDaFila: [
         { ofertaId: 'A', lado: 'venda', tipoMoeda: BAN, evento: 'publicada', createdAt: BR(11, 10) },
         { ofertaId: 'A', lado: 'venda', tipoMoeda: BAN, evento: 'executada', createdAt: BR(11, 12) },
@@ -574,47 +573,82 @@ describe('KPIs do conselho', () => {
     }
   }
 
-  it('1 — CAC, custódia por cliente, payback e LTV', () => {
+  it('1 — CAC, receita por cliente (custódia + comissão), payback e LTV', () => {
     const { cacPayback: c } = montarKpisDoConselho(fontes())
     // 3 ativados no mês (c1, c2, c3); R$ 3.000,00 ÷ 3 = R$ 1.000,00.
     expect(c).toMatchObject({ gasto: 300_000, ativados: 3, cac: 100_000 })
-    // 3 moedas de 2 clientes (a da equipe e a retirada não contam) = 1,5 moeda × R$ 2,00 = R$ 3,00 por mês.
-    expect(c).toMatchObject({ clientesComMoeda: 2, moedasEmCustodia: 3, receitaMensalPorCliente: 300 })
-    expect(c.paybackMeses).toBe(333.3)
-    expect(c.ltv).toBe(3600)
-    expect(c.ltvSobreCacBp).toBe(360)
+    // Pagantes: c1, c2, c3 (pagaram fatura). Moedas deles hoje: 2 + 1 + 0 (a de c3 foi retirada) = 3 → 3 × R$ 2,00 ÷ 3 = R$ 2,00.
+    expect(c).toMatchObject({ clientesPagantes: 3, moedasDosPagantes: 3, custodiaMensalPorCliente: 200 })
+    // Comissão: R$ 4,00 em 18 dias de novembro → R$ 6,67 em 30 dias (667) ÷ 3 pagantes = R$ 2,22.
+    expect(c.comissaoMensalPorCliente).toBe(222)
+    expect(c.receitaMensalPorCliente).toBe(422)
+    expect(c.paybackMeses).toBe(237) // R$ 1.000,00 ÷ R$ 4,22 = 236,97 → 237,0
+    expect(c.ltv).toBe(5064)
+    expect(c.ltvSobreCacBp).toBe(506)
   })
 
-  it('1 — sem gasto, sem tabela ou sem cliente com moeda: null, nunca zero', () => {
+  it('1 — sem gasto, sem tabela, sem pagante ou sem dia decorrido: null, nunca zero', () => {
     expect(montarKpisDoConselho(fontes({ gastos: [] })).cacPayback).toMatchObject({ gasto: null, cac: null, paybackMeses: null, ltvSobreCacBp: null })
     expect(montarKpisDoConselho(fontes({ gastos: null })).cacPayback.cac).toBeNull()
-    const semMoeda = fontes()
-    for (const u of Object.values(semMoeda.state.users)) u.coins = []
-    expect(montarKpisDoConselho(semMoeda).cacPayback).toMatchObject({ receitaMensalPorCliente: null, paybackMeses: null, ltv: null })
+    const semPagante = fontes()
+    semPagante.state.faturasCustodia = []
+    expect(montarKpisDoConselho(semPagante).cacPayback).toMatchObject({ clientesPagantes: 0, custodiaMensalPorCliente: null, receitaMensalPorCliente: null, paybackMeses: null, ltv: null })
+    // Período que ainda não começou: não há dia decorrido para levar a comissão a 30 dias.
+    const futuro = janelaDoPeriodo({ ano: 2026, mes: 12, trimestre: null }, 'dezembro')
+    expect(montarKpisDoConselho(fontes({ periodo: futuro })).cacPayback).toMatchObject({ comissaoMensalPorCliente: null, receitaMensalPorCliente: null, paybackMeses: null })
   })
 
-  it('2 — margem por moeda captada: custódia paga menos o custo logístico digitado, só nas postais', () => {
+  it('1 — fatura paga de valor zero (a "em dia" das fixtures) e conta da equipe não fazem pagante', () => {
+    const f = fontes()
+    f.state.faturasCustodia = [
+      fatura({ id: 'Z', userEmail: 'c4@x.com', status: 'paga', dataEmissao: BR(11, 3), valorCents: 0, moedaIds: [] }),
+      fatura({ id: 'E', userEmail: 'equipe@x.com', status: 'paga', dataEmissao: BR(11, 3), valorCents: 200, moedaIds: ['RO-000008'] }),
+    ]
+    expect(montarKpisDoConselho(f).cacPayback.clientesPagantes).toBe(0)
+  })
+
+  it('2 — margem por moeda captada: custódia paga + comissão da moeda, sem custo logístico', () => {
     const { margemPorMoeda: m } = montarKpisDoConselho(fontes())
-    // Captadas válidas: RO-1, RO-2, RO-3 (sem envio) e RO-9; a da equipe fica de fora. Postais: 3.
-    expect(m).toMatchObject({ moedasCaptadas: 4, moedasCaptadasPostais: 3, receitaDeCustodia: 800, custoLogisticoTotal: 7500 })
-    expect(m.margemTotal).toBe(800 - 7500)
-    expect(m.margemPorMoeda).toBe(-1675)
-    // Comissão à parte: R$ 4,00 numa moeda negociada.
-    expect(m.comissaoMediaPorMoedaNegociada).toBe(400)
+    // Captadas válidas: RO-1, RO-2, RO-3 e RO-9; a da equipe fica de fora. Custódia paga delas: 400 + 200 + 200.
+    expect(m).toMatchObject({ moedasCaptadas: 4, receitaDeCustodia: 800 })
+    // A comissão (R$ 4,00) é da negociação de RO-000001, que é captada.
+    expect(m).toMatchObject({ comissaoDasMoedas: 400, negociacoesSemCodigo: 0, receitaTotal: 1200, receitaPorMoeda: 300 })
   })
 
-  it('2 — o custo é parâmetro: outro valor muda a margem; sem custo informado ou sem moeda captada, null', () => {
-    expect(montarKpisDoConselho(fontes({ custoLogisticoPorMoedaCents: 0 })).margemPorMoeda.margemPorMoeda).toBe(200)
-    const semCusto = montarKpisDoConselho(fontes({ custoLogisticoPorMoedaCents: null })).margemPorMoeda
-    expect(semCusto).toMatchObject({ margemPorMoeda: null, margemTotal: null, custoLogisticoTotal: null, custoLogisticoPorMoeda: null })
+  it('2 — comissão de moeda que NÃO é captada no período não entra; negociação sem código só conta como lacuna', () => {
+    const f = fontes()
+    f.state.trades = [{ ...f.state.trades[0]!, coinIds: ['RO-000555'] }]
+    expect(montarKpisDoConselho(f).margemPorMoeda).toMatchObject({ comissaoDasMoedas: 0, receitaTotal: 800 })
+    // Só negociação antiga, sem código: não se sabe de qual moeda foi — null, não zero.
+    const antigo = fontes()
+    antigo.state.trades = [{ ...antigo.state.trades[0]!, coinIds: undefined }]
+    expect(montarKpisDoConselho(antigo).margemPorMoeda).toMatchObject({ comissaoDasMoedas: null, negociacoesSemCodigo: 1, receitaTotal: null, receitaPorMoeda: null, receitaDeCustodia: 800 })
+    // Mistura: a antiga fica fora, a nova com código vale.
+    const mistura = fontes()
+    mistura.state.trades = [{ ...mistura.state.trades[0]!, coinIds: undefined }, ...mistura.state.trades]
+    expect(montarKpisDoConselho(mistura).margemPorMoeda).toMatchObject({ comissaoDasMoedas: 400, negociacoesSemCodigo: 1 })
+  })
+
+  it('2 — negociação de várias moedas reparte a comissão por moeda', () => {
+    const f = fontes()
+    f.state.trades = [{ price: 20000, qty: 2, date: BR(11, 18, 10), buyer: 'c2@x.com', seller: 'c1@x.com', fee: 800, tipoMoeda: BAN, coinIds: ['RO-000001', 'RO-000777'] }]
+    // R$ 8,00 em 2 moedas; só RO-000001 é captada → R$ 4,00.
+    expect(montarKpisDoConselho(f).margemPorMoeda.comissaoDasMoedas).toBe(400)
+  })
+
+  it('2 — sem moeda captada no período, tudo null', () => {
     const dezembro = montarKpisDoConselho(fontes({ periodo: janelaDoPeriodo({ ano: 2026, mes: 12, trimestre: null }, 'dezembro') })).margemPorMoeda
-    expect(dezembro).toMatchObject({ moedasCaptadas: 0, receitaDeCustodia: null, margemPorMoeda: null })
+    expect(dezembro).toMatchObject({ moedasCaptadas: 0, receitaDeCustodia: null, comissaoDasMoedas: null, receitaTotal: null, receitaPorMoeda: null })
   })
 
-  it('3 — conversão: dos cadastrados no período, quem transacionou, depositou moeda e pagou custódia', () => {
+  it('3 — conversão: pagante é quem pagou custódia; depositar moeda sem pagar não conta', () => {
     const { conversao: v } = montarKpisDoConselho(fontes())
     // Cadastros de novembro: c1, c2, c3, c4 (c5 é de outubro, a equipe não conta).
-    expect(v).toMatchObject({ cadastros: 4, ativados: 3, depositaramMoeda: 3, pagaramCustodia: 3, cadastroParaAtivacaoBp: 7500, cadastroParaMoedaBp: 7500 })
+    expect(v).toMatchObject({ cadastros: 4, ativados: 3, depositaramMoeda: 3, pagantes: 3, pagantesQueNegociaram: 2, cadastroParaPaganteBp: 7500 })
+    // c3 depositou moeda mas, se não pagou custódia, deixa de ser pagante.
+    const f = fontes()
+    f.state.faturasCustodia = f.state.faturasCustodia!.filter((fa) => fa.userEmail !== 'c3@x.com')
+    expect(montarKpisDoConselho(f).conversao).toMatchObject({ depositaramMoeda: 3, pagantes: 2, cadastroParaPaganteBp: 5000 })
   })
 
   it('3 — sem banco (sem data de cadastro) tudo é null', () => {
@@ -622,28 +656,36 @@ describe('KPIs do conselho', () => {
       cadastros: null,
       ativados: null,
       depositaramMoeda: null,
+      pagantes: null,
+      pagantesQueNegociaram: null,
       cadastroParaAtivacaoBp: null,
       cadastroParaMoedaBp: null,
-      pagaramCustodia: null,
+      cadastroParaPaganteBp: null,
     })
   })
 
-  it('4 — inadimplência sobre o emitido e churn pela retirada', () => {
-    const { inadimplenciaChurn: i } = montarKpisDoConselho(fontes())
+  it('4 — inadimplência sobre o emitido e churn pelos três motivos, cada cliente uma vez', () => {
+    const f = fontes()
+    f.state.users['c2@x.com']!.lastAccess = HOJE - 50 * 24 * 60 * 60 * 1000 // 50 dias sem usar
+    const { inadimplenciaChurn: i } = montarKpisDoConselho(f)
     // Emitido R$ 12,00 no mês (4 faturas); R$ 4,00 atrasados hoje (F4 venceu em 10/11).
-    expect(i).toMatchObject({ valorEmitido: 1200, valorAtrasado: 400, taxaInadimplenciaBp: 3333, moedasRetiradas: 1 })
-    // c3 retirou e não guarda mais nada; ficam c1 e c2 → 1 de 3.
-    expect(i).toMatchObject({ clientesQueSairam: 1, churnDeClientesBp: 3333, receitaRecorrenteMensal: 600 })
-    // Base de moedas = 3 hoje + 1 saída − 4 entradas = 0: sem base, null (não zero).
-    expect(i.churnDeMoedasBp).toBeNull()
+    expect(i).toMatchObject({ valorEmitido: 1200, valorAtrasado: 400, taxaInadimplenciaBp: 3333, receitaRecorrenteMensal: 600 })
+    // c3 retirou e não guarda mais nada; c2 está inativo; F4 (c1) venceu há só 8 dias: ainda não é churn.
+    expect(i.churn).toEqual({ retirada: 1, inatividade: 1, custodiaNaoPaga: 0, total: 2, base: 3, totalBp: 6667 })
   })
 
-  it('4 — churn de moedas com base: 1 retirada para 12 moedas que estavam lá no começo', () => {
+  it('4 — custódia vencida há mais de 45 dias é churn; quem tem dois motivos conta uma vez no total', () => {
     const f = fontes()
-    f.state.analises = [] // ninguém captado no período: nenhuma entrada a descontar
-    f.state.users['c1@x.com']!.coins = Array.from({ length: 10 }, (_, k) => moeda(`RO-0002${k}0`, BAN))
-    // Hoje: 10 (c1) + 1 (c2) = 11, mais 1 retirada = 12 no começo; 1 ÷ 12 = 8,33%.
-    expect(montarKpisDoConselho(f).inadimplenciaChurn.churnDeMoedasBp).toBe(833)
+    f.state.faturasCustodia!.find((fa) => fa.id === 'F4')!.dataVencimento = BR(9, 20) // 59 dias
+    f.state.users['c3@x.com']!.lastAccess = HOJE - 60 * 24 * 60 * 60 * 1000 // c3 também retirou: dois motivos
+    const { churn } = montarKpisDoConselho(f).inadimplenciaChurn
+    expect(churn).toMatchObject({ retirada: 1, inatividade: 1, custodiaNaoPaga: 1, total: 2 }) // c3 (retirada + inativo) e c1 (não pagou)
+  })
+
+  it('4 — retirada de parte das moedas não é churn, e sem acesso registrado ninguém é inativo', () => {
+    const f = fontes()
+    f.state.users['c3@x.com']!.coins = [moeda('RO-000010', DH)] // ainda guarda moeda
+    expect(montarKpisDoConselho(f).inadimplenciaChurn.churn).toMatchObject({ retirada: 0, inatividade: 0, total: 0 })
   })
 
   it('5 — GMV, comissão, giro e histórico da fila', () => {

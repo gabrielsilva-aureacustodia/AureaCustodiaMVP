@@ -51,7 +51,6 @@ export async function carregarKpisDoConselho(p: PeriodoEscolhido, agora: number 
     agora,
     ignorar: contasQueNaoSaoCliente(state),
     custodiaMensalPorMoedaCents: config.taxas.custodiaMensalPorMoeda,
-    custoLogisticoPorMoedaCents: config.operacional.custoLogisticoPorMoedaCents,
   }
   const hoje = diaDeBrasilia(agora)
 

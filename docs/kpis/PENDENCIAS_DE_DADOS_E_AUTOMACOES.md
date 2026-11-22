@@ -1,4 +1,4 @@
-# KPIs do conselho — o que ficou sem cálculo e o que faltaria
+# KPIs do conselho — respostas, o que ficou sem cálculo e o que falta
 
 ```
 Data:   22/11/2026 · T5 (Manutenção 22-11)
@@ -7,46 +7,37 @@ Regra:  só o que sai do banco do site foi calculado. Nada depende de conexão e
 Onde:   painel → Gestão → Indicadores → KPIs do conselho (/admin/resultados/kpis?aba=conselho)
 ```
 
-## 1. CAC × payback
+## Respostas do Gabriel (22/11/2026) — já aplicadas
 
-| O que ficou sem cálculo | Dado que falta | De onde viria | Automação nova |
+| # | Pergunta | Resposta | Como ficou no painel |
 |---|---|---|---|
-| CAC, payback, LTV÷CAC **quando ninguém lançou o gasto** dos dias (aparece "—") | Quanto se gastou em anúncio, evento e material | Hoje: digitado na aba "Gasto de marketing". Automático: **API de Marketing da Meta** (gasto por dia da conta de anúncios; precisa de token com permissão `ads_read` e do ID da conta de anúncios) e API do Google Ads | Um serviço diário que lê o gasto da Meta/Google e grava em `marketing_gastos` (a mesma tabela da digitação). Eventos e material impresso continuam digitados |
-| Visitas ao site (funil visita → cadastro, aba Aquisição) | Visitas por dia | Gerenciador de Anúncios da Meta (cliques/visitas) ou Google Analytics | Mesma leitura diária da API |
-| CAC por origem (digital × analógico) | De onde veio cada cadastro | O cadastro não tem o campo | Pergunta "Como conheceu?" + código `?origem=` nos QR codes (proposta na seção 4 de `PROPOSTA_DE_KPIS.md`) |
+| 1 | Custo logístico por moeda | **Não existe**: o cliente paga o frete | A margem por moeda não tem custo; o parâmetro foi retirado da Configuração. É "receita por moeda captada" |
+| 2 | Payback e LTV: só custódia ou também comissão? | **Custódia e comissão**, todo o dinheiro que o cliente gera | Receita mensal por cliente = custódia + comissão (a comissão do período é levada a 30 dias) |
+| 3 | Horizonte do LTV | **Sem resposta** | Padrão **12 meses, provisório**, marcado na tela |
+| 4 | Quem é "pagante" | Quem **pagou custódia** ou fez negociação — mas só conta **depois de pagar a custódia** | Pagante = tem fatura de custódia paga (valor maior que zero). Depositar moeda sem pagar não conta. Mostra também quantos pagantes já negociaram |
+| 5 | Churn | **Retirada**, ou **mais de 45 dias sem usar** a plataforma, ou **custódia não paga há mais de 45 dias** | Os 3 motivos separados e o total (cada cliente conta uma vez). Retirada = pediu as moedas no período e não guarda mais nenhuma. Os outros dois olham o dia de hoje |
+| 6 | Gravar o código da moeda em cada negociação | **Sim** | Campo `coinIds` na negociação, migration **059** (criada, **não aplicada**: o Controle aplica no commit). Negociação antiga fica sem código e não entra na comissão da moeda |
+| 7 | Lista do WhatsApp de 3/11 | Só a do slide 3.1 | Nada além dos 5 |
+| 8 | Ler gasto e visitas pela API da Meta | **Ainda não sabe** | Fica como pendência de marketing (abaixo) |
 
-Com gasto lançado, CAC e payback saem sozinhos. **Padrão provisório:** custódia de R$ 2,00 por moeda por mês, LTV de 12 meses.
+## O que ficou sem cálculo por falta de dado
 
-## 2. Margem por moeda captada
-
-| O que ficou sem cálculo | Dado que falta | De onde viria | Automação nova |
-|---|---|---|---|
-| Custo real dos Correios por moeda | O valor que a Áurea de fato paga (a fatura dos Correios) | Hoje: **parâmetro digitado** em Configuração (padrão R$ 25,00; contrato novo em avaliação). Automático: fatura/extrato do contrato dos Correios (API CWS já usada para o frete) | Ler o faturamento do contrato e ratear por envio; só vale a pena depois do contrato novo fechar |
-| Comissão ligada à moeda captada | Qual moeda foi vendida em cada negociação | A negociação não guarda o código da moeda | Gravar o código da moeda em cada negociação (mudança em `types.ts`/banco, superfície protegida: precisa de decisão) |
-| Outros custos (embalagem, pessoal, cofre) | Valores | Contador / Gabriel | Novos parâmetros ou lançamentos; fora desta rodada |
-
-## 3. Conversão de clientes pagantes
-
-Calculado por inteiro com dados do banco (cadastro → 1ª transação → moeda depositada → custódia paga). Nada falta, exceto separar por origem do cadastro (mesma automação da origem, acima).
-
-## 4. Inadimplência e churn
-
-| O que ficou sem cálculo | Dado que falta | Automação nova |
+| KPI | Quando aparece "—" | O que resolve |
 |---|---|---|
-| Churn "de verdade" (cliente que parou de pagar e foi embora) | O sistema não guarda a data em que alguém deixa de ser cliente | Registrar o encerramento da conta ou o fim do último ciclo pago. Enquanto isso, churn = pedido de retirada |
-| Churn de moedas no início do período é **estimativa** | Foto do número de moedas na custódia no começo de cada mês | Um fechamento mensal que guarde essa contagem |
+| 1. CAC e payback | Quando ninguém lançou o gasto de marketing dos dias (CAC, payback e LTV÷CAC ficam em "—") | Lançar o gasto na aba "Gasto de marketing", ou automatizar (ver abaixo) |
+| 2. Margem por moeda | A **comissão da moeda** só existe para negociações feitas depois da migration 059. Se só houver negociação antiga, a comissão e a receita total ficam em "—" | Nada a fazer: some sozinho com as próximas negociações |
+| 3. Conversão | Sem banco, não há data de cadastro | — |
+| 4. Churn | "Inativo" só vale para quem tem último acesso registrado | — |
+| 5. Liquidez | "Anúncios que venderam" e "tempo até a venda" dependem do histórico da fila (migration 015) | Já existe; sem ele aparece "—" |
 
-## 5. Liquidez e GMV
+## Ainda sem resposta (marketing)
 
-GMV, comissão, giro e % anunciado saem do banco. "Anúncios que venderam" e "tempo até a venda" dependem do histórico da fila (migration 015); se o banco não o tiver, aparece "—". Nenhuma automação externa.
+Tudo aqui **não bloqueia** nada: o painel funciona com o gasto digitado.
 
-## Perguntas ao Gabriel (uma por linha, com o padrão usado até a resposta)
-
-1. Qual o custo logístico real por moeda? *Padrão: R$ 25,00, só envio postal, editável em Configuração.*
-2. Payback e LTV usam só a custódia ou também comissão? *Padrão: só custódia, preço de hoje.*
-3. Horizonte do LTV? *Padrão: 12 meses, sem churn nem desconto.*
-4. "Cliente pagante" é quem depositou moeda ou quem pagou custódia? *Padrão: depositou moeda aprovada; "pagou custódia" aparece à parte.*
-5. Churn é medido pela retirada, dentro do período do filtro? *Padrão: sim; venda no mercado não conta.*
-6. Vale automatizar o gasto pela API da Meta (token `ads_read` + ID da conta de anúncios)? *Padrão: digitado.*
-7. Gravar o código da moeda em cada negociação para ligar comissão à moeda? *Padrão: comissão à parte, "por moeda negociada".*
-8. A lista final do WhatsApp de 3/11 tem KPI além dos 5 do slide 3.1? *Padrão: só os 5.*
+| Pendência | Situação | O que seria preciso |
+|---|---|---|
+| Ler gasto e visitas direto da Meta | Gabriel ainda não sabe; fica para quando fizermos todos os KPIs de marketing | **API de Marketing da Meta** com token de permissão `ads_read` e o ID da conta de anúncios; um serviço diário que grave em `marketing_gastos` |
+| Google Ads / Analytics (gasto e visitas) | Não decidido | Credenciais da API do Google e o mesmo serviço diário |
+| Origem do cadastro (digital × analógico) | Não existe o campo | Pergunta "Como conheceu?" no cadastro + código `?origem=` nos QR codes (proposta na seção 4 de `PROPOSTA_DE_KPIS.md`) |
+| Horizonte do LTV | Sem resposta | Definir quantos meses o cliente deve pagar para o LTV valer (hoje 12, provisório) |
+| Gasto de eventos e material impresso | Sempre digitado | Não tem API: continua manual |

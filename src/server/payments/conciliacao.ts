@@ -149,6 +149,7 @@ function liquidarCompraDireta(
     const price = offers[0].price
     const idsConsumidos = new Set<string>()
     let compradas = 0
+    const coinIdsComprados: string[] = []
     const taxasPar = taxasDaNegociacao(reivindicada.userEmail, sellerId as string, regras.taxas)
     const feeVendedorUnit = comissaoPorMoeda(price, 'vendedor', taxasPar)
 
@@ -158,6 +159,7 @@ function liquidarCompraDireta(
         continue
       seller.balance += price - feeVendedorUnit
       compradas += 1
+      coinIdsComprados.push(o.coinId)
     }
 
     s.sellOffers = s.sellOffers.filter((o) => !idsConsumidos.has(o.id))
@@ -180,6 +182,7 @@ function liquidarCompraDireta(
         fee: feeCompradorTotal + feeVendedorTotal,
         feeComprador: feeCompradorTotal,
         feeVendedor: feeVendedorTotal,
+        coinIds: coinIdsComprados,
       })
 
       // Para a contabilidade: entrada externa que cobriu a compra. Precisa cobrir o que o
@@ -586,6 +589,7 @@ function liquidarReservaCompra(
     feeVendedor,
     fee: r.comissaoCompradorCents + feeVendedor,
     tipoMoeda: r.tipoMoeda,
+    coinIds: [r.coinId],
   })
 
   // A unidade do bid só é consumida agora: no casamento ela ficou reservada

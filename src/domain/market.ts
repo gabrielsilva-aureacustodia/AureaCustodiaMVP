@@ -391,6 +391,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       qty: number
       feeComprador: Cents
       feeVendedor: Cents
+      coinIds: string[]
     }
   >()
   // Dez minutos são curtos demais para depender de rotina agendada, e a
@@ -538,6 +539,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
           atual.qty += 1
           atual.feeComprador += feeComprador
           atual.feeVendedor += feeVendedor
+          atual.coinIds.push(so.coinId)
         } else {
           fills.set(k, {
             buyer: bo.buyer,
@@ -547,6 +549,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
             qty: 1,
             feeComprador,
             feeVendedor,
+            coinIds: [so.coinId],
           })
         }
         progress = true
@@ -570,6 +573,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       feeVendedor: f.feeVendedor,
       fee: f.feeComprador + f.feeVendedor,
       tipoMoeda: f.tipoMoeda,
+      coinIds: f.coinIds,
     }
     state.trades.push(trade)
     trades.push(trade)

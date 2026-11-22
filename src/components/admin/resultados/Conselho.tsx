@@ -12,7 +12,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import type { PeriodoEscolhido } from '@/domain/admin/periodo'
-import { LTV_HORIZONTE_MESES } from '@/domain/kpis'
+import { DIAS_PARA_CHURN, LTV_HORIZONTE_MESES } from '@/domain/kpis'
 import type { DadosConselho } from '@/server/admin/kpis-conselho'
 
 import { AvisoSemBanco, Cartao } from '../Blocos'
@@ -48,54 +48,63 @@ export function Conselho({ dados, periodo }: { dados: DadosConselho; periodo: Pe
 
       {/* ---------- 1 ---------- */}
       <h2 className="adm-titulo-secao" id="cn-cac">1. CAC × tempo para se pagar (payback)</h2>
-      <p className="adm-fraco">Quanto custa trazer um cliente e em quantos meses a custódia dele devolve esse dinheiro.</p>
+      <p className="adm-fraco">Quanto custa trazer um cliente e em quantos meses tudo o que ele paga (custódia e comissão) devolve esse dinheiro.</p>
       <div className="adm-grade">
-        <Cartao rotulo="CAC do período" valor={dinheiro(c.cac)} detalhe={c.gasto === null ? 'sem gasto de marketing informado nestes dias' : `${dinheiro(c.gasto)} ÷ ${numero(c.ativados)} cliente(s) ativado(s)`} />
+        <Cartao rotulo="CAC do período" valor={dinheiro(c.cac)} detalhe={c.gasto === null ? 'sem dado: ninguém lançou o gasto de marketing destes dias' : `${dinheiro(c.gasto)} ÷ ${numero(c.ativados)} cliente(s) ativado(s)`} />
+        <Cartao rotulo="Clientes pagantes" valor={numero(c.clientesPagantes)} detalhe="já pagaram alguma fatura de custódia" />
         <Cartao
           rotulo="Custódia por cliente, por mês"
-          valor={dinheiro(c.receitaMensalPorCliente)}
-          detalhe={c.receitaMensalPorCliente === null ? 'ninguém guarda moeda ainda' : `${numero(c.moedasEmCustodia)} moeda(s) ÷ ${numero(c.clientesComMoeda)} cliente(s) × ${dinheiro(c.custodiaPorMoedaCents)}`}
+          valor={dinheiro(c.custodiaMensalPorCliente)}
+          detalhe={c.custodiaMensalPorCliente === null ? 'sem dado: ainda não há cliente pagante' : `${numero(c.moedasDosPagantes)} moeda(s) dos pagantes × ${dinheiro(c.custodiaPorMoedaCents)} ÷ ${numero(c.clientesPagantes)}`}
         />
-        <Cartao rotulo="Payback" valor={meses(c.paybackMeses)} detalhe="CAC ÷ custódia mensal por cliente" />
-        <Cartao rotulo={`LTV em ${LTV_HORIZONTE_MESES} meses`} valor={dinheiro(c.ltv)} detalhe={`custódia mensal × ${LTV_HORIZONTE_MESES} (premissa de leitura)`} />
+        <Cartao rotulo="Comissão por cliente, por mês" valor={dinheiro(c.comissaoMensalPorCliente)} detalhe="comissão do período levada a 30 dias ÷ pagantes" />
+        <Cartao rotulo="Receita por cliente, por mês" valor={dinheiro(c.receitaMensalPorCliente)} detalhe="custódia + comissão" />
+        <Cartao rotulo="Payback" valor={meses(c.paybackMeses)} detalhe="CAC ÷ receita mensal por cliente" />
+        <Cartao rotulo={`LTV em ${LTV_HORIZONTE_MESES} meses (provisório)`} valor={dinheiro(c.ltv)} detalhe={`receita mensal × ${LTV_HORIZONTE_MESES}: horizonte ainda não definido`} />
         <Cartao rotulo="LTV ÷ CAC" valor={c.ltvSobreCacBp === null ? '—' : `${(c.ltvSobreCacBp / 10000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}×`} detalhe="quantas vezes o cliente paga o que custou" />
       </div>
       <p className="adm-fraco adm-mt10">
-        O gasto vem da aba “Gasto de marketing” (o orçamento combinado de R$ 3.600,00 por mês é lançado lá como “Serviço”). Cliente ativado = fez a 1ª transação.
-        A receita considera só a custódia e o preço de hoje; comissões de negociação não entram aqui.
+        O gasto vem da aba “Gasto de marketing” (o orçamento combinado de R$ 3.600,00 por mês é lançado lá como “Serviço”): enquanto ninguém lança, CAC e payback
+        ficam em “—”. Cliente ativado = fez a 1ª transação.
       </p>
 
       {/* ---------- 2 ---------- */}
       <h2 className="adm-titulo-secao" id="cn-margem">2. Margem por moeda captada</h2>
-      <p className="adm-fraco">Para cada moeda que entrou na custódia no período: o que ela já pagou de custódia menos o que custou trazê-la (Correios).</p>
+      <p className="adm-fraco">
+        Para cada moeda que entrou na custódia no período: o que ela já gerou de custódia paga e de comissão. Não há custo logístico: o cliente paga o frete.
+      </p>
       <div className="adm-grade">
-        <Cartao rotulo="Moedas captadas" valor={numero(m.moedasCaptadas)} detalhe={`${numero(m.moedasCaptadasPostais)} chegaram por envio postal`} />
+        <Cartao rotulo="Moedas captadas" valor={numero(m.moedasCaptadas)} detalhe="aprovadas na análise no período" />
         <Cartao rotulo="Custódia já paga por elas" valor={dinheiro(m.receitaDeCustodia)} detalhe="faturas pagas, só a parte dessas moedas" />
-        <Cartao rotulo="Custo logístico por moeda" valor={dinheiro(m.custoLogisticoPorMoeda)} detalhe="digitado em Configuração; vale por envio postal" />
-        <Cartao rotulo="Margem por moeda" valor={dinheiro(m.margemPorMoeda)} tom={m.margemPorMoeda === null ? 'normal' : m.margemPorMoeda < 0 ? 'alerta' : 'positivo'} detalhe={m.margemPorMoeda === null ? 'sem moeda captada no período' : 'custódia paga − custo logístico'} />
-        <Cartao rotulo="Margem total do período" valor={dinheiro(m.margemTotal)} />
-        <Cartao rotulo="Comissão por moeda negociada" valor={dinheiro(m.comissaoMediaPorMoedaNegociada)} detalhe="à parte: a negociação não diz de qual moeda captada veio" />
+        <Cartao
+          rotulo="Comissão das negociações delas"
+          valor={dinheiro(m.comissaoDasMoedas)}
+          detalhe={m.comissaoDasMoedas === null ? 'sem dado: só há negociação antiga, que não guardou o código da moeda' : 'comprador + vendedor'}
+        />
+        <Cartao rotulo="Receita total delas" valor={dinheiro(m.receitaTotal)} />
+        <Cartao rotulo="Receita por moeda captada" valor={dinheiro(m.receitaPorMoeda)} tom={m.receitaPorMoeda === null ? 'normal' : 'positivo'} detalhe="custódia + comissão ÷ moedas captadas" />
       </div>
       <p className="adm-fraco adm-mt10">
-        O custo dos Correios (cerca de R$ 25,00 por moeda) não está fixo no sistema: o contrato novo está em avaliação, então o valor é editável em{' '}
-        <Link href="/admin/configuracao">Configuração</Link> (“Custo logístico por moeda captada”). A custódia de moedas recém-captadas ainda é pequena, por isso a margem
-        melhora a cada mês pago.
+        A negociação passou a guardar o código da moeda em 22/11/2026.
+        {m.negociacoesSemCodigo ? ` ${numero(m.negociacoesSemCodigo)} negociação(ões) anteriores não têm o código e ficam fora da comissão.` : ''} É receita, não
+        lucro contábil: o resultado oficial é o da DRE.
       </p>
 
       {/* ---------- 3 ---------- */}
       <h2 className="adm-titulo-secao" id="cn-conversao">3. Conversão de clientes pagantes</h2>
-      <p className="adm-fraco">Dos que se cadastraram no período, quantos confiaram e de fato depositaram moeda.</p>
+      <p className="adm-fraco">Dos que se cadastraram no período, quantos confiaram e de fato pagaram. Pagante é quem pagou custódia: depositar moeda sem pagar ainda não conta.</p>
       <div className="adm-grade">
-        <Cartao rotulo="Novos cadastros" valor={numero(v.cadastros)} detalhe={v.cadastros === null ? 'sem banco: não há data de cadastro' : 'contas criadas no período'} />
+        <Cartao rotulo="Novos cadastros" valor={numero(v.cadastros)} detalhe={v.cadastros === null ? 'sem dado: sem banco não há data de cadastro' : 'contas criadas no período'} />
         <Cartao rotulo="Já fizeram a 1ª transação" valor={numero(v.ativados)} detalhe={`${percentual(v.cadastroParaAtivacaoBp)} dos cadastros`} />
-        <Cartao rotulo="Já depositaram moeda" valor={numero(v.depositaramMoeda)} detalhe="moeda aprovada na análise, até hoje" />
-        <Cartao rotulo="Cadastro → moeda depositada" valor={percentual(v.cadastroParaMoedaBp)} tom="positivo" detalhe="depositaram ÷ cadastros" />
-        <Cartao rotulo="Já pagaram custódia" valor={numero(v.pagaramCustodia)} detalhe="dos que depositaram moeda" />
+        <Cartao rotulo="Já depositaram moeda" valor={numero(v.depositaramMoeda)} detalhe={`${percentual(v.cadastroParaMoedaBp)} dos cadastros · moeda aprovada na análise`} />
+        <Cartao rotulo="Clientes pagantes" valor={numero(v.pagantes)} detalhe="pagaram custódia" />
+        <Cartao rotulo="Cadastro → pagante" valor={percentual(v.cadastroParaPaganteBp)} tom="positivo" detalhe="pagantes ÷ cadastros" />
+        <Cartao rotulo="Pagantes que já negociaram" valor={numero(v.pagantesQueNegociaram)} detalhe="compraram ou venderam" />
       </div>
 
       {/* ---------- 4 ---------- */}
       <h2 className="adm-titulo-secao" id="cn-churn">4. Inadimplência e saída de clientes (churn)</h2>
-      <p className="adm-fraco">Quem não paga a custódia mensal e quem pede as moedas de volta.</p>
+      <p className="adm-fraco">Quem não paga a custódia mensal e quem deixou de usar o Real Olímpico.</p>
       <div className="adm-grade">
         <Cartao
           rotulo="Inadimplência"
@@ -104,14 +113,15 @@ export function Conselho({ dados, periodo }: { dados: DadosConselho; periodo: Pe
           detalhe={i.valorEmitido ? `${dinheiro(i.valorAtrasado)} atrasados de ${dinheiro(i.valorEmitido)} cobrados no período` : 'nenhuma fatura emitida no período'}
         />
         <Cartao rotulo="Contas inadimplentes agora" valor={numero(i.contasInadimplentes)} />
-        <Cartao rotulo="Moedas retiradas" valor={numero(i.moedasRetiradas)} detalhe="pedidos de retirada não cancelados no período" />
-        <Cartao rotulo="Churn de moedas" valor={percentual(i.churnDeMoedasBp)} detalhe="retiradas ÷ moedas que estavam na custódia no começo do período (estimativa)" />
-        <Cartao rotulo="Clientes que saíram" valor={numero(i.clientesQueSairam)} detalhe={`${percentual(i.churnDeClientesBp)} · retiraram e não guardam mais moeda`} />
+        <Cartao rotulo="Churn — total" valor={numero(i.churn.total)} tom={i.churn.total ? 'alerta' : 'normal'} detalhe={`${percentual(i.churn.totalBp)} de ${numero(i.churn.base)} cliente(s) · cada um contado uma vez`} />
+        <Cartao rotulo="Saíram por retirada" valor={numero(i.churn.retirada)} detalhe="pediram as moedas no período e não guardam mais nenhuma" />
+        <Cartao rotulo={`Inativos há mais de ${DIAS_PARA_CHURN} dias`} valor={numero(i.churn.inatividade)} detalhe="sem usar a plataforma (só quem tem acesso registrado)" />
+        <Cartao rotulo={`Custódia não paga há mais de ${DIAS_PARA_CHURN} dias`} valor={numero(i.churn.custodiaNaoPaga)} detalhe="fatura vencida e em aberto" />
         <Cartao rotulo="Custódia recorrente por mês" valor={dinheiro(i.receitaRecorrenteMensal)} detalhe="moedas em custódia × preço, se todas estivessem pagas" />
       </div>
       <p className="adm-fraco adm-mt10">
-        O sistema não guarda a data em que o cliente “deixa de ser cliente”, então a saída é medida pelo pedido de retirada. Moeda vendida no mercado continua na
-        custódia (muda de dono) e não conta como saída.
+        Um cliente pode ter mais de um motivo; no total ele conta uma vez. Inatividade e custódia não paga olham o dia de hoje; a retirada olha o período escolhido.
+        Moeda vendida no mercado continua na custódia e não é saída.
       </p>
 
       {/* ---------- 5 ---------- */}
@@ -133,14 +143,15 @@ export function Conselho({ dados, periodo }: { dados: DadosConselho; periodo: Pe
       </div>
 
       {/* ---------- premissas ---------- */}
-      <h2 className="adm-titulo-secao" id="cn-premissas">Premissas usadas (padrão provisório, aguardando confirmação)</h2>
+      <h2 className="adm-titulo-secao" id="cn-premissas">Premissas usadas</h2>
       <div className="panel">
         <ul className="adm-fraco">
-          <li><b>Custo logístico:</b> {dinheiro(m.custoLogisticoPorMoeda)} por moeda de envio postal (editável em <Link href="/admin/configuracao">Configuração</Link>).</li>
-          <li><b>Payback e LTV:</b> só custódia, preço de hoje; LTV = {LTV_HORIZONTE_MESES} meses de custódia, sem desconto e sem churn.</li>
-          <li><b>Cliente pagante:</b> quem teve ao menos uma moeda aprovada na análise (e, à parte, quem já pagou uma fatura de custódia).</li>
-          <li><b>Churn:</b> pedido de retirada não cancelado dentro do período; venda no mercado não conta.</li>
-          <li><b>Margem:</b> sem comissão (a negociação não registra a moeda) e sem imposto.</li>
+          <li><b>Custo logístico:</b> nenhum, o cliente paga o frete (decisão do Gabriel, 22/11/2026).</li>
+          <li><b>Payback e LTV:</b> contam custódia e comissão, todo o dinheiro que o cliente gera (decisão do Gabriel).</li>
+          <li><b>Horizonte do LTV:</b> {LTV_HORIZONTE_MESES} meses, <b>provisório</b>: ainda sem resposta.</li>
+          <li><b>Cliente pagante:</b> quem pagou custódia; depositar moeda sem pagar não conta (decisão do Gabriel).</li>
+          <li><b>Churn:</b> retirada, ou mais de {DIAS_PARA_CHURN} dias sem usar a plataforma, ou custódia não paga há mais de {DIAS_PARA_CHURN} dias (decisão do Gabriel).</li>
+          <li><b>Gasto e visitas de marketing:</b> digitados na aba “Gasto de marketing”; a leitura automática da Meta ainda não foi decidida.</li>
         </ul>
       </div>
     </>

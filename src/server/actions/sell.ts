@@ -522,8 +522,10 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
 
       const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price, taxasPar)
 
+      const coinIdsVendidos: string[] = []
       for (let i = 0; i < execN; i++) {
         const coin = availableCoins[i]
+        coinIdsVendidos.push(coin.id)
         const price = bo.price
         // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
         buyer.balance -= custoDeCompraPorMoeda(price, taxasPar)
@@ -547,6 +549,7 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         feeVendedor,
         fee: feeComprador + feeVendedor,
         tipoMoeda: bo.tipoMoeda,
+        coinIds: coinIdsVendidos,
       })
       bo.qty -= execN
       s.buyOrders = s.buyOrders.filter((b) => b.qty > 0)

@@ -145,6 +145,7 @@ export async function pagarReservaComSaldo(reservaId: string): Promise<ActionRes
         feeVendedor,
         fee: r.comissaoCompradorCents + feeVendedor,
         tipoMoeda: r.tipoMoeda,
+        coinIds: [r.coinId],
       })
 
       // A unidade só é consumida agora: no casamento o bid não foi decrementado

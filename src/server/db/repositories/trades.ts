@@ -26,12 +26,13 @@ type LinhaTrade = {
   fee: unknown
   fee_comprador?: unknown
   fee_vendedor?: unknown
+  coin_ids?: unknown
 }
 
 export async function carregarTrades(tx: Consulta): Promise<TradeRegistro[]> {
   const S = nomeDoSchema()
   const { rows } = await tx.query<LinhaTrade>(
-    `SELECT price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor
+    `SELECT price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor, coin_ids
        FROM ${S}.trades
       ORDER BY id`,
   )
@@ -49,6 +50,7 @@ export async function carregarTrades(tx: Consulta): Promise<TradeRegistro[]> {
       fee,
       feeComprador,
       feeVendedor,
+      ...(Array.isArray(r.coin_ids) && r.coin_ids.length ? { coinIds: r.coin_ids as string[] } : {}),
     }
   })
 }
@@ -56,8 +58,8 @@ export async function carregarTrades(tx: Consulta): Promise<TradeRegistro[]> {
 export async function inserirTrade(tx: Consulta, t: TradeRegistro): Promise<void> {
   const S = nomeDoSchema()
   await tx.query(
-    `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [t.price, t.qty, t.date, t.buyer, t.seller, t.tipoMoeda, t.fee, t.feeComprador, t.feeVendedor],
+    `INSERT INTO ${S}.trades (price, qty, date, buyer, seller, tipo_moeda, fee, fee_comprador, fee_vendedor, coin_ids)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)`,
+    [t.price, t.qty, t.date, t.buyer, t.seller, t.tipoMoeda, t.fee, t.feeComprador, t.feeVendedor, t.coinIds ? JSON.stringify(t.coinIds) : null],
   )
 }

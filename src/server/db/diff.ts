@@ -77,6 +77,8 @@ export interface TradeRegistro extends Trade {
   fee: Cents
   feeComprador: Cents
   feeVendedor: Cents
+  /** Ausente = negociação sem código da moeda (anterior à migration 059). */
+  coinIds?: string[]
 }
 
 export function normalizarUser(u: User): UserRegistro {
@@ -241,6 +243,7 @@ export function normalizarTrade(t: Trade): TradeRegistro {
     fee,
     feeComprador,
     feeVendedor,
+    ...(t.coinIds && t.coinIds.length ? { coinIds: [...t.coinIds] } : {}),
   }
 }
 

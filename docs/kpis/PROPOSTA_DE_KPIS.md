@@ -42,18 +42,19 @@ Pedido do Rogério (item 7): os cinco do slide 3.1. Agora todos têm número no 
 
 | # | KPI do conselho | Já existia | Entrou nesta rodada | Fórmula | Fonte do dado | Frequência | Dono (sugestão) |
 |---|---|---|---|---|---|---|---|
-| 1 | CAC × payback (orçamento de marketing R$ 3.600/mês; LTV × custo de aquisição; receita de custódia inicial R$ 2,00) | CAC por janela e CAC só da mídia (aba Aquisição) | **CAC do período, custódia por cliente por mês, payback em meses, LTV de 12 meses e LTV ÷ CAC** | CAC = gasto ÷ ativados; custódia/cliente = moedas por cliente × preço da custódia vigente (R$ 2,00); payback = CAC ÷ custódia/cliente; LTV = custódia/cliente × 12 | Gasto: digitado (aba Gasto de marketing; o R$ 3.600 entra como "Serviço"). Ativados e moedas: banco. Preço: tabela de taxas | Mensal | Rogério + Marketing |
-| 2 | Margem de contribuição líquida por moeda captada | Comissão por tipo (aba Negócio) | **Moedas captadas, custódia já paga por elas, custo logístico, margem por moeda e total** | (custódia paga das moedas captadas − custo logístico × moedas por envio postal) ÷ moedas captadas | Moedas e custódia: banco. **Custo logístico: parâmetro editável em Configuração** ("Custo logístico por moeda captada", padrão R$ 25,00; contrato novo dos Correios em avaliação) | Mensal | Gabriel |
-| 3 | Taxa de conversão de clientes pagantes | Cadastro → 1ª transação | **Cadastro → moeda depositada** (moeda aprovada na análise) e quantos já pagaram custódia | depositaram moeda ÷ cadastros do período | Banco, automático | Semanal | Rogério + Gabriel |
-| 4 | Inadimplência e churn (custódia mensal recorrente) | Taxa de inadimplência e contas inadimplentes (aba Negócio) | **Retiradas, churn de moedas, clientes que saíram e custódia recorrente por mês** | churn de moedas = retiradas ÷ moedas na custódia no começo do período (estimativa); clientes que saíram = retiraram e não guardam mais moeda | Banco (retiradas, moedas, faturas) | Mensal | Gabriel |
-| 5 | Liquidez interna e volume negociado (GMV) | Volume, comissão, ofertas abertas (aba Negócio) | **Giro, % das moedas em custódia que estão anunciadas, % dos anúncios que venderam e tempo até a venda** | giro = vendidas ÷ (vendidas + ainda anunciadas); anúncios que venderam = executadas ÷ publicadas no período | Banco; o histórico da fila (migration 015) dá os dois últimos | Semanal | Rogério |
+| 1 | CAC × payback | CAC por janela e CAC só da mídia (aba Aquisição) | **CAC do período, pagantes, custódia e comissão por cliente por mês, payback, LTV de 12 meses (provisório) e LTV ÷ CAC** | CAC = gasto ÷ ativados; receita/cliente = custódia (moedas dos pagantes × preço vigente) + comissão (do período levada a 30 dias) ÷ pagantes; payback = CAC ÷ receita/cliente | Gasto: digitado (o R$ 3.600 entra como "Serviço"). Resto: banco | Mensal | Rogério + Marketing |
+| 2 | Margem por moeda captada | Comissão por tipo (aba Negócio) | **Moedas captadas, custódia paga e comissão dessas moedas, receita por moeda** | (custódia paga + comissão das negociações da moeda) ÷ moedas captadas. **Sem custo logístico: o cliente paga o frete** | Banco; a comissão por moeda vale só para negociação feita depois da migration 059 | Mensal | Gabriel |
+| 3 | Conversão de clientes pagantes | Cadastro → 1ª transação | **Cadastro → pagante** (pagou custódia), depositaram moeda, pagantes que já negociaram | pagantes ÷ cadastros do período | Banco, automático | Semanal | Rogério + Gabriel |
+| 4 | Inadimplência e churn | Taxa de inadimplência e contas inadimplentes | **Churn por 3 motivos e total**: retirada, mais de 45 dias sem usar, custódia não paga há mais de 45 dias; custódia recorrente por mês | clientes que saíram (cada um uma vez) ÷ (pagantes + quem retirou) | Banco (retiradas, último acesso, faturas) | Mensal | Gabriel |
+| 5 | Liquidez e GMV | Volume, comissão, ofertas abertas | **Giro, % anunciado, % dos anúncios que venderam, tempo até a venda** | giro = vendidas ÷ (vendidas + ainda anunciadas) | Banco; histórico da fila (migration 015) | Semanal | Rogério |
 
-**Limites honestos** (a tela escreve os mesmos):
+**Decisões do Gabriel (22/11/2026) e limites** — respostas completas e pendências de marketing em `PENDENCIAS_DE_DADOS_E_AUTOMACOES.md`:
 
-- **Comissão por moeda captada** fica à parte ("comissão por moeda negociada"): a negociação não registra qual moeda foi vendida, então não dá para ligar a comissão à moeda captada sem inventar.
-- **Churn** é medido pelo pedido de retirada: o sistema não guarda a data em que alguém "deixa de ser cliente". Moeda vendida no mercado muda de dono e não conta como saída.
-- **Payback e LTV** usam só a custódia e o preço de hoje; o horizonte de 12 meses é uma premissa de leitura (`LTV_HORIZONTE_MESES`), não decisão de negócio.
-- **Nada fiscal**: margem aqui é custódia paga menos custo logístico digitado, não resultado contábil (esse é o da DRE).
+- Não há custo logístico; payback e LTV contam custódia e comissão; pagante é quem pagou custódia; churn tem 3 motivos (retirada, 45 dias inativo, 45 dias de custódia não paga).
+- O **horizonte do LTV (12 meses) é provisório**: ainda sem resposta.
+- A comissão por moeda captada só existe para negociações feitas depois da migration 059 (a negociação passou a guardar o código da moeda); as antigas ficam de fora, sem inventar.
+- Gasto e visitas de marketing seguem digitados; a leitura pela API da Meta ainda não foi decidida.
+- Nada fiscal: margem aqui é receita, não resultado contábil (esse é o da DRE).
 
 ## 4. Origem analógica × digital — o que falta e a proposta
 
@@ -82,7 +83,6 @@ Quem lança precisa da permissão de lançar (a mesma do controle financeiro). V
 | # | Decisão | Padrão usado |
 |---|---|---|
 | D2 | A lista final de KPIs do conselho (WhatsApp de 3/11) | os 5 do slide 3.1, na seção 3; se a lista do WhatsApp tiver outros, entram numa próxima rodada |
-| T5-1 | Custo logístico por moeda captada | R$ 25,00, editável em Configuração até o contrato novo dos Correios fechar |
 | J1 | O que conta como "1ª transação" | entrada de dinheiro confirmada, compra ou venda; o pagamento que a **equipe** registra em mãos não conta |
 | J2 | Contas da equipe e de teste entram no CAC? | **não** (e-mail institucional, lista de administradores e `@testeaurea.com.br`) |
 | J3 | O CAC inclui a mensalidade do serviço de marketing? | mostra os dois: CAC (tudo) e CAC só da mídia |
