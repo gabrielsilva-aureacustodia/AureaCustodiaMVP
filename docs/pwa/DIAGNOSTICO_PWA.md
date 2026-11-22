@@ -36,6 +36,41 @@ Legenda:   OK · LIMITE DA APPLE · DEFEITO NOSSO · NÃO VERIFICÁVEL AQUI (só
 4. **O que falta e só o Gabriel ou o Rogério fazem:** o roteiro de 10 passos no iPhone real (arquivo
    `docs/pwa/ROTEIRO_IPHONE_REAL.md`). Os passos 4, 5 e 7 decidem se ainda falta consertar algo.
 
+## T6 (22/11/2026) — o que mudou depois da v1, sem aparelho
+
+Pedido do Gabriel: tratar o 10b agora e deixar só a conferência final no aparelho. Sem build, sem commit (o Controle faz).
+
+| # | Mudança | Onde | Teste |
+|---|---|---|---|
+| 1 | **Callback tolerante.** Se `exchangeCodeForSession` falhar (código já usado, verificador ausente) **e já existir sessão válida** (`aurea_session`), segue para o destino (`/inicio` ou `/admin`, consumindo o cookie de destino) em vez de `/entrar?erro=callback`. Não vale em recuperação de senha, e identidade bloqueada continua indo para o aviso de conta desativada. Não abre sessão nova. Cobre o "risco secundário" do item 4 do contrato D↔E. | `src/app/entrar/callback/route.ts` | `route.test.ts` (5 casos novos) |
+| 2 | **Aviso no login dentro do app instalado.** Sob o botão do Google (que **não some**), só quando `lerStandalone()` é verdadeiro: "Se o Google não abrir ou voltar sem entrar, use e-mail e senha logo abaixo. Criou a conta pelo Google e ainda não tem senha? Peça o link para criar uma ao atendimento." | `src/components/login/AvisoDoGoogleNoApp.tsx`, `LoginForm.tsx`, `login.css` | `AvisoDoGoogleNoApp.test.ts` |
+
+**Lacuna confirmada (decisão do Gabriel):** a tela de entrar **não tem "Esqueci minha senha"** e não existe ação de servidor para a própria pessoa
+pedir o link; só a equipe envia (`src/server/admin/usuarios.ts` → `identidade.ts:134`). Por isso o aviso manda pedir ao atendimento, em vez de apontar
+para um botão que não existe. Criar o pedido na tela é backend novo no fluxo de senha (e-mail em massa, enumeração de contas, limite de tentativas):
+não foi feito. Se o Gabriel quiser, é uma tarefa própria.
+
+**`start_url` — avaliado e mantido em `/inicio`.** Para responder 200 nos dois estados teria de ser uma rota nova (ex.: uma página que decide entre
+painel e entrada) ou mudar o middleware. `/entrar` não serve: já logado ela redireciona para `/inicio` (307 do mesmo jeito) e o app abriria na tela
+errada. Mudar `start_url` também muda a identidade do que já foi instalado se `id` não fosse fixo (é `/`, ok), mas a evidência continua sendo
+a mesma da v1: o iOS segue um 307 dentro do escopo, e não há fonte contra. Não é pequeno nem provável por teste de unidade (o comportamento do iOS
+é o que importa); fica para depois do passo 7 do roteiro.
+
+**Cookies conferidos por leitura (nada foi alterado):**
+
+| Cookie | sameSite | secure | httpOnly | Duração | Sobrevive a fechar o app? |
+|---|---|---|---|---|---|
+| `aurea_session` (`session.ts`) | lax | sim em produção | sim | `maxAge` 7 dias (persistente) | Sim: cookie com validade, não de sessão do navegador. O iOS pode apagar antes se o app ficar sem uso (ver lembrete de uma semana no roteiro) |
+| `aurea_destino_login` (`destino.ts`) | lax | sim em produção | sim | 10 min | Só precisa viver durante a ida e volta ao Google |
+| `aurea_oauth_legal` (`legal.ts`, só cadastro Google) | lax | sim em produção | sim | 10 min, `path=/entrar/callback` | Idem |
+| Verificador PKCE (`@supabase/ssr`, `createAuthClient`) | lax | **não** (padrão da biblioteca) | **não** (padrão da biblioteca) | 400 dias | Sim. Não é segredo reutilizável sem o código do Google, mas anotado: não foi endurecido aqui |
+
+`lax` é o que permite o retorno do Google (navegação de topo, GET) levar os cookies; `strict` quebraria o login. Nenhum deles usa `localStorage`.
+
+**O que continua só-aparelho:** tudo da tabela "Só um aparelho real prova". A mudança 1 só importa se o passo 5 mostrar o retorno do Google chegando duas
+vezes; se mostrar `exchangeCode` com sessão **não** aberta (folha do Safari com cookie próprio), o aviso da mudança 2 é a saída para o usuário e a
+correção de fundo (esconder o botão no modo app ou verificador no servidor) continua dependendo do Gabriel.
+
 ## Os 8 pontos
 
 | # | Ponto | Veredito | Evidência |
@@ -105,7 +140,7 @@ Legenda:   OK · LIMITE DA APPLE · DEFEITO NOSSO · NÃO VERIFICÁVEL AQUI (só
   **com decisão do Gabriel**: esconder o botão do Google quando o app roda em modo app (`navigator.standalone` ou
   `display-mode: standalone`, que `src/lib/pwa/navegador.ts` já expõe em `lerStandalone()`) e explicar "entre com e-mail e senha", ou
   trocar o verificador em cookie por um estado guardado no servidor. Se o erro for só o do item 4 (sessão aberta mesmo assim),
-  o ajuste é pequeno: no callback, se a troca falhar mas já existir sessão válida, seguir para o destino em vez de mostrar o erro.
+  o ajuste é pequeno: no callback, se a troca falhar mas já existir sessão válida, seguir para o destino em vez de mostrar o erro. **(Feito em 22/11, ver T6.)**
 
 **Pendência de D anotada:** conferir os passos 5 e 7 do roteiro depois do deploy e decidir com o Gabriel; nenhuma mudança de código é
 pedida antes disso: não se cria trava nem regra nova sem o Gabriel pedir.

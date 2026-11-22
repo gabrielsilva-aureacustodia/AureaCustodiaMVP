@@ -25,6 +25,7 @@ vi.mock('@/server/auth/client', () => ({
 
 vi.mock('@/server/session', () => ({
   setSession: vi.fn(),
+  getSessionEmail: vi.fn(),
 }))
 
 vi.mock('@/server/auth/conta-desativada', async (importOriginal) => {
@@ -60,7 +61,7 @@ import {
 } from '@/server/auth/conta-desativada'
 import { COOKIE_DESTINO_DO_LOGIN } from '@/server/auth/destino'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
-import { setSession } from '@/server/session'
+import { getSessionEmail, setSession } from '@/server/session'
 
 describe('GET /entrar/callback', () => {
   const mockSignOut = vi.fn().mockResolvedValue({})
@@ -95,6 +96,58 @@ describe('GET /entrar/callback', () => {
 
     vi.mocked(barrarContaDesativada).mockResolvedValue(false)
     vi.mocked(authorizeProvisionedUser).mockResolvedValue(true)
+    vi.mocked(getSessionEmail).mockResolvedValue(null)
+  })
+
+  describe('troca do código falha (código já usado ou verificador ausente)', () => {
+    const falhaDoCodigo = { data: { user: null }, error: { message: 'code verifier not found' } }
+
+    it('com sessão válida segue para o destino, consome o cookie de destino e não abre sessão nova', async () => {
+      mockExchangeCode.mockResolvedValueOnce(falhaDoCodigo)
+      vi.mocked(getSessionEmail).mockResolvedValue('cliente@teste.com')
+      jar.valores.set(COOKIE_DESTINO_DO_LOGIN, '/admin')
+
+      const res = await GET(new Request('http://localhost:3101/entrar/callback?code=usado'))
+
+      expect(res.headers.get('location')).toBe('http://localhost:3101/admin')
+      expect(jar.valores.has(COOKIE_DESTINO_DO_LOGIN)).toBe(false)
+      expect(setSession).not.toHaveBeenCalled()
+    })
+
+    it('com sessão válida e sem destino guardado vai para /inicio', async () => {
+      mockExchangeCode.mockResolvedValueOnce(falhaDoCodigo)
+      vi.mocked(getSessionEmail).mockResolvedValue('cliente@teste.com')
+
+      const res = await GET(new Request('http://localhost:3101/entrar/callback?code=usado'))
+
+      expect(res.headers.get('location')).toBe('http://localhost:3101/inicio')
+    })
+
+    it('sem sessão continua mostrando o erro de sempre', async () => {
+      mockExchangeCode.mockResolvedValueOnce(falhaDoCodigo)
+
+      const res = await GET(new Request('http://localhost:3101/entrar/callback?code=usado'))
+
+      expect(res.headers.get('location')).toContain('/entrar?erro=callback&motivo=exchangeCode')
+    })
+
+    it('identidade bloqueada vence a sessão aberta e vai para o aviso de conta desativada', async () => {
+      mockExchangeCode.mockResolvedValueOnce({ data: { user: null }, error: { message: 'User is banned' } })
+      vi.mocked(getSessionEmail).mockResolvedValue('cliente@teste.com')
+
+      const res = await GET(new Request('http://localhost:3101/entrar/callback?code=x'))
+
+      expect(res.headers.get('location')).toContain(`/entrar?status=${STATUS_CONTA_DESATIVADA}`)
+    })
+
+    it('em recuperação de senha a tolerância não vale', async () => {
+      mockExchangeCode.mockResolvedValueOnce(falhaDoCodigo)
+      vi.mocked(getSessionEmail).mockResolvedValue('cliente@teste.com')
+
+      const res = await GET(new Request('http://localhost:3101/entrar/callback?code=x&type=recovery'))
+
+      expect(res.headers.get('location')).toContain('/entrar?erro=callback')
+    })
   })
 
   it('login pelo Google começado no painel volta para /admin', async () => {

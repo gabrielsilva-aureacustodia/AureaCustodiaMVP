@@ -37,7 +37,7 @@ import { consumePendingLegalAcceptance } from '@/server/auth/legal'
 import { provisionAuthenticatedUser } from '@/server/auth/provisioning'
 import { registrarAceitesFormais } from '@/server/documentos/aceites'
 import { registrarCadastroGoogleNaMeta } from '@/server/meta/cadastro'
-import { setSession } from '@/server/session'
+import { getSessionEmail, setSession } from '@/server/session'
 import { normalizarEmail } from '@/domain/email'
 
 function destination(request: Request, path: string): URL {
@@ -124,7 +124,15 @@ export async function GET(request: Request): Promise<NextResponse> {
       user = data.user
     } else if (code) {
       const { data, error } = await client.auth.exchangeCodeForSession(code)
-      if (error) return await falha(request, `exchangeCode: ${error.message}`)
+      if (error) {
+        // Código já usado (o app e a folha do Safari podem pedir o MESMO retorno do Google, no iPhone) ou
+        // verificador ausente: se a pessoa já está logada, o erro não tem o que ensinar — segue para o destino.
+        // Só no `code`, nunca em recuperação de senha, e identidade bloqueada continua indo para o aviso certo.
+        if (!recuperacao && !ehIdentidadeBloqueada({ message: error.message }) && (await getSessionEmail())) {
+          return NextResponse.redirect(destination(request, await consumirDestinoDoLogin()))
+        }
+        return await falha(request, `exchangeCode: ${error.message}`)
+      }
       user = data.user
     } else {
       const { data, error } = await client.auth.verifyOtp(

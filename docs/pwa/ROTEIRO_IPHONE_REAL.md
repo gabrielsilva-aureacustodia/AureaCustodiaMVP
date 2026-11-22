@@ -17,14 +17,14 @@ responder:
 2. **Entre antes.** No Safari, entre na sua conta com e-mail e senha e espere abrir o painel do cliente (`/inicio`).
 3. **Adicione.** Compartilhar → **Adicionar à Tela de Início**. [print] Anote o texto **exato** da chave "Abrir como app web" (ou diga se ela nem aparece) e deixe-a **ligada**. Toque em **Adicionar**.
 4. **Abra pelo ícone.** O ícone é o emblema sobre azul-marinho, com o nome "Real Olímpico"? O app abre em tela cheia, sem a barra do Safari, **já logado**? Anote por quanto tempo a abertura fica branca e se a barra do relógio está preta.
-5. **Login dentro do app.** No app, saia da conta e toque em **Entrar com Google**. [print] O que aparece: uma folha do Safari? Volta ao app já logado? Ou um erro (procure `exchangeCode` ou `callback`)? Depois repita com e-mail e senha.
+5. **Login dentro do app.** No app, saia da conta e toque em **Entrar com Google**. [print] O que aparece: uma folha do Safari? Volta ao app já logado? Ou um erro (procure `exchangeCode` ou `callback`)? Depois repita com e-mail e senha. **(T6, 22/11)** Confira também: sob o botão do Google aparece o aviso "Se o Google não abrir ou voltar sem entrar, use e-mail e senha…"? (só deve aparecer no app, nunca no Safari). Se a folha do Safari voltar com erro mas o app já estiver logado, o retorno tolerante funcionou: anote.
 6. **Chave desligada.** Apague o ícone (segure → Remover App) e adicione de novo com a chave **desligada**. O ícone abre dentro do Safari, como um atalho? (É o que o painel avisa.)
 7. **Sem estar logado, pela página inicial.** Apague o ícone, saia da conta no Safari, vá à página inicial (`/`), toque em **Baixar o app** e adicione. **Qual tela o ícone abre:** página de vendas, entrar ou painel? Na tela de entrar, o teclado e os botões funcionam?
 8. **Link de fora, com o app instalado.** Peça a você mesmo um link do site pelo WhatsApp e outro por e-mail e toque neles. Abrem no **Safari** (esperado: é limite da Apple, o iPhone não manda links para o app) ou no app? Depois do e-mail de confirmação, o app continua deslogado?
 9. **De dentro do Instagram.** Abra o link do site pelo Instagram e toque em **Baixar o app**. O painel manda abrir no Safari? [print]
 10. **(Opcional) Chrome do iPhone.** Repita o passo 3 pelo Chrome: aparece "Adicionar à Tela de Início"? O ícone abre como app ou dentro do Chrome?
 
-**Mande de volta:** a versão do iOS, o texto da chave do passo 3 e uma linha de resposta por passo. Os passos **4, 5 e 7** decidem se falta consertar algo: o login (frente D) ou o endereço inicial do app.
+**Mande de volta:** a versão do iOS, o texto da chave do passo 3 e uma linha de resposta por passo. Desde 22/11 o retorno do Google com código repetido segue para o painel quando já há login, em vez de mostrar erro; no passo 5, diga se viu erro, e se o app abriu logado assim mesmo. Os passos **4, 5 e 7** decidem se falta consertar algo: o login (frente D) ou o endereço inicial do app.
 
 **Lembrete para uma semana depois** (não é passo do dia): abra o app sem ter usado por 7 dias ou mais. O login expirou como previsto (a nossa sessão dura 7 dias) ou o iOS apagou antes?
 

@@ -21,6 +21,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { login, loginWithGoogle } from '@/server/actions/auth'
 
 import { AuthShell } from './AuthShell'
+import { AvisoDoGoogleNoApp } from './AvisoDoGoogleNoApp'
 import { EmailAlternativo } from './EmailAlternativo'
 import { GoogleButton } from './GoogleButton'
 
@@ -129,6 +130,7 @@ export function LoginForm({
         <p className="login-sub">Entre com a conta confirmada dos sócios.</p>
 
         <GoogleButton rotulo="Entrar com o Google" disabled={enviando} onClick={() => void entrarGoogle()} />
+        <AvisoDoGoogleNoApp />
         <div className="auth-feedback" aria-live="polite">
           {ondeAvisar === 'topo' ? avisos : null}
         </div>

@@ -65,6 +65,8 @@
 .pw-toggle.on svg{stroke:var(--gold)}
 
 .login-error{color:var(--red);font-size:13px;min-height:18px;margin-bottom:10px}
+/* Aviso do Google dentro do app instalado (AvisoDoGoogleNoApp): texto de apoio, não erro. */
+.auth-hint{font-size:13px;line-height:1.4;opacity:.85;margin:10px 0 0}
 
 /* ============================================================================
    GOOGLE PRIMEIRO (frente D — /cadastrar e /entrar)
