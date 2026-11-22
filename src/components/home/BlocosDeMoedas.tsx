@@ -68,7 +68,8 @@ export function BlocosDeMoedas(): ReactNode {
             <div className="moeda-bloco-tx">
               <h3>{b.titulo}</h3>
               <p>{b.historia}</p>
-              {tipo && <p className="moeda-bloco-ficha">Tiragem {tipo.tiragem} · Bimetálica 27mm</p>}
+              {tipo && <p className="moeda-bloco-ficha">{/* A ficha vem do catálogo (A17): Início, Mercado e landing dizem a mesma composição. */}
+                Tiragem {tipo.tiragem} · {tipo.detail.split(' · ').slice(2).join(' · ') || 'Bimetálica 27mm'}</p>}
               <div className="moeda-bloco-valor moeda-bloco-destaque" data-destaque="maior-oferta-de-compra">
                 <span className="lbl">Maior oferta de compra</span>
                 <span className={d.maiorOfertaDeCompra === null ? 'val val-vazio' : 'val val-destaque'}>
@@ -77,7 +78,7 @@ export function BlocosDeMoedas(): ReactNode {
               </div>
               <dl className="moeda-bloco-refs">
                 <div>
-                  <dt>Média de mercado</dt>
+                  <dt>Mediana dos anúncios à venda</dt>
                   <dd>{d.mediaDeMercado === null ? 'Sem negociações ainda' : brl(d.mediaDeMercado)}</dd>
                 </div>
                 {d.referenciaExterna ? (

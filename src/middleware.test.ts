@@ -21,7 +21,7 @@ import { NextRequest } from 'next/server'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { config, middleware } from '@/middleware'
-import { ROTAS_PUBLICAS_EXATAS, ehRotaPublica } from '@/server/rotas-publicas'
+import { ROTAS_PUBLICAS_EXATAS, ehRotaPublica, ehSegmentoProtegido } from '@/server/rotas-publicas'
 import { valorDoCookie } from '@/server/session-core'
 
 const SEGREDO = 'segredo-de-teste-nao-usar-em-producao'
@@ -92,6 +92,17 @@ describe('rotas protegidas exigem sessão válida', () => {
     await expect(res.json()).resolves.toEqual({ error: 'Sessão expirada.' })
   })
 
+  it('sem cookie, endereço que não existe recebe 404 (B10) — e rota logada continua indo ao login', async () => {
+    for (const rota of ['/pagina-que-nao-existe', '/foo/bar', '/minhas-moedas']) {
+      const res = await middleware(requisicao(rota))
+      expect(res.status, rota).toBe(404)
+      expect(res.headers.get('x-middleware-rewrite'), rota).toContain('/_nao-encontrada')
+    }
+    for (const rota of ['/inicio/inexistente', '/mercado/x', '/admin/nada']) {
+      expect((await middleware(requisicao(rota))).status, rota).toBe(307)
+    }
+  })
+
   it('/entrar/nova-senha é protegida, apesar de começar com /entrar', async () => {
     const res = await middleware(requisicao('/entrar/nova-senha'))
     expect(res.status).toBe(307)
@@ -115,7 +126,8 @@ describe('rotas protegidas exigem sessão válida', () => {
   it('ROTA QUE NÃO EXISTE também é barrada — é esta a brecha que o arquivo fecha', async () => {
     const res = await middleware(requisicao('/pagina-nova-que-alguem-criou'))
     expect(passou(res)).toBe(false)
-    expect(new URL(res.headers.get('location') ?? '').pathname).toBe('/entrar')
+    // B10: endereço que não existe em lugar nenhum recebe 404, não o login — e continua barrado (não passa).
+    expect(res.status).toBe(404)
   })
 })
 
@@ -178,6 +190,14 @@ describe('inventário: toda rota do projeto tem situação declarada', () => {
         'protegido, declarar em src/server/rotas-publicas.ts, ou conferir a sessão no próprio ' +
         'arquivo e registrá-la em SE_PROTEGEM_SOZINHAS neste teste.',
     ).toEqual([])
+  })
+
+  it('todo primeiro segmento de rota protegida está em SEGMENTOS_PROTEGIDOS (senão o 404 engoliria o login)', () => {
+    const fora = todas
+      .filter((arquivo) => /\/\((app|admin)\)\//.test(arquivo))
+      .map(url)
+      .filter((rota) => !ehSegmentoProtegido(rota))
+    expect(fora).toEqual([])
   })
 
   it('quem diz se proteger sozinha realmente confere a sessão', () => {

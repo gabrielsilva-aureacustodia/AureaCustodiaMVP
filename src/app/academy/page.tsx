@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { LegalDocument } from '@/components/legal/LegalDocument'
 import { brl } from '@/domain/money'
+import { carregarCanaisDeAtendimento } from '@/server/config/carregar'
 import { carregarTabelaDeTaxas } from '@/server/taxas/carregar'
 
 export const metadata: Metadata = {
@@ -21,6 +22,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function AcademyPage(): Promise<ReactNode> {
   const taxas = await carregarTabelaDeTaxas()
+  // Um e-mail de contato só (A14): o mesmo canal que o SAC lê de /admin/configuracao.
+  const canais = await carregarCanaisDeAtendimento()
   return (
     <LegalDocument
       title="Real Olímpico Academy"
@@ -89,7 +92,7 @@ export default async function AcademyPage(): Promise<ReactNode> {
         <p>
           O Real Olímpico é um prestador de serviços especializado na guarda e preservação
           de moedas comemorativas nacionais elegíveis (como a série Real Olímpico dos Jogos Rio 2016).
-          Nossa estrutura oferece três soluções integradas:
+          Nossa estrutura oferece quatro soluções integradas:
         </p>
         <ul>
           <li>
@@ -189,7 +192,7 @@ export default async function AcademyPage(): Promise<ReactNode> {
         <p>
           <strong>Quais são os prazos de saque e de resgate físico?</strong><br />
           Para transferências de saldo financeiro em reais para a conta bancária do titular, o prazo é
-          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, o Real Olímpico tem até
+          de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, o Real Olímpico tem até{' '}
           <strong>30 dias corridos para preparar e postar</strong> — período necessário para
           conferência pericial, deslocamento seguro de cofre, embalagem de alta segurança e despacho.
           A esse prazo <strong>soma-se o tempo de entrega dos Correios</strong>, que varia conforme o
@@ -217,7 +220,7 @@ export default async function AcademyPage(): Promise<ReactNode> {
         </p>
         <p>
           Dúvidas adicionais podem ser encaminhadas diretamente ao nosso time de suporte pelo e-mail{' '}
-          <strong>contato@aureacustodia.com.br</strong>.
+          <strong>{canais.email}</strong>.
         </p>
       </section>
     </LegalDocument>

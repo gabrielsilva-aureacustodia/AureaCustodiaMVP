@@ -123,7 +123,7 @@ export default async function SupportPage(): Promise<ReactNode> {
 
       {!canais.whatsapp && !canais.telefone ? (
         <section>
-          <h2>4. Nota sobre Telefonia e WhatsApp Corporativo (RA-26)</h2>
+          <h2>4. Nota sobre Telefonia e WhatsApp Corporativo</h2>
           <p>
             Informamos aos usuários que as linhas corporativas de atendimento telefônico e WhatsApp
             oficial encontram-se atualmente em fase final de homologação junto às operadoras de

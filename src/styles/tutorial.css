@@ -19,8 +19,17 @@
   font:600 13.5px var(--ff-sans);cursor:pointer;box-shadow:var(--shadow-toast);
   transition:background .18s,color .18s;
 }
+/* S05 (QA 22/11): no celular o botão vira só o ícone redondo de 44px — a frase inteira cobria o conteúdo (ex.: "Enviar uma moeda").
+   O texto continua lido por leitor de tela por causa do aria-label no botão. */
+@media (max-width:640px){
+  .tutorial-link{width:44px;padding:0;justify-content:center;font-size:0;gap:0}
+  .tutorial-link svg{width:22px;height:22px}
+}
 .tutorial-link:hover{background:var(--gold);color:var(--on-gold)}
 .tutorial-link svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0}
+
+/* B04 (QA 22/11): com uma janela aberta, os números e o painel do guia saem de cima dela e voltam quando ela fecha. */
+body:has(.modal-bg.show) .dicas-camada{visibility:hidden}
 
 /* ---- Camada de dicas (não escurece; só bolinhas e painel capturam toque) --- */
 .dicas-camada{position:fixed;inset:0;z-index:55;pointer-events:none}

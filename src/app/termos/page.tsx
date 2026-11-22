@@ -52,6 +52,11 @@ function renderizarTextoComLinks(texto: string): ReactNode {
   return texto
 }
 
+/** As letras já vêm com o fecho ("a)", "14.5.4."): acrescentar ")" por cima gerava "a))" (B08). */
+function rotuloDaAlinea(letra: string): string {
+  return /[.)]$/.test(letra.trim()) ? letra.trim() : `${letra.trim()})`
+}
+
 // A versão vigente vem do banco desde a C3: mudar um prazo pelo painel publica versão nova.
 // Dinâmica para não congelar no build a versão que existia na hora do deploy.
 export const dynamic = 'force-dynamic'
@@ -109,6 +114,9 @@ export default async function TermsPage(): Promise<ReactNode> {
                 <div key={pIdx}>
                   {textoPar ? (
                     <p className={parDestaque ? 'legal-bold-text' : undefined}>
+                      {/* A numeração (14.4, 7.3.3…) é a que o site e os Termos citam: sem ela a cláusula citada não se acha. */}
+                      {par.numero ? <strong className="legal-par-num">{par.numero}. </strong> : null}
+                      {par.titulo ? <strong>{par.titulo}. </strong> : null}
                       {renderizarTextoComLinks(textoPar)}
                     </p>
                   ) : null}
@@ -116,7 +124,7 @@ export default async function TermsPage(): Promise<ReactNode> {
                     <ul>
                       {par.alineas.map((al) => (
                         <li key={al.letra} className={parDestaque ? 'legal-bold-text' : undefined}>
-                          <strong>{al.letra})</strong> {renderizarTextoComLinks(al.texto)}
+                          <strong>{rotuloDaAlinea(al.letra)}</strong> {renderizarTextoComLinks(al.texto)}
                         </li>
                       ))}
                     </ul>

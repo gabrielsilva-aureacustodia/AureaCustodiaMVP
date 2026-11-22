@@ -52,3 +52,31 @@ export function ehRotaPublica(caminho: string): boolean {
   if (ROTAS_PUBLICAS_EXATAS.includes(caminho)) return true
   return ROTAS_PUBLICAS_PREFIXOS.some((p) => caminho === p || caminho.startsWith(p))
 }
+
+/**
+ * Primeiros segmentos de URL que EXISTEM atrás do login (B10, QA do Davi, 22/11/2026). Quem não tem sessão
+ * e pede um deles vai para o login; quem pede um endereço que não está aqui nem entre as rotas públicas
+ * recebe a página 404 de verdade (status 404), em vez de ser mandado para /entrar sem saber que errou o
+ * endereço. Rota protegida nova precisa entrar aqui — `middleware.test.ts` varre `src/app` e reprova se faltar.
+ */
+export const SEGMENTOS_PROTEGIDOS: readonly string[] = [
+  'admin',
+  'api',
+  'atendimento',
+  'compras',
+  'conta',
+  'entrar', // /entrar/nova-senha exige sessão; a própria /entrar é pública
+  'envios',
+  'inicio',
+  'mercado',
+  'painel',
+  'recibos',
+  'relatorios',
+  'retirada',
+  'vender',
+]
+
+export function ehSegmentoProtegido(caminho: string): boolean {
+  const primeiro = caminho.split('/').filter(Boolean)[0]
+  return primeiro !== undefined && SEGMENTOS_PROTEGIDOS.includes(primeiro)
+}

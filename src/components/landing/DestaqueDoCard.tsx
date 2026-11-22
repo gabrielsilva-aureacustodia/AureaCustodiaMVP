@@ -32,7 +32,7 @@ export function DestaqueDoCard({ destaque, demanda }: { destaque: DestaqueDeMerc
 
       <dl className="landing-market-refs">
         <div>
-          <dt>Média de mercado</dt>
+          <dt>Mediana dos anúncios à venda</dt>
           <dd>{media === null ? 'Sem negociações ainda' : brl(media)}</dd>
         </div>
         {externa ? (

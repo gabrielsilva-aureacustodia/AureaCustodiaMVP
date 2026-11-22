@@ -60,7 +60,7 @@ export function ComoPrecoEFormado({ tipoAtivo, media7, style }: ComoPrecoEFormad
       </div>
 
       <div className="avg-box u-mt14">
-        <div className="l">Média de mercado — 7 dias</div>
+        <div className="l">Média das negociações — 7 dias</div>
         {/* avg7 devolve null sem negociação nos últimos 7 dias: traço, não zero. */}
         <div className="v">{media7 ? brl(media7) : '—'}</div>
         <div className="s">{tipoAtivo} · referência informativa, não recomendação</div>

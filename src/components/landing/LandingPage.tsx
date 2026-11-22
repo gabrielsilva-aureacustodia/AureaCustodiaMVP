@@ -395,7 +395,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
             </div>
             <h3>Direitos Humanos · 1998</h3>
             <p className="pub-cartao-moeda-ficha">
-              Moeda comemorativa de R$ 1 · Cuproníquel · Tiragem histórica de {tiragem(TIPO_DH)}
+              Moeda comemorativa de R$ 1 · Bimetálica 27mm · 7,84g · Tiragem histórica de {tiragem(TIPO_DH)}
             </p>
             <DestaqueDoCard destaque={destaques[TIPO_DH]} demanda="Raridade chave" />
             <div className="pub-cartao-moeda-pe">

@@ -32,7 +32,7 @@ describe('BlocosDeMoedas', () => {
     expect(html).toContain('Tiragem 600.000')
     expect(html).toContain('Tiragem 2.016.000')
     // a média de mercado de Direitos Humanos vem da única oferta de venda; a Bandeira não tem negociação
-    expect(html).toContain('Média de mercado')
+    expect(html).toContain('Mediana dos anúncios à venda')
     expect(html).toContain(brl(45000))
     expect(html).toContain('Sem negociações ainda')
     // sem oferta de compra de nenhum tipo: o destaque diz isso

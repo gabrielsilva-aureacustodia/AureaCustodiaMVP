@@ -357,15 +357,14 @@ export function Sidebar(): ReactNode {
             </div>
           ))}
 
-          {/* Academy: item de vitrine, sem rota. .soon já o deixa apagado e sem
-              cursor de clique. */}
-          <div className="nav-item soon" aria-disabled="true">
+          {/* Academy (A12, QA 22/11/2026): a página /academy já está no ar e é pública; o item deixou de ser vitrine
+              "EM BREVE" e abre a página (fora do casco logado, como o link da landing). */}
+          <Link href="/academy" className="nav-item">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3L2 8l10 5 10-5zM5 10v6c0 1.5 3.1 3 7 3s7-1.5 7-3v-6" />
             </svg>
             Academy
-            <span className="tag-soon">EM BREVE</span>
-          </div>
+          </Link>
         </nav>
 
         {/* Tema e Sair aparecem aqui só na gaveta do celular (.sb-only). No

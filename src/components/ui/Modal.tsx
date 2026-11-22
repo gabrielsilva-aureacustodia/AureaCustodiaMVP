@@ -10,8 +10,8 @@
  * React guardado no contexto.
  *
  * FIDELIDADE DE COMPORTAMENTO — o original NÃO fechava a modal com clique no
- * fundo nem com Escape (procure: não há listener nenhum em #modalBg). A única
- * saída é um botão do próprio conteúdo chamando closeModal(). Isso está mantido:
+ * fundo nem com Escape (procure: não há listener nenhum em #modalBg). Isso segue
+ * sendo o padrão; só as janelas que se declaram fechavéis (FechaComEscEClique) fecham assim:
  * várias modais do sistema confirmam compra e venda com dinheiro real de teste,
  * e fechar por clique acidental no fundo mudaria a experiência.
  *
@@ -25,7 +25,8 @@
  * lá dentro, o conteúdo enxerga estado, sessão e run() normalmente.
  */
 
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import type { MutableRefObject } from 'react'
 import type { ReactNode } from 'react'
 
 interface ModalActions {
@@ -41,6 +42,26 @@ interface ModalActions {
  */
 const ActionsCtx = createContext<ModalActions | null>(null)
 const NodeCtx = createContext<ReactNode>(null)
+
+/**
+ * ESC E CLIQUE FORA (S06 do QA do Davi, 22/11/2026). O original não fechava a janela por nenhum dos dois,
+ * e isso continua sendo o PADRÃO: a janela de senha, as de segurança e as que perdem o que a pessoa
+ * digitou não podem sumir por um clique acidental. Quem pode ser fechada assim diz isso por dentro,
+ * renderizando `<FechaComEscEClique ativo={…} />` — `ativo` vira falso quando há algo a perder.
+ */
+const FechavelCtx = createContext<MutableRefObject<boolean> | null>(null)
+
+export function FechaComEscEClique({ ativo = true }: { ativo?: boolean }): null {
+  const ref = useContext(FechavelCtx)
+  useEffect(() => {
+    if (!ref) return
+    ref.current = ativo
+    return () => {
+      ref.current = false
+    }
+  }, [ref, ativo])
+  return null
+}
 
 export function useModal(): ModalActions {
   const ctx = useContext(ActionsCtx)
@@ -77,7 +98,18 @@ export function ModalProvider({ children }: { children: ReactNode }): ReactNode 
  */
 export function ModalHost(): ReactNode {
   const node = useContext(NodeCtx)
+  const { close } = useModal()
   const aberta = Boolean(node)
+  const fechavel = useRef(false)
+
+  useEffect(() => {
+    if (!aberta) return
+    const aoTeclar = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape' && fechavel.current) close()
+    }
+    document.addEventListener('keydown', aoTeclar)
+    return () => document.removeEventListener('keydown', aoTeclar)
+  }, [aberta, close])
 
   return (
     // O elemento fica sempre no DOM, como o #modalBg do original: .modal-bg sem
@@ -88,8 +120,14 @@ export function ModalHost(): ReactNode {
       role={aberta ? 'dialog' : undefined}
       aria-modal={aberta ? true : undefined}
       aria-hidden={aberta ? undefined : true}
+      onMouseDown={(e) => {
+        // Só o clique que começa no fundo (não o arrasto de dentro da caixa que termina fora).
+        if (e.target === e.currentTarget && fechavel.current) close()
+      }}
     >
-      <div className="modal">{node}</div>
+      <FechavelCtx.Provider value={fechavel}>
+        <div className="modal">{node}</div>
+      </FechavelCtx.Provider>
     </div>
   )
 }

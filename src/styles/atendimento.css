@@ -23,7 +23,7 @@ body:has(.tutorial-link) .atd-fab{bottom:max(72px,calc(env(safe-area-inset-botto
 }
 /* Folga no fim de toda página logada: o último card rola para cima dos dois botões fixos (Atendimento e Ver tutorial)
    em vez de ficar escondido atrás deles. Pseudo-elemento porque responsive.css redefine o padding do .main. */
-.app .main::after{content:"";display:block;height:104px}
+.app .main::after{content:"";display:block;height:140px}
 @media print{.app .main::after{display:none}}
 
 /* ---- Folha de envio ------------------------------------------------------- */

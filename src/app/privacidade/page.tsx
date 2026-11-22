@@ -38,12 +38,18 @@ export default function PrivacyPage(): ReactNode {
 
           {cap.paragrafos.map((par, pIdx) => (
             <div key={pIdx}>
-              {par.texto ? <p>{par.texto}</p> : null}
+              {par.texto ? (
+                <p>
+                  {par.numero ? <strong>{par.numero}. </strong> : null}
+                  {par.titulo ? <strong>{par.titulo}. </strong> : null}
+                  {par.texto}
+                </p>
+              ) : null}
               {par.alineas && par.alineas.length > 0 && (
                 <ul>
                   {par.alineas.map((al) => (
                     <li key={al.letra}>
-                      <strong>{al.letra})</strong> {al.texto}
+                      <strong>{/[.)]$/.test(al.letra.trim()) ? al.letra.trim() : `${al.letra.trim()})`}</strong> {al.texto}
                     </li>
                   ))}
                 </ul>

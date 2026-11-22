@@ -235,3 +235,13 @@
   .legal-print-btn{justify-content:center}
   .legal-content p,.legal-content li{font-size:16px}
 }
+
+/* ---- Página 404 (B10, QA 22/11/2026) ---------------------------------------- */
+.nf-conteudo{max-width:720px;margin:0 auto;padding:64px 16px 72px;text-align:center}
+.nf-conteudo h1{font:600 clamp(28px,5vw,40px)/1.15 var(--ff-display);color:var(--text-strong);margin:8px 0 12px}
+.nf-texto{color:var(--text-muted);font-size:16px;line-height:1.55;margin:0 0 24px}
+.nf-botoes{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:40px}
+.nf-botoes .pub-btn{min-height:44px}
+.nf-subtitulo{font:600 18px var(--ff-display);color:var(--text-strong);margin:0 0 12px}
+.nf-links{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:center}
+.nf-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;color:var(--ro-primaria-texto);text-decoration:underline}

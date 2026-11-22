@@ -54,8 +54,7 @@ export default async function FeesPage(): Promise<ReactNode> {
         <h2>1. Negociação no Mercado (Comissão dos Dois Lados)</h2>
         <p>
           Nas operações de compra e venda de recibos de custódia realizadas no marketplace da
-          plataforma, a comissão de negociação é cobrada de ambas as partes (Decisão F-1 e Cláusula
-          7.3.3 dos Termos de Uso), composta por parcela percentual sobre o valor da negociação e
+          plataforma, a comissão de negociação é cobrada de ambas as partes (conforme os Termos de Uso), composta por parcela percentual sobre o valor da negociação e
           parcela fixa por moeda transacionada:
         </p>
 

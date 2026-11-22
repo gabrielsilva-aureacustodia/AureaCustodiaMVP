@@ -28,7 +28,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-import { ehRotaPublica } from '@/server/rotas-publicas'
+import { ehRotaPublica, ehSegmentoProtegido } from '@/server/rotas-publicas'
 import { COOKIE_NAME, SegredoDeSessaoAusente, emailDoCookie } from '@/server/session-core'
 
 /**
@@ -49,6 +49,13 @@ function destinoDeQuemNaoTemSessao(req: NextRequest): NextResponse {
       { error: 'Sessão expirada.' },
       { status: 401, headers: { 'Cache-Control': 'no-store' } },
     )
+  }
+
+  // Endereço que não existe em lugar nenhum (B10): 404 de verdade, em português, com links de saída — não o login.
+  // Só o caminho vai para o log (nunca a query nem a pessoa), para a equipe achar link quebrado.
+  if (!ehSegmentoProtegido(pathname)) {
+    console.warn(`[404] ${pathname}`)
+    return NextResponse.rewrite(new URL('/_nao-encontrada', req.url), { status: 404 })
   }
 
   const destino = req.nextUrl.clone()

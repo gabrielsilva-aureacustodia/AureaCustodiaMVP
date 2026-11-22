@@ -27,7 +27,7 @@ describe('DestaqueDoCard', () => {
     expect(m).toContain('data-destaque="maior-oferta-de-compra"')
     expect(m).toContain('landing-market-price-destaque')
     expect(m).toContain('275,00')
-    expect(m).toContain('Média de mercado')
+    expect(m).toContain('Mediana dos anúncios à venda')
     expect(m).toContain('Referência de mercado externo — flor de cunho')
     expect(m).toContain('260,00')
     expect(m).toContain('cotado em')
