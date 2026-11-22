@@ -66,3 +66,27 @@ B01 existia hoje: `(app)/layout.tsx` passava `initialState={state}` e `/api/stat
 | A09 | `docs/manutencao-2026-11/garantias/A09_PROPOSTA_BANNER_COOKIES.md` (não ligado) |
 
 Perguntas ao Gabriel (todas abertas): A08 (receita/saldo da empresa visível a todo cliente?), A09 (banner de cookies e Meta na Política), ANPD/LGPD art. 48 (comunicar? com o jurídico), checagem dos logs de acesso da Vercel e contagem de clientes reais na janela.
+
+## Varredura de outras rotas + teste de regressão (decisão do Gabriel: resolver e impedir recorrência)
+Decisão registrada pelo Controle: sem comunicação à ANPD/titulares e sem jurídico (ver `INCIDENTE_B01_22-11.md` §7) — as perguntas A09/A08 seguem abertas; a de ANPD está **encerrada pelo Gabriel**.
+
+**Varredura (grep em `src/app/**`, route handlers, server components, ações):** nenhum outro caminho entrega estado de terceiros.
+| Quem lê `getState()` em `src/app` | O que sai |
+|---|---|
+| `(app)/layout.tsx:80`, `api/state/route.ts:62` | `visaoDoUsuario` |
+| `cadastrar`, `entrar`, `page.tsx` (raiz) | nada: só `state.users[session]` para redirecionar |
+| `(app)/recibos/[coinId]/page.tsx` | só o `coinId`; 404 para moeda alheia |
+| `api/envios/etiqueta/[protocolo]` | filtra pelo dono ou permissão `logistica.etiquetas` |
+| `api/rastreios` | filtra pelos protocolos do dono |
+| `(admin)/admin/bancada`, `configuracao` | páginas do painel; contagens/fila, com permissão conferida na página |
+| `server/mercado/destaques.ts` (landing) | só agregados (`destaqueDeMercado`), sem ofertas individuais |
+Server Actions: nenhuma devolve `AppState`/`users`/`trades` inteiros (as ocorrências em `custody.ts` são varreduras internas dentro de `mutateState`). Props `state={...}`/`initialState=` em componentes: só o `initialState` do layout (visão).
+
+**Teste de regressão:** `src/server/estado-nao-vaza.test.ts` (6 testes), varredura estática do código:
+1. todo `initialState={...}` tem de ser `visaoDoUsuario(...)`;
+2. nenhum arquivo faz `JSON.stringify(state|estado|getState())` (exceto a comparação do AppProvider);
+3. nenhuma rota/página devolve `{ state }` sem a visão; `api/state` precisa conter `state: visaoDoUsuario(state, session)`;
+4. páginas/layouts do `(app)` não passam `state={state}` a componente;
+5. **lista fechada** das rotas/páginas de `src/app` que chamam `getState()` — a nova quebra o teste e obriga a pergunta "isto devolve dado de outra conta?";
+6. Client Component não importa `@/server/state` nem `@/server/estado-do-usuario`.
+Provado que pega: com uma rota temporária `NextResponse.json({ state })` o teste falhou (rota removida em seguida). tsc limpo; 30 testes dos arquivos de estado/sessão passam.
