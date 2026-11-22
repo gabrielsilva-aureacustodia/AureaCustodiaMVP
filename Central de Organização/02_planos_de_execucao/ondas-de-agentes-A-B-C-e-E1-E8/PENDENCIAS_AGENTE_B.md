@@ -1,0 +1,79 @@
+# Pendências e Ações Manuais — Agente B · Finalizações
+
+```
+Frente:      B — Cobrança e custódia
+Branch:      feat/b-cobranca-e-custodia
+Data:        14/09/2026
+Referência:  docs/finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md (Seção 8 e Tabela 9)
+```
+
+> **Para os Sócios (Gabriel e Rogério).** Este documento lista tudo o que depende de intervenção
+> manual ou configuração externa ao repositório para a Frente B operar em produção.
+
+---
+
+## 1. Migrations no Supabase de Produção 🟡
+
+> ✅ **FEITO em 14/09**, pelo Agente C, antes do push do merge 4d35ee7 (RELATORIO_AGENTE_C.md, "Banco de produção e publicação"). Conferido de novo em 15/09 por npm run db:check: `017_cobrancas_gateway`, `018_planos_custodia` e `019_retirada_paga` aplicadas.
+
+Após o merge de `feat/b-cobranca-e-custodia` na branch `main`:
+
+```bash
+npm run db:migrate
+npm run db:check
+```
+
+### Migrations adicionadas pela Frente B:
+1. **`017_cobrancas_gateway.sql` (B1)**:
+   - Adiciona coluna `parcelas_max integer NOT NULL DEFAULT 1` em `aurea.payment_intents`.
+   - Atualiza `payment_intents_tipo_operacao_check` com: `'deposito'`, `'compra_direta'`, `'plano_custodia'`, `'fatura_custodia'`, `'assinatura_custodia'`, `'retirada'`.
+   - Cria tabela `aurea.recebimentos_gateway` com índices e RLS ligada.
+2. **`018_planos_custodia.sql` (B2)**:
+   - Cria tabela `aurea.planos_custodia` com índices e RLS ligada.
+   - Adiciona colunas `plano_id text` e `origem text` em `aurea.faturas_custodia`.
+   - Adiciona coluna `modalidade_envio text` em `aurea.envios`.
+3. **`019_retirada_paga.sql` (B3)**:
+   - Adiciona colunas `forma_pagamento text`, `payment_intent_ref text` e `parcelas integer NOT NULL DEFAULT 1` em `aurea.retiradas`.
+
+Todas as 3 migrations são estritamente retrocompatíveis e foram validadas na suíte de testes do PGlite.
+
+---
+
+## 2. Variáveis de Ambiente e Gateway (Mercado Pago) 🟡
+
+> 🟡 **ABERTA** — é o B-7 de docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md, que tem a lista completa e a evidência de 15/09.
+
+Na Vercel (painel *Project Settings › Environment Variables*), para o ambiente **Production**:
+
+| Variável | Valor esperado | Finalidade |
+|---|---|---|
+| `MP_ACCESS_TOKEN` | Credencial de acesso de produção | Credencial para cobrança real de clientes |
+| `MP_WEBHOOK_SECRET` | Chave secreta do webhook de produção | Assinatura HMAC de segurança dos webhooks |
+| `MP_SANDBOX` | `false` | Força utilização exclusiva da credencial de produção |
+| `NEXT_PUBLIC_APP_URL` | `https://aurea-custodia-mvp.vercel.app` | Endereço base da aplicação para redirecionamentos do checkout |
+
+*Nota de segurança (B1.0)*: O código já garante que `MP_SANDBOX=false` use só a credencial de produção (B1.0, `src/lib/payments/mercadopago.ts:32-39`).
+
+---
+
+## 3. Decisão de Negócio: Juros no Parcelamento 🟡
+
+> 🟡 **ABERTA** — é o B-8 (decisão dos sócios).
+
+- **Plano Anual de Custódia**: Parcelamento em até 12x no Cartão de Crédito.
+- **Retirada Segura**: Parcelamento em até 2x no Cartão de Crédito.
+- **Decisão dos sócios**:
+  - Se a Áurea absorver o custo de parcelamento para oferecer "sem acréscimo" ao cliente, habilitar no painel do Mercado Pago:
+    *Mercado Pago › Seu negócio › Configurações › Tarifas e prazos › Oferecer parcelamento sem acréscimo*.
+  - Se os custos ficarem a cargo do comprador, não é necessária alteração no painel (o Mercado Pago aplicará as taxas padrão de parcelamento na tela do Checkout Pro).
+
+---
+
+## 4. Coordenação com Demais Frentes
+
+O pedido da frente C à B sobre `conciliacao.ts` e `estacao/analise.ts` (P-C3-03) está em execução na E2 (`exec/e2-cobranca-com-configuracao-vigente`); a integração atualiza esta linha no merge.
+
+- **Frente A (Mercado e Termos)**:
+  - Compatibilidade com `src/domain/fees.ts` mantida sem conflito através de fallback em `src/domain/retirada.ts`.
+- **Frente C (Painel Admin e Bancada)**:
+  - Integração realizada via `alimentarPlanoNaAnalise`, permitindo que aprovação de moedas na bancada vincule os IDs das moedas aos planos de custódia e acione estornos em caso de recusa.

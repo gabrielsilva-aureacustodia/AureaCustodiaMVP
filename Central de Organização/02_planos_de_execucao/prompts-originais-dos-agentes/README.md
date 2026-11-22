@@ -1,0 +1,72 @@
+# `docs/prompts/` — as mensagens de abertura de cada frente
+
+Cada arquivo aqui é um **prompt pronto para copiar e colar** como primeira mensagem de um
+chat dedicado a uma frente de trabalho.
+
+## Finalizações — a rodada em curso (13/09/2026)
+
+Três agentes abrem no mesmo dia. Dentro de cada frente, as três sub-branches correm em
+sequência. **A1 entra na `main` primeiro** — B1.4, B2 e C3 dependem dela.
+
+| Arquivo | Frente | Branch da frente | Sub-branches |
+|---|---|---|---|
+| `FINALIZACAO_AGENTE_A.md` | Mercado e termos | `feat/a-mercado-e-termos` | A1 comissão dos dois lados · A2 livro de ordens · A3 termos oficiais |
+| `FINALIZACAO_AGENTE_B.md` | Cobrança e custódia | `feat/b-cobranca-e-custodia` | B1 cobrança reutilizável · B2 plano de custódia · B3 retirada e financeiro |
+| `FINALIZACAO_AGENTE_C.md` | Painel Admin | `feat/c-painel-admin` | C1 fundação e resultados · C2 usuários e CS · C3 bancada e configuração |
+
+O contrato dos três está em
+[`../finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md`](../finalizacoes/PLANO_FINALIZACOES_3_BRANCHES.md).
+
+## Publicação oficial para clientes — rodada de 10/09/2026, executada
+
+Ordem obrigatória: **a Fase 0 roda sozinha e primeiro.** Ela renomeia terminologia em 25
+arquivos espalhados pela interface, e renomear arquivo enquanto outro agente o edita produz
+conflito que o Git não resolve. Os outros três só criam suas branches depois que ela estiver
+na `main`.
+
+| Arquivo | Frente | Branch |
+|---|---|---|
+| `PUBLICACAO_FASE_0.md` | ⚠️ **Primeiro e sozinho.** Terminologia, vitrine e lacre | `main` |
+| `PUBLICACAO_AGENTE_A.md` | Jurídico, textos e domínio | `feat/juridico-textos-dominio` |
+| `PUBLICACAO_AGENTE_B.md` | Cadastro e financeiro | `feat/cadastro-financeiro` |
+| `PUBLICACAO_AGENTE_C.md` | Retirada e logística | `feat/retirada-logistica` |
+
+O contrato dos três está em
+[`../publish_docs/EXECUCAO_3_BRANCHES_PUBLICACAO.md`](../publish_docs/EXECUCAO_3_BRANCHES_PUBLICACAO.md),
+e as regras comuns em
+[`../publish_docs/PROTOCOLO_DO_AGENTE.md`](../publish_docs/PROTOCOLO_DO_AGENTE.md).
+**Ordem de merge: B → C → A.** A entra por último porque B e C escrevem texto novo de
+interface, e a última coisa antes da publicação é a varredura de terminologia de A sobre
+esse texto.
+
+## Rodadas anteriores
+
+| Arquivo | Frente | Branch |
+|---|---|---|
+| `AGENTE_A_LOGIN_LANDING.md` | Login, cadastro e landing page | `feat/auth-landing` |
+| `AGENTE_B_BANCO_BACKEND.md` | Banco de dados e backend | `feat/banco-supabase` |
+| `AGENTE_C_PAGAMENTOS_CORREIOS.md` | Mercado Pago e Correios | `feat/pagamentos-correios` |
+| `AGENTE_C2_CORRECOES.md` | Correções da frente C apontadas na auditoria de 03/09 — **executada em 03/09** | `feat/pagamentos-correios` |
+| `AGENTE_C3_INTEGRACAO.md` | Ligar pagamentos e rastreio ao estado — **só depois do merge da B** | `feat/pagamentos-integracao` |
+| `AGENTE_B2_POS_PRODUCAO.md` | Limpeza do blob, depois da virada (passo 9 do M1) | `feat/limpeza-store` |
+
+⚠️ **`AGENTE_B2_POS_PRODUCAO.md` só se abre depois de a produção rodar sobre tabelas por
+uma semana**, sem incidente. Antes disso, o que aquela sessão remove ainda é o caminho de
+volta. O roteiro da virada é [`../CUTOVER_BANCO_PRODUCAO.md`](../CUTOVER_BANCO_PRODUCAO.md).
+
+## Antes de abrir qualquer frente
+
+Leia **[`../FRENTES_PARALELAS.md`](../FRENTES_PARALELAS.md)**. Ele define quem edita o quê,
+a ordem de merge e a obrigação que torna o paralelismo possível — a frente B preservar a
+assinatura de `getState()` e `mutateState()`.
+
+## Por que os prompts apontam para documentos em vez de repetir o conteúdo
+
+Regra que vale aqui como vale no código: **duas cópias da mesma informação divergem no
+primeiro dia em que alguém atualiza só uma.** O prompt diz o que ler e na ordem certa; a
+verdade fica num lugar só.
+
+## Ao mudar uma frente
+
+Se o escopo de uma frente mudar, atualize **o prompt e o `FRENTES_PARALELAS.md` juntos** —
+prompt que contradiz o contrato é pior que prompt nenhum.

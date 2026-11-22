@@ -1,0 +1,70 @@
+﻿id_curto;id_completo;titulo;nome_curto;pai;pasta_ou_worktree;arquivado;ultima_atividade_utc
+54e9b8c9;local_54e9b8c9-5603-442f-a363-448cd689bf9e;Projeto Aurea;;— (nível superior);pasta completa;não;2026-09-02T06:35:37.781Z
+d3b04b08;local_d3b04b08-08b2-4167-a8b3-d65df09dfc2c;Análise da Branch A para publicação;;— (nível superior);pasta completa;não;2026-09-06T06:35:48.718Z
+8e3d0f36;local_8e3d0f36-b25e-453f-8a39-e9e68fb8bda0;Plano executivo: software análise de moedas;;— (nível superior);pasta completa;não;2026-09-10T22:22:35.439Z
+72033433;local_72033433-b699-44fc-b08a-5b87f9b5b041;Aurea publicação oficial;;— (nível superior);pasta completa;não;2026-09-10T22:45:02.756Z
+02a32854;local_02a32854-2694-4f39-a5a2-566bdf2d95ec;Fase 0 publicação Áurea Custódia;;— (nível superior);pasta completa;não;2026-09-11T21:08:30.187Z
+c8642a94;local_c8642a94-b0c5-47d5-91c0-6e70f4abe5e9;Backend Branch B execution;;— (nível superior);pasta completa;não;2026-09-12T15:47:59.258Z
+74c8a4a2;local_74c8a4a2-5823-4461-92c0-43779c899fdc;Plano de execução painel Admin;;— (nível superior);pasta completa;não;2026-09-14T03:26:43.973Z
+78eae569;local_78eae569-94b2-4c6b-adb7-af522e3eaacf;Painel administrativo Áurea Custódia;;— (nível superior);pasta completa;não;2026-09-15T12:17:15.688Z
+57a60a76;local_57a60a76-1c41-458b-a571-6400b31e431d;Análise de branches E1-E7 e consumo de tokens;;— (nível superior);pasta completa;não;2026-09-15T18:08:23.065Z
+7a3fc5fb;local_7a3fc5fb-ec7b-4a2f-8f52-2f5ddac594a1;Controle;;— (nível superior);pasta completa;não;2026-09-18T04:54:44.549Z
+144b6698;local_144b6698-fabb-4d65-a84d-371f925ea03a;Tarefas manuais faltantes e configuração Mercado Pago;;— (nível superior);pasta completa;não;2026-09-18T06:02:12.032Z
+c8ceca10;local_c8ceca10-794e-4058-ad94-1a9322e0ad9f;Tabela de custos MercadoPago;;— (nível superior);pasta completa;não;2026-09-22T22:27:01.182Z
+926314a9;local_926314a9-f730-43d7-bfc1-c8ca28a8c50e;Moedas no Mercado e blocos home;;— (nível superior);pasta completa;não;2026-10-02T00:58:36.808Z
+f2fad6cd;local_f2fad6cd-5239-411c-a725-3d443d638f0e;Reenviar e-mail do cliente no painel;;— (nível superior);pasta completa;não;2026-10-02T01:09:21.238Z
+1f1d6a12;local_1f1d6a12-74f4-4588-8b15-fb8b8248c6af;Normalização de e-mail para evitar duplicação;;— (nível superior);pasta completa;não;2026-10-02T01:09:55.310Z
+e29bb397;local_e29bb397-a9de-405f-985e-cb9bff96e7c2;Tutorial onboarding guiado;;— (nível superior);pasta completa;não;2026-10-02T18:02:49.183Z
+fffd4101;local_fffd4101-bf91-4fa2-840b-9e766cd85dc8;Logo do Real Olímpico;;— (nível superior);pasta completa;não;2026-10-07T17:12:46.536Z
+64ab8c83;local_64ab8c83-9e53-408b-a1b4-a37e11c5ea45;Real Olímpico publication setup;;— (nível superior);pasta completa;não;2026-10-21T21:34:09.377Z
+18b2c2a2;local_18b2c2a2-f870-4b9d-aa4d-d4bc48f3c45a;Integração API Correios;;— (nível superior);pasta completa;não;2026-10-22T17:40:13.867Z
+bd56c79f;local_bd56c79f-8745-438d-b6a9-759d1d60d141;Integração APIs GOV notas fiscais;;— (nível superior);pasta completa;não;2026-10-23T13:26:04.102Z
+9c63d87c;local_9c63d87c-42b0-40cf-b2d5-812ac843b32f;Brandbook e tokens do Real Olímpico;;— (nível superior);pasta completa;não;2026-10-25T12:47:45.330Z
+beee6814;local_beee6814-163a-4016-8803-300f53245297;Painel administrativo Real Olímpico;;— (nível superior);pasta completa;não;2026-10-25T12:49:14.733Z
+8b720db2;local_8b720db2-abb1-4a71-b206-e45fe384c822;Polimento plataforma Real Olímpico;;— (nível superior);pasta completa;não;2026-10-25T12:49:32.764Z
+bb848857;local_bb848857-f861-484e-913e-220fb66db6d2;Landing Real Olímpico — Redesign;;— (nível superior);pasta completa;não;2026-10-25T13:48:25.126Z
+9c502b50;local_9c502b50-37b4-4e54-8917-e8b93470a2f3;Formulário convite café da manhã;;— (nível superior);pasta completa;não;2026-10-27T14:30:24.017Z
+d6d00061;local_d6d00061-1d06-43de-8270-08f16c7cc92d;Real Olímpico design polish;;— (nível superior);pasta completa;não;2026-10-27T14:52:43.508Z
+c096945e;local_c096945e-09d8-423b-a90d-74d74e98f7d9;Higienização de repositório;;— (nível superior);pasta completa;não;2026-10-28T00:16:22.539Z
+05c243ff;local_05c243ff-3f33-4c41-9b9d-621f78e727ce;Fly.io backend deployment;;— (nível superior);pasta completa;não;2026-11-03T14:39:33.575Z
+d20b3c81;local_d20b3c81-9854-4335-8950-a3b6eeeb2fd4;Problema de cobranças de custódia;;— (nível superior);pasta completa;não;2026-11-03T20:36:18.815Z
+76217ed7;local_76217ed7-6a64-4572-8783-a8ea5046a3f4;PWA Aurea Custodia;;— (nível superior);pasta completa;não;2026-11-05T03:19:11.349Z
+5864a9da;local_5864a9da-e2da-4531-becc-7eb3fcd8b31d;Mensagem de convite Real Olímpico;;— (nível superior);pasta completa;não;2026-11-06T17:47:44.144Z
+40b7ead2;local_40b7ead2-3add-40b7-a2aa-0195ec292623;Real Olímpico apresentação interativa;;— (nível superior);pasta completa;não;2026-11-07T11:20:43.532Z
+232e472f;local_232e472f-ef11-4f1e-8944-a71970a255c5;Organização de projetos na Sintetica;;— (nível superior);pasta completa;não;2026-11-10T01:33:24.650Z
+b9a90eba;local_b9a90eba-7169-48d7-9d05-3ae0446e58a1;Facilitação de modificações cadastrais no Admin;;— (nível superior);pasta completa;não;2026-11-10T19:28:01.881Z
+c4c7bedb;local_c4c7bedb-9062-48f6-a040-e8957ae9cf20;Painel: saldo de clientes (terceiros);saldo-clientes-painel;Correções pós-evento de lançamento;painel-saldo-clientes-a79d70;não;2026-11-15T02:06:02.908Z
+c02be4ed;local_c02be4ed-5d2c-4483-b733-b4136cb42625;Correções pós-evento de lançamento;;— (nível superior);pasta completa;não;2026-11-15T02:18:57.727Z
+3622b458;local_3622b458-41ba-408f-bdf6-2334c522f523;Configuração pixel META no site;;— (nível superior);pasta completa;não;2026-11-15T20:09:13.454Z
+58ed3bed;local_58ed3bed-15ff-427e-9fbd-28a1a1d51e23;Aurea Custodia site maintenance tasks;;— (nível superior);pasta completa;não;2026-11-18T01:20:45.670Z
+e8b83291;local_e8b83291-27ac-49e1-bae8-6964a15471f0;H: pesquisa caso Rogério e API Correios;h-pesquisa-caso-rog-rio;H · Cancelamento: envio, validação e nota;manut-cancelar-envio-e-nota-9f78d5;sim;2026-11-18T01:39:16.026Z
+a7378e0c;local_a7378e0c-3ee1-4a89-932b-25f63d78b7a3;I: Auditoria do recibo com número da moeda;manut-i-audit;I · Recibo: número da moeda;manut-numero-da-moeda-3dedde;sim;2026-11-18T01:39:34.374Z
+292f0638;local_292f0638-9721-4ad5-b403-40ee9e054f83;E: Pesquisa iOS e leitura da produção;manut-e-esp;E · App: PWA funcionando no iPhone;manut-pwa-iphone-eb49d6;sim;2026-11-18T01:42:26.926Z
+238a3f52;local_238a3f52-7880-47db-b4a1-ebc0d0b6a589;C · Específico: custo do e-mail por mês;c-especifico;C · E-mails: confirmação de compra e movimentação;manut-emails-de-movimentacao-c46333;não;2026-11-18T01:42:58.825Z
+77b11067;local_77b11067-821d-4e9e-bdc0-1d159d8b8a24;D · Cadastro: Google primeiro (execução);manut-d-exec;D · Cadastro: Google primeiro e demonstração;manut-cadastro-google-8d269f;sim;2026-11-18T01:46:20.137Z
+c869252d;local_c869252d-91f7-488a-8934-14f6040ea0f8;B: Execução — 1º mês de custódia no envio;b-execu-o-1-m-s-de-cust;B · Cobrança: 1º mês de custódia no envio;manut-primeiro-mes-no-envio-1ff25c;sim;2026-11-18T01:46:56.924Z
+a4fe964d;local_a4fe964d-808b-4eac-bcc2-03cf834e3fbe;D · Cadastro: auditoria de regras e logs;manut-d-audit;D · Cadastro: Google primeiro e demonstração;manut-cadastro-google-8d269f;sim;2026-11-18T01:47:51.839Z
+424f5f88;local_424f5f88-6e09-4cb9-84f6-f28abf4d6e8b;D · Cadastro: Google primeiro e demonstração;manut-d;Manutenção Real Olímpico -- Pendências | Controle;manut-cadastro-google-8d269f;sim;2026-11-18T01:48:07.507Z
+115fe71d;local_115fe71d-e6fe-4884-bcf3-e9cf5a3889d6;C · Execução: e-mails de movimentação;c-execucao;C · E-mails: confirmação de compra e movimentação;manut-emails-de-movimentacao-c46333;não;2026-11-18T01:49:23.334Z
+2bb975f7;local_2bb975f7-7b8b-4722-849e-198df7898ce8;I · Recibo: número da moeda;manut-i;Manutenção Real Olímpico -- Pendências | Controle;manut-numero-da-moeda-3dedde;sim;2026-11-18T01:50:30.841Z
+eb865bf4;local_eb865bf4-0479-4865-a2b1-06c29f166c23;E: PWA no iPhone — execução;manut-e-exec;E · App: PWA funcionando no iPhone;manut-pwa-iphone-eb49d6;sim;2026-11-18T01:51:15.780Z
+d3bb3d71;local_d3bb3d71-fa0f-4890-a8bc-dce39c85cb62;C · Auditoria: e-mails de movimentação;c-auditoria;C · E-mails: confirmação de compra e movimentação;manut-emails-de-movimentacao-c46333;não;2026-11-18T01:53:47.092Z
+007bd0f8;local_007bd0f8-bc4a-4291-a06f-3d8a80b02a9b;E: Auditoria do PWA no iPhone;manut-e-audit;E · App: PWA funcionando no iPhone;manut-pwa-iphone-eb49d6;sim;2026-11-18T01:55:29.409Z
+dea20203;local_dea20203-4eef-4b1e-90af-d9a9e53d5074;E · App: PWA funcionando no iPhone;manut-e;Manutenção Real Olímpico -- Pendências | Controle;manut-pwa-iphone-eb49d6;sim;2026-11-18T01:56:29.295Z
+c46cdbec;local_c46cdbec-31bc-40d2-90da-f1e7ace63dd7;B: Auditoria — 1º mês de custódia no envio;b-auditoria-1-m-s-de-cus;B · Cobrança: 1º mês de custódia no envio;manut-primeiro-mes-no-envio-1ff25c;sim;2026-11-18T01:57:11.430Z
+ba95c62d;local_ba95c62d-feeb-46f4-8e61-c23fd168feb6;B · Cobrança: 1º mês de custódia no envio;manut-b;Manutenção Real Olímpico -- Pendências | Controle;manut-primeiro-mes-no-envio-1ff25c;sim;2026-11-18T01:57:23.074Z
+1ea197d6;local_1ea197d6-0276-4466-bfd6-2f42c90c85d4;H: executa cancelar envio e nota fiscal;h-executa-cancelar-envio;H · Cancelamento: envio, validação e nota;manut-cancelar-envio-e-nota-9f78d5;sim;2026-11-18T02:08:14.543Z
+c05fcb02;local_c05fcb02-180f-43eb-9ffe-4cfcb3df823d;A · Segurança: execução da senha nas ações;manut-a-exec;A · Segurança: senha nas ações sensíveis;manut-seguranca-senha-606459;sim;2026-11-18T02:12:30.624Z
+37094ced;local_37094ced-01cc-4620-9dda-1d2d20bbac45;H: audita regras da frente cancelar envio;h-audita-regras-da-frent;H · Cancelamento: envio, validação e nota;manut-cancelar-envio-e-nota-9f78d5;sim;2026-11-18T05:15:27.303Z
+489d6747;local_489d6747-724f-461a-869b-03d5aa276490;A · Segurança: auditoria de regras e logs;manut-a-audit;A · Segurança: senha nas ações sensíveis;manut-seguranca-senha-606459;sim;2026-11-18T15:08:22.451Z
+823d5a09;local_823d5a09-5bea-4f1c-9dfb-5fbbfc2b0556;A · Segurança: senha nas ações sensíveis;manut-a;Manutenção Real Olímpico -- Pendências | Controle;manut-seguranca-senha-606459;sim;2026-11-18T15:08:37.382Z
+c991dbd7;local_c991dbd7-d7e9-4586-9548-543de2ff6dfc;H · Cancelamento: envio, validação e nota;manut-h;Manutenção Real Olímpico -- Pendências | Controle;manut-cancelar-envio-e-nota-9f78d5;sim;2026-11-18T15:14:12.691Z
+e0b00be1;local_e0b00be1-a642-4858-991d-2ccb4b71b8d2;G · Notas: NFS-e acessível ao cliente;manut-g;Manutenção Real Olímpico -- Pendências | Controle;manut-notas-do-cliente-4e152f;não;2026-11-18T21:42:39.810Z
+ec9c65fd;local_ec9c65fd-3131-4fe8-a8ab-c5d78efc4212;I: Recibo mostra o número da moeda (execução);manut-i-exec;I · Recibo: número da moeda;manut-numero-da-moeda-3dedde;sim;2026-11-18T21:43:56.387Z
+0cf44cb3;local_0cf44cb3-a685-483e-85c2-6645d2495df0;C · E-mails: confirmação de compra e movimentação;manut-c;Manutenção Real Olímpico -- Pendências | Controle;manut-emails-de-movimentacao-c46333;não;2026-11-18T21:44:53.949Z
+8318fdf5;local_8318fdf5-82f2-4d20-b399-086f25b4b6aa;F · Extrato: refletir o saldo real;manut-f;Manutenção Real Olímpico -- Pendências | Controle;manut-extrato-igual-ao-saldo-51a2a8;não;2026-11-18T21:50:01.534Z
+6ccba6ef;local_6ccba6ef-787d-4c42-bdb1-2a4de7886360;K · Frete: acréscimo de R$ 4,00;manut-k;Manutenção Real Olímpico -- Pendências | Controle;manut-frete-mais-4-c9a96a;não;2026-11-18T21:52:08.734Z
+ce0440a7;local_ce0440a7-71a0-46ca-a840-f599c7038f14;L · Vídeos: espaço e armazenamento barato;manut-l;Manutenção Real Olímpico -- Pendências | Controle;manut-armazenamento-videos-b83e5d;não;2026-11-18T21:54:37.604Z
+e0f19b80;local_e0f19b80-5a0d-4841-a81c-26be3de337f7;G · Notas: NFS-e acessível ao cliente (2);manut-g-2;Manutenção Real Olímpico -- Pendências | Controle;manut-notas-do-cliente-802669;não;2026-11-18T22:00:56.014Z
+9dec9ee3;local_9dec9ee3-e424-4bd2-9369-8a752b695734;J · KPIs: painel do conselho no admin;manut-j;Manutenção Real Olímpico -- Pendências | Controle;manut-kpis-do-conselho-7a21c4;não;2026-11-18T22:01:43.675Z
+e259126b;local_e259126b-4373-4132-9e89-79edb7fa94ec;Manutenção Real Olímpico -- Pendências | Controle;manut-controle;— (nível superior);pasta completa;não;2026-11-19T03:15:06.366Z

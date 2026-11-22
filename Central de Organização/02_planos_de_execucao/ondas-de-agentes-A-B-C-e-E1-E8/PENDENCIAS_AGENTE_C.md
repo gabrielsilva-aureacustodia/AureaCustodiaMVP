@@ -1,0 +1,445 @@
+# Pendências da frente C — painel administrativo
+
+```
+Frente:  C · feat/c-painel-admin · worktree C:\dev\AureaCustodiaMVP-admin
+Regra:   só o Agente C escreve aqui (protocolo, regra 8). Item resolvido não some:
+         vira ✅ FEITO em dd/mm.
+```
+
+Cada item diz **o que falta**, **quem pode fazer**, **o que fica esperando** e **como conferir**.
+
+---
+
+## C1 — Fundação e Central de Resultados
+
+### P-C1-01 · Aplicar as migrations 020 e 021 no Supabase de produção
+
+> ✅ **FEITO em 14/09**, pelo Agente C, junto com o merge das três frentes na `main` (pedido do
+> Gabriel). O `db:migrate` aplicou 014 a 023 de uma vez, e o `db:check` lista 001 a 023. Detalhes em
+> `RELATORIO_AGENTE_C.md`, seção "Merge das três frentes na main".
+
+- **Quando:** logo depois de a C1 entrar na `main` e o deploy da Vercel terminar — publicar e migrar
+  são um passo só, nessa ordem (aprendizado de 11/09 no README das migrations).
+- **Quem:** Gabriel, ou o agente de auditoria que levar a C1 para a `main`.
+- **O que fica esperando:** a tabela de equipe (até lá, entra quem está na lista do ambiente, como
+  dev — RA-40) e a gravação do registro de uso (até lá, `POST /api/eventos` responde 204 sem gravar).
+  **Nada quebra sem elas:** as duas só criam tabelas, e o código cai no bootstrap se não as achar.
+- **Comando**, no PowerShell, na pasta principal com a `main` atualizada:
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run db:check
+```
+
+- **Como conferir:** o `db:migrate` imprime `+ 020_admin_rbac` e `+ 021_eventos_uso`; o `db:check`
+  lista as duas em "migrations aplicadas". Se `014` a `019` das outras frentes já estiverem na `main`,
+  aparecem juntas — a ordem não importa, nenhuma depende da outra.
+
+### P-C1-02 · Conferir em produção o "pronto quando" da C1
+
+- **Quem:** Gabriel, depois do P-C1-01.
+- **Roteiro:**
+  1. Entrar em `https://aurea-custodia-mvp.vercel.app/entrar` com uma conta de sócio do seed (senha
+     `12345678`). No menu do app aparece **Administração**; clicar abre `/admin`. (Endereço conferido
+     em 14/09, respondendo 200. O domínio próprio ainda não está publicado: o endereço é o da Vercel.)
+  2. Abrir `/admin/resultados/financeiro`, `/contabil`, `/kpis` e `/uso` — as quatro carregam.
+  3. Em `/admin/resultados/uso`, a trilha filtrada por "Ações do painel" fica vazia até a primeira ação;
+     o cartão "Páginas abertas" cresce conforme a navegação.
+  4. Entrar com uma conta criada por `/cadastrar`: o menu do app **não** mostra Administração, e
+     `/admin` manda para `/inicio`.
+  5. `https://aurea-custodia-mvp.vercel.app/relatorios` leva à Central de Resultados.
+- **Se quiser usar o e-mail real** (`gabriel.silva@aureacustodia.com.br`) no painel: entre com uma
+  conta de sócio do seed, abra `/admin/equipe` e dê acesso a ele com o papel **Desenvolvimento**. Não
+  precisa mexer em variável de ambiente.
+
+### P-C1-03 · Remover o painel antigo de relatórios, que ficou sem uso
+
+- **O que:** `src/components/relatorios/` (`RelatoriosPainel.tsx` e o README),
+  `src/server/actions/contabil.ts` e a função síncrona `autorizarRelatorio` de
+  `src/server/relatorios/acesso.ts` (junto com os testes dela em `acesso.test.ts`). Desde a C1,
+  `/relatorios` redireciona para `/admin/resultados/financeiro`, que reorganizou esse conteúdo com as
+  permissões dos papéis.
+- **Por que não removi:** os arquivos não estão na tabela de territórios da rodada, e remover é
+  decisão de limpeza, não requisito da C1. Deixei a nota no topo do README da pasta.
+- **Quem:** qualquer agente, com o seu aval, numa limpeza depois das três frentes na `main`.
+- **O que fica esperando:** nada.
+- **Como conferir:** depois da remoção, `npm run typecheck`, `npm test` e `npm run build` verdes, e
+  nenhuma ocorrência de `RelatoriosPainel` em `src/`.
+
+### P-C1-04 · Gaveta de verificação `aurea_local_admin` no Supabase (informativo)
+
+- **O que é:** um schema separado, criado em 14/09 pelo `npm run db:migrate` com
+  `AUREA_DB_SCHEMA=aurea_local_admin` — o caminho de ambiente local descrito em
+  `src/server/db/README.md`. Serviu para conferir o painel no navegador contra um Postgres de verdade
+  **sem tocar no schema `aurea`**. Tem só dado de demonstração: o seed, um papel "Contador" de teste,
+  a conta `rozane@testeaurea.com.br` com esse papel, uma despesa lançada e estornada e ISS de 2,5%.
+- **O que fica esperando:** nada. A C2 e a C3 podem reutilizá-la para a mesma conferência.
+- **Se quiser apagar** (opcional, Gabriel), no editor SQL do Supabase:
+
+```sql
+DROP SCHEMA aurea_local_admin CASCADE;
+```
+
+- **Como conferir que foi apagada:** com a variável `AUREA_DB_SCHEMA` definida como
+  `aurea_local_admin`, o `npm run db:check` responde "migration NÃO aplicada".
+
+---
+
+## C2 — Usuários e CS
+
+### P-C2-01 · Aplicar as migrations 022 e 023 no Supabase de produção
+
+> ✅ **FEITO em 14/09**, no mesmo passo do P-C1-01.
+
+- **Quando:** logo depois de a C2 entrar na `main` e o deploy da Vercel terminar.
+- **Quem:** Gabriel, ou o agente de auditoria que levar a C2 para a `main`.
+- **O que fica esperando:** `/admin/cs` (até lá, a tela diz que o banco não tem as tabelas do
+  atendimento e pede o `db:migrate`), as notas internas e o ativar e desativar da ficha do usuário.
+  A lista e a ficha de usuários, o ajuste de saldo, a inadimplência e o cadastro funcionam sem elas.
+- **Comando**, no PowerShell, na pasta principal com a `main` atualizada:
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run db:check
+```
+
+- **Como conferir:** o `db:migrate` imprime `+ 022_cs_mensageria` e `+ 023_notas_e_atribuicoes`; o
+  `db:check` lista as duas em "migrations aplicadas".
+
+### P-C2-02 · Escolher o provedor de WhatsApp e ligar o atendimento
+
+- **Decisão que é sua:** Evolution API (auto-hospedada, na faixa de US$ 5/mês de hospedagem) ou Z-API
+  (serviço, na faixa de R$ 100/mês) — seção 10 do plano do Admin. **O adaptador pronto é o da
+  Evolution** (`src/lib/mensageria/evolution.ts`), que é o que o plano lista. Se preferir a Z-API, me
+  avise: é um arquivo novo atrás da mesma interface, num commit pequeno, sem mexer na tela.
+- **O que fica esperando:** as mensagens de verdade. Até lá, `/admin/cs` funciona com o registro local:
+  as respostas ficam só no painel, marcadas "Só no painel — sem WhatsApp conectado".
+- **Eu não crio conta nem gero credencial.** Os passos abaixo são seus; os valores que eu conheço vão
+  literais, e os que só existem do seu lado vão marcados como `COLE AQUI`.
+
+**Passo 1 — o servidor da Evolution.** Hospede a Evolution API v2 (Railway, Fly.io ou outro). O que o
+painel precisa dele: um endereço público `https://…` e a variável `AUTHENTICATION_API_KEY` definida no
+ambiente do servidor (é a chave global da Evolution; o arquivo de exemplo dela vem com um valor de
+fábrica que precisa ser trocado).
+
+**Passo 2 — o segredo do webhook.** No PowerShell, gere um valor e guarde-o (ele é usado no passo 4 e
+no passo 5):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Passo 3 — a instância e o QR code.** Numa janela do PowerShell, defina as três variáveis da sessão
+(uma linha cada) e crie a instância `aurea-cs`:
+
+```powershell
+$evolution = "COLE AQUI A URL DO SERVIDOR DA EVOLUTION, SEM BARRA NO FIM"
+```
+
+```powershell
+$chave = "COLE AQUI O VALOR DE AUTHENTICATION_API_KEY DO SERVIDOR DA EVOLUTION"
+```
+
+```powershell
+$segredo = "COLE AQUI O VALOR GERADO NO PASSO 2"
+```
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "$evolution/instance/create" -Headers @{ apikey = $chave } -ContentType 'application/json' -Body '{"instanceName":"aurea-cs","integration":"WHATSAPP-BAILEYS","qrcode":true}'
+```
+
+Depois abra no navegador o gerenciador que vem com a Evolution — o endereço do servidor seguido de
+`/manager` —, entre com a mesma chave, abra a instância `aurea-cs` e leia o QR code com o WhatsApp do
+celular do atendimento, pela opção de conectar um aparelho (a mesma do WhatsApp Web).
+
+(Conferido no código-fonte da Evolution em 14/09: `POST /instance/create` com `instanceName`,
+`integration` = `WHATSAPP-BAILEYS` e `qrcode`; o gerenciador em `/manager`.)
+
+**Passo 4 — o webhook da instância.** Na mesma janela do PowerShell (com as três variáveis do passo 3):
+
+```powershell
+$corpo = @{ webhook = @{ enabled = $true; url = 'https://aurea-custodia-mvp.vercel.app/api/webhooks/whatsapp'; byEvents = $false; base64 = $false; headers = @{ jwt_key = $segredo }; events = @('MESSAGES_UPSERT', 'MESSAGES_UPDATE') } } | ConvertTo-Json -Depth 5
+```
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "$evolution/webhook/set/aurea-cs" -Headers @{ apikey = $chave } -ContentType 'application/json' -Body $corpo
+```
+
+O cabeçalho `jwt_key` faz a Evolution mandar, em cada evento, um `Authorization: Bearer` com um JWT de
+10 minutos assinado com o segredo — é o que o webhook do painel confere (conferido no código-fonte da
+Evolution em 14/09). `base64: false` mantém o corpo pequeno.
+
+**Passo 5 — as variáveis na Vercel.** No painel da Vercel, no projeto, em **Environment Variables**
+(caminho conferido na documentação da Vercel em 14/09), crie as quatro, marcando o ambiente
+**Production**, e depois faça o **Redeploy** — a Vercel só aplica variável nova em deploy novo:
+
+| Name | Value |
+|---|---|
+| `EVOLUTION_API_URL` | o endereço do servidor da Evolution, o mesmo `$evolution` do passo 3, sem barra no fim |
+| `EVOLUTION_API_KEY` | o valor de `AUTHENTICATION_API_KEY` do servidor da Evolution, o mesmo `$chave` |
+| `EVOLUTION_INSTANCE` | `aurea-cs` |
+| `WHATSAPP_WEBHOOK_SECRET` | o valor gerado no passo 2, o mesmo `$segredo` |
+
+- **Como conferir** (depois do redeploy). Primeiro, a rota responde que o provedor está configurado —
+  sem autenticação ela deve dizer **401**; **503** significa que as variáveis não chegaram ao deploy:
+
+```powershell
+try { Invoke-WebRequest -Method Post -Uri https://aurea-custodia-mvp.vercel.app/api/webhooks/whatsapp -Body '{}' -ContentType 'application/json' -UseBasicParsing } catch { $_.Exception.Response.StatusCode.value__ }
+```
+
+  Depois, em `/admin/cs`: o quadro **Canal** mostra "Evolution API · instância aurea-cs" sem nada em
+  "Falta configurar"; **Conferir conexão** responde "WhatsApp conectado."; uma mensagem mandada de outro
+  celular para o número do atendimento aparece na caixa em até 5 segundos; a resposta pelo painel chega
+  ao celular e passa a "Entregue" e "Lida". Me avise quando aplicar que eu faço a mesma conferência.
+
+### P-C2-03 · Chave de serviço do Supabase na Vercel, para criar login, redefinir senha e bloquear conta
+
+> ✅ **FEITO** — confirmado pelo Gabriel em 15/09: `SUPABASE_SERVICE_ROLE_KEY` está cadastrada na Vercel de
+> produção. Não pedir de novo sem um motivo concreto escrito junto.
+
+- **O que:** as ações "Criar conta" (com login), "Redefinir senha" e "Desativar conta" falam com o
+  Supabase Auth pela chave de serviço, só no servidor. Sem ela, a conta é criada só na plataforma e as
+  ações de senha dizem, na tela, o nome da variável que falta.
+- **Como saber se já está lá:** na ficha de qualquer usuário, aba Cadastro, bloco "Login (Supabase
+  Auth)". Se aparecer "Sem SUPABASE_SERVICE_ROLE_KEY no ambiente", falta.
+- **Nomes:** `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_URL`. O código aceita a URL também como
+  `NEXT_PUBLIC_SUPABASE_URL`: confira na lista de variáveis da Vercel se uma das duas existe, e só crie
+  `SUPABASE_URL` se nenhuma existir. A chave é **a mesma** do upload de
+  vídeo da bancada; onde copiá-la no painel do Supabase está no Passo 4 de
+  `docs/TUTORIAL_ESTACAO_PASSO_A_PASSO.md`. Ambiente **Production**, e **Redeploy** depois.
+- **Como conferir:** a aba Cadastro de uma conta criada por `/cadastrar` passa a mostrar "Criado em",
+  "Último login" e "Entra por".
+
+### P-C2-04 · Pedido ao Agente A — checar a conta desativada nas portas de entrada
+
+- **O que:** a ficha do usuário desativa a conta em duas metades — bloqueia o login no Supabase e grava a
+  situação em `aurea.admin_situacao_contas`. Duas portas não passam pelo Supabase e são da frente A:
+  a **entrada pelo catálogo de demonstração** e a **sessão já aberta** (cookie de 7 dias). A função está
+  pronta: `contaDesativada(email)` em `src/server/admin/situacao.ts` — responde `false` sem banco, com o
+  banco falhando e para qualquer conta da equipe do painel, então não tranca ninguém por acidente.
+- **Onde, sugestão:**
+  1. `src/server/actions/auth.ts`, em `login()`, antes de cada `setSession` (o do catálogo e o do
+     Supabase): `if (await contaDesativada(email)) return { ok: false, error: 'Esta conta está desativada. Fale com o atendimento.' }`;
+  2. `src/app/entrar/callback/route.ts`, antes do `setSession`: `falha(request, 'conta desativada')`;
+  3. a sessão aberta: o casco `src/app/(app)/layout.tsx` não pode apagar cookie (Server Component), e
+     `/entrar` devolve a pessoa para `/inicio` quando há sessão — então o fechamento pede uma rota que
+     limpe a sessão (por exemplo, um Route Handler de saída) e as duas checagens apontando para ela.
+- **Quem:** Agente A. **O que fica esperando:** RA-44.
+- **Como conferir:** desativar pela ficha uma conta do catálogo e tentar entrar com ela → recusa com a
+  mensagem; com a sessão aberta, a próxima navegação volta para `/entrar`.
+
+### P-C2-05 · Pedido ao Agente A — tela de nova senha no link de recuperação
+
+- **O que:** "Enviar link de redefinição" (ficha do usuário) chama `resetPasswordForEmail`, com o
+  `redirectTo` no callback de login. O callback já aceita o link e autentica a pessoa, mas manda para
+  `/inicio`, e trocar a senha em Minha conta pede a senha atual — que a pessoa esqueceu.
+- **Sugestão:** em `src/app/entrar/callback/route.ts`, quando `type=recovery`, redirecionar para uma tela
+  de nova senha que chame `supabase.auth.updateUser({ password })` sem pedir a atual (a sessão de
+  recuperação já prova quem é).
+- **Quem:** Agente A. **O que fica esperando:** RA-43 — até lá, a "senha provisória" da ficha é o caminho
+  que funciona inteiro.
+
+### P-C2-06 · Pedido ao Agente A — o número do WhatsApp do CS como canal de SAC
+
+> ✅ **FEITO em 14/09**, na C3, sem precisar do Agente A: os canais viraram configuração. O número entra
+> em `/admin/configuracao?aba=operacional`, bloco "Canais de atendimento", campo WhatsApp, e `/suporte`
+> passa a mostrar o link. Falta só o número, que é o do celular que o P-C2-02 conectar.
+
+- **O que:** quando o P-C2-02 conectar o número, ele entra nos canais de SAC de
+  `src/domain/documentos-legais/parametros.ts` (A3), que alimentam `/suporte`. O agente não inventa
+  número: **o valor é o número do celular do atendimento que o Gabriel conectar.**
+- **Quem:** Agente A (A3), ou a C3, se os canais já tiverem virado configuração (seção 6 do plano de
+  finalizações). **O que fica esperando:** nada no painel.
+
+### P-C2-07 · O que acende sozinho quando A2, A3, B1 e B2 chegarem à `main` (informativo)
+
+> ✅ **FEITO em 14/09**, na C3: a aba Mercado da ficha mostra a posição de cada lote e ordem na fila
+> (`posicaoNaFila`, A2), e a aba Financeiro tem "Quitar com o saldo" em fatura pendente ou atrasada, pela
+> ação `pagarFaturaCustodiaComSaldo` da B2.
+
+- **Sem commit nenhum:** aba Cadastro com os aceites formais (`aceites_documentos`, A3); aba Mercado
+  com o histórico da fila (`ofertas_historico`, A2); aba Financeiro com recebimentos do gateway
+  (`recebimentos_gateway`, B1) e planos de custódia (`planosCustodia`, B2). As leituras perguntam se a
+  tabela existe e mostram "disponível depois da X" enquanto não existe.
+- **Com um commit pequeno da própria frente C** (não é pedido a ninguém): a coluna "Posição na fila"
+  da aba Mercado passa a chamar `posicaoNaFila` (A2), e o bloco "Pagamento manual de fatura" da aba
+  Financeiro passa a chamar a ação de liquidação da B2. Os dois dependem de código que ainda não está
+  na `main`; entram na C3, que começa com A e B2 na `main`, ou antes, se chegarem durante a C2.
+
+### P-C2-08 · A gaveta `aurea_local_admin` recebeu as tabelas da C2 (informativo)
+
+- O `db:migrate` com `AUREA_DB_SCHEMA=aurea_local_admin` aplicou a 022 e a 023 em 14/09. Dado de teste
+  novo: a conta `teste.painel@exemplo.com.br` (criada, com cadastro, ajuste de R$ 150,25, marca de
+  inadimplência, desativada e uma nota), três conversas de teste, a etiqueta "Retirada". A Evolution
+  usada na conferência era um servidor falso local, desligado ao fim.
+- **O que fica esperando:** nada. O `DROP SCHEMA` do P-C1-04 apaga tudo junto.
+
+### P-C2-09 · Aviso ao Agente A — `settings.legalAcceptance` não sobrevive à gravação no Postgres
+
+- **O que achei:** `normalizarUser` em `src/server/db/diff.ts` monta o `settings` gravado só com as quatro
+  preferências (`twoFA`, `notifEnvios`, `notifNegociacoes`, `notifNovidades`). Qualquer outro campo —
+  inclusive `legalAcceptance`, que `registrarAceiteLegal` (`src/server/auth/legal.ts`) grava — some na
+  primeira gravação com banco. Em produção, portanto, esse aceite antigo não fica guardado. A C2 esbarrou
+  nisso ao decidir onde gravar a situação da conta, e por isso usou tabela própria (023).
+- **Por que avisar:** o plano da A3 diz que `settings.legalAcceptance` "continua sendo preenchido"; se
+  alguma tela ou a faixa de termos atualizados contar com ele no Postgres, vai ler vazio. A ficha do
+  usuário da C2 já trata a ausência (mostra "Sem aceite registrado nas preferências da conta") e passa a
+  ler `aceites_documentos` sozinha quando a migration 016 existir.
+- **Quem:** Agente A, se quiser que o campo persista; ou nada, se `aceites_documentos` já substituir o
+  uso. **O que fica esperando no painel:** nada.
+
+---
+
+## C3 — Bancada e configuração
+
+### P-C3-01 · Aplicar as migrations 024 e 025 no Supabase de produção
+
+- **Quando:** quando a C3 for levada à `main`. A ordem entre publicar e migrar não importa desta vez: o
+  código novo pergunta se as tabelas existem e, sem elas, cobra o padrão do código — que é exatamente o
+  que a `main` cobra hoje (RA-47). Migrar logo depois do deploy é o suficiente.
+- **Quem:** Gabriel, ou o agente que levar a C3 para a `main`.
+- **O que fica esperando:** editar taxas, catálogo, parâmetros e canais (até lá, a tela de configuração
+  mostra os valores e pede o `db:migrate`), o histórico e o cadastro de caixas.
+- **Comando**, no PowerShell, na pasta principal com a `main` atualizada:
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run db:check
+```
+
+- **Como conferir:** o `db:migrate` imprime `+ 024_config_plataforma` e `+ 025_caixas_fisicas`; o
+  `db:check` lista 001 a 025 em "migrations aplicadas".
+
+### P-C3-02 · Conferir logado as quatro telas da C3
+
+- **Por que é seu:** nesta sessão eu não consegui abrir as telas logadas. O painel do navegador do app
+  estava ligado ao servidor da pasta principal (`C:\dev\AureaCustodiaMVP`, com o `.env.local` de
+  produção), e não ao deste worktree; e senha em tela de login eu não digito. O que sustenta a entrega
+  são os testes — 79 novos, entre eles a bancada web fechando uma análise e a configuração publicando a
+  Tabela de Taxas nos repositórios reais da frente A, no Postgres embutido — e o build.
+- **Quem:** Gabriel, depois do P-C3-01, com uma conta de sócio do seed ou o próprio e-mail com papel
+  Desenvolvimento.
+- **Roteiro** (endereço da Vercel, o único publicado):
+  1. `https://aurea-custodia-mvp.vercel.app/admin/configuracao` — aba **Taxas e comissões**: os onze
+     campos com os valores de hoje (0,5% + R$ 1,00 de cada lado; R$ 2,00 de custódia por mês) e a
+     simulação de uma negociação. Mude a comissão fixa do comprador para `1,50` e veja a simulação mudar
+     antes de salvar. **Salvar** → toast "Salvo: … Tabela de Taxas publicada na versão 1.1." (o número
+     pode ser outro se a A3 já tiver publicado versões). Volte o valor para `1,00` e salve de novo.
+  2. `https://aurea-custodia-mvp.vercel.app/taxas` mostra a versão nova; no app, a faixa do topo diz "Há
+     versão nova de: Tabela de Taxas" até o aceite — é o comportamento esperado (RA-46).
+  3. Aba **Histórico**: as duas mudanças, com quem, quando, antes e depois.
+  4. Aba **Catálogo de moedas**: os tipos do código já semeados; **Editar** um tipo, desligar
+     "Negociável no mercado", salvar e ver o tipo sumir do seletor de `/vender`; ligar de novo.
+  5. Aba **Operacional**: limite de depósito, ciclo de sincronização, prazos da logística, prazos dos
+     Termos e canais de atendimento. O WhatsApp do atendimento entra aqui (P-C2-06) e aparece em
+     `https://aurea-custodia-mvp.vercel.app/suporte`.
+  6. Aba **Integrações**: cada serviço ligado, incompleto ou desligado, só com nomes de variável.
+  7. `https://aurea-custodia-mvp.vercel.app/admin/bancada` — **Cadastrar caixa** (`EB-001`), abra um envio
+     em "Recebido pela custódia", escolha a câmera (o navegador pede permissão), grave alguns segundos,
+     pare, e preencha uma linha por moeda. **Fechar análise** emite os recibos pelo mesmo serviço da
+     estação.
+  8. `https://aurea-custodia-mvp.vercel.app/admin/moedas` — **Verificar corrente** responde íntegra; a
+     moeda recém-analisada abre a ficha com os quinze campos e o vídeo.
+  9. `https://aurea-custodia-mvp.vercel.app/admin/logistica` — envios e retiradas, com o alerta de prazo e
+     os links de etiqueta.
+- **Se alguma tela der erro:** me passe o texto do erro do log do deploy na Vercel.
+
+### P-C3-03 · Pedido ao Agente B — dois pontos que ainda leem a tabela e o catálogo do código
+
+- **O que:** o painel já grava taxas e catálogo, e `src/server/config/carregar.ts` entrega o vigente.
+  Dois arquivos da frente B ainda não perguntam (RA-47):
+  1. `src/server/payments/conciliacao.ts`, a compra direta de lote pelo gateway: desconta a comissão
+     padrão do vendedor. Trocar pela tabela de `carregarTabelaDeTaxas()` (`src/server/taxas/carregar.ts`),
+     como `buyLot` já faz — é o mesmo RA-24 que espera a B1.4.
+  2. `src/server/estacao/analise.ts`, ao calcular o valor de entrada da moeda: decide se o tipo tem
+     mercado por `isNegociavel(tipo)` sem catálogo, isto é, pelo código. Passar o catálogo de
+     `carregarCatalogo()` (`src/server/config/carregar.ts`) — **sem tocar na fórmula do hash**.
+- **Quem:** Agente B. **O que fica esperando:** tipo novo marcado como negociável no painel nasce com o
+  valor do meio da faixa, e não com a mediana; taxa mudada no painel não vale na compra direta pelo
+  gateway.
+- **Como conferir:** mudar a comissão do vendedor no painel e fazer uma compra direta no sandbox — o
+  vendedor recebe com a comissão nova.
+
+### P-C3-04 · Vídeo da bancada web (informativo)
+
+- A bancada web sobe o vídeo pelo **mesmo caminho da estação**: `SUPABASE_URL` (ou
+  `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY` e o balde `analises` (ou o nome em
+  `SUPABASE_STORAGE_BUCKET`). É a mesma chave do P-C2-03 — se ela já estiver na Vercel e a estação já
+  sobe vídeo, nada a fazer. Sem ela, a tela diz o nome do que falta, a gravação fica num link "Baixar a
+  gravação" enquanto a página estiver aberta e a análise fecha sem vídeo.
+- Câmera no navegador só funciona em endereço `https` (a Vercel é) ou em `localhost`.
+
+### P-C3-05 · O link do painel abria o site do cliente
+
+> ✅ **FEITO em 15/09**, commit `40bb8c8` na `main`. O Gabriel abriu `/admin` e viu o site comum: sem sessão,
+> `/admin` ia para `/entrar`, que sempre devolve para `/inicio`, e o e-mail dele não estava no bootstrap. Agora
+> **o link da equipe é `https://aurea-custodia-mvp.vercel.app/painel`**: entra e volta para `/admin`, e diz com
+> qual conta a pessoa está quando ela não tem acesso; `gabriel.silva@aureacustodia.com.br` é `dev` pelo código
+> (RA-48). Conferido em produção sem login: `/painel` 200 com o formulário, `/admin` 307 para `/painel`. A parte
+> logada é o passo 1 de `docs/execucao-pendencias/TUTORIAL_MANUAL_GABRIEL.md`.
+
+### P-C3-06 · As pendências abertas viraram branches de execução
+
+- Desde 15/09, o que falta das pendências desta página (e das frentes A e B) está dividido em oito ordens de
+  serviço em `docs/execucao-pendencias/` (plano mestre, integração, prompts e tutorial manual). Cada item
+  continua aqui até a integração marcá-lo como feito.
+
+### P-C3-07 · Rogério e Rozane no painel, decisão D-2 e o ritual de higiene
+
+> ✅ **FEITO em 15/09**, pedidos diretos do Gabriel:
+> - `rogerio@aureacustodia.com.br`, `rogeriopena@testeaurea.com.br` e `rozane@testeaurea.com.br` entram no
+>   painel como `dev`, como o Gabriel (`EMAILS_FIXOS_DA_EQUIPE`, RA-48 ampliado).
+> - **D-2 decidida:** o prazo de 30 dias da retirada é para **postar** a moeda; a entrega depende dos Correios.
+>   O código já conta assim; o alinhamento dos textos é a tarefa 8b da E8, e a marcação da D-2 no arquivo de
+>   pendências da publicação é da integração.
+> - **Ritual novo** (Parte 4.1 de `docs/diario/RITUAL_DE_SESSAO.md`): depois de merge e testes, perguntar ao
+>   Gabriel se está tudo ok, relatar os erros, e só então remover os worktrees e branches mesclados.
+
+---
+
+## Merge das três frentes na `main` — 14/09
+
+### P-M-01 · Conferir logado em produção, depois do merge
+
+- **O que falta:** abrir o site com uma conta e ver as telas que leem o banco. Eu conferi o que dá para
+  conferir sem login — `/`, `/entrar`, `/taxas`, `/suporte` e `/termos` respondem 200, `/admin` manda
+  para o login —, e o `db:check` lista as migrations 001 a 023. A leitura do estado de produção pelo
+  código novo, que eu ia rodar como prova, foi barrada pela permissão do modo automático, e senha em
+  tela de login eu não digito.
+- **Quem:** Gabriel.
+- **Roteiro:**
+  1. Entrar em `https://aurea-custodia-mvp.vercel.app/entrar`.
+  2. Abrir `https://aurea-custodia-mvp.vercel.app/inicio` e `https://aurea-custodia-mvp.vercel.app/mercado` —
+     saldo, moedas e livro de ofertas aparecem (é a leitura que as migrations 014 e 015 mudaram).
+  3. Abrir `https://aurea-custodia-mvp.vercel.app/admin/resultados/financeiro` e
+     `https://aurea-custodia-mvp.vercel.app/admin/usuarios` — carregam.
+- **Se alguma tela der erro:** me passe o texto do erro que aparece no log do deploy do commit `4d35ee7`
+  na Vercel.
+
+### P-M-02 · Atualizar a pasta principal
+
+- **O que falta:** a `main` da pasta `C:\dev\AureaCustodiaMVP` continua em `3358845` no disco. O merge foi
+  montado no worktree da frente C e enviado direto ao GitHub, sem mexer na pasta principal (que pode ter
+  trabalho seu aberto).
+- **Quem:** Gabriel, quando for usar a pasta principal. O comando só avança se não houver conflito:
+
+```bash
+git -C C:/dev/AureaCustodiaMVP pull --ff-only
+```
+
+### P-M-03 · Aviso aos Agentes A e B (informativo)
+
+- As migrations 014 a 019 já estão aplicadas em produção — o item B-6 de
+  `docs/publish_docs/PENDENCIAS_MANUAIS_AGENTE_B.md` está feito, e não editei o arquivo da B.
+- Quem voltar a trabalhar numa branch de frente traz a `main` antes (`git merge origin/main`). Os ajustes
+  que o merge exigiu em arquivo de outra frente estão descritos no relatório da C e nas mensagens dos
+  commits `f5961ad` e `4d35ee7`.
