@@ -53,7 +53,7 @@ export default async function NaoEncontrada(): Promise<ReactNode> {
 
       <section className="nf-conteudo" aria-labelledby="nf-titulo">
         <p className="pub-eyebrow">Erro 404</p>
-        <h1 id="nf-titulo">Ops… esta página não existe.</h1>
+        <h1 id="nf-titulo">Página não encontrada</h1>
         <p className="nf-texto">
           O endereço pode ter mudado ou foi digitado errado.
           {logado ? ' Sua coleção continua guardada no cofre.' : ''}
