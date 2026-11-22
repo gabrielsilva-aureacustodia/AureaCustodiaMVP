@@ -46,6 +46,7 @@ import {
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { useApp } from '@/components/providers/AppProvider'
 import { useBloqueioPorPendencia } from '@/components/custody/useBloqueioPorPendencia'
 import { TipoSelector } from '@/components/market/TipoSelector'
@@ -118,7 +119,7 @@ export default function VenderPage(): ReactNode {
   const livresPorTipo: Record<string, string> = {}
   NEGOCIAVEIS.forEach((t) => {
     const n = availableCoinsForSell(state, me, t.key, catalogo).length
-    livresPorTipo[t.key] = `${n} disponível(is)`
+    livresPorTipo[t.key] = `${n} ${palavraNoPlural(n, 'disponível', 'disponíveis')}`
   })
 
   /* ---------- pré-seleção vinda do certificado (?moeda=RO-000042) ------------ */
@@ -358,7 +359,7 @@ export default function VenderPage(): ReactNode {
             </div>
           </div>
           <div className="qty-note" id="venda-qtd-nota">
-            {selecionadas.length} de {avail.length} {tipoAtivo} disponível(is) selecionada(s)
+            {selecionadas.length} de {avail.length} {tipoAtivo} {palavraNoPlural(avail.length, 'disponível', 'disponíveis')} ({palavraNoPlural(selecionadas.length, 'selecionada', 'selecionadas')})
           </div>
 
           <label className="field-lbl" htmlFor="venda-obs">
@@ -406,7 +407,17 @@ export default function VenderPage(): ReactNode {
               {termsOk ? '✓' : ''}
             </span>
             <span>
-              Aceito os <b>termos de publicação</b>
+              Aceito os{' '}
+              {/* S02: o texto agora abre os Termos de Uso (regras de publicação e negociação) em outra aba;
+                  stopPropagation para o clique no link não marcar/desmarcar a caixa. */}
+              <Link
+                href="/termos"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <b>termos de publicação</b>
+              </Link>
             </span>
           </label>
 
@@ -445,14 +456,11 @@ export default function VenderPage(): ReactNode {
             Escolha as moedas
           </h3>
 
-          <TipoSelector
-            name="tipo-venda"
-            titulo="Tipo de moeda a vender"
-            tipos={NEGOCIAVEIS}
-            valor={tipoAtivo}
-            onChange={trocarTipo}
-            detalhePorTipo={livresPorTipo}
-          />
+          {/* S02 (QA Davi): o seletor de tipo mora só em "Detalhes do anúncio"; esta coluna segue o tipo ali
+              escolhido (eram dois seletores sincronizados na mesma tela). */}
+          <p className="campo-dica">
+            Moedas livres de <b>{tipoAtivo}</b>. Para vender outro tipo, troque em “Detalhes do anúncio”.
+          </p>
 
           <div className="acoes-texto">
             <button type="button" className="link-btn" onClick={selecionarTodas}>

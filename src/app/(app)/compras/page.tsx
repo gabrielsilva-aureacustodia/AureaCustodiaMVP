@@ -22,9 +22,11 @@ import { useModal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
+import { motivoOfertaDeCompraInvalida, somenteNumerico } from '@/domain/validacao-dinheiro'
 import { publishBid } from '@/server/actions/market'
 import type { ModalidadeOfertaCompra } from '@/domain/types'
 import { ModalOfertaPrePaga } from '@/components/market/ModalOfertaPrePaga'
@@ -55,7 +57,7 @@ export default function ComprasPage(): ReactNode {
   const lotesPorTipo: Record<string, string> = {}
   NEGOCIAVEIS.forEach((t) => {
     const n = allLots.filter((l) => l.tipoMoeda === t.key).length
-    lotesPorTipo[t.key] = `${n} anúncio(s) à venda`
+    lotesPorTipo[t.key] = `${quantidadeComUnidade(n, 'anúncio', 'anúncios')} à venda`
   })
 
   const historico = state.trades
@@ -76,6 +78,15 @@ export default function ComprasPage(): ReactNode {
   const bidCustodiaTotal = bidPriceCents > 0 && bidQtyNum > 0 ? custodiaDaCompraPorMoeda(taxas) * bidQtyNum : 0
   const bidTotalComComissao = bidCustoUnit * bidQtyNum
   const bidMaxMoedasSaldo = bidCustoUnit > 0 ? Math.floor(me.balance / bidCustoUnit) : 0
+  // S04: o mesmo critério do servidor (saldo cobre preço + comissão + 1º mês de custódia) decide o botão.
+  const motivoBloqueio = motivoOfertaDeCompraInvalida({
+    quantidade: /^\d+$/.test(bidQty.trim()) ? Number(bidQty) : NaN,
+    precoCents: bidPriceCents,
+    comSaldo: modalidadeBid === 'saldo',
+    saldoCents: me.balance,
+    custoTotalCents: bidTotalComComissao,
+    formatarBRL: brl,
+  })
 
   function trocarTipo(tipo: string): void {
     setTipoAtivo(tipo)
@@ -159,7 +170,7 @@ export default function ComprasPage(): ReactNode {
                 inputMode="numeric"
                 className="tinput"
                 value={bidQty}
-                onChange={(e) => setBidQty(e.target.value)}
+                onChange={(e) => setBidQty(e.target.value.replace(/\D/g, ''))}
               />
             </div>
 
@@ -175,7 +186,7 @@ export default function ComprasPage(): ReactNode {
                   autoComplete="off"
                   placeholder="0,00"
                   value={bidPrice}
-                  onChange={(e) => setBidPrice(e.target.value)}
+                  onChange={(e) => setBidPrice(somenteNumerico(e.target.value))}
                 />
               </div>
             </div>
@@ -197,7 +208,7 @@ export default function ComprasPage(): ReactNode {
                 {
                   chave: 'saldo' as const,
                   titulo: 'Com saldo',
-                  detalhe: `Debitado da conta quando a oferta casar. Permite até ${bidMaxMoedasSaldo} moeda(s) neste preço.`,
+                  detalhe: `Debitado da conta quando a oferta casar. Permite até ${quantidadeComUnidade(bidMaxMoedasSaldo, 'moeda', 'moedas')} neste preço.`,
                 },
                 {
                   chave: 'prepago' as const,
@@ -264,7 +275,21 @@ export default function ComprasPage(): ReactNode {
             </div>
           )}
 
-          <button type="button" className="btn btn-gold compra-cta" onClick={() => void publicarBid()}>
+          {/* S04: botão desabilitado com o motivo à vista; vazio ainda não reclama de nada. */}
+          {motivoBloqueio && (bidPrice !== '' || bidQty !== '1') ? (
+            <div className="note u-erro" role="alert" id="motivo-oferta">
+              {motivoBloqueio}
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            className="btn btn-gold compra-cta"
+            disabled={motivoBloqueio !== null}
+            aria-describedby={motivoBloqueio ? 'motivo-oferta' : undefined}
+            title={motivoBloqueio ?? undefined}
+            onClick={() => void publicarBid()}
+          >
             {modalidadeBid === 'prepago' ? 'Pagar e publicar oferta' : 'Publicar oferta de compra'}
           </button>
 
@@ -294,7 +319,7 @@ export default function ComprasPage(): ReactNode {
                 tela não dá poder nenhum a mais — só duas coisas para manter
                 em sincronia e uma dúvida sobre qual delas vale. */}
             <div className="avg-box">
-              <div className="l">Média de mercado — 7 dias</div>
+              <div className="l">Média das negociações — 7 dias</div>
               <div className="v">{media7 ? brl(media7) : '—'}</div>
               <div className="s">{tipoAtivo} · negociações concluídas na plataforma</div>
             </div>

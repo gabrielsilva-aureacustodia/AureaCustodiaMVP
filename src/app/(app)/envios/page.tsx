@@ -43,6 +43,7 @@ import { COIN_TYPES, coinTypeInfo, tiposAtivos } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { custodiaDoEnvio } from '@/domain/custodia-texto'
 import { brl } from '@/domain/money'
+import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import type { AppState, Cents, Envio, UserEmail } from '@/domain/types'
 import { temCadastroCompleto } from '@/domain/cadastro'
@@ -260,11 +261,8 @@ function CartaoDePlano({
   )
 }
 
-const ANOS: number[] = (() => {
-  const out: number[] = []
-  for (let y = 2016; y >= 1980; y--) out.push(y)
-  return out
-})()
+// B09 (QA Davi, 22/11/2026): o ano não é mais uma lista de 1980–2016. Ele vem do tipo de moeda
+// (`anoPadrao` do catálogo) e fica travado — antes dava para registrar uma Bandeira Olímpica de 1985.
 
 /**
  * A retomada do wizard de envio com 5 passos:
@@ -349,6 +347,7 @@ export default function EnviosPage(): ReactNode {
   const [rastreioDigitado, setRastreioDigitado] = useState('')
   const [erroRastreio, setErroRastreio] = useState('')
   const [cepOrigem, setCepOrigem] = useState<string>('')
+  const [erroCep, setErroCep] = useState<string>('')
   const [enderecoDescricao, setEnderecoDescricao] = useState<string | null>(null)
   const [cotacaoFrete, setCotacaoFrete] = useState<{
     valorTotal: number
@@ -413,6 +412,7 @@ export default function EnviosPage(): ReactNode {
     const cepLimpo = cepOrigem.replace(/\D/g, '')
     if (cepLimpo.length !== 8) return
     setBuscandoCep(true)
+    setErroCep('')
     try {
       const res = await consultarCepEnvio(cepLimpo)
       if (res.ok && res.data) {
@@ -428,8 +428,15 @@ export default function EnviosPage(): ReactNode {
           })
         }
       } else {
-        setEnderecoDescricao('CEP não encontrado.')
+        // S03: sem endereço nem estimativa velhos na tela, e um aviso com cara de erro.
+        setEnderecoDescricao('')
+        setCotacaoFrete(null)
+        setErroCep(res.error || 'CEP não encontrado. Confira os números e tente de novo.')
       }
+    } catch {
+      setEnderecoDescricao('')
+      setCotacaoFrete(null)
+      setErroCep('Não foi possível consultar o CEP agora. Tente novamente.')
     } finally {
       setBuscandoCep(false)
     }
@@ -510,6 +517,9 @@ export default function EnviosPage(): ReactNode {
     state.envios.find((e) => e.protocolo === wizard.protocolo) ?? null
 
   const podeContinuar = quantidade >= 1 && Boolean(foto)
+  const pendenciasDoEnvio: string[] = []
+  if (!foto) pendenciasDoEnvio.push('a foto do item')
+  if (quantidade < 1) pendenciasDoEnvio.push('a quantidade')
 
   /* ---------- frete do envio (passo 4, 22/10/2026) ---------- */
 
@@ -632,14 +642,14 @@ export default function EnviosPage(): ReactNode {
               id="envio-ano"
               className="tinput"
               value={ano}
-              onChange={(e) => setAno(parseInt(e.target.value, 10))}
+              disabled
+              aria-describedby="envio-ano-nota"
             >
-              {ANOS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
+              <option value={ano}>{ano}</option>
             </select>
+            <p className="campo-dica" id="envio-ano-nota">
+              O ano é o de emissão do tipo de moeda escolhido.
+            </p>
 
             <label className="field-lbl" htmlFor="envio-qtd">
               Quantidade
@@ -684,7 +694,11 @@ export default function EnviosPage(): ReactNode {
                 maxLength={9}
                 className="tinput"
                 value={cepOrigem}
-                onChange={(e) => setCepOrigem(e.target.value)}
+                aria-invalid={erroCep ? true : undefined}
+                onChange={(e) => {
+                  setCepOrigem(e.target.value)
+                  if (erroCep) setErroCep('')
+                }}
               />
               <button
                 type="button"
@@ -696,6 +710,11 @@ export default function EnviosPage(): ReactNode {
                 <span className="sr-only"> de origem</span>
               </button>
             </div>
+            {erroCep ? (
+              <div className="note u-erro" role="alert">
+                {erroCep}
+              </div>
+            ) : null}
             {enderecoDescricao && (
               <div className="note nota-endereco" role="status">
                 <b>Endereço:</b> {enderecoDescricao}
@@ -737,10 +756,17 @@ export default function EnviosPage(): ReactNode {
               da nossa equipe.
             </div>
 
+            {/* S03: o botão cinza agora diz o que falta. */}
+            {pendenciasDoEnvio.length > 0 ? (
+              <p className="campo-dica" id="envio-pendencias" role="status">
+                Para continuar, falta: {pendenciasDoEnvio.join(' e ')}.
+              </p>
+            ) : null}
             <button
               type="button"
               className="btn btn-gold"
               disabled={!podeContinuar}
+              aria-describedby={pendenciasDoEnvio.length > 0 ? 'envio-pendencias' : undefined}
               onClick={continuarParaProtocolo}
             >
               Continuar
@@ -896,7 +922,7 @@ export default function EnviosPage(): ReactNode {
               Plano de custódia
             </h3>
             <p className="lead">
-              Protocolo <b className="ouro">{envio.protocolo}</b> gerado para {envio.quantidade} moeda(s).
+              Protocolo <b className="ouro">{envio.protocolo}</b> gerado para {quantidadeComUnidade(envio.quantidade, 'moeda', 'moedas')}.
               A custódia no Real Olímpico é de {brl(taxas.custodiaMensalPorMoeda)} por moeda / mês.
             </p>
 
@@ -1307,7 +1333,7 @@ export default function EnviosPage(): ReactNode {
                     <div className="summary-box passo-resumo">
                       <div className="sr">
                         <span className="k">Prazo de entrega</span>
-                        <span className="v">{freteDoEnvio.prazoDiasUteis} dia(s) útil(eis) após a postagem</span>
+                        <span className="v">{freteDoEnvio.prazoDiasUteis} {palavraNoPlural(freteDoEnvio.prazoDiasUteis, 'dia útil', 'dias úteis')} após a postagem</span>
                       </div>
                       <div className="sr">
                         <span className="k">Valor declarado (seguro)</span>
@@ -1380,7 +1406,7 @@ export default function EnviosPage(): ReactNode {
               <>
                 <div className="summary-box passo-resumo">
                   <div className="sr">
-                    <span className="k">Moeda(s) gerada(s)</span>
+                    <span className="k">Moedas geradas</span>
                     <span className="v">{envio.codigosAtivosGerados.join(', ')}</span>
                   </div>
                   {(() => {
