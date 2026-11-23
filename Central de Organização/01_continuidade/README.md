@@ -133,3 +133,6 @@ MD de execução de cada chat de hoje; o original em `docs/diario/execucoes/` é
 
 ## Atualização 22/11/2026 (21:55)
 Novo: `PENDENCIAS_DO_SISTEMA.md` (validação de CPF por API — não aprovada; pergunta nº 21 ao contador). `manutencao-22-11/2026-11-22--qa-r2-cadastro--MD_EXECUCAO.md` ganhou a decisão final do B02 (conta nasce confirmada, revertido em 91cccf2).
+
+## Atualização 22/11/2026 (22:20)
+Commits do dia depois do B02: 3219429 (cookies/Termos 2.3), 0a9deae (tutorial), 3734866 (plural), 978bc60 (Google/aceite), e86252d (achados do Tester).

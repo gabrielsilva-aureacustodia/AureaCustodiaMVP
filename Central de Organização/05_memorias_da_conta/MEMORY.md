@@ -42,3 +42,4 @@
 - [push-sempre-com-conta-aureacustodia](push-sempre-com-conta-aureacustodia.md) — Antes de todo push: gh auth switch --user gabrielsilva-aureacustodia
 - [meta-pixel-capi-estado-e-teste](meta-pixel-capi-estado-e-teste.md) — Pixel e API de Conversões da Meta no ar e comprovados (15/11/2026); como testar o evento do servidor sem prejudicar a campanha
 - [email-fica-para-amanha-registrar-tudo](email-fica-para-amanha-registrar-tudo.md) — Tudo de e-mail (Resend, DNS, B02, avisos, esqueci senha) fica para 23/11; registrar todo item novo em docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md, nunca insistir
+- [cadastro-sem-limitacao-e-cookies-presumidos](cadastro-sem-limitacao-e-cookies-presumidos.md) — Cadastro nunca ganha trava; conta nasce confirmada; cookies presumidos com selo que some, Termos 3.3

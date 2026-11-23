@@ -225,3 +225,6 @@ Garantias de Execução, planos hiperdetalhados, quadro dos itens do docx, KPIs 
 
 ## Atualização 22/11/2026 (21:55)
 Novo na raiz: `TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` — documento único de e-mail (DNS/Resend, chave, modelos, esqueci senha, avisos, A06, A14, custo), com decisões do dia. A cópia em `manutencao-22-11-garantias-e-planos/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` foi substituída pela versão consolidada.
+
+## Atualização 22/11/2026 (22:20)
+Nenhum plano novo; o que sobra é a TAREFA GRANDE de e-mail (23/11).

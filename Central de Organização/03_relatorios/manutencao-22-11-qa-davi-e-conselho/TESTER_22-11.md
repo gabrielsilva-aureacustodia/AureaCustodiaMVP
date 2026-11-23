@@ -180,3 +180,32 @@ Não conferido: B01 view-source de /inicio (exige conta de teste); cadastro por 
 - BUG 2: `max` do nascimento agora é hoje−18 anos pelo dia de Brasília.
 - BUG 3: CEP de `/envios` com máscara; CPF da chave Pix e do resumo da conta com pontuação.
 - BUG 4: NÃO é defeito — a Arbitragem tem aceite próprio e destacado, fora da faixa de reaceite geral (`DOCUMENTOS_DO_ACEITE_GERAL`), por desenho.
+
+## Rodada 10 — fechamento dos itens restantes (conta do Gabriel, painel visível)
+- **A15 ✓** Academy: "oferece quatro soluções integradas".
+- **A13 ✓** sem "Decisão F-1", "Cláusula 7.3.3" na Taxas, sem "RA-26" no SAC; sem "banco de dados" na tela de aceites.
+- **A14 ✓** SAC com um só e-mail (suporte@aureacustodia.com.br).
+- **A04 ✓** Configurações → Documentos Legais e Aceites Formais lista os aceites (documento, versão, data, canal, comprovante). Histórico para na versão 2.1/2.3 de 23/09: reaceite novo pendente.
+- **A07 ✓** Início: "Moedas em custódia 253"; Compras/Vender: "MÉDIA DAS NEGOCIAÇÕES — 7 DIAS R$ 200,00" (nome claro).
+- **A16 ✓** Dados pessoais: "Nome de exibição" separado de "Nome completo (do titular)".
+- **S02 ✓** /vender: "termos de publicação" é link para /termos; sem seletor repetido; Publicar anúncio desabilitado e diz "Escolha ao menos uma moeda".
+- **S04 ✓** /compras: botão desabilitado com preço 0, negativo (o "-" é removido), quantidade 0 ou negativa; sem saldo mostra "Seu saldo (R$ 0,00) não cobre esta oferta (R$ 204,00). Deposite ou reduza quantidade/preço." (R$ 200,00 + taxa 2,00 + custódia 2,00).
+- **S06 ✓** Tutorial ("Guia de Minha conta", "Fechar tutorial") fecha com Esc; modal Depositar fecha com Esc e clicando fora. Clique fora não fecha o painel do tutorial (é guia não-modal; ok).
+- **S05 ✗ (já reportado)** `.cookies-faixa` (z 46) cobre `.tutorial-link` (z 45); `.atd-fab` encosta na faixa.
+
+## Rodada 11 — varredura final logada (conta do Gabriel), 375/768/1280, claro e escuro
+Páginas: /inicio, /mercado, /compras, /vender, /envios, /recibos, /conta.
+- Sem rolagem lateral em nenhuma (375: 375; 768: 753/768; 1280: 1265/1280); nenhuma presa em "Carregando a tela…"; fundo escuro `rgb(8,18,38)` nas escuras; console sem "Content Security Policy/Refused/violat/Minified" em todas.
+- **S05 resolvido**: em 375 e 768 os botões flutuantes (`.atd-fab`, `.tutorial-link`) ficam acima da faixa de cookies, nada coberto (o "coberto" visto em ~767 antes era anterior ao e6fdcc9/f484c6f). Alvos <44 px: 1 em /vender (375), 0 nas demais.
+- **B04 ✓** com o tutorial aberto, abrir o modal Depositar esconde painel e números do guia; ao fechar voltam; "Fechar tutorial" encerra.
+- **A17 ✓** Direitos Humanos: "Bimetálica 27mm · 7,84g" na home e no Início (mesma descrição).
+- **S08 ✓** sem "custódia —," em Mercado, Vender, Compras.
+- **S07 ✗** Mercado ainda mostra "moeda(s) ·" em 3 itens da lista de ofertas de compra (`.o-name`); os demais plurais estão corretos ("0 anúncios à venda"). Vender/Compras/Início sem "(s)".
+- B05 ✓ (Academy "até 30" já verificado antes); S01 ✓ (Esqueci minha senha em /entrar).
+
+## Rodada 12 — selo de cookies (e86252d/3219429/0a9deae), Termos 2.3 e reaceite — conta do Gabriel logada
+- **Selo ✓** (localStorage `ro-cookies-aviso` limpo): 375 → "Usamos cookies" 150×44 em x12,y756 (canto inferior ESQUERDO), some em ≤10 s; 1280 escuro → 150×44 em x12,y844, some em ≤10 s; texto `rgb(242,237,224)`, fundo do selo transparente.
+- **Selo aberto (clique):** painel 351×151 com "Saiba mais 102×44 / Recusar 94×44 / Fechar 84×44" (texto: "…Ao entrar no site você está ciente do uso. Pode recusar os de publicidade sem perder nada."). Em 375 o painel aberto cobre `.atd-fab` e `.tutorial-link` (x12–363, y649–800) — só enquanto aberto (baixa).
+- **Bolinhas ✓ (375):** Atendimento 315,696 44×44 e Ver tutorial 319,756 44×44 (aria-label "Ver tutorial desta página"), vão vertical de 16 px, sem encostar; o selo (x12–162) não as cobre.
+- **Termos 2.3 ✓** `/termos` Versão 2.3 com cláusula 3.3 Cookies; `/taxas` 2.5; `/privacidade` 2.1.
+- **ACHADO (média, jurídico):** em Configurações → Documentos Legais e Aceites aparecem aceites `cadastro_google` de **Termos 2.2/Taxas 2.5/Política 2.1 às 22:08** e **Termos 2.3/Taxas 2.5/Política 2.1 às 22:14** — ou seja, cada **login** com Google (conta já existente) grava aceite de todos os documentos com canal "cadastro_google". `/entrar` **não mostra nenhuma declaração de concordância** (só /cadastrar mostra). Resultado: `aceitesPendentes` volta vazio e o reaceite nunca aparece para quem entra pelo Google; o aceite é registrado sem o usuário ter visto o texto. Sugestão: registrar aceite via Google só no cadastro (com a declaração), e no login deixar a faixa de reaceite aparecer.

@@ -40,3 +40,6 @@ Cada índice lista os arquivos novos; o original sempre manda.
 
 ## Atualização 22/11/2026 (21:55)
 Conta nasce confirmada (B02 encerrado por reversão, commit 91cccf2); nunca criar limitação de cadastro. Tarefa grande pendente para 23/11: `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md`. Pendência do sistema: `01_continuidade/PENDENCIAS_DO_SISTEMA.md` (validação de CPF por API, não aprovada).
+
+## Atualização 22/11/2026 (22:20)
+No ar: cookies presumidos com selo que some (Termos 2.3, cláusula 3.3, já publicados no banco), botão Ver tutorial como bolinha no celular, singular/plural de moeda, Google sem aceite novo para conta existente. Memória nova: `cadastro-sem-limitacao-e-cookies-presumidos`. Falta só o teste de cadastro por e-mail (Gabriel digita a senha).

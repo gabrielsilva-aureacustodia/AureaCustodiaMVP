@@ -51,3 +51,6 @@ A árvore de chats deste repositório só pode ser descrita com certeza pela con
 
 ## Atualização 22/11/2026 (21:55)
 Desta conta saíram também: `PENDENCIAS_DO_SISTEMA.md`, `TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` e a memória de e-mail atualizada.
+
+## Atualização 22/11/2026 (22:20)
+Também desta conta: memória de cadastro sem limitação/cookies presumidos e os commits 3219429, 0a9deae, 3734866, 978bc60.

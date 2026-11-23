@@ -114,3 +114,6 @@ Foto tirada no fechamento; `git log d570215^..HEAD` refaz a lista. Memória nova
 
 ## Atualização 22/11/2026 (21:55)
 `email-fica-para-amanha-registrar-tudo.md` atualizado: conta nasce confirmada, sem confirmação de e-mail; nunca limitar cadastro; documento único de e-mail e validação de CPF em pendências.
+
+## Atualização 22/11/2026 (22:20)
+Nova memória `cadastro-sem-limitacao-e-cookies-presumidos.md` (agora 48 arquivos + índice atualizado).

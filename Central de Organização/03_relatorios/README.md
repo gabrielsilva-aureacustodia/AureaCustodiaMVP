@@ -132,3 +132,6 @@ Relatórios dos chats de hoje, ligados ao código e às decisões. Original mand
 
 ## Atualização 22/11/2026 (21:55)
 `manutencao-22-11-qa-davi-e-conselho/RELATORIO_STATUS_QA_DAVI_22-11.md` e `TESTER_22-11.md` agora trazem a decisão final: B02 encerrado (conta nasce confirmada, sem limitação de cadastro). Faltam conferências do Tester em produção (B03, B06, B07, S02–S06, A04, A07, A12, A13, A15, A16, B09, B01 view-source, reaceite); o Tester recusou testar o cadastro por criar conta real — pendente de OK do Gabriel.
+
+## Atualização 22/11/2026 (22:20)
+`RELATORIO_STATUS_QA_DAVI_22-11.md` e `TESTER_22-11.md` atualizados com a conferência final logada do Tester (selo de cookies, bolinhas, documentos 2.3/2.5/2.1) e o achado jurídico do aceite no login Google (corrigido).

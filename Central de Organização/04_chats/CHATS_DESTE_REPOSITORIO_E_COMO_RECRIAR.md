@@ -400,3 +400,6 @@ Controle: `Pendências de manutenção do site` decidiu merges, commits e índic
 
 ## Atualização 22/11/2026 (21:55)
 Chat Tester (`local_58a21059…`, m2-tester) recebeu a conferência final no ar; recusou testar o cadastro por e-mail (cria conta real, sem OK do Gabriel). Demais chats m2-*/qa-* ociosos.
+
+## Atualização 22/11/2026 (22:20)
+Tester (m2-tester) concluiu a varredura logada; falta só o cadastro por e-mail. qa-r2-exec removeu o login de a@a.co (linha em aurea.users e aceites ficam: cadeia de hash). Demais chats ociosos.

@@ -58,3 +58,8 @@ Editados: `src/server/actions/auth.ts`, `src/server/actions/account.ts`, `src/se
 ## Conferências pedidas
 - `AvisoDoGoogleNoApp.test.ts`: já atualizado (o aviso cita "Esqueci minha senha", o teste deixou de proibir a palavra); vitest de `src/components/login` verde.
 - `FormulariosDeAcesso.test.ts`: o erro "server-only em componente cliente" vinha de `LoginForm` importar `conta-acesso`; corrigido com `vi.mock('@/server/actions/conta-acesso')` nos dois testes; verde.
+
+## Decisão do Gabriel (22/11)
+- Contas já criadas (ex.: a@a.co) ficam como verificadas: sem script, sem marca retroativa. Pergunta 4 (parte das contas de teste) encerrada.
+
+- Gabriel (22/11): "tira as contas de teste" -> só o login. Removido o login de `a@a.co` no Supabase Auth (única conta do QA achada: saldo 0, nome "a"); linha em `aurea.users` e os 3 aceites ficam (corrente de hash).
