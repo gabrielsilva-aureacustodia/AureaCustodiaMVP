@@ -389,11 +389,11 @@ Nomes curtos (para `SendMessage`): `m2-t1-financeiro`, `m2-t2-isencao`, `m2-t3-b
 | `qa-r2-exec` | R2 | E-mail pendente até confirmar, "esqueci minha senha", validação de nome/nascimento/telefone/Pix, aceite com erro visível. Commit `4026823`. |
 | `qa-r3-exec` | R3 | Saque em dias úteis, validação do depósito, oferta sem saldo, ano travado, CEP, termos de publicação; A08/B09. Commits `6140f17`, `5a39b89`, `2d25296`. |
 | `qa-r4-exec` | R4 | Termos 2.2, Arbitragem 2.2, Política 2.1, Tabela de Taxas 2.5, 404, textos; documentos legais gravados no banco por `scripts/publicar-documentos-legais.test.ts`. Commits `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`, `895b924`, `81f2cfa`. |
-| `qa-auditoria` | Auditoria | `AUDITORIA_QA_DAVI_22-11.md`: conferência de R1–R4. |
+| `qa-auditoria` | Auditoria | `AUDITORIA_QA_DAVI_22-11.md`: apontou 3 achados graves (teste do payload do B01; Termos 2.2 não publicar sem ordem; teste do aviso do Google), todos resolvidos (informado pelo Controle). |
 | `qa-polimento` | Polimento | `POLIMENTO_QA_DAVI_22-11.md` (404 sóbrio, `184b3ea`). |
-| `qa-merge-deploy` | Merge/Deploy | Merges, pushes e deploys do QA do Davi. |
+| `qa-merge-deploy` | Merge/Deploy | Publicou T5 e T6; R1 (`4c2df93`, `e97a19e`, `a4d5488`, `e6fdcc9`, `f484c6f`); R2 `4026823`; R3 `6140f17` e `2d25296`; R4 `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`; `06bfba3` (banco.test) (informado pelo Controle). |
 | `qa-relatorios` | Relatórios | `RELATORIO_STATUS_QA_DAVI_22-11.md` e texto do relatório (`44db26f`). |
-| `qa-higienizacao` | Higienização | Limpeza de pastas e worktrees depois dos merges. |
+| `qa-higienizacao` | Higienização | Monitorou a árvore de trabalho e não agiu (nada apagado nem movido) (informado pelo Controle). |
 
 Controle: `Pendências de manutenção do site` decidiu merges, commits e índices; pendências de 23/11 em `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`.
 <!-- entregas22:fim -->

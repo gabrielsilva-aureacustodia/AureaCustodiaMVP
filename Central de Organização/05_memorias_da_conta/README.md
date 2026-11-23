@@ -68,12 +68,13 @@ Memórias da conta criadas depois da foto original (cópia literal em `05_memori
 <!-- m22:fim -->
 
 <!-- commits22:ini -->
-## Commits de 22/11/2026, de `d570215` até `44db26f` (35 commits, mais novo primeiro) [central-22/11]
+## Commits de 22/11/2026, de `d570215` até `ba50887` (36 commits, mais novo primeiro) [central-22/11]
 
 Foto tirada no fechamento; `git log d570215^..HEAD` refaz a lista. Memória nova da conta: `email-fica-para-amanha-registrar-tudo.md` (nesta pasta).
 
 | Commit | Assunto |
 |---|---|
+| `ba50887` | docs: Central de Organização, varredura final de 22/11 (estado final, chats, commits) |
 | `44db26f` | docs: status final do QA do Davi, MD do R4, texto do relatório, registro (22/11) |
 | `6dede60` | docs: Central de Organização atualiza MDs de 22/11 |
 | `81f2cfa` | Teste da primeira mudança dos Termos acompanha a versão 2.2 publicada; garantias e relatórios finais do QA do Davi (22/11) |
