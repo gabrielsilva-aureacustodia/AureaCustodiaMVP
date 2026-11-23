@@ -218,3 +218,8 @@ Gabriel digitou a senha e criou a conta (autorizado por ele no chat, inclusive a
 - **ACHADO 2 (baixa):** o texto da tela ainda diz "Use seu e-mail real para receber a confirmação de acesso. A conta só fica ativa depois do clique no link", contradizendo o novo comportamento.
 - **ACHADO 3 (baixa):** `raw_user_meta_data` do Supabase guarda `legal_terms_version`/`privacy_policy_version` = "RASCUNHO-0.1-2026-09-02" (valores antigos), enquanto o aceite no banco está correto (2.3/2.1/2.5/2.2).
 - **Limpeza ✓:** as linhas da conta eram a cauda das correntes (aceites ids 663–666 = máx.; ledger 625 = máx.; users ord 186 = máx.), então apaguei em uma transação, só depois de conferir a cauda: aceites 4, ledger 1, users 1 → cauda voltou a 662/624, cadeia de hash intacta. Depois removi o login no Supabase Auth (DELETE 200, GET 404). Contagem final: auth 0, aurea.users 0, aceites 0, ledger 0. Nenhum arquivo do repositório foi alterado (consulta e limpeza por scripts descartáveis).
+
+## Rodada 14 — cadastro entra direto (pedido do Gabriel, 22/11)
+- `src/server/actions/auth.ts` (`registerWithEmail`): conta confirmada → `signInWithPassword` + `setSession`, retorna `data.entrou = true` (`CadastroData.entrou`).
+- `src/components/login/RegisterForm.tsx`: com `entrou`, `window.location.assign('/inicio')`; fallback "Confirme seu e-mail" removido; texto contraditório trocado por "Sua conta fica pronta ao terminar o cadastro e você já entra, sem confirmar e-mail."
+- `FormulariosDeAcesso.test.ts`: expectativa do texto atualizada. Sem build/teste local (regra). Falta: commit/deploy pelo Merge-Deploy e reteste com o Gabriel digitando a senha.

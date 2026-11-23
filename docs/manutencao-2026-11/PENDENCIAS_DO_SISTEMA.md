@@ -33,6 +33,7 @@ Montada lendo a última resposta de cada chat de 22/11 (T1–T6, R1–R4, Audito
 - Cookie PKCE do Supabase sem `secure` e `httpOnly` (padrão da biblioteca): anotado, não endurecido.
 - Erro React 418: não confirmado em navegador.
 - Conferências visuais logadas que NÃO fiz: Financeiro do admin (aviso da cadeia, ficha do Rogério), isenção Áurea/CEO, botão de vídeo na ficha.
-- Teste do cadastro por e-mail com senha digitada pelo Gabriel (`91cccf2`).
+- Repetir o cadastro por e-mail com o Gabriel digitando a senha, agora com login automático (`d84f795`; o teste anterior, de `91cccf2`, mostrou que a conta nascia confirmada mas a pessoa não entrava). **Deploy do `d84f795` ainda não confirmado READY.**
+- Metadado do Supabase das contas novas guarda `legal_terms_version`/`privacy_policy_version` = `RASCUNHO-0.1-2026-09-02` (vêm das variáveis `AUREA_TERMS_VERSION`/`AUREA_PRIVACY_VERSION` da Vercel, velhas). Cosmético: o aceite oficial no banco está certo.
 - Documentos desatualizados no repositório: `PENDENCIAS_ABERTAS.md` (18/09) e o RETOMADA do `ESTADO-GERAL` (diz que falta bateria e push, que foram feitos em 18/11).
 - Frente M (auditoria de marketing / Meta API): adiada por ordem do Gabriel.
