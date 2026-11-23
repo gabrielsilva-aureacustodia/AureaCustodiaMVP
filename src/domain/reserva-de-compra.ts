@@ -332,7 +332,7 @@ export function devolverLastroDoBid(state: AppState, bo: BuyOrder): Cents {
  */
 export function expurgarOrdensSemLastro(
   state: AppState,
-  precoMaisComissao: (preco: Cents) => Cents,
+  precoMaisComissao: (preco: Cents, comprador: string) => Cents,
 ): BuyOrder[] {
   const removidas: BuyOrder[] = []
 
@@ -346,7 +346,7 @@ export function expurgarOrdensSemLastro(
       return false
     }
 
-    const podePagarUma = fundosDoBid(bo, comprador.balance) >= precoMaisComissao(bo.price)
+    const podePagarUma = fundosDoBid(bo, comprador.balance) >= precoMaisComissao(bo.price, bo.buyer)
     if (!podePagarUma) {
       devolverLastroDoBid(state, bo)
       removidas.push(bo)

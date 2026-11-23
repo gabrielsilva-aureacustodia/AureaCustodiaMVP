@@ -30,8 +30,7 @@
  * paga aqui é exatamente o que a oferta precisa ter para poder executar.
  */
 
-import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
-import { taxasDeQuemCompra } from '@/domain/isencao'
+import { cotarCompra } from '@/domain/cotacao'
 import { LinhaCustodiaNaCompra } from './LinhaCustodiaNaCompra'
 import { useState, type ReactNode } from 'react'
 
@@ -59,9 +58,7 @@ export function ModalOfertaPrePaga({
   precoUnit,
   totalCents,
 }: ModalOfertaPrePagaProps): ReactNode {
-  const { me, run, taxas: taxasCheias, session } = useApp()
-  // A tela mostra o que o servidor vai cobrar: conta da Áurea e do CEO têm isenção (src/domain/isencao.ts).
-  const taxas = taxasDeQuemCompra(session, taxasCheias)
+  const { me, run, taxas, session } = useApp()
   const { close } = useModal()
   // A oferta pré-paga é compra comprometida: pede a senha por janela de 5 minutos (frente A). O diálogo abre por
   // cima deste pop-up, que continua aberto (o `close()` só vem depois do pagamento).
@@ -73,8 +70,10 @@ export function ModalOfertaPrePaga({
 
   const temSaldo = me.balance >= totalCents
   // O total tem três partes: as moedas, a taxa de compra e o primeiro mês de custódia (21/10/2026).
-  const comissao = comissaoPorMoeda(precoUnit, 'comprador', taxas) * qty
-  const custodia = custodiaDaCompraPorMoeda(taxas) * qty
+  // Valores de `cotarCompra` (src/domain/cotacao.ts): a mesma conta do servidor, com a isenção dentro.
+  const cotacao = cotarCompra(session, '', precoUnit, qty, taxas)
+  const comissao = cotacao.comissao
+  const custodia = cotacao.custodia
 
   async function pagarComSaldo(): Promise<void> {
     setEnviando(true)

@@ -17,13 +17,12 @@
  * depois que o gateway confirma — aqui só se abre a cobrança.
  */
 
-import { taxasDaNegociacao } from '@/domain/isencao'
+import { cotarCompra, cotarNegociacao } from '@/domain/cotacao'
 import { randomUUID } from 'node:crypto'
 
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { novoBidId } from '@/domain/codes'
 import { isNegociavel } from '@/domain/constants'
-import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import {
@@ -131,7 +130,7 @@ export async function pagarReservaComSaldo(reservaId: string): Promise<ActionRes
         return { ok: false, error: 'A moeda reservada não está mais disponível com o vendedor.' }
       }
 
-      const { vendedor: feeVendedor } = comissaoPorMoeda(r.precoCents, taxasDaNegociacao(r.comprador, r.vendedor, taxas))
+      const feeVendedor = cotarNegociacao(r.comprador, r.vendedor, r.precoCents, taxas).comissaoVendedor
       comprador.balance -= r.totalCents
       vendedor.balance += r.precoCents - feeVendedor
 
@@ -335,9 +334,9 @@ export async function iniciarOfertaPrePaga(
   }
 
   // Comprador = conta da Áurea: sem comissão de compra nem 1º mês de custódia (src/domain/isencao.ts).
-  const taxasDoBid = taxasDaNegociacao(session as string, '', taxas)
-  const total = custoDeCompraPorMoeda(preco, taxasDoBid) * qty
-  const { comprador: fee } = comissaoPorMoeda(preco, taxasDoBid)
+  const cotacao = cotarCompra(session as string, '', preco, qty, taxas)
+  const total = cotacao.total
+  const fee = cotacao.comissaoUnit
 
   const externalReference = `PRE-${randomUUID()}`
   const agora = Date.now()
@@ -444,7 +443,7 @@ export async function publicarOfertaPrePagaComSaldo(
   const bloqueio = await exigirReautenticacao('janela')
   if (bloqueio) return bloqueio
 
-  const total = custoDeCompraPorMoeda(preco, taxasDaNegociacao(session, '', taxas)) * qty
+  const total = cotarCompra(session, '', preco, qty, taxas).total
 
   try {
     const { result } = await mutateState<ActionResult<{ bidId: string; pagoCents: Cents }>>((s) => {

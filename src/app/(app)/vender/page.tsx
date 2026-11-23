@@ -43,8 +43,7 @@ import {
   MENSAGEM_RECIBO_BLOQUEADO_POR_PENDENCIA,
   moedasComCustodiaBloqueada,
 } from '@/domain/bloqueio-por-debito'
-import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
-import { taxasDeQuemVende } from '@/domain/isencao'
+import { cotarVenda } from '@/domain/cotacao'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
@@ -62,9 +61,7 @@ import { useModal } from '@/components/ui/Modal'
 import { publishOffer } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
-  const { state, session, me, run, taxas: taxasCheias, catalogo } = useApp()
-  // O que a tela mostra é o que o servidor cobra: a conta da Áurea não paga comissão de venda (src/domain/isencao.ts).
-  const taxas = taxasDeQuemVende(session, taxasCheias)
+  const { state, session, me, run, taxas, catalogo } = useApp()
   const modal = useModal()
   const { confirmar, dialogo } = useConfirmarSenha()
   const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
@@ -180,10 +177,11 @@ export default function VenderPage(): ReactNode {
    * "taxa R$ 1,00" com o campo de preço ainda vazio — a linha 1625 do monolito
    * tem exatamente esta mesma proteção do lado de fora.
    */
-  const feeUnit = cents > 0 ? comissaoPorMoeda(cents, 'vendedor', taxas) : 0
-  const fee = feeUnit * qty
-  const netUnit = cents > 0 ? liquidoDeVendaPorMoeda(cents, taxas) : 0
-  const net = netUnit * qty
+  // Valores de `cotarVenda` (src/domain/cotacao.ts): a mesma conta do servidor, com a isenção da Áurea dentro.
+  const cotacaoVenda = cotarVenda(session, '', cents, qty, taxas)
+  const fee = cotacaoVenda.comissao
+  const netUnit = cotacaoVenda.liquidoUnit
+  const net = cotacaoVenda.liquido
   const podePublicar = qty > 0 && cents > 0 && termsOk
 
   /* ---------- seleção -------------------------------------------------------- */

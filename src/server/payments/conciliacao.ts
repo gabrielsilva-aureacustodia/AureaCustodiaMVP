@@ -8,12 +8,12 @@
 
 import 'server-only'
 
-import { taxasDaNegociacao } from '@/domain/isencao'
+import { cotarNegociacao } from '@/domain/cotacao'
 import { contaComPendenciaNoEstado } from '@/domain/bloqueio-por-debito'
 import { novoBidId } from '@/domain/codes'
 import { competenciaAtual } from '@/domain/custody'
 import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
-import { comissaoPorMoeda, custodiaDaCompraPorMoeda, TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
+import { TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { matchOrders, transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import { garantirPrimeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
@@ -113,7 +113,9 @@ function liquidarCompraDireta(
   // pagamento não cobre a compra e volta como saldo — o comprador refaz a compra já com o valor novo.
   const custodiaBruta = Number(reivindicada.metadata?.custodiaPorMoeda)
   const custodiaUnit =
-    Number.isInteger(custodiaBruta) && custodiaBruta >= 0 ? custodiaBruta : custodiaDaCompraPorMoeda(regras.taxas)
+    Number.isInteger(custodiaBruta) && custodiaBruta >= 0
+      ? custodiaBruta
+      : cotarNegociacao(reivindicada.userEmail, sellerId ?? '', 0, regras.taxas).custodia
 
   // O anúncio de quem tem fatura de custódia vencida não vende, nem quando o pagamento já entrou
   // (RA-53). `regras.contaBloqueavel` foi perguntado ANTES da transação, porque a isenção da equipe
@@ -150,12 +152,12 @@ function liquidarCompraDireta(
     const idsConsumidos = new Set<string>()
     let compradas = 0
     const coinIdsComprados: string[] = []
-    const taxasPar = taxasDaNegociacao(reivindicada.userEmail, sellerId as string, regras.taxas)
-    const feeVendedorUnit = comissaoPorMoeda(price, 'vendedor', taxasPar)
+    const cot = cotarNegociacao(reivindicada.userEmail, sellerId as string, price, regras.taxas)
+    const feeVendedorUnit = cot.comissaoVendedor
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferirMoedaVendida(s, seller, buyer, sellerId, reivindicada.userEmail, o.coinId, taxasPar))
+      if (!transferirMoedaVendida(s, seller, buyer, sellerId, reivindicada.userEmail, o.coinId, cot.taxas))
         continue
       seller.balance += price - feeVendedorUnit
       compradas += 1
@@ -575,7 +577,7 @@ function liquidarReservaCompra(
     return devolverComoSaldo('moeda_indisponivel_creditado_em_saldo')
   }
 
-  const feeVendedor = comissaoPorMoeda(r.precoCents, 'vendedor', taxasDaNegociacao(r.comprador, r.vendedor, regras.taxas))
+  const feeVendedor = cotarNegociacao(r.comprador, r.vendedor, r.precoCents, regras.taxas).comissaoVendedor
   vendedor.balance += r.precoCents - feeVendedor
   r.status = 'paga'
 

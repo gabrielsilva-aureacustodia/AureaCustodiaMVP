@@ -28,12 +28,11 @@
  * isolado e sem nenhuma amarra com as ações de compra.
  */
 
-import { taxasDaNegociacao } from '@/domain/isencao'
+import { cotarNegociacao } from '@/domain/cotacao'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { novoBidId } from '@/domain/codes'
 import { devolverLastroDoBid } from '@/domain/reserva-de-compra'
 import { isNegociavel } from '@/domain/constants'
-import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { transferirMoedaVendida } from '@/domain/market'
 import { brl } from '@/domain/money'
 import type { ActionResult, AppState, Cents, ModalidadeOfertaCompra, UserEmail } from '@/domain/types'
@@ -220,8 +219,8 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     // Mesmo teto da linha 1416: o pedido nunca passa do que resta no lote.
     const qty = Math.min(Math.max(inteiroSeguro(qtyPedida), 1), offers.length)
     // Isenção da conta da Áurea (e do par Áurea ↔ CEO): só vale para esta negociação (src/domain/isencao.ts).
-    const taxasPar = taxasDaNegociacao(session, sellerId, taxas)
-    const custoUnit = custoDeCompraPorMoeda(price, taxasPar)
+    const cot = cotarNegociacao(session, sellerId, price, taxas)
+    const custoUnit = cot.custoUnit
     if (buyer.balance < custoUnit * qty) return { ok: false, error: SALDO_INSUFICIENTE_QTD }
 
     /*
@@ -243,11 +242,12 @@ export async function buyLot(lotId: string, qtyPedida: number): Promise<ActionRe
     const idsConsumidos = new Set<string>()
     let compradas = 0
     const coinIdsComprados: string[] = []
-    const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(price, taxasPar)
+    const feeCompradorUnit = cot.comissaoComprador
+    const feeVendedorUnit = cot.comissaoVendedor
 
     for (const o of toBuy) {
       idsConsumidos.add(o.id)
-      if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, taxasPar)) continue
+      if (!transferirMoedaVendida(state, seller, buyer, sellerId, session, o.coinId, cot.taxas)) continue
       buyer.balance -= custoUnit // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
       seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
       compradas += 1
@@ -393,7 +393,7 @@ export async function publishBid(
     let qty = qtyRaw
     if (modalidade === 'saldo') {
       // Divisão inteira: quantas unidades cabem no caixa a esse preço-limite (inclui comissão de compra).
-      const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
+      const maxAfford = Math.floor(u.balance / cotarNegociacao(session, '', cents, taxas).custoUnit)
       if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_OFERTAR }
       qty = Math.min(qtyRaw, maxAfford)
     }
@@ -416,7 +416,7 @@ export async function publishBid(
     // Montagem incremental da mensagem, na mesma ordem das linhas 1724-1726.
     let msg = `Oferta de compra publicada: ${qty} ${tipoMoeda} a ${brl(cents)} cada.`
     if (qty < qtyRaw) msg += ' (ajustada ao seu saldo disponível)'
-    const aPagarCents = custoDeCompraPorMoeda(cents, taxas) * qty
+    const aPagarCents = cotarNegociacao(session, '', cents, taxas).custoUnit * qty
     if (modalidade === 'pospago') {
       msg += ' Você paga quando ela for aceita, e terá 10 minutos para concluir.'
     }
@@ -499,7 +499,7 @@ export async function editBid(
     const u = state.users[session]
     if (!u) return { ok: false, error: SESSAO_EXPIRADA }
 
-    const maxAfford = Math.floor(u.balance / custoDeCompraPorMoeda(cents, taxas))
+    const maxAfford = Math.floor(u.balance / cotarNegociacao(session, '', cents, taxas).custoUnit)
     if (maxAfford <= 0) return { ok: false, error: SALDO_INSUFICIENTE_PRECO }
 
     const agora = Date.now()

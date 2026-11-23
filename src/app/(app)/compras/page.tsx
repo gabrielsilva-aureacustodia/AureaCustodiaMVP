@@ -23,8 +23,7 @@ import { useToast } from '@/components/ui/Toast'
 import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
-import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
-import { taxasDeQuemCompra } from '@/domain/isencao'
+import { cotarCompra } from '@/domain/cotacao'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { motivoOfertaDeCompraInvalida, somenteNumerico } from '@/domain/validacao-dinheiro'
@@ -36,9 +35,8 @@ import { ReservasEmAberto } from '@/components/market/ReservasEmAberto'
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
 export default function ComprasPage(): ReactNode {
-  const { state, me, run, taxas: taxasCheias, catalogo, session } = useApp()
-  // O que a tela mostra é o que o servidor cobra: Áurea e CEO têm isenção (src/domain/isencao.ts).
-  const taxas = taxasDeQuemCompra(session, taxasCheias)
+  const { state, me, run, taxas, catalogo, session } = useApp()
+  // Valores de compra vêm SÓ de `cotarCompra` (src/domain/cotacao.ts): a mesma conta do servidor, com a isenção dentro.
   const toast = useToast()
   const { open } = useModal()
   const { confirmar, dialogo } = useConfirmarSenha()
@@ -73,13 +71,14 @@ export default function ComprasPage(): ReactNode {
   const [modalidadeBid, setModalidadeBid] = useState<ModalidadeOfertaCompra>('saldo')
 
   const bidPriceCents = parsePrice(bidPrice)
-  const bidCustoUnit = bidPriceCents > 0 ? custoDeCompraPorMoeda(bidPriceCents, taxas) : 0
-  const bidComissaoUnit = bidPriceCents > 0 ? comissaoPorMoeda(bidPriceCents, 'comprador', taxas) : 0
-  const bidSubtotal = bidPriceCents > 0 && bidQtyNum > 0 ? bidPriceCents * bidQtyNum : 0
-  const bidComissaoTotal = bidComissaoUnit * bidQtyNum
+  const cotacaoUnit = cotarCompra(session, '', bidPriceCents, 1, taxas)
+  const cotacaoBid = cotarCompra(session, '', bidPriceCents, bidQtyNum, taxas)
+  const bidCustoUnit = cotacaoUnit.totalUnit
+  const bidSubtotal = cotacaoBid.subtotal
+  const bidComissaoTotal = cotacaoBid.comissao
   // O primeiro mês de custódia entra em toda compra (21/10/2026), inclusive na que a oferta de compra faz sozinha.
-  const bidCustodiaTotal = bidPriceCents > 0 && bidQtyNum > 0 ? custodiaDaCompraPorMoeda(taxas) * bidQtyNum : 0
-  const bidTotalComComissao = bidCustoUnit * bidQtyNum
+  const bidCustodiaTotal = cotacaoBid.custodia
+  const bidTotalComComissao = cotacaoBid.total
   const bidMaxMoedasSaldo = bidCustoUnit > 0 ? Math.floor(me.balance / bidCustoUnit) : 0
   // S04: o mesmo critério do servidor (saldo cobre preço + comissão + 1º mês de custódia) decide o botão.
   const motivoBloqueio = motivoOfertaDeCompraInvalida({
@@ -114,7 +113,7 @@ export default function ComprasPage(): ReactNode {
           qty={qtyRaw}
           tipoMoeda={tipoAtivo}
           precoUnit={bidPriceCents}
-          totalCents={custoDeCompraPorMoeda(bidPriceCents, taxas) * qtyRaw}
+          totalCents={cotarCompra(session, '', bidPriceCents, qtyRaw, taxas).total}
         />,
       )
       return

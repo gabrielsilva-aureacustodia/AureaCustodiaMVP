@@ -30,8 +30,7 @@ import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { COIN, tiposNegociaveis } from '@/domain/constants'
-import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
-import { taxasDaNegociacao } from '@/domain/isencao'
+import { cotarCompra } from '@/domain/cotacao'
 import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
@@ -536,9 +535,7 @@ function ConfirmarCompraModal({
   qty: number
   aoConcluir(): void
 }): ReactNode {
-  const { me, run, taxas: taxasCheias, session } = useApp()
-  // Aqui a contraparte é conhecida (o vendedor do lote): a mesma tabela que o servidor usa ao cobrar.
-  const taxas = taxasDaNegociacao(session, lot.seller, taxasCheias)
+  const { me, run, taxas, session } = useApp()
   const { close, open } = useModal()
   // Comprar pede a senha por uma janela de 5 minutos (frente A). O diálogo abre POR CIMA desta modal; por isso ela
   // só fecha depois da confirmação — fechar antes a desmontaria e o diálogo, que mora aqui, sumiria junto.
@@ -549,10 +546,12 @@ function ConfirmarCompraModal({
   const [erroMp, setErroMp] = useState('')
 
   const subtotal = lot.price * qty
-  const comissaoComprador = comissaoPorMoeda(lot.price, 'comprador', taxas) * qty
+  // Valores de `cotarCompra` (src/domain/cotacao.ts): a mesma conta do servidor; aqui o vendedor do lote é conhecido.
+  const cotacao = cotarCompra(session, lot.seller, lot.price, qty, taxas)
+  const comissaoComprador = cotacao.comissao
   // O primeiro mês de custódia entra na compra (21/10/2026): a moeda que passa a ser sua já nasce com a guarda paga.
-  const custodia = custodiaDaCompraPorMoeda(taxas) * qty
-  const total = subtotal + comissaoComprador + custodia
+  const custodia = cotacao.custodia
+  const total = cotacao.total
   const temSaldo = me.balance >= total
 
   async function confirmarComSaldo(): Promise<void> {

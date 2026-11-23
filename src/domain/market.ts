@@ -21,18 +21,13 @@ import type {
   User,
   UserEmail,
 } from '@/domain/types'
-import { ehIsentoDeCustodia, taxasDaNegociacao } from '@/domain/isencao'
+import { cotarNegociacao } from '@/domain/cotacao'
+import { ehIsentoDeCustodia } from '@/domain/isencao'
 import { isNegociavel } from '@/domain/constants'
 import { dataBrasilia } from '@/domain/ciclo-custodia'
 import { registrarCustodiaDaCompra } from '@/domain/custodia-da-compra'
 import { DAY_MS, fdate } from '@/domain/dates'
-import {
-  comissaoPorMoeda,
-  custoDeCompraPorMoeda,
-  custodiaDaCompraPorMoeda,
-  TAXAS_PADRAO,
-  type TabelaDeTaxas,
-} from '@/domain/fees'
+import { TAXAS_PADRAO, type TabelaDeTaxas } from '@/domain/fees'
 import { brl } from '@/domain/money'
 import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { moedaComRetiradaEmAndamento } from '@/domain/retirada'
@@ -409,7 +404,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
   // o livro acumulava ordens mortas que pareciam vivas — o dono achava que
   // estava na fila, o vendedor via demanda que não existia. O pré-pago que
   // sobrar volta ao saldo antes de a ordem sair.
-  expurgarOrdensSemLastro(state, (preco) => custoDeCompraPorMoeda(preco, taxas))
+  expurgarOrdensSemLastro(state, (preco, comprador) => cotarNegociacao(comprador, '', preco, taxas).custoUnit)
 
   let progress = true
   while (progress) {
@@ -455,10 +450,11 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
       }
 
       // Isenção da conta da Áurea / par Áurea ↔ CEO: a tabela é trocada só para ESTA negociação.
-      const taxasPar = taxasDaNegociacao(bo.buyer, so.seller, taxas)
-      const { comprador: feeComprador, vendedor: feeVendedor } = comissaoPorMoeda(so.price, taxasPar)
+      const cot = cotarNegociacao(bo.buyer, so.seller, so.price, taxas)
+      const feeComprador = cot.comissaoComprador
+      const feeVendedor = cot.comissaoVendedor
       // Preço + comissão + o primeiro mês de custódia: é o que o comprador precisa ter e o que paga.
-      const custoUnit = custoDeCompraPorMoeda(so.price, taxasPar)
+      const custoUnit = cot.custoUnit
 
       // PÓS-PAGO: a moeda sai do livro e fica RESERVADA, sem trocar de dono.
       //
@@ -478,7 +474,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
             bo,
             oferta: so,
             comissaoCompradorCents: feeComprador,
-            custodiaCents: custodiaDaCompraPorMoeda(taxasPar),
+            custodiaCents: cot.custodia,
             agora: Date.now(),
           }),
         )
@@ -515,7 +511,7 @@ export function matchOrders(state: AppState, taxas: TabelaDeTaxas = TAXAS_PADRAO
           so.seller,
           bo.buyer,
           so.coinId,
-          taxasPar,
+          cot.taxas,
         )
         if (!coin) {
           state.sellOffers = state.sellOffers.filter((o) => o.id !== so.id)

@@ -31,10 +31,9 @@
  *    negociação que não moveu moeda nenhuma.
  */
 
-import { taxasDaNegociacao } from '@/domain/isencao'
+import { cotarNegociacao } from '@/domain/cotacao'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { isNegociavel } from '@/domain/constants'
-import { comissaoPorMoeda, custoDeCompraPorMoeda } from '@/domain/fees'
 import { availableCoinsForSell, transferirMoedaVendida } from '@/domain/market'
 import { moedaEmReservaAberta } from '@/domain/reserva-de-compra'
 import { moedaComRetiradaEmAndamento } from '@/domain/retirada'
@@ -516,12 +515,13 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
       // Saldo do comprador conferido AGORA, no servidor: entre abrir a modal e
       // confirmar, ele pode ter gastado o dinheiro em outra aba.
       // Isenção da conta da Áurea / par Áurea ↔ CEO: só desta negociação (src/domain/isencao.ts).
-      const taxasPar = taxasDaNegociacao(bo.buyer, email, taxas)
-      const affordable = Math.floor(buyer.balance / Math.max(1, custoDeCompraPorMoeda(bo.price, taxasPar)))
+      const cot = cotarNegociacao(bo.buyer, email, bo.price, taxas)
+      const affordable = Math.floor(buyer.balance / Math.max(1, cot.custoUnit))
       const execN = Math.min(n, affordable)
       if (execN <= 0) return { ok: false, error: 'O comprador não possui saldo suficiente no momento.' }
 
-      const { comprador: feeCompradorUnit, vendedor: feeVendedorUnit } = comissaoPorMoeda(bo.price, taxasPar)
+      const feeCompradorUnit = cot.comissaoComprador
+      const feeVendedorUnit = cot.comissaoVendedor
 
       const coinIdsVendidos: string[] = []
       for (let i = 0; i < execN; i++) {
@@ -529,9 +529,9 @@ export async function sellToBid(bidId: string, qtyWanted: number): Promise<Actio
         coinIdsVendidos.push(coin.id)
         const price = bo.price
         // comprador paga preço + comissão + 1º mês de custódia (21/10/2026)
-        buyer.balance -= custoDeCompraPorMoeda(price, taxasPar)
+        buyer.balance -= cot.custoUnit
         seller.balance += price - feeVendedorUnit // vendedor recebe preço líquido da comissão
-        transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, taxasPar)
+        transferirMoedaVendida(s, seller, buyer, email, bo.buyer, coin.id, cot.taxas)
       }
 
       const feeComprador = feeCompradorUnit * execN
