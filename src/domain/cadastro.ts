@@ -127,7 +127,7 @@ export function formatarTelefone(tel: string): string {
 /**
  * Monta descrição resumida e amigável da forma de recebimento configurada.
  */
-export function descreverDadosBancarios(db?: DadosBancarios): string {
+export function descreverDadosBancarios(db?: DadosBancarios, paraTela = false): string {
   if (!db) return 'Nenhum dado cadastrado'
   if (db.chavePix && db.tipoChavePix) {
     const tipoMap: Record<string, string> = {
@@ -137,7 +137,8 @@ export function descreverDadosBancarios(db?: DadosBancarios): string {
       aleatoria: 'Chave Aleatória',
     }
     const tipo = tipoMap[db.tipoChavePix] || 'Pix'
-    const chave = db.tipoChavePix === 'cpf' ? formatarDocumento(db.chavePix) : db.chavePix
+    // Na tela o CPF da chave sai pontuado; relatórios e planilhas seguem com o valor cru (paraTela = false).
+    const chave = paraTela && db.tipoChavePix === 'cpf' ? formatarDocumento(db.chavePix) : db.chavePix
     return `Pix (${tipo}): ${chave}`
   }
   if (db.banco && db.agencia && db.conta) {

@@ -1,31 +1,22 @@
-/* Faixa de consentimento de cookies (A09). Fixa embaixo, acima do aviso do PWA (43), do Atendimento (44) e do
-   "Ver tutorial" (45): enquanto ela está na tela a pessoa precisa escolher, então não pode ficar escondida. */
-.cookies-faixa{
-  position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:46;
-  max-width:760px;margin-inline:auto;padding:10px 14px;
-  display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;
-  background:var(--ro-cartao);color:var(--ro-texto);
-  border:1px solid var(--ro-borda);border-top:2px solid var(--ro-primaria);border-radius:var(--ro-raio-lg);
-  box-shadow:var(--ro-sombra-3);
+/* Aviso de cookies (A09, revisto em 22/11/2026): um selo pequeno no canto inferior ESQUERDO, que some em poucos segundos.
+   Não cobre a tela e não disputa o canto direito com o Atendimento e o "Ver tutorial". Aberto, vira um cartão curto. */
+.cookies-aviso{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:42;max-width:min(360px,calc(100vw - 24px))}
+.cookies-icone{
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px 0 10px;cursor:pointer;
+  background:var(--ro-cartao);color:var(--ro-texto-suave);font:500 12.5px var(--ff-sans);
+  border:1px solid var(--ro-borda);border-radius:var(--ro-raio-pilula);box-shadow:var(--ro-sombra-3);
+  animation:cookies-entra var(--ro-dur-base) ease both;
 }
-.cookies-texto{flex:1 1 320px;margin:0;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
-.cookies-texto b{color:var(--ro-texto)}
+.cookies-icone svg{width:18px;height:18px;flex:none;stroke:var(--ro-primaria);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.cookies-icone:focus-visible{outline:2px solid var(--ro-foco);outline-offset:3px}
+.cookies-aviso-aberto{
+  padding:12px 14px;background:var(--ro-cartao);color:var(--ro-texto);border:1px solid var(--ro-borda);
+  border-radius:var(--ro-raio-lg);box-shadow:var(--ro-sombra-3);
+}
+.cookies-texto{margin:0 0 8px;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
 .cookies-saiba{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px;color:var(--ro-primaria);text-decoration:underline;white-space:nowrap}
-.cookies-acoes{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.cookies-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 /* .btn tem width:100% (é botão de formulário): aqui cada um é do tamanho do texto. */
-.cookies-acoes .btn{width:auto;min-height:44px;padding:0 18px;white-space:nowrap}
-@media (max-width:480px){
-  .cookies-faixa{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom))}
-  .cookies-acoes{width:100%}
-  .cookies-acoes .btn{flex:1 1 0;padding:0 10px}
-  .cookies-saiba{flex:0 0 auto}
-}
-
-/* Os botões flutuantes sobem acima da faixa enquanto ela existe (`--cookies-altura` é medida em BannerDeCookies.tsx; 110px é
-   só o palpite até a primeira medida). Vale também com o aviso do PWA na tela: a faixa é a que está mais embaixo. */
-body:has(.cookies-faixa) .atd-fab,
-body:has(.cookies-faixa) .tutorial-link,
-body:has(.cookies-faixa):has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .atd-fab,
-body:has(.cookies-faixa):has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .tutorial-link{
-  transform:translateY(calc(-1 * (var(--cookies-altura,110px) + 20px)));
-}
+.cookies-acoes .btn{width:auto;min-height:44px;padding:0 16px;white-space:nowrap}
+@keyframes cookies-entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.cookies-icone{animation:none}}

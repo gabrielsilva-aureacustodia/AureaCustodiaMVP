@@ -24,7 +24,10 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
   // ("Estes Termos de Uso regem", "os Termos de Uso"), "A arbitragem observará" (14.5.4), "1 (uma) moeda"
   // e "restabelecer". Nenhuma cláusula, prazo ou valor mudou. Texto diferente é hash diferente: o aceite
   // gravado aponta para a versão, então o número sobe em vez de ser reciclado.
-  versao: '2.2',
+  // 2.3 (22/11/2026, pedido do Gabriel): cláusula 3.3 sobre cookies. O uso é presumido desde a entrada no site e a
+  // criação da Conta vale como ciência; quem não quiser recusa os de publicidade pelo aviso. Assim a escolha não
+  // exige um aceite separado dentro da área logada.
+  versao: '2.3',
   titulo: 'TERMOS DE USO',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -142,6 +145,12 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           titulo: 'Como entraremos em contato com você',
           texto:
             'Entraremos em contato utilizando os dados fornecidos na Plataforma Real Olímpico. Isso pode incluir contato por e-mail, SMS, WhatsApp, ligação telefônica e via Plataforma Real Olímpico. É importante que os dados de contato sejam mantidos corretos e atualizados na Plataforma Real Olímpico. Qualquer alteração nos dados de contato deve ser informada imediatamente. Caso contrário, não seremos responsáveis se você deixar de receber informações, notificações ou outras comunicações importantes. Esteja ciente de que fraudadores podem tentar se passar por funcionários ou comunicações oficiais do Real Olímpico.',
+        },
+        {
+          numero: '3.3',
+          titulo: 'Cookies',
+          texto:
+            'A Plataforma Real Olímpico usa cookies essenciais, necessários para o login, a segurança e o funcionamento da Plataforma, e cookies de publicidade e medição de terceiros (Meta), usados para avaliar nossos anúncios. Ao acessar a Plataforma e criar sua Conta Real Olímpico, você está ciente desse uso, descrito na Política de Privacidade. Você pode recusar os cookies de publicidade a qualquer momento pelo aviso de cookies da Plataforma, sem perder o acesso a nenhum Serviço Real Olímpico. Os cookies essenciais não podem ser recusados, pois sem eles a Plataforma não funciona.',
         },
       ],
     },

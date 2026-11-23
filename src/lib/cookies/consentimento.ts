@@ -3,7 +3,10 @@
  *
  * A escolha vale para o Pixel da Meta (navegador) E para a API de Conversões (servidor). Por isso ela mora em DOIS
  * lugares: o localStorage (leitura imediata no navegador) e um cookie legível pelo servidor (`ro_cookies`), que é o que
- * o cadastro consulta antes de mandar o evento à Meta. Sem escolha = não rastreia: o padrão é "não".
+ * o cadastro consulta antes de mandar o evento à Meta.
+ *
+ * DECISÃO DO GABRIEL (22/11/2026): o uso de cookies é PRESUMIDO. Entrar no site já vale como aceite (Termos de Uso 3.3 e
+ * Política de Privacidade) e só quem RECUSA muda alguma coisa: sem escolha gravada = aceito.
  *
  * Só cookies de publicidade dependem disto. O cookie de sessão e os do Supabase são essenciais (sem eles não há login)
  * e não passam pelo banner.
@@ -12,6 +15,8 @@
 export const COOKIE_CONSENTIMENTO = 'ro_cookies'
 export const CHAVE_LOCAL_CONSENTIMENTO = 'ro-cookies'
 export const EVENTO_CONSENTIMENTO = 'ro-consentimento'
+/** O aviso de cookies já foi mostrado neste navegador: ele aparece uma vez e some sozinho. */
+export const CHAVE_AVISO_VISTO = 'ro-cookies-aviso'
 const UM_ANO_S = 60 * 60 * 24 * 365
 
 export type Consentimento = 'aceito' | 'recusado'
@@ -20,7 +25,7 @@ function valido(v: string | null | undefined): Consentimento | null {
   return v === 'aceito' || v === 'recusado' ? v : null
 }
 
-/** Lê a escolha do cabeçalho `cookie` de uma requisição (servidor). `null` = ainda não escolheu = não rastrear. */
+/** Lê a escolha do cabeçalho `cookie` de uma requisição (servidor). `null` = ainda não escolheu (vale como aceito). */
 export function consentimentoDoCookie(cabecalhoCookie: string | null | undefined): Consentimento | null {
   if (!cabecalhoCookie) return null
   for (const par of cabecalhoCookie.split(';')) {

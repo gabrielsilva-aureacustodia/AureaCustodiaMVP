@@ -184,7 +184,7 @@ export function ModalDadosPessoais(): ReactNode {
           </div>
           <div className="u-sutil u-mt2">
             {completo
-              ? `${me.cadastro?.cpf ? `CPF ${formatarDocumento(me.cadastro.cpf)} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
+              ? `${me.cadastro?.cpf ? `CPF ${formatarDocumento(me.cadastro.cpf)} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios, true)}`
               : 'Necessário para depósitos e saques'}
           </div>
         </div>
@@ -687,7 +687,7 @@ export function ModalSaque(): ReactNode {
       <div className="summary-row">
         <span className="k">Conta de destino</span>
         <span className="v u-direita">
-          {descreverDadosBancarios(me.cadastro?.dadosBancarios)}
+          {descreverDadosBancarios(me.cadastro?.dadosBancarios, true)}
           <span
             className="back-link u-bloco u-f11 u-mt2"
             onClick={() =>

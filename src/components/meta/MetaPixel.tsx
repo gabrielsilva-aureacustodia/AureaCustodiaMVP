@@ -14,7 +14,7 @@
  *     seções da landing, login) sem editar cada link — e continua valendo para link que alguém criar depois.
  *
  * Sem `META_PIXEL_ID` válido o componente não renderiza nada e não carrega script de terceiros.
- * Só roda depois do "Aceitar" da faixa de cookies (A09, 22/11/2026): ver `components/cookies/` e RA-61 em RISCOS_ASSUMIDOS.md.
+ * Roda por padrão (uso presumido, Termos 3.3) e para só se o visitante RECUSAR no aviso de cookies (A09, revista em 22/11/2026): ver `components/cookies/` e RA-61 em RISCOS_ASSUMIDOS.md.
  */
 
 import { usePathname } from 'next/navigation'
@@ -65,7 +65,7 @@ function snippetBase(pixelId: string): string {
 }
 
 export function MetaPixel({ pixelId: pixelIdConfigurado }: MetaPixelProps): ReactNode {
-  // A09 (22/11/2026): sem o "Aceitar" do visitante o Pixel é como se não existisse — não carrega o script da Meta, não
+  // A09 (22/11/2026): se o visitante RECUSOU, o Pixel é como se não existisse — não carrega o script da Meta, não
   // grava `_fbp`, não manda PageView. Antes da escolha (ou recusado), `pixelId` é null e o resto do componente fica inerte.
   const consentimento = useConsentimento()
   const pixelId = consentimento === 'aceito' ? pixelIdConfigurado : null

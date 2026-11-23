@@ -40,7 +40,7 @@ const GRAVAR = process.env.PUBLICAR_DOCUMENTOS === 'SIM'
 
 /** Versões exatas pedidas pelo Controle (22/11/2026). Mudou o texto de novo? Mude aqui e no arquivo do documento. */
 const ALVOS = [
-  { chave: 'termos_de_uso', versao: '2.2' },
+  { chave: 'termos_de_uso', versao: '2.3' },
   { chave: 'clausula_arbitragem', versao: '2.2' },
   { chave: 'politica_privacidade', versao: '2.1' },
   { chave: 'tabela_de_taxas', versao: '2.5' },

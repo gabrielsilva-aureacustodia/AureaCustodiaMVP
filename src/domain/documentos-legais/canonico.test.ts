@@ -58,7 +58,7 @@ describe('Documentos Legais · Canonicidade e Hashes Criptográficos', () => {
       // 2.0, e a Tabela de Taxas foi para a 2.2 quando a cláusula de depósito
       // voltou a dizer "sem taxa". Versão é por documento, nunca do conjunto.
       const esperada =
-        chave === 'politica_privacidade' ? '2.1' : chave === 'tabela_de_taxas' ? '2.5' : chave === 'termos_de_uso' ? '2.2' : chave === 'clausula_arbitragem' ? '2.2' : '2.1'
+        chave === 'politica_privacidade' ? '2.1' : chave === 'tabela_de_taxas' ? '2.5' : chave === 'termos_de_uso' ? '2.3' : chave === 'clausula_arbitragem' ? '2.2' : '2.1'
       expect(doc.versao).toBe(esperada)
       expect(doc.vigenteDesde).toBe(PARAMETROS_LEGAIS.vigencia)
       expect(doc.hash).toMatch(/^[0-9a-f]{64}$/)
@@ -67,13 +67,13 @@ describe('Documentos Legais · Canonicidade e Hashes Criptográficos', () => {
     }
   })
 
-  it('vetor congelado de hash dos Termos de Uso v2.2', () => {
+  it('vetor congelado de hash dos Termos de Uso v2.3', () => {
     const doc = DOCUMENTOS_VIGENTES.termos_de_uso
     // Congelamento do hash: se alguém alterar qualquer caractere do texto,
     // o hash muda e este teste exige atualização explícita com justificativa.
-    expect(doc.hash).toBe('4ed4ea91270af77149a9593cb26fc5a8af941c1674e49e6ab3ad61d04225eeca')
+    expect(doc.hash).toBe('6dded04739e6c7e2f67a6a636e17ff47d92303321ee79401354f2260a64320fd')
     expect(hashDoDocumento(TERMOS_DE_USO_V1)).toBe(
-      '4ed4ea91270af77149a9593cb26fc5a8af941c1674e49e6ab3ad61d04225eeca',
+      '6dded04739e6c7e2f67a6a636e17ff47d92303321ee79401354f2260a64320fd',
     )
   })
 })

@@ -1,65 +1,102 @@
 'use client'
 
 /**
- * Faixa de consentimento de cookies de publicidade (A09, 22/11/2026). Texto de `docs/manutencao-2026-11/garantias/
- * A09_PROPOSTA_BANNER_COOKIES.md`. "Aceitar" e "Recusar" têm o mesmo peso visual de propósito: recusar não pode custar
- * mais cliques que aceitar. Só aparece onde o Pixel poderia rodar (mesma regra de `caminhoSemRastreio`) e só se o
- * Pixel está configurado — sem `META_PIXEL_ID` não há cookie de publicidade para pedir licença.
+ * Aviso de cookies (A09, revisto em 22/11/2026 por pedido do Gabriel). O uso é PRESUMIDO: entrar no site já vale como
+ * aceite (Termos de Uso 3.3 e Política de Privacidade). Por isso não há mais faixa que cubra a tela nem botão
+ * "Aceitar": só um aviso pequeno, com ícone, que aparece UMA vez por navegador e some sozinho em poucos segundos.
+ * Quem quiser abre o aviso (clique no ícone) e pode "Recusar" os cookies de publicidade da Meta; recusar não custa nada.
+ * Só aparece onde o Pixel poderia rodar (mesma regra de `caminhoSemRastreio`) e só se o Pixel está configurado.
  */
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { gravarConsentimento } from '@/lib/cookies/consentimento'
+import { CHAVE_AVISO_VISTO, gravarConsentimento } from '@/lib/cookies/consentimento'
 import { caminhoSemRastreio } from '@/lib/meta/eventos'
 
 import { useConsentimento } from './useConsentimento'
 
+const SEGUNDOS_NA_TELA = 7
+
+function jaFoiVisto(): boolean {
+  try {
+    return window.localStorage.getItem(CHAVE_AVISO_VISTO) === '1'
+  } catch {
+    return false
+  }
+}
+
+function marcarComoVisto(): void {
+  try {
+    window.localStorage.setItem(CHAVE_AVISO_VISTO, '1')
+  } catch {
+    // Sem localStorage o aviso volta na próxima visita: inofensivo.
+  }
+}
+
 export function BannerDeCookies({ ativo }: { ativo: boolean }): ReactNode {
   const estado = useConsentimento()
   const pathname = usePathname()
+  const [visivel, setVisivel] = useState(false)
+  const [aberto, setAberto] = useState(false)
+  const abertoRef = useRef(false)
+  abertoRef.current = aberto
 
-  if (!ativo || estado !== 'pendente' || caminhoSemRastreio(pathname)) return null
-  return <Faixa />
-}
+  const aplica = ativo && estado === 'aceito' && !caminhoSemRastreio(pathname)
 
-function Faixa(): ReactNode {
-  const faixa = useRef<HTMLElement>(null)
-
-  // Tester 22/11: a faixa cobria o "Ver tutorial" e encostava no Atendimento. A altura vai para `--cookies-altura` e
-  // src/styles/cookies.css sobe os dois botões enquanto ela existe (mesmo desenho do aviso do PWA).
+  // Aparece uma vez por navegador e some sozinho; se a pessoa abriu o aviso, ele fica até ela fechar.
   useEffect(() => {
-    const elemento = faixa.current
-    if (!elemento) return
-    const medir = (): void => document.documentElement.style.setProperty('--cookies-altura', `${elemento.offsetHeight}px`)
-    medir()
-    const observador = new ResizeObserver(medir)
-    observador.observe(elemento)
-    return () => {
-      observador.disconnect()
-      document.documentElement.style.removeProperty('--cookies-altura')
-    }
-  }, [])
+    if (!aplica || jaFoiVisto()) return
+    setVisivel(true)
+    marcarComoVisto()
+    const t = window.setTimeout(() => {
+      if (!abertoRef.current) setVisivel(false)
+    }, SEGUNDOS_NA_TELA * 1000)
+    return () => window.clearTimeout(t)
+  }, [aplica])
+
+  if (!aplica || !visivel) return null
 
   return (
-    <section ref={faixa} className="cookies-faixa" role="region" aria-label="Aviso de cookies">
-      <p className="cookies-texto">
-        Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada.
-      </p>
-      <div className="cookies-acoes">
-        {/* Fora do parágrafo para ter a área de toque de 44px sem engordar a linha do texto. */}
-        <Link href="/privacidade" className="cookies-saiba">
-          Saiba mais
-        </Link>
-        <button type="button" className="btn btn-ghost" onClick={() => gravarConsentimento('recusado')}>
-          Recusar
+    <aside className="cookies-aviso" role="status" aria-label="Aviso de cookies">
+      {aberto ? (
+        <div className="cookies-aviso-aberto">
+          <p className="cookies-texto">
+            Usamos cookies essenciais e cookies de publicidade da Meta. Ao entrar no site você está ciente do uso. Pode
+            recusar os de publicidade sem perder nada.
+          </p>
+          <div className="cookies-acoes">
+            <Link href="/privacidade" className="cookies-saiba">
+              Saiba mais
+            </Link>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                gravarConsentimento('recusado')
+                setVisivel(false)
+              }}
+            >
+              Recusar
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setVisivel(false)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="cookies-icone" onClick={() => setAberto(true)} aria-label="Cookies: abrir aviso">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3a9 9 0 1 0 9 9 4 4 0 0 1-4-4 4 4 0 0 1-5-5Z" />
+            <circle cx="9" cy="11" r="1" />
+            <circle cx="14" cy="15" r="1" />
+            <circle cx="10" cy="16" r="1" />
+          </svg>
+          <span>Usamos cookies</span>
         </button>
-        <button type="button" className="btn btn-ghost" onClick={() => gravarConsentimento('aceito')}>
-          Aceitar
-        </button>
-      </div>
-    </section>
+      )}
+    </aside>
   )
 }

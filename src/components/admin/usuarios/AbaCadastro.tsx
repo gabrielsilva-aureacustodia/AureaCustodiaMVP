@@ -283,7 +283,7 @@ function DadosBancarios({
 
   return (
     <>
-      <p>{descreverDadosBancarios(dados ?? undefined)}</p>
+      <p>{descreverDadosBancarios(dados ?? undefined, true)}</p>
       {podeEditar && temCadastro ? (
         editando ? (
           <form

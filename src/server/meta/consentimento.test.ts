@@ -1,6 +1,6 @@
 /**
- * A09 (22/11/2026): a API de Conversões só manda o evento de cadastro com o "Aceitar" do visitante (cookie `ro_cookies`).
- * Sem escolha ou recusado, nada sai para a Meta — e o cadastro em si continua devolvendo o ID normalmente.
+ * A09 (22/11/2026, revista): o uso de cookies é presumido; a API de Conversões só deixa de mandar o evento de cadastro
+ * para quem RECUSOU (cookie `ro_cookies`). Recusado, nada sai para a Meta — e o cadastro continua devolvendo o ID.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -28,12 +28,12 @@ function registrar(cookie: string | null): string {
 describe('API de Conversões só com o "Aceitar"', () => {
   beforeEach(() => enviar.mockClear())
 
-  it('sem escolha: nada vai à Meta, mas o ID do evento ainda é devolvido', () => {
+  it('sem escolha: vale como aceito (uso presumido) e o evento sai', () => {
     expect(registrar(null)).toBeTruthy()
-    expect(enviar).not.toHaveBeenCalled()
+    expect(enviar).toHaveBeenCalledTimes(1)
   })
 
-  it('recusado: nada vai à Meta, mesmo com o _fbp no navegador', () => {
+  it('recusado: nada vai à Meta, mesmo com o _fbp no navegador, e o ID do evento ainda é devolvido', () => {
     registrar('ro_cookies=recusado; _fbp=fb.1.2.3')
     expect(enviar).not.toHaveBeenCalled()
   })
