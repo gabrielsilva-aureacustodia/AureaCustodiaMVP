@@ -76,3 +76,12 @@ Achados enviados ao R1 e ao R4. Nada criado/alterado.
 - B01: view-source de /inicio e GET /api/state sem e-mail/CPF/Pix de outra conta — **pendente**, só conta de teste (testes automatizados já existem).
 - 418: correção = fuso America/Sao_Paulo; **pendente** conferir console logado em Mercado, Compras e Recibos, de preferência após 21h de Brasília.
 - A08 mostrar saldo/receita da empresa é de propósito (pergunta aberta ao Gabriel).
+
+## Rodada 3 — a4d5488 (R1: faixa de cookies + CSP bloqueante) READY
+Conferido na home/`/inicio` (sessão do Gabriel já aberta, só leitura), sem clicar em Aceitar/Recusar:
+- Cabeçalho `content-security-policy` agora ENFORCED (sem `report-only`). script-src ainda com 'unsafe-inline' (nonce é passo futuro).
+- Faixa "Cookies no Real Olímpico" aparece com Saiba mais / Recusar / Aceitar.
+- Pixel NÃO carrega antes do aceite: `fbq` indefinido e nenhum script de connect.facebook.net. O cookie `_fbp` antigo continua no navegador (gravado antes do deploy).
+- Console: 1 erro "Failed to load resource: 404" sem URL identificável (nenhum recurso 4xx em `performance`); pode ser da navegação anterior ao admin. Sem mensagem "Refused to…/Content Security Policy".
+Não conferido: Pix/cartão, login Google, bancada com vídeo, PDF/XLSX, Pixel após "Aceitar" (exigem ação/tela logada).
+Aguardando READY do f8ede77 (R4).

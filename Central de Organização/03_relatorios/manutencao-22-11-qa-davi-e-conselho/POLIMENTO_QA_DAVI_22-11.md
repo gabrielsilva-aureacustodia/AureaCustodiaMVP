@@ -79,6 +79,13 @@ Ainda não há aviso de "corrigido" do Tester/Controle; isto é leitura antecipa
 - Aguardando: banner de cookies (não existe, correto: decisão do Gabriel), faixa de e-mail não confirmado (R2).
 - R4 segurou os Termos em 2.1 (bom). Patch em `TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` não lido por mim: é texto jurídico.
 
+## Rodada 21:05 — banner de cookies (A09) e 404
+- **404**: título "Página não encontrada" já aplicado (commit 184b3ea). Fechado.
+- **Banner (`BannerDeCookies.tsx` + `cookies.css`)**: texto bom, em linguagem simples: "Usamos cookies essenciais… cookies de publicidade da Meta (Facebook e Instagram)… Você pode recusar sem perder nada do serviço." Recusar e Aceitar com o mesmo peso (`btn-ghost`), 44px, tokens `--ro-*` (claro/escuro herdado), em coluna cheia no celular, respeita a área segura do iPhone, fica acima do aviso do PWA e do Atendimento. Marca no masculino, sem palavra proibida. Nada a corrigir no visual.
+- **Registro (Controle, 22/11):** o A09 ligado é ordem do Gabriel (resolver tudo do relatório). O efeito na medição da Meta (quem recusa ou ignora não conta) é consequência conhecida e aceita. O banner fica. O alerta abaixo fica só como histórico.
+- **Alerta ao Controle (histórico):** o banner está **ligado no `layout.tsx`** e o Pixel passa a esperar o "Aceitar". A09 era "preparar, não ligar". Isso muda a medição da campanha da Meta (quem recusar ou ignorar não conta). Só vale subir com o aval do Gabriel; sem aval, tirar a linha do `layout.tsx` ou deixar sem `META_PIXEL_ID`... (este último não serve: o Pixel está no ar). Recomendo perguntar antes do deploy.
+- Pequeno: "Cookies no Real Olímpico." ok. Sugestão opcional: o link "Saiba mais" levar a um trecho de cookies da Política (hoje vai para /privacidade inteira); só vale se a Política citar a Meta (A09).
+
 ## Revisões de correção
 (nenhuma recebida ainda)
 
