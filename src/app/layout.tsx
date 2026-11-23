@@ -25,6 +25,7 @@ import type { ReactNode } from 'react'
 import './globals.css'
 
 import { classesDasFontes } from '@/brand/fontes'
+import { BannerDeCookies } from '@/components/cookies/BannerDeCookies'
 import { MetaPixel } from '@/components/meta/MetaPixel'
 import { lerPixelId } from '@/lib/meta/eventos'
 import { RaizDoPwa } from '@/components/pwa/RaizDoPwa'
@@ -110,6 +111,8 @@ export default function RootLayout({ children }: { children: ReactNode }): React
         {/* Pixel da Meta (campanha de tráfego para o site). O ID é lido AQUI, no servidor, para valer no runtime sem
             rebuild e para ser validado (só dígitos) antes de entrar no script. Sem META_PIXEL_ID, não renderiza nada. */}
         <MetaPixel pixelId={lerPixelId(process.env.META_PIXEL_ID)} />
+        {/* Consentimento (A09): o Pixel só carrega depois do "Aceitar"; o banner só existe se o Pixel está configurado. */}
+        <BannerDeCookies ativo={lerPixelId(process.env.META_PIXEL_ID) !== null} />
       </body>
     </html>
   )

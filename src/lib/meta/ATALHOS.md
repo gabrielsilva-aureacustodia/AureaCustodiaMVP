@@ -8,7 +8,8 @@ Registro raiz: RISCOS_ASSUMIDOS.md, RA-61
 
 ## Atalhos e riscos registrados
 
-### 1. Sem faixa de consentimento de cookies
+### 1. Faixa de consentimento: FEITA em 22/11/2026 (resta o parágrafo na Política)
+- **Hoje:** `src/components/cookies/BannerDeCookies.tsx` pede a escolha; o Pixel e a API de Conversões só rodam com "Aceitar" (`src/lib/cookies/consentimento.ts`). O texto abaixo é o histórico de antes dessa faixa.
 - **Situação:** o Pixel roda para todo visitante assim que o ID está configurado. Não existe faixa de cookies no site.
 - **Como se paga:** o jurídico define a base legal (LGPD). Se for consentimento, chamar `fbq('consent','revoke')` antes
   do `init` em `MetaPixel.tsx` e `fbq('consent','grant')` quando a pessoa aceitar.

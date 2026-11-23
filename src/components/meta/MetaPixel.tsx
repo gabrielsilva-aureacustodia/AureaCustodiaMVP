@@ -14,7 +14,7 @@
  *     seções da landing, login) sem editar cada link — e continua valendo para link que alguém criar depois.
  *
  * Sem `META_PIXEL_ID` válido o componente não renderiza nada e não carrega script de terceiros.
- * Não há faixa de consentimento: ver RA-61 em RISCOS_ASSUMIDOS.md.
+ * Só roda depois do "Aceitar" da faixa de cookies (A09, 22/11/2026): ver `components/cookies/` e RA-61 em RISCOS_ASSUMIDOS.md.
  */
 
 import { usePathname } from 'next/navigation'
@@ -29,6 +29,8 @@ import {
   parametrosDoCadastro,
 } from '@/lib/meta/eventos'
 import { definirEnvio, rastrearPadrao, rastrearPersonalizado } from '@/lib/meta/pixel'
+
+import { useConsentimento } from '@/components/cookies/useConsentimento'
 
 interface MetaPixelProps {
   /** ID já validado no servidor (`lerPixelId`); `null` desliga tudo. */
@@ -62,7 +64,11 @@ function snippetBase(pixelId: string): string {
   return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq.disablePushState=true;fbq.allowDuplicatePageViews=true;fbq('init','${pixelId}');`
 }
 
-export function MetaPixel({ pixelId }: MetaPixelProps): ReactNode {
+export function MetaPixel({ pixelId: pixelIdConfigurado }: MetaPixelProps): ReactNode {
+  // A09 (22/11/2026): sem o "Aceitar" do visitante o Pixel é como se não existisse — não carrega o script da Meta, não
+  // grava `_fbp`, não manda PageView. Antes da escolha (ou recusado), `pixelId` é null e o resto do componente fica inerte.
+  const consentimento = useConsentimento()
+  const pixelId = consentimento === 'aceito' ? pixelIdConfigurado : null
   const pathname = usePathname()
   const bloqueado = caminhoSemRastreio(pathname)
   const ultimoCaminho = useRef<string | null>(null)
@@ -97,6 +103,11 @@ export function MetaPixel({ pixelId }: MetaPixelProps): ReactNode {
       }
     }
   }, [pathname, bloqueado, pixelId])
+
+  // Quem aceitou e depois recusa (na mesma aba): o script já está carregado, então manda parar de enviar.
+  useEffect(() => {
+    if (consentimento === 'recusado') definirEnvio(false)
+  }, [consentimento])
 
   useEffect(() => {
     if (!pixelId) return

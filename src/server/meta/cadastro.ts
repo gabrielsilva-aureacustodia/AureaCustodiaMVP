@@ -25,6 +25,7 @@ import {
   type MetodoDeCadastro,
 } from '@/lib/meta/eventos'
 
+import { consentimentoDoCookie } from '@/lib/cookies/consentimento'
 import { contextoDaRequisicao, enviarEventoDoServidor } from './conversions-api'
 
 const SITE_PADRAO = 'https://realolimpico.com.br'
@@ -47,6 +48,9 @@ function paginaDe(caminho: string): string {
 export function registrarCadastroNaMeta(r: RegistroDeCadastro): string {
   const eventId = novoEventId()
   const ctx = contextoDaRequisicao(r.cabecalhos, paginaDe(r.paginaPadrao))
+  // A09 (22/11/2026): a API de Conversões também só manda com o "Aceitar" do visitante (cookie `ro_cookies`). Sem escolha
+  // ou recusado, nada sai para a Meta — o cadastro segue normal, só o evento de publicidade é que não existe.
+  if (consentimentoDoCookie(r.cabecalhos.get('cookie')) !== 'aceito') return eventId
   enviarEventoDoServidor({
     nome: 'CompleteRegistration',
     eventId,

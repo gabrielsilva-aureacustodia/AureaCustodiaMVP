@@ -77,7 +77,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-58** | Saque aprovado pela equipe; o Pix automático pelo Mercado Pago nasce DESLIGADO e o aviso de status do gateway não é assinado (só aponta, a consulta decide) | 🟡 | `src/server/saques/`, `src/lib/payments/payouts*.ts`, `src/app/api/webhooks/mercadopago-payouts/` |
 | **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
 | **RA-60** | App instalável (PWA): não provado em aparelho real; iPhone sem sinal de instalação ("Já adicionei" vale 30 dias); `middleware` libera 6 caminhos estáticos sem sessão; `htmlLimitedBots` global; sem screenshots no manifesto nem tela de abertura do iPhone; ícones compostos a partir do emblema oficial (visual aprovado em 05/11/2026) | 🟡 | `src/lib/pwa/`, `src/components/pwa/`, `src/middleware.ts`, `next.config.mjs`, `src/app/manifest.ts`, `src/app/sw.js/` |
-| **RA-61** | Pixel da Meta no ar sem faixa de consentimento de cookies e sem parágrafo na Política de Privacidade; CompleteRegistration do e-mail conta no envio do formulário (antes de confirmar o e-mail); sem `value` no evento | 🟡 | `src/lib/meta/`, `src/server/meta/`, `src/components/meta/`, `src/app/layout.tsx`, `src/app/entrar/callback/route.ts`, `src/server/actions/auth.ts` |
+| **RA-61** | Pixel da Meta: desde 22/11/2026 só carrega depois do "Aceitar" da faixa de cookies (navegador e API de Conversões); continua SEM parágrafo na Política de Privacidade (texto jurídico versionado); CompleteRegistration do e-mail conta no envio do formulário (antes de confirmar o e-mail); sem `value` no evento | 🟡 | `src/lib/meta/`, `src/server/meta/`, `src/components/meta/`, `src/app/layout.tsx`, `src/app/entrar/callback/route.ts`, `src/server/actions/auth.ts` |
 | **RA-62** | PDF da nota fiscal do cliente é um "Documento Auxiliar da NFS-e" montado no navegador a partir do XML guardado: sem QR Code e fora do layout oficial do DANFSe v2.0 (NT 008); o XML é o documento oficial. Nota nº 1 a 3 (contador, 22/10) não estão na fila e não aparecem na página | 🟡 | `src/lib/pdf/nota-pdf.ts`, `src/app/(app)/conta/notas/`, `src/server/nfse/consulta.ts` |
 
 ---
@@ -1375,6 +1375,8 @@ Criado:  14/11/2026
 Pasta:   src/lib/meta/ · src/server/meta/ · src/components/meta/ · src/app/layout.tsx · src/app/entrar/callback/route.ts
 Execução: docs/META_PIXEL.md
 ```
+
+**Atualização 22/11/2026 (A09, QA do Davi):** a faixa de consentimento existe (`src/components/cookies/`, escolha em localStorage + cookie `ro_cookies`); Pixel e API de Conversões só funcionam com "Aceitar". O que resta deste RA é o parágrafo sobre cookies/Meta na Política de Privacidade, que é texto jurídico versionado e não foi alterado.
 
 **O que foi feito:** o Pixel da Meta (navegador) e a API de Conversões (servidor) medem a campanha de tráfego para o
 site. Só rodam com `META_PIXEL_ID` (e, no servidor, `META_CAPI_ACCESS_TOKEN`) definidos; sem eles o site não carrega

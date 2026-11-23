@@ -90,3 +90,17 @@ Server Actions: nenhuma devolve `AppState`/`users`/`trades` inteiros (as ocorrê
 5. **lista fechada** das rotas/páginas de `src/app` que chamam `getState()` — a nova quebra o teste e obriga a pergunta "isto devolve dado de outra conta?";
 6. Client Component não importa `@/server/state` nem `@/server/estado-do-usuario`.
 Provado que pega: com uma rota temporária `NextResponse.json({ state })` o teste falhou (rota removida em seguida). tsc limpo; 30 testes dos arquivos de estado/sessão passam.
+
+## A09 banner + CSP bloqueante + cookie Secure (pedido do Gabriel via Controle, 22/11 — "nada fica aguardando decisão")
+Depósito mínimo: Gabriel não quer mínimo; fica como está (R$ 0) — nada feito.
+| Item | O que ficou | Onde |
+|---|---|---|
+| Banner de cookies | faixa com texto da proposta; "Recusar" e "Aceitar" com o mesmo peso; "Saiba mais" → `/privacidade`; só aparece se `META_PIXEL_ID` existe e fora das áreas sem rastreio | `src/components/cookies/BannerDeCookies.tsx`, `useConsentimento.ts`, `src/styles/cookies.css` (import em `globals.css`), montado em `src/app/layout.tsx` |
+| Escolha | localStorage `ro-cookies` + cookie `ro_cookies` (1 ano, SameSite=Lax, Secure em https) para o servidor ler | `src/lib/cookies/consentimento.ts` |
+| Pixel só após Aceitar | `MetaPixel` trata `pixelId` como null até "aceito": não carrega `fbevents.js`, não grava `_fbp`, não manda PageView; se recusa depois, `fbq('consent','revoke')` | `src/components/meta/MetaPixel.tsx` |
+| API de Conversões só após Aceitar | `registrarCadastroNaMeta` não envia sem `ro_cookies=aceito`; o cadastro segue normal e devolve o ID | `src/server/meta/cadastro.ts` |
+| CSP bloqueante | cabeçalho `Content-Security-Policy` (não mais Report-Only), política em `src/lib/seguranca/csp.mjs` com origens deduzidas do código: Meta (`connect.facebook.net`, `*.facebook.com`), Supabase (`*.supabase.co`, wss, mídia assinada), Mercado Pago (`*.mercadopago.com`, `*.mlstatic.com`, `*.mercadolibre.com`); sem `form-action` (login Google redireciona); `unsafe-eval` só em dev; `unsafe-inline` continua (Next sem nonce) | `next.config.mjs`, `src/lib/seguranca/csp.mjs`, `csp.d.mts` |
+| Cookie `sb-*` Secure | confirmado: único ponto que os grava é `src/server/auth/client.ts:29` (`secure:true` em produção); quem já tinha o cookie só renova depois de sair e entrar | — |
+| Testes | `src/lib/seguranca/csp.test.ts` (6), `src/lib/cookies/consentimento.test.ts` (4), `src/server/meta/consentimento.test.ts` (3: sem escolha/recusado/aceito); `src/server/meta` e `src/lib/meta` seguem verdes; tsc e eslint limpos | — |
+
+**Riscos reais a conferir no ar (não consegui ver sem navegador):** (1) a CSP bloqueante pode derrubar alguma origem que só aparece em tela que não li (checar console em Início, Mercado, pagamento Pix/cartão, bancada com vídeo, login Google, PDF/XLSX); se algo quebrar, o ajuste é uma linha em `csp.mjs`. (2) Rollback imediato: trocar a chave em `next.config.mjs` para `Content-Security-Policy-Report-Only`. (3) A Política de Privacidade (texto jurídico versionado) **não** foi alterada: ainda não cita cookies/Meta — RA-61 atualizado dizendo isso.

@@ -60,5 +60,8 @@
    de que reaproveita .modal-bg/.modal/.btn/.tinput, e antes de responsive.css, que fecha a cascata. */
 @import '../styles/seguranca.css';
 
+/* Faixa de consentimento de cookies (A09). Antes de responsive.css, que fecha a cascata. */
+@import '../styles/cookies.css';
+
 /* SEMPRE POR ÚLTIMO — ver a explicação no topo deste arquivo. */
 @import '../styles/responsive.css';
