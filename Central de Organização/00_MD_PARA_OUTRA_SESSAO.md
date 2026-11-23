@@ -21,7 +21,7 @@ Uma pasta de **cópias e índices**. Nada foi movido nem apagado: o original é 
 | `01_continuidade/` (77) | Onde cada tarefa retoma: `geral/` (LEIA_PRIMEIRO, ESTADO-GERAL, INDICE_VEGA, rituais, pendências), `frentes/` (CONTINUIDADE das frentes A–L da manutenção; F, G, J, K, L extraídas do bloco RETOMADA), `registro-vivo-das-frentes/`, `logs-de-execucao/`, `memorias-r11/`, `versoes-das-worktrees/` (versões **não commitadas** mais novas das frentes A, C, H, K) | para retomar qualquer frente |
 | `02_planos_de_execucao/` (133) | O que faz as vezes de Garantia aqui: `manutencao-2026-11/` (executivo dos 16 itens do Rogério, controle, modelo de branch, fichas A–M), `md-de-execucao-por-frente/`, `metodo-e-processo/` (Processo 2.0, Regras de eficiência v1.1), `prompts-originais-dos-agentes/`, `planos-gerais/`, `ondas-de-agentes-*`, `polimento/`, `desenhos-e-propostas/` | para saber plano e aceite |
 | `03_relatorios/` (72) | Relatórios por frente (execuções, features, modificações), análises e estudos, ondas de setembro, auditorias; o README liga cada relatório à tarefa e ao código | para saber o que foi entregue |
-| `04_chats/CHATS_DESTE_REPOSITORIO_E_COMO_RECRIAR.md` | Os **69 chats deste repositório**, um a um, hierarquia (Controle → branch A–L → Execução/Auditoria/Específico), cruzamento com o Método v2.2 e o roteiro exato de recriação | para recriar a árvore de chats |
+| `04_chats/CHATS_DESTE_REPOSITORIO_E_COMO_RECRIAR.md` | Os **chats deste repositório (69 na foto de 20:50; o CSV agora tem 87, com o Processo Padrão acrescentado)**, um a um, hierarquia (Controle → branch A–L → Execução/Auditoria/Específico), cruzamento com o Método v2.2 e o roteiro exato de recriação | para recriar a árvore de chats |
 | `04_chats/chats_do_repositorio.csv` | id, título, nome, pai, worktree, arquivado, última atividade | para conferir ids |
 | `05_memorias_da_conta/` (47) | Memórias do Gabriel para este repositório (regras de trabalho, decisões), cópia literal | para restaurar as regras na conta nova |
 
@@ -48,7 +48,7 @@ Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qu
 ## 7. Estado final de 22/11/2026 (HEAD `ba50887`)
 
 - **Informado pelo Controle (o Processo Padrão não verificou):** relatório do Davi (QA) todo resolvido e publicado (R1–R4, com auditoria, polimento e relatório de status em `03_relatorios/manutencao-22-11-qa-davi-e-conselho/`); documentos legais gravados no banco por `scripts/publicar-documentos-legais.test.ts` (executor de uso único; não rodar de novo sem conferir); CSP bloqueante no ar; erro React #310 nas telas logadas encerrado como **artefato do painel oculto** do navegador de teste, não do site.
-- **Conferido pelo Controle:** banco com Termos 2.2, Arbitragem 2.2, Política 2.1 e Taxas 2.5 (`confere=true`, `doBanco=true`); reaceite ativo; 2.406 testes verdes (211 arquivos); head `81f2cfa` READY na Vercel.
+- **Conferido pelo Controle (foto de ~21:00; hoje à noite os Termos de Uso estão na 2.3, conferido de novo no banco somente leitura; os outros três seguem iguais):** banco com Termos 2.2, Arbitragem 2.2, Política 2.1 e Taxas 2.5 (`confere=true`, `doBanco=true`); reaceite ativo; 2.406 testes verdes (211 arquivos); head `81f2cfa` READY na Vercel.
 - **Manutenção 22-11:** T1 financeiro, T2 isenção e CPF/CNPJ, T3 balcão, T4 quadro do docx, T5 KPIs (migration 059), T6 PWA/Google no app, todos na `main`.
 - **Pendências de 23/11:** e-mail (Resend, DNS de `avisos.realolimpico.com.br`, `RESEND_API_KEY`) e a **pergunta nº 21 ao contador** (R$ 4,00 do frete), mais as nº 34–36 (frente B) em `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`.
 - Onde achar: `01_continuidade/manutencao-22-11/` (MDs de execução), `02_planos_de_execucao/manutencao-22-11-garantias-e-planos/`, `04_chats/` seções 8 e 9 (17 chats), `05_memorias_da_conta/` (lista de commits).
@@ -59,3 +59,8 @@ Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qu
 - **Tarefa grande pendente para 23/11:** `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` (único documento de e-mail).
 - **Decisão:** conta nasce confirmada, sem confirmação de e-mail; nunca criar limitação ao cadastro.
 - **Pendência do sistema:** validação de CPF por API, não aprovada ainda — `01_continuidade/PENDENCIAS_DO_SISTEMA.md`.
+
+## 8. Estado ao fim da noite de 22/11 (substitui o que as seções acima disserem em contrário)
+- Leia primeiro `01_continuidade/PENDENCIAS_DO_SISTEMA.md` (tudo que está aberto, por dono) e `04_chats/...` seção 10 (estado de cada chat; li só o fim de cada um, não a transcrição inteira).
+- Decisões do Gabriel: conta nasce confirmada; cadastro sem limitação; cookies presumidos (Termos 2.3 cláusula 3.3, publicados no banco).
+- E-mail inteiro fica para 23/11: `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md`.

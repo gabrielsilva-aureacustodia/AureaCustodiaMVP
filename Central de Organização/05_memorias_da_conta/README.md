@@ -1,6 +1,6 @@
 # Memórias da conta para este repositório
 
-**47 arquivos**, cópia literal de `C:\Users\Gabriel\.claude\projects\C--dev-AureaCustodiaMVP\memory\` em 22/11/2026 (inclui o índice `MEMORY.md`). Para restaurar em outra conta, copiar estes arquivos de volta para a mesma pasta de memória do projeto nessa conta. São regras e decisões do Gabriel (como trabalhar, o que nunca fazer), não código. As worktrees das frentes e a pasta `-admin` deste repositório **não têm memória própria** (conferido: 0 arquivos); as memórias R11 por execução ficam em `../01_continuidade/memorias-r11/`.
+**49 arquivos de memória** (conferido em 22/11 à noite; eram 47 na primeira cópia), cópia literal de `C:\Users\Gabriel\.claude\projects\C--dev-AureaCustodiaMVP\memory\` em 22/11/2026 (inclui o índice `MEMORY.md`). Para restaurar em outra conta, copiar estes arquivos de volta para a mesma pasta de memória do projeto nessa conta. São regras e decisões do Gabriel (como trabalhar, o que nunca fazer), não código. As worktrees das frentes e a pasta `-admin` deste repositório **não têm memória própria** (conferido: 0 arquivos); as memórias R11 por execução ficam em `../01_continuidade/memorias-r11/`.
 
 > Atenção: algumas memórias citam o contrato dos Correios e o ambiente. Nenhuma guarda senha ou chave (verificado por busca antes do commit), mas o repositório é **público de propósito** (RA-11): conferir antes de qualquer push.
 
@@ -116,4 +116,4 @@ Foto tirada no fechamento; `git log d570215^..HEAD` refaz a lista. Memória nova
 `email-fica-para-amanha-registrar-tudo.md` atualizado: conta nasce confirmada, sem confirmação de e-mail; nunca limitar cadastro; documento único de e-mail e validação de CPF em pendências.
 
 ## Atualização 22/11/2026 (22:20)
-Nova memória `cadastro-sem-limitacao-e-cookies-presumidos.md` (agora 48 arquivos + índice atualizado).
+Nova memória `cadastro-sem-limitacao-e-cookies-presumidos.md` (contagem correta: 49 arquivos, incluindo `MEMORY.md`).

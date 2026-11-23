@@ -21,6 +21,7 @@ Documento ÚNICO de e-mail. Quem abrir isto em qualquer conta/chat sabe o que fa
 | QA Davi A06 | Promessa "Você recebe um e-mail quando o saque for pago" | texto trocado por "Acompanhe o andamento no Extrato"; voltar ao texto de e-mail quando o envio ligar |
 | QA Davi (R2) | "Aguarde 1 minuto" no reenvio de link | texto pronto; testar com e-mail real (o reenvio de link de acesso/senha segue existindo) |
 | QA Davi A14 | Dois e-mails de contato (contato@ × suporte@) | decidir qual vale; depende da caixa no Google Workspace |
+| QA T6 | A tela de entrar NÃO tem "Esqueci minha senha" ("Esqueci minha senha" na tela de entrar não existe); o cliente não pede link, só a equipe envia | decidir se o botão nasce junto com o e-mail |
 | Docx 3 | Custo do envio | Resend: levantar o plano quando a chave existir |
 | QA Davi B02 | ~~Confirmação de e-mail no cadastro~~ | **ENCERRADO por decisão: não existe.** Contas antigas com marca pendente não são mais barradas |
 

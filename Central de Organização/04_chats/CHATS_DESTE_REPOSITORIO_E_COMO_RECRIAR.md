@@ -2,7 +2,7 @@
 
 ```
 Escrito em:  22/11/2026, pela Central de Organização
-Escopo:      SÓ este repositório (C:\dev\AureaCustodiaMVP). Os 69 chats cujo `cwd` é este repositório ou uma worktree dele (49 ativos, 20 arquivados).
+Escopo:      SÓ este repositório (C:\dev\AureaCustodiaMVP). Os chats cujo `cwd` é este repositório (foto de ~20:50: 69; hoje à noite o CSV tem 87 chats, incluindo o Processo Padrão que faltava) ou uma worktree dele (49 ativos, 20 arquivados).
 Fonte:       lista de sessões do app (22/11/2026 ~20:50), docs/manutencao-2026-11 (01_CONTROLE, 02_MODELO_DOS_CHATS_DE_BRANCH, fichas A–M), INDICE_VEGA, memórias R11 e CLAUDE.md
 Honestidade: não abri a transcrição de cada chat. As frentes A–L foram descritas pelas fichas, MDs de execução e memórias que elas mesmas escreveram;
              os 32 chats anteriores a 17/11 foram descritos pelo título e pelo MD do repositório que nasceu daquele trabalho. Onde só o título era conhecido, o texto diz isso.
@@ -384,15 +384,16 @@ Nomes curtos (para `SendMessage`): `m2-t1-financeiro`, `m2-t2-isencao`, `m2-t3-b
 | `m2-t4-docx` | T4 | Quadro dos 15 itens do docx × produção (só leitura). `QUADRO_ITENS_DOCX_22-11.md`. |
 | `m2-t5-kpis` | T5 | KPIs do conselho (pagante, churn, margem por moeda, LTV) e `coin_ids` em cada negociação (migration 059). Commits `6c3f79f`, `66c0dd2`. |
 | `m2-t6-pwa-iphone` | T6 | Login Google no app instalado (callback tolerante, aviso no login) e docs do PWA no iPhone. Commit `019947c`. |
-| `m2-tester` | Tester | Conferência visual logada; relatório `TESTER_22-11.md`. |
+| `m2-tester` | Tester | Varredura visual logada nas telas do cliente (375/768/1280, claro e escuro) e relatório `TESTER_22-11.md`. Achou: faixa de cookies cobrindo o tutorial, singular/plural, aceite no login Google; todos corrigidos. Teste do cadastro por e-mail (`91cccf2`) depende de o Gabriel digitar a senha. |
 | `qa-r1-exec` | R1 | B01 estado por usuário, cookie Secure, CSP bloqueante (relatório→bloqueio; #310 era artefato do painel oculto), faixa de cookies A09 com alvo de 44px. Commits `4c2df93`, `e97a19e`, `a4d5488`, `18630a9`, `f484c6f`, `5c9e7da`, `ee28f3b`. |
-| `qa-r2-exec` | R2 | E-mail pendente até confirmar, "esqueci minha senha", validação de nome/nascimento/telefone/Pix, aceite com erro visível. Commit `4026823`. |
+| `qa-r2-exec` | R2 | (B02 REVERTIDO pelo Gabriel em 22/11 à noite: conta nasce confirmada, sem limitação de cadastro; commit `91cccf2`.) Fez: E-mail pendente até confirmar (revertido), "esqueci minha senha", validação de nome/nascimento/telefone/Pix, aceite com erro visível. Commit `4026823`. |
 | `qa-r3-exec` | R3 | Saque em dias úteis, validação do depósito, oferta sem saldo, ano travado, CEP, termos de publicação; A08/B09. Commits `6140f17`, `5a39b89`, `2d25296`. |
 | `qa-r4-exec` | R4 | Termos 2.2, Arbitragem 2.2, Política 2.1, Tabela de Taxas 2.5, 404, textos; documentos legais gravados no banco por `scripts/publicar-documentos-legais.test.ts`. Commits `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`, `895b924`, `81f2cfa`. |
 | `qa-auditoria` | Auditoria | `AUDITORIA_QA_DAVI_22-11.md`: apontou 3 achados graves (teste do payload do B01; Termos 2.2 não publicar sem ordem; teste do aviso do Google), todos resolvidos (informado pelo Controle). |
 | `qa-polimento` | Polimento | `POLIMENTO_QA_DAVI_22-11.md` (404 sóbrio, `184b3ea`). |
 | `qa-merge-deploy` | Merge/Deploy | Publicou T5 e T6; R1 (`4c2df93`, `e97a19e`, `a4d5488`, `e6fdcc9`, `f484c6f`); R2 `4026823`; R3 `6140f17` e `2d25296`; R4 `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`; `06bfba3` (banco.test) (informado pelo Controle). |
 | `qa-relatorios` | Relatórios | `RELATORIO_STATUS_QA_DAVI_22-11.md` e texto do relatório (`44db26f`). |
+| `m2-processo-padrao` | Processo Padrão | Rodou o ritual de sessão nas cópias da Central: `04_chats` seção 9 e `00_MD_PARA_OUTRA_SESSAO` seção 7 (separou o que o Controle informou do que conferiu); cron cancelado. Commit `65db7a9`. |
 | `qa-higienizacao` | Higienização | Monitorou a árvore de trabalho e não agiu (nada apagado nem movido) (informado pelo Controle). |
 
 Controle: `Pendências de manutenção do site` decidiu merges, commits e índices; pendências de 23/11 em `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`.
@@ -403,3 +404,31 @@ Chat Tester (`local_58a21059…`, m2-tester) recebeu a conferência final no ar;
 
 ## Atualização 22/11/2026 (22:20)
 Tester (m2-tester) concluiu a varredura logada; falta só o cadastro por e-mail. qa-r2-exec removeu o login de a@a.co (linha em aurea.users e aceites ficam: cadeia de hash). Demais chats ociosos.
+
+## 10. Estado de cada chat de 22/11 ao fim da noite, lido nas últimas mensagens de cada um [central-22/11-noite]
+
+Como li: abri o fim de cada um dos 17 chats de hoje (última resposta do assistente) e conferi no Git, no banco (somente leitura) e na Vercel o que foi possível. **Não li a transcrição inteira de nenhum deles** (são de 79 a 897 mensagens cada). Onde o chat disse "não commitado", conferi o `git log`: o que ele chamava de pendente já está na `main`.
+
+| Chat | Última palavra do chat | O que sobra (aberto de verdade) |
+|---|---|---|
+| T1 Financeiro | Push do `d570215`; deploy "pending" na hora; disse que ainda ia abrir o Financeiro em produção, ver o aviso da cadeia e a ficha do Rogério (Taxas pagas R$ 554,70) | **Não conferi** que o aviso da cadeia sumiu nem o valor da ficha. Conferência visual logada pendente |
+| T2 Isenção | Corrigiu o teste do CPF/CNPJ (`banco.test.ts`), 60/60 | Variáveis `NEXT_PUBLIC_AUREA_CONTA_*` existem na Vercel (conferi). Contas Áurea/CEO sem taxa: sem teste logado |
+| T3 Balcão | Reverso das 18 posições feito em produção (uma transação, hash refeito, 0 quebras); backup só na pasta de notas da sessão | 3 pesos ambíguos (RO-ENV-0014: 789 mg; RO-ENV-0003: 900 mg; RO-ENV-0048: 9 mg) só listados; 2 vídeos sem dono não apagados; **`corrigir-videos-e-posicoes.cjs` está sem rastreio no repositório e NÃO deve rodar sem `--so-videos`**; botão de vídeo na ficha do admin não conferido logado |
+| T4 Docx | Quadro dos 15 itens: todos no ar; só leitura | Ver `01_continuidade/PENDENCIAS_DO_SISTEMA.md` (lista completa que ele montou) |
+| T5 KPIs | Respostas do Gabriel aplicadas; 059 criada | Migration 059 **foi aplicada** pelo Merge/Deploy antes do push; negociações antigas ficam com a comissão por moeda em "—". Horizonte do LTV (12 meses) provisório; leitura do gasto pela API da Meta = pendência de marketing |
+| T6 PWA | Callback tolerante e aviso do Google no app instalado; 122 testes | Só no aparelho: passos 4, 5 e 7 do roteiro do iPhone. **A tela de entrar não tem "Esqueci minha senha"** e o cliente não pede link: só a equipe envia (entra na tarefa de e-mail de 23/11) |
+| R1 Segurança | Faixa de cookies com Saiba mais de 44 px publicada (`f484c6f`) | Nada. A faixa foi depois substituída pelo selo de cookies (`3219429`) por decisão do Gabriel |
+| R2 Cadastro | Removeu o login de `a@a.co` no Supabase Auth; a linha em `aurea.users` e 3 aceites ficam (cadeia de hash) | B02 foi revertido (conta nasce confirmada). Se o Davi criou outras contas de QA, os e-mails são desconhecidos |
+| R3 Dinheiro | Os 4 testes do frete dependiam do relógio (corte D-H5); corrigidos, 34 verdes | Nada |
+| R4 Textos | Script de publicação dos documentos (não rodou sozinho) | Executado depois pelo Controle: no banco hoje Termos **2.3**, Arbitragem 2.2, Política 2.1, Taxas 2.5 |
+| Auditoria | 3 achados graves resolvidos; cron apagado | Cookie PKCE sem `secure`/`httpOnly` (padrão da biblioteca, só anotado); erro React 418 não confirmado em navegador; validação de CPF/nome na Receita não aprovada |
+| Polimento | Todas as sugestões entraram, medidas pelo Tester | Nada. Pergunta sobre a Arbitragem 2.2 na faixa de reaceite: por desenho (aceite próprio) |
+| Merge/Deploy | Tudo publicado até `81f2cfa`, READY | Depois dele houve mais commits do Controle (abaixo) |
+| Relatórios | `RELATORIO_STATUS_QA_DAVI` fechado | Atualizado pelo Controle depois (cookies, Termos 2.3, Google) |
+| Higienização | Monitorou a árvore, não agiu; 17 itens sem rastreio na árvore | Itens sem rastreio de outras frentes continuam sem commit (ver abaixo) |
+| Processo Padrão | Atualizou as cópias da Central e cancelou o cron | Linha dele faltava em `04_chats` e no CSV: acrescentada agora |
+| Tester | Ver linha acima | Teste de cadastro por e-mail |
+
+Commits do Controle depois de `81f2cfa`: `91cccf2` (B02 revertido, documento de e-mail, CPF por API), `e86252d` (achados do Tester), `3219429` (cookies presumidos e Termos 2.3), `0a9deae` (tutorial vira bolinha no celular), `3734866` (singular/plural), `978bc60` (Google não regrava aceite de conta existente), `22f6e80` (docs). Termos 2.3 gravados no banco (conferido somente leitura).
+
+Arquivos sem rastreio na árvore (nenhum é código do site; deixados como estão): `.agents/`, `corrigir-videos-e-posicoes.cjs`, `docs/polimento/**` (vários MD de outra frente), `docs/processo/`, mais `.claude/launch.json` modificado. Entrou por engano no commit `3219429` o script `scripts/apagar-contas-de-teste.mjs` (de outro agente; sem segredo).
