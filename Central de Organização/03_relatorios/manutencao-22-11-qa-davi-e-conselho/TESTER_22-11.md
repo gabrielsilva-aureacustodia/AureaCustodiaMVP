@@ -112,3 +112,41 @@ Não testado: 375/768/escuro (telas logadas não montam).
 - 1280 px: Recusar 98×44, Aceitar 91×44 ✓; sem estouro.
 - Fixos no 375: skip-link, `DIV.toast` (top 766, h36, sob a faixa) e a faixa. Botões flutuantes do app não aparecem em /termos; **sobreposição com botões flutuantes (Tutorial, etc.) só dá para checar em tela logada**.
 - Controle diz que o #310/"Carregando a tela…" é artefato do painel OCULTO. Não consegui mostrar o painel (`show_pane` não achou janela). **Achado #310 descartado como provisório; refazer com painel visível** (/mercado, /compras, /inicio, /envios, /recibos, reaceite, mercado sem cripto, console). Não testado: 768, escuro, reaceite.
+
+## Rodada 5 — versões legais publicadas no banco (painel ainda OCULTO; só leitura, sem aceitar)
+| Item | Resultado |
+|---|---|
+| `/termos` | Versão **2.2** ✓ |
+| `/taxas` | Versão **2.5** ✓; linha 3.2 diz "sem seguro de valor" (negação, coerente) |
+| `/privacidade` | Versão **2.1** ✓ |
+| Faixa de reaceite (`/mercado` HTML, tela logada) | "Há versão nova de: Termos de Uso, Política de Privacidade, Tabela de Taxas. Ler termos • Tabela de Taxas · Aceitar termos · Lembrar depois" ✓. **Arbitragem NÃO aparece** (`aceitesPendentes` = termos_de_uso, politica_privacidade, tabela_de_taxas), apesar de o Controle esperar 4 — conferir se a Arbitragem 2.2 vai junto dos Termos ou se faltou |
+| `/recibos/auditoria` | Só esteira e contagens de moedas (253 custodiadas); sem receita/saldo da empresa ✓ |
+| `/mercado` | Sem BTC/ETH/USDT/Bitcoin/cripto no HTML ✓ |
+| CSP | enforced ✓ |
+Não conferido (exige painel visível): aparência da faixa de reaceite e do banner em 375/768/1280 claro/escuro, console sem violação de CSP em telas logadas (as telas ficam em "Carregando a tela…" com o painel oculto). Não cliquei em Aceitar.
+
+## Rodada 6 — banner de cookies (e6fdcc9) e verificação do Controle
+**Verificado pelo Controle em 22/11 ~21:35, com painel visível (sessão do Gabriel, só leitura):** /inicio e /mercado montam normal; /mercado sem BTC/ETH/USDT e sem "Comparação simples"; /recibos/auditoria só com Esteira de custódia, estoque e integridade; faixa de reaceite em /inicio com Termos, Política e Taxas; CSP bloqueante sem violações (mensagens de frame-ancestors/X-Frame-Options vieram de iframe de teste do Controle). **#310 encerrado como artefato do painel oculto** (descarta o achado da Rodada 4).
+
+Medido por mim no DOM (/termos):
+| Viewport | Tema | Faixa | Botões |
+|---|---|---|---|
+| 375 | claro | h 130 (16% da tela; antes 204) | Recusar/Aceitar 161×44 |
+| 375 | escuro | h 130, texto `rgb(242,237,224)`, sem rolagem lateral | idem |
+| 768 | escuro | h 67, fixa no pé, sem estouro (sw 753 < 768) | Recusar 98×44, Aceitar 91×44 |
+| 1280 | claro | — | 98×44 / 91×44 |
+**"Saiba mais" ainda 66×16 px** (o f484c6f com alvo de 44 px ainda não está no ar). Observação: o fundo computado da `.cookies-faixa` é transparente nos dois temas (o contraste vem de um filho; não conferi visualmente).
+Pendente: remedir "Saiba mais" após READY do f484c6f.
+
+## Rodada 7 — f484c6f READY: "Saiba mais" com alvo de 44 px ✓
+| Viewport | Saiba mais | Recusar | Aceitar | Faixa |
+|---|---|---|---|---|
+| 375 | **102×44** | 106×44 | 106×44 | h 130, sem rolagem lateral |
+| 1280 | **102×44** | 98×44 | 91×44 | h 67, sem estouro |
+Os três botões atendem 44 px.
+
+## Fechamento da conferência do Relatório do Davi
+- Corrigido e confirmado no ar: 404 em português, Academy sem "até30" e sem Sicoob, Termos 2.2 (14.5.4, "regem", 14.2), Taxas 2.5, Política 2.1, reaceite ativo, auditoria sem dinheiro da empresa, mercado sem cripto, CSP bloqueante sem violações, banner de cookies (Pixel só após aceite; botões 44 px; 375/768/1280, claro/escuro).
+- Em aberto (não é defeito do site / depende de outros): conferir se a Arbitragem 2.2 entra nos reaceites (faixa lista só Termos, Política e Taxas); B01 view-source de /inicio com conta de teste (API `/api/state` já conferida: 1 usuário); cookies `sb-*` com Secure só confirmável após novo login; "Saiba mais"/B02 política de e-mail (decisão do Gabriel).
+- #310: encerrado como artefato do painel oculto.
+Nada criado nem alterado em produção por mim; sw.js foi desregistrado/recriado no navegador do painel (re-registrou sozinho).

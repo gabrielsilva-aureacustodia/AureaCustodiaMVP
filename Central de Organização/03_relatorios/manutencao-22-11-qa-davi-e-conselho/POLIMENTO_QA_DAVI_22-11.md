@@ -99,8 +99,12 @@ Ainda não há aviso de "corrigido" do Tester/Controle; isto é leitura antecipa
 - Nesta conta (equipe) o passeio do tutorial abre por cima da faixa: o cliente novo verá o tutorial antes de poder escolher. Aceitável; só confirmar que o tutorial não impede o clique nos botões depois de fechado.
 - Não conferido: modo claro (a conta/tela estava no escuro; as cores vêm de tokens, sem cor fixa no CSS) e 768px.
 
+## Fechamento (22/11 ~21:50)
+Tudo commitado (HEAD 81f2cfa); `src` limpo. Sugestões minhas que entraram: 404 "Página não encontrada"; mensagens Pix/CPF/"Aguarde 1 minuto"; "Retirada Segura" com "embalagem lacrada e rastreio, sem seguro de valor" (Taxas 2.5); faixa de cookies mais baixa no celular (130px) e "Saiba mais" com 44px. Medido pelo Tester em 375/768/1280, claro e escuro.
+Sobra, não é de polimento: (a) conferir se a Arbitragem 2.2 entra no reaceite (a faixa lista só Termos, Política e Taxas); (b) sugestão antiga e opcional: tirar do Sacar a frase "aviso por e-mail ainda não está ativo" (não verificada se foi aplicada).
+
 ## Revisões de correção
-(nenhuma recebida ainda)
+Todas as correções avisadas foram revisadas acima.
 
 ## Log da rotina
 - 22/11 ~20:20: criada; primeira leitura sem MDs de execução.
