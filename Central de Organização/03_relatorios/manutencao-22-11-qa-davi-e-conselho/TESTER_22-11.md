@@ -85,3 +85,30 @@ Conferido na home/`/inicio` (sessão do Gabriel já aberta, só leitura), sem cl
 - Console: 1 erro "Failed to load resource: 404" sem URL identificável (nenhum recurso 4xx em `performance`); pode ser da navegação anterior ao admin. Sem mensagem "Refused to…/Content Security Policy".
 Não conferido: Pix/cartão, login Google, bancada com vídeo, PDF/XLSX, Pixel após "Aceitar" (exigem ação/tela logada).
 Aguardando READY do f8ede77 (R4).
+
+## Rodada 4 — a267335 READY
+**CRÍTICO:** telas logadas do cliente (`/mercado`, `/compras`, `/inicio`) ficam presas em "Carregando a tela…" (>12 s, 3 cargas) com `Uncaught Error: Minified React error #310` (mais hooks que na renderização anterior; pilha em useMemo, chunk 1255-…js) + um "Failed to load resource: 404" sem URL. Faixa de cookies aparece; corpo não monta. Sem violação de CSP no console. Sessão do Gabriel (conta de equipe), só leitura. Avisado ao Controle e ao R1. Causa não confirmada (suspeita: hook após return condicional no banner/reaceite/A08/B09, ou estado da conta). Por isso NÃO consegui conferir visualmente banner (44px, flutuantes), janela de reaceite, /mercado sem BTC/ETH/USDT, nem o console em Compras/Envios/Recibos.
+
+Conferido por fetch (HTML do servidor):
+| Item | Resultado |
+|---|---|
+| `/termos` | "Estes Termos de Uso regem" ✓, "A arbitragem observará" ✓, 14.2 citado ✓, "A observará" e "Cláusula 13.2" sumiram ✓, 30 dias úteis ✓. **Cabeçalho ainda diz "Versão: 2.1"** (esperado 2.2) |
+| `/taxas` | **Cabeçalho "Versão: 2.3"** (esperado 2.4) |
+| `/privacidade` | "Versão: 2.1" ✓ |
+| `/academy` | Sem Sicoob. Ainda cita seguro: só "seguro postal/de transporte" e "Hoje não há apólice de seguro contratada" (coerente com A02) |
+| `/recibos/auditoria` | Sem saldo/receita da empresa (só o "Saldo R$ 0,00" da própria conta no topo) ✓ |
+| `/mercado/comparacoes` | Responde 200 sem redirecionar via fetch; no navegador terminou em `/` (redirecionou) — conferir |
+| `/mercado` HTML | sem BTC/ETH/USDT/Bitcoin/cripto ✓ |
+Não testado: 375/768/escuro (telas logadas não montam).
+
+### Rodada 4b — resposta ao R1 sobre o #310
+- Primeiro erro do console: "Failed to load resource: 404" (URL não identificada; 55 URLs da página testadas com fetch no-store, nenhuma 4xx), depois o #310 (pilha: useMemo → chunk 1255-…js). Sem exceção anterior.
+- Service worker: tinha `sw.js` ativo, `caches.keys()` vazio. Desregistrei o SW e apaguei caches (ele re-registrou sozinho ao recarregar; nada a restaurar). Resultado: **#310 e "Carregando a tela…" persistem**, `GET /api/state` 200. Logo não é SW/PWA servindo JS velho.
+- `/api/state`: `aceitesPendentes: []` para a conta da equipe, apesar das versões novas de Termos/Taxas — conferir se o reaceite dispara.
+- B01 (API): `/api/state` tem 1 usuário e 1 e-mail distinto ✓. View-source de `/inicio` não conferido.
+
+### Rodada 4c — banner de cookies (medido em /termos, DOM, painel oculto)
+- 375 px: faixa `.cookies-faixa` fixa, top 596 / 204 px de altura (≈25% da tela), sem rolagem lateral. Recusar e Aceitar: 155×44 ✓. **"Saiba mais": link de 66×16 px — abaixo do alvo de 44 px** (baixa). Leva a `/privacidade` ✓.
+- 1280 px: Recusar 98×44, Aceitar 91×44 ✓; sem estouro.
+- Fixos no 375: skip-link, `DIV.toast` (top 766, h36, sob a faixa) e a faixa. Botões flutuantes do app não aparecem em /termos; **sobreposição com botões flutuantes (Tutorial, etc.) só dá para checar em tela logada**.
+- Controle diz que o #310/"Carregando a tela…" é artefato do painel OCULTO. Não consegui mostrar o painel (`show_pane` não achou janela). **Achado #310 descartado como provisório; refazer com painel visível** (/mercado, /compras, /inicio, /envios, /recibos, reaceite, mercado sem cripto, console). Não testado: 768, escuro, reaceite.
