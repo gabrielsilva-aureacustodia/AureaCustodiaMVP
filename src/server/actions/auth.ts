@@ -36,7 +36,6 @@ import {
 } from '@/server/auth/conta-desativada'
 import { normalizarEmail } from '@/domain/email'
 import { normalizarNome, validarNomeCompleto } from '@/domain/validacao-cadastro'
-import { marcarEmailPendente } from '@/server/auth/email-pendente'
 
 const CREDENCIAIS_INVALIDAS = 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
 const FALHA_AUTENTICACAO = 'Não foi possível concluir a autenticação. Tente novamente.'
@@ -192,30 +191,23 @@ export async function registerWithEmail(
         })
       : undefined
 
-    // B02 (QA Davi 22/11/2026): a conta pelo e-mail NASCE com o e-mail por confirmar, venha o Supabase com a confirmação
-    // ligada ou não (em produção ele está com `mailer_autoconfirm`, e foi assim que "a@a.co" virou "Verificado").
-    // A marca cai no clique do link, no callback (ver `email-pendente.ts`). Antes, esta rota provisionava a conta já
-    // aqui quando o Supabase a devolvia confirmada; agora quem cria o registro é o primeiro acesso — o clique no
-    // link (callback) ou o login —, como já era com a confirmação ligada.
-    const contaNovaComUsuario = contaNova && data.user ? data.user : null
-    if (contaNovaComUsuario) {
-      const marcada = await marcarEmailPendente(contaNovaComUsuario.id)
-      if (!marcada) console.error('[auth] cadastro sem a marca de e-mail pendente (chave de serviço ausente ou recusada).')
+    // B02 (decisão do Gabriel, 22/11/2026): a conta pelo e-mail NASCE confirmada, sem e-mail e sem clique — "as pessoas
+    // não conseguem usar a confirmação de e-mail". E-mail fica para trocar senha e demais trâmites (a configurar depois).
+    // Por isso não há marca de "e-mail pendente": o Supabase de produção segue com `mailer_autoconfirm`, e é isso que
+    // se quer. Se algum dia o Supabase devolver a conta sem confirmação, vale a mensagem do segundo ramo.
+    if (data.user?.email && data.user.email_confirmed_at) {
+      await provisionAuthenticatedUser(data.user.email, normalizedName)
+      await client.auth.signOut({ scope: 'local' })
+      return {
+        ok: true,
+        message: 'Conta criada. Você já pode entrar.',
+        data: { eventoCadastroId },
+      }
     }
-    const jaVeioConfirmada = Boolean(contaNovaComUsuario?.email_confirmed_at)
     await client.auth.signOut({ scope: 'local' })
-    if (jaVeioConfirmada) {
-      // Com a confirmação do Supabase desligada nenhum e-mail sai no cadastro: o link de acesso é o e-mail de confirmação.
-      await client.auth
-        .signInWithOtp({
-          email: normalizedEmail,
-          options: { shouldCreateUser: false, emailRedirectTo: await authCallbackUrl() },
-        })
-        .catch(() => undefined)
-    }
     return {
       ok: true,
-      message: `Conta criada. Enviamos um link para ${normalizedEmail}: clique nele para confirmar o e-mail e entrar. Confira também o spam.`,
+      message: 'Conta criada. Abra o e-mail de confirmação para validar seu acesso.',
       data: { eventoCadastroId },
     }
   } catch {

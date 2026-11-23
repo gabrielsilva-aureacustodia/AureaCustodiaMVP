@@ -15,7 +15,6 @@ import { normalizarEmail } from '@/domain/email'
 import type { ActionResult } from '@/domain/types'
 import { createAuthClient } from '@/server/auth/client'
 import { getAuthConfig } from '@/server/auth/config'
-import { emailDaSessaoEstaPendente } from '@/server/auth/email-pendente'
 import { authCallbackUrl } from '@/server/auth/origin'
 import { getSessionEmail } from '@/server/session'
 
@@ -76,10 +75,11 @@ export async function reenviarLinkDeAcesso(email: string): Promise<ActionResult>
 }
 
 /** Para o selo "E-mail verificado" da tela de Segurança: a conta logada já confirmou o e-mail? */
+// Decisão de 22/11/2026: conta nasce confirmada, nenhuma limitação por e-mail no cadastro.
 export async function situacaoDoEmailDaConta(): Promise<ActionResult<{ confirmado: boolean }>> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: 'Sua sessão expirou. Entre novamente.' }
-  return { ok: true, data: { confirmado: !(await emailDaSessaoEstaPendente()) } }
+  return { ok: true, data: { confirmado: true } }
 }
 
 /** O botão "Reenviar link" da própria tela de Segurança: manda para o e-mail da sessão, sem digitar. */

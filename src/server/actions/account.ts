@@ -25,7 +25,6 @@
 import { ACCOUNTS } from '@/domain/constants'
 import { calcularDataLimiteSaque, PRAZO_SAQUE_DIAS } from '@/domain/dates'
 import { temDadosBancarios } from '@/domain/cadastro'
-import { emailDaSessaoEstaPendente } from '@/server/auth/email-pendente'
 import {
   normalizarNome,
   validarChavePix,
@@ -515,15 +514,6 @@ export async function salvarCadastro(input: CadastroInput): Promise<ActionResult
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
 
   if (!input) return { ok: false, error: 'Dados cadastrais não informados.' }
-
-  // B02 (QA Davi 22/11/2026): sem e-mail confirmado não há cadastro formal — e sem ele não há depósito, compra,
-  // venda nem saque (todos exigem `temCadastroCompleto`). Política provisória; a decisão é do Gabriel.
-  if (await emailDaSessaoEstaPendente()) {
-    return {
-      ok: false,
-      error: 'Confirme seu e-mail antes de completar o cadastro: abra o link que enviamos ou peça outro em Minha conta → Segurança.',
-    }
-  }
 
   if (!validarDocumento(input.cpf)) {
     return { ok: false, error: 'CPF ou CNPJ inválido.' }

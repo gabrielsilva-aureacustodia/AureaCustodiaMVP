@@ -54,3 +54,8 @@ Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qu
 - Onde achar: `01_continuidade/manutencao-22-11/` (MDs de execução), `02_planos_de_execucao/manutencao-22-11-garantias-e-planos/`, `04_chats/` seções 8 e 9 (17 chats), `05_memorias_da_conta/` (lista de commits).
 - Pastas locais antigas sem commit (de outras frentes, só listadas): `docs/manutencao-2026-11/{00_MD_EXECUTIVO,01_CONTROLE,02_MODELO_DOS_CHATS_DE_BRANCH,OPERACIONAL_FORNECEDORES,README}.md` e `frentes/` (pacote da manutenção de 17/11, do Controle), `docs/polimento/**` (polimento de outubro), `docs/processo/`.
 <!-- estado22:fim -->
+
+## Atualização 22/11/2026 (noite)
+- **Tarefa grande pendente para 23/11:** `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` (único documento de e-mail).
+- **Decisão:** conta nasce confirmada, sem confirmação de e-mail; nunca criar limitação ao cadastro.
+- **Pendência do sistema:** validação de CPF por API, não aprovada ainda — `01_continuidade/PENDENCIAS_DO_SISTEMA.md`.
