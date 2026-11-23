@@ -113,7 +113,7 @@ export default async function AcademyPage(): Promise<ReactNode> {
           <li>
             <strong>Resgate físico:</strong> O titular do recibo pode solicitar, a qualquer momento, a
             retirada de uma moeda equivalente do acervo (mesma categoria, conforme os Termos de Uso),
-            que será despachada via Correios, com aviso de recebimento e valor declarado, até o seu endereço residencial cadastrado.
+            que será despachada via Correios, com aviso de recebimento, até o seu endereço residencial cadastrado.
           </li>
         </ul>
       </section>
@@ -204,9 +204,9 @@ export default async function AcademyPage(): Promise<ReactNode> {
         </p>
         <p>
           <strong>Existe seguro contratado para o acervo?</strong><br />
-          Hoje não há apólice de seguro contratada para o acervo guardado em cofre. O único seguro
-          existente é o do transporte pelos Correios (valor declarado), de responsabilidade de quem
-          envia ou retira a moeda.
+          Hoje não há apólice de seguro contratada para o acervo guardado em cofre. No envio da moeda
+          para a custódia, o seguro postal (valor declarado) é de responsabilidade de quem envia; a
+          retirada, inclusive a Retirada Segura, vai com embalagem lacrada e rastreio, sem seguro de valor.
         </p>
       </section>
 

@@ -46,7 +46,7 @@ describe('Tabela de Taxas gerada pela configuração', () => {
     expect(texto).toContain('2.2. Comissão de Venda. 0,5% sobre o valor da negociação + R$ 2,50 fixo por moeda vendida.')
     // Comprador: 1% de 200 + 1 = R$ 3,00. Vendedor: 0,5% de 200 + 2,50 = R$ 3,50.
     expect(texto).toContain('o comprador paga R$ 203,00 (preço de R$ 200,00 acrescido de comissão de R$ 3,00) e o vendedor recebe R$ 196,50 líquidos')
-    expect(texto).toContain('R$ 180,00 por envio, em até 3x no cartão de crédito.')
+    expect(texto).toContain('R$ 180,00 por envio, em até 3x no cartão de crédito; embalagem lacrada e rastreio, sem seguro de valor.')
     expect(texto).toContain('Tarifa fixa de transferência de R$ 7,50 por solicitação de saque bancário.')
     const linhasV1 = textoCanonico(TABELA_DE_TAXAS_V1).split('\n')
     const linhas = texto.split('\n')

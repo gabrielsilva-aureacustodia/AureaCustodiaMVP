@@ -22,8 +22,9 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
   // reciclar o número faria o registro de consentimento deixar de dizer o que a
   // pessoa leu. O arquivo mantém o sufixo `-v1` de propósito: ele guarda o
   // documento VIGENTE, qualquer que seja o número.
+  // 2.5 (22/11/2026): a linha da Retirada Segura passou a dizer "embalagem lacrada e rastreio, sem seguro de valor".
   // 2.4 (22/11/2026): a retirada "Segura" deixou de dizer "Cobertura Especial" — não há apólice (QA do Davi, A02).
-  versao: '2.4',
+  versao: '2.5',
   titulo: 'TABELA DE TAXAS',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -82,7 +83,7 @@ export const TABELA_DE_TAXAS_V1: DocumentoLegalEstruturado = {
         {
           numero: '3.2',
           titulo: 'Retirada Segura',
-          texto: 'R$ 180,00 por envio, em até 2x no cartão de crédito.',
+          texto: 'R$ 180,00 por envio, em até 2x no cartão de crédito; embalagem lacrada e rastreio, sem seguro de valor.',
         },
       ],
     },

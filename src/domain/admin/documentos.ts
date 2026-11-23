@@ -78,7 +78,7 @@ export function documentoTabelaDeTaxas(taxas: TabelaDeTaxas, vigencia: string, v
     `e o vendedor recebe ${reaisNoTexto(PRECO_DO_EXEMPLO - vendedor)} líquidos (preço de ${p} deduzido de comissão de ${reaisNoTexto(vendedor)}).`
 
   paragrafo(doc, '3.1').texto = `${reaisNoTexto(taxas.taxaRetiradaComum)} por envio.`
-  paragrafo(doc, '3.2').texto = `${reaisNoTexto(taxas.taxaRetiradaSegura)} por envio, em até ${taxas.retiradaSeguraParcelasMax}x no cartão de crédito.`
+  paragrafo(doc, '3.2').texto = `${reaisNoTexto(taxas.taxaRetiradaSegura)} por envio, em até ${taxas.retiradaSeguraParcelasMax}x no cartão de crédito; embalagem lacrada e rastreio, sem seguro de valor.`
   paragrafo(doc, '4.2').texto = `Tarifa fixa de transferência de ${reaisNoTexto(taxas.taxaSaqueFixa)} por solicitação de saque bancário.`
   return doc
 }

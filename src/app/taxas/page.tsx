@@ -192,7 +192,7 @@ export default async function FeesPage(): Promise<ReactNode> {
                 <strong>Retirada Segura</strong>
               </td>
               <td>{brl(taxas.taxaRetiradaSegura)}</td>
-              <td>Em até {taxas.retiradaSeguraParcelasMax}x no cartão</td>
+              <td>Em até {taxas.retiradaSeguraParcelasMax}x no cartão; embalagem lacrada e rastreio, sem seguro de valor</td>
             </tr>
           </tbody>
         </table>

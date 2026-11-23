@@ -197,7 +197,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaComum)}</span>
         </span>
         <span className="modalidade-desc">
-          Expedição via Correios com Aviso de Recebimento (AR) e valor declarado (seguro postal). Tarifa à vista. Prazo de até 30 dias úteis após a confirmação.
+          Expedição via Correios com Aviso de Recebimento (AR). Tarifa à vista. Prazo de até 30 dias úteis após a confirmação.
         </span>
       </button>
 
@@ -215,7 +215,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaSegura)} (em até {taxas.retiradaSeguraParcelasMax}x)</span>
         </span>
         <span className="modalidade-desc">
-          Mesma expedição pelos Correios, com AR e valor declarado; muda a tarifa, que pode ser parcelada no cartão. Prazo de até 30 dias úteis após a confirmação.
+          Expedição pelos Correios com AR, embalagem lacrada e rastreio, sem seguro de valor. A tarifa pode ser parcelada no cartão. Prazo de até 30 dias úteis após a confirmação.
         </span>
       </button>
 
