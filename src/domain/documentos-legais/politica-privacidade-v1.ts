@@ -14,7 +14,9 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
   // aponta para a versão — reciclar o número faria o registro de consentimento
   // deixar de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de
   // propósito: ele guarda o documento VIGENTE, qualquer que seja o número.
-  versao: '2.0',
+  // 2.1 (22/11/2026): alinhada ao cadastro real (QA do Davi, A05) — a 1ª compra, depósito ou saque já pede
+  // endereço residencial e dados de recebimento. Texto novo, hash novo, versão nova.
+  versao: '2.1',
   titulo: 'POLÍTICA DE PRIVACIDADE',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -50,7 +52,7 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
             {
               letra: 'b)',
               texto:
-                'Identificação formal e fiscal (1º depósito, compra ou saque): nome completo, número do CPF e data de nascimento para validação fiscal e prevenção a fraudes.',
+                'Cadastro formal (antes do 1º depósito, compra ou saque): nome completo, número do CPF, data de nascimento, endereço residencial e dados para recebimento de saques (chave Pix ou dados bancários), para validação fiscal, emissão de notas e prevenção a fraudes.',
             },
             {
               letra: 'c)',
@@ -60,12 +62,12 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
             {
               letra: 'd)',
               texto:
-                'Endereço de entrega (solicitado apenas na retirada física da moeda): logradouro, número, complemento, bairro, cidade, UF e CEP para frete e seguro.',
+                'Endereço: o residencial, informado no cadastro formal, também é usado como endereço de entrega na retirada física da moeda (logradouro, número, complemento, bairro, cidade, UF e CEP, para o frete).',
             },
             {
               letra: 'e)',
               texto:
-                'Dados bancários (solicitados exclusivamente para liquidação de saques): chave Pix e dados bancários de mesma titularidade do CPF cadastrado.',
+                'Dados bancários (informados no cadastro formal e usados exclusivamente para liquidação de saques): chave Pix e dados bancários de mesma titularidade do CPF cadastrado.',
             },
             {
               letra: 'f)',
@@ -88,7 +90,7 @@ export const POLITICA_PRIVACIDADE_V1: DocumentoLegalEstruturado = {
         {
           numero: '3.1',
           texto:
-            'Por diretriz expressa de governança: não exigimos fotos de documentos (RG/CNH), não realizamos reconhecimento facial ou biometria invasiva, e não coletamos quaisquer dados sensíveis.',
+            'Por diretriz expressa de governança: não exigimos fotos de documentos (RG/CNH), não realizamos reconhecimento facial ou biometria invasiva, e não coletamos quaisquer dados sensíveis. A verificação de identidade atual usa apenas os dados informados no cadastro formal (nome, CPF e data de nascimento); se o Real Olímpico vier a pedir documentos, avisará antes, nos termos do Capítulo 6 dos Termos de Uso.',
         },
       ],
     },
