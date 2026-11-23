@@ -102,7 +102,7 @@ export function FaturasCustodia(): ReactNode {
 
       {/* Abas: Faturas × Planos. Papel de aba de verdade (tablist/tab/aria-selected) desde
           25/10/2026; antes eram dois botões pintados à mão com cor fixa (#000). */}
-      <div className="abas" role="tablist" aria-label="Faturas e planos de custódia">
+      <div className="abas" role="tablist" aria-label="Faturas e plano de custódia">
         <button
           type="button"
           role="tab"
@@ -126,7 +126,7 @@ export function FaturasCustodia(): ReactNode {
           className="aba"
           onClick={() => setAbaAtiva('planos')}
         >
-          Meus Planos de Custódia <span className="aba-n">({planos.length})</span>
+          Meu plano de custódia <span className="aba-n">({planos.length})</span>
         </button>
       </div>
 

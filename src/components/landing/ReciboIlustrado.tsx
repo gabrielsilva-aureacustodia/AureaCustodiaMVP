@@ -52,7 +52,7 @@ export function ReciboIlustrado(): ReactNode {
         </div>
         <div>
           <dt>Guarda</dt>
-          <dd>Cofre Sicoob</dd>
+          <dd>Cofre de alta segurança</dd>
         </div>
         <div>
           <dt>Titular</dt>

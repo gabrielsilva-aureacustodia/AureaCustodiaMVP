@@ -274,7 +274,7 @@ export function Certificate({ coinId }: CertificateProps): ReactNode {
               <div className="summary-row">
                 <span className="k">Modalidade</span>
                 <span className="v">
-                  {retirada?.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios (AR)'}
+                  {retirada?.modalidade === 'segura' ? 'Retirada Segura (Correios, AR)' : 'Retirada Comum (Correios, AR)'}
                 </span>
               </div>
               {retirada ? (

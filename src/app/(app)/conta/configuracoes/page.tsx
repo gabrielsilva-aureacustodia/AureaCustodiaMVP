@@ -271,7 +271,7 @@ export default function ConfiguracoesPage(): ReactNode {
         <div className={`register-arbitration-card cfg-arbitragem ${arbitragemAssinada ? 'active' : ''}`}>
           <div className="cfg-arbitragem-cab">
             <div>
-              <strong>Cláusula Compromissória de Arbitragem (Capítulo 14.4 dos Termos de Uso)</strong>
+              <strong>Cláusula Compromissória de Arbitragem (Cláusula 14.4 dos Termos de Uso)</strong>
               <span className="register-arbitration-badge">{arbitragemAssinada ? 'Assinada' : 'Facultativa'}</span>
             </div>
             {arbitragemAssinada && aceiteArbitragem && (

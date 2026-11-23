@@ -111,9 +111,9 @@ export default async function AcademyPage(): Promise<ReactNode> {
             da transação.
           </li>
           <li>
-            <strong>Resgate físico garantido:</strong> A moeda guardada pertence ao titular do recibo.
-            A qualquer momento, o colecionador pode solicitar o resgate físico para que a moeda seja
-            despachada via Correios com seguro até o seu endereço residencial cadastrado.
+            <strong>Resgate físico:</strong> O titular do recibo pode solicitar, a qualquer momento, a
+            retirada de uma moeda equivalente do acervo (mesma categoria, conforme os Termos de Uso),
+            que será despachada via Correios, com aviso de recebimento e valor declarado, até o seu endereço residencial cadastrado.
           </li>
         </ul>
       </section>
@@ -193,10 +193,9 @@ export default async function AcademyPage(): Promise<ReactNode> {
           <strong>Quais são os prazos de saque e de resgate físico?</strong><br />
           Para transferências de saldo financeiro em reais para a conta bancária do titular, o prazo é
           de até <strong>D+3 dias úteis</strong>. Para o resgate físico de moedas, o Real Olímpico tem até{' '}
-          <strong>30 dias corridos para preparar e postar</strong> — período necessário para
-          conferência pericial, deslocamento seguro de cofre, embalagem de alta segurança e despacho.
-          A esse prazo <strong>soma-se o tempo de entrega dos Correios</strong>, que varia conforme o
-          destino e não é controlado pelo Real Olímpico.
+          <strong>30 dias úteis</strong> após a confirmação da solicitação de retirada (Termos de Uso,
+          cláusula 7.5.6) — período necessário para conferência pericial, deslocamento seguro de cofre,
+          embalagem de alta segurança e despacho.
         </p>
         <p>
           <strong>Quem paga os custos de frete e envio?</strong><br />
@@ -205,9 +204,9 @@ export default async function AcademyPage(): Promise<ReactNode> {
         </p>
         <p>
           <strong>Existe seguro contratado para o acervo?</strong><br />
-          A operação prevê cobertura securitária do acervo custodiado em cofre contra riscos de
-          roubo, furto e sinistros patrimoniais. Os detalhes da apólice serão publicados aqui
-          quando a contratação estiver concluída.
+          Hoje não há apólice de seguro contratada para o acervo guardado em cofre. O único seguro
+          existente é o do transporte pelos Correios (valor declarado), de responsabilidade de quem
+          envia ou retira a moeda.
         </p>
       </section>
 

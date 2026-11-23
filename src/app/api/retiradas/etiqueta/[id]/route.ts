@@ -208,7 +208,7 @@ export async function GET(
   <div class="container">
     <div class="header">
       <h1>Real Olímpico — Expedição de Moeda</h1>
-      <span class="badge">${retirada.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios SEDEX'}</span>
+      <span class="badge">${retirada.modalidade === 'segura' ? 'Retirada Segura' : 'Correios SEDEX'}</span>
     </div>
 
     <div class="barcode-box">
@@ -242,8 +242,8 @@ export async function GET(
       <h2>Declaração de Conteúdo e Serviços Adicionais</h2>
       <div class="row"><span class="k">Item declarado:</span><span class="v">Moeda comemorativa / colecionável (${retirada.coinId})</span></div>
       <div class="row"><span class="k">Quantidade:</span><span class="v">1 unidade</span></div>
-      <div class="row"><span class="k">Valor declarado:</span><span class="v">R$ 300,00 (Seguro de Acervo)</span></div>
-      <div class="row"><span class="k">Serviços adicionais:</span><span class="v">Aviso de Recebimento (AR) + Seguro Integral</span></div>
+      <div class="row"><span class="k">Valor declarado:</span><span class="v">R$ 300,00 (valor declarado — seguro postal)</span></div>
+      <div class="row"><span class="k">Serviços adicionais:</span><span class="v">Aviso de Recebimento (AR) + valor declarado</span></div>
     </div>
 
     <div class="instructions">

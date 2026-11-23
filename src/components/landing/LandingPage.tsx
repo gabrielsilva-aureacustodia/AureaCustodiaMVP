@@ -79,7 +79,7 @@ function tiragem(tipo: string): string {
 }
 
 const PASSOS = [
-  { titulo: 'Envie seu item', texto: 'Você paga o frete no site e imprime a etiqueta. A postagem é pelos Correios.' },
+  { titulo: 'Envie sua moeda', texto: 'Você paga o frete no site e imprime a etiqueta. A postagem é pelos Correios.' },
   {
     titulo: 'A perícia confere',
     texto: 'A equipe pesa, mede e confere cada detalhe. Aprovado, o item é lacrado e vai para o cofre.',
@@ -119,7 +119,7 @@ const COMPARACAO = [
   {
     criterio: 'Segurança',
     casa: 'Exposta a furto, assalto e acidente',
-    cofre: 'Cofre de padrão bancário (Sicoob)',
+    cofre: 'Cofre de alta segurança',
   },
   {
     criterio: 'Conservação',
@@ -134,14 +134,14 @@ const COMPARACAO = [
   {
     criterio: 'Comprovação',
     casa: 'Nenhum registro formal',
-    cofre: 'Recibo digital ligado ao laudo da perícia',
+    cofre: 'Recibo digital baseado na perícia',
   },
 ] as const
 
 const PILARES = [
   {
     titulo: 'Proteja',
-    texto: 'No cofre, seu item fica longe de furto, umidade e desgaste. Nada de guardar na gaveta.',
+    texto: 'No cofre, a sua moeda fica longe de furto, umidade e desgaste. Nada de guardar na gaveta.',
     Icone: ShieldVaultIcon,
     spot: SPOTS_DA_RESERVA.proteja,
   },
@@ -381,7 +381,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
             </p>
             <DestaqueDoCard destaque={destaques[TIPO_BANDEIRA]} demanda="Alta liquidez" />
             <div className="pub-cartao-moeda-pe">
-              <span>Guarda física: Cofre Sicoob</span>
+              <span>Guarda física em cofre</span>
               <Link href="/cadastrar" aria-label="Negociar a Entrega da Bandeira 2012 — criar conta">
                 Negociar →
               </Link>
@@ -399,7 +399,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
             </p>
             <DestaqueDoCard destaque={destaques[TIPO_DH]} demanda="Raridade chave" />
             <div className="pub-cartao-moeda-pe">
-              <span>Guarda física: Cofre Sicoob</span>
+              <span>Guarda física em cofre</span>
               <Link href="/cadastrar" aria-label="Negociar a Direitos Humanos 1998 — criar conta">
                 Negociar →
               </Link>
@@ -422,8 +422,8 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
           <p className="pub-eyebrow">Segurança</p>
           <h2 id="seguranca-titulo">Sua coleção mais segura que na gaveta de casa</h2>
           <p className="pub-secao-intro">
-            Usamos os mesmos cofres, carros fortes e cuidados que bancos como o Sicoob usam. Depois da perícia,
-            ninguém toca no seu item. Nem nós.
+            Guardamos as moedas em cofre de alta segurança. Depois da perícia, a moeda é lacrada. A guarda é por moeda
+            equivalente: ao retirar, você recebe uma moeda da mesma categoria, não necessariamente a mesma unidade física.
           </p>
         </header>
 
@@ -446,7 +446,7 @@ export function LandingPage({ destaques = {}, taxas }: LandingPageProps): ReactN
           </li>
           <li>
             <UntouchedSealIcon className="pub-icone" />
-            <strong>Moeda intocada</strong>
+            <strong>Moeda lacrada</strong>
             <span>Lacrada logo depois da avaliação e do laudo da perícia</span>
           </li>
         </ul>

@@ -51,7 +51,7 @@ export const TEXTOS_EXIBIDOS_PADRAO: Record<ChaveDocumento, string> = {
   tabela_de_taxas:
     'Ao criar sua conta ou confirmar, você concorda com a Tabela de Taxas vigente do Real Olímpico.',
   clausula_arbitragem:
-    'Declaro que li e concordo expressamente com a Cláusula Compromissória de Arbitragem (Capítulo 14.4 dos Termos de Uso), instituindo o juízo arbitral para resolução de controvérsias.',
+    'Declaro que li e concordo expressamente com a Cláusula Compromissória de Arbitragem (Cláusula 14.4 dos Termos de Uso), instituindo o juízo arbitral para resolução de controvérsias.',
 }
 
 /**

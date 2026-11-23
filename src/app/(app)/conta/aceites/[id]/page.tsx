@@ -18,7 +18,7 @@ const NOMES_DOCUMENTOS: Record<string, string> = {
   termos_de_uso: 'Termos e Condições Gerais de Uso',
   politica_privacidade: 'Política de Privacidade e Governança LGPD',
   tabela_de_taxas: 'Tabela Oficial de Taxas e Custos Operacionais',
-  clausula_arbitragem: 'Cláusula Compromissória de Arbitragem (Capítulo 14.4)',
+  clausula_arbitragem: 'Cláusula Compromissória de Arbitragem (Cláusula 14.4)',
 }
 
 const NOMES_CANAIS: Record<string, string> = {

@@ -250,7 +250,7 @@ export default function ContaPage(): ReactNode {
         <div className="coluna-pilha">
           {/* A custódia abre a coluna lateral, acima das configurações rápidas:
               é a informação do acervo que estava faltando ao lado do acervo. O
-              atalho "Faturas e planos" continua abaixo, para quem já sabe o que
+              atalho "Faturas da custódia" continua abaixo, para quem já sabe o que
               procura. */}
           <ResumoDaCustodia />
 
@@ -327,8 +327,8 @@ export default function ContaPage(): ReactNode {
                 <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
               </svg>
               <span className="qk-t">
-                <span className="qk-name">Faturas e planos</span>
-                <span className="qk-sub">Planos de custódia, faturas e pagamentos</span>
+                <span className="qk-name">Faturas da custódia</span>
+                <span className="qk-sub">Plano mensal de custódia, faturas e pagamentos</span>
               </span>
               <span className="arr" aria-hidden="true">
                 ›

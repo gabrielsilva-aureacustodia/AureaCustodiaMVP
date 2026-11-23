@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { brl } from '@/domain/money'
-import { calcularTaxaRetirada, PRAZO_RETIRADA_DIAS, validarEnderecoRetirada } from '@/domain/retirada'
+import { calcularTaxaRetirada, validarEnderecoRetirada } from '@/domain/retirada'
 import type { Coin, EnderecoEntrega, ModalidadeRetirada, Retirada } from '@/domain/types'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { useApp } from '@/components/providers/AppProvider'
@@ -197,7 +197,7 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaComum)}</span>
         </span>
         <span className="modalidade-desc">
-          Expedição via Correios com Aviso de Recebimento (AR) e seguro declarado da moeda. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
+          Expedição via Correios com Aviso de Recebimento (AR) e valor declarado (seguro postal). Tarifa à vista. Prazo de até 30 dias úteis após a confirmação.
         </span>
       </button>
 
@@ -210,12 +210,12 @@ export function ModalSolicitarRetirada({ coin, onSuccess }: ModalSolicitarRetira
         <span className="modalidade-header">
           <span>
             <span aria-hidden="true">🛡️ </span>
-            Segura (Transporte de valores blindado)
+            Segura
           </span>
           <span className="modalidade-preco">{brl(taxas.taxaRetiradaSegura)} (em até {taxas.retiradaSeguraParcelasMax}x)</span>
         </span>
         <span className="modalidade-desc">
-          Transporte especializado de valores com escolta armada e cobertura securitária integral. Prazo limite de D+{PRAZO_RETIRADA_DIAS} após pagamento.
+          Mesma expedição pelos Correios, com AR e valor declarado; muda a tarifa, que pode ser parcelada no cartão. Prazo de até 30 dias úteis após a confirmação.
         </span>
       </button>
 
@@ -444,7 +444,7 @@ export function ModalPagarRetirada({
         Pagar taxa de retirada
       </h3>
       <p className="u-modal-lead">
-        Retirada: <strong>{retirada.id}</strong> · Moeda: <strong>{retirada.coinId}</strong> ({retirada.modalidade === 'segura' ? 'Transporte Seguro' : 'Comum'})
+        Retirada: <strong>{retirada.id}</strong> · Moeda: <strong>{retirada.coinId}</strong> ({retirada.modalidade === 'segura' ? 'Retirada Segura' : 'Retirada Comum'})
       </p>
 
       <PainelPagamento

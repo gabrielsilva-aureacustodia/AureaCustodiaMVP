@@ -100,7 +100,7 @@ export function CoinSpecimenViewer(): ReactNode {
         </dl>
 
         <p className="pub-specimen-cofre">
-          <strong>Guarda física: cofre Sicoob.</strong> Cada moeda fica em cápsula fechada, com selo da perícia.
+          <strong>Guarda física em cofre.</strong> Cada moeda fica em cápsula fechada, com selo da perícia.
         </p>
       </div>
     </div>

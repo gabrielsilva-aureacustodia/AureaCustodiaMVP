@@ -1,6 +1,17 @@
 # MD de execução — QA Davi 22-11 · R4 Texto legal e usabilidade (22/11/2026)
 
-## RETOMADA
+## RETOMADA (atualizada — ordem do Gabriel de 22/11 via Controle: resolver tudo, sem "aguardando decisão")
+**A trava de "NÃO publicar 2.2" ficou SUPERADA** pela ordem do Gabriel (MVP de teste, 7 contas de sócios; publicar versão nova é permitido). Aplicado: patch dos Termos + remissões (13.2→14.2 nos Termos 14.4/14.6 e na cláusula de arbitragem), "Capítulo 14.4"→"Cláusula 14.4" nas telas e na declaração do aceite. **Versões novas** (código publica sozinho via `garantirDocumentosVigentes`, aceite pede de novo): Termos 2.2, Cláusula de Arbitragem 2.2, Política 2.1 (A05 + identidade), Tabela de Taxas 2.4 ("Retirada Segura com Cobertura Especial" → "Retirada Segura"). Hash novo dos Termos `4ed4ea91…eeca` (testes atualizados; `db.test.ts` ajustado mas não rodado — exige banco).
+Decisões tomadas (opção conservadora, texto alinhado ao CÓDIGO e aos Termos, que prevalecem):
+- **A10** comparativo BTC/ETH/USDT removido do Mercado; `/mercado/comparacoes` redireciona a `/mercado`.
+- **A02** nenhuma tela afirma seguro do acervo (Academy diz que não há apólice; Taxas sem "apólice securitária"; retirada sem "cobertura integral/blindado"); só "valor declarado (seguro postal)" do transporte.
+- **A03** home/Academy dizem guarda por moeda equivalente; saiu "ninguém toca no seu item. Nem nós."
+- **A01** textos dizem "até 30 dias úteis após a confirmação" (Termos 7.5.6): Academy, Retiradas, modal de retirada, bloco legal. ATENÇÃO: o cálculo da data-limite no sistema (`domain/retirada.ts`) continua 30 dias CORRIDOS — mais cedo que o prazo do contrato (lado seguro); passar a contar dias úteis é mudança de regra, não feita.
+- **Sicoob** tirado de todo o site (nenhuma parceria documentada no repositório). **Retirada Comum × Segura**: a diferença real no código é só tarifa (R$ 50 à vista × R$ 180 em até 2x); ambas vão pelos Correios com AR e valor declarado — textos e rótulos ("Transporte Blindado") corrigidos. **Planos**: "plano de custódia" no singular/mensal nas telas. **Identidade**: Política diz que hoje só se usam os dados do cadastro formal e que documentos seriam avisados antes.
+Verificação: `tsc` limpo; vitest `src/domain`, `src/components`, `middleware` = 1008 verdes; eslint nos tocados sem erro.
+
+## RETOMADA anterior
+
 **⛔ NÃO publicar Termos 2.2 sem aprovação do Gabriel/jurídico (decisão de 22/11, após a Auditoria).** Publicar nova versão obriga todo cliente a aceitar de novo, e `garantirDocumentosVigentes` publica sozinho a versão que estiver no código no primeiro acesso ao painel/aceite — então subir o texto novo já é publicar. Por isso **voltei os Termos para a 2.1 com o hash original** (`2cf7ee93…`) e mantive só a correção de FORMA (a)) e numeração na tela, que não muda o texto canônico nem o hash. As correções de texto (concordância "Estes Termos de Uso regem"/"os Termos de Uso", 14.5.4 "A arbitragem observará", "1 (uma) moeda", "restabelecer") estão guardadas, prontas, em `garantias/TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff`. Se aprovado: `git apply` do patch + atualizar hash/versão nos 3 testes (canonico, admin/documentos, db) para 2.2 / `11f9d6b7…5159` e publicar. As linhas sobre "v2.2" abaixo descrevem esse patch, não o código atual.
 
 Tudo do tema R4 foi codificado, sem commit e sem build local. `tsc --noEmit` limpo; vitest dos arquivos tocados verde (middleware, plural, documentos-legais, documentos admin, home, landing). **Pendente**: publicar a v2.2 dos Termos (ver abaixo), conferência visual do Tester (375/768/1280, claro/escuro), decisões do Gabriel/jurídico em `garantias/TERMOS_CLAUSULAS_PARA_O_JURIDICO.md`.

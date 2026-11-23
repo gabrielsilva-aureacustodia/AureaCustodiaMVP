@@ -137,7 +137,7 @@ export default function RetiradasPage(): ReactNode {
                 <dl className="retirada-dados">
                   <div>
                     <dt>Modalidade</dt>
-                    <dd>{r.modalidade === 'segura' ? 'Transporte Blindado' : 'Correios (AR)'}</dd>
+                    <dd>{r.modalidade === 'segura' ? 'Retirada Segura (Correios, AR)' : 'Retirada Comum (Correios, AR)'}</dd>
                   </div>
                   <div>
                     <dt>{r.status === 'solicitada' ? 'Taxa a Pagar' : 'Taxa Paga'}</dt>
@@ -146,8 +146,8 @@ export default function RetiradasPage(): ReactNode {
                   <div>
                     <dt>
                       {r.status === 'solicitada'
-                        ? 'Prazo para postar (30 dias corridos)'
-                        : 'Limite para postar (30 dias corridos)'}
+                        ? 'Prazo da retirada (até 30 dias úteis)'
+                        : 'Limite da retirada (até 30 dias úteis)'}
                     </dt>
                     <dd className="ouro">{r.status === 'solicitada' ? 'Inicia após pagamento' : fdate(r.dataLimiteD30)}</dd>
                   </div>
@@ -236,8 +236,8 @@ export default function RetiradasPage(): ReactNode {
               <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
             </svg>
             Ao solicitar a retirada física, o recibo de custódia é extinto imediatamente e a moeda deixa
-            o acervo negociável. O Real Olímpico tem até 30 dias corridos para preparar e POSTAR; a
-            entrega depende do prazo dos Correios, que corre por fora e tem rastreamento oficial.
+            o acervo negociável. O Real Olímpico tem até 30 dias úteis, após a confirmação da solicitação, para a retirada
+            (Termos de Uso, cláusula 7.5.6); o envio tem rastreamento oficial dos Correios.
           </div>
         </div>
       </div>

@@ -260,7 +260,7 @@ export default function MinhaCustodiaPage(): ReactNode {
       {/* ---------------- planos ---------------- */}
       <section className="secao-planos" id="custodia-planos" aria-labelledby="custodia-planos-t">
         <h2 id="custodia-planos-t" className="secao-titulo">
-          Planos de custódia
+          Plano de custódia
         </h2>
         {r.planosAtivos.length === 0 && r.planosEncerrados.length === 0 ? (
           <div className="panel">

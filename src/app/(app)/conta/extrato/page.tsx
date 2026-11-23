@@ -312,7 +312,7 @@ export default function ExtratoPage(): ReactNode {
           Quando você paga um serviço (frete do envio, custódia, retirada) por Pix ou cartão, o dinheiro entra na conta
           e sai na mesma hora para pagar o serviço: por isso aparecem duas linhas e o saldo não muda. Estornos e
           devoluções aparecem como linhas próprias. Cada fatura de custódia é uma linha, com o mês de referência, a
-          quantidade de moedas e o valor; a fatura em aberto não mexe no saldo. Faturas e planos ficam em{' '}
+          quantidade de moedas e o valor; a fatura em aberto não mexe no saldo. Faturas e plano de custódia ficam em{' '}
           <Link href="/conta/faturas">Minha conta › Faturas de custódia</Link>.
         </div>
 

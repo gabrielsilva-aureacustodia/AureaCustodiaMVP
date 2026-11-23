@@ -61,8 +61,8 @@ describe('Tabela de Taxas gerada pela configuração', () => {
 })
 
 describe('Termos de Uso gerados pelos parâmetros', () => {
-  it('com os parâmetros de parametros.ts, o hash é o vetor congelado da versão 2.1', () => {
-    expect(hashDoDocumento(documentoTermosDeUso(TERMOS_PADRAO))).toBe('2cf7ee937b92f3242ce13c46bd1b9b1865da569fceb60c18c8dcecaaf53f2ac6')
+  it('com os parâmetros de parametros.ts, o hash é o vetor congelado da versão 2.2', () => {
+    expect(hashDoDocumento(documentoTermosDeUso(TERMOS_PADRAO))).toBe('4ed4ea91270af77149a9593cb26fc5a8af941c1674e49e6ab3ad61d04225eeca')
   })
 
   it('troca o prazo dentro da cláusula certa, mesmo com dois prazos de texto igual', () => {

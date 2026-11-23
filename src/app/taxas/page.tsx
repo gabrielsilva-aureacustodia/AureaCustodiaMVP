@@ -110,7 +110,7 @@ export default async function FeesPage(): Promise<ReactNode> {
         <h2>2. Custódia Física de Moedas (Guarda em Cofre Especializado)</h2>
         <p>
           A taxa de custódia remunera os serviços de guarda em cofre de alta segurança, monitoramento
-          24 horas, auditoria permanente do acervo e apólice securitária:
+          24 horas e auditoria permanente do acervo:
         </p>
 
         <table className="legal-fee-table">

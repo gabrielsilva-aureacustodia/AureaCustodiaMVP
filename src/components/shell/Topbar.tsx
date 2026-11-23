@@ -136,7 +136,7 @@ function tituloDaRota(pathname: string, me: User): Titulo {
   }
   if (pathname === '/conta/faturas') {
     return {
-      h1: 'Faturas e planos de custódia',
+      h1: 'Faturas e plano de custódia',
       p: 'Cobranças da guarda das suas moedas e formas de pagamento.',
     }
   }

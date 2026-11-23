@@ -20,15 +20,19 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
   // para a versão — reciclar o número faria o registro de consentimento deixar
   // de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de propósito:
   // ele guarda o documento VIGENTE, qualquer que seja o número.
-  versao: '2.1',
+  // 2.2 (22/11/2026): só erros materiais de redação apontados pelo QA do Davi (B08) — concordância
+  // ("Estes Termos de Uso regem", "os Termos de Uso"), "A arbitragem observará" (14.5.4), "1 (uma) moeda"
+  // e "restabelecer". Nenhuma cláusula, prazo ou valor mudou. Texto diferente é hash diferente: o aceite
+  // gravado aponta para a versão, então o número sobe em vez de ser reciclado.
+  versao: '2.2',
   titulo: 'TERMOS DE USO',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
     'Estes termos constituem um acordo vinculativo entre o usuário da plataforma Real Olímpico ("Usuário" ou "você" ou "seu/sua") e AUREA CUSTODIA LTDA., que opera sob o nome fantasia Real Olímpico, pessoa jurídica de direito privado, CNPJ nº 68.071.452/0001-06, com endereço na Rua dos Tabaiares, nº 12, sala 210, bairro Floresta, Belo Horizonte/MG, Brasil, CEP 30.150-040 ("Real Olímpico").',
-    'Este Termos de Uso rege o uso da sua Conta Real Olímpico e quaisquer outros Serviços Real Olímpico disponibilizados a você na ou através da Plataforma Real Olímpico.',
-    'Ao registrar-se para uma Conta Real Olímpico, você reconhece que lhe foi fornecido o Termos de Uso antes da prestação dos Serviços Real Olímpico.',
-    'Ao acessar a Plataforma Real Olímpico e/ou usar os Serviços Real Olímpico, você: (i) concorda que leu, entendeu e aceitou o Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá o Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar o Termos de Uso.',
-    'Se você não entender e aceitar os termos do Termos de Uso em sua totalidade, não deve registrar uma Conta Real Olímpico, nem acessar ou usar a Plataforma Real Olímpico ou qualquer serviço Real Olímpico.',
+    'Estes Termos de Uso regem o uso da sua Conta Real Olímpico e quaisquer outros Serviços Real Olímpico disponibilizados a você na ou através da Plataforma Real Olímpico.',
+    'Ao registrar-se para uma Conta Real Olímpico, você reconhece que lhe foi fornecido os Termos de Uso antes da prestação dos Serviços Real Olímpico.',
+    'Ao acessar a Plataforma Real Olímpico e/ou usar os Serviços Real Olímpico, você: (i) concorda que leu, entendeu e aceitou os Termos de Uso; (ii) reconhece e concorda que estará vinculado e cumprirá os Termos de Uso, conforme atualizado e alterado periodicamente; e (iii) confirma que tem a capacidade legal e autoridade para celebrar os Termos de Uso.',
+    'Se você não entender e aceitar os termos dos Termos de Uso em sua totalidade, não deve registrar uma Conta Real Olímpico, nem acessar ou usar a Plataforma Real Olímpico ou qualquer serviço Real Olímpico.',
     'O Real Olímpico não é uma corretora de investimentos ou Criptomoedas. O Real Olímpico não fornece aconselhamento de investimento regulado, recomendações pessoais em relação a decisões de investimento ou valorização nem qualquer outro tipo de consultoria e nenhuma comunicação ou informação fornecida por nós é destinada a ser, ou deve ser interpretada como, recomendação ou aconselhamento de qualquer tipo.',
   ],
   capitulos: [
@@ -321,7 +325,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'a)',
               texto:
-                'Cada Recibo de Unicidade representa 1 (uma moeda) custodiada, corresponde ao lastro de uma unidade física elegível no acervo, após aprovação em etapa de admissão.',
+                'Cada Recibo de Unicidade representa 1 (uma) moeda custodiada, corresponde ao lastro de uma unidade física elegível no acervo, após aprovação em etapa de admissão.',
             },
           ],
         },
@@ -520,7 +524,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '8.4',
           titulo: 'Indisponibilidade Tecnológica',
           texto:
-            'O Real Olímpico é responsável pela manutenção e funcionamento do sistema da Plataforma Real Olímpico, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que o Real Olímpico comunicará aos clientes o ocorrido e envidará os melhores esforços para reestabelecer o funcionamento.',
+            'O Real Olímpico é responsável pela manutenção e funcionamento do sistema da Plataforma Real Olímpico, ressalvadas hipóteses de instabilidade no sistema dos servidores terceirizados, hipótese em que o Real Olímpico comunicará aos clientes o ocorrido e envidará os melhores esforços para restabelecer o funcionamento.',
         },
       ],
     },
@@ -969,14 +973,14 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.4',
           titulo: 'Arbitragem',
           texto:
-            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 13.2. dentro de 90 (noventa) dias e a soma dos valores em conflito, considerando pedido e eventual reconvenção estimados no momento do requerimento da demanda, seja igual ou superior a R$ 100.000,00 (cem mil reais) qualquer das Partes deverá submeter o conflito para arbitragem.',
+            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 14.2, dentro de 90 (noventa) dias e a soma dos valores em conflito, considerando pedido e eventual reconvenção estimados no momento do requerimento da demanda, seja igual ou superior a R$ 100.000,00 (cem mil reais) qualquer das Partes deverá submeter o conflito para arbitragem.',
           negrito: true,
         },
         {
           numero: '14.5',
           titulo: 'Acordo de Arbitragem',
           texto:
-            'O Usuário e o Real Olímpico concordam que os conflitos oriundos ou relacionados a este Termos de Uso e ao uso dos Serviços Real Olímpico, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
+            'O Usuário e o Real Olímpico concordam que os conflitos oriundos ou relacionados a estes Termos de Uso e ao uso dos Serviços Real Olímpico, nos quais a soma dos valores em conflito, no momento do início e distribuição de demanda principal e reconvencional, seja igual ou superior a R$ 100.000,00 (cem mil reais) será exclusivamente e definitivamente resolvido por arbitragem, a ser administrada pela Câmara de Mediação e Arbitragem Empresarial - CAMARB, de acordo com o Regulamento de Arbitragem Expedita da CAMARB.',
           negrito: true,
           alineas: [
             {
@@ -998,7 +1002,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: '14.5.4.',
-              texto: 'A observará o Direito brasileiro.',
+              texto: 'A arbitragem observará o Direito brasileiro.',
               negrito: true,
             },
             {
@@ -1017,7 +1021,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '14.6',
           titulo: 'Eleição de Foro',
           texto:
-            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 13.2. dentro de 90 (noventa) dias e a somatória dos valores em conflito, considerando pedido e eventual reconvenção no momento de distribuição da demanda, seja inferior a R$ 100.000,00 (cem mil reais), as Partes elegem como competente para julgá-lo o foro da comarca de Belo Horizonte/MG, dispensando qualquer outro por mais privilegiado que seja.',
+            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 14.2, dentro de 90 (noventa) dias e a somatória dos valores em conflito, considerando pedido e eventual reconvenção no momento de distribuição da demanda, seja inferior a R$ 100.000,00 (cem mil reais), as Partes elegem como competente para julgá-lo o foro da comarca de Belo Horizonte/MG, dispensando qualquer outro por mais privilegiado que seja.',
         },
       ],
     },
@@ -1058,7 +1062,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.4',
           titulo: 'Invalidade',
           texto:
-            'Se qualquer cláusula ou subcláusula deste Termos de Uso for ilegal, inválida ou inexequível em qualquer aspecto, a validade das demais cláusulas ou subcláusulas não será afetada ou prejudicada.',
+            'Se qualquer cláusula ou subcláusula destes Termos de Uso for ilegal, inválida ou inexequível em qualquer aspecto, a validade das demais cláusulas ou subcláusulas não será afetada ou prejudicada.',
         },
         {
           numero: '16.5',
@@ -1070,7 +1074,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
           numero: '16.6',
           titulo: 'Renúncia',
           texto:
-            'Nenhum atraso ou omissão no exercício de qualquer direito ou recurso neste Termos de Uso será considerado renúncia ao exercício futuro desse direito ou de quaisquer outros direitos e recursos. Os direitos e recursos previstos neste Termos de Uso são cumulativos e não excluem direitos previstos na legislação brasileira.',
+            'Nenhum atraso ou omissão no exercício de qualquer direito ou recurso nestes Termos de Uso será considerado renúncia ao exercício futuro desse direito ou de quaisquer outros direitos e recursos. Os direitos e recursos previstos nestes Termos de Uso são cumulativos e não excluem direitos previstos na legislação brasileira.',
         },
         {
           numero: '16.7',
@@ -1115,7 +1119,7 @@ export const TERMOS_DE_USO_V1: DocumentoLegalEstruturado = {
             {
               letra: 'f)',
               texto:
-                'qualquer referência a um documento é ao documento sujeito a alterações, variações ou novações de tempos em tempos, desde que não haja violação do Termos de Uso ou do próprio documento; e',
+                'qualquer referência a um documento é ao documento sujeito a alterações, variações ou novações de tempos em tempos, desde que não haja violação dos Termos de Uso ou do próprio documento; e',
             },
             {
               letra: 'g)',

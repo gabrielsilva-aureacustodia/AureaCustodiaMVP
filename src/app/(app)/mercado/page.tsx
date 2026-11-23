@@ -4,7 +4,7 @@
  * TELA — Mercado.
  *
  * Criada na AG3, unindo as ofertas ativas (venda e compra) e os gráficos de
- * mercado (histórico de preços e comparativo simples com BTC/ETH/USDT).
+ * mercado (histórico de preços; o comparativo com BTC/ETH/USDT saiu em 22/11/2026 — A10).
  *
  * Estrutura da página:
  *  1. Topo: Minhas ofertas no mercado.
@@ -13,10 +13,8 @@
  *     - Ofertas de compra (com dropdown, paginação de 10 em 10, filtro de valor e filtro por tipo).
  *  3. Abaixo:
  *     - Gráfico histórico do Real Olímpico + 3 indicadores de mercado.
- *     - Bloco de Comparação simples (levando a /mercado/comparacoes).
  */
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -31,26 +29,24 @@ import { useModal } from '@/components/ui/Modal'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
 import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { temCadastroCompleto } from '@/domain/cadastro'
-import { COIN, LOGO_REAL_EMBLEMA, tiposNegociaveis } from '@/domain/constants'
+import { COIN, tiposNegociaveis } from '@/domain/constants'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
 import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
-import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
-import { pctChange, roDailySeries } from '@/domain/selectors'
-import type { Cents, CryptoData, Lot } from '@/domain/types'
+import { quantidadeComUnidade } from '@/domain/plural'
+import { roDailySeries } from '@/domain/selectors'
+import type { Cents, Lot } from '@/domain/types'
 import { buyLot, cancelBid } from '@/server/actions/market'
 import { iniciarCompraDireta } from '@/server/actions/payments'
 import type { CompraDiretaIniciada, MetodoDeposito } from '@/server/payments/tipos'
 import { CHART_MOBILE_MAX_PX, marketChartSize } from '@/lib/charts'
 import type { ChartPoint } from '@/lib/charts'
 import { LineChart } from '@/components/charts/LineChart'
-import { Sparkline } from '@/components/charts/Sparkline'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { PERIOD_DAYS, PeriodTabs } from '@/components/reports/PeriodTabs'
 import type { Period } from '@/components/reports/PeriodTabs'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
-import { Esqueleto } from '@/components/ui/Esqueleto'
 
 /* ------------------------------------------------------------------------- */
 /* Ganchos e auxiliares dos gráficos                                         */
@@ -70,48 +66,7 @@ function useGraficoMovel(): boolean {
   return movel
 }
 
-function useCotacoes(): CryptoData | null {
-  const [dados, setDados] = useState<CryptoData | null>(null)
 
-  useEffect(() => {
-    let vivo = true
-    void (async () => {
-      try {
-        const r = await fetch('/api/crypto')
-        if (!r.ok) return
-        const corpo = (await r.json()) as CryptoData
-        if (vivo) setDados(corpo)
-      } catch {
-        // Cotação é acessória
-      }
-    })()
-    return () => {
-      vivo = false
-    }
-  }, [])
-
-  return dados
-}
-
-function CompChip({ pct }: { pct: number | null }): ReactNode {
-  if (pct === null) return <span className="comp-chip flat">—</span>
-
-  const cls = pct > 0.05 ? 'up' : pct < -0.05 ? 'down' : 'flat'
-  const sign = pct > 0 ? '+' : ''
-  return (
-    <span className={`comp-chip ${cls}`}>
-      {sign}
-      {pct.toFixed(1).replace('.', ',')}%
-    </span>
-  )
-}
-
-interface LinhaComparacao {
-  name: string
-  color: string
-  points: ChartPoint[]
-  logo?: string
-}
 
 /* ------------------------------------------------------------------------- */
 /* Página principal Mercado                                                  */
@@ -146,7 +101,6 @@ export default function MercadoPage(): ReactNode {
   /* ---------- estado: gráficos ---------- */
   const [periodo, setPeriodo] = useState<Period>('M')
   const movel = useGraficoMovel()
-  const cotacoes = useCotacoes()
 
   /* ---------- filtros e recortes: venda ---------- */
   const minVenda = parsePrice(filMinVenda)
@@ -207,15 +161,6 @@ export default function MercadoPage(): ReactNode {
     v: p.v / 100,
   }))
   const tamanho = marketChartSize(movel)
-
-  const cs = cotacoes ? cotacoes.series : []
-  const ro30 = roDailySeries(state, 30, COIN.name)
-  const linhas: LinhaComparacao[] = [
-    { name: 'Real Olímpico', color: 'var(--gold)', points: ro30, logo: LOGO_REAL_EMBLEMA },
-    { name: 'BTC', color: '#f7931a', points: cs.map((x) => ({ t: x.t, v: x.btc })) },
-    { name: 'ETH', color: '#627eea', points: cs.map((x) => ({ t: x.t, v: x.eth })) },
-    { name: 'USDT', color: '#26a17b', points: cs.map((x) => ({ t: x.t, v: x.usdt })) },
-  ]
 
   // Somado no servidor (B01): o navegador não recebe mais as contas dos outros clientes.
   const totalCoins = state.publico?.totalMoedas ?? 0
@@ -476,46 +421,6 @@ export default function MercadoPage(): ReactNode {
         </section>
         </div>
 
-        {/* Comparação simples (coluna estreita). Cada linha é um link de verdade desde
-            25/10/2026 — era uma <div role="link"> com router.push. */}
-        <div className="panel">
-          <h3>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3v18M8 7h6a3 3 0 010 6H9a3 3 0 000 6h7" />
-            </svg>
-            Comparação simples
-          </h3>
-
-          {cs.length ? (
-            linhas.map((linha) => (
-              <Link key={linha.name} className="comp-row" href="/mercado/comparacoes">
-                <span className="cname">
-                  {linha.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={linha.logo} alt="" width={20} height={20} className="comp-logo" />
-                  ) : null}
-                  {linha.name}
-                  <span className="sr-only"> — abrir a comparação completa</span>
-                </span>
-                <Sparkline points={linha.points} color={linha.color} width={140} height={26} />
-                <CompChip pct={pctChange(linha.points.map((p) => p.v))} />
-              </Link>
-            ))
-          ) : (
-            <div className="carregando" role="status" aria-busy="true" aria-label="Carregando cotações">
-              <Esqueleto altura="14px" largura="100%" />
-              <Esqueleto altura="14px" largura="82%" />
-              <Esqueleto altura="14px" largura="64%" />
-            </div>
-          )}
-          <div className="note">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8v5M12 16.5v.5" />
-            </svg>
-            Clique para abrir a comparação completa. Dados atualizados a cada login.
-          </div>
-        </div>
       </div>
 
       <div className="note nota-rodape">

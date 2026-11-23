@@ -17,7 +17,8 @@ export const CLAUSULA_ARBITRAGEM_V1: DocumentoLegalEstruturado = {
   // para a versão — reciclar o número faria o registro de consentimento deixar
   // de dizer o que a pessoa leu. O arquivo mantém o sufixo `-v1` de propósito:
   // ele guarda o documento VIGENTE, qualquer que seja o número.
-  versao: '2.1',
+  // 2.2 (22/11/2026): remissão corrigida (negociação é a 14.2, não a 13.2) e "A arbitragem observará".
+  versao: '2.2',
   titulo: 'CLÁUSULA DE ARBITRAGEM',
   vigenteDesde: PARAMETROS_LEGAIS.vigencia,
   preambulo: [
@@ -33,7 +34,7 @@ export const CLAUSULA_ARBITRAGEM_V1: DocumentoLegalEstruturado = {
           numero: '14.4',
           titulo: 'Arbitragem',
           texto:
-            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 13.2. dentro de 90 (noventa) dias e a soma dos valores em conflito, considerando pedido e eventual reconvenção estimados no momento do requerimento da demanda, seja igual ou superior a R$ 100.000,00 (cem mil reais) qualquer das Partes deverá submeter o conflito para arbitragem.',
+            'Caso o conflito não possa ser resolvido satisfatoriamente por meio das negociações previstas na Cláusula 14.2, dentro de 90 (noventa) dias e a soma dos valores em conflito, considerando pedido e eventual reconvenção estimados no momento do requerimento da demanda, seja igual ou superior a R$ 100.000,00 (cem mil reais) qualquer das Partes deverá submeter o conflito para arbitragem.',
           negrito: true,
         },
         {
@@ -62,7 +63,7 @@ export const CLAUSULA_ARBITRAGEM_V1: DocumentoLegalEstruturado = {
             },
             {
               letra: '14.5.4.',
-              texto: 'A observará o Direito brasileiro.',
+              texto: 'A arbitragem observará o Direito brasileiro.',
               negrito: true,
             },
             {

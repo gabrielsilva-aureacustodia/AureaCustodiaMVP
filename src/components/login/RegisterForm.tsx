@@ -296,7 +296,7 @@ export function RegisterForm({
                       <span className="register-arbitration-badge">Opcional</span>
                     </span>
                     <p className="register-arbitration-hint">
-                      Institui o juízo arbitral para solução de litígios (Capítulo 14.4 dos{' '}
+                      Institui o juízo arbitral para solução de litígios (Cláusula 14.4 dos{' '}
                       <Link href="/termos" target="_blank">
                         Termos de Uso
                       </Link>
