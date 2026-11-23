@@ -37,3 +37,14 @@ Montada lendo a última resposta de cada chat de 22/11 (T1–T6, R1–R4, Audito
 - Metadado do Supabase das contas novas guarda `legal_terms_version`/`privacy_policy_version` = `RASCUNHO-0.1-2026-09-02` (vêm das variáveis `AUREA_TERMS_VERSION`/`AUREA_PRIVACY_VERSION` da Vercel, velhas). Cosmético: o aceite oficial no banco está certo.
 - Documentos desatualizados no repositório: `PENDENCIAS_ABERTAS.md` (18/09) e o RETOMADA do `ESTADO-GERAL` (diz que falta bateria e push, que foram feitos em 18/11).
 - Frente M (auditoria de marketing / Meta API): adiada por ordem do Gabriel.
+
+---
+## Rodada 15 do Tester (22/11/2026) — resolvido no commit 00cfcfd
+- (a) Configurações > Segurança: "E-mail verificado / Verificado" virou "E-mail da conta / Ativo" (conta nasce confirmada, o selo antigo enganava).
+- (b) /conta: removido "São quatro dados"; fica "Leva menos de um minuto."
+- (c) Landing, recibo ilustrado: "Código simulado" virou "Código de exemplo".
+- (d) Frete + R$ 4,00 não aparece em Taxas/home: **continua pendente** — depende do contador (pergunta 21) e da aprovação do texto pelo Gabriel. Nada codificado.
+- (e) "Moeda equivalente" (Academy) × "a sua moeda" (landing): a landing (L426) já diz "moeda da mesma categoria, não necessariamente a mesma unidade física". É regra de negócio/jurídica — **decisão do Gabriel**; texto não alterado.
+- Verificado (22/11): deploy do 00cfcfd com status do commit no GitHub = success. O Tester confirmou no ar, deslogado: landing com "Código de exemplo", /entrar com "Receber link de acesso por e-mail", /cadastrar sem confirmação de e-mail.
+- **NÃO verificado:** "E-mail da conta / Ativo" (Configurações), "Leva menos de um minuto." (/conta) e "por Pix ou cartão" (/inicio). Só aparecem logado e o Tester está deslogado (conta de teste apagada). Falta o Gabriel entrar na conta no painel do navegador para o Tester reler.
+- Só `tsc --noEmit` rodou (sem erro); testes e build não foram rodados (mudança só de texto de tela).

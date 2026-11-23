@@ -432,3 +432,7 @@ Como li: abri o fim de cada um dos 17 chats de hoje (última resposta do assiste
 Commits do Controle depois de `81f2cfa`: `91cccf2` (B02 revertido, documento de e-mail, CPF por API), `e86252d` (achados do Tester), `3219429` (cookies presumidos e Termos 2.3), `0a9deae` (tutorial vira bolinha no celular), `3734866` (singular/plural), `978bc60` (Google não regrava aceite de conta existente), `22f6e80` e `162b06f` (docs), e `d84f795` (cadastro por e-mail entra direto na conta; editado pelo Tester, publicado pelo Merge/Deploy). Deploy do `d84f795` estava na fila quando escrevi: **READY não confirmado**. Termos 2.3 gravados no banco (conferido somente leitura).
 
 Arquivos sem rastreio na árvore (nenhum é código do site; deixados como estão): `.agents/`, `corrigir-videos-e-posicoes.cjs`, `docs/polimento/**` (vários MD de outra frente), `docs/processo/`, mais `.claude/launch.json` modificado. Entrou por engano no commit `3219429` o script `scripts/apagar-contas-de-teste.mjs` (de outro agente; sem segredo).
+
+### Atualização 22/11 (Controle): rodada 15 do Tester tratada em 00cfcfd — itens (a)(b)(c) corrigidos; (d) frete R$ 4 e (e) "moeda equivalente" ficam para contador/Gabriel. Falta: Tester reler os textos e deploy confirmado.
+
+### Atualização 22/11 (Controle, depois): 00cfcfd READY (status do commit = success). Tester conferiu deslogado: landing, /entrar, /cadastrar. Aguarda login do Gabriel para os 3 textos logados. Merge/Deploy sem cron ativo; Higienização (30 min) viu 20 itens pendentes na árvore e não agiu. Não reli as transcrições inteiras desta vez.

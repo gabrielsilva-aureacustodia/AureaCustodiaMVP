@@ -64,3 +64,9 @@ Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qu
 - Leia primeiro `01_continuidade/PENDENCIAS_DO_SISTEMA.md` (tudo que está aberto, por dono) e `04_chats/...` seção 10 (estado de cada chat; li só o fim de cada um, não a transcrição inteira).
 - Decisões do Gabriel: conta nasce confirmada; cadastro sem limitação; cookies presumidos (Termos 2.3 cláusula 3.3, publicados no banco).
 - E-mail inteiro fica para 23/11: `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md`.
+
+### 8.1 Atualização posterior (22/11, Controle) — o que está verificado e o que não está
+- main = 00cfcfd, igual ao origin; deploys de ad95fb1, 6526e6f e 00cfcfd READY (00cfcfd conferido por mim no status do commit; os outros dois, pelo relato da sessão Merge/Deploy).
+- Rodada 15 do Tester: itens (a)(b)(c) corrigidos; (d) frete R$ 4 aguarda contador (Q21) e texto aprovado pelo Gabriel; (e) "moeda equivalente" é decisão do Gabriel. Detalhe em `01_continuidade/PENDENCIAS_DO_SISTEMA.md`.
+- Não conferido: três textos que só aparecem logado (ver PENDENCIAS). A Higienização relatou 20 itens pendentes na árvore; não os examinei.
+- Não reli de novo as transcrições dos chats nesta atualização; só consolidei os relatos recebidos.
