@@ -120,7 +120,7 @@ export default function ContaPage(): ReactNode {
           </svg>
           <span className="aviso-cadastro-tx">
             <b>Complete seu cadastro</b> para depositar, comprar ou enviar moedas para custódia.
-            São quatro dados e leva menos de um minuto.
+            Leva menos de um minuto.
           </span>
           <button
             className="btn btn-outline auto"

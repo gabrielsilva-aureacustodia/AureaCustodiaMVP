@@ -216,11 +216,11 @@ export default function ConfiguracoesPage(): ReactNode {
           <div className="panel">
             <h3>Resumo de segurança</h3>
             <div className="sec-row">
-              <span className="k">E-mail verificado</span>
+              <span className="k">E-mail da conta</span>
               {emailConfirmado === null ? (
                 <span className="forte">Conferindo…</span>
               ) : emailConfirmado ? (
-                <Selo tom="sucesso">Verificado</Selo>
+                <Selo tom="sucesso">Ativo</Selo>
               ) : (
                 <Selo tom="aviso">Pendente</Selo>
               )}

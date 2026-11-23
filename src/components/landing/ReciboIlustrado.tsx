@@ -61,7 +61,7 @@ export function ReciboIlustrado(): ReactNode {
       </dl>
       <figcaption className="pub-recibo-pe">
         <span className="pub-recibo-qr" aria-hidden="true" />
-        <span>Código simulado</span>
+        <span>Código de exemplo</span>
       </figcaption>
     </figure>
   )
