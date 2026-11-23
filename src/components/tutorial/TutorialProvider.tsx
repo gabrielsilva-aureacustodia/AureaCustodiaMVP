@@ -236,7 +236,7 @@ export function TutorialProvider({ children }: { children: ReactNode }): ReactNo
             <circle cx="12" cy="12" r="9" />
             <path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17v.5" />
           </svg>
-          Ver tutorial desta página
+          <span className="tutorial-link-texto">Ver tutorial desta página</span>
         </button>
       ) : null}
     </Ctx.Provider>
