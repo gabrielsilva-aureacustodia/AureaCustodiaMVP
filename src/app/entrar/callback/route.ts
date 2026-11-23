@@ -154,9 +154,13 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     // O aceite legal, quando existir, é apenas registrado. Ele nunca decide se
     // a pessoa entra: falhar aqui não interrompe o acesso.
+    // Achado do Tester (22/11, jurídico): conta que JÁ existia e entra pelo Google (inclusive voltando por /cadastrar) não
+    // grava aceite: o aceite de "cadastro" só vale para a conta que nasce agora, com a declaração vista. Senão a faixa de
+    // reaceite de uma versão nova nunca aparece para quem entra pelo Google. O cookie de intenção é consumido sempre.
+    const contaJaExistia = await authorizeProvisionedUser(user.email)
     if (user.app_metadata.provider === 'google') {
       const acceptance = await consumePendingLegalAcceptance()
-      if (acceptance) {
+      if (acceptance && !contaJaExistia) {
         const ip =
           request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
           request.headers.get('x-real-ip') ||
@@ -180,8 +184,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     }
 
-    const provisioned = await authorizeProvisionedUser(user.email)
-    if (!provisioned) {
+    if (!contaJaExistia) {
       await provisionAuthenticatedUser(user.email, nomeDoUsuario(user))
       // Meta: pelo Google a conta nasce AQUI. O e-mail já contou no formulário; confirmar o link não conta de novo.
       if (user.app_metadata.provider === 'google') {
