@@ -40,3 +40,18 @@ Controle `Manutenção Real Olímpico -- Pendências | Controle` (nível superio
 ## 5. Lacunas que você deve levar ao Gabriel
 
 Este repositório não tem Garantia de Execução; não existem chats de Polimento, Merge/Deploy, Relatórios, Processo Padrão, Tester e Higienização (o Controle faz); frentes G tem dois chats duplicados; as frentes ainda abertas dependem de ações dele (variável `RESEND_API_KEY` na Vercel, teste no iPhone, pergunta nº 21 ao contador, decisão sobre armazenamento de vídeos).
+
+## 6. Acréscimo da conta atual [conta-atual-22/11]
+Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qual conta veio cada entrada. Resumo: os 69 chats de `04_chats/` vêm da outra conta; as 47 memórias existem idênticas nas duas; a conta atual só acrescentou esse índice.
+
+<!-- estado22:ini -->
+## 7. Estado final de 22/11/2026 (HEAD `44db26f`)
+
+- **Relatório do Davi (QA): tudo resolvido e publicado** (R1–R4, com auditoria, polimento e relatório de status em `03_relatorios/manutencao-22-11-qa-davi-e-conselho/`).
+- **Documentos legais gravados no banco:** Termos 2.2, Arbitragem 2.2, Política 2.1 e Tabela de Taxas 2.5, via `scripts/publicar-documentos-legais.test.ts` (executor de uso único; não rodar de novo sem conferir).
+- **CSP bloqueante** no ar; o erro React #310 nas telas logadas foi encerrado como **artefato do painel oculto** do navegador de teste, não do site.
+- **Manutenção 22-11:** T1 financeiro, T2 isenção e CPF/CNPJ, T3 balcão, T4 quadro do docx, T5 KPIs (migration 059), T6 PWA/Google no app, todos na `main`.
+- **Pendências de 23/11:** e-mail (Resend, DNS de `avisos.realolimpico.com.br`, `RESEND_API_KEY`) e a **pergunta nº 21 ao contador** (R$ 4,00 do frete), mais as nº 34–36 (frente B) em `docs/fiscal-contabil/LACUNAS_E_PERGUNTAS.md`.
+- Onde achar: `01_continuidade/manutencao-22-11/` (MDs de execução), `02_planos_de_execucao/manutencao-22-11-garantias-e-planos/`, `04_chats/` seções 8 e 9 (17 chats), `05_memorias_da_conta/` (lista de commits).
+- Pastas locais antigas sem commit (de outras frentes, só listadas): `docs/manutencao-2026-11/{00_MD_EXECUTIVO,01_CONTROLE,02_MODELO_DOS_CHATS_DE_BRANCH,OPERACIONAL_FORNECEDORES,README}.md` e `frentes/` (pacote da manutenção de 17/11, do Controle), `docs/polimento/**` (polimento de outubro), `docs/processo/`.
+<!-- estado22:fim -->

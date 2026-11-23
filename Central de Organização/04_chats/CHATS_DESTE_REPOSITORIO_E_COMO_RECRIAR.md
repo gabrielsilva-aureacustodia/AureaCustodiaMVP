@@ -372,3 +372,28 @@ Todos nascem do Controle [Pendências de manutenção do site](#local_e60062ca-6
 
 Nomes curtos (para `SendMessage`): `m2-t1-financeiro`, `m2-t2-isencao`, `m2-t3-balcao`, `m2-t4-docx`, `m2-t5-kpis`, `m2-t6-pwa-iphone`, `m2-tester`, `qa-r1-exec`, `qa-r2-exec`, `qa-r3-exec`, `qa-r4-exec`, `qa-auditoria`, `qa-polimento`, `qa-merge-deploy`, `qa-relatorios`, `qa-higienizacao`.
 <!-- m22:fim -->
+
+<!-- entregas22:ini -->
+## 9. O que cada chat de 22/11 entregou (fechamento) [central-22/11]
+
+| Nome curto | Papel | Entregou |
+|---|---|---|
+| `m2-t1-financeiro` | T1 | Saldo dos clientes, "Taxas pagas" na ficha, migration 058 (troca de e-mail não reescreve o ledger); cadeia do livro-razão refeita em produção (ids 493–624, só hashes). Commit `d570215`. |
+| `m2-t2-isencao` | T2 | Isenção Áurea/CEO e CPF ou CNPJ (`isencao.ts`, `cpf.ts`); variáveis `NEXT_PUBLIC_AUREA_CONTA_*` na Vercel. Commits `1e6b775`, `06bfba3`. |
+| `m2-t3-balcao` | T3 | Posição = lugar físico (18 reordenadas), peso padrão de Bandeira em 11 envios, gravador de vídeo, vídeos ligados. Commit `1e6b775`. |
+| `m2-t4-docx` | T4 | Quadro dos 15 itens do docx × produção (só leitura). `QUADRO_ITENS_DOCX_22-11.md`. |
+| `m2-t5-kpis` | T5 | KPIs do conselho (pagante, churn, margem por moeda, LTV) e `coin_ids` em cada negociação (migration 059). Commits `6c3f79f`, `66c0dd2`. |
+| `m2-t6-pwa-iphone` | T6 | Login Google no app instalado (callback tolerante, aviso no login) e docs do PWA no iPhone. Commit `019947c`. |
+| `m2-tester` | Tester | Conferência visual logada; relatório `TESTER_22-11.md`. |
+| `qa-r1-exec` | R1 | B01 estado por usuário, cookie Secure, CSP bloqueante (relatório→bloqueio; #310 era artefato do painel oculto), faixa de cookies A09 com alvo de 44px. Commits `4c2df93`, `e97a19e`, `a4d5488`, `18630a9`, `f484c6f`, `5c9e7da`, `ee28f3b`. |
+| `qa-r2-exec` | R2 | E-mail pendente até confirmar, "esqueci minha senha", validação de nome/nascimento/telefone/Pix, aceite com erro visível. Commit `4026823`. |
+| `qa-r3-exec` | R3 | Saque em dias úteis, validação do depósito, oferta sem saldo, ano travado, CEP, termos de publicação; A08/B09. Commits `6140f17`, `5a39b89`, `2d25296`. |
+| `qa-r4-exec` | R4 | Termos 2.2, Arbitragem 2.2, Política 2.1, Tabela de Taxas 2.5, 404, textos; documentos legais gravados no banco por `scripts/publicar-documentos-legais.test.ts`. Commits `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`, `895b924`, `81f2cfa`. |
+| `qa-auditoria` | Auditoria | `AUDITORIA_QA_DAVI_22-11.md`: conferência de R1–R4. |
+| `qa-polimento` | Polimento | `POLIMENTO_QA_DAVI_22-11.md` (404 sóbrio, `184b3ea`). |
+| `qa-merge-deploy` | Merge/Deploy | Merges, pushes e deploys do QA do Davi. |
+| `qa-relatorios` | Relatórios | `RELATORIO_STATUS_QA_DAVI_22-11.md` e texto do relatório (`44db26f`). |
+| `qa-higienizacao` | Higienização | Limpeza de pastas e worktrees depois dos merges. |
+
+Controle: `Pendências de manutenção do site` decidiu merges, commits e índices; pendências de 23/11 em `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`.
+<!-- entregas22:fim -->

@@ -66,3 +66,47 @@ Memórias da conta criadas depois da foto original (cópia literal em `05_memori
 | `2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | `docs/memorias/2026-11-22--claude-code--manut2-isencao-e-cpf-ou-cnpj.md` | Isenção da Áurea/CEO e CPF ou CNPJ (T2) — memória do agente | Memória de sessão (repo) |
 | `2026-11-22--claude-code--manut2-kpis-do-conselho.md` | `docs/memorias/2026-11-22--claude-code--manut2-kpis-do-conselho.md` | KPIs do conselho: regras de cálculo (T5) — memória do agente | Memória de sessão (repo) |
 <!-- m22:fim -->
+
+<!-- commits22:ini -->
+## Commits de 22/11/2026, de `d570215` até `44db26f` (35 commits, mais novo primeiro) [central-22/11]
+
+Foto tirada no fechamento; `git log d570215^..HEAD` refaz a lista. Memória nova da conta: `email-fica-para-amanha-registrar-tudo.md` (nesta pasta).
+
+| Commit | Assunto |
+|---|---|
+| `44db26f` | docs: status final do QA do Davi, MD do R4, texto do relatório, registro (22/11) |
+| `6dede60` | docs: Central de Organização atualiza MDs de 22/11 |
+| `81f2cfa` | Teste da primeira mudança dos Termos acompanha a versão 2.2 publicada; garantias e relatórios finais do QA do Davi (22/11) |
+| `f484c6f` | R1 (QA Davi): "Saiba mais" da faixa de cookies com alvo de toque de 44px |
+| `895b924` | scripts: executor de uso único que publica as versões novas dos documentos legais (22/11) |
+| `3f794fa` | docs: Central de Organização atualiza MDs de 22/11 |
+| `e6fdcc9` | R4 (QA Davi): MD de execução atualizado (Tabela 2.5) |
+| `18630a9` | R1 (QA Davi): faixa de cookies mais baixa no celular (texto curto, botões de 44px iguais) |
+| `e3f8958` | R4 (QA Davi): Tabela de Taxas 2.5 (Retirada Segura: embalagem lacrada e rastreio, sem seguro de valor) e textos alinhados |
+| `ee28f3b` | CSP volta a bloquear: o travamento das telas logadas era artefato do painel oculto do navegador de teste, não do site |
+| `5c9e7da` | CSP volta a Report-Only enquanto se investiga o erro #310 nas telas logadas |
+| `e28914c` | docs: Central de Organização atualiza MDs de execução e relatórios de 22/11 |
+| `a267335` | R4 (QA Davi): Política 2.1 (cadastro formal e identidade), Tabela de Taxas 2.4 (Retirada Segura) e prazo da retirada em 30 dias úteis (A05, A02, A01) |
+| `f8ede77` | R4 (QA Davi): Termos 2.2 e Arbitragem 2.2 (só concordância, remissões e erros materiais), textos alinhados a seguro/guarda/retirada/Sicoob, comparativo com cripto removido |
+| `a4d5488` | R1 (QA Davi): A09 faixa de cookies (Pixel e API de Conversões só após "Aceitar") e CSP bloqueante |
+| `5a39b89` | A08: dinheiro da empresa sai da auditoria do cliente; B09: ano travado no servidor |
+| `ab0f950` | docs: Central de Organização atualiza relatórios de 22/11 |
+| `184b3ea` | 404: título sóbrio 'Página não encontrada' (pedido do Polimento) |
+| `e23fa66` | docs: garantias, planos e relatórios da manutenção e do QA do Davi (22/11) |
+| `06bfba3` | Teste de editar cadastro no admin acompanha CPF ou CNPJ (T2) |
+| `e97a19e` | R1 (QA Davi): teste de regressão do B01 (estado não vaza) |
+| `f4b0c97` | docs: Central de Organização recebe os MDs de 22/11 (continuidade, planos, relatórios, chats, memórias) |
+| `2d25296` | Teste do estorno do frete não depende mais da data de hoje (R3) |
+| `4b2f48f` | R4 (QA Davi): 404 em português, plural, Esc e clique fora só onde seguro, tutorial sobre janelas, botões flutuantes, textos legais e de interface (Termos seguem na 2.1) |
+| `6140f17` | R3 (QA Davi): saque em dias úteis, validação do depósito, oferta de compra sem saldo, ano travado no envio, CEP e continuar, termos de publicação, texto do saque |
+| `4026823` | R2 (QA Davi): e-mail pendente até confirmar, esqueci minha senha, validação de nome/nascimento/telefone/Pix, aceite com erro visível |
+| `4c2df93` | R1 (QA Davi): B01 visão do estado por usuário (sem dado de terceiros no código da página), cookie Supabase Secure, CSP em modo relatório, fuso fixo nas datas (React 418) |
+| `cb259d3` | docs: variável SUPABASE_SERVICE_ROLE_KEY conferida na Vercel; autoconfirm confirmado |
+| `1e09864` | docs: pendências de e-mail para 23/11 (Resend, DNS, B02, avisos, esqueci senha) |
+| `66c0dd2` | T5: KPIs do conselho reescritos (pagante, churn por motivo, margem por moeda) e código da moeda em cada negociação (migration 059) |
+| `019947c` | T6: login do Google no app instalado (callback tolerante, aviso no login) e docs de PWA no iPhone |
+| `282e55d` | docs: fechamento da Manutenção 22-11 (RETOMADA, perguntas da B ao contador, índice, memórias) |
+| `6c3f79f` | T5: KPIs do conselho (CAC/payback, margem por moeda, conversão, churn, liquidez) em /admin/resultados/kpis |
+| `1e6b775` | T2+T3: isenção Áurea/CEO, CPF ou CNPJ, peso padrão do balcão, gravador de vídeo |
+| `d570215` | T1 Financeiro: saldo dos clientes, taxas pagas com custódia, troca de e-mail sem reescrever o livro-razão |
+<!-- commits22:fim -->
