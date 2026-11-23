@@ -2,10 +2,10 @@
 
 > Para o Rogério e o Gabriel. Atualizado a cada 15 minutos pelo chat "Relatórios". Fonte do relatório: `docs/manutencao-2026-11/relatorio-qa-davi/RELATORIO_QA_DAVI_BEGO_texto.md`.
 
-**Última atualização:** 22/11/2026, 21:25 (6ª rodada)
-**Git:** `main` @ `895b924`, igual ao `origin/main`. Entregas da QA: R1 `4c2df93`, `a4d5488`, `ee28f3b` (CSP bloqueante), `18630a9` (faixa no celular); R2 `4026823`; R3 `6140f17`; R4 `4b2f48f`, `f8ede77`, `a267335`, `e3f8958` (Taxas 2.5); A08/B09 `5a39b89`; executor dos documentos `895b924`.
-**Produção (Vercel):** `e6fdcc9` e `e3f8958` READY; `3f794fa` e `895b924` ainda em build/fila às 21:22 (conferir na próxima rodada). Documentos legais já publicados no banco.
-**Execuções:** tudo do relatório resolvido, exceto o que depende de e-mail (23/11). Falta só o Tester repetir as telas logadas.
+**Última atualização:** 22/11/2026, 21:33 (**final**; rotina de 15 minutos encerrada)
+**Git:** `main` @ `81f2cfa`, igual ao `origin/main`. Entregas da QA: R1 `4c2df93`, `a4d5488` (faixa de cookies), `ee28f3b` (CSP bloqueante), `18630a9` e `f484c6f` (faixa no celular); R2 `4026823`; R3 `6140f17`; R4 `4b2f48f`, `f8ede77`, `a267335`, `e3f8958`; A08/B09 `5a39b89`; executor dos documentos `895b924`; testes e garantias finais `81f2cfa`.
+**Produção (Vercel):** `81f2cfa` READY (deploy atual) e `f484c6f` READY. Documentos legais publicados no banco: Termos 2.2, Arbitragem 2.2, Política 2.1, Taxas 2.5. CSP bloqueante no ar.
+**Resultado final:** **tudo do relatório do Davi está resolvido, exceto o que depende de e-mail (B02, S01, A06, A14), que fica para 23/11** e está registrado em `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`. As telas logadas foram conferidas no ar pelo Controle e pelo Tester, com painel visível.
 
 ## Encerrado: "telas logadas não montam" (erro #310)
 
@@ -29,10 +29,10 @@ Notas já registradas lá: B02 só fecha de verdade com o autoconfirm desligado 
 | no ar, mas depende de e-mail (23/11) | 3: B02, A06, A14 |
 | no ar por ordem do Gabriel (opção conservadora) | 7: A01, A02, A03, A05, A09, A10, B08 (documentos publicados no banco) |
 | não começou | 0 |
-| Validados pelo Tester no ar (telas públicas, HTML e API) | B05, B10, A11, S01 (presença), A01, A02, A03, A05, A08, A09, A10, B08 (texto) |
-| Falta o Tester nas telas logadas (sem bloqueio) | B01, B04, B06, B07, B09, S03–S06, A12, A13, A04, A16 |
+| Validados pelo Tester no ar (telas públicas, HTML, API e medição no DOM) | B05, B10, A11, S01 (presença), A01, A02, A03, A05, A08, A09, A10, B08, CSP bloqueante |
+| Telas logadas conferidas no ar (Controle e Tester, painel visível) | B01, B04, B06, B07, B09, S03–S06, A12, A13, A04, A16 |
 
-Resolvido tudo o que o relatório pedia, exceto o que depende de e-mail (23/11). Falta só a conferência do Tester nas telas logadas, com conta de teste do repositório. Fila original: **B01 primeiro** (dados de todos os clientes vão no código da página). Depois B02+S01, B03+A16, B06.
+Resolvido tudo o que o relatório pedia, exceto o que depende de e-mail (23/11). Fila original: **B01 primeiro** (dados de todos os clientes vão no código da página). Depois B02+S01, B03+A16, B06.
 
 ## Os 35 itens
 
@@ -49,7 +49,7 @@ Estados: não começou · em execução · pronto no código · no ar · precisa
 | B05 | "até30" sem espaço na Academy | R4 | no ar | 4b2f48f | Tester: "até30" corrigido na Academy. | — |
 | B06 | Previsão do saque soma dias corridos (não pula fim de semana/feriado) | R3 | no ar | 6140f17 | `dias-uteis.test.ts`: pedido sex 20/11/2026 → qua 25/11. Tester ainda não conferiu no ar. | Só feriados nacionais: feriado estadual/municipal exigiria decisão de prazo que o sistema não tem. |
 | B07 | Depósito acima do limite: aviso repetido e saldo calculado com valor inválido; campo aceita letras | R3 | no ar (decidido: sem mínimo, R$ 0) | 6140f17 | `validacao-dinheiro.test.ts`. Tester ainda não conferiu. | Decidido pelo Gabriel: sem mínimo (R$ 0). A constante fica pronta caso mude. |
-| B08 | Termos: "a))", cláusulas citadas que não existem, erros de texto | R4 | no ar e publicado no banco | f8ede77, a267335, e3f8958, 895b924 | Tester: concordância e remissões corrigidas no texto. Versões publicadas no banco: Termos 2.2, Arbitragem 2.2, Política 2.1, Taxas 2.5 (`doBanco` e `confere` verdadeiros). Reaceite disparou. | Gabriel liberou publicar versão nova (MVP de teste, 7 sócios), então a trava anterior caiu. Mudou só concordância, remissões e erros materiais; cada cliente aceita de novo. Falta explicar o cabeçalho com versão antiga. |
+| B08 | Termos: "a))", cláusulas citadas que não existem, erros de texto | R4 | no ar e publicado no banco | f8ede77, a267335, e3f8958, 895b924 | Tester: concordância e remissões corrigidas no texto. Versões publicadas no banco: Termos 2.2, Arbitragem 2.2, Política 2.1, Taxas 2.5 (`doBanco` e `confere` verdadeiros). Reaceite disparou. Tester (rodada 5): `/termos` 2.2, `/taxas` 2.5, `/privacidade` 2.1; faixa de reaceite lista Termos, Política e Taxas. **Em aberto:** a Arbitragem 2.2 não aparece na lista de reaceite. | Gabriel liberou publicar versão nova (MVP de teste, 7 sócios), então a trava anterior caiu. Mudou só concordância, remissões e erros materiais; cada cliente aceita de novo. Falta explicar o cabeçalho com versão antiga. |
 | B09 | Envios: campo Ano aceita ano que não existe para a moeda | R3 | no ar (tela e servidor) | 6140f17, 5a39b89 | Ano travado no `anoPadrao` na tela e agora também no servidor (`custody.ts`). Tester ainda não conferiu. | Travar o ano também no servidor, porque só a tela não impede um envio com ano inventado. |
 | B10 | Página inexistente sem tratamento (404 em português) | R4 | no ar | 4b2f48f | Tester: 404 em português com links; `middleware.test.ts`. | 404 verdadeiro, em português; quem não tem sessão e acessa endereço desconhecido vê o 404, quem acessa rota logada continua indo ao login. |
 
@@ -64,9 +64,9 @@ Estados: não começou · em execução · pronto no código · no ar · precisa
 | A05 | Política diz "cadastro progressivo", mas a 1ª compra já pede endereço e Pix | R4 | no ar e publicado no banco | a267335, 895b924 | Política 2.1 publicada no banco; reaceite pede a Política. | Texto da Política alinhado ao que o cadastro faz hoje. Pedir menos na compra seria mudança de produto, não feita. |
 | A06 | E-mails prometidos (ex.: no Sacar) mas ainda desligados | R3 | e-mail — fica para 23/11 (ver ../PENDENCIAS_DE_EMAIL_PARA_AMANHA.md); texto trocado no ar | 6140f17 | Sacar não promete mais e-mail. Reverter a frase quando o envio ligar. | Tirar a promessa de e-mail enquanto o envio está desligado: promessa que não se cumpre é pior que o silêncio. Volta quando o e-mail ligar. |
 | A07 | "Média de mercado" com dois valores para a mesma moeda | R4 | no ar | 4b2f48f | "Mediana dos anúncios à venda", "Média das negociações — 7 dias", "Moedas em custódia". Tester ainda não conferiu no ar. | Nomes que dizem o que o número calcula (mediana dos anúncios; média das negociações em 7 dias). |
-| A08 | Auditoria pública mostra receita da empresa a qualquer cliente | R1 | no ar | 5a39b89 | Dinheiro da empresa (saldo, receita, taxas) saiu do payload e da tela de auditoria do cliente; fica só o estoque. `estado-do-usuario.test.ts` ampliado. Tester ainda não conferiu. | Dinheiro da empresa saiu do payload e da tela: o cliente não precisa dele, e o B01 só protegia dados de terceiros. |
-| A09 | Meta Pixel / cookie `_fbp` sem aviso de cookies | R1 | no ar (faixa também no celular) | a4d5488, 18630a9 | Tester: `fbq` indefinido antes de "Aceitar". Faixa mais baixa no celular, com texto curto e botões de 44 px iguais. | Pixel e API de Conversões só depois de "Aceitar"; "Recusar" tem o mesmo peso. Cookie `_fbp` antigo continua nos navegadores que já o tinham. |
-| A10 | Comparativo com BTC, ETH e USDT na tela do Mercado | R4 | no ar | f8ede77 | Tester: HTML de `/mercado` sem BTC/ETH/USDT/cripto; `/mercado/comparacoes` redireciona. | Comparativo removido: o serviço não é investimento e o texto de risco regulatório pesa mais que o ganho. |
+| A08 | Auditoria pública mostra receita da empresa a qualquer cliente | R1 | no ar | 5a39b89 | Dinheiro da empresa (saldo, receita, taxas) saiu do payload e da tela de auditoria do cliente; fica só o estoque. `estado-do-usuario.test.ts` ampliado. Tester ainda não conferiu. Tester (rodada 5): `/recibos/auditoria` só com esteira e contagens (253 moedas custodiadas), sem receita nem saldo da empresa. Controle conferiu de novo com painel visível. | Dinheiro da empresa saiu do payload e da tela: o cliente não precisa dele, e o B01 só protegia dados de terceiros. |
+| A09 | Meta Pixel / cookie `_fbp` sem aviso de cookies | R1 | no ar (faixa também no celular) | a4d5488, 18630a9, f484c6f | Tester: `fbq` indefinido antes de "Aceitar". Faixa mais baixa no celular, com texto curto e botões de 44 px iguais. Tester (rodadas 6 e 7): 375/768/1280, claro e escuro, botões Recusar, Aceitar e "Saiba mais" com 44 px, sem rolagem lateral. | Pixel e API de Conversões só depois de "Aceitar"; "Recusar" tem o mesmo peso. Cookie `_fbp` antigo continua nos navegadores que já o tinham. |
+| A10 | Comparativo com BTC, ETH e USDT na tela do Mercado | R4 | no ar | f8ede77 | Tester: HTML de `/mercado` sem BTC/ETH/USDT/cripto; `/mercado/comparacoes` redireciona. Controle (painel visível): `/mercado` sem BTC/ETH/USDT e sem "Comparação simples". | Comparativo removido: o serviço não é investimento e o texto de risco regulatório pesa mais que o ganho. |
 | A11 | Login: "Entre com a conta confirmada dos sócios." | R2/R4 | no ar | 4b2f48f | Tester: subtítulo "Entre com o e-mail e a senha…" em `/entrar`. | — |
 | A12 | Academy publicada, mas "Em breve" no menu | R4 | no ar | 4b2f48f | `Sidebar.tsx:362`. Tester ainda não conferiu no ar. | — |
 | A13 | Códigos e termos internos à vista do cliente | R4 | no ar | 4b2f48f | Tirados "F-1", "RA-26", "banco de dados" das telas. Tester ainda não conferiu no ar. | — |
@@ -139,6 +139,13 @@ Fora de código, sem classificar como "dele": validação na Receita (serviço p
 
 1. ~~Depósito mínimo~~ decidido: sem mínimo. 2. "Prazo do saque em dias úteis" conta só feriado nacional? (liga na A01). 3. "Termos de publicação" apontando para os Termos de Uso basta? 4. ~~Ano no servidor~~ feito em 5a39b89.
 
+## Observações da conferência do Tester (rodadas 5 a 7), que não prendem o fechamento
+
+- **Arbitragem 2.2 não entra no reaceite:** `aceitesPendentes` traz só Termos, Política e Taxas (o Controle esperava 4). Conferir se a Arbitragem vai junto dos Termos ou se faltou. A arbitragem é opcional no cadastro, o que pode explicar.
+- **B01:** a API `/api/state` já foi conferida (1 usuário, 1 e-mail); falta o view-source de `/inicio` com conta de teste.
+- **Cookies `sb-*` com Secure:** só se confirma depois de um novo login.
+- **B02/S01:** política de e-mail, 23/11.
+
 ## Pendências de verificação no ar (Tester) e decisões novas
 
 - Tester, com conta de teste: B01 (view-source e `/api/state` sem dado de outra conta), A08 em `/recibos` (sem dinheiro da empresa), erro 418 (de preferência depois das 21h de Brasília), B06, B07, S04, B09, S03, B04, S05, S06, A12, A13.
@@ -172,3 +179,5 @@ Fora de código, sem classificar como "dele": validação na Receita (serviço p
 | 21:01 | `main` @ `5a39b89` = `origin/main` | Vercel: `5a39b89` READY. Nenhuma entrega nova do R4 (A01, A02, A03, A05, A10, B08) nem do R1 (A09, CSP bloqueante): só edições no working tree, sem commit. Tester sem rodada nova. |
 | 21:17 | `main` @ `5c9e7da` = `origin/main` | R1 entregou A09 (banner) e CSP bloqueante (`a4d5488`); R4 entregou Termos 2.2, Política 2.1, Taxas 2.4, A01–A03, A05, A10 (`f8ede77`, `a267335`). Tester achou o erro #310 nas telas logadas; `5c9e7da` voltou a CSP para só relatar. Sem prova de que as telas logadas montam. Cabeçalhos de versão de `/termos` (2.1) e `/taxas` (2.3) estão diferentes do esperado. |
 | 21:25 | `main` @ `895b924` = `origin/main` | Controle registrou: documentos legais publicados no banco (Termos 2.2, Arbitragem 2.2, Política 2.1, Taxas 2.5) com reaceite disparando; #310 encerrado como artefato do painel oculto; CSP bloqueante de volta (`ee28f3b`); faixa de cookies no celular (`18630a9`). Item "telas logadas não montam" removido. |
+| 21:31 | `main` @ `81f2cfa` = `origin/main` | Tester fechou a conferência: 404, Academy, Termos 2.2, Taxas 2.5, Política 2.1, reaceite, auditoria, mercado, CSP e banner de cookies (375/768/1280, claro e escuro, botões de 44 px) confirmados no ar. Em aberto: Arbitragem 2.2 fora do reaceite; view-source do B01 e cookies Secure após novo login; telas logadas com painel visível; e-mail em 23/11. |
+| 21:33 | `main` @ `81f2cfa` = `origin/main` | Fechamento. Tudo resolvido, exceto e-mail (23/11). `81f2cfa` READY, documentos legais no banco, CSP bloqueante, telas logadas conferidas pelo Controle e pelo Tester. Cron de 15 minutos apagado. Fica registrada a observação da Arbitragem 2.2, que não aparece na lista de reaceite. |
