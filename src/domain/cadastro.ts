@@ -4,7 +4,7 @@
  * Módulo 100% puro — sem dependências de banco de dados, servidor ou React.
  */
 
-import { validarDocumento } from './cpf'
+import { formatarDocumento, validarDocumento } from './cpf'
 import type { Cadastro, DadosBancarios } from './types'
 
 /**
@@ -137,7 +137,8 @@ export function descreverDadosBancarios(db?: DadosBancarios): string {
       aleatoria: 'Chave Aleatória',
     }
     const tipo = tipoMap[db.tipoChavePix] || 'Pix'
-    return `Pix (${tipo}): ${db.chavePix}`
+    const chave = db.tipoChavePix === 'cpf' ? formatarDocumento(db.chavePix) : db.chavePix
+    return `Pix (${tipo}): ${chave}`
   }
   if (db.banco && db.agencia && db.conta) {
     const tipo = db.tipoConta === 'poupanca' ? 'Poupança' : 'Corrente'

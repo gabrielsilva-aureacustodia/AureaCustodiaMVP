@@ -9,6 +9,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import { gravarConsentimento } from '@/lib/cookies/consentimento'
@@ -21,9 +22,29 @@ export function BannerDeCookies({ ativo }: { ativo: boolean }): ReactNode {
   const pathname = usePathname()
 
   if (!ativo || estado !== 'pendente' || caminhoSemRastreio(pathname)) return null
+  return <Faixa />
+}
+
+function Faixa(): ReactNode {
+  const faixa = useRef<HTMLElement>(null)
+
+  // Tester 22/11: a faixa cobria o "Ver tutorial" e encostava no Atendimento. A altura vai para `--cookies-altura` e
+  // src/styles/cookies.css sobe os dois botões enquanto ela existe (mesmo desenho do aviso do PWA).
+  useEffect(() => {
+    const elemento = faixa.current
+    if (!elemento) return
+    const medir = (): void => document.documentElement.style.setProperty('--cookies-altura', `${elemento.offsetHeight}px`)
+    medir()
+    const observador = new ResizeObserver(medir)
+    observador.observe(elemento)
+    return () => {
+      observador.disconnect()
+      document.documentElement.style.removeProperty('--cookies-altura')
+    }
+  }, [])
 
   return (
-    <section className="cookies-faixa" role="region" aria-label="Aviso de cookies">
+    <section ref={faixa} className="cookies-faixa" role="region" aria-label="Aviso de cookies">
       <p className="cookies-texto">
         Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada.
       </p>

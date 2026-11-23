@@ -33,6 +33,7 @@
  * original: `opacity` no campo desabilitado e `margin-bottom` no parágrafo.
  */
 
+import { formatarDocumento } from '@/domain/cpf'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -183,7 +184,7 @@ export function ModalDadosPessoais(): ReactNode {
           </div>
           <div className="u-sutil u-mt2">
             {completo
-              ? `${me.cadastro?.cpf ? `CPF ${me.cadastro.cpf} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
+              ? `${me.cadastro?.cpf ? `CPF ${formatarDocumento(me.cadastro.cpf)} · ` : ''}${descreverDadosBancarios(me.cadastro?.dadosBancarios)}`
               : 'Necessário para depósitos e saques'}
           </div>
         </div>

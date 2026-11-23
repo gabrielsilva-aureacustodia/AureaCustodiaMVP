@@ -46,7 +46,7 @@ import { brl } from '@/domain/money'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { primeiroMesDoEnvio } from '@/domain/primeiro-mes-do-envio'
 import type { AppState, Cents, Envio, UserEmail } from '@/domain/types'
-import { temCadastroCompleto } from '@/domain/cadastro'
+import { formatarCep, temCadastroCompleto } from '@/domain/cadastro'
 import { AvisoDebitoCustodia } from '@/components/custody/AvisoDebitoCustodia'
 import { useApp } from '@/components/providers/AppProvider'
 import { ModalCadastro } from '@/components/account/ModalCadastro'
@@ -696,7 +696,7 @@ export default function EnviosPage(): ReactNode {
                 value={cepOrigem}
                 aria-invalid={erroCep ? true : undefined}
                 onChange={(e) => {
-                  setCepOrigem(e.target.value)
+                  setCepOrigem(formatarCep(e.target.value))
                   if (erroCep) setErroCep('')
                 }}
               />

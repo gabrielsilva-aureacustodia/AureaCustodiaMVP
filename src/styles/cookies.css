@@ -20,3 +20,12 @@
   .cookies-acoes .btn{flex:1 1 0;padding:0 10px}
   .cookies-saiba{flex:0 0 auto}
 }
+
+/* Os botões flutuantes sobem acima da faixa enquanto ela existe (`--cookies-altura` é medida em BannerDeCookies.tsx; 110px é
+   só o palpite até a primeira medida). Vale também com o aviso do PWA na tela: a faixa é a que está mais embaixo. */
+body:has(.cookies-faixa) .atd-fab,
+body:has(.cookies-faixa) .tutorial-link,
+body:has(.cookies-faixa):has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .atd-fab,
+body:has(.cookies-faixa):has(.pwa-aviso):not(:has(.atd-folha,.tour-camada,.dicas-camada)) .tutorial-link{
+  transform:translateY(calc(-1 * (var(--cookies-altura,110px) + 20px)));
+}

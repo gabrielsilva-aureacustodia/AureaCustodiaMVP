@@ -153,3 +153,30 @@ Os três botões atendem 44 px.
 - Em aberto (não é defeito do site / depende de outros): conferir se a Arbitragem 2.2 entra nos reaceites (faixa lista só Termos, Política e Taxas); B01 view-source de /inicio com conta de teste (API `/api/state` já conferida: 1 usuário); cookies `sb-*` com Secure só confirmável após novo login; "Saiba mais"/B02 política de e-mail (decisão do Gabriel).
 - #310: encerrado como artefato do painel oculto.
 Nada criado nem alterado em produção por mim; sw.js foi desregistrado/recriado no navegador do painel (re-registrou sozinho).
+
+## Rodada 8 — telas logadas na conta do Gabriel (autorizado por ele no chat: "é só olhar"), painel visível
+Só leitura/validação; nada salvo, nenhum envio. Hoje = domingo 22/11/2026.
+| Item | Resultado |
+|---|---|
+| A12 menu | Academy é link normal (`/academy`), sem "Em breve" ✓ |
+| B07 depósito (modal Depositar) | Aviso único "O depósito máximo por operação é R$ 100.000,00." ao digitar 100000,01; "Saldo após o depósito" mostra "—"; letras são recusadas; `inputmode=decimal`; Cancelar fecha ✓. R$ 1,00 ainda é aceito (depósito mínimo = decisão do Gabriel) |
+| B06 saque (modal Sacar) | "D+3 úteis (previsão: 25/11/2026)" — domingo→quarta ✓. Texto "até 3 dias úteis"; sem promessa de e-mail (A06) ✓. Não confirmei saque |
+| B09 ano por tipo (/envios) | Direitos Humanos → só 1998; Entrega da Bandeira → só 2012 ✓ |
+| S03 CEP (/envios) | 00000000 + Buscar CEP → "CEP não encontrado ou inválido." (`aria-invalid`), e "Para continuar, falta: a foto do item" explica o botão Continuar desabilitado ✓. Campo CEP sem máscara (mostra 00000000) — baixa |
+| B03 (Dados pessoais → Editar dados) | Telefone ganha máscara `(11) 11111-1111`; CPF `11111111111` → "CPF ou CNPJ inválido" ✓. **Data de nascimento: `max=2026-11-23` — amanhã em Brasília (é a data UTC) e sem limite de 18 anos no atributo**; digitar 14/04/2027 e 01/01/2015 não gerou erro inline (pode validar só ao Salvar). **Não consegui confirmar** porque o clique em "Salvar cadastro" foi barrado pelo classificador (gravaria na conta real). Nome "a a a" e Pix e-mail "123123123123123" também sem erro inline |
+| Dados pessoais (resumo) | CPF mostrado sem pontuação ("14592601637") — formatar é sugestão (baixa) |
+
+Não conferido: B01 view-source de /inicio (exige conta de teste); cadastro por e-mail do commit 91cccf2 (cria conta em produção — não autorizado); S02, S04 (conta sem moeda/saldo), S05, S06, A04, A07, A13, A15, A16 em formulário que grava. Nada alterado na conta; o formulário de dados pessoais foi fechado com Cancelar.
+
+## Rodada 9 — conta do Gabriel, autorizado a salvar com valor inválido (enviado ao Controle)
+- **B01 ✓**: HTML de /inicio (conta logada): 1 e-mail (o dele), 0 CPF, sem estado embutido; /api/state: 1 usuário.
+- **B03 ✓ no Salvar cadastro** (nada gravado, todas bloquearam): data futura; menor de 18 ("É preciso ter 18 anos ou mais para abrir a conta."); nome "a a a" e "Joao" ("Informe nome e sobrenome…"); telefone curto; Pix e-mail sem @ ("precisa ter @ e domínio"); CPF inválido.
+- **BUG (média)**: `.cookies-faixa` (z 46) cobre `.tutorial-link` "Ver tutorial desta página" (z 45) — `elementFromPoint` no centro devolve `.cookies-acoes` (viewport 767×942, /conta). `.atd-fab` (z 44) encosta no topo da faixa.
+- **Baixas**: `max` da data de nascimento = 2026-11-23 (UTC) e sem teto de 18 anos; CEP e CPF sem máscara; faixa de reaceite sem Arbitragem.
+- Pendente: cadastro por e-mail (91cccf2; senha só o Gabriel digita), S02, S04, A04, A07, A13, A15, A16, Esc/clique-fora do tutorial.
+
+## Correções dos achados da conta do Gabriel (22/11, noite)
+- BUG 1: faixa de cookies cobria o "Ver tutorial" — a faixa mede a própria altura (`--cookies-altura`) e `cookies.css` sobe o Atendimento e o tutorial acima dela.
+- BUG 2: `max` do nascimento agora é hoje−18 anos pelo dia de Brasília.
+- BUG 3: CEP de `/envios` com máscara; CPF da chave Pix e do resumo da conta com pontuação.
+- BUG 4: NÃO é defeito — a Arbitragem tem aceite próprio e destacado, fora da faixa de reaceite geral (`DOCUMENTOS_DO_ACEITE_GERAL`), por desenho.

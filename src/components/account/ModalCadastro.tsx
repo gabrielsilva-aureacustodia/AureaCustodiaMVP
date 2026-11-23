@@ -37,6 +37,12 @@ export interface ModalCadastroProps {
   motivo?: 'deposito' | 'saque' | 'configuracoes' | 'compra' | 'envio'
 }
 
+/** Último nascimento aceito: quem faz 18 anos hoje, pelo dia de Brasília (UTC-3), não o do navegador nem o UTC. */
+function dataMaximaDeNascimento(): string {
+  const brasilia = new Date(Date.now() - 3 * 3600 * 1000)
+  return `${brasilia.getUTCFullYear() - 18}-${String(brasilia.getUTCMonth() + 1).padStart(2, '0')}-${String(brasilia.getUTCDate()).padStart(2, '0')}`
+}
+
 export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroProps): ReactNode {
   const { me, run } = useApp()
   const { close } = useModal()
@@ -296,7 +302,7 @@ export function ModalCadastro({ onSuccess, motivo = 'deposito' }: ModalCadastroP
             type="date"
             required
             min="1900-01-01"
-            max={new Date().toISOString().slice(0, 10)}
+            max={dataMaximaDeNascimento()}
             className="tinput"
             value={dataNascimento}
             onChange={(e) => setDataNascimento(e.target.value)}
