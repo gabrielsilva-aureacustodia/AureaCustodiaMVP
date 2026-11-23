@@ -23,7 +23,7 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // Bloqueante desde 22/11/2026 (QA do Davi). A lista de origens e o porquê de cada uma: src/lib/seguranca/csp.mjs.
-          { key: 'Content-Security-Policy-Report-Only', value: politicaDeSeguranca(process.env.NODE_ENV === 'production') },
+          { key: 'Content-Security-Policy', value: politicaDeSeguranca(process.env.NODE_ENV === 'production') },
         ],
       },
       {
