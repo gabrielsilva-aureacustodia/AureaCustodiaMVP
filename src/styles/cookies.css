@@ -10,12 +10,13 @@
 }
 .cookies-texto{flex:1 1 320px;margin:0;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
 .cookies-texto b{color:var(--ro-texto)}
-.cookies-saiba{color:var(--ro-primaria);text-decoration:underline}
-.cookies-acoes{display:flex;gap:8px;flex:0 0 auto}
+.cookies-saiba{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px;color:var(--ro-primaria);text-decoration:underline;white-space:nowrap}
+.cookies-acoes{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 /* .btn tem width:100% (é botão de formulário): aqui cada um é do tamanho do texto. */
 .cookies-acoes .btn{width:auto;min-height:44px;padding:0 18px;white-space:nowrap}
 @media (max-width:480px){
   .cookies-faixa{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom))}
   .cookies-acoes{width:100%}
-  .cookies-acoes .btn{flex:1 1 0}
+  .cookies-acoes .btn{flex:1 1 0;padding:0 10px}
+  .cookies-saiba{flex:0 0 auto}
 }

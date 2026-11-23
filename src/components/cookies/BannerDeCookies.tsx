@@ -25,12 +25,13 @@ export function BannerDeCookies({ ativo }: { ativo: boolean }): ReactNode {
   return (
     <section className="cookies-faixa" role="region" aria-label="Aviso de cookies">
       <p className="cookies-texto">
-        Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada.{' '}
+        Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada.
+      </p>
+      <div className="cookies-acoes">
+        {/* Fora do parágrafo para ter a área de toque de 44px sem engordar a linha do texto. */}
         <Link href="/privacidade" className="cookies-saiba">
           Saiba mais
         </Link>
-      </p>
-      <div className="cookies-acoes">
         <button type="button" className="btn btn-ghost" onClick={() => gravarConsentimento('recusado')}>
           Recusar
         </button>
