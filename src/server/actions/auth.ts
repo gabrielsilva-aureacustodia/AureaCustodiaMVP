@@ -86,7 +86,7 @@ export async function login(email: string, senha: string): Promise<ActionResult>
     if (error?.code === 'email_not_confirmed') {
       return {
         ok: false,
-        error: 'Confirme seu e-mail para entrar: use o link que enviamos ou peça outro em "Reenviar link de confirmação".',
+        error: 'Confirme seu e-mail para entrar: use o link que enviamos ou peça outro em "Receber link de acesso por e-mail".',
       }
     }
     if (error || !data.user?.email) return { ok: false, error: CREDENCIAIS_INVALIDAS }

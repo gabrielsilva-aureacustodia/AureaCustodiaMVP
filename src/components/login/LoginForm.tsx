@@ -205,7 +205,7 @@ export function LoginForm({
               </button>
               {' · '}
               <button type="button" className="auth-link-btn" disabled={enviando} onClick={() => void pedirLink('acesso')}>
-                Reenviar link de confirmação
+                Receber link de acesso por e-mail
               </button>
             </p>
 

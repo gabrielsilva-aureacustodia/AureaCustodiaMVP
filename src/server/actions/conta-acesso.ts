@@ -21,7 +21,7 @@ import { getSessionEmail } from '@/server/session'
 const RESPOSTA_NEUTRA_SENHA =
   'Se este e-mail tem conta, enviamos um link para criar uma senha nova. Confira também o spam.'
 const RESPOSTA_NEUTRA_LINK =
-  'Se este e-mail tem conta, enviamos um link de acesso. Clique nele para confirmar o e-mail e entrar.'
+  'Se este e-mail tem conta, enviamos um link de acesso. Clique nele para entrar.'
 const FALHA = 'Não foi possível enviar agora. Tente novamente em instantes.'
 
 function emailPlausivel(email: string): boolean {

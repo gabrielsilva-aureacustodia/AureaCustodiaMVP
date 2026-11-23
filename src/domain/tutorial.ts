@@ -250,7 +250,7 @@ export function passosDoTour({ taxas, temMoedas, cadastroCompleto }: ContextoDoT
       titulo: 'Compra facilitada',
       texto:
         'Para comprar uma moeda que já está à venda, é só clicar em Comprar na oferta. Uma janela de confirmação mostra o total ' +
-        `com a comissão (${comissaoCompra}) e você escolhe como pagar: com o saldo da conta ou direto por Pix ou cartão, ` +
+        `com a comissão (${comissaoCompra}) e o primeiro mês de custódia da moeda (${brl(taxas.custodiaMensalPorMoeda)} por moeda), e você escolhe como pagar: com o saldo da conta ou direto por Pix ou cartão, ` +
         'sem precisar depositar antes. Nada acontece até você confirmar.',
     },
 
@@ -347,7 +347,7 @@ export function passosDoTour({ taxas, temMoedas, cadastroCompleto }: ContextoDoT
       titulo: 'Avaliação e recibo',
       texto:
         'Quando a moeda chega, a nossa equipe a avalia. Estando tudo certo, é emitido o recibo de custódia — ' +
-        'e é o recibo que libera a moeda para negociar. Sem recibo, a moeda não vai ao mercado.',
+        'e o recibo, junto com a custódia paga, libera a moeda para negociar. Sem recibo, a moeda não vai ao mercado.',
     },
 
     /* ---------------- 5 · Custódia ---------------- */
@@ -360,7 +360,7 @@ export function passosDoTour({ taxas, temMoedas, cadastroCompleto }: ContextoDoT
       titulo: 'Custódia: quanto custa',
       texto:
         `Depois que a moeda é aceita, ela fica guardada com a gente por ${porMoeda} por moeda ao mês, sem prazo mínimo. ` +
-        `A fatura vence em ${DIAS_TOLERANCIA_FATURA} dias — dentro desse prazo nada fica bloqueado. ` +
+        `A fatura vence em ${DIAS_TOLERANCIA_FATURA} dias, mas a moeda só pode ser negociada com a custódia paga. ` +
         'O aviso ao lado é só um exemplo, como se você já tivesse uma moeda esperando pagamento. Ele some quando o tutorial fechar.',
     },
     {
@@ -476,7 +476,7 @@ export function tutorialDaPagina(pagina: PaginaComTutorial, taxas: TabelaDeTaxas
           {
             id: 'inicio-depositar',
             titulo: 'Depositar em conta',
-            texto: 'Coloca saldo na sua conta para comprar com um clique. Nesta fase de testes o depósito é simulado.',
+            texto: 'Coloca saldo na sua conta para comprar com um clique, por Pix ou cartão. O saldo entra quando o pagamento é confirmado.',
             alvo: { css: '.blocks h3', contem: 'Depositar em conta', subir: 'a, .block, div' },
           },
           {
@@ -507,7 +507,7 @@ export function tutorialDaPagina(pagina: PaginaComTutorial, taxas: TabelaDeTaxas
           {
             id: 'mercado-comprar',
             titulo: 'Botão Comprar',
-            texto: `Compra a quantidade escolhida de uma oferta. Antes de cobrar, uma janela mostra o total com a comissão (${comissaoCompra}) e deixa você escolher entre saldo da conta ou Pix e cartão.`,
+            texto: `Compra a quantidade escolhida de uma oferta. Antes de cobrar, uma janela mostra o total com a comissão (${comissaoCompra}) e o primeiro mês de custódia (${porMoeda} por moeda) e deixa você escolher entre saldo da conta ou Pix e cartão.`,
             alvo: { css: 'button.btn', contem: 'Comprar' },
           },
           {
@@ -738,7 +738,7 @@ export function tutoriaisContextuais(taxas: TabelaDeTaxas): TutorialContextual[]
           titulo: 'Custódia a pagar',
           texto:
             `Sua moeda passou na avaliação e já está sob guarda. A custódia custa ${porMoeda} por moeda ao mês e a fatura vence em ${DIAS_TOLERANCIA_FATURA} dias. ` +
-            'Dentro do prazo, nada fica bloqueado. Pagar mantém os recibos livres para vender e retirar.',
+            'A moeda só pode ser anunciada e vendida com a custódia paga; pagar a mantém livre para vender e retirar.',
           alvo: { css: '.note, .warn-box', contem: 'Custódia a pagar' },
         },
         {

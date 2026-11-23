@@ -114,7 +114,7 @@ describe('cadastro: Google primeiro', () => {
   it('QA Davi 22/11 (S01 e B02): a entrada tem "Esqueci minha senha" e "Reenviar link de confirmação"', () => {
     const html = entrada()
     expect(html).toContain('Esqueci minha senha')
-    expect(html).toContain('Reenviar link de confirmação')
+    expect(html).toContain('Receber link de acesso por e-mail')
   })
 
   it('o aceite legal aponta para os três documentos, junto do botão do Google', () => {
