@@ -25,6 +25,7 @@ import { EstadoVazio } from '@/components/ui/EstadoVazio'
 import { Selo } from '@/components/ui/Selo'
 import { Esqueleto } from '@/components/ui/Esqueleto'
 import { listarMinhasNotas } from '@/server/actions/notas'
+import { quantidadeComUnidade } from '@/domain/plural'
 import {
   iniciarCartaoFatura,
   iniciarPixFatura,
@@ -177,7 +178,7 @@ export function FaturasCustodia(): ReactNode {
                 </div>
                 <div className="sr">
                   <span className="k">Quantidade de moedas</span>
-                  <span className="v">{faturaSelecionada.quantidadeMoedas} moeda(s)</span>
+                  <span className="v">{quantidadeComUnidade(faturaSelecionada.quantidadeMoedas, 'moeda', 'moedas')}</span>
                 </div>
                 <div className="sr">
                   <span className="k">Valor da fatura</span>
@@ -360,7 +361,7 @@ export function FaturasCustodia(): ReactNode {
                     <div className="summary-box">
                       <div className="sr">
                         <span className="k">Quantidade contratada</span>
-                        <span className="v">{p.quantidadeContratada} moeda(s)</span>
+                        <span className="v">{quantidadeComUnidade(p.quantidadeContratada, 'moeda', 'moedas')}</span>
                       </div>
                       <div className="sr">
                         <span className="k">Moedas cobertas</span>

@@ -21,6 +21,7 @@ import { apelidoComprador } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export interface BidRowProps {
   bid: BuyOrder
@@ -44,7 +45,7 @@ export function BidRow({ bid, mine, onEdit, onCancel }: BidRowProps): ReactNode 
 
       <div className="o-info">
         <div className="o-name">
-          {bid.qty} moeda(s) · {bid.tipoMoeda}
+          {quantidadeComUnidade(bid.qty, 'moeda', 'moedas')} · {bid.tipoMoeda}
           {mine ? <span className="mine-badge">SUA OFERTA</span> : null}
         </div>
         <div className="o-meta">

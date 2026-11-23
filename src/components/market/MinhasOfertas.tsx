@@ -14,6 +14,7 @@ import { cancelLot } from '@/server/actions/sell'
 import { ModalEditarBid } from './ModalEditarBid'
 import { ModalEditarLote } from './ModalEditarLote'
 import { Selo } from '@/components/ui/Selo'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export function MinhasOfertas(): ReactNode {
   const { state, session, run } = useApp()
@@ -84,7 +85,7 @@ export function MinhasOfertas(): ReactNode {
                     <span className="mo-tipo">{lote.tipoMoeda}</span>
                   </div>
                   <div className="mo-meta">
-                    <b>{lote.coinIds.length} moeda(s)</b> a <b>{brl(lote.price)}</b> cada
+                    <b>{quantidadeComUnidade(lote.coinIds.length, 'moeda', 'moedas')}</b> a <b>{brl(lote.price)}</b> cada
                     {lote.obs ? <span> · &ldquo;{lote.obs}&rdquo;</span> : null}
                     <br />
                     <span>Cadastrada em {fdatetime(lote.createdAt)}</span>
@@ -130,7 +131,7 @@ export function MinhasOfertas(): ReactNode {
                     <span className="mo-tipo">{bid.tipoMoeda}</span>
                   </div>
                   <div className="mo-meta">
-                    <b>{bid.qty} moeda(s)</b> até <b>{brl(bid.price)}</b> cada
+                    <b>{quantidadeComUnidade(bid.qty, 'moeda', 'moedas')}</b> até <b>{brl(bid.price)}</b> cada
                     <br />
                     <span>Cadastrada em {fdatetime(bid.createdAt)}</span>
                   </div>

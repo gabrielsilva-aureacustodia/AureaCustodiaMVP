@@ -36,6 +36,7 @@ import { Folder } from '@/components/market/Folder'
 import { useApp } from '@/components/providers/AppProvider'
 import { CoinArt } from '@/components/svg/CoinArt'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export interface CoinPickerProps {
   /** Moedas negociáveis do usuário, na ordem do inventário. */
@@ -120,7 +121,7 @@ export function CoinPicker({
           <Folder
             key={categoria}
             titulo={categoria}
-            resumo={`${todas.length} moeda(s) · ${livres} disponível(is)`}
+            resumo={`${quantidadeComUnidade(todas.length, 'moeda', 'moedas')} · ${quantidadeComUnidade(livres, 'disponível', 'disponíveis')}`}
             aberta={abertas.has(categoria)}
             destacada={temTipoAtivo}
             onToggle={() => onToggleFolder(categoria)}

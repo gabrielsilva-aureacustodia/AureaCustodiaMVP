@@ -13,6 +13,7 @@
 
 import type { Cents, Envio, FaturaCustodia, PlanoCustodia } from '@/domain/types'
 import { custodiaMensalPorMoeda, type TabelaDeTaxas } from '@/domain/fees'
+import { quantidadeComUnidade } from './plural'
 
 /**
  * Monta a descrição amigável de uma fatura de custódia para o extrato.
@@ -24,16 +25,16 @@ export function descricaoDaFaturaDeCustodia(
   const { competencia, quantidadeMoedas, status, origem } = fatura
 
   if (origem === 'contratacao') {
-    return `Custódia do 1º mês, paga no envio · ${quantidadeMoedas} moeda(s) — ${status}`
+    return `Custódia do 1º mês, paga no envio · ${quantidadeComUnidade(quantidadeMoedas, 'moeda', 'moedas')} — ${status}`
   }
 
   if (origem === 'renovacao_anual') {
     // Só em faturas antigas: a renovação do plano saiu do código em 03/11/2026.
-    return `Renovação do plano de custódia (regra antiga) ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+    return `Renovação do plano de custódia (regra antiga) ${competencia} · ${quantidadeComUnidade(quantidadeMoedas, 'moeda', 'moedas')} — ${status}`
   }
 
   // Origem ausente ou 'ciclo_mensal' mantém o formato exato histórico do extrato
-  return `Custódia mensal ${competencia} · ${quantidadeMoedas} moeda(s) — ${status}`
+  return `Custódia mensal ${competencia} · ${quantidadeComUnidade(quantidadeMoedas, 'moeda', 'moedas')} — ${status}`
 }
 
 /**

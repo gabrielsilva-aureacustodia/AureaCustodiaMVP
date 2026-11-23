@@ -32,6 +32,7 @@ import { brl } from '@/domain/money'
 import type { FaturaCustodia } from '@/domain/types'
 import { useApp } from '@/components/providers/AppProvider'
 import { useTutorial } from '@/components/tutorial/contexto'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 /** Faturas da conta que ainda não foram pagas nem canceladas. */
 function faturasEmAberto(faturas: readonly FaturaCustodia[], email: string): FaturaCustodia[] {
@@ -85,7 +86,7 @@ export function AvisoDebitoCustodia({ estilo }: { estilo?: React.CSSProperties }
             </>
           ) : (
             <>
-              {moedas} moeda(s) sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}
+              {quantidadeComUnidade(moedas, 'moeda', 'moedas')} sob guarda com {abertas.length === 1 ? 'a fatura' : 'faturas'} em aberto.{' '}
               {vencida
                 ? 'Enquanto estiver vencida, os recibos ficam bloqueados para venda e para retirada física.'
                 : 'Pague até o vencimento para manter os recibos livres para negociar.'}{' '}

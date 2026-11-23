@@ -55,6 +55,7 @@ import { carregarRegrasDoMercado } from '@/server/config/carregar'
 import { exigirReautenticacao } from '@/server/auth/reautenticacao'
 import { getSessionEmail } from '@/server/session'
 import { mutateState } from '@/server/state'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 /** Cookie ausente ou assinatura inválida. Texto fixado pelo contrato da camada. */
 const SESSAO_EXPIRADA = 'Sessão expirada.'
@@ -362,7 +363,7 @@ export async function editLot(
         if (livres.length < necessarias) {
           return {
             ok: false,
-            error: `Você tem ${livres.length} moeda(s) livre(s) desse tipo para acrescentar.`,
+            error: `Você tem ${quantidadeComUnidade(livres.length, 'moeda', 'moedas')} ${livres.length === 1 ? 'livre' : 'livres'} desse tipo para acrescentar.`,
           }
         }
         perdeuVez = true

@@ -17,6 +17,7 @@ import { apelidoComprador } from '@/domain/contraparte'
 import { fdate } from '@/domain/dates'
 import { brl } from '@/domain/money'
 import type { BuyOrder } from '@/domain/types'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export interface SellerBidRowProps {
   bid: BuyOrder
@@ -47,7 +48,7 @@ export function SellerBidRow({
 
       <div className="o-info">
         <div className="o-name">
-          {bid.qty} moeda(s) · {bid.tipoMoeda}
+          {quantidadeComUnidade(bid.qty, 'moeda', 'moedas')} · {bid.tipoMoeda}
         </div>
         <div className="o-meta">
           {/* Anonimato da vitrine (D-5, 10/09/2026): quem recebe a oferta não

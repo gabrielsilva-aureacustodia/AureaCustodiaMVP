@@ -10,6 +10,7 @@ import { availableCoinsForSell } from '@/domain/market'
 import { parsePrice } from '@/domain/money'
 import type { Lot } from '@/domain/types'
 import { editLot } from '@/server/actions/sell'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
   const { state, me, run, catalogo } = useApp()
@@ -45,7 +46,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
     <>
       <h3 className="serif">Editar anúncio de venda</h3>
       <p>
-        Moeda: <b className="u-ouro">{lote.tipoMoeda}</b> — {moedasLoteAtual} moeda(s) anunciada(s) atualmente.
+        Moeda: <b className="u-ouro">{lote.tipoMoeda}</b> — {quantidadeComUnidade(moedasLoteAtual, 'moeda', 'moedas')} {moedasLoteAtual === 1 ? 'anunciada' : 'anunciadas'} atualmente.
       </p>
 
       <div className="field-lbl">Novo preço unitário</div>
@@ -80,7 +81,7 @@ export function ModalEditarLote({ lote }: { lote: Lot }): ReactNode {
         </button>
       </div>
       <p className="u-f12 u-mt4">
-        Você tem {livres.length} moeda(s) livre(s) desse tipo para acrescentar.
+        Você tem {quantidadeComUnidade(livres.length, 'moeda', 'moedas')} {livres.length === 1 ? 'livre' : 'livres'} desse tipo para acrescentar.
         Moedas reduzidas voltam ao inventário livre; moedas acrescentadas saem do seu inventário.
       </p>
 

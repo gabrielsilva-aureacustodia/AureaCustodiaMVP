@@ -27,6 +27,7 @@ import { envioCancelado, isEnvioDesconsiderado, prazoPostagemEnvio, statusFaseEn
 import { rotuloStatusRastreio, textoDoRastreio } from '@/domain/rastreio'
 import type { Envio } from '@/domain/types'
 import { EstadoVazio } from '@/components/ui/EstadoVazio'
+import { quantidadeComUnidade } from '@/domain/plural'
 
 export interface RastreioNaLista {
   statusAtual: string
@@ -204,7 +205,7 @@ export function HistoricoEnvios({
                       <span className={badgeCls}>{statusInfo.rotulo}</span>
                     </div>
                     <div className="hist-meta">
-                      Gerado em {fdate(item.createdAt)} • {item.quantidade} moeda(s) {item.tipoMoeda} ({item.ano})
+                      Gerado em {fdate(item.createdAt)} • {quantidadeComUnidade(item.quantidade, 'moeda', 'moedas')} {item.tipoMoeda} ({item.ano})
                       {item.modalidadeEnvio ? ` • ${item.modalidadeEnvio}` : ''}
                     </div>
                   </div>

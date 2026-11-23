@@ -162,7 +162,7 @@ describe('Ações de ordens — prioridade, edição e fila justa (A2, Decisão 
 
     const res = await editLot(lotId, 25_000, totalDisponivel + 1)
     expect(res.ok).toBe(false)
-    expect(res.error).toBe('Você tem 0 moeda(s) livre(s) desse tipo para acrescentar.')
+    expect(res.error).toBe('Você tem 0 moedas livres desse tipo para acrescentar.')
   })
 
   it('editBid: mudar preço ou aumentar quantidade joga ordem para o fim da fila', async () => {
