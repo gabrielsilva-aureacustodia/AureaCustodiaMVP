@@ -2,19 +2,20 @@
    "Ver tutorial" (45): enquanto ela está na tela a pessoa precisa escolher, então não pode ficar escondida. */
 .cookies-faixa{
   position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:46;
-  max-width:760px;margin-inline:auto;padding:14px 16px;
-  display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;
+  max-width:760px;margin-inline:auto;padding:10px 14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;
   background:var(--ro-cartao);color:var(--ro-texto);
   border:1px solid var(--ro-borda);border-top:2px solid var(--ro-primaria);border-radius:var(--ro-raio-lg);
   box-shadow:var(--ro-sombra-3);
 }
-.cookies-texto{flex:1 1 320px;margin:0;font-size:var(--ro-tipo-legenda);line-height:1.5;color:var(--ro-texto-suave)}
+.cookies-texto{flex:1 1 320px;margin:0;font-size:var(--ro-tipo-legenda);line-height:1.4;color:var(--ro-texto-suave)}
 .cookies-texto b{color:var(--ro-texto)}
 .cookies-saiba{color:var(--ro-primaria);text-decoration:underline}
 .cookies-acoes{display:flex;gap:8px;flex:0 0 auto}
 /* .btn tem width:100% (é botão de formulário): aqui cada um é do tamanho do texto. */
 .cookies-acoes .btn{width:auto;min-height:44px;padding:0 18px;white-space:nowrap}
 @media (max-width:480px){
+  .cookies-faixa{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom))}
   .cookies-acoes{width:100%}
   .cookies-acoes .btn{flex:1 1 0}
 }

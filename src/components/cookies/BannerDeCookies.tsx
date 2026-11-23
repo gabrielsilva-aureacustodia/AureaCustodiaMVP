@@ -25,9 +25,7 @@ export function BannerDeCookies({ ativo }: { ativo: boolean }): ReactNode {
   return (
     <section className="cookies-faixa" role="region" aria-label="Aviso de cookies">
       <p className="cookies-texto">
-        <b>Cookies no Real Olímpico.</b> Usamos cookies essenciais para o site funcionar e, com a sua permissão, cookies de
-        publicidade da Meta (Facebook e Instagram) para medir se os nossos anúncios chegam a quem se interessa. Você pode
-        recusar sem perder nada do serviço.{' '}
+        Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada.{' '}
         <Link href="/privacidade" className="cookies-saiba">
           Saiba mais
         </Link>
