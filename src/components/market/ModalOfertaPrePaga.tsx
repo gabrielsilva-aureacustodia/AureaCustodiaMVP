@@ -31,6 +31,7 @@
  */
 
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
+import { taxasDeQuemCompra } from '@/domain/isencao'
 import { LinhaCustodiaNaCompra } from './LinhaCustodiaNaCompra'
 import { useState, type ReactNode } from 'react'
 
@@ -58,7 +59,9 @@ export function ModalOfertaPrePaga({
   precoUnit,
   totalCents,
 }: ModalOfertaPrePagaProps): ReactNode {
-  const { me, run, taxas } = useApp()
+  const { me, run, taxas: taxasCheias, session } = useApp()
+  // A tela mostra o que o servidor vai cobrar: conta da Áurea e do CEO têm isenção (src/domain/isencao.ts).
+  const taxas = taxasDeQuemCompra(session, taxasCheias)
   const { close } = useModal()
   // A oferta pré-paga é compra comprometida: pede a senha por janela de 5 minutos (frente A). O diálogo abre por
   // cima deste pop-up, que continua aberto (o `close()` só vem depois do pagamento).
@@ -132,7 +135,7 @@ export function ModalOfertaPrePaga({
       </div>
       <div className="summary-row">
         <span className="k">Taxa de compra do Real Olímpico</span>
-        <span className="v">+ {brl(comissao)}</span>
+        <span className="v">{comissao > 0 ? `+ ${brl(comissao)}` : 'Isenta'}</span>
       </div>
       <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">

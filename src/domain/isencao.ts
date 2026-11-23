@@ -59,6 +59,20 @@ export function ehParAureaCeo(a: UserEmail, b: UserEmail): boolean {
 }
 
 /**
+ * A tabela que as TELAS mostram a quem está comprando ou publicando oferta de compra (contraparte ainda desconhecida).
+ * É a mesma regra que o servidor aplica ao cobrar: a conta da Áurea não vê comissão nem custódia, o CEO não vê custódia
+ * (Gabriel, 22/11 e 23/11/2026: a tela mostrava taxa para a conta da Áurea que o servidor não cobra).
+ */
+export function taxasDeQuemCompra(email: UserEmail, taxas: TabelaDeTaxas): TabelaDeTaxas {
+  return taxasDaNegociacao(email, '', taxas)
+}
+
+/** Idem para quem vende: a Áurea não vê comissão de venda. */
+export function taxasDeQuemVende(email: UserEmail, taxas: TabelaDeTaxas): TabelaDeTaxas {
+  return taxasDaNegociacao('', email, taxas)
+}
+
+/**
  * A tabela de taxas que vale para ESTA negociação.
  *
  * Devolve a própria tabela quando ninguém é isento (o caso de quase toda negociação). Comprador = Áurea:

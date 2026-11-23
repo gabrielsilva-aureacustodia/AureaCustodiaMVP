@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { emitirFaturasDosCiclos } from '@/domain/cobranca-de-entrada'
 import { custodiaImpedeNegociar } from '@/domain/custodia-da-moeda'
 import { TAXAS_PADRAO, custoDeCompraPorMoeda } from '@/domain/fees'
-import { ehContaDaAurea, ehParAureaCeo, taxasDaNegociacao } from '@/domain/isencao'
+import { ehContaDaAurea, ehParAureaCeo, taxasDaNegociacao, taxasDeQuemCompra, taxasDeQuemVende } from '@/domain/isencao'
 import { matchOrders } from '@/domain/market'
 import { pedidosDeNfse } from '@/domain/nfse/pedidos'
 import { BAN, compra, estado, moeda, usuario, venda } from '@/domain/testing/fixtures'
@@ -163,5 +163,21 @@ describe('NFS-e: comissão zero não gera pedido de nota', () => {
     const notasNormais = pedidosDeNfse(vazio(normal), normal, Date.now())
     expect(notasDoPar.filter((p) => p.servico !== 'custodia')).toHaveLength(0)
     expect(notasNormais.filter((p) => p.servico !== 'custodia')).toHaveLength(2)
+  })
+})
+
+describe('o que a tela mostra é o que o servidor cobra (23/11/2026)', () => {
+  it('conta da Áurea comprando: sem comissão e sem custódia na tabela da tela', () => {
+    ligar()
+    const t = taxasDeQuemCompra(AUREA, TAXAS_PADRAO)
+    expect(t.comissaoCompradorBp).toBe(0)
+    expect(t.comissaoCompradorFixa).toBe(0)
+    expect(t.custodiaMensalPorMoeda).toBe(0)
+  })
+  it('conta da Áurea vendendo: sem comissão de venda; cliente comum vê a tabela cheia', () => {
+    ligar()
+    expect(taxasDeQuemVende(AUREA, TAXAS_PADRAO).comissaoVendedorBp).toBe(0)
+    expect(taxasDeQuemVende('cliente@x.com', TAXAS_PADRAO)).toBe(TAXAS_PADRAO)
+    expect(taxasDeQuemCompra('cliente@x.com', TAXAS_PADRAO)).toBe(TAXAS_PADRAO)
   })
 })

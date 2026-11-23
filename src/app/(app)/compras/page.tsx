@@ -24,6 +24,7 @@ import { tiposNegociaveis } from '@/domain/constants'
 import { fdate } from '@/domain/dates'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
 import { comissaoPorMoeda, custoDeCompraPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
+import { taxasDeQuemCompra } from '@/domain/isencao'
 import { avg7, fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { motivoOfertaDeCompraInvalida, somenteNumerico } from '@/domain/validacao-dinheiro'
@@ -35,7 +36,9 @@ import { ReservasEmAberto } from '@/components/market/ReservasEmAberto'
 const BID_INVALIDO_PUBLICAR = 'Informe quantidade e preço unitário válidos.'
 
 export default function ComprasPage(): ReactNode {
-  const { state, me, run, taxas, catalogo } = useApp()
+  const { state, me, run, taxas: taxasCheias, catalogo, session } = useApp()
+  // O que a tela mostra é o que o servidor cobra: Áurea e CEO têm isenção (src/domain/isencao.ts).
+  const taxas = taxasDeQuemCompra(session, taxasCheias)
   const toast = useToast()
   const { open } = useModal()
   const { confirmar, dialogo } = useConfirmarSenha()

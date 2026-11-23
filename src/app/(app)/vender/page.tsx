@@ -44,6 +44,7 @@ import {
   moedasComCustodiaBloqueada,
 } from '@/domain/bloqueio-por-debito'
 import { comissaoPorMoeda, liquidoDeVendaPorMoeda } from '@/domain/fees'
+import { taxasDeQuemVende } from '@/domain/isencao'
 import { availableCoinsForSell, avg7 } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
 import { quantidadeComUnidade, palavraNoPlural } from '@/domain/plural'
@@ -61,7 +62,9 @@ import { useModal } from '@/components/ui/Modal'
 import { publishOffer } from '@/server/actions/sell'
 
 export default function VenderPage(): ReactNode {
-  const { state, session, me, run, taxas, catalogo } = useApp()
+  const { state, session, me, run, taxas: taxasCheias, catalogo } = useApp()
+  // O que a tela mostra é o que o servidor cobra: a conta da Áurea não paga comissão de venda (src/domain/isencao.ts).
+  const taxas = taxasDeQuemVende(session, taxasCheias)
   const modal = useModal()
   const { confirmar, dialogo } = useConfirmarSenha()
   const { minhaContaBloqueada: pendencia, consultar } = useBloqueioPorPendencia()
@@ -383,7 +386,7 @@ export default function VenderPage(): ReactNode {
               <span className="v">{gross > 0 ? brl(gross) : '—'}</span>
             </div>
             <div className="summary-row">
-              <span className="k">Comissão de venda (0,5% + R$ 1,00/moeda)</span>
+              <span className="k">{fee > 0 || cents <= 0 ? 'Comissão de venda (0,5% + R$ 1,00/moeda)' : 'Comissão de venda (isenta)'}</span>
               <span className="v">{fee > 0 ? `- ${brl(fee)}` : '—'}</span>
             </div>
             <div className="summary-row total">

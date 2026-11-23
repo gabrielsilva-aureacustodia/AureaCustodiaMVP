@@ -37,7 +37,7 @@ export function LinhaCustodiaNaCompra({ cents }: { cents: Cents }): ReactNode {
           </a>
         </InfoTip>
       </span>
-      <span className="v">+ {brl(cents)}</span>
+      <span className="v">{cents > 0 ? `+ ${brl(cents)}` : 'Isenta'}</span>
     </div>
   )
 }

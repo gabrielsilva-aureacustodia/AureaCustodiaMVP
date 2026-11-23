@@ -57,6 +57,7 @@ import { WizardSteps } from '@/components/custody/WizardSteps'
 import { PainelPagamento } from '@/components/pagamento/PainelPagamento'
 import { ResumoDoPagamentoDoEnvio } from '@/components/envios/ResumoDoPagamentoDoEnvio'
 import { LinhaCustodiaNaCompra } from '@/components/market/LinhaCustodiaNaCompra'
+import { ehIsentoDeCustodia } from '@/domain/isencao'
 import {
   consultarCepEnvio,
   cotarFreteDoEnvio,
@@ -979,7 +980,7 @@ export default function EnviosPage(): ReactNode {
               pagamento e sem "Pagar depois" aqui, só o aviso do que vem a seguir.
             */}
             <div className="summary-box passo-resumo">
-              <LinhaCustodiaNaCompra cents={envio.quantidade * taxas.custodiaMensalPorMoeda} />
+              <LinhaCustodiaNaCompra cents={ehIsentoDeCustodia(session) ? 0 : envio.quantidade * taxas.custodiaMensalPorMoeda} />
             </div>
             <p className="campo-dica">
               O 1º mês de custódia é pago <b>junto com o frete dos Correios</b>, no próximo passo, em um só pagamento

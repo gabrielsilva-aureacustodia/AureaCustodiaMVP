@@ -31,6 +31,7 @@ import { useConfirmarSenha } from '@/components/seguranca/useConfirmarSenha'
 import { temCadastroCompleto } from '@/domain/cadastro'
 import { COIN, tiposNegociaveis } from '@/domain/constants'
 import { comissaoPorMoeda, custodiaDaCompraPorMoeda } from '@/domain/fees'
+import { taxasDaNegociacao } from '@/domain/isencao'
 import { destaqueDeMercado } from '@/domain/destaques-de-mercado'
 import { fmtTrade, lastTrade, lotsFromOffers } from '@/domain/market'
 import { brl, parsePrice } from '@/domain/money'
@@ -535,7 +536,9 @@ function ConfirmarCompraModal({
   qty: number
   aoConcluir(): void
 }): ReactNode {
-  const { me, run, taxas } = useApp()
+  const { me, run, taxas: taxasCheias, session } = useApp()
+  // Aqui a contraparte é conhecida (o vendedor do lote): a mesma tabela que o servidor usa ao cobrar.
+  const taxas = taxasDaNegociacao(session, lot.seller, taxasCheias)
   const { close, open } = useModal()
   // Comprar pede a senha por uma janela de 5 minutos (frente A). O diálogo abre POR CIMA desta modal; por isso ela
   // só fecha depois da confirmação — fechar antes a desmontaria e o diálogo, que mora aqui, sumiria junto.
@@ -628,7 +631,7 @@ function ConfirmarCompraModal({
       </div>
       <div className="summary-row">
         <span className="k">Taxa de compra do Real Olímpico</span>
-        <span className="v">+ {brl(comissaoComprador)}</span>
+        <span className="v">{comissaoComprador > 0 ? `+ ${brl(comissaoComprador)}` : 'Isenta'}</span>
       </div>
       <LinhaCustodiaNaCompra cents={custodia} />
       <div className="summary-row total">
