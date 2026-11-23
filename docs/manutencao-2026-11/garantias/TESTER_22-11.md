@@ -76,3 +76,77 @@ Achados enviados ao R1 e ao R4. Nada criado/alterado.
 - B01: view-source de /inicio e GET /api/state sem e-mail/CPF/Pix de outra conta — **pendente**, só conta de teste (testes automatizados já existem).
 - 418: correção = fuso America/Sao_Paulo; **pendente** conferir console logado em Mercado, Compras e Recibos, de preferência após 21h de Brasília.
 - A08 mostrar saldo/receita da empresa é de propósito (pergunta aberta ao Gabriel).
+
+## Rodada 3 — a4d5488 (R1: faixa de cookies + CSP bloqueante) READY
+Conferido na home/`/inicio` (sessão do Gabriel já aberta, só leitura), sem clicar em Aceitar/Recusar:
+- Cabeçalho `content-security-policy` agora ENFORCED (sem `report-only`). script-src ainda com 'unsafe-inline' (nonce é passo futuro).
+- Faixa "Cookies no Real Olímpico" aparece com Saiba mais / Recusar / Aceitar.
+- Pixel NÃO carrega antes do aceite: `fbq` indefinido e nenhum script de connect.facebook.net. O cookie `_fbp` antigo continua no navegador (gravado antes do deploy).
+- Console: 1 erro "Failed to load resource: 404" sem URL identificável (nenhum recurso 4xx em `performance`); pode ser da navegação anterior ao admin. Sem mensagem "Refused to…/Content Security Policy".
+Não conferido: Pix/cartão, login Google, bancada com vídeo, PDF/XLSX, Pixel após "Aceitar" (exigem ação/tela logada).
+Aguardando READY do f8ede77 (R4).
+
+## Rodada 4 — a267335 READY
+**CRÍTICO:** telas logadas do cliente (`/mercado`, `/compras`, `/inicio`) ficam presas em "Carregando a tela…" (>12 s, 3 cargas) com `Uncaught Error: Minified React error #310` (mais hooks que na renderização anterior; pilha em useMemo, chunk 1255-…js) + um "Failed to load resource: 404" sem URL. Faixa de cookies aparece; corpo não monta. Sem violação de CSP no console. Sessão do Gabriel (conta de equipe), só leitura. Avisado ao Controle e ao R1. Causa não confirmada (suspeita: hook após return condicional no banner/reaceite/A08/B09, ou estado da conta). Por isso NÃO consegui conferir visualmente banner (44px, flutuantes), janela de reaceite, /mercado sem BTC/ETH/USDT, nem o console em Compras/Envios/Recibos.
+
+Conferido por fetch (HTML do servidor):
+| Item | Resultado |
+|---|---|
+| `/termos` | "Estes Termos de Uso regem" ✓, "A arbitragem observará" ✓, 14.2 citado ✓, "A observará" e "Cláusula 13.2" sumiram ✓, 30 dias úteis ✓. **Cabeçalho ainda diz "Versão: 2.1"** (esperado 2.2) |
+| `/taxas` | **Cabeçalho "Versão: 2.3"** (esperado 2.4) |
+| `/privacidade` | "Versão: 2.1" ✓ |
+| `/academy` | Sem Sicoob. Ainda cita seguro: só "seguro postal/de transporte" e "Hoje não há apólice de seguro contratada" (coerente com A02) |
+| `/recibos/auditoria` | Sem saldo/receita da empresa (só o "Saldo R$ 0,00" da própria conta no topo) ✓ |
+| `/mercado/comparacoes` | Responde 200 sem redirecionar via fetch; no navegador terminou em `/` (redirecionou) — conferir |
+| `/mercado` HTML | sem BTC/ETH/USDT/Bitcoin/cripto ✓ |
+Não testado: 375/768/escuro (telas logadas não montam).
+
+### Rodada 4b — resposta ao R1 sobre o #310
+- Primeiro erro do console: "Failed to load resource: 404" (URL não identificada; 55 URLs da página testadas com fetch no-store, nenhuma 4xx), depois o #310 (pilha: useMemo → chunk 1255-…js). Sem exceção anterior.
+- Service worker: tinha `sw.js` ativo, `caches.keys()` vazio. Desregistrei o SW e apaguei caches (ele re-registrou sozinho ao recarregar; nada a restaurar). Resultado: **#310 e "Carregando a tela…" persistem**, `GET /api/state` 200. Logo não é SW/PWA servindo JS velho.
+- `/api/state`: `aceitesPendentes: []` para a conta da equipe, apesar das versões novas de Termos/Taxas — conferir se o reaceite dispara.
+- B01 (API): `/api/state` tem 1 usuário e 1 e-mail distinto ✓. View-source de `/inicio` não conferido.
+
+### Rodada 4c — banner de cookies (medido em /termos, DOM, painel oculto)
+- 375 px: faixa `.cookies-faixa` fixa, top 596 / 204 px de altura (≈25% da tela), sem rolagem lateral. Recusar e Aceitar: 155×44 ✓. **"Saiba mais": link de 66×16 px — abaixo do alvo de 44 px** (baixa). Leva a `/privacidade` ✓.
+- 1280 px: Recusar 98×44, Aceitar 91×44 ✓; sem estouro.
+- Fixos no 375: skip-link, `DIV.toast` (top 766, h36, sob a faixa) e a faixa. Botões flutuantes do app não aparecem em /termos; **sobreposição com botões flutuantes (Tutorial, etc.) só dá para checar em tela logada**.
+- Controle diz que o #310/"Carregando a tela…" é artefato do painel OCULTO. Não consegui mostrar o painel (`show_pane` não achou janela). **Achado #310 descartado como provisório; refazer com painel visível** (/mercado, /compras, /inicio, /envios, /recibos, reaceite, mercado sem cripto, console). Não testado: 768, escuro, reaceite.
+
+## Rodada 5 — versões legais publicadas no banco (painel ainda OCULTO; só leitura, sem aceitar)
+| Item | Resultado |
+|---|---|
+| `/termos` | Versão **2.2** ✓ |
+| `/taxas` | Versão **2.5** ✓; linha 3.2 diz "sem seguro de valor" (negação, coerente) |
+| `/privacidade` | Versão **2.1** ✓ |
+| Faixa de reaceite (`/mercado` HTML, tela logada) | "Há versão nova de: Termos de Uso, Política de Privacidade, Tabela de Taxas. Ler termos • Tabela de Taxas · Aceitar termos · Lembrar depois" ✓. **Arbitragem NÃO aparece** (`aceitesPendentes` = termos_de_uso, politica_privacidade, tabela_de_taxas), apesar de o Controle esperar 4 — conferir se a Arbitragem 2.2 vai junto dos Termos ou se faltou |
+| `/recibos/auditoria` | Só esteira e contagens de moedas (253 custodiadas); sem receita/saldo da empresa ✓ |
+| `/mercado` | Sem BTC/ETH/USDT/Bitcoin/cripto no HTML ✓ |
+| CSP | enforced ✓ |
+Não conferido (exige painel visível): aparência da faixa de reaceite e do banner em 375/768/1280 claro/escuro, console sem violação de CSP em telas logadas (as telas ficam em "Carregando a tela…" com o painel oculto). Não cliquei em Aceitar.
+
+## Rodada 6 — banner de cookies (e6fdcc9) e verificação do Controle
+**Verificado pelo Controle em 22/11 ~21:35, com painel visível (sessão do Gabriel, só leitura):** /inicio e /mercado montam normal; /mercado sem BTC/ETH/USDT e sem "Comparação simples"; /recibos/auditoria só com Esteira de custódia, estoque e integridade; faixa de reaceite em /inicio com Termos, Política e Taxas; CSP bloqueante sem violações (mensagens de frame-ancestors/X-Frame-Options vieram de iframe de teste do Controle). **#310 encerrado como artefato do painel oculto** (descarta o achado da Rodada 4).
+
+Medido por mim no DOM (/termos):
+| Viewport | Tema | Faixa | Botões |
+|---|---|---|---|
+| 375 | claro | h 130 (16% da tela; antes 204) | Recusar/Aceitar 161×44 |
+| 375 | escuro | h 130, texto `rgb(242,237,224)`, sem rolagem lateral | idem |
+| 768 | escuro | h 67, fixa no pé, sem estouro (sw 753 < 768) | Recusar 98×44, Aceitar 91×44 |
+| 1280 | claro | — | 98×44 / 91×44 |
+**"Saiba mais" ainda 66×16 px** (o f484c6f com alvo de 44 px ainda não está no ar). Observação: o fundo computado da `.cookies-faixa` é transparente nos dois temas (o contraste vem de um filho; não conferi visualmente).
+Pendente: remedir "Saiba mais" após READY do f484c6f.
+
+## Rodada 7 — f484c6f READY: "Saiba mais" com alvo de 44 px ✓
+| Viewport | Saiba mais | Recusar | Aceitar | Faixa |
+|---|---|---|---|---|
+| 375 | **102×44** | 106×44 | 106×44 | h 130, sem rolagem lateral |
+| 1280 | **102×44** | 98×44 | 91×44 | h 67, sem estouro |
+Os três botões atendem 44 px.
+
+## Fechamento da conferência do Relatório do Davi
+- Corrigido e confirmado no ar: 404 em português, Academy sem "até30" e sem Sicoob, Termos 2.2 (14.5.4, "regem", 14.2), Taxas 2.5, Política 2.1, reaceite ativo, auditoria sem dinheiro da empresa, mercado sem cripto, CSP bloqueante sem violações, banner de cookies (Pixel só após aceite; botões 44 px; 375/768/1280, claro/escuro).
+- Em aberto (não é defeito do site / depende de outros): conferir se a Arbitragem 2.2 entra nos reaceites (faixa lista só Termos, Política e Taxas); B01 view-source de /inicio com conta de teste (API `/api/state` já conferida: 1 usuário); cookies `sb-*` com Secure só confirmável após novo login; "Saiba mais"/B02 política de e-mail (decisão do Gabriel).
+- #310: encerrado como artefato do painel oculto.
+Nada criado nem alterado em produção por mim; sw.js foi desregistrado/recriado no navegador do painel (re-registrou sozinho).

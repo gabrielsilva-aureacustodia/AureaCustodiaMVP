@@ -859,11 +859,11 @@ describe('configuração do site (C3)', () => {
     expect(recuperada).toMatchObject({ ok: true, dados: { versao: '1.1' } })
   })
 
-  it('com os repositórios da A3: a versão do código entra antes, e a primeira mudança nasce 2.2', async () => {
+  it('com os repositórios da A3: a versão do código entra antes, e a primeira mudança nasce 2.3', async () => {
     const r = await salvarGrupoDeConfiguracao(executar, publicacaoNoBanco(), GESTOR, 'termos', { termosPrazoRecebimentoVenda: 'até 2 (duas) horas' }, AGORA_C3)
-    expect(r).toMatchObject({ ok: true, dados: { documento: { chave: 'termos_de_uso', versao: '2.2' } } })
+    expect(r).toMatchObject({ ok: true, dados: { documento: { chave: 'termos_de_uso', versao: '2.3' } } })
     const vigente = await executar((tx) => buscarDocumentoVigente(tx, 'termos_de_uso'))
-    expect(vigente?.versao).toBe('2.2')
+    expect(vigente?.versao).toBe('2.3')
     expect(vigente?.conteudo).toContain('O prazo para o recebimento dos valores provenientes da Venda de Moeda Custodiada é de até 2 (duas) horas após a conclusão da venda.')
     expect(vigente?.publicadoPor).toBe(GESTOR)
   })

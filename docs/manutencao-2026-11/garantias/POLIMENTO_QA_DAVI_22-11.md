@@ -73,6 +73,32 @@ Ainda não há aviso de "corrigido" do Tester/Controle; isto é leitura antecipa
 
 **R4** — sem `not-found.tsx`, sem banner de cookies ainda. Aguardando.
 
+## Rodada 20:50 — R4 e R2
+- R2 aplicou meus 3 ajustes (Pix aleatória, CPF, "Aguarde 1 minuto"). Fechado.
+- **404 (`not-found.tsx`)**: aprovado na estrutura: PT, status 404, links por estado, botões e links com 44px (`legal.css`), usa tokens (claro/escuro herdado). Um ajuste: o título "Ops… esta página não existe." destoa do tom sóbrio da marca. Sugestão: **"Página não encontrada"** (o eyebrow "Erro 404" já fica acima). Texto: "O endereço pode ter mudado ou foi digitado errado. Confira ou escolha uma das opções abaixo." A frase "Sua coleção continua guardada no cofre." é boa e coerente com a landing; manter.
+- Aguardando: banner de cookies (não existe, correto: decisão do Gabriel), faixa de e-mail não confirmado (R2).
+- R4 segurou os Termos em 2.1 (bom). Patch em `TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` não lido por mim: é texto jurídico.
+
+## Rodada 21:05 — banner de cookies (A09) e 404
+- **404**: título "Página não encontrada" já aplicado (commit 184b3ea). Fechado.
+- **Banner (`BannerDeCookies.tsx` + `cookies.css`)**: texto bom, em linguagem simples: "Usamos cookies essenciais… cookies de publicidade da Meta (Facebook e Instagram)… Você pode recusar sem perder nada do serviço." Recusar e Aceitar com o mesmo peso (`btn-ghost`), 44px, tokens `--ro-*` (claro/escuro herdado), em coluna cheia no celular, respeita a área segura do iPhone, fica acima do aviso do PWA e do Atendimento. Marca no masculino, sem palavra proibida. Nada a corrigir no visual.
+- **Registro (Controle, 22/11):** o A09 ligado é ordem do Gabriel (resolver tudo do relatório). O efeito na medição da Meta (quem recusa ou ignora não conta) é consequência conhecida e aceita. O banner fica. O alerta abaixo fica só como histórico.
+- **Alerta ao Controle (histórico):** o banner está **ligado no `layout.tsx`** e o Pixel passa a esperar o "Aceitar". A09 era "preparar, não ligar". Isso muda a medição da campanha da Meta (quem recusar ou ignorar não conta). Só vale subir com o aval do Gabriel; sem aval, tirar a linha do `layout.tsx` ou deixar sem `META_PIXEL_ID`... (este último não serve: o Pixel está no ar). Recomendo perguntar antes do deploy.
+- Pequeno: "Cookies no Real Olímpico." ok. Sugestão opcional: o link "Saiba mais" levar a um trecho de cookies da Política (hoje vai para /privacidade inteira); só vale se a Política citar a Meta (A09).
+
+## Rodada 21:20 — R4 (Termos 2.2, Política 2.1, Taxas 2.4) e R1
+- Lido no commit a267335: "Prazos operacionais: até D+3 (3 dias úteis) para saques e até 30 dias úteis… para a retirada física" — claro e consistente com a Academy ("Hoje não há apólice de seguro contratada"). Marca e vocabulário ok.
+- **Ponto de redação (para o jurídico, não bloqueia):** o nome "Retirada **Segura**" sem seguro contratado pode ser lido pelo cliente como "segurada". Sugestão: manter o nome só se a tela e a Tabela explicarem na mesma linha o que a torna segura ("embalagem lacrada e rastreio, sem seguro de valor"), ou chamar de "Retirada Rastreada". Decisão do Gabriel/jurídico.
+- Divergência já anotada pelo Tester: cabeçalho de `/termos` mostrava "2.1" (esperado 2.2) e `/taxas` "2.3" (esperado 2.4). Provável cache/deploy anterior ao commit; confirmar na próxima rodada do Tester.
+- **Crítico do Tester (#310, telas logadas presas em "Carregando a tela…")**: não é de texto; está com R1. Só revisar o visual (44px do banner, botões flutuantes, 375/768/escuro) depois que as telas montarem.
+
+## Rodada 21:40 — revisão visual do banner no ar (realolimpico.com.br, painel visível, só leitura, sem clicar Aceitar/Recusar)
+- 375px: faixa 351×204px (**25% da altura da tela**), botões Recusar/Aceitar 154×44px lado a lado, mesmo peso. Fundo é o gradiente do token (`--ro-cartao`; o `backgroundColor` "transparente" é só porque é imagem), borda dourada, sombra: legível.
+- 1024px (desktop): faixa 760×109px centralizada, botões 44px.
+- Ponto único de melhoria (mobile): 204px é muito alto. Sugestão: no celular reduzir o texto a 2 linhas ("Usamos cookies essenciais e, com sua permissão, cookies de publicidade da Meta. Você pode recusar sem perder nada. Saiba mais") ou diminuir o padding; meta ≤ 150px. Não bloqueia.
+- Nesta conta (equipe) o passeio do tutorial abre por cima da faixa: o cliente novo verá o tutorial antes de poder escolher. Aceitável; só confirmar que o tutorial não impede o clique nos botões depois de fechado.
+- Não conferido: modo claro (a conta/tela estava no escuro; as cores vêm de tokens, sem cor fixa no CSS) e 768px.
+
 ## Revisões de correção
 (nenhuma recebida ainda)
 
