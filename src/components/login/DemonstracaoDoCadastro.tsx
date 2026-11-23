@@ -44,7 +44,7 @@ const PASSOS = [
   'Toque em “Continuar com o Google” e escolha a conta que você usa.',
   'Confira a declaração logo abaixo do botão: ao continuar, você concorda com os Termos de Uso, a Política de Privacidade e a Tabela de Taxas.',
   'Confirme na tela do Google. Você volta para o Real Olímpico com a conta pronta.',
-  'Prefere e-mail? Abra “Prefiro usar e-mail e senha”, preencha nome, e-mail e senha e toque em “Criar conta por e-mail”. Depois confirme o cadastro no e-mail que você receber.',
+  'Prefere e-mail? Abra “Prefiro usar e-mail e senha”, preencha nome, e-mail e senha e toque em “Criar conta por e-mail”. Pronto: você já entra na conta, sem confirmar e-mail.',
 ] as const
 
 interface DemonstracaoDoCadastroProps {
