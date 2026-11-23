@@ -123,6 +123,13 @@ export interface StatementTotals {
   outrasTarifas: Cents
   /** Soma de todos os `impacto` — a variação líquida de saldo do extrato. */
   variacaoSaldo: Cents
+  /**
+   * Tudo o que mexeu no saldo e não é depósito, saque, compra, venda nem taxa: o saldo anterior e os ajustes da equipe,
+   * o frete do envio e o resto. É o que faltava para os cartões somarem o saldo (Rogério, 23/11/2026: "saldo de Gerais,
+   * Laeticia, Leonardo e Pegge não fecha"): `depositado + vendido − sacado − comprado − taxasPagas + ajustesEOutros = variacaoSaldo`,
+   * por construção.
+   */
+  ajustesEOutros: Cents
 }
 
 /** O texto da linha que cobre o que o estado não registra. É a única que não vem de um fato. */
@@ -517,13 +524,16 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
     custodiaPaga: 0,
     outrasTarifas: 0,
     variacaoSaldo: 0,
+    ajustesEOutros: 0,
   }
 
   rows.forEach((r) => {
     t.variacaoSaldo += r.impacto
     if (r.kind === 'Depósito') t.depositado += r.impacto
     if (r.kind === 'Saque') {
-      t.sacado += -r.impacto
+      // `sacado` é o que foi para o banco (sem a tarifa): a tarifa já está em `taxasPagas`, e contar nos dois fazia a
+      // soma dos cartões passar do saldo.
+      t.sacado += -r.impacto - (r.taxa ?? 0)
       t.taxasPagas += r.taxa ?? 0
       t.outrasTarifas += r.taxa ?? 0
     }
@@ -538,7 +548,7 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
     }
     if (r.kind === 'Estorno' && r.estornoDe === 'Saque') {
       // Saque recusado: o valor e a tarifa voltaram, então não contam como sacado nem como tarifa paga.
-      t.sacado -= r.impacto
+      t.sacado -= r.impacto - (r.taxa ?? 0)
       t.taxasPagas -= r.taxa ?? 0
       t.outrasTarifas -= r.taxa ?? 0
     }
@@ -564,6 +574,9 @@ export function statementTotals(rows: readonly StatementRow[]): StatementTotals 
       t.comissoesPagas += r.taxa ?? 0
     }
   })
+
+  t.ajustesEOutros =
+    t.variacaoSaldo - (t.depositado - t.sacado - t.compradoValor + t.vendidoValor - t.taxasPagas)
 
   return t
 }

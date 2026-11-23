@@ -191,6 +191,7 @@ export async function exportStatementXlsx(
     { Indicador: 'Custódia paga', Valor: reais(totais.custodiaPaga) },
     { Indicador: 'Tarifas de saque e retirada', Valor: reais(totais.outrasTarifas) },
     { Indicador: 'Total de taxas pagas', Valor: reais(totais.taxasPagas) },
+    { Indicador: 'Ajustes e outros lançamentos', Valor: reais(totais.ajustesEOutros) },
     { Indicador: 'Variação líquida de saldo', Valor: reais(totais.variacaoSaldo) },
     // Os mesmos números do topo e do cabeçalho da tela (frente F): o saldo disponível é a última linha de
     // "Saldo_Depois", e a reserva e o total só entram quando a conta tem dinheiro em reserva.

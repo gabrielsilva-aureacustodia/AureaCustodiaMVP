@@ -83,6 +83,11 @@ export function AbaFinanceiro({
           valor={dinheiro(t.taxasPagas)}
           detalhe={`Comissões ${dinheiro(t.comissoesPagas)} · custódia ${dinheiro(t.custodiaPaga)} · tarifas ${dinheiro(t.outrasTarifas)}`}
         />
+        <Cartao
+          rotulo="Ajustes e outros"
+          valor={dinheiro(t.ajustesEOutros)}
+          detalhe="saldo anterior, ajustes da equipe, frete e outros lançamentos. Com ele, os cartões somam o saldo."
+        />
       </div>
 
       <details className="adm-detalhes" open>

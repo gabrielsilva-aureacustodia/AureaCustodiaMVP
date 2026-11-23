@@ -156,6 +156,13 @@ export default function ExtratoPage(): ReactNode {
             {totais.compradoQtd} / {totais.vendidoQtd}
           </div>
         </div>
+        {totais.ajustesEOutros !== 0 && (
+          <div className="kpi">
+            <div className="lbl">Ajustes e outros</div>
+            <div className="val">{brl(totais.ajustesEOutros)}</div>
+            <div className="sub">Saldo anterior, ajustes da equipe e frete</div>
+          </div>
+        )}
         <div className="kpi">
           <div className="lbl">Taxas pagas</div>
           <div className="val">{brl(totais.taxasPagas)}</div>
