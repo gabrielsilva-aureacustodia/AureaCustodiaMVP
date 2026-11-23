@@ -100,7 +100,7 @@ const BLOCOS: Bloco[] = [
     tipo: 'action',
     id: 'deposito',
     titulo: 'Depositar em conta',
-    texto: 'Adicione saldo à sua conta via Pix para negociar na plataforma.',
+    texto: 'Adicione saldo à sua conta por Pix ou cartão para negociar na plataforma.',
     icone: (
       <>
         <rect x="3" y="7" width="18" height="13" rx="2" />
