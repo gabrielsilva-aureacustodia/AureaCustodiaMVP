@@ -114,7 +114,13 @@ export function RegisterForm({
           result.data.eventoCadastroId,
         )
       }
-      setMensagem(result.message ?? 'Conta criada. Confirme seu e-mail.')
+      setMensagem(result.message ?? 'Conta criada.')
+      // Conta nasce confirmada e o servidor já abriu a sessão: vai direto para dentro. Carga completa (e não router.push)
+      // para o layout do app ler a sessão nova do zero e o Pixel acima ter tempo de sair antes da troca de página.
+      if (result.data?.entrou) {
+        window.location.assign('/inicio')
+        return
+      }
     } finally {
       setEnviando(false)
     }
@@ -200,7 +206,7 @@ export function RegisterForm({
 
         <EmailAlternativo aberto={Boolean(initialError)}>
           <p className="auth-alt-dica">
-            Use seu e-mail real para receber a confirmação de acesso. A conta só fica ativa depois do clique no link. Campos com * são obrigatórios.
+            Sua conta fica pronta ao terminar o cadastro e você já entra, sem confirmar e-mail. Campos com * são obrigatórios.
           </p>
           <form onSubmit={(event) => void cadastrar(event)}>
             <fieldset disabled={disabled}>

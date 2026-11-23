@@ -47,6 +47,8 @@ export interface OAuthStartData {
 /** O que o formulário de cadastro recebe de volta: o ID do evento da Meta, para o Pixel disparar o par do servidor. */
 export interface CadastroData {
   eventoCadastroId?: string
+  /** Verdadeiro quando a conta nasceu confirmada e a sessão já foi aberta: a tela segue direto para /inicio. */
+  entrou?: boolean
 }
 
 function authError<T = unknown>(): ActionResult<T> {
@@ -197,7 +199,20 @@ export async function registerWithEmail(
     // se quer. Se algum dia o Supabase devolver a conta sem confirmação, vale a mensagem do segundo ramo.
     if (data.user?.email && data.user.email_confirmed_at) {
       await provisionAuthenticatedUser(data.user.email, normalizedName)
-      await client.auth.signOut({ scope: 'local' })
+      // Pedido do Gabriel (22/11/2026): terminado o cadastro a pessoa já está dentro, sem voltar à tela de login. A sessão
+      // do Supabase nasce do próprio signUp; entrar com a senha garante os cookies mesmo que o signUp não os tenha deixado.
+      const { data: entrada, error: erroEntrada } = await client.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: senha,
+      })
+      if (!erroEntrada && entrada.user?.email) {
+        await setSession(normalizarEmail(entrada.user.email))
+        return {
+          ok: true,
+          message: 'Conta criada.',
+          data: { eventoCadastroId, entrou: true },
+        }
+      }
       return {
         ok: true,
         message: 'Conta criada. Você já pode entrar.',

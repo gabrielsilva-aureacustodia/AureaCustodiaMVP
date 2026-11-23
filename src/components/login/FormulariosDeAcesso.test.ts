@@ -96,7 +96,7 @@ describe('cadastro: Google primeiro', () => {
     expect(html).toContain('autoComplete="new-password"')
     expect(html).toContain('Aceitar Cláusula Compromissória de Arbitragem')
     expect(html).toContain('Opcional')
-    expect(html).toContain('Use seu e-mail real para receber a confirmação de acesso.')
+    expect(html).toContain('você já entra, sem confirmar e-mail.')
     expect(html).toContain('Criar conta por e-mail')
     // A declaração do caminho por e-mail continua dentro do formulário, ao lado da do Google.
     expect(html.match(/declara ter lido e concordado/g)).toHaveLength(2)
