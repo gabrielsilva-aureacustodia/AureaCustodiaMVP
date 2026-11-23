@@ -397,3 +397,6 @@ Nomes curtos (para `SendMessage`): `m2-t1-financeiro`, `m2-t2-isencao`, `m2-t3-b
 
 Controle: `Pendências de manutenção do site` decidiu merges, commits e índices; pendências de 23/11 em `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`.
 <!-- entregas22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+Chat Tester (`local_58a21059…`, m2-tester) recebeu a conferência final no ar; recusou testar o cadastro por e-mail (cria conta real, sem OK do Gabriel). Demais chats m2-*/qa-* ociosos.

@@ -222,3 +222,6 @@ Garantias de Execução, planos hiperdetalhados, quadro dos itens do docx, KPIs 
 | `PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` | `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` | Pendências de e-mail — resolvem-se juntas, em 23/11/2026 (decisão do Gabriel) | Manutenção 22-11 / QA Davi / KPIs |
 | `PROPOSTA_DE_KPIS.md` | `docs/kpis/PROPOSTA_DE_KPIS.md` | Proposta de KPIs do conselho — Real Olímpico | Manutenção 22-11 / QA Davi / KPIs |
 <!-- m22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+Novo na raiz: `TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` — documento único de e-mail (DNS/Resend, chave, modelos, esqueci senha, avisos, A06, A14, custo), com decisões do dia. A cópia em `manutencao-22-11-garantias-e-planos/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` foi substituída pela versão consolidada.

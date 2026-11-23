@@ -37,3 +37,6 @@ Criada em 22/11/2026, só para o repositório **Áurea Custódia / Real Olímpic
 - `05_memorias_da_conta/`: memórias novas de hoje (`memorias-de-sessao-22-11/` + as da conta criadas depois da foto).
 Cada índice lista os arquivos novos; o original sempre manda.
 <!-- m22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+Conta nasce confirmada (B02 encerrado por reversão, commit 91cccf2); nunca criar limitação de cadastro. Tarefa grande pendente para 23/11: `02_planos_de_execucao/TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md`. Pendência do sistema: `01_continuidade/PENDENCIAS_DO_SISTEMA.md` (validação de CPF por API, não aprovada).

@@ -1,5 +1,8 @@
 # TESTER — validação no ar, 22/11/2026
 
+> **DECISÃO FINAL (Gabriel, 22/11/2026 noite): B02 ENCERRADO POR REVERSÃO.** A conta nasce confirmada, sem confirmação de e-mail e sem nenhuma limitação ao cadastro (regra permanente: cadastro rápido e fácil). Código revertido no commit 91cccf2 (`registerWithEmail`, `salvarCadastro`, `conta-acesso.ts`); autoconfirm do Supabase fica ligado. Não depende mais de e-mail. Tudo o mais de e-mail: `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`. Validação de CPF por API: não aprovada, em `PENDENCIAS_DO_SISTEMA.md`.
+
+
 Alvo: https://realolimpico.com.br (deploy 6c3f79f). Browser embutido, só leitura. Nenhuma conta criada, nenhuma senha digitada por mim, nenhum botão que grave dado clicado. O Gabriel logou sozinho no painel (conta de equipe "Gabriel Silva"). Servidor local NÃO foi usado.
 
 ## Públicas — 375 / 768 / 1280, claro e escuro

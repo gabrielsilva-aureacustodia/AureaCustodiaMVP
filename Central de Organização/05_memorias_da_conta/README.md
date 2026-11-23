@@ -111,3 +111,6 @@ Foto tirada no fechamento; `git log d570215^..HEAD` refaz a lista. Memória nova
 | `1e6b775` | T2+T3: isenção Áurea/CEO, CPF ou CNPJ, peso padrão do balcão, gravador de vídeo |
 | `d570215` | T1 Financeiro: saldo dos clientes, taxas pagas com custódia, troca de e-mail sem reescrever o livro-razão |
 <!-- commits22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+`email-fica-para-amanha-registrar-tudo.md` atualizado: conta nasce confirmada, sem confirmação de e-mail; nunca limitar cadastro; documento único de e-mail e validação de CPF em pendências.

@@ -48,3 +48,6 @@ Chats por pasta: IOCUS_Park\iocus 112, franco_leiloes 26, Sintetica 56, este rep
 
 ## 5. Lacuna que o Gabriel precisa resolver
 A árvore de chats deste repositório só pode ser descrita com certeza pela conta que os criou. Se for preciso descrever cada um com base na transcrição, essa conta deve rodar a mesma tarefa lá.
+
+## Atualização 22/11/2026 (21:55)
+Desta conta saíram também: `PENDENCIAS_DO_SISTEMA.md`, `TAREFA_GRANDE_PENDENTE__TUDO_DE_EMAIL_23-11.md` e a memória de e-mail atualizada.

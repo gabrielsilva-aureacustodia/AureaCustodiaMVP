@@ -13,3 +13,5 @@ Gabriel (22/11/2026): tudo que envolve e-mail será resolvido em 23/11, junto co
 **Why:** a chave depende dos registros DNS em `avisos.realolimpico.com.br`; resolver pela metade gera retrabalho. Ele já repetiu e se irritou.
 
 **How to apply:** não perguntar nem insistir sobre e-mail; todo item novo que dependa de envio de e-mail (confirmação de cadastro, B02, avisos, esqueci senha, textos de saque) vai para `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md` na hora, e o resto do trabalho segue sem esperar. Ver [[registrar-atalhos-assumidos]] e [[variaveis-da-vercel-sao-minhas]] (a variável eu crio quando a chave existir).
+
+**Decisão 22/11 (noite):** conta nasce confirmada, SEM confirmação de e-mail (autoconfirm do Supabase fica ligado); nunca criar limitação ao cadastro — cadastro rápido e fácil sempre. Documento único: `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`. Validação de CPF por API: não aprovada, em `PENDENCIAS_DO_SISTEMA.md`.

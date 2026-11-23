@@ -129,3 +129,6 @@ Relatórios dos chats de hoje, ligados ao código e às decisões. Original mand
 | `TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` | `docs/manutencao-2026-11/garantias/TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff` | TERMOS_v2.2_PATCH_AGUARDANDO_APROVACAO.diff | Manutenção 22-11 / QA Davi / KPIs |
 | `PENDENCIAS_DE_DADOS_E_AUTOMACOES.md` | `docs/kpis/PENDENCIAS_DE_DADOS_E_AUTOMACOES.md` | KPIs do conselho — respostas, o que ficou sem cálculo e o que falta | Manutenção 22-11 / QA Davi / KPIs |
 <!-- m22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+`manutencao-22-11-qa-davi-e-conselho/RELATORIO_STATUS_QA_DAVI_22-11.md` e `TESTER_22-11.md` agora trazem a decisão final: B02 encerrado (conta nasce confirmada, sem limitação de cadastro). Faltam conferências do Tester em produção (B03, B06, B07, S02–S06, A04, A07, A12, A13, A15, A16, B09, B01 view-source, reaceite); o Tester recusou testar o cadastro por criar conta real — pendente de OK do Gabriel.

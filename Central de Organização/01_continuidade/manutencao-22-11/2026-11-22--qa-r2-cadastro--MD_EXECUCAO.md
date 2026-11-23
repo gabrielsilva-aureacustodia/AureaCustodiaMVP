@@ -1,5 +1,8 @@
 # QA Davi 22-11 | R2 Cadastro e conta — MD de execução
 
+> **DECISÃO FINAL (Gabriel, 22/11/2026 noite): B02 ENCERRADO POR REVERSÃO.** A conta nasce confirmada, sem confirmação de e-mail e sem nenhuma limitação ao cadastro (regra permanente: cadastro rápido e fácil). Código revertido no commit 91cccf2 (`registerWithEmail`, `salvarCadastro`, `conta-acesso.ts`); autoconfirm do Supabase fica ligado. Não depende mais de e-mail. Tudo o mais de e-mail: `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`. Validação de CPF por API: não aprovada, em `PENDENCIAS_DO_SISTEMA.md`.
+
+
 ## RETOMADA
 - Tema R2 do `docs/manutencao-2026-11/garantias/PLANO_HIPERDETALHADO__Relatorio_QA_Davi_22-11.md`. Pasta completa, sem build local, **sem commit/push** (Merge/Deploy faz). Só toquei no meu tema.
 - **Estado: código feito e testado por vitest/tsc; nada no ar.** Falta o Merge/Deploy e uma ação do Gabriel no Supabase (abaixo).

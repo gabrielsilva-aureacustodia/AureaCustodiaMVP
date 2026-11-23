@@ -130,3 +130,6 @@ MD de execução de cada chat de hoje; o original em `docs/diario/execucoes/` é
 | `2026-11-22--qa-r3-dinheiro--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r3-dinheiro--MD_EXECUCAO.md` | QA Davi 22-11 / R3 Dinheiro e formulários / Execução — 22/11/2026 | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
 | `2026-11-22--qa-r4-textos--MD_EXECUCAO.md` | `docs/diario/execucoes/2026-11-22--qa-r4-textos--MD_EXECUCAO.md` | MD de execução — QA Davi 22-11 · R4 Texto legal e usabilidade (22/11/2026) | Manutenção 22-11 (T1–T6) e QA Davi (R1–R4) |
 <!-- m22:fim -->
+
+## Atualização 22/11/2026 (21:55)
+Novo: `PENDENCIAS_DO_SISTEMA.md` (validação de CPF por API — não aprovada; pergunta nº 21 ao contador). `manutencao-22-11/2026-11-22--qa-r2-cadastro--MD_EXECUCAO.md` ganhou a decisão final do B02 (conta nasce confirmada, revertido em 91cccf2).

@@ -1,5 +1,8 @@
 # Relatório de status | QA do Davi Bego (22/11/2026)
 
+> **DECISÃO FINAL (Gabriel, 22/11/2026 noite): B02 ENCERRADO POR REVERSÃO.** A conta nasce confirmada, sem confirmação de e-mail e sem nenhuma limitação ao cadastro (regra permanente: cadastro rápido e fácil). Código revertido no commit 91cccf2 (`registerWithEmail`, `salvarCadastro`, `conta-acesso.ts`); autoconfirm do Supabase fica ligado. Não depende mais de e-mail. Tudo o mais de e-mail: `docs/manutencao-2026-11/PENDENCIAS_DE_EMAIL_PARA_AMANHA.md`. Validação de CPF por API: não aprovada, em `PENDENCIAS_DO_SISTEMA.md`.
+
+
 > Para o Rogério e o Gabriel. Atualizado a cada 15 minutos pelo chat "Relatórios". Fonte do relatório: `docs/manutencao-2026-11/relatorio-qa-davi/RELATORIO_QA_DAVI_BEGO_texto.md`.
 
 **Última atualização:** 22/11/2026, 21:33 (**final**; rotina de 15 minutos encerrada)
@@ -43,7 +46,7 @@ Estados: não começou · em execução · pronto no código · no ar · precisa
 | Item | O que era | Tema | Estado | sha | Prova  Decisão tomada e por quê |
 |---|---|---|---|---|---|---|
 | B01 | CPF, Pix, banco e saldo de TODOS os clientes vão junto com as páginas logadas (crítico) | R1 | no ar (falta conferência do Tester) | 4c2df93 | 9+ testes do payload (`estado-do-usuario.test.ts`, regressão e97a19e); Auditoria conferiu. Falta: view-source e `/api/state` com 2 contas de teste. | Corrigir antes de tudo e no servidor: o navegador só recebe o que é do dono da conta; terceiros viram pseudônimo. Dado de cliente no código da página não se resolve com esconder na tela. |
-| B02 | Conta nasce "e-mail verificado" sem clicar em nada | R2 | e-mail — fica para 23/11 (ver ../PENDENCIAS_DE_EMAIL_PARA_AMANHA.md); código no ar | 4026823 | `email-pendente.test.ts`; fluxo de e-mail nunca testado. Supabase de produção com `mailer_autoconfirm: true`; conta nova só exige clique depois que isso for desligado. | Bloquear só depósito, compra, venda e saque até confirmar o e-mail (não o login): protege o dinheiro sem trancar os sócios. Contas antigas ficam verificadas. |
+| B02 | Conta nasce "e-mail verificado" sem clicar em nada | R2 | ENCERRADO: conta nasce confirmada por decisão do Gabriel (revertido em 91cccf2) | 4026823 | `email-pendente.test.ts`; fluxo de e-mail nunca testado. Supabase de produção com `mailer_autoconfirm: true`; conta nova só exige clique depois que isso for desligado. | Bloquear só depósito, compra, venda e saque até confirmar o e-mail (não o login): protege o dinheiro sem trancar os sócios. Contas antigas ficam verificadas. |
 | B03 | Cadastro formal grava data futura, Pix e telefone inválidos | R2 | no ar | 4026823 | `validacao-cadastro.test.ts` (30), validação também no servidor. Tester ainda não conferiu no ar. | Validar no navegador e no servidor. Sem Datavalid/Consulta CPF: serviço pago; só se confere o dígito. |
 | B04 | Números do tutorial ficam por cima das janelas | R4 | no ar | 4b2f48f | `tutorial.css:32`. Tester ainda não conferiu no ar. | Esconder números e painel do tutorial quando há janela aberta; voltam ao fechar. |
 | B05 | "até30" sem espaço na Academy | R4 | no ar | 4b2f48f | Tester: "até30" corrigido na Academy. | — |
@@ -181,3 +184,5 @@ Fora de código, sem classificar como "dele": validação na Receita (serviço p
 | 21:25 | `main` @ `895b924` = `origin/main` | Controle registrou: documentos legais publicados no banco (Termos 2.2, Arbitragem 2.2, Política 2.1, Taxas 2.5) com reaceite disparando; #310 encerrado como artefato do painel oculto; CSP bloqueante de volta (`ee28f3b`); faixa de cookies no celular (`18630a9`). Item "telas logadas não montam" removido. |
 | 21:31 | `main` @ `81f2cfa` = `origin/main` | Tester fechou a conferência: 404, Academy, Termos 2.2, Taxas 2.5, Política 2.1, reaceite, auditoria, mercado, CSP e banner de cookies (375/768/1280, claro e escuro, botões de 44 px) confirmados no ar. Em aberto: Arbitragem 2.2 fora do reaceite; view-source do B01 e cookies Secure após novo login; telas logadas com painel visível; e-mail em 23/11. |
 | 21:33 | `main` @ `81f2cfa` = `origin/main` | Fechamento. Tudo resolvido, exceto e-mail (23/11). `81f2cfa` READY, documentos legais no banco, CSP bloqueante, telas logadas conferidas pelo Controle e pelo Tester. Cron de 15 minutos apagado. Fica registrada a observação da Arbitragem 2.2, que não aparece na lista de reaceite. |
+
+| ~21:55 | 91cccf2 | Gabriel: conta nasce confirmada, sem limitação de cadastro. B02 revertido; documento único de e-mail e pendência de CPF por API registrados. |
