@@ -39,7 +39,7 @@ Controle `Manutenção Real Olímpico -- Pendências | Controle` (nível superio
 
 ## 5. Lacunas que você deve levar ao Gabriel
 
-Este repositório não tem Garantia de Execução; não existem chats de Polimento, Merge/Deploy, Relatórios, Processo Padrão, Tester e Higienização (o Controle faz); frentes G tem dois chats duplicados; as frentes ainda abertas dependem de ações dele (variável `RESEND_API_KEY` na Vercel, teste no iPhone, pergunta nº 21 ao contador, decisão sobre armazenamento de vídeos).
+Este repositório passou a ter Garantias de Execução em 22/11 (`docs/manutencao-2026-11/garantias/`, copiadas em `02_planos_de_execucao/manutencao-22-11-garantias-e-planos/`); as frentes A–L de 17/11 não tiveram; não existem chats de Polimento, Merge/Deploy, Relatórios, Processo Padrão, Tester e Higienização (o Controle faz); frentes G tem dois chats duplicados; as frentes ainda abertas dependem de ações dele (variável `RESEND_API_KEY` na Vercel, teste no iPhone, pergunta nº 21 ao contador, decisão sobre armazenamento de vídeos).
 
 ## 6. Acréscimo da conta atual [conta-atual-22/11]
 Leia também `06_origem_conta_atual/INDICE_O_QUE_VEIO_DESTA_CONTA.md`: diz de qual conta veio cada entrada. Resumo: os 69 chats de `04_chats/` vêm da outra conta; as 47 memórias existem idênticas nas duas; a conta atual só acrescentou esse índice.

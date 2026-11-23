@@ -20,7 +20,7 @@ Criada em 22/11/2026, só para o repositório **Áurea Custódia / Real Olímpic
 6. Sessão nova: colar `00_MD_PARA_OUTRA_SESSAO.md`.
 
 ## Limites conhecidos
-- Este repositório **não tem Garantia de Execução** (o método de garantia só foi aplicado no IOCUS). Os equivalentes estão em `02_planos_de_execucao/`.
+- As Garantias de Execução existem só para a rodada de 22/11 (`docs/manutencao-2026-11/garantias/`); as frentes A–L de 17/11 usam os planos em `02_planos_de_execucao/`. Estado medido em produção: `docs/manutencao-2026-11/STATUS_VERIFICADO_23-11.md`.
 - A lista de chats é uma foto de 22/11/2026 ~20:50; os ids `local_…` mudam entre contas. Não abri a transcrição de cada chat (ver "Honestidade" no topo do MD dos chats).
 - Algumas continuidades mais novas moram só em worktrees, sem commit: `01_continuidade/versoes-das-worktrees/`.
 - O repositório é **público de propósito** (RA-11): as memórias e os MDs aqui não têm senha nem chave (verificado), mas conferir antes de qualquer push.

@@ -2,6 +2,9 @@
 
 Montada lendo a última resposta de cada chat de 22/11 (T1–T6, R1–R4, Auditoria, Polimento, Merge/Deploy, Relatórios, Higienização, Processo Padrão, Tester) e conferindo Git, banco (somente leitura) e Vercel. Não é a leitura das transcrições inteiras.
 
+## 23/11 (tarde) — conferência item a item do relatório
+Ver `docs/manutencao-2026-11/STATUS_VERIFICADO_23-11.md`: o que foi medido em produção, os 3 ajustes de dado feitos (fatura de custódia do CEO, 3 pesos, 5 notas recolocadas na fila) e o que depende de outra pessoa.
+
 ## Decisões do Gabriel já tomadas (não reabrir)
 - Conta nasce confirmada, sem confirmação de e-mail. Nunca criar limitação ao cadastro.
 - Cookies presumidos; aviso pequeno que some; texto nos Termos 2.3 (cláusula 3.3).
