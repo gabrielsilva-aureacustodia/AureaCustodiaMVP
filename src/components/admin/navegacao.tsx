@@ -210,6 +210,15 @@ export const GRUPOS_NAV: readonly GrupoNav[] = [
         icone: <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4" />,
       },
       {
+        href: '/admin/features',
+        rotulo: 'Features',
+        titulo: 'Features',
+        subtitulo: 'Interruptores do site: negociação sem confirmação, animações e botões flutuantes. Só da superadmin.',
+        // `admin.papeis` só o papel dev tem; a página e a ação conferem o papel `dev` de novo.
+        permissoes: ['admin.papeis'],
+        icone: <path d="M3 8a4 4 0 0 1 4-4h10a4 4 0 0 1 0 8H7a4 4 0 0 1-4-4zm14 0h.01M3 16a4 4 0 0 1 4-4h10a4 4 0 0 1 0 8H7a4 4 0 0 1-4-4zm4 0h.01" />,
+      },
+      {
         href: '/admin/equipe',
         rotulo: 'Equipe e papéis',
         titulo: 'Equipe e papéis',

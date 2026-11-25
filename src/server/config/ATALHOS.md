@@ -39,3 +39,9 @@ Cada item também está em [`RISCOS_ASSUMIDOS.md`](../../../RISCOS_ASSUMIDOS.md)
   comissão zero é aceita. Não é política comercial.
 - **Canais de atendimento vazios não aparecem em `/suporte`.** É o comportamento pedido desde a A3
   (RA-26): a página mostra só o canal que existe.
+
+---
+
+## RA-62 — `features.ts`: negociação sem confirmação por senha
+
+A feature `confirmacaoNegociacao` (`src/domain/admin/features.ts`) nasce DESLIGADA a pedido do Gabriel (25/11/2026, temporário). Detalhe e custo em `RISCOS_ASSUMIDOS.md`. Falha de leitura do banco também cai no padrão (desligada).

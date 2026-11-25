@@ -65,6 +65,7 @@ import { normalizarEmail } from '@/domain/email'
 import type { ActionResult } from '@/domain/types'
 import { portaDeIdentidadeDoAmbiente } from '@/server/admin/identidade'
 import { AuthConfigurationError, getAuthConfig } from '@/server/auth/config'
+import { featureLigada } from '@/server/config/features'
 import { getSessionEmail } from '@/server/session'
 
 import {
@@ -241,6 +242,11 @@ export async function exigirReautenticacao(
 ): Promise<BloqueioDeConfirmacao | null> {
   const email = await getSessionEmail()
   if (!email) return { ok: false, error: SESSAO_EXPIRADA }
+
+  // INTERRUPTOR DA SUPERADMIN (/admin/features, 25/11/2026): `janela` é a confirmação de NEGOCIAÇÃO (compra,
+  // venda, oferta, pagar compra). Com `confirmacaoNegociacao` desligada, ela passa sem pedir nada. `sempre`
+  // (saque, senha, e-mail, Pix, dados, retirada) não é negociação e NUNCA é dispensada por aqui.
+  if (nivel === 'janela' && !(await featureLigada('confirmacaoNegociacao'))) return null
 
   const jar = await cookies()
   const prova = lerProva(jar.get(COOKIE_DA_PROVA)?.value, email)

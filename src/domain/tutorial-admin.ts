@@ -106,6 +106,7 @@ export const PAGINAS_ADMIN_COM_TUTORIAL = [
   '/admin/resultados/kpis',
   '/admin/resultados/uso',
   '/admin/configuracao',
+  '/admin/features',
   '/admin/equipe',
 ] as const
 
@@ -145,6 +146,7 @@ export const PERMISSOES_DA_PAGINA: Record<PaginaAdmin, Exigencia> = {
   '/admin/resultados/kpis': ['resultados.ver'],
   '/admin/resultados/uso': ['resultados.ver', 'admin.auditoria'],
   '/admin/configuracao': ['config.ver'],
+  '/admin/features': ['admin.papeis'],
   '/admin/equipe': ['admin.membros', 'admin.papeis'],
 }
 
@@ -325,6 +327,15 @@ const PASSOS_DO_TOUR: readonly PassoBruto[] = [
     alvo: itemDoMenu('/admin/configuracao'),
     noMenu: true,
     exige: ['config.ver'],
+  },
+  {
+    id: 'features',
+    grupo: 'config',
+    titulo: 'Features',
+    texto: 'Interruptores do site, só da superadmin: negociação sem confirmação por senha, animações e botões flutuantes. Cada troca fica na trilha de auditoria.',
+    alvo: itemDoMenu('/admin/features'),
+    noMenu: true,
+    exige: ['admin.papeis'],
   },
   {
     id: 'equipe',
@@ -946,6 +957,24 @@ function conteudoDaPagina(pagina: PaginaAdmin): TutorialDePaginaAdmin {
         ],
       }
 
+    case '/admin/features':
+      return {
+        titulo: 'Guia das Features',
+        dicas: [
+          {
+            id: 'features-negociacao',
+            titulo: 'Negociação',
+            texto: 'Liga ou desliga o pedido de senha ao comprar, vender e anunciar. Desligado, a negociação passa sem confirmação; saque e troca de dados continuam pedindo.',
+            alvo: secao('Negociação'),
+          },
+          {
+            id: 'features-gerais',
+            titulo: 'Configurações gerais',
+            texto: 'Atalhos para taxas, parâmetros, catálogo e integrações, que ficam na Configuração do site.',
+            alvo: secao('Configurações gerais do site'),
+          },
+        ],
+      }
     case '/admin/equipe':
       return {
         titulo: 'Guia da Equipe e papéis',

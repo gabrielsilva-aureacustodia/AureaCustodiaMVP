@@ -78,6 +78,7 @@ Regra:         todo atalho registrado aqui E na pasta do arquivo modificado
 | **RA-59** | Integração com o contrato dos Correios: valor declarado fixo de R$ 150/moeda no envio, peso estimado, prazo de postagem de 3 dias contado da criação do protocolo (não do pagamento do frete), frete fora da receita bruta até o contador definir, token em memória por instância | 🟡 | `src/lib/shipping/`, `src/server/shipping/`, `src/domain/dre.ts` |
 | **RA-60** | App instalável (PWA): não provado em aparelho real; iPhone sem sinal de instalação ("Já adicionei" vale 30 dias); `middleware` libera 6 caminhos estáticos sem sessão; `htmlLimitedBots` global; sem screenshots no manifesto nem tela de abertura do iPhone; ícones compostos a partir do emblema oficial (visual aprovado em 05/11/2026) | 🟡 | `src/lib/pwa/`, `src/components/pwa/`, `src/middleware.ts`, `next.config.mjs`, `src/app/manifest.ts`, `src/app/sw.js/` |
 | **RA-61** | Pixel da Meta: desde 22/11/2026 (revisto por decisão do Gabriel no mesmo dia) o uso é PRESUMIDO: carrega por padrão e só para quem recusa no aviso pequeno de cookies (navegador e API de Conversões); o texto está nos Termos de Uso 3.3 (v2.3), sem aceite separado — consentimento presumido é mais frágil perante a LGPD que o opt-in, risco assumido; CompleteRegistration do e-mail conta no envio do formulário (antes de confirmar o e-mail); sem `value` no evento | 🟡 | `src/lib/meta/`, `src/server/meta/`, `src/components/meta/`, `src/app/layout.tsx`, `src/app/entrar/callback/route.ts`, `src/server/actions/auth.ts` |
+| **RA-62** | Confirmação por senha na negociação DESLIGADA por padrão (pedido do Gabriel, 25/11/2026, temporário): compra, venda, oferta e pagamento de compra passam sem pedir a senha (a guarda `janela` de `exigirReautenticacao` consulta a feature `confirmacaoNegociacao`, desligada). Revoga na prática a D3 de 17/11 para negociação: conta aberta/emprestada negocia sem prova. Saque, senha, e-mail, Pix, dados e retirada (`sempre`) NÃO mudam. Voltar: superadmin liga em `/admin/features` (sem deploy) | 🔴 | `src/server/auth/reautenticacao.ts`, `src/domain/admin/features.ts`, `src/server/config/features.ts`, `src/app/(admin)/admin/features/` |
 | **RA-62** | PDF da nota fiscal do cliente é um "Documento Auxiliar da NFS-e" montado no navegador a partir do XML guardado: sem QR Code e fora do layout oficial do DANFSe v2.0 (NT 008); o XML é o documento oficial. Nota nº 1 a 3 (contador, 22/10) não estão na fila e não aparecem na página | 🟡 | `src/lib/pdf/nota-pdf.ts`, `src/app/(app)/conta/notas/`, `src/server/nfse/consulta.ts` |
 
 ---
@@ -1429,3 +1430,12 @@ e-mail vem só da sessão) e baixa o XML e um PDF de cada uma. Em `/conta/fatura
 
 **O que isso custa:** o cliente que precisar de um PDF no layout oficial (por exemplo, para a contabilidade dele) não o
 tem pelo site, só o XML; risco de reclamação, não fiscal, porque o XML autorizado é o documento válido.
+
+---
+
+# RA-62 — Negociação sem confirmação por senha (interruptor da superadmin) 🔴
+
+**O que é:** desde 25/11/2026 a feature `confirmacaoNegociacao` nasce desligada. Comprar, vender, anunciar, ofertar e pagar compra não pedem senha nem código.
+**Por que:** pedido do Gabriel, temporário.
+**O que custa:** qualquer pessoa com a conta aberta (celular emprestado, aba esquecida) negocia sem prova — o problema que a D3 resolvia (pedido do Rogério, 02/11/2026). Saque e dados de acesso continuam protegidos.
+**Como voltar:** `/admin/features` → "Pedir a senha para negociar" → Ligada. Vale na hora, sem deploy; a troca fica em `config_historico` e na trilha (`admin.features.alternar`).

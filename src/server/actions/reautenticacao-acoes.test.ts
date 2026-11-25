@@ -33,7 +33,9 @@ const {
   authSignIn,
   authUpdate,
   eventoMock,
+  featureLigadaMock,
 } = vi.hoisted(() => ({
+  featureLigadaMock: vi.fn(async (_chave: string) => true),
   cookiesMock: vi.fn(),
   getSessionEmail: vi.fn(),
   setSession: vi.fn(),
@@ -54,6 +56,7 @@ vi.mock('@/server/auth/reautenticacao-eventos', async (importarOriginal) => ({
 }))
 vi.mock('next/headers', () => ({ cookies: cookiesMock }))
 vi.mock('@/server/session', () => ({ getSessionEmail, setSession }))
+vi.mock('@/server/config/features', () => ({ featureLigada: featureLigadaMock }))
 // O cliente descartável com que a guarda confere a senha (nunca o da sessão do site).
 vi.mock('@supabase/supabase-js', () => ({ createClient: createClientMock }))
 // O cliente que `changePassword` usa para trocar a senha de fato.
@@ -173,6 +176,8 @@ async function fotoDoEstado(): Promise<string> {
 }
 
 beforeEach(async () => {
+  featureLigadaMock.mockReset()
+  featureLigadaMock.mockResolvedValue(true) // estes testes são da confirmação LIGADA
   process.env.SESSION_SECRET = 'segredo-de-teste-das-acoes-sensiveis'
   process.env.SUPABASE_URL = 'https://projeto.supabase.test'
   process.env.SUPABASE_ANON_KEY = 'chave-publicavel-de-teste'

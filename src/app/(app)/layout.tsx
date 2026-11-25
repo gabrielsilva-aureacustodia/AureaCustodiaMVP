@@ -40,6 +40,8 @@ import { ModalHost } from '@/components/ui/Modal'
 import { podeAbrirPainelAdmin } from '@/server/admin/acesso'
 import { carregarConfiguracaoDoSite, configDoCliente } from '@/server/config/carregar'
 import { documentosPendentesDeAceite } from '@/server/config/documentos'
+import { carregarFeatures } from '@/server/config/features'
+import { cssDasFeatures } from '@/domain/admin/features'
 import { barrarContaDesativada, SAIDA_DA_CONTA_DESATIVADA } from '@/server/auth/conta-desativada'
 import { getSessionEmail } from '@/server/session'
 import { visaoDoUsuario } from '@/server/estado-do-usuario'
@@ -72,12 +74,15 @@ export default async function AppLayout({
   // vigente dos documentos. Os dois voltam a ser lidos a cada ciclo por /api/state.
   const config = await carregarConfiguracaoDoSite()
   const aceitesPendentes = await documentosPendentesDeAceite(session, config)
+  // Interruptores da superadmin (/admin/features): animações e botões flutuantes. Falha de leitura = padrão do código.
+  const cssDeFeatures = cssDasFeatures(await carregarFeatures())
 
   return (
     // `admin` é decidido aqui, no servidor, e só liga o item "Administração" do
     // menu. O painel e as rotas de API conferem de novo — o menu é conveniência,
     // não barreira.
     <AppProvider initialState={visaoDoUsuario(state, session)} session={session} admin={admin} config={configDoCliente(config)} aceitesPendentes={aceitesPendentes}>
+      <style>{cssDeFeatures}</style>
       {/* Tutorial guiado: tour da primeira visita, dicas por página e o exemplo de custódia do tour. */}
       <TutorialProvider>
       {/* 1024px = o `lg` em que a área do cliente volta a ter coluna lateral (ver SidebarProvider). */}

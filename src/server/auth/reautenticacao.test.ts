@@ -15,7 +15,8 @@ import { createHmac } from 'node:crypto'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { cookiesMock, getSessionEmailMock, createClientMock, buscarMock } = vi.hoisted(() => ({
+const { cookiesMock, getSessionEmailMock, createClientMock, buscarMock, featureLigadaMock } = vi.hoisted(() => ({
+  featureLigadaMock: vi.fn(async (_chave: string) => true),
   cookiesMock: vi.fn(),
   getSessionEmailMock: vi.fn(),
   createClientMock: vi.fn(),
@@ -25,6 +26,7 @@ const { cookiesMock, getSessionEmailMock, createClientMock, buscarMock } = vi.ho
 vi.mock('server-only', () => ({}))
 vi.mock('next/headers', () => ({ cookies: cookiesMock }))
 vi.mock('@/server/session', () => ({ getSessionEmail: getSessionEmailMock }))
+vi.mock('@/server/config/features', () => ({ featureLigada: featureLigadaMock }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: createClientMock }))
 vi.mock('@/server/admin/identidade', () => ({
   portaDeIdentidadeDoAmbiente: () => ({ configurada: true, faltando: [], buscar: buscarMock }),
@@ -80,6 +82,8 @@ const SENHA_ERRADA = { error: { message: 'Invalid login credentials' }, data: { 
 const CODIGO_ERRADO = { error: { message: 'Token has expired or is invalid' }, data: { session: null } }
 
 beforeEach(() => {
+  featureLigadaMock.mockReset()
+  featureLigadaMock.mockResolvedValue(true) // estes testes são da confirmação LIGADA
   vi.useFakeTimers()
   vi.setSystemTime(AGORA)
   process.env.SESSION_SECRET = 'segredo-de-teste-da-reautenticacao'
@@ -196,6 +200,24 @@ describe('exigirReautenticacao — a guarda das ações', () => {
     const r = await exigirReautenticacao('janela')
     expect(r).toEqual({ ok: false, error: 'Sessão expirada.' })
     expect(r?.precisaSenha).toBeUndefined()
+  })
+
+  it('feature "Pedir a senha para negociar" DESLIGADA: a janela (negociação) passa sem pedir nada', async () => {
+    featureLigadaMock.mockResolvedValue(false)
+    expect(await exigirReautenticacao('janela')).toBeNull()
+    expect(featureLigadaMock).toHaveBeenCalledWith('confirmacaoNegociacao')
+  })
+
+  it('feature de negociação DESLIGADA não afrouxa o nível "sempre" (saque, senha, Pix, retirada)', async () => {
+    featureLigadaMock.mockResolvedValue(false)
+    const r = await exigirReautenticacao('sempre')
+    expect(r).toEqual({ ok: false, precisaSenha: true, nivel: 'sempre', metodo: 'senha' })
+  })
+
+  it('feature desligada e sem sessão: continua recusando com "Sessão expirada."', async () => {
+    featureLigadaMock.mockResolvedValue(false)
+    getSessionEmailMock.mockResolvedValue(null)
+    expect(await exigirReautenticacao('janela')).toEqual({ ok: false, error: 'Sessão expirada.' })
   })
 
   it('sem prova: pede a senha, com o nível e o método da conta', async () => {

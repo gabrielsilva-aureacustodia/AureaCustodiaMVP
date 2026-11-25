@@ -30,6 +30,8 @@ import { SidebarProvider } from '@/components/shell/Sidebar'
 import { ModalHost } from '@/components/ui/Modal'
 import { membroDaPagina } from '@/server/admin/acesso'
 import { contarCasosAbertosNoPainel } from '@/server/actions/admin/casos'
+import { cssDasFeatures } from '@/domain/admin/features'
+import { carregarFeatures } from '@/server/config/features'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +49,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminProvider membro={membro}>
+      {/* Features visuais da superadmin (/admin/features): texto fixo gerado por `cssDasFeatures`, sem entrada externa. */}
+      <style>{cssDasFeatures(await carregarFeatures())}</style>
       <SidebarProvider>
         {/* .app é display:none sem .active — a classe não é decorativa (shell.css). */}
         {/* Pular o menu: com 14 itens, quem navega por teclado atravessava todos antes do conteúdo. */}
