@@ -2,9 +2,6 @@
 
 Montada lendo a última resposta de cada chat de 22/11 (T1–T6, R1–R4, Auditoria, Polimento, Merge/Deploy, Relatórios, Higienização, Processo Padrão, Tester) e conferindo Git, banco (somente leitura) e Vercel. Não é a leitura das transcrições inteiras.
 
-## 23/11 (tarde) — conferência item a item do relatório
-Ver `docs/manutencao-2026-11/STATUS_VERIFICADO_23-11.md`: o que foi medido em produção, os 3 ajustes de dado feitos (fatura de custódia do CEO, 3 pesos, 5 notas recolocadas na fila) e o que depende de outra pessoa.
-
 ## Decisões do Gabriel já tomadas (não reabrir)
 - Conta nasce confirmada, sem confirmação de e-mail. Nunca criar limitação ao cadastro.
 - Cookies presumidos; aviso pequeno que some; texto nos Termos 2.3 (cláusula 3.3).
@@ -51,3 +48,10 @@ Ver `docs/manutencao-2026-11/STATUS_VERIFICADO_23-11.md`: o que foi medido em pr
 - Verificado (22/11): deploy do 00cfcfd com status do commit no GitHub = success. O Tester confirmou no ar, deslogado: landing com "Código de exemplo", /entrar com "Receber link de acesso por e-mail", /cadastrar sem confirmação de e-mail.
 - **NÃO verificado:** "E-mail da conta / Ativo" (Configurações), "Leva menos de um minuto." (/conta) e "por Pix ou cartão" (/inicio). Só aparecem logado e o Tester está deslogado (conta de teste apagada). Falta o Gabriel entrar na conta no painel do navegador para o Tester reler.
 - Só `tsc --noEmit` rodou (sem erro); testes e build não foram rodados (mudança só de texto de tela).
+
+---
+## 25/11/2026 — Negociação sem confirmação + /admin/features (commit 0ac2480, deploy success)
+- Feita: confirmação por senha na negociação DESLIGADA por padrão (feature `confirmacaoNegociacao`, RA-62 em `RISCOS_ASSUMIDOS.md`); saque/senha/e-mail/Pix/dados/retirada continuam pedindo. Seção `/admin/features` só para o papel dev, com 4 interruptores (negociação, animações, botão de tutorial, botão de atendimento) e atalhos da Configuração do site.
+- Verificado em produção (conta do Gabriel): página abre; interruptor de tutorial desligou, ficou gravado após recarregar, sumiu no app do cliente e foi religado. Testes (2416) e build passaram antes do push.
+- **NÃO verificado em produção:** uma negociação real sem a senha — a conta usada não tem moeda nem saldo. Coberto só por teste automatizado da guarda.
+- Para voltar a pedir senha: ligar "Pedir a senha para negociar" em /admin/features (vale na hora).
